@@ -1,0 +1,329 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="core">
+      <UniqueIdentifier>{785ced9c-b4cb-4951-863f-eff08bf79381}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="osinteraction">
+      <UniqueIdentifier>{0f99c7c7-dd40-4810-8b6b-caa1fd9eacf6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="osinteraction\windows">
+      <UniqueIdentifier>{a5b78b8a-091f-4a3f-86b5-9a4d27a2389a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\misc">
+      <UniqueIdentifier>{29aefe56-3d51-42ec-8bbe-bf5f8e995d46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\math">
+      <UniqueIdentifier>{ba6c43ad-47df-48ea-a908-62ea02b095f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\concurrency">
+      <UniqueIdentifier>{31341a75-96e4-478e-960f-30515c296df7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\vulkan">
+      <UniqueIdentifier>{813b1bb1-a446-45c0-838b-9ab0c4cca168}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\dx">
+      <UniqueIdentifier>{09e27aa4-0c1d-42e8-92b7-f276f5dcf469}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\dx\dxgi">
+      <UniqueIdentifier>{f8e0559a-358d-4301-b1a2-96755df78e9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\dx\d3d12">
+      <UniqueIdentifier>{eb58bf7e-0e15-4e61-80ae-c88bc285fae7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="osinteraction\linux">
+      <UniqueIdentifier>{550ef8da-61ac-4706-a0bd-42ff6a0a7b42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="osinteraction\macos">
+      <UniqueIdentifier>{df13bc8c-681b-43fe-8924-ccdca4bbbb30}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\opengl45">
+      <UniqueIdentifier>{f7e3cd51-63e9-43c0-b474-9120c1b2f293}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\metal">
+      <UniqueIdentifier>{a4e446ea-aa7a-4e7b-b84e-ea1a1c65d5b1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="vector_types.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="misc.h">
+      <Filter>core\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="entity.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="error_behavioral.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="rectangle.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="hw_adapter_enumerator.h">
+      <Filter>core\dx\dxgi</Filter>
+    </ClInclude>
+    <ClInclude Include="log.h">
+      <Filter>core\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="datetime.h">
+      <Filter>core\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="hw_output_enumerator.h">
+      <Filter>core\dx\dxgi</Filter>
+    </ClInclude>
+    <ClInclude Include="static_hash_table.h">
+      <Filter>core\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="optional.h">
+      <Filter>core\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="flags.h">
+      <Filter>core\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="swap_chain.h">
+      <Filter>core\dx\dxgi</Filter>
+    </ClInclude>
+    <ClInclude Include="window.h">
+      <Filter>osinteraction\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="listener.h">
+      <Filter>osinteraction</Filter>
+    </ClInclude>
+    <ClInclude Include="window_listeners.h">
+      <Filter>osinteraction\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="keyboard.h">
+      <Filter>osinteraction</Filter>
+    </ClInclude>
+    <ClInclude Include="class_names.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="device.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="command_queue.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="command_list.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="common.h">
+      <Filter>core\dx\dxgi</Filter>
+    </ClInclude>
+    <ClInclude Include="debug_interface.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="command_allocator.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="pipeline_state.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="data_blob.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="blend_descriptor.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="constant_converter.h">
+      <Filter>core\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="rasterizer_descriptor.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="depth_stencil_descriptor.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="vertex_attributes.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="opengl45_tools.h">
+      <Filter>core\opengl45</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_tools.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan_tools.h">
+      <Filter>core\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="metal_tools.h">
+      <Filter>core\metal</Filter>
+    </ClInclude>
+    <ClInclude Include="primitive_topology.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_output.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="multisampling.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="root_signature.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="filter.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="fence.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="fence_event.h">
+      <Filter>osinteraction\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="descriptor_heap.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="heap.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="resource_barrier.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="heap_resource_placer.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="descriptor_table.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="constant_buffer.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="matrix_types.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="heap_data_uploader.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="window.cpp">
+      <Filter>osinteraction\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="entity.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="error_behavioral.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="rectangle.cpp">
+      <Filter>core\math</Filter>
+    </ClCompile>
+    <ClCompile Include="hw_adapter_enumerator.cpp">
+      <Filter>core\dx\dxgi</Filter>
+    </ClCompile>
+    <ClCompile Include="log.cpp">
+      <Filter>core\misc</Filter>
+    </ClCompile>
+    <ClCompile Include="datetime.cpp">
+      <Filter>core\misc</Filter>
+    </ClCompile>
+    <ClCompile Include="hw_output_enumerator.cpp">
+      <Filter>core\dx\dxgi</Filter>
+    </ClCompile>
+    <ClCompile Include="swap_chain.cpp">
+      <Filter>core\dx\dxgi</Filter>
+    </ClCompile>
+    <ClCompile Include="listener.cpp">
+      <Filter>osinteraction</Filter>
+    </ClCompile>
+    <ClCompile Include="window_listeners.cpp">
+      <Filter>osinteraction\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="class_names.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="device.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="command_queue.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="command_list.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="debug_interface.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="command_allocator.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="data_blob.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="pipeline_state.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="blend_descriptor.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="rasterizer_descriptor.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="depth_stencil_descriptor.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_output.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="multisampling.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="root_signature.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="filter.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="fence.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="fence_event.cpp">
+      <Filter>osinteraction\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="misc.cpp">
+      <Filter>core\misc</Filter>
+    </ClCompile>
+    <ClCompile Include="descriptor_heap.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="heap.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="heap_resource_placer.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="resource.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="constant_buffer.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="heap_data_uploader.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="d3d12_type_traits.inl">
+      <Filter>core\dx\d3d12</Filter>
+    </None>
+    <None Include="d3d12_min_mag_filter_converter.inl">
+      <Filter>core\dx\d3d12</Filter>
+    </None>
+    <None Include="constant_buffer_impl.inl">
+      <Filter>core\dx\d3d12</Filter>
+    </None>
+    <None Include="constant_buffer_impl_converters_scalar_types.inl">
+      <Filter>core\dx\d3d12</Filter>
+    </None>
+    <None Include="constant_buffer_impl_converters_vector_types.inl">
+      <Filter>core\dx\d3d12</Filter>
+    </None>
+    <None Include="constant_buffer_impl_converters_matrix_types.inl">
+      <Filter>core\dx\d3d12</Filter>
+    </None>
+  </ItemGroup>
+</Project>
