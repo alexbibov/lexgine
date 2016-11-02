@@ -71,10 +71,11 @@ protected:
 class MouseMoveListener : public ConcreteListener<WM_MOUSEMOVE, WM_MOUSELEAVE, WM_MOUSEHOVER>
 {
 public:
-    //! called when mouse cursor moves over client area of the listening window.
-    //! Here @param x and @param y are coordinates of the cursor, and @param control_key_flag determines
-    //! which virtual control keys were pressed when the action was fired.
-    //! The function should return 'true' on success and 'false' on failure
+    /*! called when mouse cursor moves over client area of the listening window.
+      Here x and y are coordinates of the cursor, and control_key_flag determines
+      which virtual control keys were pressed when the action was fired.
+      The function should return 'true' on success and 'false' on failure
+    */
     virtual bool move(uint16_t x, uint16_t y, ControlKeyFlag const& control_key_flag) const = 0;
 
     virtual bool leave_client_area() const = 0;    //! called when mouse cursor leaves client area of the listening window. The function should return 'true' on success
@@ -106,14 +107,16 @@ protected:
 };
 
 
-//! Listener implementing handling of the system event, which notifies application that the client
-//! area of the listening window can now be updated
+/*! Listener implementing handling of the system event, which notifies application that the client
+  area of the listening window can now be updated
+*/
 class ClientAreaUpdateListener : public ConcreteListener<WM_PAINT>
 {
 public:
-    //! Called when all or part of client area of the listening window is invalidated.
-    //! Note that @param update_region may have zero dimensions, in which case it should be assumed that the whole client area should be updated.
-    //! The function should return 'true' on success and 'false' on failure.
+    /*! Called when all or part of client area of the listening window is invalidated.
+      Note that @param update_region may have zero dimensions, in which case it should be assumed that the whole client area should be updated.
+      The function should return 'true' on success and 'false' on failure.
+    */
     virtual bool paint(core::math::Rectangle const& update_region) const = 0;
 
 protected:

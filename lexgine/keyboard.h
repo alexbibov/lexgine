@@ -2,6 +2,7 @@
 
 namespace lexgine { namespace osinteraction {
 
+//! Keyboard keys recognized by the engine
 enum class SystemKey
 {
     tab,

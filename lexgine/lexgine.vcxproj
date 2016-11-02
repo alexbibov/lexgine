@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5DC120BC-E2B4-454D-82ED-565E3A9A9C50}</ProjectGuid>
     <RootNamespace>lexgine</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
     <SccProjectName>SAK</SccProjectName>
     <SccAuxPath>SAK</SccAuxPath>
     <SccLocalPath>SAK</SccLocalPath>
@@ -149,7 +149,10 @@
     <ClCompile Include="fence_event.cpp" />
     <ClCompile Include="filter.cpp" />
     <ClCompile Include="heap.cpp" />
-    <ClCompile Include="heap_data_uploader.cpp" />
+    <ClCompile Include="heap_data_uploader.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="heap_resource_placer.cpp" />
     <ClCompile Include="hw_adapter_enumerator.cpp" />
     <ClCompile Include="hw_output_enumerator.cpp" />

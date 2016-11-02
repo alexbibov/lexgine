@@ -7,8 +7,9 @@
 
 namespace lexgine {namespace osinteraction {namespace windows {
 
-//! Thin wrapper over Windows system event. The event maintained by the object grants all possible access.
-//! NOTE: this event is not secured by security descriptor and thus will not be inherited by children processes
+/*! Thin wrapper over Windows system event. The event maintained by the object grants all possible access rights.
+  NOTE: this event is not secured by security descriptor and thus will not be inherited by children processes
+*/
 class FenceEvent final : public core::NamedEntity<core::class_names::FenceEvent>
 {
 public:
@@ -18,8 +19,9 @@ public:
     bool isResetManually() const;    //! returns 'true' if the event has to be reset manually after having been fired
     void wait() const;    //! blocks the calling process until the event is fired
 
-    //! blocks the calling process until the specified amount of milliseconds has passed or until the event has been fired.
-    //! Returns 'true' if the event was fired during the specified amount of time. Returns 'false' otherwise.
+    /*! blocks the calling process until the specified amount of milliseconds has passed or until the event has been fired.
+      Returns 'true' if the event was fired during the specified amount of time. Returns 'false' otherwise.
+    */
     bool wait(uint32_t milliseconds) const;
 
 private:

@@ -13,9 +13,10 @@ class AbstractListener
 public:
     static const int64_t not_supported = static_cast<int64_t>(0xFFFFFFFFFFFFFFFF);
 
-    //! handles the given message. @param0 - @param7 are reserved for system- and user- defined data that may accompany the message being handled.
-    //! The function returns system-defined value depending on the incoming message and on the message processing status.
-    //! It can also return special value AbstractListener::not_supported in case if requested message cannot be handled by this listener.
+    /*! handles the given message. param0 - param7 are reserved for system- and user- defined data that may accompany the message being handled.
+      The function returns system-defined value depending on the incoming message and on the message processing status.
+      It can also return special value AbstractListener::not_supported in case if requested message cannot be handled by this listener.
+    */
     int64_t handle(uint64_t message, uint64_t param0, uint64_t param1, uint64_t param2, uint64_t param3,
         uint64_t param4, uint64_t param5, uint64_t param6, uint64_t param7) const;
 
@@ -71,13 +72,13 @@ protected:
     }
 };
 
-template<typename Listener, typename... OtherListeners> 
+template<typename Listener, typename... OtherListeners>
 class Listeners<Listener, OtherListeners...> : public Listener, public Listeners<OtherListeners...>
 {
 protected:
     bool doesHandle(uint64_t message) const override
     {
-        return Listener::doesHandle(message) ? true : Listeners<OtherListeners...>::doesHandle(message);
+        return Listener::doesHandle(message) || Listeners<OtherListeners...>::doesHandle(message);
     }
 
     virtual int64_t process_message(uint64_t message, uint64_t param0, uint64_t param1, uint64_t param2, uint64_t param3, uint64_t param4,
