@@ -10,7 +10,7 @@ using namespace Microsoft::WRL;
 
 namespace lexgine {namespace core {namespace dx {namespace d3d12 {
 
-//! Descriptor heap types as dictated by Direct3D 12 specs
+//! Descriptor heap type as dictated by Direct3D 12 specs
 enum class DescriptorHeapType {
     cbv_srv_uav,
     sampler,
