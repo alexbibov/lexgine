@@ -7,6 +7,7 @@
 
 namespace lexgine {namespace core {namespace dx {namespace d3d12 {
 
+//! Helper: implements uploading of placed subresources to the GPU-side
 class HeapDataUploader : public NamedEntity<class_names::D3D12HeapDataUploader>
 {
 public:
@@ -16,19 +17,23 @@ public:
         //! Subresource segment of the destination resource that will get the data (valid only for textures)
         struct DestinationDescriptorSubresourceSegment
         {
-            uint32_t first_subresource;    //! first sub-resource of the destination resource, to which the data being uploaded will get written
-            uint32_t num_subresources;    //! number of sub-resources that will receive the data
+            uint32_t first_subresource;    //!< first sub-resource of the destination resource, to which the data being uploaded will get written
+            uint32_t num_subresources;    //!< number of sub-resources that will receive the data
         };
 
         //! Memory segment of the destination resource that will receive the data
         union DestinationDescriptorSegment
         {
-            DestinationDescriptorSubresourceSegment subresources;    //! sub-resources of the destination resource that will get the source data (valid only for texture resources)
-            uint64_t base_offset;    //! base offset, at which to start writing the data in the destination resource (valid only for buffer resources)
+            DestinationDescriptorSubresourceSegment subresources;    //!< sub-resources of the destination resource that will get the source data (valid only for texture resources)
+            uint64_t base_offset;    //!< base offset, at which to start writing the data in the destination resource (valid only for buffer resources)
         };
 
+        //! Describes type of the memory segment of the destination resource
+        enum DestinationDescriptorSegmentType { texture, buffer };
+
         Resource const* p_destination_resource;    //!< destination resource receiving the data being uploaded
-        DestinationDescriptorSegment segment;    //! segment of the destination resource that will receive the source data
+        DestinationDescriptorSegment segment;    //!< segment of the destination resource that will receive the source data
+        DestinationDescriptorSegmentType segment_type;    //!< type of memory segment of the target resource
     };
 
 
@@ -46,8 +51,14 @@ public:
     HeapDataUploader(HeapDataUploader const&) = delete;
     HeapDataUploader(HeapDataUploader&&) = delete;
 
-    //! executes all previously scheduled upload tasks. This function causes actual copy of the source data to the destination resources. Note that all source data buffer and the
-    //! corresponding destination resources should be alive by the time this function is invoked
+
+    //! creates new upload task and adds it to the list of scheduled upload tasks
+    void addResourceForUpload(DestinationDescriptor const& destination_descriptor, SourceDescriptor const& source_descriptor);
+
+
+    /*! executes all previously scheduled upload tasks. This function causes actual copy of the source data into the destination resources. Note that all source data buffers and the
+      corresponding destination resources should be alive by the time this function is invoked
+    */
     void upload();
 
 private:
@@ -56,6 +67,7 @@ private:
     {
         SourceDescriptor source_descriptor;
         DestinationDescriptor destination_descriptor;
+        uint64_t task_size;
     };
 
 
