@@ -145,6 +145,7 @@
     <ClCompile Include="device.cpp" />
     <ClCompile Include="entity.cpp" />
     <ClCompile Include="error_behavioral.cpp" />
+    <ClCompile Include="exception.cpp" />
     <ClCompile Include="fence.cpp" />
     <ClCompile Include="fence_event.cpp" />
     <ClCompile Include="filter.cpp" />
@@ -192,6 +193,7 @@
     <ClInclude Include="descriptor_heap.h" />
     <ClInclude Include="descriptor_table.h" />
     <ClInclude Include="device.h" />
+    <ClInclude Include="exception.h" />
     <ClInclude Include="fence.h" />
     <ClInclude Include="fence_event.h" />
     <ClInclude Include="filter.h" />
