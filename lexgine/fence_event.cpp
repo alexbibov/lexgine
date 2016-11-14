@@ -1,4 +1,5 @@
 #include "fence_event.h"
+#include "exception.h"
 
 using namespace lexgine::osinteraction::windows;
 
@@ -12,7 +13,7 @@ FenceEvent::FenceEvent(bool is_reset_manually /* = true */) :
         std::string err_msg = "unable to create WinAPI event handle";
         logger().out(err_msg);
         raiseError(err_msg);
-        throw;    //! these kind of errors are fatal
+        throw lexgine::core::Exception{ *this, err_msg };    //! these kind of errors are fatal
     }
 }
 
@@ -34,7 +35,7 @@ void FenceEvent::wait() const
         std::string err_msg = "waiting on WinAPI event has failed";
         logger().out(err_msg);
         raiseError(err_msg);
-        throw;    // this is a fatal error
+        throw lexgine::core::Exception{ *this, err_msg };    // this is a fatal error
     }
 }
 
@@ -46,7 +47,7 @@ bool FenceEvent::wait(uint32_t milliseconds) const
         std::string err_msg = "waiting on WinAPI event has failed";
         logger().out(err_msg);
         raiseError(err_msg);
-        throw;    // this is a fatal error
+        throw lexgine::core::Exception{ *this, err_msg };    // this is a fatal error
     }
 
     return result != WAIT_TIMEOUT;

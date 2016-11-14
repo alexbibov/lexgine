@@ -198,6 +198,9 @@
     <ClInclude Include="heap_data_uploader.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
+    <ClInclude Include="exception.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">
@@ -304,6 +307,9 @@
     </ClCompile>
     <ClCompile Include="heap_data_uploader.cpp">
       <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="exception.cpp">
+      <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
