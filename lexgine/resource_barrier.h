@@ -16,7 +16,7 @@ enum class SplitResourceBarrierFlags
     end,    //!< the resource barrier is "complete-only", i.e. it restores access to the resource, which was previously put to no access state by a "begin-only" resource barrier
 };
 
-//! Tiny object that implements accumulated resource barrier that can store up to @param capacity individual barriers
+//! Tiny object that implements accumulated resource barrier that can store up to "capacity" individual barriers
 template<size_t capacity>
 class ResourceBarrier final
 {
