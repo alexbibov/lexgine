@@ -51,7 +51,7 @@ class DataChunk : public DataBlob
 {
 public:
     DataChunk() = default;    //! empty dummy data chunk with no actual memory allocation
-    DataChunk(DataChunk const& other) = delete;    // object implements unique ownership; hence, copying is forbidden
+    DataChunk(DataChunk const&) = delete;    // object implements unique ownership; hence, copying is forbidden
     DataChunk(DataChunk&&) = default;
     DataChunk(nullptr_t);    //! empty data chunk without actual memory tied to it
     DataChunk(size_t chunk_size);    //! creates new data chunk of given size

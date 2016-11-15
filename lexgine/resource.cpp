@@ -112,8 +112,9 @@ Resource::Resource(Heap & heap, uint64_t heap_offset, ResourceState const & init
     desc.Layout = static_cast<D3D12_TEXTURE_LAYOUT>(descriptor.layout);
     desc.Flags = static_cast<D3D12_RESOURCE_FLAGS>(descriptor.flags.getValue());
 
-    LEXGINE_ERROR_LOG(logger(), heap.device().native()->CreatePlacedResource(heap.native().Get(), heap_offset, &desc, static_cast<D3D12_RESOURCE_STATES>(initial_state.getValue()), &optimized_clear_value, IID_PPV_ARGS(&m_resource)),
-        std::bind(&Resource::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(this,
+        heap.device().native()->CreatePlacedResource(heap.native().Get(), heap_offset, &desc, static_cast<D3D12_RESOURCE_STATES>(initial_state.getValue()), &optimized_clear_value, IID_PPV_ARGS(&m_resource)), 
+        S_OK);
 }
 
 Heap& Resource::heap() const

@@ -68,8 +68,9 @@ Heap::Heap(Device& device, AbstractHeapType type, uint64_t size, HeapCreationFla
     heap_desc.Alignment = is_msaa_supported ? D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
     heap_desc.Flags = static_cast<D3D12_HEAP_FLAGS>(flags.getValue());
 
-    LEXGINE_ERROR_LOG(logger(), device.native()->CreateHeap(&heap_desc, IID_PPV_ARGS(&m_heap)),
-        std::bind(&Heap::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(this, 
+        device.native()->CreateHeap(&heap_desc, IID_PPV_ARGS(&m_heap)), 
+        S_OK);
 }
 
 Heap::Heap(Device& device, CPUPageProperty cpu_page_property, GPUMemoryPool gpu_memory_pool, uint64_t size, HeapCreationFlags flags, bool is_msaa_supported, uint32_t node_mask, uint32_t node_exposure_mask) :
@@ -94,6 +95,9 @@ Heap::Heap(Device& device, CPUPageProperty cpu_page_property, GPUMemoryPool gpu_
     heap_desc.Alignment = is_msaa_supported ? D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
     heap_desc.Flags = static_cast<D3D12_HEAP_FLAGS>(flags.getValue());
 
-    LEXGINE_ERROR_LOG(logger(), device.native()->CreateHeap(&heap_desc, IID_PPV_ARGS(&m_heap)),
-        std::bind(&Heap::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        device.native()->CreateHeap(&heap_desc, IID_PPV_ARGS(&m_heap)), 
+        S_OK
+    );
 }

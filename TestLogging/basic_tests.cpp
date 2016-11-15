@@ -17,6 +17,18 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace TestLogging
 {
+
+class TestErrorBehavioral
+{
+public:
+
+    void raiseError(std::string const& message) const
+    {
+        lexgine::core::misc::Log::retrieve()->out(message);
+    }
+
+};
+
     TEST_CLASS(BasicTests)
     {
     public:
@@ -28,7 +40,13 @@ namespace TestLogging
             Log const& logger = Log::create(test_log, 2, true);
 
             auto ref_time = DateTime::now(2, true);
-            LEXGINE_ERROR_LOG(logger, (2 * 2), [](std::string const&) {}, 2, 3, 5, 19, 6, 7, 8, 10, 0);
+            TestErrorBehavioral test_error_behavioral;
+
+            LEXGINE_ERROR_LOG(
+                &test_error_behavioral,
+                (2 * 2),
+                2, 3, 5, 19, 6, 7, 8, 10, 0
+            );
 
             auto log_time = logger.getLastEntryTimeStamp();
 
@@ -39,7 +57,7 @@ namespace TestLogging
                 + std::to_string(log_time.year()) + "/ (" + std::to_string(log_time.hour()) + ":" + std::to_string(log_time.minute()) + ":" + std::to_string(log_time.second()) + "): ";
 
             std::string log_string = test_log.rdbuf()->str();
-            log_string = log_string.substr(1, ref_string.size());
+            log_string = log_string.substr(84, ref_string.size());
 
 
             Assert::IsTrue(log_string.compare(ref_string) == 0);

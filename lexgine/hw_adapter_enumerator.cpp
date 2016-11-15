@@ -109,10 +109,16 @@ void HwAdapterEnumerator::refresh()
     IDXGIFactory2* p_dxgi_factory2;
 
     //Create DXGI factory
-    LEXGINE_ERROR_LOG(logger(), CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), reinterpret_cast<void**>(&p_dxgi_factory2)),
-        std::bind(&HwAdapterEnumerator::raiseError, this, std::placeholders::_1), S_OK);
-    LEXGINE_ERROR_LOG(logger(), p_dxgi_factory2->QueryInterface(IID_PPV_ARGS(&m_dxgi_factory4)),
-        std::bind(&HwAdapterEnumerator::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), reinterpret_cast<void**>(&p_dxgi_factory2)),
+        S_OK
+    );
+    LEXGINE_ERROR_LOG(
+        this,
+        p_dxgi_factory2->QueryInterface(IID_PPV_ARGS(&m_dxgi_factory4)),
+        S_OK
+    );
     p_dxgi_factory2->Release();
 
     //Enumerate DXGI adapters and attempt to create DX12 device with minimal required feature level (i.e. dx11.0) with
@@ -131,8 +137,11 @@ void HwAdapterEnumerator::refresh()
             return;
         }
 
-        LEXGINE_ERROR_LOG(logger(), p_dxgi_adapter->QueryInterface(__uuidof(IDXGIAdapter3), reinterpret_cast<void**>(&p_dxgi_adapter3)),
-            std::bind(&HwAdapterEnumerator::raiseError, this, std::placeholders::_1), S_OK);
+        LEXGINE_ERROR_LOG(
+            this,
+            p_dxgi_adapter->QueryInterface(__uuidof(IDXGIAdapter3), reinterpret_cast<void**>(&p_dxgi_adapter3)),
+            S_OK
+        );
         p_dxgi_adapter->Release();
 
         HRESULT res;
@@ -155,10 +164,16 @@ void HwAdapterEnumerator::refresh()
     }
 
     //Add WARP adapter to the end of the list (i.e. the WARP adapter is always enumerated and it is always the last adapter in the list)
-    LEXGINE_ERROR_LOG(logger(), m_dxgi_factory4->EnumWarpAdapter(__uuidof(IDXGIAdapter), reinterpret_cast<void**>(&p_dxgi_adapter)),
-        std::bind(&HwAdapterEnumerator::raiseError, this, std::placeholders::_1), S_OK);
-    LEXGINE_ERROR_LOG(logger(), p_dxgi_adapter->QueryInterface(__uuidof(IDXGIAdapter3), reinterpret_cast<void**>(&p_dxgi_adapter3)),
-        std::bind(&HwAdapterEnumerator::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_dxgi_factory4->EnumWarpAdapter(__uuidof(IDXGIAdapter), reinterpret_cast<void**>(&p_dxgi_adapter)),
+        S_OK
+    );
+    LEXGINE_ERROR_LOG(
+        this,
+        p_dxgi_adapter->QueryInterface(__uuidof(IDXGIAdapter3), reinterpret_cast<void**>(&p_dxgi_adapter3)),
+        S_OK
+    );
     m_adapter_list.emplace_back(m_dxgi_factory4, ComPtr<IDXGIAdapter3> {p_dxgi_adapter3});
     p_dxgi_adapter3->Release();
 
@@ -237,15 +252,21 @@ void HwAdapter::details::refreshMemoryStatistics()
     {
         DXGI_QUERY_VIDEO_MEMORY_INFO vm_info_desc;
 
-        LEXGINE_ERROR_LOG(m_p_outer->logger(), m_p_outer->m_dxgi_adapter->QueryVideoMemoryInfo(i, DXGI_MEMORY_SEGMENT_GROUP::DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &vm_info_desc),
-            std::bind(&HwAdapter::raiseError, m_p_outer, std::placeholders::_1), S_OK);
+        LEXGINE_ERROR_LOG(
+            m_p_outer,
+            m_p_outer->m_dxgi_adapter->QueryVideoMemoryInfo(i, DXGI_MEMORY_SEGMENT_GROUP::DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &vm_info_desc),
+            S_OK
+        );
         m_local_memory_desc[i].total = vm_info_desc.Budget;
         m_local_memory_desc[i].available = vm_info_desc.AvailableForReservation;
         m_local_memory_desc[i].current_usage = vm_info_desc.CurrentUsage;
         m_local_memory_desc[i].current_reservation = vm_info_desc.CurrentReservation;
 
-        LEXGINE_ERROR_LOG(m_p_outer->logger(), m_p_outer->m_dxgi_adapter->QueryVideoMemoryInfo(i, DXGI_MEMORY_SEGMENT_GROUP::DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &vm_info_desc),
-            std::bind(&HwAdapter::raiseError, m_p_outer, std::placeholders::_1), S_OK);
+        LEXGINE_ERROR_LOG(
+            m_p_outer,
+            m_p_outer->m_dxgi_adapter->QueryVideoMemoryInfo(i, DXGI_MEMORY_SEGMENT_GROUP::DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &vm_info_desc),
+            S_OK
+        );
         m_non_local_memory_desc[i].total = vm_info_desc.Budget;
         m_non_local_memory_desc[i].available = vm_info_desc.AvailableForReservation;
         m_non_local_memory_desc[i].current_usage = vm_info_desc.CurrentUsage;
@@ -261,8 +282,11 @@ HwAdapter::HwAdapter(ComPtr<IDXGIFactory4> const& adapter_factory, ComPtr<IDXGIA
     m_p_details{ nullptr }
 {
     DXGI_ADAPTER_DESC2 desc;
-    LEXGINE_ERROR_LOG(logger(), adapter->GetDesc2(&desc),
-        std::bind(&HwAdapter::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        adapter->GetDesc2(&desc),
+        S_OK
+    );
 
     m_output_enumerator = HwOutputEnumerator{ adapter, desc.AdapterLuid };
 
@@ -298,8 +322,11 @@ HwAdapter::HwAdapter(ComPtr<IDXGIFactory4> const& adapter_factory, ComPtr<IDXGIA
 
 void HwAdapter::reserveVideoMemory(uint32_t node_index, MemoryBudget budget_type, uint64_t amount_in_bytes) const
 {
-    LEXGINE_ERROR_LOG(logger(), m_dxgi_adapter->SetVideoMemoryReservation(node_index, static_cast<DXGI_MEMORY_SEGMENT_GROUP>(static_cast<int>(budget_type)), amount_in_bytes),
-        std::bind(&HwAdapter::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_dxgi_adapter->SetVideoMemoryReservation(node_index, static_cast<DXGI_MEMORY_SEGMENT_GROUP>(static_cast<int>(budget_type)), amount_in_bytes),
+        S_OK
+    );
 }
 
 HwAdapter::Properties HwAdapter::getProperties() const
