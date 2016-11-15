@@ -14,8 +14,11 @@ FeatureD3D12Options Device::queryFeatureD3D12Options() const
     FeatureD3D12Options rv{};
 
     D3D12_FEATURE_DATA_D3D12_OPTIONS feature_desc;
-    LEXGINE_ERROR_LOG(logger(), m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS)),
-        std::bind(&Device::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS)),
+        S_OK
+    );
 
     rv.doublePrecisionFloatShaderOps = feature_desc.DoublePrecisionFloatShaderOps == TRUE;
     rv.outputMergerLogicOp = feature_desc.OutputMergerLogicOp == TRUE;
@@ -41,8 +44,11 @@ FeatureArchitecture Device::queryFeatureArchitecture(uint32_t node_index) const
 
     D3D12_FEATURE_DATA_ARCHITECTURE feature_desc;
     feature_desc.NodeIndex = node_index;
-    LEXGINE_ERROR_LOG(logger(), m_device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &feature_desc, sizeof(D3D12_FEATURE_DATA_ARCHITECTURE)),
-        std::bind(&Device::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &feature_desc, sizeof(D3D12_FEATURE_DATA_ARCHITECTURE)),
+        S_OK
+    );
 
     rv.tileBasedRenderer = feature_desc.TileBasedRenderer == TRUE;
     rv.UMA = feature_desc.UMA == TRUE;
@@ -57,8 +63,11 @@ FeatureFormatSupport Device::queryFeatureFormatSupport(DXGI_FORMAT format) const
 
     D3D12_FEATURE_DATA_FORMAT_SUPPORT feature_desc;
     feature_desc.Format = format;
-    LEXGINE_ERROR_LOG(logger(), m_device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &feature_desc, sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)),
-        std::bind(&Device::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &feature_desc, sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)),
+        S_OK
+    );
 
     rv.support1 = feature_desc.Support1;
     rv.support2 = feature_desc.Support2;
@@ -74,8 +83,11 @@ FeatureMultisampleQualityLevels Device::queryFeatureQualityLevels(DXGI_FORMAT fo
     feature_desc.Format = format;
     feature_desc.SampleCount = sample_count;
     feature_desc.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
-    LEXGINE_ERROR_LOG(logger(), m_device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &feature_desc, sizeof(D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS)),
-        std::bind(&Device::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &feature_desc, sizeof(D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS)),
+        S_OK
+    );
 
     rv.flags = feature_desc.Flags;
     rv.numQualityLevels = feature_desc.NumQualityLevels;
@@ -88,8 +100,11 @@ FeatureGPUVirtualAddressSupport Device::queryFeatureGPUVirtualAddressSupport() c
     FeatureGPUVirtualAddressSupport rv{};
 
     D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT feature_desc;
-    LEXGINE_ERROR_LOG(logger(), m_device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &feature_desc, sizeof(D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT)),
-        std::bind(&Device::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &feature_desc, sizeof(D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT)),
+        S_OK
+    );
 
     rv.maxGPUVirtualAddressBitsPerResource = feature_desc.MaxGPUVirtualAddressBitsPerResource;
     rv.maxGPUVirtualAddressBitsPerProcess = feature_desc.MaxGPUVirtualAddressBitsPerProcess;
@@ -111,8 +126,11 @@ void Device::setStringName(std::string const & entity_string_name)
 ComPtr<ID3D12RootSignature> Device::createRootSignature(lexgine::core::D3DDataBlob const& serialized_root_signature, uint32_t node_mask) const
 {
     ComPtr<ID3D12RootSignature> rv{};
-    LEXGINE_ERROR_LOG(logger(), m_device->CreateRootSignature(node_mask, serialized_root_signature.data(), serialized_root_signature.size(), IID_PPV_ARGS(&rv)),
-        std::bind(&Device::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_device->CreateRootSignature(node_mask, serialized_root_signature.data(), serialized_root_signature.size(), IID_PPV_ARGS(&rv)),
+        S_OK
+    );
     rv->SetName(misc::ascii_string_to_wstring("device_" + getStringName() + "_root_signature").c_str());
     return rv;
 }

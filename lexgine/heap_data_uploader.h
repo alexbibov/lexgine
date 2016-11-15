@@ -68,12 +68,14 @@ private:
         SourceDescriptor source_descriptor;
         DestinationDescriptor destination_descriptor;
         uint64_t task_size;
+        DataChunk subresource_footprints_buffer;
     };
 
 
     Heap& m_heap;    //!< upload heap used by the data uploader
     uint64_t m_offset;    //!< offset in the upload heap, at which the data uploader is registered
     uint64_t m_size;    //!< size of upload buffer used by the data uploader
+    uint64_t m_transaction_size;    //!< size of all tasks
 
     ComPtr<ID3D12Resource> m_upload_buffer;    //!< native reference to the upload buffer
 

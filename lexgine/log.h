@@ -64,7 +64,7 @@ private:
 //! Helper macro that outputs error message to the @param logger and invokes handler function @param handler when @param expr
 //! does not evaluate equal to one of the success codes listed in the variadic argument. Handler function @param handler
 //! returns void and must accept single argument that can be initialized by std::string
-#define LEXGINE_ERROR_LOG(logger, expr, handler, ...) \
+#define LEXGINE_ERROR_LOG(context, expr, ...) \
 { \
 auto lexgine_error_log_rv = (expr); \
 if (!lexgine::core::misc::equalsAny(lexgine_error_log_rv, __VA_ARGS__)) \
@@ -72,7 +72,9 @@ if (!lexgine::core::misc::equalsAny(lexgine_error_log_rv, __VA_ARGS__)) \
 std::stringstream out_message; \
 out_message << "error while executing expression \"" << #expr << \
 "\" in function " << __FUNCTION__ << " at line " << __LINE__ << " (" << __FILE__ << "). Error code = 0x" << std::uppercase << std::hex << lexgine_error_log_rv; \
-handler(out_message.str()); \
+using context_type = std::remove_reference<decltype(*(context))>::type;\
+void(context_type::*p_handler)(std::string const&) const  = &context_type::raiseError;\
+((context)->*p_handler)(out_message.str()); \
 } \
 }
 

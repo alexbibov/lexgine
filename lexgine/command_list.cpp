@@ -46,10 +46,11 @@ CommandList::CommandList(CommandAllocator& command_allocator, uint32_t node_mask
     m_node_mask{ node_mask },
     m_is_closed{ true }
 {
-    LEXGINE_ERROR_LOG(logger(),
+    LEXGINE_ERROR_LOG(
+        this,
         command_allocator.device().native()->CreateCommandList(node_mask, static_cast<D3D12_COMMAND_LIST_TYPE>(command_allocator.getCommandListType()),
             command_allocator.native().Get(), initial_pipeline_state.native().Get(), IID_PPV_ARGS(&m_command_list)),
-        std::bind(&CommandList::raiseError, this, std::placeholders::_1), S_OK);
+        S_OK);
 
     m_command_list->Close();
 }
@@ -60,10 +61,11 @@ CommandList::CommandList(CommandAllocator& command_allocator, uint32_t node_mask
     m_node_mask{ node_mask },
     m_is_closed{ true }
 {
-    LEXGINE_ERROR_LOG(logger(),
+    LEXGINE_ERROR_LOG(
+        this,
         command_allocator.device().native()->CreateCommandList(node_mask, static_cast<D3D12_COMMAND_LIST_TYPE>(command_allocator.getCommandListType()),
             command_allocator.native().Get(), NULL, IID_PPV_ARGS(&m_command_list)),
-        std::bind(&CommandList::raiseError, this, std::placeholders::_1), S_OK);
+        S_OK);
 
     m_command_list->Close();
 }

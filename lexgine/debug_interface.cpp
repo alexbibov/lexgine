@@ -27,8 +27,11 @@ void DebugInterface::shutdown()
 DebugInterface::DebugInterface()
 {
 #ifdef D3D12DEBUG
-    LEXGINE_ERROR_LOG(logger(), D3D12GetDebugInterface(IID_PPV_ARGS(&m_d3d12_debug)),
-        std::bind(&DebugInterface::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        D3D12GetDebugInterface(IID_PPV_ARGS(&m_d3d12_debug)),
+        S_OK
+    );
     m_d3d12_debug->EnableDebugLayer();
 #endif
 }

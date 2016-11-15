@@ -6,13 +6,20 @@ CommandAllocator::CommandAllocator(Device& device, CommandListType command_list_
     m_device{ device },
     m_command_list_type{ command_list_type }
 {
-    LEXGINE_ERROR_LOG(logger(), device.native()->CreateCommandAllocator(static_cast<D3D12_COMMAND_LIST_TYPE>(m_command_list_type), IID_PPV_ARGS(&m_command_allocator)),
-        std::bind(&CommandAllocator::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this, 
+        device.native()->CreateCommandAllocator(static_cast<D3D12_COMMAND_LIST_TYPE>(m_command_list_type), IID_PPV_ARGS(&m_command_allocator)), 
+        S_OK
+    );
 }
 
 void CommandAllocator::reset()
 {
-    LEXGINE_ERROR_LOG(logger(), m_command_allocator->Reset(), std::bind(&CommandAllocator::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_command_allocator->Reset(), 
+        S_OK
+    );
 }
 
 ComPtr<ID3D12CommandAllocator> CommandAllocator::native() const

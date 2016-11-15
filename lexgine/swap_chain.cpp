@@ -61,11 +61,16 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory4> const& dxgi_factory,
     swap_chain_fs_desc.Windowed = desc.windowed;
 
     IDXGISwapChain1* p_swap_chain1 = nullptr;
-    LEXGINE_ERROR_LOG(logger(),
+    LEXGINE_ERROR_LOG(
+        this,
         m_dxgi_factory->CreateSwapChainForHwnd(m_default_command_queue.native().Get(), m_window.native(), &swap_chain_desc1, &swap_chain_fs_desc, NULL, &p_swap_chain1),
-        std::bind(&SwapChain::raiseError, this, std::placeholders::_1), S_OK);
+        S_OK
+    );
 
-    LEXGINE_ERROR_LOG(logger(), p_swap_chain1->QueryInterface(IID_PPV_ARGS(&m_dxgi_swap_chain)),
-        std::bind(&SwapChain::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        p_swap_chain1->QueryInterface(IID_PPV_ARGS(&m_dxgi_swap_chain)),
+        S_OK
+    );
     p_swap_chain1->Release();
 }

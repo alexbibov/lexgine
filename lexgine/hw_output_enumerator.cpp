@@ -135,8 +135,11 @@ HwOutput::HwOutput(ComPtr<IDXGIOutput5> const& output) : m_output{ output }
 HwOutput::Description HwOutput::getDescription() const
 {
     DXGI_OUTPUT_DESC desc;
-    LEXGINE_ERROR_LOG(logger(), m_output->GetDesc(&desc),
-        std::bind(&HwOutput::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_output->GetDesc(&desc),
+        S_OK
+    );
 
     return Description{ desc.DeviceName, math::Rectangle{math::vector2f{static_cast<float>(desc.DesktopCoordinates.left), static_cast<float>(desc.DesktopCoordinates.top)},
         static_cast<float>(desc.DesktopCoordinates.right - desc.DesktopCoordinates.left), static_cast<float>(desc.DesktopCoordinates.top - desc.DesktopCoordinates.bottom)} };
@@ -145,12 +148,18 @@ HwOutput::Description HwOutput::getDescription() const
 std::vector<HwOutput::DisplayMode> HwOutput::getDisplayModes(DXGI_FORMAT format, HwOutput::DisplayModeEnumerationOptions const& options) const
 {
     UINT num_modes;
-    LEXGINE_ERROR_LOG(logger(), m_output->GetDisplayModeList1(format, static_cast<DisplayModeEnumerationOptions::base_int_type>(options), &num_modes, NULL),
-        std::bind(&HwOutput::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_output->GetDisplayModeList1(format, static_cast<DisplayModeEnumerationOptions::base_int_type>(options), &num_modes, NULL),
+        S_OK
+    );
 
     DXGI_MODE_DESC1* p_descs = new DXGI_MODE_DESC1[num_modes];
-    LEXGINE_ERROR_LOG(logger(), m_output->GetDisplayModeList1(format, static_cast<DisplayModeEnumerationOptions::base_int_type>(options), &num_modes, p_descs),
-        std::bind(&HwOutput::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_output->GetDisplayModeList1(format, static_cast<DisplayModeEnumerationOptions::base_int_type>(options), &num_modes, p_descs),
+        S_OK
+    );
 
     std::vector<DisplayMode> rv{ num_modes };
     for (uint32_t i = 0; i < num_modes; ++i)
@@ -175,8 +184,11 @@ HwOutput::DisplayMode HwOutput::findMatchingDisplayMode(DisplayMode const& mode_
         mode_to_match.format, mode_to_match.scanline_order, mode_to_match.scaling, mode_to_match.is_stereo };
 
     DXGI_MODE_DESC1 found_mode_desc;
-    LEXGINE_ERROR_LOG(logger(), m_output->FindClosestMatchingMode1(&mode_to_seek, &found_mode_desc, NULL),
-        std::bind(&HwOutput::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_output->FindClosestMatchingMode1(&mode_to_seek, &found_mode_desc, NULL),
+        S_OK
+    );
 
     return DisplayMode{ found_mode_desc.Width, found_mode_desc.Height, found_mode_desc.RefreshRate,
     found_mode_desc.Format, found_mode_desc.ScanlineOrdering, found_mode_desc.Scaling, found_mode_desc.Stereo == TRUE };
@@ -184,6 +196,9 @@ HwOutput::DisplayMode HwOutput::findMatchingDisplayMode(DisplayMode const& mode_
 
 void HwOutput::waitForVBI() const
 {
-    LEXGINE_ERROR_LOG(logger(), m_output->WaitForVBlank(),
-        std::bind(&HwOutput::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_output->WaitForVBlank(),
+        S_OK
+    );
 }

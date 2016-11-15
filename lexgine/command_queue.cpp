@@ -18,8 +18,11 @@ CommandQueue::CommandQueue(Device& device, CommandQueueType type, uint32_t node_
     desc.Flags = static_cast<D3D12_COMMAND_QUEUE_FLAGS>(flags.getValue());
     desc.NodeMask = node_mask;
 
-    LEXGINE_ERROR_LOG(logger(), device.native()->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_command_queue)),
-        std::bind(&CommandQueue::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        device.native()->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_command_queue)), 
+        S_OK
+    );
 }
 
 void CommandQueue::executeCommandLists(std::vector<CommandList> const & command_lists) const
@@ -52,10 +55,18 @@ void CommandQueue::setStringName(std::string const & entity_string_name)
 
 void CommandQueue::synchronize(Fence const & fence)
 {
-    LEXGINE_ERROR_LOG(logger(), m_command_queue->Signal(fence.native().Get(), fence.m_target_value++), std::bind(&CommandQueue::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_command_queue->Signal(fence.native().Get(), fence.m_target_value++), 
+        S_OK
+    );
 }
 
 void CommandQueue::wait(Fence const & fence, uint64_t num_crosses) const
 {
-    LEXGINE_ERROR_LOG(logger(), m_command_queue->Wait(fence.native().Get(), num_crosses), std::bind(&CommandQueue::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this,
+        m_command_queue->Wait(fence.native().Get(), num_crosses), 
+        S_OK
+    );
 }

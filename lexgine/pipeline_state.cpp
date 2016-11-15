@@ -183,8 +183,11 @@ PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_
     desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
     #endif
 
-    LEXGINE_ERROR_LOG(logger(), m_device.native()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&m_pipeline_state)),
-        std::bind(&PipelineState::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this, 
+        m_device.native()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&m_pipeline_state)), 
+        S_OK
+    );
 
     delete[] p_so_declaration_entries;
     delete[] p_buffer_strides;
@@ -216,8 +219,11 @@ PipelineState::PipelineState(Device & device, D3DDataBlob const & serialized_roo
     desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
     #endif
 
-    LEXGINE_ERROR_LOG(logger(), m_device.native()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&m_pipeline_state)),
-        std::bind(&PipelineState::raiseError, this, std::placeholders::_1), S_OK);
+    LEXGINE_ERROR_LOG(
+        this, 
+        m_device.native()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&m_pipeline_state)), 
+        S_OK
+    );
 
     p_root_signature->Release();
 }
