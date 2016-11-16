@@ -4,6 +4,8 @@
 
 #include "resource.h"
 #include "entity.h"
+#include "command_list.h"
+
 
 namespace lexgine {namespace core {namespace dx {namespace d3d12 {
 
@@ -41,8 +43,8 @@ public:
     struct SourceDescriptor
     {
         void* p_source_data;    //!< pointer to the source data buffer to be uploaded
-        uint64_t row_pitch;    //!< row pitch of the source data
-        uint64_t slice_pitch;    //!< slice pitch of the source data
+        uint64_t row_pitch;    //!< row pitch of the source data. In case of buffer resources this member contains the size of the data block to upload.
+        uint64_t slice_pitch;    //!< slice pitch of the source data. Not used for buffer resources.
     };
 
 
@@ -52,14 +54,18 @@ public:
     HeapDataUploader(HeapDataUploader&&) = delete;
 
 
-    //! creates new upload task and adds it to the list of scheduled upload tasks
+    /*! creates new upload task, adds it to the list of scheduled upload tasks and puts the related source data into intermediate upload buffer so that the original source buffer
+     can be deallocated after this call
+    */
     void addResourceForUpload(DestinationDescriptor const& destination_descriptor, SourceDescriptor const& source_descriptor);
 
 
-    /*! executes all previously scheduled upload tasks. This function causes actual copy of the source data into the destination resources. Note that all source data buffers and the
-      corresponding destination resources should be alive by the time this function is invoked
+    /*! executes all previously scheduled upload tasks. This function performs actual data transfer from the upload buffer to the target GPU memory heaps. Note that the destination
+     resources must be alive by the time of invocation of this function. The original source data buffers are not required to be available when this function is called since their contents
+     have already been moved to intermediate upload buffer during registration of the related upload task. The command list referenced in the input to this function identifies, which hardware
+     command list will get responsibility to transfer the data from the CPU-side to the GPU-side
     */
-    void upload();
+    void upload(CommandList& upload_worker_list);
 
 private:
     //! describes single upload task for the uploader
@@ -67,7 +73,6 @@ private:
     {
         SourceDescriptor source_descriptor;
         DestinationDescriptor destination_descriptor;
-        uint64_t task_size;
         DataChunk subresource_footprints_buffer;
     };
 
@@ -75,9 +80,9 @@ private:
     Heap& m_heap;    //!< upload heap used by the data uploader
     uint64_t m_offset;    //!< offset in the upload heap, at which the data uploader is registered
     uint64_t m_size;    //!< size of upload buffer used by the data uploader
-    uint64_t m_transaction_size;    //!< size of all tasks
+    uint64_t m_transaction_size;    //!< size of all upload tasks assigned to the uploader
 
-    ComPtr<ID3D12Resource> m_upload_buffer;    //!< native reference to the upload buffer
+    Resource m_upload_buffer;    //!< native reference to the upload buffer
 
     std::list<upload_task> m_upload_tasks;    //!< list of upload tasks
 };

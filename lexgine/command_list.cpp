@@ -41,6 +41,11 @@ bool CommandList::isClosed() const
     return m_is_closed;
 }
 
+CommandListType CommandList::type() const
+{
+    return m_command_allocator.getCommandListType();
+}
+
 CommandList::CommandList(CommandAllocator& command_allocator, uint32_t node_mask, PipelineState const& initial_pipeline_state):
     m_command_allocator{ command_allocator },
     m_node_mask{ node_mask },
