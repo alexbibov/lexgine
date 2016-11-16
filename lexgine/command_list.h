@@ -37,6 +37,8 @@ public:
 
     bool isClosed() const;    //! returns 'true' if the command list is closed for writing
 
+    CommandListType type() const;    //! returns type of the command list
+
     CommandList(CommandList const&) = delete;
     CommandList(CommandList&&) = default;
 
