@@ -113,7 +113,7 @@ Resource::Resource(Heap & heap, uint64_t heap_offset, ResourceState const & init
     desc.Flags = static_cast<D3D12_RESOURCE_FLAGS>(descriptor.flags.getValue());
 
     LEXGINE_ERROR_LOG(this,
-        heap.device().native()->CreatePlacedResource(heap.native().Get(), heap_offset, &desc, static_cast<D3D12_RESOURCE_STATES>(initial_state.getValue()), &optimized_clear_value, IID_PPV_ARGS(&m_resource)), 
+        heap.device().native()->CreatePlacedResource(heap.native().Get(), heap_offset, &desc, static_cast<D3D12_RESOURCE_STATES>(initial_state.getValue()), &optimized_clear_value, IID_PPV_ARGS(&m_resource)),
         S_OK);
 }
 
@@ -130,4 +130,9 @@ uint64_t Resource::offset() const
 ComPtr<ID3D12Resource> Resource::native() const
 {
     return m_resource;
+}
+
+ResourceState Resource::getCurrentState() const
+{
+    return m_state;
 }

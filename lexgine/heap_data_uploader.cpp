@@ -98,6 +98,8 @@ void HeapDataUploader::addResourceForUpload(DestinationDescriptor const& destina
 
         p_device->GetCopyableFootprints(&d3d12_destination_resource_descriptor, 0, 1, m_transaction_size, p_placed_subresource_footprint, NULL, NULL, NULL);
 
+        assert(m_transaction_size + source_descriptor.row_pitch <= d3d12_upload_resource_descriptor.Width);
+
         // Copy the contents of the current upload task into upload buffer
         char* p_upload_buffer_addr{ nullptr };
         LEXGINE_ERROR_LOG(
@@ -146,9 +148,14 @@ void HeapDataUploader::upload(CommandList& upload_worker_list)
 
     for (auto& task : m_upload_tasks)
     {
-        ResourceBarrier<1> destination_resource_transfer_barrier{ upload_worker_list };
-        destination_resource_transfer_barrier.addTransitionBarrier(task.destination_descriptor.p_destination_resource, destination_resource_target_state, SplitResourceBarrierFlags::none);
-        destination_resource_transfer_barrier.applyBarriers();
+        ResourceState current_destination_resource_state = task.destination_descriptor.p_destination_resource->getCurrentState();
+
+
+        {
+            ResourceBarrier<1> destination_resource_transfer_barrier{ upload_worker_list };
+            destination_resource_transfer_barrier.addTransitionBarrier(task.destination_descriptor.p_destination_resource, destination_resource_target_state, SplitResourceBarrierFlags::none);
+            destination_resource_transfer_barrier.applyBarriers();
+        }
 
         switch (task.destination_descriptor.segment_type)
         {
@@ -157,7 +164,9 @@ void HeapDataUploader::upload(CommandList& upload_worker_list)
             D3D12_TEXTURE_COPY_LOCATION dst_desc;
             D3D12_TEXTURE_COPY_LOCATION src_desc;
 
-            for (uint32_t p = task.destination_descriptor.segment.subresources.first_subresource; p < task.destination_descriptor.segment.subresources.first_subresource + task.destination_descriptor.segment.subresources.num_subresources; ++p)
+            for (uint32_t p = task.destination_descriptor.segment.subresources.first_subresource;
+                p < task.destination_descriptor.segment.subresources.first_subresource + task.destination_descriptor.segment.subresources.num_subresources;
+                ++p)
             {
                 dst_desc.pResource = task.destination_descriptor.p_destination_resource->native().Get();
                 dst_desc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
@@ -173,18 +182,26 @@ void HeapDataUploader::upload(CommandList& upload_worker_list)
         }
 
         case HeapDataUploader::DestinationDescriptor::buffer:
-            upload_worker_list.native()->CopyBufferRegion(task.destination_descriptor.p_destination_resource->native().Get(), task.destination_descriptor.segment.base_offset, m_upload_buffer.native().Get(),
-                static_cast<D3D12_PLACED_SUBRESOURCE_FOOTPRINT*>(task.subresource_footprints_buffer.data())->Offset, task.source_descriptor.row_pitch);
+            upload_worker_list.native()->CopyBufferRegion(task.destination_descriptor.p_destination_resource->native().Get(), task.destination_descriptor.segment.base_offset,
+                m_upload_buffer.native().Get(), static_cast<D3D12_PLACED_SUBRESOURCE_FOOTPRINT*>(task.subresource_footprints_buffer.data())->Offset, task.source_descriptor.row_pitch);
             break;
 
         default:
             throw lexgine::core::Exception{ *this, "destination resource is having unknown memory segment" };
         }
+
+
+        {
+            ResourceBarrier<1> destination_resource_transfer_barrier{ upload_worker_list };
+            destination_resource_transfer_barrier.addTransitionBarrier(task.destination_descriptor.p_destination_resource, current_destination_resource_state, SplitResourceBarrierFlags::none);
+            destination_resource_transfer_barrier.applyBarriers();
+        }
     }
+}
 
-
-
-
+uint64_t lexgine::core::dx::d3d12::HeapDataUploader::getTransactionSize() const
+{
+    return m_transaction_size;
 }
 
 
