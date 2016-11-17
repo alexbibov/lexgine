@@ -145,6 +145,10 @@ public:
 
     ComPtr<ID3D12Resource> native() const;    //! returns encapsulated native Direct3D12 interface representing the resource
 
+
+    ResourceState getCurrentState() const;    //! returns current state of the resource
+
+
 private:
     Heap& m_heap;    //!< reference to the heap, in which the resource resides
     uint64_t m_offset;    //!< offset to the resource in the owning heap

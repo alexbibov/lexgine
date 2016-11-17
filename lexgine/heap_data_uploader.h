@@ -54,8 +54,9 @@ public:
     HeapDataUploader(HeapDataUploader&&) = delete;
 
 
-    /*! creates new upload task, adds it to the list of scheduled upload tasks and puts the related source data into intermediate upload buffer so that the original source buffer
-     can be deallocated after this call
+    /*! adds new upload task to the list of scheduled tasks and puts the related source data into intermediate upload buffer. This essentially means that after invoking this
+     function the buffer containing the original source data can be deallocated as the data have already bean transfered to the upload heap owned by the data uploader.
+     This however does not mean that the data have actually been transfered to the destination resources as the actual transaction happens only during invocation of function upload().
     */
     void addResourceForUpload(DestinationDescriptor const& destination_descriptor, SourceDescriptor const& source_descriptor);
 
@@ -66,6 +67,10 @@ public:
      command list will get responsibility to transfer the data from the CPU-side to the GPU-side
     */
     void upload(CommandList& upload_worker_list);
+
+
+    uint64_t getTransactionSize() const;    //! returns the total size of the upload transaction (sum of sizes of all individual upload tasks)
+
 
 private:
     //! describes single upload task for the uploader
