@@ -201,6 +201,12 @@
     <ClInclude Include="exception.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="hlsl_compilation_task.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="shader_source_code_preprocessor.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">
@@ -309,6 +315,9 @@
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
     <ClCompile Include="exception.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="shader_source_code_preprocessor.cpp">
       <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
