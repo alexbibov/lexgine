@@ -166,6 +166,7 @@
     <ClCompile Include="rectangle.cpp" />
     <ClCompile Include="resource.cpp" />
     <ClCompile Include="root_signature.cpp" />
+    <ClCompile Include="shader_source_code_preprocessor.cpp" />
     <ClCompile Include="stream_output.cpp" />
     <ClCompile Include="swap_chain.cpp" />
     <ClCompile Include="window.cpp">
@@ -201,6 +202,7 @@
     <ClInclude Include="heap.h" />
     <ClInclude Include="heap_data_uploader.h" />
     <ClInclude Include="heap_resource_placer.h" />
+    <ClInclude Include="hlsl_compilation_task.h" />
     <ClInclude Include="hw_adapter_enumerator.h" />
     <ClInclude Include="entity.h" />
     <ClInclude Include="error_behavioral.h" />
@@ -221,6 +223,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource_barrier.h" />
     <ClInclude Include="root_signature.h" />
+    <ClInclude Include="shader_source_code_preprocessor.h" />
     <ClInclude Include="static_hash_table.h" />
     <ClInclude Include="stream_output.h" />
     <ClInclude Include="swap_chain.h" />
