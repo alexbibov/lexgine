@@ -38,7 +38,7 @@ public:
             return unconvert_helper_type::getValue(*this);
         }
 
-        //! returns currently set value of the constant
+        //! assigns new value to a constant in the buffer
         void setValue(T const& value)
         {
             assert(m_constant_buffer.m_is_constructed);
