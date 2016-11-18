@@ -169,6 +169,7 @@
     <ClCompile Include="shader_source_code_preprocessor.cpp" />
     <ClCompile Include="stream_output.cpp" />
     <ClCompile Include="swap_chain.cpp" />
+    <ClCompile Include="task.cpp" />
     <ClCompile Include="window.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -227,6 +228,8 @@
     <ClInclude Include="static_hash_table.h" />
     <ClInclude Include="stream_output.h" />
     <ClInclude Include="swap_chain.h" />
+    <ClInclude Include="task.h" />
+    <ClInclude Include="task_sink.h" />
     <ClInclude Include="vector_types.h" />
     <ClInclude Include="vertex_attributes.h" />
     <ClInclude Include="vulkan_tools.h" />

@@ -207,6 +207,12 @@
     <ClInclude Include="shader_source_code_preprocessor.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="task.h">
+      <Filter>core\concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="task_sink.h">
+      <Filter>core\concurrency</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">
@@ -319,6 +325,9 @@
     </ClCompile>
     <ClCompile Include="shader_source_code_preprocessor.cpp">
       <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="task.cpp">
+      <Filter>core\concurrency</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -22,7 +22,8 @@ ConstantBuffer::ConstantBuffer(ConstantBuffer&& other) :
 
 ConstantBuffer::~ConstantBuffer()
 {
-    if (m_raw_data) free(m_raw_data);
+    if (m_raw_data)
+        free(m_raw_data);
 }
 
 void ConstantBuffer::build()

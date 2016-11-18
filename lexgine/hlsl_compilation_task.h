@@ -1,15 +1,15 @@
 #ifndef LEXGINE_CORE_DX_D3D12_HLSL_COMPILATION_TASK_H
 
-#include "entity.h"
-#include "class_names.h"
+#include "task.h"
 #include "shader_source_code_preprocessor.h"
+#include "data_blob.h"
 
 #include <list>
 
 namespace lexgine {namespace core {namespace dx {namespace d3d12 {
 
 //! Implements compilation of provided HLSL source code
-class HLSLCompilationTask : public NamedEntity<D3D12HLSLCompilationTask>
+class HLSLCompilationTask : public concurrency::AbstractReturningTask<D3DDataBlob>
 {
 public:
     //! Macro definition consumed by HLSL compiler
@@ -19,7 +19,7 @@ public:
         std::string value;    //!< value of the macro to define
     };
 
-    /*! Established a new shader compilation task. The type of source is determined from parameters source and source_type.
+    /*! Establishes a new shader compilation task. The type of source is determined from parameters source and source_type.
      when source_type = file then source is interpreted as path to a file containing HLSL code to compile. If source_type = string then
      source is interpreted as a string containing HLSL source code
     */
@@ -29,6 +29,7 @@ public:
 
 
 private:
+    void do_task() override;    //! performs actual compilation of the shader
 
 };
 
