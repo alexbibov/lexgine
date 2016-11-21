@@ -210,6 +210,7 @@
     <ClInclude Include="hw_output_enumerator.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="listener.h" />
+    <ClInclude Include="lock_free_queue.h" />
     <ClInclude Include="log.h" />
     <ClInclude Include="matrix_types.h" />
     <ClInclude Include="metal_tools.h" />
