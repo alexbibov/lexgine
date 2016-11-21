@@ -213,6 +213,9 @@
     <ClInclude Include="task_sink.h">
       <Filter>core\concurrency</Filter>
     </ClInclude>
+    <ClInclude Include="lock_free_queue.h">
+      <Filter>core\concurrency</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">
