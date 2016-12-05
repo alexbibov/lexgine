@@ -149,6 +149,7 @@
     <ClCompile Include="fence.cpp" />
     <ClCompile Include="fence_event.cpp" />
     <ClCompile Include="filter.cpp" />
+    <ClCompile Include="hazard_pointer_pool.cpp" />
     <ClCompile Include="heap.cpp" />
     <ClCompile Include="heap_data_uploader.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -200,6 +201,7 @@
     <ClInclude Include="fence_event.h" />
     <ClInclude Include="filter.h" />
     <ClInclude Include="flags.h" />
+    <ClInclude Include="hazard_pointer_pool.h" />
     <ClInclude Include="heap.h" />
     <ClInclude Include="heap_data_uploader.h" />
     <ClInclude Include="heap_resource_placer.h" />
