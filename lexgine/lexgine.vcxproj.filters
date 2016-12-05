@@ -216,6 +216,9 @@
     <ClInclude Include="lock_free_queue.h">
       <Filter>core\concurrency</Filter>
     </ClInclude>
+    <ClInclude Include="hazard_pointer_pool.h">
+      <Filter>core\concurrency</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">
@@ -330,6 +333,9 @@
       <Filter>core</Filter>
     </ClCompile>
     <ClCompile Include="task.cpp">
+      <Filter>core\concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="hazard_pointer_pool.cpp">
       <Filter>core\concurrency</Filter>
     </ClCompile>
   </ItemGroup>
