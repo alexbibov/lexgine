@@ -208,7 +208,7 @@ private:
     //! Describes single entry in the hazard pointer list
     struct HPListEntry
     {
-        HazardPointerPool::HazardPointer hp;    //!< hazard pointer descriptor
+        HazardPointer hp;    //!< hazard pointer descriptor
         std::atomic<HPListEntry*> next;    //!< atomic pointer to the next entry in the hazard pointer list
 
         HPListEntry() :
