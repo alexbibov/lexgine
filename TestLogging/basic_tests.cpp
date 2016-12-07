@@ -2,6 +2,7 @@
 #include "CppUnitTest.h"
 #include "../lexgine/log.h"
 #include "../lexgine/window.h"
+#include "../lexgine/lock_free_queue.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4307)    // this is needed to suppress the warning caused by the static hash function
@@ -85,6 +86,74 @@ public:
             my_table.getValue<key2>() = custom_type{ 'c' };
 
             Assert::IsTrue(my_table.getValue<key0>() == 0 && my_table.getValue<key1>() == 100 && my_table.getValue<key2>().c == 'c');
+        }
+
+
+
+        TEST_METHOD(TestConcurrency)
+        {
+            using namespace lexgine::core::concurrency;
+
+            struct DataBit
+            {
+                uint32_t value;
+            };
+
+            LockFreeQueue<DataBit> queue;
+
+            bool production_finished = false;
+            std::atomic_uint64_t tasks_produced{ 0U };
+            std::atomic_uint64_t tasks_consumed{ 0U };
+
+            //! Produces 100 000 elements for the queue
+            auto produce = [&queue, &tasks_produced, &production_finished]()->void
+            {
+                for (uint32_t i = 0; i < 100U; ++i)
+                {
+                    queue.enqueue(DataBit{ i });
+                    ++tasks_produced;
+                }
+                production_finished = true;
+            };
+
+            //! Consumes an element from the queue, simulates "work" by sleeping for 1ms, then consumes next element from the queue and so on
+            auto consume = [&queue, &tasks_produced, &tasks_consumed, &production_finished]()->void
+            {
+                while (!production_finished || tasks_produced.load(std::memory_order::memory_order_consume) >
+                tasks_consumed.load(std::memory_order::memory_order_consume))
+                {
+                    lexgine::core::misc::Optional<DataBit> val = queue.dequeue();
+                    if(val.isValid())
+                    {
+                        //Sleep(1);
+                        ++tasks_consumed;
+                    }
+                }
+
+
+            };
+
+
+            std::thread producer{ produce };
+            producer.detach();
+
+            std::thread* consumers[7];
+            for (uint8_t i = 0; i < 1U; ++i)
+            {
+                consumers[i] = new std::thread{ consume };
+                consumers[i]->detach();
+            }
+
+
+            // Stop the main thread until producers and consumers are done
+            while (!production_finished || tasks_produced.load(std::memory_order::memory_order_consume) >
+                tasks_consumed.load(std::memory_order::memory_order_consume));
+
+
+            for (uint8_t i = 0; i < 1U; ++i)
+            {
+                delete consumers[i];
+            }
         }
 
 

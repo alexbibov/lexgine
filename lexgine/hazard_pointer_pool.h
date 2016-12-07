@@ -18,12 +18,12 @@ public:
     public:
         ~HazardPointer() = default;
 
-        inline void* get() const;    //! returns the actual value of the pointer
-        inline bool isActive() const;    //! returns 'true' if the pointer is active. Returns 'false' otherwise
-        inline bool isHazardous() const;    //! returns 'true' if the pointer record has been set "hazardous" by some thread. Returns 'false' otherwise
+        void* get() const;    //! returns the actual value of the pointer
+        bool isActive() const;    //! returns 'true' if the pointer is active. Returns 'false' otherwise
+        bool isHazardous() const;    //! returns 'true' if the pointer record has been set "hazardous" by some thread. Returns 'false' otherwise
 
-        inline void setHazardous(); //! sets the pointer to the "hazardous" state. While the pointer stays in this state, the data it points to will never be removed.
-        inline void setSafeToRemove();    //! removes the "hazardous" state from the pointer. It is not safe to access the data through this pointer when it is not hazardous.
+        void setHazardous();    //! sets the pointer to the "hazardous" state. While the pointer stays in this state, the data it points to will never be removed.
+        void setSafeToRemove();    //! removes the "hazardous" state from the pointer. It is not safe to access the data through this pointer when it is not hazardous.
 
     private:
         HazardPointer();
@@ -55,10 +55,18 @@ public:
 
     void retire(HazardPointer* p_hp);    //! the provided hazard pointer is marked for deletion by the calling thread
 
+    void flush();    //! forces the garbage collector to free up all memory blocks remaining in the deletion cache
+
+    /*!
+     Sets minimal amount of hazard pointer records that has to reside in deletion cache of a certain thread in order to initiate
+     garbage collection process
+    */
+    void setGCThreshold(uint32_t threshold);
 
 private:
     class impl;    //! conceals implementation details
 
+    uint32_t m_gc_threshold;    //!< garbage collection threshold. The default value is 24 (since lock-free algorithms normally don't use more than 3 hazard pointers and the modern CPUs have no more than 8 cores)
     std::unique_ptr<impl> m_impl;    //!< pointer to the internal class encapsulating implementation details
 };
 
