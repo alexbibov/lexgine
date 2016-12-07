@@ -153,7 +153,8 @@
     <ClCompile Include="heap.cpp" />
     <ClCompile Include="heap_data_uploader.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="heap_resource_placer.cpp" />
     <ClCompile Include="hw_adapter_enumerator.cpp" />
