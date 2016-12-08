@@ -38,6 +38,27 @@ public:
         bool m_is_hazardous;    //!< 'true' if the pointer has been set "hazardous" by some thread; 'false' otherwise
     };
 
+    //! Describes hazard pointer record, which enables automatic reuse of hazard pointer entries in the cache
+    class HazardPointerRecord
+    {
+        friend HazardPointerPool;
+
+    public:
+        HazardPointerRecord(HazardPointerRecord const& other);
+        HazardPointerRecord(HazardPointerRecord&& other);
+        HazardPointerRecord& operator=(HazardPointerRecord const& other);
+        HazardPointerRecord& operator=(HazardPointerRecord&& other);
+        ~HazardPointerRecord();
+
+        HazardPointer* operator->() const;
+
+    private:
+        HazardPointerRecord(HazardPointer* p_hp);
+
+        uint32_t* m_ref_counter;    //!< reference counter tracking, whether the wrapped hazard pointer is still in use
+        HazardPointer* m_p_hp;    //!< pointer for the hazard pointer entry in the cache wrapped by the record object
+    };
+
 
     HazardPointerPool();
     ~HazardPointerPool();
@@ -48,12 +69,9 @@ public:
     HazardPointerPool& operator=(HazardPointerPool const&) = delete;
     HazardPointerPool& operator=(HazardPointerPool&&) = delete;
 
-    /*! acquires new hazard pointer for the calling thread and uses it to protect the provided raw pointer value.
-     The returned hazard pointer record is supposed to be manipulated only by the thread that called this function
-    */
-    HazardPointer* acquire(void* ptr_value);
+    HazardPointerRecord acquire(void* ptr_value);    //! acquires new hazard pointer for the calling thread and uses it to protect the provided raw pointer value.
 
-    void retire(HazardPointer* p_hp);    //! the provided hazard pointer is marked for deletion by the calling thread
+    void retire(HazardPointerRecord const& hp_record);    //! the provided hazard pointer is marked for deletion by the calling thread
 
     void flush();    //! forces the garbage collector to free up all memory blocks remaining in the deletion cache
 

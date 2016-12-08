@@ -47,25 +47,23 @@ class HazardPointerPool::impl
 {
 public:
     impl(uint32_t gc_threshold) :
-        m_hp_list_head{ new HPListEntry{} },
-        m_hp_list_tail{ m_hp_list_head },
-        m_gc_threshold{ gc_threshold }
+        m_hp_list_head{ new HPListEntry{} }
+        , m_hp_list_tail{ m_hp_list_head }
+        , m_gc_threshold{ gc_threshold }
+
+#ifdef _DEBUG
+        , m_num_hps{ 1U }
+        , m_num_buffers_freed{ 0U }
+#endif
+
     {
         //std::atomic_init(&m_hp_list_head->next, nullptr);
         //std::atomic_init(&m_hp_list_tail, m_hp_list_head);
     }
 
-    HazardPointer* acquire(void* ptr_value)
+    HazardPointerRecord acquire(void* ptr_value)
     {
-        // First we need to protect the list of hazard pointers from having duplicates
-        for (HPListEntry* p_entry = m_hp_list_head; p_entry != nullptr; p_entry = p_entry->next.load(std::memory_order::memory_order_consume))
-        {
-            if (p_entry->hp.m_is_active.load(std::memory_order::memory_order_consume) && p_entry->hp.m_value == ptr_value)
-                return &p_entry->hp;
-        }
-
-
-        // Next we check if there are unused pointers in the list
+        // First we check if there are unused pointers in the list
         for (HPListEntry* p_entry = m_hp_list_head; p_entry != nullptr; p_entry = p_entry->next.load(std::memory_order::memory_order_acquire))
         {
             bool is_active = p_entry->hp.m_is_active.load(std::memory_order::memory_order_consume);
@@ -74,7 +72,7 @@ public:
                 if (p_entry->hp.m_is_active.compare_exchange_strong(is_active, true, std::memory_order::memory_order_acq_rel))
                 {
                     p_entry->hp.m_value = ptr_value;
-                    return &p_entry->hp;
+                    return HazardPointerRecord{ &p_entry->hp };
                 }
             }
         }
@@ -82,9 +80,8 @@ public:
 
         // We did not manage to reuse one of the older HP-buckets. Therefore, we need to allocate a new one.
         HPListEntry* p_new_bucket = new HPListEntry{};
-        p_new_bucket->hp.m_is_active.store(true, std::memory_order::memory_order_release);
         p_new_bucket->hp.m_value = ptr_value;
-        //std::atomic_init(&p_new_bucket->next, nullptr);
+        HazardPointerRecord rv{ &p_new_bucket->hp };    // we need to create the hp record to be returned already here to make sure that the wrapped HP is active
 
         while (true)
         {
@@ -108,6 +105,9 @@ public:
                     // If we have managed to attach the new bucket, try to move the tail forward
                     m_hp_list_tail.compare_exchange_weak(p_current_tail, p_new_bucket, std::memory_order::memory_order_acq_rel);
 
+#ifdef _DEBUG
+                    ++m_num_hps;
+#endif
 
                     return &p_new_bucket->hp;
                 }
@@ -130,7 +130,13 @@ public:
 
     void flush()
     {
-        scan();
+        // flush only if there is something to flush
+        if (m_dlist_cardinality)
+        {
+            if (!m_plist_tail)
+                m_plist_tail = m_plist_head;    // if plist cache has never been filled up on the calling thread, make sure that the tail pointer is consistent
+            scan();
+        }
     }
 
 
@@ -141,9 +147,7 @@ public:
             HPListEntry* p_hp_list_entry = m_hp_list_head;
             while (p_hp_list_entry)
             {
-                assert(!p_hp_list_entry->hp.m_is_hazardous);
-                if (p_hp_list_entry->hp.m_is_active.load(std::memory_order::memory_order_consume))
-                    free(p_hp_list_entry->hp.m_value);
+                assert(!p_hp_list_entry->hp.m_is_hazardous && !p_hp_list_entry->hp.m_is_active.load(std::memory_order::memory_order_consume));
 
                 HPListEntry* p_aux = p_hp_list_entry;
                 p_hp_list_entry = p_hp_list_entry->next.load(std::memory_order::memory_order_consume);
@@ -197,7 +201,7 @@ private:
     //! Describes elements of the GC-lists owned by the thread
     struct GCListEntry
     {
-        HazardPointer* p_hp_list_entry;    //!< pointer to the hazard pointer descriptor to be "watched" by the garbage collector
+        void* p_mem_block;    //!< pointer to the memory block, which is subject for deletion
         GCListEntry* p_next;    //!< pointer to the next element in the list
         bool is_in_use;    //!< 'true' if the entry of the garbage collector is in use; 'false' if it is available for reuse.
     };
@@ -213,12 +217,12 @@ private:
 
         if (!p_list_tail->p_next)
         {
-            p_list_tail->p_next = new GCListEntry{ p_hp, nullptr, true };
+            p_list_tail->p_next = new GCListEntry{ p_hp->m_value, nullptr, true };
             p_list_tail = p_list_tail->p_next;
         }
         else
         {
-            p_list_tail->p_next->p_hp_list_entry = p_hp;
+            p_list_tail->p_next->p_mem_block = p_hp->m_value;
             p_list_tail->p_next->is_in_use = true;
             p_list_tail = p_list_tail->p_next;
         }
@@ -231,38 +235,45 @@ private:
         // formate the list of pointers that are currently in "hazardous" state
         for (HPListEntry* p_hp_list_entry = m_hp_list_head; p_hp_list_entry != nullptr; p_hp_list_entry = p_hp_list_entry->next.load(std::memory_order::memory_order_consume))
         {
-            if (p_hp_list_entry->hp.m_is_active.load(std::memory_order::memory_order_consume) && p_hp_list_entry->hp.m_is_hazardous)
+            if (p_hp_list_entry->hp.m_is_hazardous)
                 addEntryToLocalGCList(m_plist_head, m_plist_tail, &p_hp_list_entry->hp);
         }
 
         // for each pointer marked for deletion check if this pointer is in the list of pointers in "hazardous" state. If so, deallocate the corresponding memory block
-        for (GCListEntry* p_dlist_entry = m_dlist_head->p_next; p_dlist_entry != m_dlist_tail->p_next; p_dlist_entry = p_dlist_entry->p_next)
+        uint32_t num_freed_successfully{ 0U };
+        for (GCListEntry* p_dlist_entry = m_dlist_head->p_next; p_dlist_entry != nullptr; p_dlist_entry = p_dlist_entry->p_next)
         {
             bool deallocation_possible = true;
-            for (GCListEntry* p_plist_entry = m_plist_head->p_next; p_plist_entry != m_plist_tail->p_next; p_plist_entry = p_plist_entry->p_next)
+            for (GCListEntry* p_plist_entry = m_plist_head->p_next;
+                p_plist_entry != m_plist_tail->p_next;
+                p_plist_entry = p_plist_entry->p_next)
             {
-                if (p_plist_entry->p_hp_list_entry == p_dlist_entry->p_hp_list_entry)
+                if (p_plist_entry->p_mem_block == p_dlist_entry->p_mem_block)
                 {
                     deallocation_possible = false;
                     break;
                 }
             }
 
-            if (deallocation_possible)
+            if (deallocation_possible
+                && p_dlist_entry->is_in_use
+                && p_dlist_entry->p_mem_block)
             {
-                if (p_dlist_entry->p_hp_list_entry->m_value)
-                    free(p_dlist_entry->p_hp_list_entry->m_value);
+                free(p_dlist_entry->p_mem_block);
+                ++num_freed_successfully;
+
+#ifdef _DEBUG
+                ++m_num_buffers_freed;
+#endif
 
                 p_dlist_entry->is_in_use = false;
-
-                p_dlist_entry->p_hp_list_entry->m_is_active.store(false, std::memory_order::memory_order_release);    // the hazard pointer stops being active
             }
         }
 
 
         // reset dlist
         m_dlist_tail = m_dlist_head;
-        m_dlist_cardinality = 0U;
+        m_dlist_cardinality -= num_freed_successfully;
 
         // reset plist
         for (GCListEntry* p_plist_entry = m_plist_head->p_next; p_plist_entry != m_plist_tail->p_next; p_plist_entry = p_plist_entry->p_next)
@@ -281,6 +292,11 @@ private:
     static thread_local GCListEntry* m_plist_head, *m_plist_tail;
 
     static thread_local uint32_t m_dlist_cardinality;
+
+#ifdef _DEBUG
+    std::atomic_uint32_t m_num_hps;    //!< number of hazard pointers residing in the cache
+    std::atomic_uint32_t m_num_buffers_freed;    //!< total number of buffers deallocated
+#endif
 };
 
 thread_local HazardPointerPool::impl::GCListEntry* HazardPointerPool::impl::m_dlist_head = new HazardPointerPool::impl::GCListEntry{ nullptr, nullptr, false };
@@ -301,14 +317,14 @@ HazardPointerPool::HazardPointerPool():
 
 HazardPointerPool::~HazardPointerPool() = default;
 
-HazardPointerPool::HazardPointer* HazardPointerPool::acquire(void* ptr_value)
+HazardPointerPool::HazardPointerRecord HazardPointerPool::acquire(void* ptr_value)
 {
     return m_impl->acquire(ptr_value);
 }
 
-void HazardPointerPool::retire(HazardPointer* p_hp)
+void HazardPointerPool::retire(HazardPointerRecord const& hp_record)
 {
-    m_impl->retire(p_hp);
+    m_impl->retire(hp_record.m_p_hp);
 }
 
 void lexgine::core::concurrency::HazardPointerPool::flush()
@@ -319,4 +335,76 @@ void lexgine::core::concurrency::HazardPointerPool::flush()
 void HazardPointerPool::setGCThreshold(uint32_t threshold)
 {
     m_gc_threshold = threshold;
+}
+
+HazardPointerPool::HazardPointerRecord::HazardPointerRecord(HazardPointerRecord const& other):
+    m_p_hp{ other.m_p_hp },
+    m_ref_counter{ other.m_ref_counter }
+{
+    ++(*m_ref_counter);
+}
+
+HazardPointerPool::HazardPointerRecord::HazardPointerRecord(HazardPointerRecord&& other):
+    m_p_hp{ other.m_p_hp },
+    m_ref_counter{ other.m_ref_counter }
+{
+    other.m_ref_counter = nullptr;
+}
+
+HazardPointerPool::HazardPointerRecord& HazardPointerPool::HazardPointerRecord::operator=(HazardPointerRecord const& other)
+{
+    if (this == &other)
+        return *this;
+
+    if (!(--(*m_ref_counter)))
+    {
+        delete m_ref_counter;
+        m_p_hp->m_is_active.store(false, std::memory_order::memory_order_release);
+    }
+
+    m_p_hp = other.m_p_hp;
+    m_ref_counter = other.m_ref_counter;
+
+    ++(*m_ref_counter);
+
+    return *this;
+}
+
+HazardPointerPool::HazardPointerRecord& HazardPointerPool::HazardPointerRecord::operator=(HazardPointerRecord&& other)
+{
+    if (this == &other)
+        return *this;
+
+    if (!(--(*m_ref_counter)))
+    {
+        delete m_ref_counter;
+        m_p_hp->m_is_active.store(false, std::memory_order::memory_order_release);
+    }
+
+    m_p_hp = other.m_p_hp;
+    m_ref_counter = other.m_ref_counter;
+    other.m_ref_counter = nullptr;
+
+    return *this;
+}
+
+HazardPointerPool::HazardPointerRecord::~HazardPointerRecord()
+{
+    if (m_ref_counter && !(--(*m_ref_counter)))
+    {
+        delete m_ref_counter;
+        m_p_hp->m_is_active.store(false, std::memory_order::memory_order_release);
+    }
+}
+
+HazardPointerPool::HazardPointer* HazardPointerPool::HazardPointerRecord::operator->() const
+{
+    return m_p_hp;
+}
+
+HazardPointerPool::HazardPointerRecord::HazardPointerRecord(HazardPointer* p_hp):
+    m_p_hp{ p_hp },
+    m_ref_counter{ new uint32_t{1U} }
+{
+    m_p_hp->m_is_active.store(true, std::memory_order::memory_order_release);
 }

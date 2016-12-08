@@ -14,7 +14,11 @@ template<typename T>
 class LockFreeQueue
 {
 public:
-    LockFreeQueue()
+    LockFreeQueue() :
+#ifdef _DEBUG
+        m_num_elements_enqueued{ 0U }
+        , m_num_elements_dequeued{ 0U }
+#endif
     {
         Node* p_dummy_node = static_cast<Node*>(malloc(sizeof(Node)));
         std::atomic_init(&p_dummy_node->next, nullptr);
@@ -32,7 +36,7 @@ public:
 
         while (true)
         {
-            HazardPointerPool::HazardPointer* hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
+            HazardPointerPool::HazardPointerRecord hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
             hp_tail->setHazardous();
             if (!hp_tail->isActive()) continue;    // the tail node has been deallocated before we've managed to make it "hazardous"
 
@@ -58,6 +62,8 @@ public:
                         // the hp_tail pointer is now safe to remove
                         hp_tail->setSafeToRemove();
 
+                        ++m_num_elements_enqueued;
+
                         return;
                     }
                 }
@@ -76,18 +82,18 @@ public:
     {
         while (true)
         {
-            HazardPointerPool::HazardPointer* hp_head = hp_pool.acquire(m_head.load(std::memory_order::memory_order_acquire));
+            HazardPointerPool::HazardPointerRecord hp_head = hp_pool.acquire(m_head.load(std::memory_order::memory_order_acquire));
             hp_head->setHazardous();
             if(!hp_head->isActive()) continue;    // the pointer has been deallocated before we have managed to make it "hazardous"
             Node* p_head = static_cast<Node*>(hp_head->get());
 
-            HazardPointerPool::HazardPointer* hp_head_next = hp_pool.acquire(p_head->next.load(std::memory_order::memory_order_acquire));
+            HazardPointerPool::HazardPointerRecord hp_head_next = hp_pool.acquire(p_head->next.load(std::memory_order::memory_order_acquire));
             hp_head_next->setHazardous();
             if (!hp_head_next->isActive()) continue;    // the pointer has been deallocated before we have managed to make it "hazardous"
             Node* p_head_next = static_cast<Node*>(hp_head_next->get());
 
 
-            HazardPointerPool::HazardPointer* hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
+            HazardPointerPool::HazardPointerRecord hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
             hp_tail->setHazardous();
             if(!hp_tail->isActive()) continue;    // the pointer has been deallocated before we have managed to make it "hazardous"
             Node* p_tail = static_cast<Node*>(hp_tail->get());
@@ -121,6 +127,8 @@ public:
                         hp_head_next->setSafeToRemove();
                         hp_tail->setSafeToRemove();
 
+                        ++m_num_elements_dequeued;
+
                         return rv;
                     }
                 }
@@ -136,6 +144,13 @@ public:
     }
 
 
+    //! Forces physical deallocation of all memory buffers marked for removal on the calling thread
+    void clearCache()
+    {
+        hp_pool.flush();
+    }
+
+
     //! Returns 'true' if the queue is empty; returns 'false' otherwise
     bool isEmpty() const
     {
@@ -148,7 +163,10 @@ public:
         Node* p_last_node_to_destruct = m_head.load(std::memory_order::memory_order_consume);
         assert(p_last_node_to_destruct == m_tail.load(std::memory_order::memory_order_consume));    // the queue must be empty when getting destructed
 
-        delete p_last_node_to_destruct;
+#ifdef _DEBUG
+        assert(m_num_elements_enqueued == m_num_elements_dequeued);
+#endif
+        free(p_last_node_to_destruct);
     }
 
 
@@ -162,6 +180,11 @@ private:
 
     std::atomic<Node*> m_head, m_tail;    //!< head and tail of the underlying queue data structure
     HazardPointerPool hp_pool;    //!< pool of hazard pointer employed for safe memory reclamation
+
+#ifdef _DEBUG
+    std::atomic_uint32_t m_num_elements_enqueued;    //!< total number of elements ever added into the queue
+    std::atomic_uint32_t m_num_elements_dequeued;    //!< total number of elements ever removed from the queue
+#endif
 };
 
 }}}

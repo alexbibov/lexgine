@@ -94,6 +94,8 @@ public:
         {
             using namespace lexgine::core::concurrency;
 
+            uint8_t const num_consumption_threads = 2U;
+
             struct DataBit
             {
                 uint32_t value;
@@ -104,11 +106,13 @@ public:
             bool production_finished = false;
             std::atomic_uint64_t tasks_produced{ 0U };
             std::atomic_uint64_t tasks_consumed{ 0U };
+            std::atomic_uint32_t checksum{ 0U };
+            bool consumption_thread_reported[num_consumption_threads]{ false };
 
             //! Produces 100 000 elements for the queue
             auto produce = [&queue, &tasks_produced, &production_finished]()->void
             {
-                for (uint32_t i = 0; i < 100U; ++i)
+                for (uint32_t i = 0; i < 100; ++i)
                 {
                     queue.enqueue(DataBit{ i });
                     ++tasks_produced;
@@ -117,7 +121,7 @@ public:
             };
 
             //! Consumes an element from the queue, simulates "work" by sleeping for 1ms, then consumes next element from the queue and so on
-            auto consume = [&queue, &tasks_produced, &tasks_consumed, &production_finished]()->void
+            auto consume = [&queue, &tasks_produced, &tasks_consumed, &production_finished, &checksum, &consumption_thread_reported](uint8_t thread_id)->void
             {
                 while (!production_finished || tasks_produced.load(std::memory_order::memory_order_consume) >
                 tasks_consumed.load(std::memory_order::memory_order_consume))
@@ -125,32 +129,49 @@ public:
                     lexgine::core::misc::Optional<DataBit> val = queue.dequeue();
                     if(val.isValid())
                     {
+                        checksum.fetch_add(static_cast<DataBit>(val).value);
                         //Sleep(1);
                         ++tasks_consumed;
                     }
                 }
 
-
+                queue.clearCache();
+                consumption_thread_reported[thread_id] = true;
             };
 
 
             std::thread producer{ produce };
             producer.detach();
 
-            std::thread* consumers[7];
-            for (uint8_t i = 0; i < 1U; ++i)
+            std::thread* consumers[num_consumption_threads];
+            for (uint8_t i = 0; i < num_consumption_threads; ++i)
             {
-                consumers[i] = new std::thread{ consume };
+                consumers[i] = new std::thread{ consume, i };
                 consumers[i]->detach();
             }
 
 
             // Stop the main thread until producers and consumers are done
-            while (!production_finished || tasks_produced.load(std::memory_order::memory_order_consume) >
-                tasks_consumed.load(std::memory_order::memory_order_consume));
+            bool work_completed = false;
+            while (!work_completed)
+            {
+                bool all_consumption_threads_have_reported = true;
+                for(uint8_t i = 0; i < num_consumption_threads; ++i)
+                {
+                    if (!consumption_thread_reported[i])
+                    {
+                        all_consumption_threads_have_reported = false;
+                        break;
+                    }
+                }
+
+                work_completed = production_finished
+                    && tasks_produced.load(std::memory_order::memory_order_consume) == tasks_consumed.load(std::memory_order::memory_order_consume)
+                    && all_consumption_threads_have_reported;
+            }
 
 
-            for (uint8_t i = 0; i < 1U; ++i)
+            for (uint8_t i = 0; i < num_consumption_threads; ++i)
             {
                 delete consumers[i];
             }
