@@ -77,15 +77,19 @@ public:
             HazardPointerPool::HazardPointerRecord hp_head = hp_pool.acquire(m_head.load(std::memory_order::memory_order_acquire));
             Node* p_head = static_cast<Node*>(hp_head.get());
 
-            HazardPointerPool::HazardPointerRecord hp_head_next = hp_pool.acquire(p_head->next.load(std::memory_order::memory_order_acquire));
-            Node* p_head_next = static_cast<Node*>(hp_head_next.get());
-
+            HazardPointerPool::HazardPointerRecord hp_head_next{};
+            Node* p_head_next{ nullptr };
 
             HazardPointerPool::HazardPointerRecord hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
             Node* p_tail = static_cast<Node*>(hp_tail.get());
 
             if (p_head == m_head.load(std::memory_order::memory_order_consume))    // check if p_head is still related to the queue
             {
+                // Now we can be sure that we can access the node that follows the head node...
+                hp_head_next = hp_pool.acquire(p_head->next.load(std::memory_order::memory_order_acquire));
+                p_head_next = static_cast<Node*>(hp_head_next.get());
+
+
                 if (p_head == p_tail)
                 {
                     if (p_head_next == nullptr)
@@ -100,15 +104,21 @@ public:
                 else
                 {
                     // the queue was definitely not empty
-                    misc::Optional<T> rv = p_head_next->data;
-                    if (m_head.compare_exchange_weak(p_head, p_head_next, std::memory_order::memory_order_acq_rel))
+
+                    if (p_head == m_head.load(std::memory_order::memory_order_consume))
                     {
-                        hp_pool.retire(hp_head);
+                        misc::Optional<T> rv = p_head_next->data;
 
-                        ++m_num_elements_dequeued;
+                        if (m_head.compare_exchange_weak(p_head, p_head_next, std::memory_order::memory_order_acq_rel))
+                        {
+                            hp_pool.retire(hp_head);
 
-                        return rv;
+                            ++m_num_elements_dequeued;
+
+                            return rv;
+                        }
                     }
+
                 }
 
             }

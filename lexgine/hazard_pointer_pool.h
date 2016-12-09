@@ -16,6 +16,7 @@ public:
         friend HazardPointerPool;
 
     public:
+        HazardPointerRecord();
         HazardPointerRecord(HazardPointerRecord const& other);
         HazardPointerRecord(HazardPointerRecord&& other);
         HazardPointerRecord& operator=(HazardPointerRecord const& other);

@@ -312,6 +312,12 @@ void HazardPointerPool::setGCThreshold(uint32_t threshold)
     m_gc_threshold = threshold;
 }
 
+HazardPointerPool::HazardPointerRecord::HazardPointerRecord():
+    m_p_hp_entry{ nullptr },
+    m_ref_counter{ nullptr }
+{
+}
+
 HazardPointerPool::HazardPointerRecord::HazardPointerRecord(HazardPointerRecord const& other):
     m_p_hp_entry{ other.m_p_hp_entry },
     m_ref_counter{ other.m_ref_counter }
@@ -331,7 +337,7 @@ HazardPointerPool::HazardPointerRecord& HazardPointerPool::HazardPointerRecord::
     if (this == &other)
         return *this;
 
-    if (!(--(*m_ref_counter)))
+    if (m_ref_counter && !(--(*m_ref_counter)))
     {
         delete m_ref_counter;
         static_cast<impl::HPListEntry*>(m_p_hp_entry)->is_active.store(false, std::memory_order::memory_order_release);
@@ -350,7 +356,7 @@ HazardPointerPool::HazardPointerRecord& HazardPointerPool::HazardPointerRecord::
     if (this == &other)
         return *this;
 
-    if (!(--(*m_ref_counter)))
+    if (m_ref_counter && !(--(*m_ref_counter)))
     {
         delete m_ref_counter;
         static_cast<impl::HPListEntry*>(m_p_hp_entry)->is_active.store(false, std::memory_order::memory_order_release);
