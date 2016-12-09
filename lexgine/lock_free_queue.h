@@ -37,10 +37,8 @@ public:
         while (true)
         {
             HazardPointerPool::HazardPointerRecord hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
-            hp_tail->setHazardous();
-            if (!hp_tail->isActive()) continue;    // the tail node has been deallocated before we've managed to make it "hazardous"
 
-            Node* p_tail = static_cast<Node*>(hp_tail->get());
+            Node* p_tail = static_cast<Node*>(hp_tail.get());
             Node* p_next = p_tail->next.load(std::memory_order::memory_order_consume);
 
 
@@ -59,18 +57,12 @@ public:
                         // if we were successful attempt to move the tail node pointer forward
                         m_tail.compare_exchange_weak(p_tail, p_new_node, std::memory_order::memory_order_acq_rel);
 
-                        // the hp_tail pointer is now safe to remove
-                        hp_tail->setSafeToRemove();
-
                         ++m_num_elements_enqueued;
 
                         return;
                     }
                 }
             }
-
-            // we did not manage to do anything... just remove the "hazardous" state from the hazard pointers
-            hp_tail->setSafeToRemove();
         }
     }
 
@@ -83,20 +75,14 @@ public:
         while (true)
         {
             HazardPointerPool::HazardPointerRecord hp_head = hp_pool.acquire(m_head.load(std::memory_order::memory_order_acquire));
-            hp_head->setHazardous();
-            if(!hp_head->isActive()) continue;    // the pointer has been deallocated before we have managed to make it "hazardous"
-            Node* p_head = static_cast<Node*>(hp_head->get());
+            Node* p_head = static_cast<Node*>(hp_head.get());
 
             HazardPointerPool::HazardPointerRecord hp_head_next = hp_pool.acquire(p_head->next.load(std::memory_order::memory_order_acquire));
-            hp_head_next->setHazardous();
-            if (!hp_head_next->isActive()) continue;    // the pointer has been deallocated before we have managed to make it "hazardous"
-            Node* p_head_next = static_cast<Node*>(hp_head_next->get());
+            Node* p_head_next = static_cast<Node*>(hp_head_next.get());
 
 
             HazardPointerPool::HazardPointerRecord hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
-            hp_tail->setHazardous();
-            if(!hp_tail->isActive()) continue;    // the pointer has been deallocated before we have managed to make it "hazardous"
-            Node* p_tail = static_cast<Node*>(hp_tail->get());
+            Node* p_tail = static_cast<Node*>(hp_tail.get());
 
             if (p_head == m_head.load(std::memory_order::memory_order_consume))    // check if p_head is still related to the queue
             {
@@ -104,10 +90,6 @@ public:
                 {
                     if (p_head_next == nullptr)
                     {
-                        hp_head->setSafeToRemove();
-                        hp_head_next->setSafeToRemove();
-                        hp_tail->setSafeToRemove();
-
                         return misc::Optional<T>{};    // the queue is empty. Return invalid value container.
                     }
 
@@ -123,10 +105,6 @@ public:
                     {
                         hp_pool.retire(hp_head);
 
-                        hp_head->setSafeToRemove();
-                        hp_head_next->setSafeToRemove();
-                        hp_tail->setSafeToRemove();
-
                         ++m_num_elements_dequeued;
 
                         return rv;
@@ -134,12 +112,6 @@ public:
                 }
 
             }
-
-
-            // we did not manage to do anything, just make the hazard pointers safe to deallocate...
-            hp_head->setSafeToRemove();
-            hp_head_next->setSafeToRemove();
-            hp_tail->setSafeToRemove();
         }
     }
 

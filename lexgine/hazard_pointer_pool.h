@@ -10,34 +10,6 @@ namespace lexgine {namespace core {namespace concurrency {
 class HazardPointerPool
 {
 public:
-    //! Describes a hazard pointer
-    class HazardPointer
-    {
-        friend class HazardPointerPool;
-
-    public:
-        ~HazardPointer() = default;
-
-        void* get() const;    //! returns the actual value of the pointer
-        bool isActive() const;    //! returns 'true' if the pointer is active. Returns 'false' otherwise
-        bool isHazardous() const;    //! returns 'true' if the pointer record has been set "hazardous" by some thread. Returns 'false' otherwise
-
-        void setHazardous();    //! sets the pointer to the "hazardous" state. While the pointer stays in this state, the data it points to will never be removed.
-        void setSafeToRemove();    //! removes the "hazardous" state from the pointer. It is not safe to access the data through this pointer when it is not hazardous.
-
-    private:
-        HazardPointer();
-        HazardPointer(HazardPointer const&) = delete;
-        HazardPointer(HazardPointer&&) = delete;
-        HazardPointer& operator=(HazardPointer const&) = delete;
-        HazardPointer& operator=(HazardPointer&&) = delete;
-
-
-        void* m_value;    //!< actual value encapsulated by the hazard pointer
-        std::atomic_bool m_is_active;    //!< 'true' if the pointer is valid; 'false' if it has been deallocated
-        bool m_is_hazardous;    //!< 'true' if the pointer has been set "hazardous" by some thread; 'false' otherwise
-    };
-
     //! Describes hazard pointer record, which enables automatic reuse of hazard pointer entries in the cache
     class HazardPointerRecord
     {
@@ -50,13 +22,13 @@ public:
         HazardPointerRecord& operator=(HazardPointerRecord&& other);
         ~HazardPointerRecord();
 
-        HazardPointer* operator->() const;
+        void* get() const;    //! returns physical address stored in the wrapped hazard pointer
 
     private:
-        HazardPointerRecord(HazardPointer* p_hp);
+        HazardPointerRecord(void* p_hp_entry);
 
         uint32_t* m_ref_counter;    //!< reference counter tracking, whether the wrapped hazard pointer is still in use
-        HazardPointer* m_p_hp;    //!< pointer for the hazard pointer entry in the cache wrapped by the record object
+        void* m_p_hp_entry;    //!< address of the hazard pointer entry in the cache wrapped by the record object
     };
 
 

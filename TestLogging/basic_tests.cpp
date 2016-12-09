@@ -94,7 +94,7 @@ public:
         {
             using namespace lexgine::core::concurrency;
 
-            uint8_t const num_consumption_threads = 2U;
+            uint8_t const num_consumption_threads = 7U;
 
             struct DataBit
             {
@@ -112,7 +112,7 @@ public:
             //! Produces 100 000 elements for the queue
             auto produce = [&queue, &tasks_produced, &production_finished]()->void
             {
-                for (uint32_t i = 0; i < 100; ++i)
+                for (uint32_t i = 0; i < 10000000; ++i)
                 {
                     queue.enqueue(DataBit{ i });
                     ++tasks_produced;
