@@ -88,7 +88,7 @@ public:
                 // The tail did actually point to the end of the queue, but we cannot be sure any longer...
 
                 // We try to update the tail so that it gets connected to the new bucket
-                if (p_current_tail->next.compare_exchange_weak(p_next, p_new_bucket, std::memory_order::memory_order_acq_rel))
+                if (p_current_tail->next.compare_exchange_strong(p_next, p_new_bucket, std::memory_order::memory_order_acq_rel))
                 {
                     // If we have managed to attach the new bucket, try to move the tail forward
                     m_hp_list_tail.compare_exchange_weak(p_current_tail, p_new_bucket, std::memory_order::memory_order_acq_rel);

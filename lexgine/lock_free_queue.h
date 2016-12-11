@@ -52,7 +52,7 @@ public:
                 else
                 {
                     // the tail node still points at the tail of the queue, hence we can try to add the new node into the queue
-                    if (p_tail->next.compare_exchange_weak(p_next, p_new_node, std::memory_order::memory_order_acq_rel))
+                    if (p_tail->next.compare_exchange_strong(p_next, p_new_node, std::memory_order::memory_order_acq_rel))
                     {
                         // if we were successful attempt to move the tail node pointer forward
                         m_tail.compare_exchange_weak(p_tail, p_new_node, std::memory_order::memory_order_acq_rel);
@@ -105,11 +105,14 @@ public:
                 {
                     // the queue was definitely not empty
 
+                    // if p_head was relevant at this point then p_head->next was also relevant. On the other hand at the point
+                    // of this check p_head->next was already hazardous and therefore cannot be deallocated thereafter. Hence, it can be used safely
+                    // if the check succeeds
                     if (p_head == m_head.load(std::memory_order::memory_order_consume))
                     {
                         misc::Optional<T> rv = p_head_next->data;
 
-                        if (m_head.compare_exchange_weak(p_head, p_head_next, std::memory_order::memory_order_acq_rel))
+                        if (m_head.compare_exchange_strong(p_head, p_head_next, std::memory_order::memory_order_acq_rel))
                         {
                             hp_pool.retire(hp_head);
 
