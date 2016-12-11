@@ -219,6 +219,9 @@
     <ClInclude Include="hazard_pointer_pool.h">
       <Filter>core\concurrency</Filter>
     </ClInclude>
+    <ClInclude Include="allocator.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">
@@ -337,6 +340,9 @@
     </ClCompile>
     <ClCompile Include="hazard_pointer_pool.cpp">
       <Filter>core\concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="allocator.cpp">
+      <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

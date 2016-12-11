@@ -107,12 +107,14 @@ public:
             std::atomic_uint64_t tasks_produced{ 0U };
             std::atomic_uint64_t tasks_consumed{ 0U };
             std::atomic_uint32_t checksum{ 0U };
-            bool consumption_thread_reported[num_consumption_threads]{ false };
+
+            bool volatile consumption_thread_finished_consumption[num_consumption_threads]{ false };
+            bool volatile consumption_thread_finished_work[num_consumption_threads]{ false };
 
             //! Produces 100 000 elements for the queue
             auto produce = [&queue, &tasks_produced, &production_finished]()->void
             {
-                for (uint32_t i = 0; i < 10000000; ++i)
+                for (uint32_t i = 0; i < 1000000; ++i)
                 {
                     queue.enqueue(DataBit{ i });
                     ++tasks_produced;
@@ -121,10 +123,12 @@ public:
             };
 
             //! Consumes an element from the queue, simulates "work" by sleeping for 1ms, then consumes next element from the queue and so on
-            auto consume = [&queue, &tasks_produced, &tasks_consumed, &production_finished, &checksum, &consumption_thread_reported](uint8_t thread_id)->void
-            {
-                while (!production_finished || tasks_produced.load(std::memory_order::memory_order_consume) >
-                tasks_consumed.load(std::memory_order::memory_order_consume))
+            auto consume = [&queue, &tasks_produced, &tasks_consumed, &production_finished, &checksum, 
+                &consumption_thread_finished_consumption, &consumption_thread_finished_work,
+                num_consumption_threads](uint8_t thread_id)->void
+            {   
+                while (!production_finished 
+                    || tasks_produced.load(std::memory_order::memory_order_consume) > tasks_consumed.load(std::memory_order::memory_order_consume))
                 {
                     lexgine::core::misc::Optional<DataBit> val = queue.dequeue();
                     if(val.isValid())
@@ -134,9 +138,21 @@ public:
                         ++tasks_consumed;
                     }
                 }
+                consumption_thread_finished_consumption[thread_id] = true;
+
+                bool all_consumption_threads_finished_consumption = false;
+                while(!all_consumption_threads_finished_consumption)
+                {
+                    all_consumption_threads_finished_consumption = true;
+                    for (uint8_t i = 0; i < num_consumption_threads; ++i)
+                    {
+                        if (!consumption_thread_finished_consumption[i])
+                            all_consumption_threads_finished_consumption = false;
+                    }
+                }
 
                 queue.clearCache();
-                consumption_thread_reported[thread_id] = true;
+                consumption_thread_finished_work[thread_id] = true;
             };
 
 
@@ -158,7 +174,7 @@ public:
                 bool all_consumption_threads_have_reported = true;
                 for(uint8_t i = 0; i < num_consumption_threads; ++i)
                 {
-                    if (!consumption_thread_reported[i])
+                    if (!consumption_thread_finished_work[i])
                     {
                         all_consumption_threads_have_reported = false;
                         break;
