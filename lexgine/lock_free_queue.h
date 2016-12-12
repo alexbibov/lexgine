@@ -14,9 +14,9 @@ template<typename T>
 class LockFreeQueue
 {
 public:
-    LockFreeQueue() :
+    LockFreeQueue()
 #ifdef _DEBUG
-        m_num_elements_enqueued{ 0U }
+        :m_num_elements_enqueued{ 0U }
         , m_num_elements_dequeued{ 0U }
 #endif
     {
@@ -57,7 +57,9 @@ public:
                         // if we were successful attempt to move the tail node pointer forward
                         m_tail.compare_exchange_weak(p_tail, p_new_node, std::memory_order::memory_order_acq_rel);
 
+#ifdef _DEBUG
                         ++m_num_elements_enqueued;
+#endif
 
                         return;
                     }
@@ -116,7 +118,9 @@ public:
                         {
                             hp_pool.retire(hp_head);
 
+#ifdef _DEBUG
                             ++m_num_elements_dequeued;
+#endif
 
                             return rv;
                         }

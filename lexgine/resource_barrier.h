@@ -62,7 +62,7 @@ public:
         assert(m_num_barriers < capacity);
 
         D3D12_RESOURCE_TRANSITION_BARRIER transition_desc;
-        transition_desc.pResource = p_resource->native();
+        transition_desc.pResource = p_resource->native().Get();
         transition_desc.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
         transition_desc.StateBefore = static_cast<D3D12_RESOURCE_STATES>(p_resource->m_state.getValue());
         transition_desc.StateAfter = static_cast<D3D12_RESOURCE_STATES>(new_state.getValue());
@@ -120,13 +120,13 @@ public:
     //! applies resource transition barriers into the command list
     void applyBarriers() const
     {
-        m_cmd_list.native()->ResourceBarrier(m_num_barriers, m_barriers);
+        m_cmd_list.native()->ResourceBarrier(static_cast<UINT>(m_num_barriers), m_barriers);
     }
 
 
 private:
     CommandList const& m_cmd_list;    //!< command list, to which to apply the barrier
-    D3D12_RESOURCE_BARRIER[capacity] m_barriers;    //!< list of the barriers to be applied
+    D3D12_RESOURCE_BARRIER m_barriers[capacity];    //!< list of the barriers to be applied
     size_t m_num_barriers;    //!< total number of barriers
 };
 
