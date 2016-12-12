@@ -55,6 +55,10 @@ public:
     DataChunk(DataChunk&&) = default;
     DataChunk(nullptr_t);    //! empty data chunk without actual memory tied to it
     DataChunk(size_t chunk_size);    //! creates new data chunk of given size
+
+    DataChunk& operator=(DataChunk const&) = delete;
+    DataChunk& operator=(DataChunk&&) = default;
+
     ~DataChunk();    //! destroys the data chunk and deallocates the memory buffer associated with it
 };
 

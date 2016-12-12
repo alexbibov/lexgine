@@ -84,7 +84,7 @@ void HeapDataUploader::addResourceForUpload(DestinationDescriptor const& destina
         }
         upload_buffer_native_reference->Unmap(0, NULL);
 
-        m_upload_tasks.emplace_back(source_descriptor, destination_descriptor, placed_subresource_footprints_buffer);
+        m_upload_tasks.emplace_back(upload_task{ source_descriptor, destination_descriptor, std::move(placed_subresource_footprints_buffer) });
 
         m_transaction_size += task_size;
         break;
@@ -110,7 +110,7 @@ void HeapDataUploader::addResourceForUpload(DestinationDescriptor const& destina
         memcpy(p_upload_buffer_addr + p_placed_subresource_footprint->Offset, source_descriptor.p_source_data, source_descriptor.row_pitch);
         upload_buffer_native_reference->Unmap(0, NULL);
 
-        m_upload_tasks.emplace_back(source_descriptor, destination_descriptor, placed_subresource_footprints_buffer);
+        m_upload_tasks.emplace_back(upload_task{ source_descriptor, destination_descriptor, std::move(placed_subresource_footprints_buffer) });
 
         m_transaction_size += source_descriptor.row_pitch;
         break;
@@ -203,5 +203,3 @@ uint64_t lexgine::core::dx::d3d12::HeapDataUploader::getTransactionSize() const
 {
     return m_transaction_size;
 }
-
-
