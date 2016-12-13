@@ -2,7 +2,7 @@
 #include "CppUnitTest.h"
 #include "../lexgine/log.h"
 #include "../lexgine/window.h"
-#include "../lexgine/lock_free_queue.h"
+#include "../lexgine/ring_buffer_task_queue.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4307)    // this is needed to suppress the warning caused by the static hash function
@@ -96,17 +96,11 @@ public:
 
             uint8_t const num_consumption_threads = 7U;
 
-            struct DataBit
-            {
-                uint32_t value;
-            };
-
-            LockFreeQueue<DataBit> queue;
+            RingBufferTaskQueue queue{ 65536U };
 
             bool production_finished = false;
             std::atomic_uint64_t tasks_produced{ 0U };
             std::atomic_uint64_t tasks_consumed{ 0U };
-            std::atomic_uint32_t checksum{ 0U };
 
             bool volatile consumption_thread_finished_consumption[num_consumption_threads]{ false };
             bool volatile consumption_thread_finished_work[num_consumption_threads]{ false };
@@ -114,26 +108,25 @@ public:
             //! Produces 100 000 elements for the queue
             auto produce = [&queue, &tasks_produced, &production_finished]()->void
             {
-                for (uint32_t i = 0; i < 50000000; ++i)
+                for (uint32_t i = 0; i < 100000; ++i)
                 {
-                    queue.enqueue(DataBit{ i });
+                    queue.enqueueTask(nullptr);
                     ++tasks_produced;
                 }
                 production_finished = true;
             };
 
             //! Consumes an element from the queue, simulates "work" by sleeping for 1ms, then consumes next element from the queue and so on
-            auto consume = [&queue, &tasks_produced, &tasks_consumed, &production_finished, &checksum,
+            auto consume = [&queue, &tasks_produced, &tasks_consumed, &production_finished,
                 &consumption_thread_finished_consumption, &consumption_thread_finished_work,
                 num_consumption_threads](uint8_t thread_id)->void
             {
                 while (!production_finished
                     || tasks_produced.load(std::memory_order::memory_order_consume) > tasks_consumed.load(std::memory_order::memory_order_consume))
                 {
-                    lexgine::core::misc::Optional<DataBit> val = queue.dequeue();
+                    lexgine::core::misc::Optional<AbstractTask const*> val = queue.dequeueTask();
                     if(val.isValid())
                     {
-                        checksum.fetch_add(static_cast<DataBit>(val).value);
                         //Sleep(1);
                         ++tasks_consumed;
                     }

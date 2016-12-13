@@ -131,7 +131,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="allocator.cpp" />
     <ClCompile Include="blend_descriptor.cpp" />
     <ClCompile Include="class_names.cpp" />
     <ClCompile Include="command_allocator.cpp" />
@@ -150,7 +149,6 @@
     <ClCompile Include="fence.cpp" />
     <ClCompile Include="fence_event.cpp" />
     <ClCompile Include="filter.cpp" />
-    <ClCompile Include="hazard_pointer_pool.cpp" />
     <ClCompile Include="heap.cpp" />
     <ClCompile Include="heap_data_uploader.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -168,6 +166,10 @@
     <ClCompile Include="rasterizer_descriptor.cpp" />
     <ClCompile Include="rectangle.cpp" />
     <ClCompile Include="resource.cpp" />
+    <ClCompile Include="ring_buffer_task_queue.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="root_signature.cpp" />
     <ClCompile Include="shader_source_code_preprocessor.cpp" />
     <ClCompile Include="stream_output.cpp" />
@@ -182,7 +184,6 @@
     <ClCompile Include="window_listeners.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="allocator.h" />
     <ClInclude Include="blend_descriptor.h" />
     <ClInclude Include="class_names.h" />
     <ClInclude Include="command_allocator.h" />
@@ -199,6 +200,7 @@
     <ClInclude Include="descriptor_heap.h" />
     <ClInclude Include="descriptor_table.h" />
     <ClInclude Include="device.h" />
+    <ClInclude Include="default_allocator.h" />
     <ClInclude Include="exception.h" />
     <ClInclude Include="fence.h" />
     <ClInclude Include="fence_event.h" />
@@ -229,6 +231,8 @@
     <ClInclude Include="rectangle.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource_barrier.h" />
+    <ClInclude Include="ring_buffer_allocator.h" />
+    <ClInclude Include="ring_buffer_task_queue.h" />
     <ClInclude Include="root_signature.h" />
     <ClInclude Include="shader_source_code_preprocessor.h" />
     <ClInclude Include="static_hash_table.h" />
