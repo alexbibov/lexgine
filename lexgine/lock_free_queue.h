@@ -2,6 +2,7 @@
 
 #include "optional.h"
 #include "hazard_pointer_pool.h"
+
 #include <cassert>
 
 
@@ -10,33 +11,43 @@ namespace lexgine {namespace core {namespace concurrency {
 /*! Implements generic lock-free queue supporting multiple producers and consumers.
  The implementation is based on the ideas from paper "Simple, Fast, and Practical Non-blocking and Blocking Concurrent Queue Algorithms" by Michael, M.M., and Scott, M.L.
 */
-template<typename T>
+template<typename T, template<typename> typename Allocator = DefaultAllocator>
 class LockFreeQueue
 {
 public:
-    LockFreeQueue()
+    template<typename ... allocator_construction_params>
+    LockFreeQueue(allocator_construction_params... args)
+        : m_allocator{ args... }
+        , hp_pool{ m_allocator }
 #ifdef _DEBUG
-        :m_num_elements_enqueued{ 0U }
+        , m_num_elements_enqueued{ 0U }
         , m_num_elements_dequeued{ 0U }
 #endif
     {
-        Node* p_dummy_node = static_cast<Node*>(malloc(sizeof(Node)));
+        Node* p_dummy_node = m_allocator.allocate();
         std::atomic_init(&p_dummy_node->next, nullptr);
         std::atomic_init(&m_head, p_dummy_node);
         std::atomic_init(&m_tail, p_dummy_node);
     }
 
+    LockFreeQueue(LockFreeQueue const&) = delete;
+    LockFreeQueue& operator=(LockFreeQueue const&) = delete;
+
 
     //! Inserts new value into the queue
     void enqueue(T const& value)
     {
-        Node* p_new_node = static_cast<Node*>(malloc(sizeof(Node)));
+        Node* p_new_node = nullptr;
+        while (!p_new_node)
+        {
+            p_new_node = m_allocator.allocate();
+        }
         p_new_node->data = value;
         std::atomic_init(&p_new_node->next, nullptr);
 
         while (true)
         {
-            HazardPointerPool::HazardPointerRecord hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
+            HazardPointerPool<Node, Allocator>::HazardPointerRecord hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
 
             Node* p_tail = static_cast<Node*>(hp_tail.get());
             Node* p_next = p_tail->next.load(std::memory_order::memory_order_consume);
@@ -76,13 +87,13 @@ public:
     {
         while (true)
         {
-            HazardPointerPool::HazardPointerRecord hp_head = hp_pool.acquire(m_head.load(std::memory_order::memory_order_acquire));
+            HazardPointerPool<Node, Allocator>::HazardPointerRecord hp_head = hp_pool.acquire(m_head.load(std::memory_order::memory_order_acquire));
             Node* p_head = static_cast<Node*>(hp_head.get());
 
-            HazardPointerPool::HazardPointerRecord hp_head_next{};
+            HazardPointerPool<Node, Allocator>::HazardPointerRecord hp_head_next{};
             Node* p_head_next{ nullptr };
 
-            HazardPointerPool::HazardPointerRecord hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
+            HazardPointerPool<Node, Allocator>::HazardPointerRecord hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
             Node* p_tail = static_cast<Node*>(hp_tail.get());
 
             if (p_head == m_head.load(std::memory_order::memory_order_consume))    // check if p_head is still related to the queue
@@ -155,7 +166,7 @@ public:
 #ifdef _DEBUG
         assert(m_num_elements_enqueued == m_num_elements_dequeued);
 #endif
-        free(p_last_node_to_destruct);
+        m_allocator.free(p_last_node_to_destruct);
     }
 
 
@@ -167,8 +178,10 @@ private:
         std::atomic<Node*> next;    //!< atomic pointer to the next member of the queue
     };
 
+    Allocator<Node> m_allocator;    //!< allocator used by the queue
+
     std::atomic<Node*> m_head, m_tail;    //!< head and tail of the underlying queue data structure
-    HazardPointerPool hp_pool;    //!< pool of hazard pointer employed for safe memory reclamation
+    HazardPointerPool<Node, Allocator> hp_pool;    //!< pool of hazard pointer employed for safe memory reclamation
 
 #ifdef _DEBUG
     std::atomic_uint32_t m_num_elements_enqueued;    //!< total number of elements ever added into the queue

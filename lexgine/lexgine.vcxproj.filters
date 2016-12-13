@@ -219,8 +219,14 @@
     <ClInclude Include="hazard_pointer_pool.h">
       <Filter>core\concurrency</Filter>
     </ClInclude>
-    <ClInclude Include="allocator.h">
+    <ClInclude Include="ring_buffer_allocator.h">
       <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="default_allocator.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="ring_buffer_task_queue.h">
+      <Filter>core\concurrency</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -338,11 +344,8 @@
     <ClCompile Include="task.cpp">
       <Filter>core\concurrency</Filter>
     </ClCompile>
-    <ClCompile Include="hazard_pointer_pool.cpp">
+    <ClCompile Include="ring_buffer_task_queue.cpp">
       <Filter>core\concurrency</Filter>
-    </ClCompile>
-    <ClCompile Include="allocator.cpp">
-      <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
