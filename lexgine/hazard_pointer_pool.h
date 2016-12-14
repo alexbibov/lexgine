@@ -4,12 +4,12 @@
 #include <memory>
 #include <atomic>
 
-#include "default_allocator.h"
+#include "allocator.h"
 
 namespace lexgine {namespace core {namespace concurrency {
 
 //! Pool of hazard pointers. Allows to make a given allocation hazardous, which prevents it from being freed by the concurrent threads
-template<typename T, template<typename> typename Allocator = DefaultAllocator>
+template<typename AllocatorInstantiation>
 class HazardPointerPool
 {
 public:
@@ -87,7 +87,7 @@ public:
         }
 
         //! returns physical address stored in the wrapped hazard pointer
-        T* get() const
+        typename AllocatorInstantiation::address_type get() const
         {
             return static_cast<HPListEntry*>(m_p_hp_entry)->value;
         }
@@ -106,7 +106,7 @@ public:
 
 
 
-    HazardPointerPool(Allocator<T>& allocator)
+    HazardPointerPool(AllocatorInstantiation& allocator)
         : m_allocator{ allocator }
         , m_gc_threshold{ 24U }
         , m_hp_list_head { new HPListEntry{} }
@@ -131,7 +131,7 @@ public:
 
 
     //! acquires new hazard pointer for the calling thread and uses it to protect the provided raw pointer value.
-    HazardPointerRecord acquire(T* ptr_value)
+    HazardPointerRecord acquire(typename AllocatorInstantiation::address_type const& ptr_value)
     {
         // First we check if there are unused pointers in the list
         for (HPListEntry* p_entry = m_hp_list_head; p_entry != nullptr; p_entry = p_entry->next.load(std::memory_order::memory_order_acquire))
@@ -221,7 +221,7 @@ private:
     //! Describes single entry in the hazard pointer list
     struct HPListEntry
     {
-        T* value;    //!< actual value encapsulated by the hazard pointer
+        typename AllocatorInstantiation::address_type value;    //!< actual value encapsulated by the hazard pointer
         std::atomic_bool is_active;    //!< 'true' if the pointer is valid; 'false' if it has been deallocated
         std::atomic<HPListEntry*> next;    //!< atomic pointer to the next entry in the hazard pointer list
 
@@ -242,7 +242,7 @@ private:
     //! Describes elements of the GC-lists owned by the thread
     struct GCListEntry
     {
-        T* p_mem_block;    //!< pointer to the memory block, which is subject for deletion
+        typename AllocatorInstantiation::address_type p_mem_block;    //!< pointer to the memory block, which is subject for deletion
         GCListEntry* p_next;    //!< pointer to the next element in the list
         bool is_in_use;    //!< 'true' if the entry of the garbage collector is in use; 'false' if it is available for reuse.
     };
@@ -324,7 +324,7 @@ private:
 
 
 
-    Allocator<T>& m_allocator;    //!< reference to the allocator object used to free unused data
+    AllocatorInstantiation& m_allocator;    //!< reference to the allocator object used to free unused data
 
     uint32_t m_gc_threshold;    //!< garbage collection threshold. The default value is 24 (since lock-free algorithms normally don't use more than 3 hazard pointers and the modern CPUs have no more than 8 cores)
 
@@ -343,21 +343,21 @@ private:
 };
 
 
-template<typename T, template<typename> typename Allocator>
-thread_local typename HazardPointerPool<T, Allocator>::GCListEntry* HazardPointerPool<T, Allocator>::m_dlist_head = new HazardPointerPool::GCListEntry{ nullptr, nullptr, false };
+template<typename AllocatorInstance>
+thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_dlist_head = new HazardPointerPool::GCListEntry{ nullptr, nullptr, false };
 
-template<typename T, template<typename> typename Allocator>
-thread_local typename HazardPointerPool<T, Allocator>::GCListEntry* HazardPointerPool<T, Allocator>::m_dlist_tail = { m_dlist_head };
+template<typename AllocatorInstance>
+thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_dlist_tail = { m_dlist_head };
 
-template<typename T, template<typename> typename Allocator>
-thread_local uint32_t HazardPointerPool<T, Allocator>::m_dlist_cardinality = 0U;
+template<typename AllocatorInstance>
+thread_local uint32_t HazardPointerPool<AllocatorInstance>::m_dlist_cardinality = 0U;
 
 
-template<typename T, template<typename> typename Allocator>
-thread_local typename HazardPointerPool<T, Allocator>::GCListEntry* HazardPointerPool<T, Allocator>::m_plist_head = new HazardPointerPool::GCListEntry{ nullptr, nullptr, false };
+template<typename AllocatorInstance>
+thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_plist_head = new HazardPointerPool::GCListEntry{ nullptr, nullptr, false };
 
-template<typename T, template<typename> typename Allocator>
-thread_local typename HazardPointerPool<T, Allocator>::GCListEntry* HazardPointerPool<T, Allocator>::m_plist_tail = { m_plist_head };
+template<typename AllocatorInstance>
+thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_plist_tail = { m_plist_head };
 
 
 

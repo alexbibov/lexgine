@@ -10,7 +10,7 @@ Device& Heap::device() const
 
 size_t Heap::size() const
 {
-    return m_size;
+    return static_cast<size_t>(m_size);
 }
 
 ComPtr<ID3D12Heap> Heap::native() const
@@ -68,8 +68,8 @@ Heap::Heap(Device& device, AbstractHeapType type, uint64_t size, HeapCreationFla
     heap_desc.Alignment = is_msaa_supported ? D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
     heap_desc.Flags = static_cast<D3D12_HEAP_FLAGS>(flags.getValue());
 
-    LEXGINE_ERROR_LOG(this, 
-        device.native()->CreateHeap(&heap_desc, IID_PPV_ARGS(&m_heap)), 
+    LEXGINE_ERROR_LOG(this,
+        device.native()->CreateHeap(&heap_desc, IID_PPV_ARGS(&m_heap)),
         S_OK);
 }
 
@@ -97,7 +97,7 @@ Heap::Heap(Device& device, CPUPageProperty cpu_page_property, GPUMemoryPool gpu_
 
     LEXGINE_ERROR_LOG(
         this,
-        device.native()->CreateHeap(&heap_desc, IID_PPV_ARGS(&m_heap)), 
+        device.native()->CreateHeap(&heap_desc, IID_PPV_ARGS(&m_heap)),
         S_OK
     );
 }

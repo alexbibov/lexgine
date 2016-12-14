@@ -228,6 +228,9 @@
     <ClInclude Include="ring_buffer_task_queue.h">
       <Filter>core\concurrency</Filter>
     </ClInclude>
+    <ClInclude Include="allocator.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">

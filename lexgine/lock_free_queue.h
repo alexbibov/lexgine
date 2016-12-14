@@ -2,6 +2,7 @@
 
 #include "optional.h"
 #include "hazard_pointer_pool.h"
+#include "default_allocator.h"
 
 #include <cassert>
 
@@ -11,7 +12,7 @@ namespace lexgine {namespace core {namespace concurrency {
 /*! Implements generic lock-free queue supporting multiple producers and consumers.
  The implementation is based on the ideas from paper "Simple, Fast, and Practical Non-blocking and Blocking Concurrent Queue Algorithms" by Michael, M.M., and Scott, M.L.
 */
-template<typename T, template<typename> typename Allocator = DefaultAllocator>
+template<typename T, template<typename> typename AllocatorTemplate = DefaultAllocator>
 class LockFreeQueue
 {
 public:
@@ -24,10 +25,10 @@ public:
         , m_num_elements_dequeued{ 0U }
 #endif
     {
-        Node* p_dummy_node = m_allocator.allocate();
-        std::atomic_init(&p_dummy_node->next, nullptr);
-        std::atomic_init(&m_head, p_dummy_node);
-        std::atomic_init(&m_tail, p_dummy_node);
+        auto p_dummy_node = m_allocator.allocate();
+        std::atomic_init(&p_dummy_node->next, 0U);
+        std::atomic_init(&m_head, static_cast<size_t>(p_dummy_node));
+        std::atomic_init(&m_tail, static_cast<size_t>(p_dummy_node));
     }
 
     LockFreeQueue(LockFreeQueue const&) = delete;
@@ -37,36 +38,39 @@ public:
     //! Inserts new value into the queue
     void enqueue(T const& value)
     {
-        Node* p_new_node = nullptr;
+        allocator_type::address_type p_new_node = nullptr;
         while (!p_new_node)
         {
             p_new_node = m_allocator.allocate();
         }
         p_new_node->data = value;
-        std::atomic_init(&p_new_node->next, nullptr);
+        std::atomic_init(&p_new_node->next, 0U);
 
         while (true)
         {
-            HazardPointerPool<Node, Allocator>::HazardPointerRecord hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
+            HazardPointerPool<AllocatorTemplate<Node>>::HazardPointerRecord hp_tail = hp_pool.acquire(allocator_type::address_type{ m_tail.load(std::memory_order::memory_order_acquire) });
 
-            Node* p_tail = static_cast<Node*>(hp_tail.get());
-            Node* p_next = p_tail->next.load(std::memory_order::memory_order_consume);
+            allocator_type::address_type p_tail = hp_tail.get();
 
 
-            if (p_tail == m_tail.load(std::memory_order::memory_order_consume))    // check if p_tail is still related to the queue...
+            if (static_cast<size_t>(p_tail) == m_tail.load(std::memory_order::memory_order_consume))    // check if p_tail is still related to the queue...
             {
-                if (p_next != nullptr)
+                size_t p_next = p_tail->next.load(std::memory_order::memory_order_consume);    // now we can safely access the data through the pointer as it was still related to the queue whilst being hazardous
+
+                if (p_next != 0U)
                 {
                     // the tail node is not actually the tail any longer, attempt to move it forward...
-                    m_tail.compare_exchange_weak(p_tail, p_next, std::memory_order::memory_order_acq_rel);
+                    size_t p_tail_addr = static_cast<size_t>(p_tail);
+                    m_tail.compare_exchange_weak(p_tail_addr, p_next, std::memory_order::memory_order_acq_rel);
                 }
                 else
                 {
                     // the tail node still points at the tail of the queue, hence we can try to add the new node into the queue
-                    if (p_tail->next.compare_exchange_strong(p_next, p_new_node, std::memory_order::memory_order_acq_rel))
+                    if (p_tail->next.compare_exchange_strong(p_next, static_cast<size_t>(p_new_node), std::memory_order::memory_order_acq_rel))
                     {
                         // if we were successful attempt to move the tail node pointer forward
-                        m_tail.compare_exchange_weak(p_tail, p_new_node, std::memory_order::memory_order_acq_rel);
+                        size_t p_tail_addr = static_cast<size_t>(p_tail);
+                        m_tail.compare_exchange_weak(p_tail_addr, static_cast<size_t>(p_new_node), std::memory_order::memory_order_acq_rel);
 
 #ifdef _DEBUG
                         ++m_num_elements_enqueued;
@@ -87,20 +91,20 @@ public:
     {
         while (true)
         {
-            HazardPointerPool<Node, Allocator>::HazardPointerRecord hp_head = hp_pool.acquire(m_head.load(std::memory_order::memory_order_acquire));
-            Node* p_head = static_cast<Node*>(hp_head.get());
+            hpp_type::HazardPointerRecord hp_head = hp_pool.acquire(allocator_type::address_type{ m_head.load(std::memory_order::memory_order_acquire) });
+            allocator_type::address_type p_head = hp_head.get();
 
-            HazardPointerPool<Node, Allocator>::HazardPointerRecord hp_head_next{};
-            Node* p_head_next{ nullptr };
+            hpp_type::HazardPointerRecord hp_head_next{};
+            allocator_type::address_type p_head_next{ nullptr };
 
-            HazardPointerPool<Node, Allocator>::HazardPointerRecord hp_tail = hp_pool.acquire(m_tail.load(std::memory_order::memory_order_acquire));
-            Node* p_tail = static_cast<Node*>(hp_tail.get());
+            hpp_type::HazardPointerRecord hp_tail = hp_pool.acquire(allocator_type::address_type{ m_tail.load(std::memory_order::memory_order_acquire) });
+            allocator_type::address_type p_tail = hp_tail.get();
 
-            if (p_head == m_head.load(std::memory_order::memory_order_consume))    // check if p_head is still related to the queue
+            if (static_cast<size_t>(p_head) == m_head.load(std::memory_order::memory_order_consume))    // check if p_head is still related to the queue
             {
                 // Now we can be sure that we can access the node that follows the head node...
-                hp_head_next = hp_pool.acquire(p_head->next.load(std::memory_order::memory_order_acquire));
-                p_head_next = static_cast<Node*>(hp_head_next.get());
+                hp_head_next = hp_pool.acquire(allocator_type::address_type{ p_head->next.load(std::memory_order::memory_order_acquire) });
+                p_head_next = hp_head_next.get();
 
 
                 if (p_head == p_tail)
@@ -112,7 +116,8 @@ public:
 
                     // We end up here if the queue is not empty, but the head and the tail pointers refer to the same node.
                     // In this case we attempt to move the tail pointer forward
-                    m_tail.compare_exchange_weak(p_tail, p_head_next, std::memory_order::memory_order_acq_rel);
+                    size_t p_tail_addr = static_cast<size_t>(p_tail);
+                    m_tail.compare_exchange_weak(p_tail_addr, static_cast<size_t>(p_head_next), std::memory_order::memory_order_acq_rel);
                 }
                 else
                 {
@@ -121,11 +126,12 @@ public:
                     // if p_head was relevant at this point then p_head->next was also relevant. On the other hand at the point
                     // of this check p_head->next was already hazardous and therefore cannot be deallocated thereafter. Hence, it can be used safely
                     // if the check succeeds
-                    if (p_head == m_head.load(std::memory_order::memory_order_consume))
+                    if (static_cast<size_t>(p_head) == m_head.load(std::memory_order::memory_order_consume))
                     {
                         misc::Optional<T> rv = p_head_next->data;
 
-                        if (m_head.compare_exchange_strong(p_head, p_head_next, std::memory_order::memory_order_acq_rel))
+                        size_t p_head_addr = static_cast<size_t>(p_head);
+                        if (m_head.compare_exchange_strong(static_cast<size_t>(p_head_addr), static_cast<size_t>(p_head_next), std::memory_order::memory_order_acq_rel))
                         {
                             hp_pool.retire(hp_head);
 
@@ -160,8 +166,8 @@ public:
 
     ~LockFreeQueue()
     {
-        Node* p_last_node_to_destruct = m_head.load(std::memory_order::memory_order_consume);
-        assert(p_last_node_to_destruct == m_tail.load(std::memory_order::memory_order_consume));    // the queue must be empty when getting destructed
+        allocator_type::address_type p_last_node_to_destruct{ m_head.load(std::memory_order::memory_order_consume) };
+        assert(static_cast<size_t>(p_last_node_to_destruct) == m_tail.load(std::memory_order::memory_order_consume));    // the queue must be empty when getting destructed
 
 #ifdef _DEBUG
         assert(m_num_elements_enqueued == m_num_elements_dequeued);
@@ -175,13 +181,17 @@ private:
     struct Node
     {
         T data;    //!< the data contained in the queue node
-        std::atomic<Node*> next;    //!< atomic pointer to the next member of the queue
+        std::atomic_size_t next;    //!< atomic pointer to the next member of the queue
     };
 
-    Allocator<Node> m_allocator;    //!< allocator used by the queue
+    using allocator_type = AllocatorTemplate<Node>;
+    using hpp_type = HazardPointerPool<allocator_type>;
 
-    std::atomic<Node*> m_head, m_tail;    //!< head and tail of the underlying queue data structure
-    HazardPointerPool<Node, Allocator> hp_pool;    //!< pool of hazard pointer employed for safe memory reclamation
+
+    std::atomic_size_t m_head, m_tail;    //!< head and tail of the underlying queue data structure
+
+    allocator_type m_allocator;    //!< allocator used by the queue
+    hpp_type hp_pool;    //!< pool of hazard pointer employed for safe memory reclamation
 
 #ifdef _DEBUG
     std::atomic_uint32_t m_num_elements_enqueued;    //!< total number of elements ever added into the queue
