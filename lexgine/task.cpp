@@ -15,19 +15,21 @@ AbstractTask::AbstractTask(std::list<AbstractTask const*> const & dependencies):
 {
 }
 
-void AbstractTask::execute()
+/*void AbstractTask::execute()
 {
-    auto task_begin_execution_time_point = std::chrono::system_clock::now();
+
     do_task();
     auto task_complete_execution_time_point = std::chrono::system_clock::now();
     m_is_completed = true;
 
     uint64_t completion_time_in_ms = std::chrono::duration_cast<std::chrono::milliseconds>(task_complete_execution_time_point - task_begin_execution_time_point).count();
     m_completion_callback(completion_time_in_ms);
-}
+}*/
 
-void AbstractTask::execute_async()
+void AbstractTask::executeAsync()
 {
+    auto task_begin_execution_time_point = std::chrono::system_clock::now();
+
     m_execution_mutex.lock();
     std::thread{ &AbstractTask::execute, this }.detach();
     m_execution_mutex.unlock();
@@ -47,4 +49,9 @@ bool lexgine::core::concurrency::AbstractTask::isCompleted() const
 void AbstractTask::setCompletionCallback(std::function<void(uint64_t completion_time)> const & callback)
 {
     m_completion_callback = callback;
+}
+
+uint64_t TaskExecutionStatistics::getExecutionTime() const
+{
+    return m_execution_time;
 }
