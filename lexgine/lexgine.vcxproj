@@ -184,6 +184,7 @@
     <ClCompile Include="window_listeners.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="allocator.h" />
     <ClInclude Include="blend_descriptor.h" />
     <ClInclude Include="class_names.h" />
     <ClInclude Include="command_allocator.h" />

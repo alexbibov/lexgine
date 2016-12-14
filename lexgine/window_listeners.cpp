@@ -268,7 +268,7 @@ int64_t MouseButtonListener::process_message(uint64_t message, uint64_t p_window
 {
     uint16_t x = lParam & 0xFFFF;
     uint16_t y = (lParam & 0xFFFF0000) >> 16;
-    ControlKeyFlag control_key_flag = transformControlFlag(wParam);
+    ControlKeyFlag control_key_flag = transformControlFlag(static_cast<WPARAM>(wParam));
 
     MouseButton button;
     bool isButtonPressed = false;
@@ -315,7 +315,7 @@ int64_t MouseMoveListener::process_message(uint64_t message, uint64_t p_window, 
 {
     uint16_t x = lParam & 0xFFFF;
     uint16_t y = (lParam & 0xFFFF0000) >> 16;
-    ControlKeyFlag control_key_flag = transformControlFlag(wParam);
+    ControlKeyFlag control_key_flag = transformControlFlag(static_cast<WPARAM>(wParam));
     bool success = false;    // 'true' if the message processing succeeds
 
     TRACKMOUSEEVENT track_mouse_event;

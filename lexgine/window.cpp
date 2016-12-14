@@ -257,17 +257,17 @@ LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wPar
     {
         Window* p_window = window_pool[hWnd];
         int64_t success_status = DefWindowProc(hWnd, uMsg, wParam, lParam);
-        if (p_window == nullptr) return success_status;
+        if (p_window == nullptr) return static_cast<LRESULT>(success_status);
 
         for (auto listener : p_window->m_listener_list)
         {
             int64_t status = listener->handle(uMsg, reinterpret_cast<uint64_t>(p_window), wParam, lParam, 0, 0, 0, 0, 0);
 
             if (status != AbstractListener::not_supported && status != success_status)
-                return status;
+                return static_cast<LRESULT>(status);
         }
 
-        return success_status;
+        return static_cast<LRESULT>(success_status);
     }
     }
 

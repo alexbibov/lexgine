@@ -78,7 +78,7 @@ void HeapDataUploader::addResourceForUpload(DestinationDescriptor const& destina
                     char* p_upload_buffer_subresource_row_offset = p_upload_buffer_subresource_slice_offset + p_placed_subresource_footprints[p].Footprint.RowPitch*i;
                     char* p_source_subresource_row_offset = p_source_subresource_slice_offset + source_descriptor.row_pitch*i;
 
-                    memcpy(p_upload_buffer_subresource_row_offset, p_source_subresource_row_offset, p_subresource_row_size_in_bytes[p]);
+                    memcpy(p_upload_buffer_subresource_row_offset, p_source_subresource_row_offset, static_cast<size_t>(p_subresource_row_size_in_bytes[p]));
                 }
             }
         }
@@ -107,7 +107,7 @@ void HeapDataUploader::addResourceForUpload(DestinationDescriptor const& destina
             upload_buffer_native_reference->Map(0, NULL, reinterpret_cast<void**>(&p_upload_buffer_addr)),
             S_OK
         );
-        memcpy(p_upload_buffer_addr + p_placed_subresource_footprint->Offset, source_descriptor.p_source_data, source_descriptor.row_pitch);
+        memcpy(p_upload_buffer_addr + p_placed_subresource_footprint->Offset, source_descriptor.p_source_data, static_cast<size_t>(source_descriptor.row_pitch));
         upload_buffer_native_reference->Unmap(0, NULL);
 
         m_upload_tasks.emplace_back(upload_task{ source_descriptor, destination_descriptor, std::move(placed_subresource_footprints_buffer) });
