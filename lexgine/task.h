@@ -10,6 +10,11 @@
 
 namespace lexgine {namespace core {namespace concurrency {
 
+struct TaskExecutionStatistics final
+{
+    uint64_t execution_time;    //!< time of execution of the related task
+};
+
 //! Abstraction of a task that can be executed. This API as well as the inherited classes is OS-agnostic
 class AbstractTask : public NamedEntity<class_names::Task>
 {
@@ -18,16 +23,15 @@ public:
     AbstractTask(std::list<AbstractTask const*> const& dependencies);
 
     void execute();    //! executes the task on the calling thread
-    void execute_async();    //! executes the task asynchronously on a separate thread
 
-    bool isCompleted() const;    //! returns 'true' if the task has been successfully completed. Returns 'false' otherwise.
-    void setCompletionCallback(std::function<void(uint64_t completion_time_in_ms)> const& callback);    //! sets callback function, which is called by the executing thread immediately after the task has been executed
+    bool isCompleted() const;    //! returns 'true' if the task has been successfully completed. Returns 'false' otherwise
+    TaskExecutionStatistics const& getExecutionStatistics() const;    //! returns execution statistics of the task
 
 private:
     std::list<AbstractTask const*> m_dependencies;    //!< dependencies of this task. This task cannot be executed before the dependent tasks are completed.
     bool m_is_completed;    //!< equals 'true' if the task was completed. Equals 'false' otherwise.
-    mutable std::mutex m_execution_mutex;    //!< mutex, which gets locked when the task is being executed
-    std::function<void(uint64_t completion_time_in_ms)> m_completion_callback;    //!< completion callback function invoked be the executing thread immediately after the task has been completed
+    mutable std::mutex m_execution_mutex;    //!< mutex, which gets locked while the task is being executed
+    TaskExecutionStatistics m_execution_statistics;    //!< execution statistics of the task
 
     virtual void do_task() = 0;    //!< runs the actual workload related to the task
 };

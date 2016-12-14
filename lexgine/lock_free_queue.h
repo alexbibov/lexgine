@@ -48,7 +48,7 @@ public:
 
         while (true)
         {
-            HazardPointerPool<AllocatorTemplate<Node>>::HazardPointerRecord hp_tail = hp_pool.acquire(allocator_type::address_type{ m_tail.load(std::memory_order::memory_order_acquire) });
+            hpp_type::HazardPointerRecord hp_tail = hp_pool.acquire(allocator_type::address_type{ m_tail.load(std::memory_order::memory_order_acquire) });
 
             allocator_type::address_type p_tail = hp_tail.get();
 
