@@ -58,7 +58,7 @@ public:
                 + std::to_string(log_time.year()) + "/ (" + std::to_string(log_time.hour()) + ":" + std::to_string(log_time.minute()) + ":" + std::to_string(log_time.second()) + "): ";
 
             std::string log_string = test_log.rdbuf()->str();
-            log_string = log_string.substr(84, ref_string.size());
+            log_string = log_string.substr(log_string.find_first_of('\n') + 1, ref_string.size());
 
 
             Assert::IsTrue(log_string.compare(ref_string) == 0);
