@@ -56,5 +56,5 @@ void AbstractTask::addDependent(AbstractTask& task)
 
 std::list<AbstractTask*> const& AbstractTask::dependents() const
 {
-    m_dependents;
+    return m_dependents;
 }
