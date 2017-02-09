@@ -19,7 +19,7 @@ public:
     template<typename ... allocator_construction_params>
     LockFreeQueue(allocator_construction_params... args)
         : m_allocator{ args... }
-        , hp_pool{ m_allocator }
+        , m_hp_pool{ m_allocator }
 #ifdef _DEBUG
         , m_num_elements_enqueued{ 0U }
         , m_num_elements_dequeued{ 0U }
@@ -48,7 +48,7 @@ public:
 
         while (true)
         {
-            hpp_type::HazardPointerRecord hp_tail = hp_pool.acquire(allocator_type::address_type{ m_tail.load(std::memory_order::memory_order_acquire) });
+            hpp_type::HazardPointerRecord hp_tail = m_hp_pool.acquire(allocator_type::address_type{ m_tail.load(std::memory_order::memory_order_acquire) });
 
             allocator_type::address_type p_tail = hp_tail.get();
 
@@ -91,21 +91,20 @@ public:
     {
         while (true)
         {
-            hpp_type::HazardPointerRecord hp_head = hp_pool.acquire(allocator_type::address_type{ m_head.load(std::memory_order::memory_order_acquire) });
+            hpp_type::HazardPointerRecord hp_head = m_hp_pool.acquire(allocator_type::address_type{ m_head.load(std::memory_order::memory_order_acquire) });
             allocator_type::address_type p_head = hp_head.get();
 
             hpp_type::HazardPointerRecord hp_head_next{};
             allocator_type::address_type p_head_next{ nullptr };
 
-            hpp_type::HazardPointerRecord hp_tail = hp_pool.acquire(allocator_type::address_type{ m_tail.load(std::memory_order::memory_order_acquire) });
+            hpp_type::HazardPointerRecord hp_tail = m_hp_pool.acquire(allocator_type::address_type{ m_tail.load(std::memory_order::memory_order_acquire) });
             allocator_type::address_type p_tail = hp_tail.get();
 
             if (static_cast<size_t>(p_head) == m_head.load(std::memory_order::memory_order_consume))    // check if p_head is still related to the queue
             {
                 // Now we can be sure that we can access the node that follows the head node...
-                hp_head_next = hp_pool.acquire(allocator_type::address_type{ p_head->next.load(std::memory_order::memory_order_acquire) });
+                hp_head_next = m_hp_pool.acquire(allocator_type::address_type{ p_head->next.load(std::memory_order::memory_order_acquire) });
                 p_head_next = hp_head_next.get();
-
 
                 if (p_head == p_tail)
                 {
@@ -133,7 +132,7 @@ public:
                         size_t p_head_addr = static_cast<size_t>(p_head);
                         if (m_head.compare_exchange_strong(static_cast<size_t>(p_head_addr), static_cast<size_t>(p_head_next), std::memory_order::memory_order_acq_rel))
                         {
-                            hp_pool.retire(hp_head);
+                            m_hp_pool.retire(hp_head);
 
 #ifdef _DEBUG
                             ++m_num_elements_dequeued;
@@ -153,7 +152,7 @@ public:
     //! Forces physical deallocation of all memory buffers marked for removal on the calling thread
     void clearCache()
     {
-        hp_pool.flush();
+        m_hp_pool.flush();
     }
 
 
@@ -191,7 +190,7 @@ private:
     std::atomic_size_t m_head, m_tail;    //!< head and tail of the underlying queue data structure
 
     allocator_type m_allocator;    //!< allocator used by the queue
-    hpp_type hp_pool;    //!< pool of hazard pointer employed for safe memory reclamation
+    hpp_type m_hp_pool;    //!< pool of hazard pointer employed for safe memory reclamation
 
 #ifdef _DEBUG
     std::atomic_uint32_t m_num_elements_enqueued;    //!< total number of elements ever added into the queue
