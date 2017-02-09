@@ -2,12 +2,6 @@
 
 namespace lexgine {namespace core {
 
-
-
-
-
-
-
 //! Base class for all allocators
 template<typename T>
 class Allocator
@@ -62,13 +56,8 @@ public:
         MemoryBlock<T>* m_mem_block_addr;
     };
 
-
-
     using value_type = T;
     using address_type = MemoryBlockAddr<T>;
-
-
-
 
     virtual ~Allocator() = default;
 
