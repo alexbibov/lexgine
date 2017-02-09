@@ -22,6 +22,9 @@ public:
     //! Forces physical deallocation of all memory buffers marked for removal on the calling thread
     void clearCache();
 
+    //! Shutdowns the queue making it unusable on the calling thread. This function must be called when the thread is about to exit at the latest
+    void shutdown();
+
     //! Returns 'true' if the queue is empty; returns 'false' otherwise
     bool isEmpty() const;
 
