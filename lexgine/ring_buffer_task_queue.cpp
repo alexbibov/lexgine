@@ -22,6 +22,11 @@ void RingBufferTaskQueue::clearCache()
     m_lock_free_queue.clearCache();
 }
 
+void RingBufferTaskQueue::shutdown()
+{
+    m_lock_free_queue.shutdown();
+}
+
 bool RingBufferTaskQueue::isEmpty() const
 {
     return m_lock_free_queue.isEmpty();

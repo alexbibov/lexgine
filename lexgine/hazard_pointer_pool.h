@@ -121,7 +121,19 @@ public:
 
     }
 
-    ~HazardPointerPool() = default;
+    ~HazardPointerPool()
+    {
+        // remove hazard pointer pool cache
+        HPListEntry* p_hp_next;
+        while (p_hp_next = m_hp_list_head->next.load(std::memory_order_acquire))
+        {
+            delete m_hp_list_head;
+            m_hp_list_head = p_hp_next;
+        }
+        delete m_hp_list_head;
+
+        cleanup();
+    }
 
     HazardPointerPool(HazardPointerPool const&) = delete;
     HazardPointerPool(HazardPointerPool&&) = delete;
@@ -198,7 +210,7 @@ public:
     }
 
 
-    //! forces the garbage collector to free up all memory blocks remaining in the deletion cache
+    //! forces the garbage collector to free up all memory blocks remaining in deletion cache of the calling thread
     void flush()
     {
         // flush only if there is something to flush
@@ -216,6 +228,33 @@ public:
     {
         m_gc_threshold = threshold;
     }
+
+
+    /*!
+     Cleans up the hazard pointer pool. This function must be called on each thread that was using the HP-pool before the thread is about to exit.
+     After this function is called the HP-pool cannot be longer used on the calling thread
+    */
+    void cleanup()
+    {
+        flush();    // remove data that might still be in the dlist
+
+        // clear dlist and plist caches
+        GCListEntry* p_pd_next;
+        while (p_pd_next = m_dlist_head->p_next)
+        {
+            delete m_dlist_head;
+            m_dlist_head = p_pd_next;
+        }
+        delete m_dlist_head;
+
+        while (p_pd_next = m_plist_head->p_next)
+        {
+            delete m_plist_head;
+            m_plist_head = p_pd_next;
+        }
+        delete m_plist_head;
+    }
+
 
 private:
     //! Describes single entry in the hazard pointer list
@@ -331,8 +370,6 @@ private:
     HPListEntry* m_hp_list_head;    //!< "head" of the hazard pointer list. This value never changes after initialization
     std::atomic<HPListEntry*> m_hp_list_tail;    //!< "tail" of the hazard pointer list. This value gets updated in lock-free style
 
-    static GCListEntry m_pdlist_dummy_entry;
-
     static thread_local GCListEntry* m_dlist_head, *m_dlist_tail;
     static thread_local GCListEntry* m_plist_head, *m_plist_tail;
 
@@ -346,10 +383,7 @@ private:
 
 
 template<typename AllocatorInstance>
-typename HazardPointerPool<AllocatorInstance>::GCListEntry HazardPointerPool<AllocatorInstance>::m_pdlist_dummy_entry = GCListEntry{ nullptr, nullptr, false };
-
-template<typename AllocatorInstance>
-thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_dlist_head = &HazardPointerPool<AllocatorInstance>::m_pdlist_dummy_entry;
+thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_dlist_head = new HazardPointerPool<AllocatorInstance>::GCListEntry{ nullptr, nullptr, false };
 
 template<typename AllocatorInstance>
 thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_dlist_tail = { m_dlist_head };
@@ -358,8 +392,9 @@ template<typename AllocatorInstance>
 thread_local uint32_t HazardPointerPool<AllocatorInstance>::m_dlist_cardinality = 0U;
 
 
+
 template<typename AllocatorInstance>
-thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_plist_head = &HazardPointerPool<AllocatorInstance>::m_pdlist_dummy_entry;
+thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_plist_head = new HazardPointerPool<AllocatorInstance>::GCListEntry{ nullptr, nullptr, false };
 
 template<typename AllocatorInstance>
 thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_plist_tail = { m_plist_head };

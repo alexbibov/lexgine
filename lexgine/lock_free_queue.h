@@ -156,6 +156,13 @@ public:
     }
 
 
+    //! Shutdowns the queue for the calling thread. The thread will not be able to use the queue after this function is called and it must be called when the thread is about to exit at the latest
+    void shutdown()
+    {
+        m_hp_pool.cleanup();
+    }
+
+
     //! Returns 'true' if the queue is empty; returns 'false' otherwise
     bool isEmpty() const
     {
