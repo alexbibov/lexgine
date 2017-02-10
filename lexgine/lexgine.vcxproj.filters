@@ -228,6 +228,9 @@
     <ClInclude Include="allocator.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="task_graph.h">
+      <Filter>core\concurrency</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">
@@ -345,6 +348,9 @@
       <Filter>core\concurrency</Filter>
     </ClCompile>
     <ClCompile Include="ring_buffer_task_queue.cpp">
+      <Filter>core\concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="task_graph.cpp">
       <Filter>core\concurrency</Filter>
     </ClCompile>
   </ItemGroup>
