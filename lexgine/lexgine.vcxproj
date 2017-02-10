@@ -240,7 +240,6 @@
     <ClInclude Include="stream_output.h" />
     <ClInclude Include="swap_chain.h" />
     <ClInclude Include="task.h" />
-    <ClInclude Include="task_sink.h" />
     <ClInclude Include="vector_types.h" />
     <ClInclude Include="vertex_attributes.h" />
     <ClInclude Include="vulkan_tools.h" />

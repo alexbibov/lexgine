@@ -96,7 +96,7 @@ public:
 
             uint8_t const num_consumption_threads = 7U;
 
-            RingBufferTaskQueue queue{ 65536U };
+            RingBufferTaskQueue queue{ 65536 };
 
             bool production_finished = false;
             std::atomic_uint64_t tasks_produced{ 0U };
@@ -108,12 +108,14 @@ public:
             //! Produces 100 000 elements for the queue
             auto produce = [&queue, &tasks_produced, &production_finished]()->void
             {
-                for (uint32_t i = 0; i < 1000000; ++i)
+                for (uint32_t i = 0; i < 100000; ++i)
                 {
                     queue.enqueueTask(nullptr);
                     ++tasks_produced;
                 }
                 production_finished = true;
+
+                queue.shutdown();
             };
 
             //! Consumes an element from the queue, simulates "work" by sleeping for 1ms, then consumes next element from the queue and so on
