@@ -3,6 +3,7 @@
 #include "../lexgine/log.h"
 #include "../lexgine/window.h"
 #include "../lexgine/ring_buffer_task_queue.h"
+#include "../lexgine/task_graph.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4307)    // this is needed to suppress the warning caused by the static hash function
@@ -187,6 +188,46 @@ public:
                 delete consumers[i];
             }
         }
+
+
+		TEST_METHOD(TestTaskGraphParser)
+		{
+			using namespace lexgine::core::concurrency;
+			using namespace lexgine::core::misc;
+
+			std::stringstream test_log;
+			Log::create(test_log, 2, true);
+
+			class Task : public AbstractTask
+			{
+			public:
+				Task(std::string const& name) :
+					AbstractTask{ name }
+				{
+
+				}
+
+			private:
+				void do_task(uint8_t worker_id) override
+				{
+
+				}
+			};
+
+
+			Task A{ "A" };
+			Task B{ "B" };
+			Task C{ "C" };
+			Task D{ "D" };
+
+			A.addDependent(B);
+			A.addDependent(C);
+			B.addDependent(D);
+			C.addDependent(D);
+
+			TaskGraph testGraph{ std::list<AbstractTask*>{&A} };
+			testGraph.createDotRepresentation("test.dot");
+		}
 
     };
 }

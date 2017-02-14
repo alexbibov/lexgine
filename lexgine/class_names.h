@@ -24,6 +24,7 @@ extern char const D3D12DescriptorTable[];
 extern char const D3D12ConstantBuffer[];
 extern char const D3D12HeapDataUploader[];
 extern char const Task[];
+extern char const TaskGraph[];
 
 }}}
 

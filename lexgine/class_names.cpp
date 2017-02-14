@@ -23,6 +23,7 @@ extern char const D3D12Resource[] = "lexgine::core::dx::d3d12::D3D12Resource";
 extern char const D3D12DescriptorTable[] = "lexgine::core::dx::d3d12::D3D12DescriptorTable";
 extern char const D3D12ConstantBuffer[] = "lexgine::core::dx::d3d12::D3D12ConstantBuffer";
 extern char const D3D12HeapDataUploader[] = "lexgine::core::dx:d3d12::D3D12HeapDataUploader";
-extern char const Task[] = "lexgine::core::AbstractTask";
+extern char const Task[] = "lexgine::core::concurrency::AbstractTask";
+extern char const TaskGraph[] = "lexgine::core::concurency::TaskGraph";
 
 }}}
