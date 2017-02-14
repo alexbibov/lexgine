@@ -32,9 +32,11 @@
 *.app
 
 # Visual studio auxiliary files and folders
+**/.vs
 **/x64
 **/Debug
 **/Release
 *.VC.db
 *.VC.VC.opendb
 *.sdf
+*.suo
