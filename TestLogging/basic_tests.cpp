@@ -190,44 +190,150 @@ public:
         }
 
 
-		TEST_METHOD(TestTaskGraphParser)
-		{
-			using namespace lexgine::core::concurrency;
-			using namespace lexgine::core::misc;
+        TEST_METHOD(TestTaskGraphParser)
+        {
+            using namespace lexgine::core::concurrency;
+            using namespace lexgine::core::misc;
 
-			std::stringstream test_log;
-			Log::create(test_log, 2, true);
+            std::stringstream test_log;
+            Log::create(test_log, 2, true);
 
-			class Task : public AbstractTask
-			{
-			public:
-				Task(std::string const& name) :
-					AbstractTask{ name }
-				{
+            class CPUTask : public AbstractTask
+            {
+            public:
+                CPUTask(std::string const& name) :
+                    AbstractTask{ name }
+                {
 
-				}
+                }
 
-			private:
-				void do_task(uint8_t worker_id) override
-				{
+            private:
+                void do_task(uint8_t worker_id) override
+                {
 
-				}
-			};
+                }
+
+                TaskType get_task_type() const override
+                {
+                    return TaskType::cpu;
+                }
+            };
+
+            class GPUDrawTask : public AbstractTask
+            {
+            public:
+                GPUDrawTask(std::string const& name) :
+                    AbstractTask{ name }
+                {
+
+                }
+
+            private:
+                void do_task(uint8_t worker_id) override
+                {
+
+                }
+
+                TaskType get_task_type() const override
+                {
+                    return TaskType::gpu_draw;
+                }
+            };
+
+            class GPUComputeTask : public AbstractTask
+            {
+            public:
+                GPUComputeTask(std::string const& name) :
+                    AbstractTask{ name }
+                {
+
+                }
+
+            private:
+                void do_task(uint8_t worker_id) override
+                {
+
+                }
+
+                TaskType get_task_type() const override
+                {
+                    return TaskType::gpu_compute;
+                }
+            };
+
+            class GPUCopyTask : public AbstractTask
+            {
+            public:
+                GPUCopyTask(std::string const& name) :
+                    AbstractTask{ name }
+                {
+
+                }
+
+            private:
+                void do_task(uint8_t worker_id) override
+                {
+
+                }
+
+                TaskType get_task_type() const override
+                {
+                    return TaskType::gpu_copy;
+                }
+            };
+
+            class OtherTask : public AbstractTask
+            {
+            public:
+                OtherTask(std::string const& name) :
+                    AbstractTask{ name }
+                {
+
+                }
+
+            private:
+                void do_task(uint8_t worker_id) override
+                {
+
+                }
+
+                TaskType get_task_type() const override
+                {
+                    return TaskType::other;
+                }
+            };
 
 
-			Task A{ "A" };
-			Task B{ "B" };
-			Task C{ "C" };
-			Task D{ "D" };
+            GPUDrawTask A{ "A" };
+            GPUComputeTask B{ "B" };
+            GPUDrawTask C{ "C" };
+            GPUCopyTask D{ "D" };
+            GPUComputeTask E{ "E" };
+            OtherTask F{ "F" };
+            CPUTask Head{ "Head" };
 
-			A.addDependent(B);
-			A.addDependent(C);
-			B.addDependent(D);
-			C.addDependent(D);
+            A.addDependent(B);
+            A.addDependent(C);
+            B.addDependent(D);
+            C.addDependent(D);
+            C.addDependent(E);
+            F.addDependent(A);
+            F.addDependent(C);
+            F.addDependent(E);
+            D.addDependent(E);
+            //E.addDependent(F);
+            Head.addDependent(F);
 
-			TaskGraph testGraph{ std::list<AbstractTask*>{&A} };
-			testGraph.createDotRepresentation("test.dot");
-		}
+
+            TaskGraph testGraph{ std::list<AbstractTask*>{&Head, &F, &A} };
+            if (testGraph.getErrorState())
+            {
+                const char* err_msg = testGraph.getErrorString();
+                std::wstring wstr{ &err_msg[0], &err_msg[strlen(err_msg) - 1] };
+                Assert::Fail(wstr.c_str());
+            }
+            testGraph.createDotRepresentation("task_graph.gv");
+        }
 
     };
 }

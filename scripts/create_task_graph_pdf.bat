@@ -1,0 +1,1 @@
+dot ../x64/Debug/task_graph.gv -Tpdf > task_graph.pdf
