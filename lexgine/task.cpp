@@ -6,15 +6,17 @@ using namespace lexgine::core::concurrency;
 
 AbstractTask::AbstractTask(std::string const& debug_name):
     m_is_completed{ false },
-    m_debug_name{ debug_name }
+	m_visit_flag{ false }
 {
+	setStringName(debug_name);
 }
 
 AbstractTask::AbstractTask(std::list<AbstractTask*> const & dependencies, std::string const& debug_name):
     m_dependents{ dependencies },
     m_is_completed{ false },
-    m_debug_name{ debug_name }
+	m_visit_flag{ false }
 {
+	setStringName(debug_name);
 }
 
 
@@ -57,14 +59,9 @@ void AbstractTask::addDependent(AbstractTask& task)
     task.m_dependencies.push_back(this);
 }
 
-void AbstractTask::setDebugName(std::string const& debug_name)
+bool AbstractTask::hasDependents() const
 {
-    m_debug_name = debug_name;
-}
-
-std::string lexgine::core::concurrency::AbstractTask::getDebugName() const
-{
-    return m_debug_name;
+	return m_dependents.size() > 0;
 }
 
 std::list<AbstractTask*> const& AbstractTask::dependents() const

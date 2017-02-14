@@ -27,6 +27,14 @@ public:
     AbstractTask(std::string const& debug_name = "");
     AbstractTask(std::list<AbstractTask*> const& dependencies, std::string const& debug_name = "");
 
+	AbstractTask(AbstractTask const&) = delete;
+	AbstractTask(AbstractTask&&) = delete;
+
+	~AbstractTask() = default;
+
+	AbstractTask& operator=(AbstractTask const&) = delete;
+	AbstractTask& operator=(AbstractTask&&) = delete;
+
     void executeAsync(uint8_t worker_id);    //! executes the task asynchronously
 
     bool isCompleted() const;    //! returns 'true' if the task has been successfully completed. Returns 'false' otherwise
@@ -35,8 +43,7 @@ public:
 
     void addDependent(AbstractTask& task);    //! adds task that depends on this task, i.e. provided task can only begin execution when this task is completed
 
-    void setDebugName(std::string const& debug_name);    //! assigns user-readable debug name to the task
-    std::string getDebugName() const;    //! returns user-readable debug name previously assigned to this task
+	bool hasDependents() const;    //! returns 'true' if the task has dependent tasks, returns 'false' otherwise
 
 private:
     virtual void do_task(uint8_t worker_id) = 0;    //!< runs the actual workload related to the task
@@ -46,7 +53,8 @@ private:
     std::list<AbstractTask*> m_dependents;    //!< dependencies of this task. This task cannot be executed before the dependent tasks are completed
     bool m_is_completed;    //!< equals 'true' if the task was completed. Equals 'false' otherwise
     TaskExecutionStatistics m_execution_statistics;    //!< execution statistics of the task
-    std::string m_debug_name;    //!< user-readable name of the task, which can be used for debugging purposes
+
+	bool m_visit_flag;    //!< flag used to simplify graph traversal
 };
 
 
@@ -54,10 +62,20 @@ private:
 template<> class AbstractTaskAttorney<TaskGraph>
 {
 public:
-    inline std::list<AbstractTask*> const& getDependentTasks(AbstractTask const& parent_task)
+	static inline std::list<AbstractTask*> const& getDependentTasks(AbstractTask const& parent_task)
     {
         return parent_task.dependents();
     }
+
+	static inline bool visited(AbstractTask const& parent_task)
+	{
+		return parent_task.m_visit_flag;
+	}
+
+	static inline void setVisitFlag(AbstractTask& parent_task, bool visit_flag_value)
+	{
+		parent_task.m_visit_flag = visit_flag_value;
+	}
 };
 
 
