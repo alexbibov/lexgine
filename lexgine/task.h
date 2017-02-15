@@ -23,6 +23,7 @@ enum class TaskType
     gpu_draw,
     gpu_compute,
     gpu_copy,
+    exit,
     other
 };
 
