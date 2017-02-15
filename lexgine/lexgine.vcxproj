@@ -146,12 +146,13 @@
     <ClCompile Include="entity.cpp" />
     <ClCompile Include="error_behavioral.cpp" />
     <ClCompile Include="exception.cpp" />
+    <ClCompile Include="exit_main_loop_task.cpp" />
     <ClCompile Include="fence.cpp" />
     <ClCompile Include="fence_event.cpp" />
     <ClCompile Include="filter.cpp" />
     <ClCompile Include="heap.cpp" />
     <ClCompile Include="heap_data_uploader.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ExcludedFromBuild>
     </ClCompile>
@@ -176,6 +177,7 @@
     <ClCompile Include="swap_chain.cpp" />
     <ClCompile Include="task.cpp" />
     <ClCompile Include="task_graph.cpp" />
+    <ClCompile Include="task_sink.cpp" />
     <ClCompile Include="window.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -204,6 +206,7 @@
     <ClInclude Include="device.h" />
     <ClInclude Include="default_allocator.h" />
     <ClInclude Include="exception.h" />
+    <ClInclude Include="exit_main_loop_task.h" />
     <ClInclude Include="fence.h" />
     <ClInclude Include="fence_event.h" />
     <ClInclude Include="filter.h" />
@@ -242,6 +245,7 @@
     <ClInclude Include="swap_chain.h" />
     <ClInclude Include="task.h" />
     <ClInclude Include="task_graph.h" />
+    <ClInclude Include="task_sink.h" />
     <ClInclude Include="vector_types.h" />
     <ClInclude Include="vertex_attributes.h" />
     <ClInclude Include="vulkan_tools.h" />

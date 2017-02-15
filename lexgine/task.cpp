@@ -1,6 +1,7 @@
 #include "task.h"
 
 #include <chrono>
+#include <cassert>
 
 using namespace lexgine::core::concurrency;
 
@@ -55,6 +56,8 @@ bool AbstractTask::isReadyToLaunch() const
 
 void AbstractTask::addDependent(AbstractTask& task)
 {
+    assert(get_task_type() != TaskType::exit);    // "exit" tasks cannot have dependent tasks
+
     m_dependents.push_back(&task);
     task.m_dependencies.push_back(this);
 }

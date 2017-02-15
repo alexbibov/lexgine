@@ -43,6 +43,9 @@
     <Filter Include="core\metal">
       <UniqueIdentifier>{a4e446ea-aa7a-4e7b-b84e-ea1a1c65d5b1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="core\concurrency\tasks">
+      <UniqueIdentifier>{b0ec2f39-e353-4fa5-a0dd-2fb60959142d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vector_types.h">
@@ -231,6 +234,12 @@
     <ClInclude Include="task_graph.h">
       <Filter>core\concurrency</Filter>
     </ClInclude>
+    <ClInclude Include="task_sink.h">
+      <Filter>core\concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="exit_main_loop_task.h">
+      <Filter>core\concurrency\tasks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">
@@ -352,6 +361,12 @@
     </ClCompile>
     <ClCompile Include="task_graph.cpp">
       <Filter>core\concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="task_sink.cpp">
+      <Filter>core\concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="exit_main_loop_task.cpp">
+      <Filter>core\concurrency\tasks</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

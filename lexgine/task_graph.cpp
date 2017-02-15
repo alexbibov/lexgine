@@ -23,10 +23,6 @@ uint8_t lexgine::core::concurrency::TaskGraph::getNumberOfWorkerThreads() const
     return m_num_workers;
 }
 
-void lexgine::core::concurrency::TaskGraph::execute()
-{
-}
-
 void TaskGraph::createDotRepresentation(std::string const& destination_path) const
 {
     std::string dot_graph_representation = "digraph " + getStringName() + " {\nnode[style=filled];\n";
@@ -50,6 +46,10 @@ void TaskGraph::createDotRepresentation(std::string const& destination_path) con
 
         case TaskType::gpu_copy:
             dot_graph_representation += "fillcolor=gray, fontcolor=white, shape=diamond";
+            break;
+
+        case TaskType::exit:
+            dot_graph_representation += "fillcolor=navy, fontcolor=white, shape=doublecircle";
             break;
 
         case TaskType::other:

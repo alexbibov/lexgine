@@ -39,54 +39,64 @@ public:
         {
             using namespace lexgine::core::misc;
             std::stringstream test_log;
-            Log const& logger = Log::create(test_log, 2, true);
+            {
+                Log const& logger = Log::create(test_log, 2, true);
 
-            auto ref_time = DateTime::now(2, true);
-            TestErrorBehavioral test_error_behavioral;
+                auto ref_time = DateTime::now(2, true);
+                TestErrorBehavioral test_error_behavioral;
 
-            LEXGINE_ERROR_LOG(
-                &test_error_behavioral,
-                (2 * 2),
-                2, 3, 5, 19, 6, 7, 8, 10, 0
-            );
+                LEXGINE_ERROR_LOG(
+                    &test_error_behavioral,
+                    (2 * 2),
+                    2, 3, 5, 19, 6, 7, 8, 10, 0
+                );
 
-            auto log_time = logger.getLastEntryTimeStamp();
+                auto log_time = logger.getLastEntryTimeStamp();
 
-            Assert::IsTrue(ref_time.timeSince(log_time).seconds() < 1e-3);
+                Assert::IsTrue(ref_time.timeSince(log_time).seconds() < 1e-3);
 
-            std::string month_name[] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
-            std::string ref_string = std::string{ "/" } +std::to_string(log_time.day()) + " " + month_name[log_time.month() - 1] + " "
-                + std::to_string(log_time.year()) + "/ (" + std::to_string(log_time.hour()) + ":" + std::to_string(log_time.minute()) + ":" + std::to_string(log_time.second()) + "): ";
+                std::string month_name[] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
+                std::string ref_string = std::string{ "/" } +std::to_string(log_time.day()) + " " + month_name[log_time.month() - 1] + " "
+                    + std::to_string(log_time.year()) + "/ (" + std::to_string(log_time.hour()) + ":" + std::to_string(log_time.minute()) + ":" + std::to_string(log_time.second()) + "): ";
 
-            std::string log_string = test_log.rdbuf()->str();
-            log_string = log_string.substr(log_string.find_first_of('\n') + 1, ref_string.size());
+                std::string log_string = test_log.rdbuf()->str();
+                log_string = log_string.substr(log_string.find_first_of('\n') + 1, ref_string.size());
 
 
-            Assert::IsTrue(log_string.compare(ref_string) == 0);
+                Assert::IsTrue(log_string.compare(ref_string) == 0);
+            }
+
+            Log::shutdown();
         }
 
 
         TEST_METHOD(TestStaticHashTable)
         {
             using namespace lexgine::core::misc;
-
-            struct custom_type
             {
-                char c;
-            };
+                std::stringstream test_log;
+                Log const& logger = Log::create(test_log, 2, true);
 
-            LEXGINE_SHT_KVPAIR(key0, uint32_t);
-            LEXGINE_SHT_KVPAIR(key1, long long);
-            LEXGINE_SHT_KVPAIR(key2, custom_type);
+                struct custom_type
+                {
+                    char c;
+                };
 
-            LEXGINE_SHT(table, key0, key1);
-            table::add_entry<key2> my_table;
+                LEXGINE_SHT_KVPAIR(key0, uint32_t);
+                LEXGINE_SHT_KVPAIR(key1, long long);
+                LEXGINE_SHT_KVPAIR(key2, custom_type);
 
-            my_table.getValue<key0>() = 0;
-            my_table.getValue<key1>() = 100;
-            my_table.getValue<key2>() = custom_type{ 'c' };
+                LEXGINE_SHT(table, key0, key1);
+                table::add_entry<key2> my_table;
 
-            Assert::IsTrue(my_table.getValue<key0>() == 0 && my_table.getValue<key1>() == 100 && my_table.getValue<key2>().c == 'c');
+                my_table.getValue<key0>() = 0;
+                my_table.getValue<key1>() = 100;
+                my_table.getValue<key2>() = custom_type{ 'c' };
+
+                Assert::IsTrue(my_table.getValue<key0>() == 0 && my_table.getValue<key1>() == 100 && my_table.getValue<key2>().c == 'c');
+            }
+
+            Log::shutdown();
         }
 
 
@@ -303,36 +313,64 @@ public:
                 }
             };
 
-
-            GPUDrawTask A{ "A" };
-            GPUComputeTask B{ "B" };
-            GPUDrawTask C{ "C" };
-            GPUCopyTask D{ "D" };
-            GPUComputeTask E{ "E" };
-            OtherTask F{ "F" };
-            CPUTask Head{ "Head" };
-
-            A.addDependent(B);
-            A.addDependent(C);
-            B.addDependent(D);
-            C.addDependent(D);
-            C.addDependent(E);
-            F.addDependent(A);
-            F.addDependent(C);
-            F.addDependent(E);
-            D.addDependent(E);
-            //E.addDependent(F);
-            Head.addDependent(F);
-
-
-            TaskGraph testGraph{ std::list<AbstractTask*>{&Head, &F, &A} };
-            if (testGraph.getErrorState())
+            class ExitTask : public AbstractTask
             {
-                const char* err_msg = testGraph.getErrorString();
-                std::wstring wstr{ &err_msg[0], &err_msg[strlen(err_msg) - 1] };
-                Assert::Fail(wstr.c_str());
+            public:
+                ExitTask(std::string const& name) :
+                    AbstractTask{ name }
+                {
+
+                }
+
+            private:
+                void do_task(uint8_t worker_id) override
+                {
+
+                }
+
+                TaskType get_task_type() const override
+                {
+                    return TaskType::exit;
+                }
+            };
+
+
+
+            {
+                GPUDrawTask A{ "A" };
+                GPUComputeTask B{ "B" };
+                GPUDrawTask C{ "C" };
+                GPUCopyTask D{ "D" };
+                GPUComputeTask E{ "E" };
+                OtherTask F{ "F" };
+                CPUTask Head{ "Head" };
+                ExitTask LoopExit{ "LoopExit" };
+
+                A.addDependent(B);
+                A.addDependent(C);
+                B.addDependent(D);
+                C.addDependent(D);
+                C.addDependent(E);
+                F.addDependent(A);
+                F.addDependent(C);
+                F.addDependent(E);
+                D.addDependent(E);
+                //E.addDependent(F);
+                Head.addDependent(F);
+                E.addDependent(LoopExit);
+
+
+                TaskGraph testGraph{ std::list<AbstractTask*>{&Head, &F, &A} };
+                if (testGraph.getErrorState())
+                {
+                    const char* err_msg = testGraph.getErrorString();
+                    std::wstring wstr{ &err_msg[0], &err_msg[strlen(err_msg) - 1] };
+                    Assert::Fail(wstr.c_str());
+                }
+                testGraph.createDotRepresentation("task_graph.gv");
             }
-            testGraph.createDotRepresentation("task_graph.gv");
+
+            Log::shutdown();
         }
 
     };
