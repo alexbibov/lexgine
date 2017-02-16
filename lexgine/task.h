@@ -29,11 +29,13 @@ enum class TaskType
 
 template<typename T> class AbstractTaskAttorney;
 class TaskGraph;
+class TaskSink;
 
 //! Abstraction of a task that can be executed. This API as well as the inherited classes is OS-agnostic
 class AbstractTask : public NamedEntity<class_names::Task>
 {
     friend class AbstractTaskAttorney<TaskGraph>;
+	friend class AbstractTaskAttorney<TaskSink>;
 
 public:
     AbstractTask(std::string const& debug_name = "");
@@ -47,7 +49,7 @@ public:
     AbstractTask& operator=(AbstractTask const&) = delete;
     AbstractTask& operator=(AbstractTask&&) = delete;
 
-    void executeAsync(uint8_t worker_id);    //! executes the task asynchronously
+    void execute(uint8_t worker_id);    //! executes the task asynchronously
 
     bool isCompleted() const;    //! returns 'true' if the task has been successfully completed. Returns 'false' otherwise
     TaskExecutionStatistics const& getExecutionStatistics() const;    //! returns execution statistics of the task
@@ -90,10 +92,19 @@ public:
         parent_task.m_visit_flag = visit_flag_value;
     }
 
-    static inline TaskType getTaskType(AbstractTask& parent_task)
+    static inline TaskType getTaskType(AbstractTask const& parent_task)
     {
         return parent_task.get_task_type();
     }
+};
+
+template<> class AbstractTaskAttorney<TaskSink>
+{
+public:
+	static inline TaskType getTaskType(AbstractTask const& parent_task)
+	{
+		return parent_task.get_task_type();
+	}
 };
 
 
