@@ -15,9 +15,9 @@ public:
     RingBufferTaskQueue(RingBufferTaskQueue const&) = delete;
     RingBufferTaskQueue& operator=(RingBufferTaskQueue const&) = delete;
 
-    void enqueueTask(AbstractTask const* p_task);    //! adds new task into the queue
+    void enqueueTask(AbstractTask* p_task);    //! adds new task into the queue
 
-    misc::Optional<AbstractTask const*> dequeueTask();    //! removes task from queue
+    misc::Optional<AbstractTask*> dequeueTask();    //! removes task from queue
 
     //! Forces physical deallocation of all memory buffers marked for removal on the calling thread
     void clearCache();
@@ -29,7 +29,7 @@ public:
     bool isEmpty() const;
 
 private:
-    LockFreeQueue<AbstractTask const*, RingBufferAllocator> m_lock_free_queue;
+    LockFreeQueue<AbstractTask*, RingBufferAllocator> m_lock_free_queue;
 
 };
 

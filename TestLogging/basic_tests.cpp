@@ -100,7 +100,6 @@ public:
         }
 
 
-
         TEST_METHOD(TestConcurrency)
         {
             using namespace lexgine::core::concurrency;
@@ -137,7 +136,7 @@ public:
                 while (!production_finished
                     || tasks_produced.load(std::memory_order::memory_order_consume) > tasks_consumed.load(std::memory_order::memory_order_consume))
                 {
-                    lexgine::core::misc::Optional<AbstractTask const*> val = queue.dequeueTask();
+                    lexgine::core::misc::Optional<AbstractTask*> val = queue.dequeueTask();
                     if(val.isValid())
                     {
                         //Sleep(1);
@@ -371,6 +370,18 @@ public:
             }
 
             Log::shutdown();
+        }
+
+
+        TEST_METHOD(TestTaskScheuling)
+        {
+            using namespace lexgine::core::concurrency;
+            using namespace lexgine::core::misc;
+
+            std::stringstream log_string;
+            Log::create(log_string, 0, false);
+
+
         }
 
     };
