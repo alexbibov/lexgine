@@ -35,7 +35,7 @@ class TaskSink;
 class AbstractTask : public NamedEntity<class_names::Task>
 {
     friend class AbstractTaskAttorney<TaskGraph>;
-	friend class AbstractTaskAttorney<TaskSink>;
+    friend class AbstractTaskAttorney<TaskSink>;
 
 public:
     AbstractTask(std::string const& debug_name = "");
@@ -101,10 +101,10 @@ public:
 template<> class AbstractTaskAttorney<TaskSink>
 {
 public:
-	static inline TaskType getTaskType(AbstractTask const& parent_task)
-	{
-		return parent_task.get_task_type();
-	}
+    static inline TaskType getTaskType(AbstractTask const& parent_task)
+    {
+        return parent_task.get_task_type();
+    }
 };
 
 

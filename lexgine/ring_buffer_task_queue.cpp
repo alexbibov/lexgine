@@ -7,12 +7,12 @@ RingBufferTaskQueue::RingBufferTaskQueue(size_t ring_buffer_capacity):
 {
 }
 
-void RingBufferTaskQueue::enqueueTask(AbstractTask const* p_task)
+void RingBufferTaskQueue::enqueueTask(AbstractTask* p_task)
 {
     m_lock_free_queue.enqueue(p_task);
 }
 
-lexgine::core::misc::Optional<AbstractTask const*> lexgine::core::concurrency::RingBufferTaskQueue::dequeueTask()
+lexgine::core::misc::Optional<AbstractTask*> lexgine::core::concurrency::RingBufferTaskQueue::dequeueTask()
 {
     return m_lock_free_queue.dequeue();
 }
