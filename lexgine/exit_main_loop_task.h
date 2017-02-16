@@ -10,7 +10,6 @@ public:
     ExitMainLoopTask();
 
 private:
-    void do_task(uint8_t worker_id) override;
     TaskType get_task_type() const override;
 };
 

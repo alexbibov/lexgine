@@ -21,7 +21,7 @@ AbstractTask::AbstractTask(std::list<AbstractTask*> const & dependencies, std::s
 }
 
 
-void AbstractTask::executeAsync(uint8_t worker_id)
+void AbstractTask::execute(uint8_t worker_id)
 {
     auto task_begin_execution_time_point = std::chrono::system_clock::now();
     do_task(worker_id);
