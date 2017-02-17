@@ -105,6 +105,11 @@ public:
     {
         return parent_task.get_task_type();
     }
+
+    static inline void resetTaskExecutionStatus(AbstractTask& parent_task)
+    {
+        parent_task.m_is_completed = false;
+    }
 };
 
 
