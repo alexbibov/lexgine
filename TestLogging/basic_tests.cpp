@@ -430,7 +430,9 @@ public:
 				float const control_value = ((5 + 3)*(8 - 1) / 2 + 1) / ((10 + 2) * (3 - 1) / 6 + 5);
 
 				float r1;
+				float r2;
 				ArithmeticOp op1{ "5+3", 5, 3, r1, operation_type::add };
+				ArithmeticOp op2{ "8-2", 5, 3, r1, operation_type::add };
 			}
 
 			Log::shutdown();
