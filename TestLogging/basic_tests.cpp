@@ -217,9 +217,9 @@ public:
                 }
 
             private:
-                void do_task(uint8_t worker_id) override
+                bool do_task(uint8_t worker_id) override
                 {
-
+					return true;
                 }
 
                 TaskType get_task_type() const override
@@ -238,9 +238,9 @@ public:
                 }
 
             private:
-                void do_task(uint8_t worker_id) override
+                bool do_task(uint8_t worker_id) override
                 {
-
+					return true;
                 }
 
                 TaskType get_task_type() const override
@@ -259,9 +259,9 @@ public:
                 }
 
             private:
-                void do_task(uint8_t worker_id) override
+                bool do_task(uint8_t worker_id) override
                 {
-
+					return true;
                 }
 
                 TaskType get_task_type() const override
@@ -280,9 +280,9 @@ public:
                 }
 
             private:
-                void do_task(uint8_t worker_id) override
+                bool do_task(uint8_t worker_id) override
                 {
-
+					return true;
                 }
 
                 TaskType get_task_type() const override
@@ -301,9 +301,9 @@ public:
                 }
 
             private:
-                void do_task(uint8_t worker_id) override
+                bool do_task(uint8_t worker_id) override
                 {
-
+					return true;
                 }
 
                 TaskType get_task_type() const override
@@ -322,9 +322,9 @@ public:
                 }
 
             private:
-                void do_task(uint8_t worker_id) override
+                bool do_task(uint8_t worker_id) override
                 {
-
+					return true;
                 }
 
                 TaskType get_task_type() const override
@@ -380,8 +380,60 @@ public:
 
             std::stringstream log_string;
             Log::create(log_string, 0, false);
+			
+			{
+				enum class operation_type
+				{
+					add, multiply
+				};
 
+				class ArithmeticOp : public AbstractTask
+				{
+				public:
+					ArithmeticOp(std::string const& debug_name, float a, float b, float &result, operation_type op) :
+						AbstractTask{ debug_name },
+						m_a{ a },
+						m_b{ b },
+						m_result{ result },
+						m_op{ op }
+					{
 
+					}
+
+				private:
+					bool do_task(uint8_t worker_id) override
+					{
+						switch (m_op)
+						{
+						case operation_type::add:
+							m_result = m_a + m_b;
+							break;
+
+						case operation_type::multiply:
+							m_result = m_a * m_b;
+						}
+						
+						return true;
+					}
+
+					TaskType get_task_type() const override
+					{
+						return TaskType::cpu;
+					}
+
+					float m_a;
+					float m_b;
+					float& m_result;
+					operation_type m_op;
+				};
+
+				float const control_value = ((5 + 3)*(8 - 1) / 2 + 1) / ((10 + 2) * (3 - 1) / 6 + 5);
+
+				float r1;
+				ArithmeticOp op1{ "5+3", 5, 3, r1, operation_type::add };
+			}
+
+			Log::shutdown();
         }
 
     };

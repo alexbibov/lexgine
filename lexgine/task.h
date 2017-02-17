@@ -60,7 +60,7 @@ public:
     bool hasDependents() const;    //! returns 'true' if the task has dependent tasks, returns 'false' otherwise
 
 private:
-    virtual void do_task(uint8_t worker_id) = 0;    //! runs the actual workload related to the task
+    virtual bool do_task(uint8_t worker_id) = 0;    //! runs the actual workload related to the task
     virtual TaskType get_task_type() const = 0;    //! returns type of the task
     std::list<AbstractTask*> const& dependents() const;    //! returns list of dependent tasks
 
