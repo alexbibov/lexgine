@@ -3,56 +3,87 @@
 using namespace lexgine::core::concurrency;
 using namespace lexgine::core::misc;
 
-TaskSink::TaskSink(TaskGraph const& source_task_graph):
+TaskSink::TaskSink(std::string const& debug_name, TaskGraph const& source_task_graph, std::vector<std::ostream*> const& worker_thread_logging_streams):
     m_task_list{ TaskGraphAttorney<TaskSink>::getTaskList(source_task_graph) },
     m_exit_signal{ false }
 {
-    for (uint8_t i = 0; i < source_task_graph.getNumberOfWorkerThreads(); ++i)
-        m_workers_list.push_back(std::unique_ptr<std::thread>{ new std::thread{ &TaskSink::dispatch, this, i } });
+    setStringName(debug_name);
 }
 
-void TaskSink::run()
+TaskSink::TaskSink(TaskGraph const& source_task_graph, std::vector<std::ostream*> const& worker_thread_logging_streams):
+    m_task_list{ TaskGraphAttorney<TaskSink>::getTaskList(source_task_graph) },
+    m_exit_signal{ false }
+{
+    setStringName("DefaultTaskSink");
+
+    for (uint8_t i = 0; i < source_task_graph.getNumberOfWorkerThreads(); ++i)
+    {
+        m_workers_list.push_back(std::make_pair(std::thread{}, worker_thread_logging_streams.size() > i ? worker_thread_logging_streams[i] : nullptr));
+    }
+}
+
+void TaskSink::run(bool loop_tasks)
 {
     // Start workers
     Log::retrieve()->out("Starting worker threads");
-    for (auto& worker : m_workers_list)
+    uint8_t i = 0;
+    for (auto worker = m_workers_list.begin(); worker != m_workers_list.end(); ++worker, ++i)
     {
-        worker->detach();
+        auto main_log_last_entry_time_stamp = Log::retrieve()->getLastEntryTimeStamp();
+        worker->first = std::thread{ &TaskSink::dispatch, this, i, worker->second, main_log_last_entry_time_stamp.getTimeZone(), main_log_last_entry_time_stamp.isDTS() };
+        worker->first.detach();
     }
 
 
     std::list<AbstractTask*> task_flow{};
-    while (!m_exit_signal)
+    while(!m_exit_signal)
     {
-        task_flow.insert(task_flow.end(), m_task_list.begin(), m_task_list.end());
+        if (loop_tasks)
+            task_flow.insert(task_flow.end(), m_task_list.begin(), m_task_list.end());
 
-        for (auto task = task_flow.begin(); task != task_flow.end(); ++task)
+
+        auto current_task = task_flow.begin();
+        while(current_task != task_flow.end())
         {
-            if ((*task)->isReadyToLaunch())
+            if ((*current_task)->isReadyToLaunch())
             {
-                m_task_queue.enqueueTask(*task);
-                auto prev_task = --task;
-                task_flow.erase(task);
-                task = prev_task;
+                m_task_queue.enqueueTask(*current_task);
+
+                auto task_to_remove = current_task;
+                ++current_task;
+                task_flow.erase(task_to_remove);
+            }
+            else
+            {
+                ++current_task;
             }
         }
     }
 }
 
-void TaskSink::dispatch(uint8_t worker_id)
+void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t logging_time_zone, bool logging_dts)
 {
-    Log::retrieve()->out("Initializing worker thread " + std::to_string(worker_id));
+    if (logging_stream)
+    {
+        Log::create(*logging_stream, logging_time_zone, logging_dts);
+        Log::retrieve()->out("Thread " + std::to_string(worker_id) + " log started");
+    }
 
     Optional<AbstractTask*> task;
-    while (!(task = m_task_queue.dequeueTask()).isValid())
+    while (!m_exit_signal || (task = m_task_queue.dequeueTask()).isValid())
     {
-        AbstractTask* unwrapped_task = static_cast<AbstractTask*>(task);
-        unwrapped_task->execute(worker_id);
-
-        if (AbstractTaskAttorney<TaskSink>::getTaskType(*unwrapped_task) == TaskType::exit
-            && unwrapped_task->isCompleted())
+        if(task.isValid())
         {
-            m_exit_signal = true;
+            AbstractTask* unwrapped_task = static_cast<AbstractTask*>(task);
+            unwrapped_task->execute(worker_id);
+
+            if (AbstractTaskAttorney<TaskSink>::getTaskType(*unwrapped_task) == TaskType::exit
+                && unwrapped_task->isCompleted())
+            {
+                m_exit_signal = true;
+            }
         }
     }
+
+    Log::shutdown();
 }

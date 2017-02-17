@@ -4,6 +4,7 @@
 #include "../lexgine/window.h"
 #include "../lexgine/ring_buffer_task_queue.h"
 #include "../lexgine/task_graph.h"
+#include "../lexgine/task_sink.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4307)    // this is needed to suppress the warning caused by the static hash function
@@ -13,6 +14,7 @@
 #include <sstream>
 #include <windows.h>
 #include <utility>
+#include <fstream>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -219,7 +221,7 @@ public:
             private:
                 bool do_task(uint8_t worker_id) override
                 {
-					return true;
+                    return true;
                 }
 
                 TaskType get_task_type() const override
@@ -240,7 +242,7 @@ public:
             private:
                 bool do_task(uint8_t worker_id) override
                 {
-					return true;
+                    return true;
                 }
 
                 TaskType get_task_type() const override
@@ -261,7 +263,7 @@ public:
             private:
                 bool do_task(uint8_t worker_id) override
                 {
-					return true;
+                    return true;
                 }
 
                 TaskType get_task_type() const override
@@ -282,7 +284,7 @@ public:
             private:
                 bool do_task(uint8_t worker_id) override
                 {
-					return true;
+                    return true;
                 }
 
                 TaskType get_task_type() const override
@@ -303,7 +305,7 @@ public:
             private:
                 bool do_task(uint8_t worker_id) override
                 {
-					return true;
+                    return true;
                 }
 
                 TaskType get_task_type() const override
@@ -324,7 +326,7 @@ public:
             private:
                 bool do_task(uint8_t worker_id) override
                 {
-					return true;
+                    return true;
                 }
 
                 TaskType get_task_type() const override
@@ -378,64 +380,132 @@ public:
             using namespace lexgine::core::concurrency;
             using namespace lexgine::core::misc;
 
-            std::stringstream log_string;
-            Log::create(log_string, 0, false);
-			
-			{
-				enum class operation_type
-				{
-					add, multiply
-				};
+            uint8_t const num_worker_threads = 8U;
 
-				class ArithmeticOp : public AbstractTask
-				{
-				public:
-					ArithmeticOp(std::string const& debug_name, float a, float b, float &result, operation_type op) :
-						AbstractTask{ debug_name },
-						m_a{ a },
-						m_b{ b },
-						m_result{ result },
-						m_op{ op }
-					{
+            std::ofstream TestTaskShedulingMainLog{ "TestTaskSchedulingLog_Main.txt" };
+            Log::create(TestTaskShedulingMainLog, 2, false);
 
-					}
+            std::vector<std::ostream*> worker_thread_logs;
+            for (uint8_t i = 0; i < num_worker_threads; ++i)
+            {
+                worker_thread_logs.push_back(new std::ofstream{ "TestTaskSchedulingLog_WorkerThread" + std::to_string(i) + ".txt" });
+            }
 
-				private:
-					bool do_task(uint8_t worker_id) override
-					{
-						switch (m_op)
-						{
-						case operation_type::add:
-							m_result = m_a + m_b;
-							break;
 
-						case operation_type::multiply:
-							m_result = m_a * m_b;
-						}
-						
-						return true;
-					}
+            {
+                enum class operation_type
+                {
+                    add, multiply
+                };
 
-					TaskType get_task_type() const override
-					{
-						return TaskType::cpu;
-					}
+                class ArithmeticOp : public AbstractTask
+                {
+                public:
+                    ArithmeticOp(std::string const& debug_name, float a, float b, float &result, operation_type op) :
+                        AbstractTask{ debug_name },
+                        m_a{ a },
+                        m_b{ b },
+                        m_result{ result },
+                        m_op{ op }
+                    {
 
-					float m_a;
-					float m_b;
-					float& m_result;
-					operation_type m_op;
-				};
+                    }
 
-				float const control_value = ((5 + 3)*(8 - 1) / 2 + 1) / ((10 + 2) * (3 - 1) / 6 + 5);
+                private:
+                    bool do_task(uint8_t worker_id) override
+                    {
+                        switch (m_op)
+                        {
+                        case operation_type::add:
+                            Log::retrieve()->out(std::to_string(m_a) + "+" + std::to_string(m_b));
+                            m_result = m_a + m_b;
+                            break;
 
-				float r1;
-				float r2;
-				ArithmeticOp op1{ "5+3", 5, 3, r1, operation_type::add };
-				ArithmeticOp op2{ "8-2", 5, 3, r1, operation_type::add };
-			}
+                        case operation_type::multiply:
+                            Log::retrieve()->out(std::to_string(m_a) + "*" + std::to_string(m_b));
+                            m_result = m_a * m_b;
+                        }
 
-			Log::shutdown();
+                        return true;
+                    }
+
+                    TaskType get_task_type() const override
+                    {
+                        return TaskType::cpu;
+                    }
+
+                    float m_a;
+                    float m_b;
+                    float& m_result;
+                    operation_type m_op;
+                };
+
+                class ExitOp : public AbstractTask
+                {
+                public:
+                    ExitOp()
+                    {
+
+                    }
+
+                private:
+                    bool do_task(uint8_t worker_id)
+                    {
+                        return true;
+                    }
+
+                    TaskType get_task_type() const override
+                    {
+                        return TaskType::exit;
+                    }
+                };
+
+                float const control_value = ((5 + 3)*(8 - 1) / 2 + 1) / ((10 + 2) * (3 - 1) / 6 + 5);
+
+                float r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11;
+                ArithmeticOp op1{ "5+3", 5, 3, r1, operation_type::add };
+                ArithmeticOp op2{ "8-1", 8, -1, r2, operation_type::add };
+                ArithmeticOp op3{ "10+2", 10, 2, r3, operation_type::add };
+                ArithmeticOp op4{ "3-1", 3, -1, r4, operation_type::add };
+                ArithmeticOp op5{ "*", r1, r2, r5, operation_type::multiply };
+                ArithmeticOp op6{ "*", r3, r4, r6, operation_type::multiply };
+                ArithmeticOp op7{ "/2", r5, .5f, r7, operation_type::multiply };
+                ArithmeticOp op8{ "/6", r6, 1.f / 6, r8, operation_type::multiply };
+                ArithmeticOp op9{ "+1", r7, 1, r9, operation_type::add };
+                ArithmeticOp op10{ "+5", r8, 5, r10, operation_type::add };
+                ArithmeticOp op11{ "/", r9, 1.f / r10, r11, operation_type::multiply };
+                ExitOp exitOp{};
+
+                op1.addDependent(op5);
+                op2.addDependent(op5);
+                op5.addDependent(op7);
+                op7.addDependent(op9);
+                op9.addDependent(op11);
+                op11.addDependent(exitOp);
+
+                op3.addDependent(op6);
+                op4.addDependent(op6);
+                op6.addDependent(op8);
+                op8.addDependent(op10);
+                op10.addDependent(op11);
+
+                TaskGraph taskGraph(std::list<AbstractTask*>{&op1, &op2, &op3, &op4});
+                taskGraph.createDotRepresentation("task_graph.gv");
+
+                TaskSink taskSink{ taskGraph, worker_thread_logs };
+                taskSink.run(false);
+
+                Assert::IsTrue(r11 == control_value);
+            }
+
+
+
+            Log::shutdown();
+
+            for (auto thread_log_stream : worker_thread_logs)
+            {
+                delete thread_log_stream;
+            }
         }
 
     };
