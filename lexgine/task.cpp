@@ -24,9 +24,9 @@ AbstractTask::AbstractTask(std::list<AbstractTask*> const & dependencies, std::s
 void AbstractTask::execute(uint8_t worker_id)
 {
     auto task_begin_execution_time_point = std::chrono::system_clock::now();
-    do_task(worker_id);
+    bool result = do_task(worker_id);
     auto task_complete_execution_time_point = std::chrono::system_clock::now();
-    m_is_completed = true;
+    m_is_completed = result;
 
     uint64_t completion_time_in_ms = std::chrono::duration_cast<std::chrono::milliseconds>(task_complete_execution_time_point - task_begin_execution_time_point).count();
 
