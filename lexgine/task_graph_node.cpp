@@ -15,7 +15,7 @@ TaskGraphNode::TaskGraphNode(AbstractTask& task) :
     m_id{ ++id_counter },
     m_contained_task{ &task },
     m_is_completed{ false },
-    m_visit_flag{ false },
+    m_visit_flag{ 0U },
     m_frame_index{ 0U }
 {
 
@@ -25,9 +25,10 @@ TaskGraphNode::TaskGraphNode(AbstractTask & task, uint32_t id):
     m_id{ id },
     m_contained_task{ &task },
     m_is_completed{ false },
-    m_visit_flag{ false },
+    m_visit_flag{ 0U},
     m_frame_index{ 0U }
 {
+
 }
 
 bool TaskGraphNode::execute(uint8_t worker_id)
