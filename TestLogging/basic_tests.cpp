@@ -219,10 +219,10 @@ public:
 
                 }
 
-				bool allowsConcurrentExecution() const override
-				{
-					return true;
-				}
+                bool allowsConcurrentExecution() const override
+                {
+                    return true;
+                }
 
             private:
                 bool do_task(uint8_t worker_id, uint16_t frame_index) override
@@ -245,10 +245,10 @@ public:
 
                 }
 
-				bool allowsConcurrentExecution() const override
-				{
-					return true;
-				}
+                bool allowsConcurrentExecution() const override
+                {
+                    return true;
+                }
 
             private:
                 bool do_task(uint8_t worker_id, uint16_t frame_index) override
@@ -271,10 +271,10 @@ public:
 
                 }
 
-				bool allowsConcurrentExecution() const override
-				{
-					return true;
-				}
+                bool allowsConcurrentExecution() const override
+                {
+                    return true;
+                }
 
             private:
                 bool do_task(uint8_t worker_id, uint16_t frame_index) override
@@ -297,10 +297,10 @@ public:
 
                 }
 
-				bool allowsConcurrentExecution() const override
-				{
-					return true;
-				}
+                bool allowsConcurrentExecution() const override
+                {
+                    return true;
+                }
 
             private:
                 bool do_task(uint8_t worker_id, uint16_t frame_index) override
@@ -323,10 +323,10 @@ public:
 
                 }
 
-				bool allowsConcurrentExecution() const override
-				{
-					return true;
-				}
+                bool allowsConcurrentExecution() const override
+                {
+                    return true;
+                }
 
             private:
                 bool do_task(uint8_t worker_id, uint16_t frame_index) override
@@ -349,10 +349,10 @@ public:
 
                 }
 
-				bool allowsConcurrentExecution() const override
-				{
-					return true;
-				}
+                bool allowsConcurrentExecution() const override
+                {
+                    return true;
+                }
 
             private:
                 bool do_task(uint8_t worker_id, uint16_t frame_index) override
@@ -392,7 +392,7 @@ public:
                 E.addDependent(LoopExit);
 
 
-                TaskGraph testGraph{ std::list<TaskGraphNode>{&Head, &F, &A} };
+                TaskGraph testGraph{ std::list<TaskGraphNode*>{&Head, &F, &A} };
                 if (testGraph.getErrorState())
                 {
                     const char* err_msg = testGraph.getErrorString();

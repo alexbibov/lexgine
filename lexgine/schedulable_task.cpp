@@ -4,6 +4,6 @@ using namespace lexgine::core::concurrency;
 
 SchedulableTask::SchedulableTask(std::string const & debug_name):
     AbstractTask{ debug_name },
-    TaskGraphNode{ *this }
+    TaskGraphNode{ static_cast<AbstractTask&>(*this) }
 {
 }
