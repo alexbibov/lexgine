@@ -4,14 +4,14 @@ using namespace lexgine::core::concurrency;
 using namespace lexgine::core::misc;
 
 TaskSink::TaskSink(std::string const& debug_name, TaskGraph const& source_task_graph, std::vector<std::ostream*> const& worker_thread_logging_streams):
-    m_task_list{ TaskGraphAttorney<TaskSink>::getTaskList(source_task_graph) },
+    m_source_tasks{ TaskGraphAttorney<TaskSink>::getTaskList(source_task_graph) },
     m_exit_signal{ false }
 {
     setStringName(debug_name);
 }
 
 TaskSink::TaskSink(TaskGraph const& source_task_graph, std::vector<std::ostream*> const& worker_thread_logging_streams):
-    m_task_list{ TaskGraphAttorney<TaskSink>::getTaskList(source_task_graph) },
+    m_source_tasks{ TaskGraphAttorney<TaskSink>::getTaskList(source_task_graph) },
     m_exit_signal{ false }
 {
     setStringName("DefaultTaskSink");
@@ -22,7 +22,7 @@ TaskSink::TaskSink(TaskGraph const& source_task_graph, std::vector<std::ostream*
     }
 }
 
-void TaskSink::run(bool loop_tasks)
+void TaskSink::run(uint16_t max_frames_queued)
 {
     // Start workers
     Log::retrieve()->out("Starting worker threads");

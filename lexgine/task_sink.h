@@ -15,13 +15,19 @@ public:
     TaskSink(std::string const& debug_name, TaskGraph const& source_task_graph, std::vector<std::ostream*> const& worker_thread_logging_streams);
     TaskSink(TaskGraph const& source_task_graph, std::vector<std::ostream*> const& worker_thread_logging_streams);
 
-    void run(bool loop_tasks = true);    //! runs the task sink
+	/*!
+	 Begins execution of the task sink. Provided parameter determines how many task graphs
+	 can be executed concurrently.
+	*/
+    void run(uint16_t max_frames_queued = 16U);
 
 private:
-    void dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t logging_time_zone, bool logging_dts);    //!< function looped by worker threads
+    void dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t logging_time_zone, bool logging_dts);    //! function looped by worker threads
+
 
     using worker_thread_context = std::pair<std::thread, std::ostream*>;
-    std::list<AbstractTask*> const& m_task_list;    //!< reference to the list of tasks provided by the task graph
+
+    std::list<ConcurrentTaskContainer> const& m_source_tasks;    //!< reference to the list of tasks provided by the task graph
     std::list<worker_thread_context> m_workers_list;    //!< list of work threads
 
     RingBufferTaskQueue m_task_queue;    //!< concurrent task queue
