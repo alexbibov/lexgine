@@ -76,8 +76,9 @@ public:
         TEST_METHOD(TestStaticHashTable)
         {
             using namespace lexgine::core::misc;
+            
+            std::stringstream test_log;
             {
-                std::stringstream test_log;
                 Log const& logger = Log::create(test_log, 2, true);
 
                 struct custom_type

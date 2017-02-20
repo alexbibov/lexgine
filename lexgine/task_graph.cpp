@@ -1,7 +1,6 @@
 #include "task_graph.h"
 #include "abstract_task.h"
 #include <fstream>
-#include <algorithm>
 #include <cassert>
 
 using namespace lexgine::core::concurrency;
@@ -93,21 +92,43 @@ void TaskGraph::parse(std::list<TaskGraphNode*> const& root_tasks)
 {
     using iterator_type = std::list<TaskGraphNode*>::const_iterator;
     std::list<std::pair<iterator_type, iterator_type>> traversal_stack;
-    std::list<TaskGraphNode*> incidence_reconstruction_stack;
     traversal_stack.push_back(std::make_pair(root_tasks.begin(), root_tasks.end()));
+
+    // lambda that attempts to copy incidence relation between given nodes
+    auto establish_incidence = [this](TaskGraphNode const* parent_node, TaskGraphNode const* child_node) -> void
+    {
+        if (parent_node && (TaskGraphNodeAttorney<TaskGraph>::getNodeVisitFlag(*child_node) == 1
+            || TaskGraphNodeAttorney<TaskGraph>::getNodeVisitFlag(*parent_node) == 1))
+        {
+            auto parent_node_copy_iter = std::find_if(m_task_list.rbegin(), m_task_list.rend(),
+                [parent_node](std::unique_ptr<TaskGraphNode> const& node) -> bool
+            {
+                return TaskGraphNodeAttorney<TaskGraph>::getNodeId(*node) == TaskGraphNodeAttorney<TaskGraph>::getNodeId(*parent_node);
+            });
+
+            auto current_node_copy_iter = std::find_if(m_task_list.rbegin(), m_task_list.rend(),
+                [child_node](std::unique_ptr<TaskGraphNode> const& node) -> bool
+            {
+                return TaskGraphNodeAttorney<TaskGraph>::getNodeId(*node) == TaskGraphNodeAttorney<TaskGraph>::getNodeId(*child_node);
+            });
+
+            (*parent_node_copy_iter)->addDependent(**current_node_copy_iter);
+        }
+    };
+
 
     while (traversal_stack.size())
     {
         // sweep the graph downwards
+        TaskGraphNode* parent_node = nullptr;
         TaskGraphNode* current_node = nullptr;
+
         while (TaskGraphNodeAttorney<TaskGraph>::getDependentNodes(*(current_node = *traversal_stack.back().first)).size())
         {
-            if (!TaskGraphNodeAttorney<TaskGraph>::isNodeVisited(*current_node))
+            if (!TaskGraphNodeAttorney<TaskGraph>::getNodeVisitFlag(*current_node))
             {
                 m_task_list.push_back(std::unique_ptr<TaskGraphNode>{
                     new TaskGraphNode{ *TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*current_node), TaskGraphNodeAttorney<TaskGraph>::getNodeId(*current_node) }});
-                incidence_reconstruction_stack.push_back(m_task_list.back().get());
-                TaskGraphNodeAttorney<TaskGraph>::setNodeVisitFlag(*current_node, true);
             }
             else
             {
@@ -116,8 +137,8 @@ void TaskGraph::parse(std::list<TaskGraphNode*> const& root_tasks)
                 bool cycle_presence_test = false;
                 for (auto e = traversal_stack.begin(); e != --traversal_stack.end(); ++e)
                 {
-                    if (TaskGraphNodeAttorney<TaskGraph>::getContainedTask(**e->first)
-                        == TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*current_node))
+                    if (TaskGraphNodeAttorney<TaskGraph>::getNodeId(**e->first)
+                        == TaskGraphNodeAttorney<TaskGraph>::getNodeId(*current_node))
                     {
                         cycle_presence_test = true;
                         break;
@@ -126,6 +147,7 @@ void TaskGraph::parse(std::list<TaskGraphNode*> const& root_tasks)
 
                 if (cycle_presence_test)
                 {
+                    // create error message describing where exactly the cycle occurs
                     std::string err_msg = "Task graph contains dependency cycles: "
                         + TaskGraphNodeAttorney<TaskGraph>::getContainedTask(**traversal_stack.begin()->first)->getStringName();
                     for (auto e = ++traversal_stack.begin(); e != traversal_stack.end(); ++e)
@@ -136,55 +158,31 @@ void TaskGraph::parse(std::list<TaskGraphNode*> const& root_tasks)
                     raiseError(err_msg);
                     break;
                 }
-
-
-                uint32_t target_id = TaskGraphNodeAttorney<TaskGraph>::getNodeId(*current_node);
-                auto target_node_iterator = std::find_if(m_task_list.begin(), m_task_list.end(),
-                    [target_id](std::unique_ptr<TaskGraphNode> const& node) -> bool
-                {
-                    return TaskGraphNodeAttorney<TaskGraph>::getNodeId(*node) == target_id;
-                });
-
-                assert(target_node_iterator != m_task_list.end());
-
-                incidence_reconstruction_stack.push_back(target_node_iterator->get());
             }
-
+            TaskGraphNodeAttorney<TaskGraph>::incrementNodeVisitFlag(*current_node);
+            
+            // copy incidence parameters of the graph
+            establish_incidence(parent_node, current_node);
 
             auto& current_task_list = TaskGraphNodeAttorney<TaskGraph>::getDependentNodes(*current_node);
             traversal_stack.push_back(std::make_pair(current_task_list.begin(), current_task_list.end()));
+
+            parent_node = current_node;
         }
 
         if (getErrorState()) break;    // exit the main traversal loop in case if something went wrong during the down-sweep of the graph
 
 
         // parse the "leaf" task
-        if (!TaskGraphNodeAttorney<TaskGraph>::isNodeVisited(*current_node))
+        if (!TaskGraphNodeAttorney<TaskGraph>::getNodeVisitFlag(*current_node))
         {
             m_task_list.push_back(std::unique_ptr<TaskGraphNode>{
                 new TaskGraphNode{*TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*current_node), TaskGraphNodeAttorney<TaskGraph>::getNodeId(*current_node) } });
-            TaskGraphNodeAttorney<TaskGraph>::setNodeVisitFlag(*current_node, true);
-
-            if (incidence_reconstruction_stack.size())
-            {
-                incidence_reconstruction_stack.back()->addDependent(*m_task_list.back());
-            }
         }
-        else if(incidence_reconstruction_stack.size())
-        {
-            // if the "leaf" node is visited more than once it must already reside in m_task_list
-
-            uint32_t target_id = TaskGraphNodeAttorney<TaskGraph>::getNodeId(*current_node);
-            auto target_node_iterator = std::find_if(m_task_list.begin(), m_task_list.end(),
-                [target_id](std::unique_ptr<TaskGraphNode> const& node) -> bool
-            {
-                return TaskGraphNodeAttorney<TaskGraph>::getNodeId(*node) == target_id;
-            });
-
-            assert(target_node_iterator != m_task_list.end());
-
-            incidence_reconstruction_stack.back()->addDependent(**target_node_iterator);
-        }
+        TaskGraphNodeAttorney<TaskGraph>::incrementNodeVisitFlag(*current_node);
+        
+        // copy incidence parameters of the leaf
+        establish_incidence(parent_node, current_node);
 
 
         // sweep the graph upwards
@@ -192,12 +190,6 @@ void TaskGraph::parse(std::list<TaskGraphNode*> const& root_tasks)
         while (traversal_stack.size() && ++(traversal_stack.back().first) == traversal_stack.back().second)
         {
             traversal_stack.pop_back();
-            if (incidence_reconstruction_stack.size())
-            {
-                TaskGraphNode* target_node = incidence_reconstruction_stack.back();
-                incidence_reconstruction_stack.pop_back();
-                if (incidence_reconstruction_stack.size()) incidence_reconstruction_stack.back()->addDependent(*target_node);
-            }
         }
     }
 }

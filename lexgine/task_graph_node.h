@@ -4,6 +4,7 @@
 #include "optional.h"
 
 #include <list>
+#include <algorithm>
 
 namespace lexgine {namespace core {namespace concurrency {
 
@@ -41,7 +42,7 @@ private:
     uint32_t m_id;    //!< identifier of the node
     AbstractTask* m_contained_task;    //!< task contained by the node
     bool m_is_completed;    //!< equals 'true' if the task was completed. Equals 'false' otherwise
-    bool m_visit_flag;    //!< determines, whether the task node has been visited during task graph traversal
+    unsigned char m_visit_flag;    //!< determines how many time the node has been visited during task graph traversal (0:not visited; 1:visited once, 2:visited more than once)
     uint16_t m_frame_index;   //!< index of the frame, to which the task container belongs
 
     std::list<TaskGraphNode*> m_dependencies;    //!< dependencies of this task. This task cannot run before all of its dependencies are executed
@@ -53,14 +54,14 @@ template<> class TaskGraphNodeAttorney<TaskGraph>
     friend class TaskGraph;
 
 private:
-    static inline bool isNodeVisited(TaskGraphNode const& parent_task_graph_node)
+    static inline unsigned char getNodeVisitFlag(TaskGraphNode const& parent_task_graph_node)
     {
         return parent_task_graph_node.m_visit_flag;
     }
 
-    static inline void setNodeVisitFlag(TaskGraphNode& parent_task_graph_node, bool visit_flag_value)
+    static inline void incrementNodeVisitFlag(TaskGraphNode& parent_task_graph_node)
     {
-        parent_task_graph_node.m_visit_flag = visit_flag_value;
+        parent_task_graph_node.m_visit_flag = (std::min)(parent_task_graph_node.m_visit_flag + 1U, 2U);
     }
 
     static inline void setNodeFrameIndex(TaskGraphNode& parent_task_graph_node, uint16_t frame_index_value)
