@@ -234,9 +234,6 @@
     <ClInclude Include="task_sink.h">
       <Filter>core\concurrency</Filter>
     </ClInclude>
-    <ClInclude Include="exit_main_loop_task.h">
-      <Filter>core\concurrency\tasks</Filter>
-    </ClInclude>
     <ClInclude Include="abstract_task.h">
       <Filter>core\concurrency</Filter>
     </ClInclude>
@@ -367,9 +364,6 @@
     </ClCompile>
     <ClCompile Include="task_sink.cpp">
       <Filter>core\concurrency</Filter>
-    </ClCompile>
-    <ClCompile Include="exit_main_loop_task.cpp">
-      <Filter>core\concurrency\tasks</Filter>
     </ClCompile>
     <ClCompile Include="abstract_task.cpp">
       <Filter>core\concurrency</Filter>

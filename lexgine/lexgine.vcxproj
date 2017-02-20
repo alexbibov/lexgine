@@ -146,7 +146,6 @@
     <ClCompile Include="entity.cpp" />
     <ClCompile Include="error_behavioral.cpp" />
     <ClCompile Include="exception.cpp" />
-    <ClCompile Include="exit_main_loop_task.cpp" />
     <ClCompile Include="fence.cpp" />
     <ClCompile Include="fence_event.cpp" />
     <ClCompile Include="filter.cpp" />
@@ -210,7 +209,6 @@
     <ClInclude Include="device.h" />
     <ClInclude Include="default_allocator.h" />
     <ClInclude Include="exception.h" />
-    <ClInclude Include="exit_main_loop_task.h" />
     <ClInclude Include="fence.h" />
     <ClInclude Include="fence_event.h" />
     <ClInclude Include="filter.h" />

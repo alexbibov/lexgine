@@ -5,7 +5,7 @@
 
 namespace lexgine {namespace core {namespace concurrency {
 
-/*! Convenience class, which allows to create task graph 
+/*! Convenience class, which allows to create task graph
  structure transparently avoiding explicit usage of TaskGraphNode type
 */
 class SchedulableTask : public AbstractTask, public TaskGraphNode

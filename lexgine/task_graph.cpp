@@ -1,21 +1,28 @@
 #include "task_graph.h"
 #include "abstract_task.h"
 #include <fstream>
+#include <algorithm>
+#include <cassert>
 
 using namespace lexgine::core::concurrency;
 
 
-TaskGraph::TaskGraph(std::string const& name, std::list<ConcurrentTaskContainer> const& root_tasks, uint8_t num_workers):
+TaskGraph::TaskGraph(uint8_t num_workers, std::string const& name):
+    m_num_workers{ num_workers }
+{
+    setStringName(name);
+}
+
+TaskGraph::TaskGraph(std::list<TaskGraphNode*> const& root_tasks, uint8_t num_workers, std::string const& name):
     m_num_workers{ num_workers }
 {
     setStringName(name);
     parse(root_tasks);
 }
 
-TaskGraph::TaskGraph(std::list<ConcurrentTaskContainer> const& root_tasks, uint8_t num_workers):
-    m_num_workers{ num_workers }
+void TaskGraph::setRootNodes(std::list<TaskGraphNode*> const& root_tasks)
 {
-    setStringName("DefaultTaskGraph" + getId().toString());
+    m_task_list.clear();
     parse(root_tasks);
 }
 
@@ -28,9 +35,9 @@ void TaskGraph::createDotRepresentation(std::string const& destination_path) con
 {
     std::string dot_graph_representation = "digraph " + getStringName() + " {\nnode[style=filled];\n";
 
-    for (auto task : m_task_list)
+    for (auto& task : m_task_list)
     {
-		AbstractTask* contained_task = ConcurrentTaskContainerAttorney<TaskGraph>::getContainedTaskPtr(task);
+        AbstractTask* contained_task = TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*task);
 
         dot_graph_representation += "task" + contained_task->getId().toString() + "[label=\"" + contained_task->getStringName() + "\", ";
         switch (AbstractTaskAttorney<TaskGraph>::getTaskType(*contained_task))
@@ -62,14 +69,14 @@ void TaskGraph::createDotRepresentation(std::string const& destination_path) con
         dot_graph_representation += "];\n";
     }
 
-    for (auto task : m_task_list)
+    for (auto& task : m_task_list)
     {
-        std::string task_string_id = "task" 
-			+ ConcurrentTaskContainerAttorney<TaskGraph>::getContainedTaskPtr(task)->getId().toString();
-        for (auto dependent_task : ConcurrentTaskContainerAttorney<TaskGraph>::getDependentTasks(task))
+        std::string task_string_id = "task"
+            + TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*task)->getId().toString();
+        for (auto dependent_task : TaskGraphNodeAttorney<TaskGraph>::getDependentNodes(*task))
         {
-            dot_graph_representation += task_string_id + "->" + "task" 
-				+ ConcurrentTaskContainerAttorney<TaskGraph>::getContainedTaskPtr(dependent_task)->getId().toString() + ";\n";
+            dot_graph_representation += task_string_id + "->" + "task"
+                + TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*dependent_task)->getId().toString() + ";\n";
         }
     }
 
@@ -82,22 +89,25 @@ void TaskGraph::createDotRepresentation(std::string const& destination_path) con
     ofile.close();
 }
 
-void TaskGraph::parse(std::list<ConcurrentTaskContainer> const& root_tasks)
+void TaskGraph::parse(std::list<TaskGraphNode*> const& root_tasks)
 {
-    using iterator_type = std::list<ConcurrentTaskContainer>::const_iterator;
+    using iterator_type = std::list<TaskGraphNode*>::const_iterator;
     std::list<std::pair<iterator_type, iterator_type>> traversal_stack;
+    std::list<TaskGraphNode*> incidence_reconstruction_stack;
     traversal_stack.push_back(std::make_pair(root_tasks.begin(), root_tasks.end()));
 
     while (traversal_stack.size())
     {
         // sweep the graph downwards
-        iterator_type current_task;
-        while (ConcurrentTaskContainerAttorney<TaskGraph>::getDependentTasks(*(current_task = traversal_stack.back().first)).size())
+        TaskGraphNode* current_node = nullptr;
+        while (TaskGraphNodeAttorney<TaskGraph>::getDependentNodes(*(current_node = *traversal_stack.back().first)).size())
         {
-            if (!ConcurrentTaskContainerAttorney<TaskGraph>::visited(*current_task))
+            if (!TaskGraphNodeAttorney<TaskGraph>::isNodeVisited(*current_node))
             {
-                m_task_list.push_back(*current_task);
-                ConcurrentTaskContainerAttorney<TaskGraph>::setVisitFlag(*current_task, true);
+                m_task_list.push_back(std::unique_ptr<TaskGraphNode>{
+                    new TaskGraphNode{ *TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*current_node), TaskGraphNodeAttorney<TaskGraph>::getNodeId(*current_node) }});
+                incidence_reconstruction_stack.push_back(m_task_list.back().get());
+                TaskGraphNodeAttorney<TaskGraph>::setNodeVisitFlag(*current_node, true);
             }
             else
             {
@@ -106,8 +116,8 @@ void TaskGraph::parse(std::list<ConcurrentTaskContainer> const& root_tasks)
                 bool cycle_presence_test = false;
                 for (auto e = traversal_stack.begin(); e != --traversal_stack.end(); ++e)
                 {
-                    if (ConcurrentTaskContainerAttorney<TaskGraph>::getContainedTaskPtr(*e->first) 
-						== ConcurrentTaskContainerAttorney<TaskGraph>::getContainedTaskPtr(*current_task))
+                    if (TaskGraphNodeAttorney<TaskGraph>::getContainedTask(**e->first)
+                        == TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*current_node))
                     {
                         cycle_presence_test = true;
                         break;
@@ -116,20 +126,32 @@ void TaskGraph::parse(std::list<ConcurrentTaskContainer> const& root_tasks)
 
                 if (cycle_presence_test)
                 {
-                    std::string err_msg = "Task graph contains dependency cycles: " 
-						+ ConcurrentTaskContainerAttorney<TaskGraph>::getContainedTaskPtr(*traversal_stack.begin()->first)->getStringName();
+                    std::string err_msg = "Task graph contains dependency cycles: "
+                        + TaskGraphNodeAttorney<TaskGraph>::getContainedTask(**traversal_stack.begin()->first)->getStringName();
                     for (auto e = ++traversal_stack.begin(); e != traversal_stack.end(); ++e)
                     {
-                        err_msg += "->" + ConcurrentTaskContainerAttorney<TaskGraph>::getContainedTaskPtr(*e->first)->getStringName();
+                        err_msg += "->" + TaskGraphNodeAttorney<TaskGraph>::getContainedTask(**e->first)->getStringName();
                     }
-                    err_msg += ConcurrentTaskContainerAttorney<TaskGraph>::getContainedTaskPtr(*current_task)->getStringName();
+                    err_msg += TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*current_node)->getStringName();
                     raiseError(err_msg);
                     break;
                 }
+
+
+                uint32_t target_id = TaskGraphNodeAttorney<TaskGraph>::getNodeId(*current_node);
+                auto target_node_iterator = std::find_if(m_task_list.begin(), m_task_list.end(),
+                    [target_id](std::unique_ptr<TaskGraphNode> const& node) -> bool
+                {
+                    return TaskGraphNodeAttorney<TaskGraph>::getNodeId(*node) == target_id;
+                });
+
+                assert(target_node_iterator != m_task_list.end());
+
+                incidence_reconstruction_stack.push_back(target_node_iterator->get());
             }
 
 
-            auto current_task_list = ConcurrentTaskContainerAttorney<TaskGraph>::getDependentTasks(*current_task);
+            auto& current_task_list = TaskGraphNodeAttorney<TaskGraph>::getDependentNodes(*current_node);
             traversal_stack.push_back(std::make_pair(current_task_list.begin(), current_task_list.end()));
         }
 
@@ -137,11 +159,31 @@ void TaskGraph::parse(std::list<ConcurrentTaskContainer> const& root_tasks)
 
 
         // parse the "leaf" task
-        uint32_t current_task_visit_counter{  };
-        if (!ConcurrentTaskContainerAttorney<TaskGraph>::visited(*current_task))
+        if (!TaskGraphNodeAttorney<TaskGraph>::isNodeVisited(*current_node))
         {
-            m_task_list.push_back(*current_task);
-            ConcurrentTaskContainerAttorney<TaskGraph>::setVisitFlag(*current_task, true);
+            m_task_list.push_back(std::unique_ptr<TaskGraphNode>{
+                new TaskGraphNode{*TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*current_node), TaskGraphNodeAttorney<TaskGraph>::getNodeId(*current_node) } });
+            TaskGraphNodeAttorney<TaskGraph>::setNodeVisitFlag(*current_node, true);
+
+            if (incidence_reconstruction_stack.size())
+            {
+                incidence_reconstruction_stack.back()->addDependent(*m_task_list.back());
+            }
+        }
+        else if(incidence_reconstruction_stack.size())
+        {
+            // if the "leaf" node is visited more than once it must already reside in m_task_list
+
+            uint32_t target_id = TaskGraphNodeAttorney<TaskGraph>::getNodeId(*current_node);
+            auto target_node_iterator = std::find_if(m_task_list.begin(), m_task_list.end(),
+                [target_id](std::unique_ptr<TaskGraphNode> const& node) -> bool
+            {
+                return TaskGraphNodeAttorney<TaskGraph>::getNodeId(*node) == target_id;
+            });
+
+            assert(target_node_iterator != m_task_list.end());
+
+            incidence_reconstruction_stack.back()->addDependent(**target_node_iterator);
         }
 
 
@@ -150,14 +192,20 @@ void TaskGraph::parse(std::list<ConcurrentTaskContainer> const& root_tasks)
         while (traversal_stack.size() && ++(traversal_stack.back().first) == traversal_stack.back().second)
         {
             traversal_stack.pop_back();
+            if (incidence_reconstruction_stack.size())
+            {
+                TaskGraphNode* target_node = incidence_reconstruction_stack.back();
+                incidence_reconstruction_stack.pop_back();
+                if (incidence_reconstruction_stack.size()) incidence_reconstruction_stack.back()->addDependent(*target_node);
+            }
         }
     }
 }
 
 void TaskGraph::set_frame_index(uint16_t frame_index)
 {
-	for (auto& task : m_task_list)
-	{
-		ConcurrentTaskContainerAttorney<TaskGraph>::setFrameIndex(task, frame_index);
-	}
+    for (auto& task : m_task_list)
+    {
+        TaskGraphNodeAttorney<TaskGraph>::setNodeFrameIndex(*task, frame_index);
+    }
 }
