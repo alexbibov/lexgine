@@ -210,9 +210,6 @@
     <ClInclude Include="shader_source_code_preprocessor.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="task.h">
-      <Filter>core\concurrency</Filter>
-    </ClInclude>
     <ClInclude Include="lock_free_queue.h">
       <Filter>core\concurrency</Filter>
     </ClInclude>
@@ -239,6 +236,15 @@
     </ClInclude>
     <ClInclude Include="exit_main_loop_task.h">
       <Filter>core\concurrency\tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="abstract_task.h">
+      <Filter>core\concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="task_graph_node.h">
+      <Filter>core\concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="schedulable_task.h">
+      <Filter>core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -353,9 +359,6 @@
     <ClCompile Include="shader_source_code_preprocessor.cpp">
       <Filter>core</Filter>
     </ClCompile>
-    <ClCompile Include="task.cpp">
-      <Filter>core\concurrency</Filter>
-    </ClCompile>
     <ClCompile Include="ring_buffer_task_queue.cpp">
       <Filter>core\concurrency</Filter>
     </ClCompile>
@@ -367,6 +370,15 @@
     </ClCompile>
     <ClCompile Include="exit_main_loop_task.cpp">
       <Filter>core\concurrency\tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="abstract_task.cpp">
+      <Filter>core\concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="task_graph_node.cpp">
+      <Filter>core\concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="schedulable_task.cpp">
+      <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

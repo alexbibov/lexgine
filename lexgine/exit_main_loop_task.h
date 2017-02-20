@@ -1,6 +1,6 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_TASKS_EXIT_MAIN_LOOP_TASK_H
 
-#include "task.h"
+#include "abstract_task.h"
 
 namespace lexgine {namespace core {namespace concurrency {namespace tasks {
 
