@@ -166,10 +166,6 @@
     <ClCompile Include="rasterizer_descriptor.cpp" />
     <ClCompile Include="rectangle.cpp" />
     <ClCompile Include="resource.cpp" />
-    <ClCompile Include="ring_buffer_task_queue.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="root_signature.cpp" />
     <ClCompile Include="schedulable_task.cpp" />
     <ClCompile Include="shader_source_code_preprocessor.cpp" />

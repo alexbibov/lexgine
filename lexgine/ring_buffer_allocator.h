@@ -68,6 +68,9 @@ public:
         static_cast<RingBufferCell*>(pointerCast(memory_block_addr))->is_used = false;
     }
 
+    //! Returns full capacity of the ring buffer
+    size_t getCapacity() const { return m_num_of_cells; }
+
 private:
     struct RingBufferCell : public MemoryBlock<T>
     {

@@ -1,6 +1,6 @@
 #ifndef LEXGINE_CORE_DX_D3D12_HLSL_COMPILATION_TASK_H
 
-#include "task.h"
+#include "schedulable_task.h"
 #include "shader_source_code_preprocessor.h"
 #include "data_blob.h"
 
@@ -9,7 +9,7 @@
 namespace lexgine {namespace core {namespace dx {namespace d3d12 {
 
 //! Implements compilation of provided HLSL source code
-class HLSLCompilationTask : public concurrency::AbstractReturningTask<D3DDataBlob>
+class HLSLCompilationTask : public concurrency::SchedulableTask
 {
 public:
     //! Macro definition consumed by HLSL compiler
@@ -29,7 +29,7 @@ public:
 
 
 private:
-    void do_task() override;    //! performs actual compilation of the shader
+    bool do_task(uint8_t worker_id, uint16_t frame_index) override;    //! performs actual compilation of the shader
 
 };
 
