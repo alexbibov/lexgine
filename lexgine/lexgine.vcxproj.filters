@@ -43,8 +43,8 @@
     <Filter Include="core\metal">
       <UniqueIdentifier>{a4e446ea-aa7a-4e7b-b84e-ea1a1c65d5b1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="core\concurrency\tasks">
-      <UniqueIdentifier>{b0ec2f39-e353-4fa5-a0dd-2fb60959142d}</UniqueIdentifier>
+    <Filter Include="core\dx\d3d12\tasks">
+      <UniqueIdentifier>{5ceb6d90-0f7b-4f45-a807-a2ea0b550037}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -204,9 +204,6 @@
     <ClInclude Include="exception.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="hlsl_compilation_task.h">
-      <Filter>core\dx\d3d12</Filter>
-    </ClInclude>
     <ClInclude Include="shader_source_code_preprocessor.h">
       <Filter>core</Filter>
     </ClInclude>
@@ -241,7 +238,10 @@
       <Filter>core\concurrency</Filter>
     </ClInclude>
     <ClInclude Include="schedulable_task.h">
-      <Filter>core</Filter>
+      <Filter>core\concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl_compilation_task.h">
+      <Filter>core\dx\d3d12\tasks</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -356,9 +356,6 @@
     <ClCompile Include="shader_source_code_preprocessor.cpp">
       <Filter>core</Filter>
     </ClCompile>
-    <ClCompile Include="ring_buffer_task_queue.cpp">
-      <Filter>core\concurrency</Filter>
-    </ClCompile>
     <ClCompile Include="task_graph.cpp">
       <Filter>core\concurrency</Filter>
     </ClCompile>
@@ -372,7 +369,7 @@
       <Filter>core\concurrency</Filter>
     </ClCompile>
     <ClCompile Include="schedulable_task.cpp">
-      <Filter>core</Filter>
+      <Filter>core\concurrency</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

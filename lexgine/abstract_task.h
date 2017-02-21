@@ -28,7 +28,7 @@ class AbstractTask : public NamedEntity<class_names::Task>
 {
     friend class AbstractTaskAttorney<TaskGraph>;
 public:
-    AbstractTask(std::string const& debug_name = "");
+    AbstractTask(std::string const& debug_name = "", bool expose_in_task_graph = true);
     AbstractTask(AbstractTask const&) = delete;
     AbstractTask(AbstractTask&&) = delete;
     ~AbstractTask() = default;
@@ -45,6 +45,7 @@ private:
     virtual TaskType get_type() const = 0;    //! returns type of the task
 
     TaskExecutionStatistics m_execution_statistics;    //!< execution statistics of the task
+    bool m_exposed_in_task_graph;    //!< 'true' if the task should be included into DOT representation of the task graph for debugging purposes, 'false' otherwise. Default is 'true'.
 };
 
 
@@ -56,6 +57,11 @@ private:
     static inline TaskType getTaskType(AbstractTask const& parent_abstract_task)
     {
         return parent_abstract_task.get_type();
+    }
+
+    static inline bool isExposedInTaskGraph(AbstractTask const& parent_abstract_task)
+    {
+        return parent_abstract_task.m_exposed_in_task_graph;
     }
 };
 

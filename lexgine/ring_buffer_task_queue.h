@@ -5,31 +5,54 @@
 
 namespace lexgine {namespace core {namespace concurrency{
 
-class AbstractTask;    // forward declaration of a concurrent task
-
 //! Lock-free queue based on ring buffer of fixed capacity
+template<typename TaskType>
 class RingBufferTaskQueue final
 {
 public:
-    RingBufferTaskQueue(size_t ring_buffer_capacity = 128U);
+    using task_type = TaskType;
+
+    RingBufferTaskQueue(size_t ring_buffer_capacity = 128U) :
+        m_lock_free_queue{ ring_buffer_capacity }
+    {
+
+    }
+
     RingBufferTaskQueue(RingBufferTaskQueue const&) = delete;
     RingBufferTaskQueue& operator=(RingBufferTaskQueue const&) = delete;
 
-    void enqueueTask(AbstractTask* p_task);    //! adds new task into the queue
+    //! adds new task into the queue
+    void enqueueTask(TaskType p_task)
+    {
+        m_lock_free_queue.enqueue(p_task);
+    }
 
-    misc::Optional<AbstractTask*> dequeueTask();    //! removes task from queue
+    //! removes task from queue
+    misc::Optional<TaskType> dequeueTask()
+    {
+        return m_lock_free_queue.dequeue();
+    }
 
     //! Forces physical deallocation of all memory buffers marked for removal on the calling thread
-    void clearCache();
+    void clearCache()
+    {
+        m_lock_free_queue.clearCache();
+    }
 
     //! Shutdowns the queue making it unusable on the calling thread. This function must be called when the thread is about to exit at the latest
-    void shutdown();
+    void shutdown()
+    {
+        m_lock_free_queue.shutdown();
+    }
 
     //! Returns 'true' if the queue is empty; returns 'false' otherwise
-    bool isEmpty() const;
+    bool isEmpty() const
+    {
+        return m_lock_free_queue.isEmpty();
+    }
 
 private:
-    LockFreeQueue<AbstractTask*, RingBufferAllocator> m_lock_free_queue;
+    LockFreeQueue<TaskType, RingBufferAllocator> m_lock_free_queue;
 
 };
 

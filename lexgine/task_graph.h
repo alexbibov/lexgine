@@ -5,8 +5,14 @@
 
 namespace lexgine {namespace core {namespace concurrency {
 
+
+template<typename> class TaskGraphAttorney;
+class TaskSink;
+
 class TaskGraph : public NamedEntity<class_names::TaskGraph>
 {
+    friend class TaskGraphAttorney<TaskSink>;
+
 public:
     TaskGraph(uint8_t num_workers = 8U, std::string const& name = "");
     TaskGraph(std::list<TaskGraphNode*> const& root_tasks, uint8_t num_workers = 8U, std::string const& name = "");
@@ -28,6 +34,18 @@ private:
 
     uint8_t m_num_workers;    //!< number of worker threads assigned to the task graph
     std::list<std::unique_ptr<TaskGraphNode>> m_task_list;    //!< list of graph nodes (without repetitions)
+};
+
+
+template<> class TaskGraphAttorney<TaskSink>
+{
+    friend class TaskSink;
+
+private:
+    static inline void setTaskGraphFrameIndex(TaskGraph& parent_task_graph, uint16_t frame_index)
+    {
+        parent_task_graph.set_frame_index(frame_index);
+    }
 };
 
 
