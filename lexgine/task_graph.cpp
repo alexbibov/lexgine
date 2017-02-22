@@ -89,6 +89,30 @@ void TaskGraph::createDotRepresentation(std::string const& destination_path) con
     ofile.close();
 }
 
+TaskGraph::iterator TaskGraph::begin()
+{
+    iterator begin_iter{};
+    begin_iter.m_backend_iterator = m_task_list.begin();
+    return begin_iter;
+}
+
+TaskGraph::iterator TaskGraph::end()
+{
+    iterator end_iter{};
+    end_iter.m_backend_iterator = m_task_list.end();
+    return end_iter;
+}
+
+TaskGraph::const_iterator TaskGraph::begin() const
+{
+    return const_cast<TaskGraph*>(this)->begin();
+}
+
+TaskGraph::const_iterator TaskGraph::end() const
+{
+    return const_cast<TaskGraph*>(this)->end();
+}
+
 void TaskGraph::parse(std::list<TaskGraphNode*> const& root_tasks)
 {
     using iterator_type = std::list<TaskGraphNode*>::const_iterator;
@@ -189,3 +213,76 @@ void TaskGraph::set_frame_index(uint16_t frame_index)
         TaskGraphNodeAttorney<TaskGraph>::setNodeFrameIndex(*task, frame_index);
     }
 }
+
+TaskGraph::iterator::iterator()
+{
+}
+
+TaskGraph::iterator::iterator(iterator const& other):
+    m_backend_iterator{ other.m_backend_iterator }
+{
+}
+
+TaskGraph::iterator& TaskGraph::iterator::operator=(iterator const& other)
+{
+    m_backend_iterator = other.m_backend_iterator;
+    return *this;
+}
+ 
+TaskGraphNode* TaskGraph::iterator::operator*()
+{
+    return m_backend_iterator->get();
+}
+
+TaskGraphNode const* TaskGraph::iterator::operator*() const
+{
+    return m_backend_iterator->get();
+}
+
+TaskGraphNode* TaskGraph::iterator::operator->()
+{
+    return m_backend_iterator->get();
+}
+
+TaskGraphNode const* TaskGraph::iterator::operator->() const
+{
+    return m_backend_iterator->get();
+}
+
+TaskGraph::iterator& TaskGraph::iterator::operator++()
+{
+    ++m_backend_iterator;
+    return *this;
+}
+
+TaskGraph::iterator TaskGraph::iterator::operator++(int)
+{
+    iterator tmp{ *this };
+    ++m_backend_iterator;
+    return tmp;
+}
+
+TaskGraph::iterator& TaskGraph::iterator::operator--()
+{
+    --m_backend_iterator;
+    return *this;
+}
+
+TaskGraph::iterator TaskGraph::iterator::operator--(int)
+{
+    iterator tmp{ *this };
+    --m_backend_iterator;
+    return tmp;
+}
+
+bool TaskGraph::iterator::operator==(iterator const& other) const
+{
+    return m_backend_iterator == other.m_backend_iterator;
+}
+
+bool TaskGraph::iterator::operator!=(iterator const & other) const
+{
+    return !(*this == other);
+}
+
+

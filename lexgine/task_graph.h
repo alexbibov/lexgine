@@ -3,6 +3,8 @@
 #include "task_graph_node.h"
 #include "class_names.h"
 
+#include <iterator>
+
 namespace lexgine {namespace core {namespace concurrency {
 
 
@@ -14,6 +16,32 @@ class TaskGraph : public NamedEntity<class_names::TaskGraph>
     friend class TaskGraphAttorney<TaskSink>;
 
 public:
+    class iterator : public std::iterator<std::bidirectional_iterator_tag, TaskGraphNode*, ptrdiff_t, TaskGraphNode*>
+    {
+        friend class TaskGraph;
+    public:
+        iterator();
+        iterator(iterator const& other);
+        iterator& operator=(iterator const& other);
+
+        TaskGraphNode* operator*();
+        TaskGraphNode const* operator*() const;
+        TaskGraphNode* operator->();
+        TaskGraphNode const*  operator->() const;
+
+        iterator& operator++();
+        iterator operator++(int);
+        iterator& operator--();
+        iterator operator--(int);
+
+        bool operator==(iterator const& other) const;
+        bool operator!=(iterator const& other) const;
+
+    private:
+        std::list<std::unique_ptr<TaskGraphNode>>::iterator m_backend_iterator;
+    };
+    using const_iterator = iterator const;
+    
     TaskGraph(uint8_t num_workers = 8U, std::string const& name = "");
     TaskGraph(std::list<TaskGraphNode*> const& root_tasks, uint8_t num_workers = 8U, std::string const& name = "");
     TaskGraph(TaskGraph const& other) = delete;
@@ -28,9 +56,15 @@ public:
 
     void createDotRepresentation(std::string const& destination_path) const;    //! creates representation of the task graph using DOT language and saves it to the given destination path
 
+    iterator begin();    //! returns iterator pointing at the first task of the task graph
+    iterator end();    //! returns iterator pointing one step forward from the last task of the task graph
+
+    const_iterator begin() const;    //! returns immutable iterator pointing at the first task of the task graph
+    const_iterator end() const;    //! returns immutable iterator pointing one step forward from the last task of the task graph
+
 private:
     void parse(std::list<TaskGraphNode*> const& root_tasks);    //! helper function used to simplify structure of the graph
-    void set_frame_index(uint16_t frame_index);    //! sets index of the frame corresponding to this task graph
+    void set_frame_index(uint16_t frame_index);    //! sets index of the frame corresponding to this task graph and ensures that all tasks are reseted to "incomplete" state
 
     uint8_t m_num_workers;    //!< number of worker threads assigned to the task graph
     std::list<std::unique_ptr<TaskGraphNode>> m_task_list;    //!< list of graph nodes (without repetitions)

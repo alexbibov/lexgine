@@ -4,6 +4,7 @@ using namespace lexgine::core::concurrency;
 using namespace lexgine::core::misc;
 
 TaskSink::TaskSink(TaskGraph const& source_task_graph, std::vector<std::ostream*> const& worker_thread_logging_streams, uint16_t max_frames_to_queue, std::string const& debug_name):
+    m_source_task_graph{ source_task_graph },
     m_task_graph_merry_go_round{ max_frames_to_queue },
     m_exit_signal{ false }
 {

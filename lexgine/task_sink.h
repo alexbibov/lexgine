@@ -20,10 +20,10 @@ public:
 private:
     void dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t logging_time_zone, bool logging_dts);    //! function looped by worker threads
 
+    TaskGraph const& m_source_task_graph;    //!< reference to the source task graph
 
     using worker_thread_context = std::pair<std::thread, std::ostream*>;
     std::list<worker_thread_context> m_workers_list;    //!< list of work threads
-
 
     RingBufferAllocator<TaskGraph> m_task_graph_merry_go_round;    //!< ring buffer holding concurrent frame execution
     RingBufferTaskQueue<TaskGraphNode*> m_task_queue;    //!< concurrent task queue
