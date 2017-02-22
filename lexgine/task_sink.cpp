@@ -27,6 +27,12 @@ void TaskSink::run()
         worker->first = std::thread{ &TaskSink::dispatch, this, i, worker->second, main_log_last_entry_time_stamp.getTimeZone(), main_log_last_entry_time_stamp.isDTS() };
         worker->first.detach();
     }
+
+
+    while (m_exit_signal)
+    {
+
+    }
 }
 
 void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t logging_time_zone, bool logging_dts)

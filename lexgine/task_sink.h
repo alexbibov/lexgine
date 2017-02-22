@@ -27,7 +27,7 @@ private:
 
     RingBufferAllocator<TaskGraph> m_task_graph_merry_go_round;    //!< ring buffer holding concurrent frame execution
     RingBufferTaskQueue<TaskGraphNode*> m_task_queue;    //!< concurrent task queue
-    bool m_exit_signal;    //!< becomes 'true' when the sink encounters an exit task, which has been successfully executed
+    std::atomic_bool m_exit_signal;    //!< becomes 'true' when the sink encounters an exit task, which has been successfully executed
 };
 
 }}}
