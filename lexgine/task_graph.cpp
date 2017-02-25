@@ -13,16 +13,18 @@ TaskGraph::TaskGraph(uint8_t num_workers, std::string const& name):
 }
 
 TaskGraph::TaskGraph(std::list<TaskGraphNode*> const& root_tasks, uint8_t num_workers, std::string const& name):
+    m_root_nodes{ root_tasks },
     m_num_workers{ num_workers }
 {
     setStringName(name);
-    parse(root_tasks);
+    parse();
 }
 
 void TaskGraph::setRootNodes(std::list<TaskGraphNode*> const& root_tasks)
 {
     m_task_list.clear();
-    parse(root_tasks);
+    m_root_nodes = root_tasks;
+    parse();
 }
 
 uint8_t lexgine::core::concurrency::TaskGraph::getNumberOfWorkerThreads() const
@@ -58,10 +60,6 @@ void TaskGraph::createDotRepresentation(std::string const& destination_path) con
             dot_graph_representation += "fillcolor=gray, fontcolor=white, shape=diamond";
             break;
 
-        case TaskType::exit:
-            dot_graph_representation += "fillcolor=navy, fontcolor=white, shape=doublecircle";
-            break;
-
         case TaskType::other:
             dot_graph_representation += "fillcolor=white, shape=triangle";
             break;
@@ -89,6 +87,16 @@ void TaskGraph::createDotRepresentation(std::string const& destination_path) con
     ofile.close();
 }
 
+void TaskGraph::injectDependentTask(TaskGraphNode& dependent_task)
+{
+    m_task_list.push_back(std::unique_ptr<TaskGraphNode>{ new TaskGraphNode{
+        *TaskGraphNodeAttorney<TaskGraph>::getContainedTask(dependent_task), TaskGraphNodeAttorney<TaskGraph>::getNodeId(dependent_task) }});
+
+    TaskGraphNode* p_new_dependent_task = m_task_list.back().get();
+    for (auto p = m_task_list.begin(); p != --m_task_list.end(); ++p)
+        (*p)->addDependent(*p_new_dependent_task);
+}
+
 TaskGraph::iterator TaskGraph::begin()
 {
     iterator begin_iter{};
@@ -113,12 +121,13 @@ TaskGraph::const_iterator TaskGraph::end() const
     return const_cast<TaskGraph*>(this)->end();
 }
 
-void TaskGraph::parse(std::list<TaskGraphNode*> const& root_tasks)
+void TaskGraph::parse()
 {
     using iterator_type = std::list<TaskGraphNode*>::const_iterator;
     std::list<std::pair<iterator_type, iterator_type>> traversal_stack;
-    traversal_stack.push_back(std::make_pair(root_tasks.begin(), root_tasks.end()));
+    traversal_stack.push_back(std::make_pair(m_root_nodes.begin(), m_root_nodes.end()));
 
+    std::list<TaskGraphNode*> source_node_list{};
     TaskGraphNode* parent_node = nullptr;
     while (traversal_stack.size())
     {
@@ -129,6 +138,7 @@ void TaskGraph::parse(std::list<TaskGraphNode*> const& root_tasks)
         {
             m_task_list.push_back(std::unique_ptr<TaskGraphNode>{
                 new TaskGraphNode{ *TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*current_node), TaskGraphNodeAttorney<TaskGraph>::getNodeId(*current_node) }});
+            source_node_list.push_back(current_node);
         }
         else
         {
@@ -136,8 +146,7 @@ void TaskGraph::parse(std::list<TaskGraphNode*> const& root_tasks)
             bool cycle_presence_test = false;
             for (auto e = traversal_stack.begin(); e != --traversal_stack.end(); ++e)
             {
-                if (TaskGraphNodeAttorney<TaskGraph>::getNodeId(**e->first)
-                    == TaskGraphNodeAttorney<TaskGraph>::getNodeId(*current_node))
+                if (TaskGraphNodeAttorney<TaskGraph>::areNodesEqual(**e->first, *current_node))
                 {
                     cycle_presence_test = true;
                     break;
@@ -167,13 +176,13 @@ void TaskGraph::parse(std::list<TaskGraphNode*> const& root_tasks)
             auto parent_node_copy_iter = std::find_if(m_task_list.rbegin(), m_task_list.rend(),
                 [parent_node](std::unique_ptr<TaskGraphNode> const& node) -> bool
             {
-                return TaskGraphNodeAttorney<TaskGraph>::getNodeId(*node) == TaskGraphNodeAttorney<TaskGraph>::getNodeId(*parent_node);
+                return TaskGraphNodeAttorney<TaskGraph>::areNodesEqual(*node, *parent_node);
             });
 
             auto current_node_copy_iter = std::find_if(m_task_list.rbegin(), m_task_list.rend(),
                 [current_node](std::unique_ptr<TaskGraphNode> const& node) -> bool
             {
-                return TaskGraphNodeAttorney<TaskGraph>::getNodeId(*node) == TaskGraphNodeAttorney<TaskGraph>::getNodeId(*current_node);
+                return TaskGraphNodeAttorney<TaskGraph>::areNodesEqual(*node, *current_node);
             });
 
             (*parent_node_copy_iter)->addDependent(**current_node_copy_iter);
@@ -204,6 +213,10 @@ void TaskGraph::parse(std::list<TaskGraphNode*> const& root_tasks)
             }
         }
     }
+
+    // reset visit flag of the source nodes
+    for (auto p_node : source_node_list)
+        TaskGraphNodeAttorney<TaskGraph>::resetNodeVisitFlag(*p_node);
 }
 
 void TaskGraph::set_frame_index(uint16_t frame_index)
@@ -211,6 +224,14 @@ void TaskGraph::set_frame_index(uint16_t frame_index)
     for (auto& task : m_task_list)
     {
         TaskGraphNodeAttorney<TaskGraph>::setNodeFrameIndex(*task, frame_index);
+    }
+}
+
+void TaskGraph::reset_completion_status()
+{
+    for (auto& task : m_task_list)
+    {
+        TaskGraphNodeAttorney<TaskGraph>::resetNodeCompletionStatus(*task);
     }
 }
 

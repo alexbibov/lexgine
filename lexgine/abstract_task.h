@@ -17,7 +17,6 @@ enum class TaskType
     gpu_draw,
     gpu_compute,
     gpu_copy,
-    exit,
     other
 };
 
@@ -36,12 +35,17 @@ public:
     AbstractTask& operator=(AbstractTask&&) = delete;
 
     TaskExecutionStatistics const& getExecutionStatistics() const;    //! returns execution statistics of the task
-    virtual bool allowsConcurrentExecution() const = 0;    //! returns 'true' if implementation of this task provides thread-safe execute(...) procedure. Returns 'false' otherwise.
 
-    bool execute(uint8_t worker_id, uint16_t frame_index);    //! executes the task and returns 'true' on success and 'false' on failure
+    bool execute(uint8_t worker_id, uint16_t frame_index);    //! executes the task and returns 'true' if the task has been completed or 'false' if it has to be rescheduled to be executed later
 
 private:
-    virtual bool do_task(uint8_t worker_id, uint16_t frame_index) = 0;    //! calls actual implementation of the task, worker_id provides identifier of the worker thread, which executes the task
+    /*! calls actual implementation of the task, worker_id provides identifier of the worker thread, which executes the task; frame_index is 
+     a nominal index of the frame being composed. This index can be used by task implementation to organize exclusive access to shared data.
+     The function must return 'true' if execution of the task should be marked as "successful" and the task should be removed from the execution
+     queue. If the function returns 'false', the task will not be removed from the execution queue and another attempt to execute the task will
+     be made at some later time.
+    */
+    virtual bool do_task(uint8_t worker_id, uint16_t frame_index) = 0;
     virtual TaskType get_type() const = 0;    //! returns type of the task
 
     TaskExecutionStatistics m_execution_statistics;    //!< execution statistics of the task

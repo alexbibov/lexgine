@@ -3,6 +3,8 @@
 #include "abstract_task.h"
 #include "task_graph_node.h"
 
+#include <mutex>
+
 namespace lexgine {namespace core {namespace concurrency {
 
 /*! Convenience class, which allows to create task graph
@@ -11,8 +13,29 @@ namespace lexgine {namespace core {namespace concurrency {
 class SchedulableTask : public AbstractTask, public TaskGraphNode
 {
 public:
-    SchedulableTask(std::string const& debug_name = "");
+    SchedulableTask(std::string const& debug_name = "", bool expose_in_task_graph = true);
+
 };
+
+
+/*! Convenience class, which allows to define tasks that do not
+ support concurrent execution
+*/
+class SchedulableTaskWithoutConcurrency : public SchedulableTask
+{
+public:
+    SchedulableTaskWithoutConcurrency(std::string const& debug_name = "", bool expose_in_task_graph = true);
+
+    bool execute(uint8_t worker_id, uint16_t frame_index);
+
+private:
+    std::mutex m_task_execution_mutex;
+};
+
+
+//! Returns 'true' if given task supports concurrent execution. Returns 'false' otherwise.
+bool checkConcurrentExecutionAbility(AbstractTask const& task);
+
 
 }}}
 

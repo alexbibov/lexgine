@@ -56,6 +56,8 @@ public:
 
     void createDotRepresentation(std::string const& destination_path) const;    //! creates representation of the task graph using DOT language and saves it to the given destination path
 
+    void injectDependentTask(TaskGraphNode& dependent_task);    //! injects new task into the task graph, which will be dependent on all tasks currently in the task graph
+
     iterator begin();    //! returns iterator pointing at the first task of the task graph
     iterator end();    //! returns iterator pointing one step forward from the last task of the task graph
 
@@ -63,10 +65,12 @@ public:
     const_iterator end() const;    //! returns immutable iterator pointing one step forward from the last task of the task graph
 
 private:
-    void parse(std::list<TaskGraphNode*> const& root_tasks);    //! helper function used to simplify structure of the graph
+    void parse();    //! parses the task graph and creates local copy of its structure using provided set of root nodes as entry points
     void set_frame_index(uint16_t frame_index);    //! sets index of the frame corresponding to this task graph and ensures that all tasks are reseted to "incomplete" state
+    void reset_completion_status();    //! resets completion status of all the nodes of the task graph
 
     uint8_t m_num_workers;    //!< number of worker threads assigned to the task graph
+    std::list<TaskGraphNode*> m_root_nodes;    //!< list of pointers to nodes used to construct the task graph
     std::list<std::unique_ptr<TaskGraphNode>> m_task_list;    //!< list of graph nodes (without repetitions)
 };
 
@@ -79,6 +83,16 @@ private:
     static inline void setTaskGraphFrameIndex(TaskGraph& parent_task_graph, uint16_t frame_index)
     {
         parent_task_graph.set_frame_index(frame_index);
+    }
+
+    static inline void resetTaskGraphCompletionStatus(TaskGraph& parent_task_graph)
+    {
+        parent_task_graph.reset_completion_status();
+    }
+
+    static inline std::list<TaskGraphNode*> const& getTaskGraphRootNodeList(TaskGraph const& parent_task_graph)
+    {
+        return parent_task_graph.m_root_nodes;
     }
 };
 

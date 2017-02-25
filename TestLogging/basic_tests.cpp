@@ -220,11 +220,6 @@ public:
 
                 }
 
-                bool allowsConcurrentExecution() const override
-                {
-                    return true;
-                }
-
             private:
                 bool do_task(uint8_t worker_id, uint16_t frame_index) override
                 {
@@ -244,11 +239,6 @@ public:
                     SchedulableTask{ name }
                 {
 
-                }
-
-                bool allowsConcurrentExecution() const override
-                {
-                    return true;
                 }
 
             private:
@@ -272,10 +262,6 @@ public:
 
                 }
 
-                bool allowsConcurrentExecution() const override
-                {
-                    return true;
-                }
 
             private:
                 bool do_task(uint8_t worker_id, uint16_t frame_index) override
@@ -296,11 +282,6 @@ public:
                     SchedulableTask{ name }
                 {
 
-                }
-
-                bool allowsConcurrentExecution() const override
-                {
-                    return true;
                 }
 
             private:
@@ -324,11 +305,6 @@ public:
 
                 }
 
-                bool allowsConcurrentExecution() const override
-                {
-                    return true;
-                }
-
             private:
                 bool do_task(uint8_t worker_id, uint16_t frame_index) override
                 {
@@ -341,33 +317,6 @@ public:
                 }
             };
 
-            class ExitTask : public SchedulableTask
-            {
-            public:
-                ExitTask(std::string const& name) :
-                    SchedulableTask{ name }
-                {
-
-                }
-
-                bool allowsConcurrentExecution() const override
-                {
-                    return true;
-                }
-
-            private:
-                bool do_task(uint8_t worker_id, uint16_t frame_index) override
-                {
-                    return true;
-                }
-
-                TaskType get_type() const override
-                {
-                    return TaskType::exit;
-                }
-            };
-
-
 
             {
                 GPUDrawTask A{ "A" };
@@ -377,7 +326,6 @@ public:
                 GPUComputeTask E{ "E" };
                 OtherTask F{ "F" };
                 CPUTask Head{ "Head" };
-                ExitTask LoopExit{ "LoopExit" };
 
                 A.addDependent(B);
                 A.addDependent(C);
@@ -390,7 +338,6 @@ public:
                 D.addDependent(E);
                 //E.addDependent(F);
                 Head.addDependent(F);
-                E.addDependent(LoopExit);
 
 
                 TaskGraph testGraph{ std::list<TaskGraphNode*>{&Head, &F, &A} };
@@ -427,13 +374,13 @@ public:
             {
                 enum class operation_type
                 {
-                    add, multiply
+                    add, subtract, multiply, divide
                 };
 
                 class ArithmeticOp : public SchedulableTask
                 {
                 public:
-                    ArithmeticOp(std::string const& debug_name, float a, float b, float &result, operation_type op) :
+                    ArithmeticOp(std::string const& debug_name, float& a, float& b, float &result, operation_type op) :
                         SchedulableTask{ debug_name },
                         m_a{ a },
                         m_b{ b },
@@ -441,11 +388,6 @@ public:
                         m_op{ op }
                     {
 
-                    }
-
-                    bool allowsConcurrentExecution() const override
-                    {
-                        return true;
                     }
 
                 private:
@@ -458,9 +400,21 @@ public:
                             m_result = m_a + m_b;
                             break;
 
+                        case operation_type::subtract:
+                            Log::retrieve()->out(std::to_string(m_a) + "-" + std::to_string(m_b));
+                            m_result = m_a - m_b;
+                            break;
+
                         case operation_type::multiply:
                             Log::retrieve()->out(std::to_string(m_a) + "*" + std::to_string(m_b));
                             m_result = m_a * m_b;
+                            break;
+
+                        case operation_type::divide:
+                            Log::retrieve()->out(std::to_string(m_a) + "/" + std::to_string(m_b));
+                            m_result = m_a / m_b;
+                            break;
+
                         }
 
                         return true;
@@ -471,8 +425,8 @@ public:
                         return TaskType::cpu;
                     }
 
-                    float m_a;
-                    float m_b;
+                    float& m_a;
+                    float& m_b;
                     float& m_result;
                     operation_type m_op;
                 };
@@ -481,50 +435,52 @@ public:
                 {
                 public:
                     ExitOp() :
-                        SchedulableTask{ "exit" }
+                        SchedulableTask{ "ExitTask" }
                     {
-
                     }
 
-                    bool allowsConcurrentExecution() const override
+                    void setInput(TaskSink* sink)
                     {
-                        return true;
+                        m_sink = sink;
                     }
 
                 private:
+                    TaskSink* m_sink;
+
                     bool do_task(uint8_t worker_id, uint16_t frame_index) override
                     {
+                        m_sink->dispatchExitSignal();
                         return true;
                     }
 
                     TaskType get_type() const override
                     {
-                        return TaskType::exit;
+                        return TaskType::cpu;
                     }
                 };
 
-                float const control_value = ((5 + 3)*(8 - 1) / 2 + 1) / ((10 + 2) * (3 - 1) / 6 + 5);
+                float const control_value = ((5 + 3)*(8 - 1) / 2.f + 1) / ((10 + 2) * (3 - 1) / 6.f + 5);
 
                 float r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11;
-                ArithmeticOp op1{ "5+3", 5, 3, r1, operation_type::add };
-                ArithmeticOp op2{ "8-1", 8, -1, r2, operation_type::add };
-                ArithmeticOp op3{ "10+2", 10, 2, r3, operation_type::add };
-                ArithmeticOp op4{ "3-1", 3, -1, r4, operation_type::add };
+                float a0 = 5, a1 = 3, a2 = 8, a3 = 1, a4 = 10, a5 = 2, a6 = 6;
+                ArithmeticOp op1{ "5+3", a0, a1, r1, operation_type::add };
+                ArithmeticOp op2{ "8-1", a2, a3, r2, operation_type::subtract };
+                ArithmeticOp op3{ "10+2", a4, a5, r3, operation_type::add };
+                ArithmeticOp op4{ "3-1", a1, a3, r4, operation_type::subtract };
                 ArithmeticOp op5{ "*", r1, r2, r5, operation_type::multiply };
                 ArithmeticOp op6{ "*", r3, r4, r6, operation_type::multiply };
-                ArithmeticOp op7{ "/2", r5, .5f, r7, operation_type::multiply };
-                ArithmeticOp op8{ "/6", r6, 1.f / 6, r8, operation_type::multiply };
-                ArithmeticOp op9{ "+1", r7, 1, r9, operation_type::add };
-                ArithmeticOp op10{ "+5", r8, 5, r10, operation_type::add };
-                ArithmeticOp op11{ "/", r9, 1.f / r10, r11, operation_type::multiply };
-                ExitOp exitOp{};
+                ArithmeticOp op7{ "/2", r5, a5, r7, operation_type::divide };
+                ArithmeticOp op8{ "/6", r6, a6, r8, operation_type::divide };
+                ArithmeticOp op9{ "+1", r7, a3, r9, operation_type::add };
+                ArithmeticOp op10{ "+5", r8, a0, r10, operation_type::add };
+                ArithmeticOp op11{ "/", r9, r10, r11, operation_type::divide };
+                ExitOp exit{};
 
                 op1.addDependent(op5);
                 op2.addDependent(op5);
                 op5.addDependent(op7);
                 op7.addDependent(op9);
                 op9.addDependent(op11);
-                op11.addDependent(exitOp);
 
                 op3.addDependent(op6);
                 op4.addDependent(op6);
@@ -532,13 +488,17 @@ public:
                 op8.addDependent(op10);
                 op10.addDependent(op11);
 
+                op11.addDependent(exit);
+
                 TaskGraph taskGraph(std::list<TaskGraphNode*>{&op1, &op2, &op3, &op4});
                 taskGraph.createDotRepresentation("task_graph.gv");
 
-                TaskSink taskSink{ taskGraph, worker_thread_logs };
+                TaskSink taskSink{ taskGraph, worker_thread_logs, 1 };
+                exit.setInput(&taskSink);
+
                 taskSink.run();
 
-                //Assert::IsTrue(r11 == control_value);
+                Assert::IsTrue(r11 == control_value);
             }
 
             Log::retrieve()->out("Alive entities: " + std::to_string(lexgine::core::Entity::aliveEntities()));
