@@ -15,6 +15,7 @@ TaskGraphNode::TaskGraphNode(AbstractTask& task) :
     m_id{ ++id_counter },
     m_contained_task{ &task },
     m_is_completed{ false },
+    m_is_scheduled{ false },
     m_visit_flag{ 0U },
     m_frame_index{ 0U }
 {
@@ -25,7 +26,8 @@ TaskGraphNode::TaskGraphNode(AbstractTask & task, uint32_t id):
     m_id{ id },
     m_contained_task{ &task },
     m_is_completed{ false },
-    m_visit_flag{ 0U},
+    m_is_scheduled{ false },
+    m_visit_flag{ 0U },
     m_frame_index{ 0U }
 {
 
@@ -33,12 +35,23 @@ TaskGraphNode::TaskGraphNode(AbstractTask & task, uint32_t id):
 
 bool TaskGraphNode::execute(uint8_t worker_id)
 {
-    return m_contained_task->execute(worker_id, m_frame_index);
+    bool rv = m_contained_task->execute(worker_id, m_frame_index);
+    m_is_completed.store(rv, std::memory_order_release);
+    return rv;
 }
 
 bool TaskGraphNode::isCompleted() const
 {
-    return m_is_completed;
+    return m_is_completed.load(std::memory_order_acquire);
+}
+
+void TaskGraphNode::schedule(RingBufferTaskQueue<TaskGraphNode*>& queue)
+{
+    if(!m_is_scheduled)
+    {
+        queue.enqueueTask(this);
+        m_is_scheduled = true;
+    }
 }
 
 bool TaskGraphNode::isReadyToLaunch() const
