@@ -19,8 +19,11 @@ public:
 
     DataBlob();
     DataBlob(DataBlob const& other) = default;
-    DataBlob(DataBlob&& other);
+    DataBlob(DataBlob&& other) = default;
     DataBlob(void *p_blob_data, size_t blob_size);
+
+    DataBlob& operator=(DataBlob const&) = default;
+    DataBlob& operator=(DataBlob&& other) = default;
 
     virtual ~DataBlob();
 

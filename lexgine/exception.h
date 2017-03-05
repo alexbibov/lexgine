@@ -8,9 +8,10 @@ namespace lexgine { namespace core {
 class Exception
 {
 public:
-    //! initializes exception object without setting identifier of the object that has caused the exception.
-    //! In this case the identifier of the throwing object will be set to a unique value and its string name will
-    //! be set to predefined value "lexgine::core::dummy".
+    /*! initializes exception object without setting identifier of the object that has caused the exception.
+      In this case the identifier of the throwing object will be set to a unique value and its string name will
+      be set to predefined value "lexgine::core::dummy".
+    */
     Exception(std::string const& description = "unknown exception");
 
     template<char const* ThrowingEntityName>
@@ -30,9 +31,9 @@ public:
 
 
 private:
-    EntityID m_thrower_id;    //!< identifier of the object that caused the exception
-    std::string m_thrower_name;    //!< name of the object that caused the exception
-    std::string m_description;    //!< description of the exception in human-readable form
+    EntityID const m_thrower_id;    //!< identifier of the object that caused the exception
+    std::string const m_thrower_name;    //!< name of the object that caused the exception
+    std::string const m_description;    //!< description of the exception in human-readable form
 
 
 };

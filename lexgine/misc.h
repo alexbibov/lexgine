@@ -18,7 +18,7 @@ enum class EngineAPI
 };
 
 
-//Enumerates frame references used to define rotation transforms
+//! Enumerates frame references used to define rotation transforms
 enum class RotationFrame { LOCAL, GLOBAL };
 
 

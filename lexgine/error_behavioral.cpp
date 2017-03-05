@@ -38,6 +38,7 @@ char const* ErrorBehavioral::getErrorString() const
 
 ErrorBehavioral::ErrorBehavioral() :
     m_error_state{ false },
+    m_error_string{ "" },
     m_error_callback{ [](std::string const&) {} },
     m_p_logger{ misc::Log::retrieve() }
 {

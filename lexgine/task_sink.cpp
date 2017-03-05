@@ -1,5 +1,6 @@
 #include "task_sink.h"
 #include "schedulable_task.h"
+#include "exception.h"
 
 using namespace lexgine::core::concurrency;
 using namespace lexgine::core::misc;
@@ -27,7 +28,7 @@ private:
         return true;
     }
 
-    TaskType get_type() const
+    TaskType get_task_type() const
     {
         return TaskType::cpu;
     }
@@ -41,6 +42,7 @@ TaskSink::TaskSink(TaskGraph const& source_task_graph, std::vector<std::ostream*
     m_task_graph_execution_busy_vector(max_frames_to_queue),
     m_exit_signal{ false },
     m_exit_level{ 0U },
+    m_error_watchdog{ 0U },
     m_task_graph_end_execution_guarding_task{ new TaskGraphEndExecutionGuard{m_task_graph_execution_busy_vector, m_exit_level} }
 {
     setStringName(debug_name);
@@ -93,6 +95,22 @@ void TaskSink::run()
                     task->schedule(m_task_queue);
             }
         }
+
+        
+        // errors may occur at any time during execution
+        uint64_t error_status = 0x0;
+        if (error_status = m_error_watchdog.load(std::memory_order_acquire))
+        {
+            AbstractTask* p_failed_task = reinterpret_cast<AbstractTask*>(error_status);
+            Log::retrieve()->out("Task " + p_failed_task->getStringName() + " has failed during execution (" + p_failed_task->getErrorString()
+                + "). Worker thread logs may contain more details");
+
+            m_exit_signal.store(true, std::memory_order_release);
+            m_exit_level.store(0U, std::memory_order_release);
+
+            throw lexgine::core::Exception{ "concurrent execution failed" };
+        }
+
     }
 
     Log::retrieve()->out("Main loop finished");
@@ -117,7 +135,18 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
         if(task.isValid())
         {
             TaskGraphNode* unwrapped_task = static_cast<TaskGraphNode*>(task);
-            unwrapped_task->execute(worker_id);
+            if (!unwrapped_task->execute(worker_id))
+            {
+                // if execution returns 'false', this means that the task has to be rescheduled
+                TaskGraphNodeAttorney<TaskSink>::resetScheduleStatus(*unwrapped_task);
+            }
+
+            AbstractTask* p_contained_task = TaskGraphNodeAttorney<TaskSink>::getContainedTask(*unwrapped_task);
+            if (p_contained_task->getErrorState())
+            {
+                // note that we do not output information about error into the log here since tasks do that themselves when they call raiseError(...)
+                m_error_watchdog.store(reinterpret_cast<uint64_t>(p_contained_task), std::memory_order_release);
+            }
         }
     }
 

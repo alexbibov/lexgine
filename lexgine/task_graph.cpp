@@ -162,7 +162,6 @@ void TaskGraph::parse()
                 {
                     err_msg += "->" + TaskGraphNodeAttorney<TaskGraph>::getContainedTask(**e->first)->getStringName();
                 }
-                err_msg += TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*current_node)->getStringName();
                 raiseError(err_msg);
                 break;
             }

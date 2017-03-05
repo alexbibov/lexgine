@@ -371,6 +371,9 @@
     <ClCompile Include="schedulable_task.cpp">
       <Filter>core\concurrency</Filter>
     </ClCompile>
+    <ClCompile Include="hlsl_compilation_task.cpp">
+      <Filter>core\dx\d3d12\tasks</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="d3d12_type_traits.inl">

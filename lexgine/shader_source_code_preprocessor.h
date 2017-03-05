@@ -16,7 +16,7 @@ public:
 
     /*! Performs preprocessing of provided source code.
      The type of the source depends on the value of parameter source_type. If source_type=file then
-     the source is treated as path to a file containing the shading code. If source=string then
+     the source is treated as path to a file containing the shading code. If source_type=string then
      parameter source is assumed to contain raw shading source code
     */
     ShaderSourceCodePreprocessor(std::string const& source, SourceType source_type);

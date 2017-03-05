@@ -22,7 +22,7 @@ TaskGraphNode::TaskGraphNode(AbstractTask& task) :
 
 }
 
-TaskGraphNode::TaskGraphNode(AbstractTask & task, uint32_t id):
+TaskGraphNode::TaskGraphNode(AbstractTask& task, uint32_t id):
     m_id{ id },
     m_contained_task{ &task },
     m_is_completed{ false },
@@ -36,7 +36,7 @@ TaskGraphNode::TaskGraphNode(AbstractTask & task, uint32_t id):
 bool TaskGraphNode::execute(uint8_t worker_id)
 {
     bool rv = m_contained_task->execute(worker_id, m_frame_index);
-    m_is_completed.store(rv, std::memory_order_release);
+    m_is_completed.store(rv && !m_contained_task->getErrorState(), std::memory_order_release);
     return rv;
 }
 
@@ -70,4 +70,3 @@ void TaskGraphNode::addDependent(TaskGraphNode& task)
     m_dependents.push_back(&task);
     task.m_dependencies.push_back(this);
 }
-

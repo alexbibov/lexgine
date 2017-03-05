@@ -46,7 +46,7 @@ private:
      be made at some later time.
     */
     virtual bool do_task(uint8_t worker_id, uint16_t frame_index) = 0;
-    virtual TaskType get_type() const = 0;    //! returns type of the task
+    virtual TaskType get_task_type() const = 0;    //! returns type of the task
 
     TaskExecutionStatistics m_execution_statistics;    //!< execution statistics of the task
     bool m_exposed_in_task_graph;    //!< 'true' if the task should be included into DOT representation of the task graph for debugging purposes, 'false' otherwise. Default is 'true'.
@@ -60,7 +60,7 @@ template<> class AbstractTaskAttorney<TaskGraph>
 private:
     static inline TaskType getTaskType(AbstractTask const& parent_abstract_task)
     {
-        return parent_abstract_task.get_type();
+        return parent_abstract_task.get_task_type();
     }
 
     static inline bool isExposedInTaskGraph(AbstractTask const& parent_abstract_task)

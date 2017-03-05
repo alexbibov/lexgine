@@ -61,9 +61,10 @@ private:
 
 
 
-//! Helper macro that outputs error message to the @param logger and invokes handler function @param handler when @param expr
-//! does not evaluate equal to one of the success codes listed in the variadic argument. Handler function @param handler
-//! returns void and must accept single argument that can be initialized by std::string
+/*! Helper macro that outputs error message to the logger and sets the context object to erroneous state when expr
+ does not evaluate equal to one of the success codes listed in the variadic argument. In order for this macro to work
+ properly context must be inherited from ErrorBehavioral type.
+*/
 #define LEXGINE_ERROR_LOG(context, expr, ...) \
 { \
 auto lexgine_error_log_rv = (expr); \

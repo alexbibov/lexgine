@@ -18,7 +18,7 @@ public:
         std::string const& debug_name = "");
     ~TaskSink();
 
-    void run();    //! begins execution of the task sink
+    void run() noexcept(false);    //! begins execution of the task sink
     void dispatchExitSignal();    //! directs the sink to stop dispatching new tasks into the queue and exit the main loop as soon as the queue gets empty
 
 private:
@@ -33,6 +33,11 @@ private:
 
     std::atomic_bool m_exit_signal;    //!< becomes 'true' when the sink encounters an exit task, which has been successfully executed
     std::atomic_uint16_t m_exit_level;    //!< counts number of uncompleted frames, this is needed to control stopping of the main thread only when all slave threads have completed their jobs
+    
+    /*!< equals 0 if all tasks have been executing without errors. Acquires non-zero value otherwise. 
+     The acquired value stores pointer to the task graph node that yielded the error.
+    */
+    std::atomic_uint64_t m_error_watchdog;
 
     class TaskGraphEndExecutionGuard;
 
