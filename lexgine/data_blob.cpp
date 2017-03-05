@@ -30,12 +30,6 @@ DataBlob::DataBlob():
 {
 }
 
-DataBlob::DataBlob(DataBlob &&other):
-    m_size{ other.m_size }
-{
-    std::swap(m_p_data, other.m_p_data);
-}
-
 DataBlob::DataBlob(void *p_blob_data, size_t blob_size):
     m_p_data{ p_blob_data },
     m_size{ blob_size }

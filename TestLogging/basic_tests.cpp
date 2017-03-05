@@ -6,6 +6,8 @@
 #include "../lexgine/task_graph.h"
 #include "../lexgine/task_sink.h"
 #include "../lexgine/schedulable_task.h"
+#include "../lexgine/misc.h"
+#include "../lexgine/exception.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4307)    // this is needed to suppress the warning caused by the static hash function
@@ -226,7 +228,7 @@ public:
                     return true;
                 }
 
-                TaskType get_type() const override
+                TaskType get_task_type() const override
                 {
                     return TaskType::cpu;
                 }
@@ -247,7 +249,7 @@ public:
                     return true;
                 }
 
-                TaskType get_type() const override
+                TaskType get_task_type() const override
                 {
                     return TaskType::gpu_draw;
                 }
@@ -269,7 +271,7 @@ public:
                     return true;
                 }
 
-                TaskType get_type() const override
+                TaskType get_task_type() const override
                 {
                     return TaskType::gpu_compute;
                 }
@@ -290,7 +292,7 @@ public:
                     return true;
                 }
 
-                TaskType get_type() const override
+                TaskType get_task_type() const override
                 {
                     return TaskType::gpu_copy;
                 }
@@ -311,7 +313,7 @@ public:
                     return true;
                 }
 
-                TaskType get_type() const override
+                TaskType get_task_type() const override
                 {
                     return TaskType::other;
                 }
@@ -343,9 +345,7 @@ public:
                 TaskGraph testGraph{ std::list<TaskGraphNode*>{&Head, &F, &A} };
                 if (testGraph.getErrorState())
                 {
-                    const char* err_msg = testGraph.getErrorString();
-                    std::wstring wstr{ &err_msg[0], &err_msg[strlen(err_msg) - 1] };
-                    Assert::Fail(wstr.c_str());
+                    Assert::Fail(lexgine::core::misc::ascii_string_to_wstring(testGraph.getErrorString()).c_str());
                 }
                 testGraph.createDotRepresentation("task_graph.gv");
             }
@@ -413,6 +413,8 @@ public:
                         case operation_type::divide:
                             Log::retrieve()->out(std::to_string(m_a) + "/" + std::to_string(m_b));
                             m_result = m_a / m_b;
+
+                            if (!m_b) raiseError("division by zero!");
                             break;
 
                         }
@@ -420,7 +422,7 @@ public:
                         return true;
                     }
 
-                    TaskType get_type() const override
+                    TaskType get_task_type() const override
                     {
                         return TaskType::cpu;
                     }
@@ -453,7 +455,7 @@ public:
                         return true;
                     }
 
-                    TaskType get_type() const override
+                    TaskType get_task_type() const override
                     {
                         return TaskType::cpu;
                     }
@@ -496,7 +498,15 @@ public:
                 TaskSink taskSink{ taskGraph, worker_thread_logs, 1 };
                 exit.setInput(&taskSink);
 
-                taskSink.run();
+                try 
+                {
+                    taskSink.run();
+                }
+                catch (lexgine::core::Exception const& e)
+                {
+                    Assert::Fail(lexgine::core::misc::ascii_string_to_wstring(e.description()).c_str());
+                }
+                
 
                 Assert::IsTrue(r11 == control_value);
             }

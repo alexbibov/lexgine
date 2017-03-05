@@ -11,14 +11,17 @@
 namespace lexgine {namespace core {namespace concurrency {
 
 class TaskGraph;
+class TaskSink;
 class AbstractTask;
 
+template<typename> class TaskGraphNodeAttorney;
 template<typename> class TaskGraphNodeAttorney;
 
 //! Implementation of task graph nodes
 class TaskGraphNode
 {
     friend class TaskGraphNodeAttorney<TaskGraph>;
+    friend class TaskGraphNodeAttorney<TaskSink>;
 
 public:
     TaskGraphNode(AbstractTask& task);    //! creates task graph node encapsulating given task
@@ -32,12 +35,12 @@ public:
     ~TaskGraphNode() = default;
 
     /*! executes the task assigned to this node. This function returns 'true' if execution of the task has been 
-     completed and the task is allowed to be removed from the execution queue. If the task has been reschduled for
-     later execution, the function then returns 'false'
+     completed and the task is allowed to be removed from the execution queue. If the task has been rescheduled for
+     later or repeated execution, the function then returns 'false'
     */
     bool execute(uint8_t worker_id);
 
-    bool isCompleted() const;    //! returns 'true' if the task has been successfully completed. Returns 'false' otherwise
+    bool isCompleted() const;    //! returns 'true' if the task has been successfully completed. Returns 'false' if there was an error during execution or if the task was rescheduled
 
     void schedule(RingBufferTaskQueue<TaskGraphNode*>& queue);    //! schedules this task in the given queue and ensures that the task does not get scheduled twice
 
@@ -105,6 +108,22 @@ private:
     static inline void resetNodeCompletionStatus(TaskGraphNode& parent_task_graph_node)
     {
         parent_task_graph_node.m_is_completed = false;
+        parent_task_graph_node.m_is_scheduled = false;
+    }
+};
+
+template<> class TaskGraphNodeAttorney<TaskSink>
+{
+    friend class TaskSink;
+
+private:
+    static inline AbstractTask* getContainedTask(TaskGraphNode const& parent_task_graph_node)
+    {
+        return parent_task_graph_node.m_contained_task;
+    }
+
+    static inline void resetScheduleStatus(TaskGraphNode& parent_task_graph_node)
+    {
         parent_task_graph_node.m_is_scheduled = false;
     }
 };

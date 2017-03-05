@@ -1,4 +1,4 @@
-#ifndef LEXGINE_CORE_MISC
+#ifndef LEXGINE_CORE_MISC_CONSTANT_CONVERTER_H
 
 #include <d3d12.h>
 
@@ -55,5 +55,5 @@ template<EngineAPI API, BorderColor border_color> struct BorderColorConverter;
 
 }}}
 
-#define LEXGINE_CORE_MISC
+#define LEXGINE_CORE_MISC_CONSTANT_CONVERTER_H
 #endif
