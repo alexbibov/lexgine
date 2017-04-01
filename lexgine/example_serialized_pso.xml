@@ -1,0 +1,204 @@
+<!-- use <ComputePSO> </ComputePSO> to define compute pipeline states -->
+<!-- This code snippet demonstrates example of graphics PSO descriptor serialized to XML format.
+This serialization is heavily tailored to Direct3D 12 and its main purpose is to operate as 
+a mediator between the runtime backend and more high-level API agnostic XML description of 
+materials. Note that all sections under <GraphicsPSO> </GraphicsPSO> and <ComputePSO> </ComputePSO>
+can be stated only once until explicitly mentioned otherwise.
+-->
+
+<GraphicsPSO> 
+
+<!-- the following shader declarations are optional. If not provided the PSO-from-XAML loader
+will not generate the corresponding shader blobs for the PSO descriptor it produces. Each shader entry
+of each type can be declared only once -->
+<VertexShader>sample.vs.hlsl</VertexShader>
+<HullShader>sample.hs.hlsl</HullShader>
+<DomainShader>sampler.ds.hlsl</DomainShader>
+<GeometryShader>sampler.gs.hlsl</GeometryShader>
+<PixelShader>sampler.ps.hlsl</PixelShader>
+
+<!-- StreamOutput defines stream output for the pipeline state object. This declaration is optional.
+Only one StreamOutput entry may appear per pipeline description.
+If not provided, the stream output will not be used.
+NOTE: NULL, TRUE and FALSE below are reserved key words.
+
+The meaning of the attributes is as follows:
+
+attribute "disable_rasterization" declares, whether to disable rasterization for stream 0. This attribute is optional and defaults to FALSE
+
+attribute "stream" declares the index of output stream. This attribute is optional and defaults to 0.
+
+attribute "name" declares Direct3D string semanics to be used to perform output into the stream on the shader side.
+note that "name" can also be assigned to special value NULL, which means that the declaration entry does not declare actual output,
+but a gap, where the size of the gap is determined by the value of attribute "component_count"
+
+attribute "name_index" declares index to be used with the string semantics. This attribute is optional and is defaulted to 0.
+
+attribute "start_component" is the first component to be written into the output stream
+
+attribute "component_count" number of components to be written into the stream (must be between 1 and 4 until "name" is NULL)
+
+attribute "slot" determines the slot, to which the buffer receiving the output data should be bound
+
+attribute "extra_space_after_component" determines how much space in bytes to put after each outputted component. This attribute is optional and defaults to 0
+
+-->
+<StreamOutput disable_rasterization=FALSE>
+<DeclarationEntry stream=0, name=SemanticsOutputStream, name_index=0, start_component=0, component_count=4, slot=0, extra_space_after_component = 0 />
+<DeclarationEntry stream=0, name=NULL, start_component=0, component_count=100, slot=0 />
+<DeclarationEntry stream=0, name=AnotherOutputStream, start_component=0, component_count=4, slot=0 />
+</StreamOutput>
+
+<!-- The following entry defines blending state of the pipeline state object. This entry is optional and if not provided the blending stage will be disabled.
+When provided, the entry must be included only once into the pipeline description. Declaring multiple blending operations for different render targets is done
+using <BlendDescriptor> entry as demonstrated below.
+
+
+This entry has two optional attributes, both of which are defaulted to FALSE:
+
+attribute "alpha_to_coverage" controls the state of alpha to coverage; when this attribute is TRUE the alpha values will be written to coverage attribute 
+in the pixel shader
+
+attribute "independent_blending" controls enable state of independent blending. When independent blending is enabled, one can use different blending operations
+for different pixel shader output channels during the blending stage of the pipeline
+-->
+<BlendState alpha_to_coverage=FALSE, independent_blending=TRUE>
+
+<!-- Blend descriptors are declared separately for each render target (see attribute "render_target" below). Up to 8 render targets are currently supported. 
+Each BlendDescriptor entry supports the following attributes:
+
+attribute "render_target" determines render target, to which the blend descriptor applies
+
+attribute "enable_blending" identifies whether blending operation is enabled for the render target assigned to the blend descriptor. This attribute is 
+optional and defaults to TRUE
+
+attribute "enable_logic_operation" identifies whether to enable logic operation for the render channel assigned to the blend descriptor. This attribute is
+not obligatory. Its default value is FALSE
+
+
+*****The following attributes are related to blending and only have effect when enable_blending is TRUE*****
+
+Blending factors are defined by the agency of the following attributes. 
+
+attribute "source_blend_factor" identifies color blending factor of the source (pixel shader output). Default value is ONE.
+attribute "destination_blend_factor" identifies color blending factor of the destination (framebuffer). Default value is ZERO.
+attribute "source_alpha_blend_factor" identifies blending factor applied to the alpha-channel of the source (pixel shader output). Default value is ONE.
+attribute "destination_alpha_blend_factor" identifies blending factor applied to the alpha-channel of the destination (framebuffer). Default value is ZERO.
+
+The blend factor attributes listed above can take one of the following values:
+    
+	ZERO,
+    ONE,
+    SOURCE_COLOR,
+    ONE_MINUS_SOURCE_COLOR,
+    SOURCE_ALPHA,
+    ONE_MINUS_SOURCE_ALPHA,
+    DESTINATION_ALPHA,
+    ONE_MINUS_DESTINATION_ALPHA,
+    DESTINATION_COLOR,
+    ONE_MINUS_DESTINATION_COLOR,
+    SOURCE_ALPHA_SATURATION,
+    CUSTOM_CONSTANT,
+    ONE_MINUS_CUSTOM_CONSTANT,
+    SOURCE1_COLOR,
+    ONE_MINUS_SOURCE1_COLOR,
+    SOURCE1_ALPHA,
+    ONE_MINUS_SOURCE1_ALPHA
+
+
+Blend operation is defined using the following attributes:
+
+attribute "blend_operation" identifies blend operation applied to the RGB-channels of the source (pixel shader output) and
+the destination (framebuffer) fragments. Defauls to ADD.
+
+attribute "alpha_blend_operation" identifies blend operation applied to the alpha-channel of the source (pixel shader output) and
+the destination (framebuffer) fragments. Defaults to ADD.
+
+These blend operation attributes can take one of the following values
+
+    ADD,    (meaning: source + destination)
+    SUBTRACT,    (meaning: source - destination)
+    REVERSE_SUBTRACT,    (meaning: destination - source)
+    MIN,    (meaning: min(source, destination))
+    MAX,    (meaning: max(source, destination))
+	
+	
+*****The following attributes are related to logical operations and only have effect when enable_logic_operation is TRUE*****
+
+attribute "logical_operation" identifies the logical operation to be applied. This attribute is optional and its default
+value is NO_OPEATION. The attribute accepts one of the following predefined values:
+	CLEAR,
+    SET,
+    COPY,
+    COPY_INVERTED,
+    NO_OPEATION,
+    INVERT,
+    AND,
+    NAND, (meaning: logical "not and")
+    OR,
+    NOR, (meaning: logical "not or")
+    XOR,
+    EQUIV, (meaning: logical "equity", i.e. true iff both operands have same logical value)
+    AND_THEN_REVERSE,   (meaning: performs logical "and" and then reverses the result, i.e. computes 1 - result)
+    AND_THEN_INVERT,    (meaning: performs logical "and" and then inverts the bit order of the result)
+    OR_THEN_REVERSE,   (meaning: performs logical "or" and then reverses the result, i.e. computes 1 - result)
+    OR_THEN_INVERT    (meaning: performs logical "or" and then inverts the bit order of the result)
+
+
+attribute "color_mask" identifies which components of the color channel will be written during the blend operation.
+This attribute accepts numeric constants between 0x0 and 0xF with each bit of this constant corresponding to red, green,
+blue and alpha channels counting from the most significant to the least significant bit in this order. 
+Those components that have their corresponding bits set are enabled for writing. 
+This attribute is optional and is defaulted to 0xF, which means that all color channels are written.
+
+-->
+
+<BlendDescriptor render_target=0 source_blend_factor=DESTINATION_ALPHA, destination_blend_factor=ONE_MINUS_SOURCE_ALPHA, blend_operation=ADD,
+source_alpha_blend_factor=ZERO, destination_alpha_blend_factor=ONE, alpha_blend_operation=ADD,
+logical_operation = NO_OPEATION, color_mask = 0xF />
+
+<BlendDescriptor render_target=1 source_blend_factor=SOURCE_ALPHA, destination_blend_factor=DESTINATION_ALPHA, blend_operation=MAX,
+source_alpha_blend_factor=ZERO, destination_alpha_blend_factor=ONE, alpha_blend_operation=REVERSE_SUBTRACT,
+logical_operation = NO_OPEATION, color_mask = 0x9 />    <!-- here only red and alpha channels are written-->
+
+</BlendState>
+
+
+
+<!--Rasterizer descriptors define how rasterization should be performed by the graphics pipeline. There could be only one such entry
+per pipeline description. This entry is optional. If not provided, default values for all attributes this entry supports will be used.
+
+
+This entry has the following attributes, all of which are optional:
+
+"fill_mode" defines primitive filling mode and can be assigned to either SOLID or WIREFRAME, both of which are predefined keywords.
+The default value is SOLID.
+
+"cull_mode" defines the culling mode and can be assigned to FRONT (cull the front facing polygones), BACK (cull the back facing polygones),
+or NONE (disables culling). The default values is BACK.
+
+"front_face_winding" defines, which vertex winding to consider as the hint for "front facing" polygone. The attribute can be 
+CLOCKWISE (vertices listed in clockwise order are considered to define a front facing polygone) or COUNTERCLOCKWISE (vertices 
+listed in counter clockwise order produce front facing polygones). Default value is COUNTERCLOCKWISE.
+
+"depth_bias" depth value added to a given pixel. Can be any integer. Default is 0
+
+"depth_bias_clamp" maximum depth bias of a pixel. Can be any floating point value. Default is 0.0
+
+"slope_scaled_depth_bias" scalar on a given pixel's slope. Can be any floating point value. Default is 0.
+
+"depth_clip" determines if z-clipping is enabled. Can be TRUE or FALSE. Default is TRUE.
+
+"line_anti_aliasing" enables anti-aliased line drawing when TRUE. This has effect only when drawing lines. Default is FALSE.
+
+"multi_sampling" enables quadrilateral anti-aliasing on MSAA render targets when TRUE. Default is FALSE. When this attribute is TRUE
+this forces the attibute "line_anti_aliasing" to FALSE.
+
+"concervative_rasterization" enables concervative rasterization when TRUE on hardware that supports it. Note that setting this 
+attribute to TRUE on hardware that does not support concervative rasterization may cause failures. The default is FALSE. -->
+
+<RasterizerDescriptor fill_mode=SOLID, cull_mode=BACK, front_face_winding=COUNTERCLOCKWISE, multi_sampling=TRUE, 
+concervative_rasterization=TRUE/>
+
+
+</GraphicsPSO>

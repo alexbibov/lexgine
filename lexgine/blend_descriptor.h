@@ -32,11 +32,11 @@ enum class BlendFactor: uint8_t
 //! Encapsulated blending operations
 enum class BlendOperation : uint8_t
 {
-    add,    //!< source1 + destination
+    add,    //!< source + destination
     subtract,    //!< source - destination
     reverse_subtract,    //!< destination - source
-    min,    //!< min(source1, destination)
-    max,    //!< max(source2, destination)
+    min,    //!< min(source, destination)
+    max,    //!< max(source, destination)
 };
 
 //! Encapsulates logical operations that can be performed on render target

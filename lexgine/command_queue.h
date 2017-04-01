@@ -75,7 +75,7 @@ public:
 
     void synchronize(Fence const& fence);    //! puts synchronization fence into the command queue
 
-    void wait(Fence const& fence, uint64_t num_crosses) const;    //! blocks the calling thread until @param fence is crossed at least @param num_crosses times
+    void wait(Fence const& fence, uint64_t num_crosses) const;    //! blocks the calling thread until fence is crossed at least num_crosses times
 
 
     CommandQueue(CommandQueue const&) = delete;

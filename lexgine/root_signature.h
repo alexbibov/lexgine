@@ -189,7 +189,7 @@ public:
 
 private:
     std::map<uint32_t, D3D12_ROOT_PARAMETER> m_root_parameters;    //!< root signature parameters packed into a map with the key defining slot in the root signature
-    std::vector<D3D12_DESCRIPTOR_RANGE> m_descriptor_range_cache;    //!< stores descriptor ranges from all descriptor tables included into this root signature in the order they were added (needed to ensure they are alive when the root signature gets compiled)
+    std::vector<D3D12_DESCRIPTOR_RANGE> m_descriptor_range_cache;    //!< stores descriptor ranges from all descriptor tables included into this root signature in the order they were added (needed to ensure that they are alive when the root signature gets compiled)
     std::list<D3D12_STATIC_SAMPLER_DESC> m_static_samplers;    //!< list of static samplers attached to the root signature
 };
 

@@ -61,15 +61,19 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="property_sheets\debug_win32.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="property_sheets\release_win32.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="property_sheets\debug_x64.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="property_sheets\release_x64.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -157,6 +161,7 @@
     </ClCompile>
     <ClCompile Include="heap_resource_placer.cpp" />
     <ClCompile Include="hlsl_compilation_task.cpp" />
+    <ClCompile Include="hlsl_compilation_task_cache.cpp" />
     <ClCompile Include="hw_adapter_enumerator.cpp" />
     <ClCompile Include="hw_output_enumerator.cpp" />
     <ClCompile Include="listener.cpp" />
@@ -214,6 +219,7 @@
     <ClInclude Include="heap.h" />
     <ClInclude Include="heap_data_uploader.h" />
     <ClInclude Include="heap_resource_placer.h" />
+    <ClInclude Include="hlsl_compilation_task_cache.h" />
     <ClInclude Include="hlsl_compilation_task.h" />
     <ClInclude Include="hw_adapter_enumerator.h" />
     <ClInclude Include="entity.h" />
@@ -231,6 +237,7 @@
     <ClInclude Include="optional.h" />
     <ClInclude Include="pipeline_state.h" />
     <ClInclude Include="primitive_topology.h" />
+    <ClInclude Include="pso_compilation_task.h" />
     <ClInclude Include="rasterizer_descriptor.h" />
     <ClInclude Include="rectangle.h" />
     <ClInclude Include="resource.h" />
