@@ -33,7 +33,7 @@ public:
         ShaderType shader_type, std::string const& shader_entry_point, ShaderSourceCodePreprocessor::SourceType source_type,
         std::list<HLSLMacroDefinition> const& macro_definitions = std::list<HLSLMacroDefinition>{});
 
-
+    D3DDataBlob getTaskData() const;
 
 private:
     bool do_task(uint8_t worker_id, uint16_t frame_index) override;    //! performs actual compilation of the shader

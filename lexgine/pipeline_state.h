@@ -63,6 +63,12 @@ struct GraphicsPSODescriptor
 
     //! initialized PSO descriptor using precompiled PSO blob
     GraphicsPSODescriptor(D3DDataBlob const& pso_blob);
+
+    /*! loads PSO descriptor from XML. Note that some data contained in PSO descriptor is by nature runtime, therefore these
+     data cannot be put into an XML. See example_serialized_pso.xml in lexgine sub-folder to understand what syntax is used
+     to represent PSO objects by XML files
+    */
+    void loadFromXML(std::string const& source_file_path);
 };
 
 //! Encapsulates description of compute PSO

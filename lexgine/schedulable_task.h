@@ -18,8 +18,10 @@ public:
 };
 
 
-/*! Convenience class, which allows to define tasks that do not
- support concurrent execution
+/*! Convenience class, which allows to define tasks that cannot be executed concurrently.
+    More precisely, if execute(...) is called concurrently for the same instance of SchedulableTaskWithoutConcurrency,
+    the calls will be made sequentially. This is convenient when task is using shared resource and performed repeatedly 
+    on multiple threads.
 */
 class SchedulableTaskWithoutConcurrency : public SchedulableTask
 {

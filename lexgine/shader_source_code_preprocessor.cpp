@@ -57,7 +57,7 @@ std::string resolveIncludeDirectivesInShaderSource(std::string const& shader_sou
         {
             line_start = line_end + 1;
         }
-        else
+        else 
         {
             std::string include_path{ m[1].str().begin() + 1 , m[1].str().end() - 1 };
             std::string included_source = resolveIncludeDirectivesInShaderSource(readSourceFile(include_path));

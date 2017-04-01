@@ -46,6 +46,9 @@
     <Filter Include="core\dx\d3d12\tasks">
       <UniqueIdentifier>{5ceb6d90-0f7b-4f45-a807-a2ea0b550037}</UniqueIdentifier>
     </Filter>
+    <Filter Include="core\dx\d3d12\task_caches">
+      <UniqueIdentifier>{d7d304cf-be59-4f3e-bb3a-b95392de971d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vector_types.h">
@@ -243,6 +246,12 @@
     <ClInclude Include="hlsl_compilation_task.h">
       <Filter>core\dx\d3d12\tasks</Filter>
     </ClInclude>
+    <ClInclude Include="hlsl_compilation_task_cache.h">
+      <Filter>core\dx\d3d12\task_caches</Filter>
+    </ClInclude>
+    <ClInclude Include="pso_compilation_task.h">
+      <Filter>core\dx\d3d12\tasks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">
@@ -373,6 +382,9 @@
     </ClCompile>
     <ClCompile Include="hlsl_compilation_task.cpp">
       <Filter>core\dx\d3d12\tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="hlsl_compilation_task_cache.cpp">
+      <Filter>core\dx\d3d12\task_caches</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -82,11 +82,15 @@ uint32_t const PrimitiveRestartIndex = 0xFFFFFFFF;
 uint32_t const DefaultRasterizedStream = 0;
 
 
-//! Converts single-byte string to multi-byte string assuming that the string can contain only characters from the basic ASCII table
-//! This function will not work properly for international strings
+/*! Converts single-byte string to multi-byte string assuming that the string can contain only characters from the basic ASCII table
+ This function will not work properly for international strings
+*/
 std::wstring ascii_string_to_wstring(std::string const& str);
 
-
+/*! Converts multi-byte string to single-byte string assuming that provided multi-byte string contains only ASCII characters.
+ This functions will yield incorrect results for international characters
+*/
+std::string wstring_to_ascii_string(std::wstring const& wstr);
 
 }}}
 
