@@ -1,9 +1,11 @@
 <!-- use <ComputePSO> </ComputePSO> to define compute pipeline states -->
 <!-- This code snippet demonstrates example of graphics PSO descriptor serialized to XML format.
 This serialization is heavily tailored to Direct3D 12 and its main purpose is to operate as 
-a mediator between the runtime backend and more high-level API agnostic XML description of 
+a mediator between the runtime backend and more high-level API-agnostic XML description of 
 materials. Note that all sections under <GraphicsPSO> </GraphicsPSO> and <ComputePSO> </ComputePSO>
-can be stated only once until explicitly mentioned otherwise.
+can be stated only once until explicitly mentioned otherwise. In contrast to this, it IS allowed 
+to have several pipeline state definitions within the same XML script, in which case the backend
+will parse and compile all of them.
 -->
 
 <GraphicsPSO> 
@@ -199,6 +201,89 @@ attribute to TRUE on hardware that does not support concervative rasterization m
 
 <RasterizerDescriptor fill_mode=SOLID, cull_mode=BACK, front_face_winding=COUNTERCLOCKWISE, multi_sampling=TRUE, 
 concervative_rasterization=TRUE/>
+
+<!-- Depth-stencil descriptor is used to define functionality of the depth and stencil tests. There could be only one depth stencil
+descriptor per pipeline definition. Depth-stencil descriptors support the following attributes:
+
+"enable_depth_test" controls enable state of the depth test. Can be TRUE or FALSE. The default is TRUE.
+
+"allow_depth_writes" when FALSE, the values that pass the depth test will not be written into the depth buffer. The default is TRUE, which allows
+depth buffer updates.
+
+"depth_test_comparison_function" defines comparison function used by the depth test. This attribute may be assigned to one of the following predefined
+values:
+    NEVER (never pass the comparison),
+    LESS (passes if source data is less then destination data),
+    EQUAL (passes if source data is equal to destination data),
+    LESS_OR_EQUAL (passes if source data is less than or equal to the destination data),
+    GREATER (passes if source data is greater than destination data),
+    NOT_EQUAL (passes if source data is not equal to the destination data),
+    GREATER_EQUAL (passes if source data is greater than or equal to the destination data),
+    ALWAYS (depth test always passes)
+The defaults value for depth_test_comparison_function is LESS
+
+"enable_stencil_test" controls enable state of the stencil test. The default is FALSE, which means that the stencil test is disabled.
+
+"stencil_read_mask" integer single-byte value in range from 0x0 to 0xFF, which identifies the portion of the stencil buffer, from which to
+extract the stencil data. Using this attribute only makes sence when depth and stencil data are packed together. The default is 0xFF.
+
+"stencil_write_mask" integer single-byte value in range from 0x0 to 0xFF, which identifies to which portion of the stencil buffer the stencil
+data will be written. Using this attribute only makes sence when depth and stencil data are packed together. The default is 0xFF.
+
+
+Depth stencil descriptor supports child entries called "StencilTestBehavior". There can be at most two such entries 
+determining behavior of stencil test as applies to front and back polygone faces, i.e. one entry can define 
+behavior for the front faces and one entry — for the back faces. Listing multiple entries defining different behavior for
+same polygone faces is not allowed as it makes no sense. Each StencilTestBehavior entry supports the following
+attributes:
+
+"face" can be either FRONT or BACK and determines to which polygone faces this behavior applies
+
+"comparison_function" determines comparison function of the stencil test and can be one of the following predefined
+tokens:
+
+    NEVER (never pass the comparison),
+    LESS (passes if source data is less then destination data),
+    EQUAL (passes if source data is equal to destination data),
+    LESS_OR_EQUAL (passes if source data is less than or equal to the destination data),
+    GREATER (passes if source data is greater than destination data),
+    NOT_EQUAL (passes if source data is not equal to the destination data),
+    GREATER_EQUAL (passes if source data is greater than or equal to the destination data),
+    ALWAYS (depth test always passes)
+	
+"operation" determines action performed on the stencil buffer if the stencil test passes.
+This attribute may take on of the following tokens:
+
+    KEEP (keep existing data),
+    ZERO (set stencil data to zero),
+    REPLACE (replace stencil data with reference value),
+    INCREMENT_AND_SATURATE (increment currently stored stencil value by one and clamp the result),
+    DECREMENT_AND_SATURATE (decrement currently stored stencil value by one and clamp the result)
+    INVERT (invert stencil data, i.e. inverse the bit order),
+    INCREMENT (increment current stencil value),
+    DECREMENT (decrement current stencil value)
+	
+An example of depth stencil descriptor is provided below.
+-->
+<DepthStencilDescriptor enable_depth_test=TRUE, allow_depth_writes=TRUE, 
+depth_test_comparison_function=LESS, enable_stencil_test=TRUE>
+<StencilTestBehavior face=FRONT, comparison_function=NOT_EQUAL, operation=ZERO/>
+</DepthStencilDescriptor>
+
+<!--
+NOTE: if stencil test is disabled one can use shorter definition for DepthStencilDescriptor as follows:
+
+<DepthStencilDescriptor enable_depth_test=TRUE, allow_depth_writes=TRUE,
+depth_test_comparison_function=LESS />
+
+-->
+
+
+
+<VertexAttributeSpecification>
+<VertexAttribute name="SV_Position", index=0 />
+</VertexAttributeSpecification>
+
 
 
 </GraphicsPSO>
