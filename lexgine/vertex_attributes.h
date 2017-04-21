@@ -63,12 +63,12 @@ private:
 
 
 //! Implements framework to define generic vertex attributes. OS- and API- agnostic
-//! @param vertex_attribute_id is an index, which defines the input slot for primitive assembler
-//! @param vertex_attribute_format is data type of the vertex attribute (i.e. float, int and so on). The actual choices for this parameter may depend on the underlying graphics API
-//! @param vertex_attribute_size is the number of values (1-4) actually stored in the vertex attribute
-//! @param normalized defines whether vertex attribute data resides in normalized format
-//! @param instancing_data_rate the number of instances to draw before advancing one element in the buffer corresponding to this vertex attribute specification. Must be 0 for data specified per vertex
-//! @param special_vertex_attribute_format may be used to represent some special data types not directly supported by the language (i.e. half-float or fixed). The exact use of this parameter depends on the API
+//! vertex_attribute_id is an index, which defines the input slot for primitive assembler
+//! vertex_attribute_format is data type of the vertex attribute (i.e. float, int and so on). The actual choices for this parameter may depend on the underlying graphics API
+//! vertex_attribute_size is the number of values (1-4) actually stored in the vertex attribute
+//! normalized defines whether vertex attribute data resides in normalized format
+//! instancing_data_rate the number of instances to draw before advancing one element in the buffer corresponding to this vertex attribute specification. Must be 0 for data specified per vertex
+//! special_vertex_attribute_format may be used to represent some special data types not directly supported by the language (i.e. half-float or fixed). The exact use of this parameter depends on the API
 template<unsigned char vertex_attribute_id, typename vertex_attribute_format, unsigned char vertex_attribute_size, bool normalized = true, unsigned int instancing_data_rate = 0,
     bool special_vertex_attribute_format = false>
 class VertexAttributeSpecification final : public AbstractVertexAttributeSpecification
@@ -76,8 +76,8 @@ class VertexAttributeSpecification final : public AbstractVertexAttributeSpecifi
 public:
 
     //! Initializes new vertex attribute and attaches a string name and index to it
-    //! Here @param name is a string name, which gets associated with vertex attribute
-    //! @param name_index is needed when same string name is associated with more than one vertex attribute.
+    //! Here parameter name is a string name, which gets associated with vertex attribute
+    //! parameter name_index is needed when same string name is associated with more than one vertex attribute.
     //! For example a 4x4 matrix with string name "MyMatrix" on shader side can be associated with 4 vertex attributes
     //! having string name "MyMatrix" name indexes from 0 to 3
     VertexAttributeSpecification(char const* name, uint32_t name_index):
