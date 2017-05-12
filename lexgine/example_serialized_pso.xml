@@ -8,7 +8,17 @@ to have several pipeline state definitions within the same XML script, in which 
 will parse and compile all of them.
 -->
 
-<GraphicsPSO> 
+<!--
+Each graphics PSO may define a number of attributes, all of which are optional.
+"primitive_restart"    when equals 'TRUE' primitive restart is enabled. Default is 'FALSE'
+"primitive_topology"    primitive topology assumed by the primitive assembler. Allowed values are predefined keywords POINT, LINE, TRIANGLE, PATCH. Default is TRIANGLE
+"sample_mask"    mask applied to the sub-pixel samples when multi-sampling is enabled. Default is 0xFFFFFFFF, which means that all samples are in use.
+"sample_count"    number of samples. Default is "1", which means no MSAA.
+"sample_quality"    quality of multi-sampling. The maximal value supported by this attribute is determined by graphics driver. Usually on modern hardware the only supported 
+                    value is 0 and this is also the default value for this attribute. Therefore, using of this attribute is not recommended and it's better to omit it altogether
+                    thus effectively falling back to the default.
+-->
+<GraphicsPSO primitive_restart = FALSE, primitive_topology = TRIANGLE, sample_mask = 0xFFFFFFFF, sample_count = 1, sample_quality = 0> 
 
 <!-- the following shader declarations are optional. If not provided the PSO-from-XAML loader
 will not generate the corresponding shader blobs for the PSO descriptor it produces. Each shader entry
@@ -279,11 +289,22 @@ depth_test_comparison_function=LESS />
 -->
 
 
-
+<!-- 
+Vertext attribute specification contains list of vertex attributes. The maximal number of vertex attributes is 16
+-->
 <VertexAttributeSpecification>
-<VertexAttribute name="SV_Position", index=0 />
+<!--
+Each vertex attribute define name and index semantics. For example, if string semantics of certain attribute is "MyAttribute" and index is 5, then
+the correspoding input attribute in HLSL shader will be identified by "MyAttribute5" semantics. In addition to semantics properties vertex attribute must
+define the size (i.e. the number of components) of the attribute, its type and whether the data in the attribute is stored in normalized format. For the size 
+supported values are 1, 2, 3, or 4. Type can get on the following predefined values: FLOAT16 (half-precision floats), FLOAT32, INT16, INT32, UINT16, or UINT32.
+The "normalized" attribute is optional and defaults to FALSE. 
+
+Finally, optional attribute "instancing_rate" identifies whether the data in the corresponding vertex buffer should be instances and how many draw calls are made
+before advancing one element in the buffer. Wher instancing_rate is 0, the data in the buffer is not instanced. The default value for this attribute is 0, which
+means that no instancing is applied by default.
+-->
+<VertexAttribute name="SV_Position", index=0, size=4, type=FLOAT32, normalized=TRUE, instancing_rate=0 />
 </VertexAttributeSpecification>
-
-
 
 </GraphicsPSO>
