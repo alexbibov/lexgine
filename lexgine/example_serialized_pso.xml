@@ -272,12 +272,21 @@ This attribute may take on of the following tokens:
     INVERT (invert stencil data, i.e. inverse the bit order),
     INCREMENT (increment current stencil value),
     DECREMENT (decrement current stencil value)
+    
+"dsv_target_format" identifies DXGI format to be used by the depth-stencil target. One of the following predefined 
+values is allowed:
+
+    DXGI_FORMAT_D32_FLOAT_S8X24_UINT
+    DXGI_FORMAT_D32_FLOAT
+    DXGI_FORMAT_D24_UNORM_S8_UINT
+    DXGI_FORMAT_D16_UNORM
+
 	
 An example of depth stencil descriptor is provided below.
 -->
 <DepthStencilDescriptor enable_depth_test=TRUE, allow_depth_writes=TRUE, 
 depth_test_comparison_function=LESS, enable_stencil_test=TRUE>
-<StencilTestBehavior face=FRONT, comparison_function=NOT_EQUAL, operation=ZERO/>
+<StencilTestBehavior face=FRONT, comparison_function=NOT_EQUAL, operation=ZERO, dsv_target_format=DXGI_FORMAT_D24_UNORM_S8_UINT/>
 </DepthStencilDescriptor>
 
 <!--
@@ -306,5 +315,39 @@ means that no instancing is applied by default.
 -->
 <VertexAttribute name="SV_Position", index=0, size=4, type=FLOAT32, normalized=TRUE, instancing_rate=0 />
 </VertexAttributeSpecification>
+
+<!--
+Render target descriptor defines output render target of the PSO. Up to 8 render targets can be defined within single PSO. Each render 
+target is attached to an output slot indexed from 0 to 7. The output slot is determined by the "slot" attribute of the RenderTarget specifier. 
+Note that there can be no two render targets sharing the same output slot.
+Besides the "slot" attribute render targets also support attribute "format", which is one of DXGI formats allowed to be used with the render targets.
+More precisely, "format" can get one of the following predefined keywords (some other are also allowed, but those listed below can be used most safely;
+for the full list refer to MSDN page https://msdn.microsoft.com/en-us/library/windows/desktop/ff471325 )
+DXGI_FORMAT_R32G32B32A32_FLOAT
+DXGI_FORMAT_R16G16B16A16_FLOAT
+DXGI_FORMAT_R16G16B16A16_UNORM
+DXGI_FORMAT_R16G16B16A16_SNORM
+DXGI_FORMAT_R32G32_FLOAT
+DXGI_FORMAT_R10G10B10A2_UNORM
+DXGI_FORMAT_R11G11B10_FLOAT
+DXGI_FORMAT_R8G8B8A8_UNORM
+DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+DXGI_FORMAT_R8G8B8A8_SNORM
+DXGI_FORMAT_R16G16_FLOAT
+DXGI_FORMAT_R16G16_UNORM
+DXGI_FORMAT_R16G16_SNORM
+DXGI_FORMAT_R32_FLOAT
+DXGI_FORMAT_R8G8_UNORM
+DXGI_FORMAT_R8G8_SNORM
+DXGI_FORMAT_R16_FLOAT
+DXGI_FORMAT_R16_UNORM
+DXGI_FORMAT_R16_SNORM
+DXGI_FORMAT_R8_UNORM
+DXGI_FORMAT_R8_SNORM
+DXGI_FORMAT_A8_UNORM
+DXGI_FORMAT_B5G6R5_UNORM
+-->
+<RenderTarget slot=0, format=DXGI_FORMAT_R16G16B16A16_UNORM />
+<RenderTarget slot=1, format=DXGI_FORMAT_R16G16B16A16_FLOAT />
 
 </GraphicsPSO>
