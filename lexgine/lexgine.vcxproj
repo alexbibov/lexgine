@@ -80,7 +80,7 @@
     <IncludePath>C:\clibs\glew\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\clibs\glew\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>../3rd_party/pugixml/include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>C:\clibs\glew\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
@@ -169,6 +169,7 @@
     <ClCompile Include="misc.cpp" />
     <ClCompile Include="multisampling.cpp" />
     <ClCompile Include="pipeline_state.cpp" />
+    <ClCompile Include="pso_xml_parser.cpp" />
     <ClCompile Include="rasterizer_descriptor.cpp" />
     <ClCompile Include="rectangle.cpp" />
     <ClCompile Include="resource.cpp" />
@@ -238,6 +239,7 @@
     <ClInclude Include="pipeline_state.h" />
     <ClInclude Include="primitive_topology.h" />
     <ClInclude Include="pso_compilation_task.h" />
+    <ClInclude Include="pso_xml_parser.h" />
     <ClInclude Include="rasterizer_descriptor.h" />
     <ClInclude Include="rectangle.h" />
     <ClInclude Include="resource.h" />
