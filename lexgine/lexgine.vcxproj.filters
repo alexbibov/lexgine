@@ -252,6 +252,9 @@
     <ClInclude Include="pso_compilation_task.h">
       <Filter>core\dx\d3d12\tasks</Filter>
     </ClInclude>
+    <ClInclude Include="pso_xml_parser.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">
@@ -385,6 +388,9 @@
     </ClCompile>
     <ClCompile Include="hlsl_compilation_task_cache.cpp">
       <Filter>core\dx\d3d12\task_caches</Filter>
+    </ClCompile>
+    <ClCompile Include="pso_xml_parser.cpp">
+      <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
