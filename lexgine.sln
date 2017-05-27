@@ -7,17 +7,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lexgine", "lexgine\lexgine.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "demos", "demos", "{11E16777-7FA1-4633-8A5C-ACEA8097BB65}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "swe_demo", "swe_demo\swe_demo.vcxproj", "{B8B8490D-8614-4D11-9985-FAD365069DBC}"
-	ProjectSection(ProjectDependencies) = postProject
-		{5DC120BC-E2B4-454D-82ED-565E3A9A9C50} = {5DC120BC-E2B4-454D-82ED-565E3A9A9C50}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BasicTests", "TestLogging\TestLogging.vcxproj", "{4C3B130F-6923-4609-9279-AB64744A43C6}"
-	ProjectSection(ProjectDependencies) = postProject
-		{5DC120BC-E2B4-454D-82ED-565E3A9A9C50} = {5DC120BC-E2B4-454D-82ED-565E3A9A9C50}
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{D6B5F646-9963-45EB-BEB9-A49106F00646}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BasicTests", "tests\BasicTests.vcxproj", "{4C3B130F-6923-4609-9279-AB64744A43C6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "swe_demo", "demos\swe_demo\swe_demo.vcxproj", "{B8B8490D-8614-4D11-9985-FAD365069DBC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,14 +29,6 @@ Global
 		{5DC120BC-E2B4-454D-82ED-565E3A9A9C50}.Release|x64.Build.0 = Release|x64
 		{5DC120BC-E2B4-454D-82ED-565E3A9A9C50}.Release|x86.ActiveCfg = Release|Win32
 		{5DC120BC-E2B4-454D-82ED-565E3A9A9C50}.Release|x86.Build.0 = Release|Win32
-		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Debug|x64.ActiveCfg = Debug|x64
-		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Debug|x64.Build.0 = Debug|x64
-		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Debug|x86.ActiveCfg = Debug|Win32
-		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Debug|x86.Build.0 = Debug|Win32
-		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Release|x64.ActiveCfg = Release|x64
-		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Release|x64.Build.0 = Release|x64
-		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Release|x86.ActiveCfg = Release|Win32
-		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Release|x86.Build.0 = Release|Win32
 		{4C3B130F-6923-4609-9279-AB64744A43C6}.Debug|x64.ActiveCfg = Debug|x64
 		{4C3B130F-6923-4609-9279-AB64744A43C6}.Debug|x64.Build.0 = Debug|x64
 		{4C3B130F-6923-4609-9279-AB64744A43C6}.Debug|x86.ActiveCfg = Debug|Win32
@@ -51,29 +37,20 @@ Global
 		{4C3B130F-6923-4609-9279-AB64744A43C6}.Release|x64.Build.0 = Release|x64
 		{4C3B130F-6923-4609-9279-AB64744A43C6}.Release|x86.ActiveCfg = Release|Win32
 		{4C3B130F-6923-4609-9279-AB64744A43C6}.Release|x86.Build.0 = Release|Win32
+		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Debug|x64.ActiveCfg = Debug|x64
+		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Debug|x64.Build.0 = Debug|x64
+		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Debug|x86.ActiveCfg = Debug|Win32
+		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Debug|x86.Build.0 = Debug|Win32
+		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Release|x64.ActiveCfg = Release|x64
+		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Release|x64.Build.0 = Release|x64
+		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Release|x86.ActiveCfg = Release|Win32
+		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{B8B8490D-8614-4D11-9985-FAD365069DBC} = {11E16777-7FA1-4633-8A5C-ACEA8097BB65}
 		{4C3B130F-6923-4609-9279-AB64744A43C6} = {D6B5F646-9963-45EB-BEB9-A49106F00646}
-	EndGlobalSection
-	GlobalSection(TeamFoundationVersionControl) = preSolution
-		SccNumberOfProjects = 4
-		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
-		SccTeamFoundationServer = https://alexbibov.visualstudio.com/
-		SccLocalPath0 = .
-		SccProjectUniqueName1 = lexgine\\lexgine.vcxproj
-		SccProjectName1 = lexgine
-		SccLocalPath1 = lexgine
-		SccProjectUniqueName2 = swe_demo\\swe_demo.vcxproj
-		SccProjectTopLevelParentUniqueName2 = lexgine.sln
-		SccProjectName2 = swe_demo
-		SccLocalPath2 = swe_demo
-		SccProjectUniqueName3 = TestLogging\\TestLogging.vcxproj
-		SccProjectTopLevelParentUniqueName3 = lexgine.sln
-		SccProjectName3 = TestLogging
-		SccLocalPath3 = TestLogging
+		{B8B8490D-8614-4D11-9985-FAD365069DBC} = {11E16777-7FA1-4633-8A5C-ACEA8097BB65}
 	EndGlobalSection
 EndGlobal
