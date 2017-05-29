@@ -49,6 +49,12 @@
     <Filter Include="core\dx\d3d12\task_caches">
       <UniqueIdentifier>{d7d304cf-be59-4f3e-bb3a-b95392de971d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd_party">
+      <UniqueIdentifier>{2b6a1055-c2e8-4ee4-8658-02e2b18c2e71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\pugixml">
+      <UniqueIdentifier>{ab8a1f3c-044c-484b-8277-a4f1450e589b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="osinteraction\keyboard.h">
@@ -255,6 +261,12 @@
     <ClInclude Include="core\dx\d3d12\d3d12_pso_xml_parser.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
+    <ClInclude Include="..\3rd_party\pugixml\src\pugiconfig.hpp">
+      <Filter>3rd_party\pugixml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\pugixml\src\pugixml.hpp">
+      <Filter>3rd_party\pugixml</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -391,6 +403,9 @@
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\d3d12_pso_xml_parser.cpp">
       <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\3rd_party\pugixml\src\pugixml.cpp">
+      <Filter>3rd_party\pugixml</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

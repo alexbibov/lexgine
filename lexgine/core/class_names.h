@@ -26,7 +26,7 @@ extern char const D3D12HeapDataUploader[];
 extern char const Task[];
 extern char const TaskGraph[];
 extern char const TaskSink[];
-
+extern char const D3D12PSOXMLParser[];
 }}}
 
 #define LEXGINE_CORE_CLASS_NAMES_CLASS_NAMES_H

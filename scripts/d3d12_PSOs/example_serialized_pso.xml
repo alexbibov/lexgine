@@ -1,3 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
 <!-- use <ComputePSO> </ComputePSO> to define compute pipeline states -->
 <!-- This code snippet demonstrates example of graphics PSO descriptor serialized to XML format.
 This serialization is heavily tailored to Direct3D 12 and its main purpose is to operate as 
@@ -10,6 +12,7 @@ will parse and compile all of them.
 
 <!--
 Each graphics PSO may define a number of attributes, all of which are optional.
+"name"    descriptive string name of the graphics PSO. This attribute is optional; if not provided, the system assigns auto-generated value
 "primitive_restart"    when equals 'TRUE' primitive restart is enabled. Default is 'FALSE'
 "primitive_topology"    primitive topology assumed by the primitive assembler. Allowed values are predefined keywords POINT, LINE, TRIANGLE, PATCH. Default is TRIANGLE
 "sample_mask"    mask applied to the sub-pixel samples when multi-sampling is enabled. Default is 0xFFFFFFFF, which means that all samples are in use.
@@ -18,16 +21,24 @@ Each graphics PSO may define a number of attributes, all of which are optional.
                     value is 0 and this is also the default value for this attribute. Therefore, using of this attribute is not recommended and it's better to omit it altogether
                     thus effectively falling back to the default.
 -->
-<GraphicsPSO primitive_restart = FALSE, primitive_topology = TRIANGLE, sample_mask = 0xFFFFFFFF, sample_count = 1, sample_quality = 0> 
+<GraphicsPSO
+name="SampleGraphicsPSO"
+primitive_restart="FALSE" 
+primitive_topology="TRIANGLE" 
+sample_mask="0xFFFFFFFF" 
+sample_count="1" 
+sample_quality="0"> 
 
-<!-- the following shader declarations are optional. If not provided the PSO-from-XAML loader
+<!-- all shader declarations except vertex and pixel are optional. If not provided the PSO-from-XAML loader
 will not generate the corresponding shader blobs for the PSO descriptor it produces. Each shader entry
-of each type can be declared only once -->
-<VertexShader>sample.vs.hlsl</VertexShader>
-<HullShader>sample.hs.hlsl</HullShader>
-<DomainShader>sampler.ds.hlsl</DomainShader>
-<GeometryShader>sampler.gs.hlsl</GeometryShader>
-<PixelShader>sampler.ps.hlsl</PixelShader>
+of each type can be declared only once. Each shader declaration must have one obligatory attribute 'main', which
+identifies the entry point of the shader.
+-->
+<VertexShader entry="VS_main">sample.vs.hlsl</VertexShader>
+<HullShader entry="HS_main">sample.hs.hlsl</HullShader>
+<DomainShader entry="DS_main">sampler.ds.hlsl</DomainShader>
+<GeometryShader entry="GS_main">sampler.gs.hlsl</GeometryShader>
+<PixelShader entry="PS_main">sampler.ps.hlsl</PixelShader>
 
 <!-- StreamOutput defines stream output for the pipeline state object. This declaration is optional.
 Only one StreamOutput entry may appear per pipeline description.
@@ -55,10 +66,10 @@ attribute "slot" determines the slot, to which the buffer receiving the output d
 attribute "extra_space_after_component" determines how much space in bytes to put after each outputted component. This attribute is optional and defaults to 0
 
 -->
-<StreamOutput disable_rasterization=FALSE>
-<DeclarationEntry stream=0, name=SemanticsOutputStream, name_index=0, start_component=0, component_count=4, slot=0, extra_space_after_component = 0 />
-<DeclarationEntry stream=0, name=NULL, start_component=0, component_count=100, slot=0 />
-<DeclarationEntry stream=0, name=AnotherOutputStream, start_component=0, component_count=4, slot=0 />
+<StreamOutput disable_rasterization="FALSE">
+<DeclarationEntry stream="0" name="SemanticsOutputStream" name_index="0" start_component="0" component_count="4" slot="0" extra_space_after_component="0" />
+<DeclarationEntry stream="0" name="NULL" start_component="0" component_count="100" slot="0" />
+<DeclarationEntry stream="0" name="AnotherOutputStream" start_component="0" component_count="4" slot="0" />
 </StreamOutput>
 
 <!-- The following entry defines blending state of the pipeline state object. This entry is optional and if not provided the blending stage will be disabled.
@@ -74,7 +85,7 @@ in the pixel shader
 attribute "independent_blending" controls enable state of independent blending. When independent blending is enabled, one can use different blending operations
 for different pixel shader output channels during the blending stage of the pipeline
 -->
-<BlendState alpha_to_coverage=FALSE, independent_blending=TRUE>
+<BlendState alpha_to_coverage="FALSE" independent_blending="TRUE">
 
 <!-- Blend descriptors are declared separately for each render target (see attribute "render_target" below). Up to 8 render targets are currently supported. 
 Each BlendDescriptor entry supports the following attributes:
@@ -165,13 +176,13 @@ This attribute is optional and is defaulted to 0xF, which means that all color c
 
 -->
 
-<BlendDescriptor render_target=0 source_blend_factor=DESTINATION_ALPHA, destination_blend_factor=ONE_MINUS_SOURCE_ALPHA, blend_operation=ADD,
-source_alpha_blend_factor=ZERO, destination_alpha_blend_factor=ONE, alpha_blend_operation=ADD,
-logical_operation = NO_OPEATION, color_mask = 0xF />
+<BlendDescriptor render_target="0" source_blend_factor="DESTINATION_ALPHA" destination_blend_factor="ONE_MINUS_SOURCE_ALPHA" blend_operation="ADD"
+source_alpha_blend_factor="ZERO" destination_alpha_blend_factor="ONE" alpha_blend_operation="ADD"
+logical_operation="NO_OPEATION" color_mask="0xF" />
 
-<BlendDescriptor render_target=1 source_blend_factor=SOURCE_ALPHA, destination_blend_factor=DESTINATION_ALPHA, blend_operation=MAX,
-source_alpha_blend_factor=ZERO, destination_alpha_blend_factor=ONE, alpha_blend_operation=REVERSE_SUBTRACT,
-logical_operation = NO_OPEATION, color_mask = 0x9 />    <!-- here only red and alpha channels are written-->
+<BlendDescriptor render_target="1" source_blend_factor="SOURCE_ALPHA" destination_blend_factor="DESTINATION_ALPHA" blend_operation="MAX"
+source_alpha_blend_factor="ZERO" destination_alpha_blend_factor="ONE" alpha_blend_operation="REVERSE_SUBTRACT"
+logical_operation="NO_OPEATION" color_mask="0x9" />    <!-- here only red and alpha channels are written-->
 
 </BlendState>
 
@@ -209,8 +220,8 @@ this forces the attibute "line_anti_aliasing" to FALSE.
 "concervative_rasterization" enables concervative rasterization when TRUE on hardware that supports it. Note that setting this 
 attribute to TRUE on hardware that does not support concervative rasterization may cause failures. The default is FALSE. -->
 
-<RasterizerDescriptor fill_mode=SOLID, cull_mode=BACK, front_face_winding=COUNTERCLOCKWISE, multi_sampling=TRUE, 
-concervative_rasterization=TRUE/>
+<RasterizerDescriptor fill_mode="SOLID" cull_mode="BACK" front_face_winding="COUNTERCLOCKWISE" multi_sampling="TRUE" 
+concervative_rasterization="TRUE"/>
 
 <!-- Depth-stencil descriptor is used to define functionality of the depth and stencil tests. There could be only one depth stencil
 descriptor per pipeline definition. Depth-stencil descriptors support the following attributes:
@@ -284,9 +295,9 @@ values is allowed:
 	
 An example of depth stencil descriptor is provided below.
 -->
-<DepthStencilDescriptor enable_depth_test=TRUE, allow_depth_writes=TRUE, 
-depth_test_comparison_function=LESS, enable_stencil_test=TRUE>
-<StencilTestBehavior face=FRONT, comparison_function=NOT_EQUAL, operation=ZERO, dsv_target_format=DXGI_FORMAT_D24_UNORM_S8_UINT/>
+<DepthStencilDescriptor enable_depth_test="TRUE" allow_depth_writes="TRUE"
+depth_test_comparison_function="LESS" enable_stencil_test="TRUE">
+<StencilTestBehavior face="FRONT" comparison_function="NOT_EQUAL" operation="ZERO" dsv_target_format="DXGI_FORMAT_D24_UNORM_S8_UINT"/>
 </DepthStencilDescriptor>
 
 <!--
@@ -313,7 +324,7 @@ Finally, optional attribute "instancing_rate" identifies whether the data in the
 before advancing one element in the buffer. Wher instancing_rate is 0, the data in the buffer is not instanced. The default value for this attribute is 0, which
 means that no instancing is applied by default.
 -->
-<VertexAttribute name="SV_Position", index=0, size=4, type=FLOAT32, normalized=TRUE, instancing_rate=0 />
+<VertexAttribute name="SV_Position" index="0" size="4" type="FLOAT32" normalized="TRUE" instancing_rate="0" />
 </VertexAttributeSpecification>
 
 <!--
@@ -347,7 +358,7 @@ DXGI_FORMAT_R8_SNORM
 DXGI_FORMAT_A8_UNORM
 DXGI_FORMAT_B5G6R5_UNORM
 -->
-<RenderTarget slot=0, format=DXGI_FORMAT_R16G16B16A16_UNORM />
-<RenderTarget slot=1, format=DXGI_FORMAT_R16G16B16A16_FLOAT />
+<RenderTarget slot="0" format="DXGI_FORMAT_R16G16B16A16_UNORM" />
+<RenderTarget slot="1" format="DXGI_FORMAT_R16G16B16A16_FLOAT" />
 
 </GraphicsPSO>
