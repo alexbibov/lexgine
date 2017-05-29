@@ -79,9 +79,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>C:\clibs\glew\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>../3rd_party/pugixml/include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>C:\clibs\glew\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
@@ -133,8 +131,10 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
+    <Lib />
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\3rd_party\pugixml\src\pugixml.cpp" />
     <ClCompile Include="core\blend_descriptor.cpp" />
     <ClCompile Include="core\class_names.cpp" />
     <ClCompile Include="core\concurrency\abstract_task.cpp" />
@@ -182,6 +182,8 @@
     <ClCompile Include="osinteraction\windows\window_listeners.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\3rd_party\pugixml\src\pugiconfig.hpp" />
+    <ClInclude Include="..\3rd_party\pugixml\src\pugixml.hpp" />
     <ClInclude Include="core\allocator.h" />
     <ClInclude Include="core\blend_descriptor.h" />
     <ClInclude Include="core\class_names.h" />

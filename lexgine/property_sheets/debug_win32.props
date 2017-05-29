@@ -3,9 +3,13 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>../3rd_party/pugixml/include;$(IncludePath)</IncludePath>
-    <LibraryPath>../3rd_party/pugixml/lib/Win32/Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>../3rd_party/pugixml/src;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
-  <ItemDefinitionGroup />
+  <ItemDefinitionGroup>
+    <Lib>
+      <AdditionalDependencies>d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+  </ItemDefinitionGroup>
   <ItemGroup />
 </Project>

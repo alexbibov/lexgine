@@ -17,6 +17,12 @@ using namespace Microsoft::WRL;
 
 namespace lexgine {namespace core {namespace dx {namespace d3d12 {
 
+enum class PSOType
+{
+    graphics,
+    compute
+};
+
 
 //! Encapsulates description of graphics PSO
 struct GraphicsPSODescriptor
@@ -44,6 +50,8 @@ struct GraphicsPSODescriptor
     uint32_t sample_mask;    //!< sample mask used in multi-sampling
     MultiSamplingFormat multi_sampling_format;    //!< multi-sampling format to be used by the pipeline
 
+    //! Constructs default graphics PSO to be filled afterwards
+    GraphicsPSODescriptor() = default;
 
     //! initializes default PSO descriptor defined as follows:
     //! 1) vertex and fragment shaders must be present. The other shader stages are not included
@@ -78,6 +86,7 @@ struct ComputePSODescriptor
     uint32_t node_mask;    //!< node mask that specifies which physical adapter in adapter link owns the PSO compiled with the given descriptor
     D3DDataBlob cached_pso;    //!< cached PSO blob
 
+    ComputePSODescriptor() = default;    //! constructs default compute PSO to be filled afterwards
     ComputePSODescriptor(D3DDataBlob const& cs, uint32_t node_mask);
     ComputePSODescriptor(D3DDataBlob const& pso_blob);
 };

@@ -4,14 +4,17 @@
 #include <list>
 
 #include "pipeline_state.h"
-#include "../../error_behavioral.h"
+#include "../../entity.h"
+#include "../../class_names.h"
+#include "task_caches/hlsl_compilation_task_cache.h"
+
 
 namespace lexgine { namespace core { namespace dx { namespace d3d12 {
 
 /*! Convenience class that parses supplied XML descriptions of PSO objects and constructs
  corresponding GraphicsPSODescriptor and ComputePSODescriptor structures
 */
-class D3D12PSOXMLParser : public ErrorBehavioral
+class D3D12PSOXMLParser : public NamedEntity<class_names::D3D12PSOXMLParser>
 {
 public:
     using const_graphics_pso_descriptor_iterator = std::list<dx::d3d12::GraphicsPSODescriptor>::const_iterator;
@@ -20,8 +23,12 @@ public:
     /*! Constructs the parser and immediately parses provided sources
      constructing related PSO description structures
     */
-    D3D12PSOXMLParser(std::string const& xml_source);
+    D3D12PSOXMLParser(std::string const& xml_source, bool deferred_shader_compilation = true);
 
+    ~D3D12PSOXMLParser() override;
+
+    //! returns 'true' if PSO parsing and compilation has been completed. Returns 'false' otherwise
+    bool isCompleted() const;
 
     //! returns iterator pointing at the first parsed graphics PSO description
     const_graphics_pso_descriptor_iterator getFirstGraphicsPSOIterator() const;
@@ -44,8 +51,31 @@ public:
     uint32_t getNumberOfParsedComputePSOs() const;
 
 private:
-    std::list<dx::d3d12::GraphicsPSODescriptor> m_graphics_pso_list;
-    std::list<dx::d3d12::ComputePSODescriptor> m_compute_pso_list;
+    struct PSOIntermediateDescriptor
+    {
+        std::string name;
+        dx::d3d12::PSOType pso_type;
+        
+        union{
+            dx::d3d12::GraphicsPSODescriptor graphics;
+            dx::d3d12::ComputePSODescriptor compute;
+        };
+
+        PSOIntermediateDescriptor();
+        ~PSOIntermediateDescriptor();
+
+        PSOIntermediateDescriptor& operator=(PSOIntermediateDescriptor const& other);
+        PSOIntermediateDescriptor& operator=(PSOIntermediateDescriptor&& other);
+    };
+
+
+    class impl;
+
+    std::string const m_source_xml;
+    bool m_deferred_shader_compilation;
+    std::unique_ptr<impl> m_impl;
+    std::list<PSOIntermediateDescriptor> m_pso_list;
+    task_caches::HLSLCompilationTaskCache m_hlsl_compilation_task_cache;
 };
 
 }}}}

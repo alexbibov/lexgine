@@ -7,11 +7,6 @@ HLSLCompilationTaskCache::HLSLCompilationTaskCache()
 {
 }
 
-void HLSLCompilationTaskCache::addTask(HLSLCompilationTask& task)
-{
-    m_task_list.push_back(&task);
-}
-
 HLSLCompilationTaskCache::iterator HLSLCompilationTaskCache::begin()
 {
     return m_task_list.begin();

@@ -9,12 +9,16 @@ namespace lexgine {namespace core {namespace dx {namespace d3d12 {namespace task
 class HLSLCompilationTaskCache
 {
 public:
-    using iterator = std::list<tasks::HLSLCompilationTask*>::iterator;
-    using const_iterator = std::list<tasks::HLSLCompilationTask*>::const_iterator;
+    using iterator = std::list<tasks::HLSLCompilationTask>::iterator;
+    using const_iterator = std::list<tasks::HLSLCompilationTask>::const_iterator;
 
     HLSLCompilationTaskCache();
 
-    void addTask(tasks::HLSLCompilationTask& task);
+    template<typename ... task_construction_arguments>
+    void addTask(task_construction_arguments&& ... args)
+    {
+        m_task_list.emplace_back(std::move(args)...);
+    }
 
     iterator begin();
     iterator end();
@@ -23,7 +27,7 @@ public:
     const_iterator end() const;
 
 private:
-    std::list<tasks::HLSLCompilationTask*> m_task_list;
+    std::list<tasks::HLSLCompilationTask> m_task_list;
 };
 
 
