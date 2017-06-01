@@ -13,7 +13,7 @@ namespace {
 enum class attribute_type {
     boolean,
     primitive_topology,
-    numeric,
+    unsigned_numeric,
     blend_factor,
     blend_operation,
     logical_operation,
@@ -26,20 +26,115 @@ enum class attribute_type {
     render_target_format
 };
 
-inline bool isBooleanAttribute(pugi::xml_attribute& attribute)
+bool isNullAttribute(pugi::xml_attribute& attribute)
 {
-    return std::strcmp(attribute.value(), "TRUE") == 0 ||
-        std::strcmp(attribute.value(), "FALSE") == 0;
+    return std::strcmp(attribute.value(), "NULL") == 0;
 }
 
-inline bool isTrue(pugi::xml_attribute& attribute)
+bool isBooleanAttribute(pugi::xml_attribute& attribute)
 {
-    return std::strcmp(attribute.value(), "TRUE") == 0;
+    return std::strcmp(attribute.value(), "TRUE") == 0
+        || std::strcmp(attribute.value(), "FALSE") == 0;
 }
 
-inline bool isFalse(pugi::xml_attribute& attribute)
+bool GetBooleanFromAttribute(pugi::xml_attribute& attribute)
 {
-    return std::strcmp(attribute.value(), "FALSE") == 0;
+    if (std::strcmp(attribute.value(), "TRUE") == 0) return true;
+    if (std::strcmp(attribute.value(), "FALSE") == 0) return false;
+
+    return false;
+}
+
+bool isPrimitiveTopologyAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "POINT") == 0
+        || std::strcmp(attribute.value(), "LINE") == 0
+        || std::strcmp(attribute.value(), "TRIANGLE") == 0
+        || std::strcmp(attribute.value(), "PATCH") == 0;
+}
+
+lexgine::core::PrimitiveTopology getPrimitiveTopologyFromAttribute(pugi::xml_attribute& attribute)
+{
+    if (std::strcmp(attribute.value(), "POINT") == 0) return lexgine::core::PrimitiveTopology::point;
+    if (std::strcmp(attribute.value(), "LINE") == 0) return lexgine::core::PrimitiveTopology::line;
+    if (std::strcmp(attribute.value(), "TRIANGLE") == 0) return lexgine::core::PrimitiveTopology::triangle;
+    if (std::strcmp(attribute.value(), "PATCH") == 0) return lexgine::core::PrimitiveTopology::patch;
+
+    return lexgine::core::PrimitiveTopology::triangle;
+}
+
+bool isUnsignedNumericAttribute(pugi::xml_attribute& attribute)
+{
+    return attribute.as_ullong(0xFFFFFFFFFFFFFFFF) < 0xFFFFFFFFFFFFFFFF;
+}
+
+uint32_t getUnsignedNumericFromAttribute(pugi::xml_attribute& attribute)
+{
+    return attribute.as_uint();
+}
+
+bool isBlendFactorAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "ZERO") == 0
+        || std::strcmp(attribute.value(), "ONE") == 0
+        || std::strcmp(attribute.value(), "SOURCE_COLOR") == 0
+        || std::strcmp(attribute.value(), "ONE_MINUS_SOURCE_COLOR") == 0
+        || std::strcmp(attribute.value(), "SOURCE_ALPHA") == 0
+        || std::strcmp(attribute.value(), "ONE_MINUS_SOURCE_ALPHA") == 0
+        || std::strcmp(attribute.value(), "DESTINATION_ALPHA") == 0
+        || std::strcmp(attribute.value(), "ONE_MINUS_DESTINATION_ALPHA") == 0
+        || std::strcmp(attribute.value(), "DESTINATION_COLOR") == 0
+        || std::strcmp(attribute.value(), "ONE_MINUS_DESTINATION_COLOR") == 0
+        || std::strcmp(attribute.value(), "SOURCE_ALPHA_SATURATION") == 0
+        || std::strcmp(attribute.value(), "CUSTOM_CONSTANT") == 0
+        || std::strcmp(attribute.value(), "ONE_MINUS_CUSTOM_CONSTANT") == 0
+        || std::strcmp(attribute.value(), "SOURCE1_COLOR") == 0
+        || std::strcmp(attribute.value(), "ONE_MINUS_SOURCE1_COLOR") == 0
+        || std::strcmp(attribute.value(), "SOURCE1_ALPHA") == 0
+        || std::strcmp(attribute.value(), "ONE_MINUS_SOURCE1_ALPHA") == 0;
+}
+
+lexgine::core::BlendFactor getBlendFactorFromAttribute(pugi::xml_attribute& attribute)
+{
+    if (std::strcmp(attribute.value(), "ZERO") == 0) return lexgine::core::BlendFactor::zero;
+    if (std::strcmp(attribute.value(), "ONE") == 0) return lexgine::core::BlendFactor::one;
+    if (std::strcmp(attribute.value(), "SOURCE_COLOR") == 0) return lexgine::core::BlendFactor::source_color;
+    if (std::strcmp(attribute.value(), "ONE_MINUS_SOURCE_COLOR") == 0) return lexgine::core::BlendFactor::one_minus_source_color;
+    if (std::strcmp(attribute.value(), "SOURCE_ALPHA") == 0) return lexgine::core::BlendFactor::source_alpha;
+    if (std::strcmp(attribute.value(), "ONE_MINUS_SOURCE_ALPHA") == 0) return lexgine::core::BlendFactor::one_minus_source_alpha;
+    if (std::strcmp(attribute.value(), "DESTINATION_ALPHA") == 0) return lexgine::core::BlendFactor::destination_alpha;
+    if (std::strcmp(attribute.value(), "ONE_MINUS_DESTINATION_ALPHA") == 0) return lexgine::core::BlendFactor::one_minus_destination_alpha;
+    if (std::strcmp(attribute.value(), "DESTINATION_COLOR") == 0) return lexgine::core::BlendFactor::destination_color;
+    if (std::strcmp(attribute.value(), "ONE_MINUS_DESTINATION_COLOR") == 0) return lexgine::core::BlendFactor::one_minus_destination_color;
+    if (std::strcmp(attribute.value(), "SOURCE_ALPHA_SATURATION") == 0) return lexgine::core::BlendFactor::source_alpha_saturation;
+    if (std::strcmp(attribute.value(), "CUSTOM_CONSTANT") == 0)return lexgine::core::BlendFactor::custom_constant;
+    if (std::strcmp(attribute.value(), "ONE_MINUS_CUSTOM_CONSTANT") == 0) return lexgine::core::BlendFactor::one_minus_custom_constant;
+    if (std::strcmp(attribute.value(), "SOURCE1_COLOR") == 0)return lexgine::core::BlendFactor::source1_color;
+    if (std::strcmp(attribute.value(), "ONE_MINUS_SOURCE1_COLOR") == 0) return lexgine::core::BlendFactor::one_minus_source1_color;
+    if (std::strcmp(attribute.value(), "SOURCE1_ALPHA") == 0)return lexgine::core::BlendFactor::source1_alpha;
+    if (std::strcmp(attribute.value(), "ONE_MINUS_SOURCE1_ALPHA") == 0) return lexgine::core::BlendFactor::one_minus_source1_alpha;
+
+    return lexgine::core::BlendFactor::zero;
+}
+
+bool isBlendOperationAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "ADD") == 0
+        || std::strcmp(attribute.value(), "SUBTRACT") == 0
+        || std::strcmp(attribute.value(), "REVERSE_SUBTRACT") == 0
+        || std::strcmp(attribute.value(), "MIN") == 0
+        || std::strcmp(attribute.value(), "MAX") == 0;
+}
+
+lexgine::core::BlendOperation getBlendOperationFromAttribute(pugi::xml_attribute& attribute)
+{
+    if (std::strcmp(attribute.value(), "ADD") == 0) return lexgine::core::BlendOperation::add;
+    if (std::strcmp(attribute.value(), "SUBTRACT") == 0) return lexgine::core::BlendOperation::subtract;
+    if (std::strcmp(attribute.value(), "REVERSE_SUBTRACT") == 0) return lexgine::core::BlendOperation::reverse_subtract;
+    if (std::strcmp(attribute.value(), "MIN") == 0) return lexgine::core::BlendOperation::min;
+    if (std::strcmp(attribute.value(), "MAX") == 0) return lexgine::core::BlendOperation::max;
+
+    return lexgine::core::BlendOperation::add;
 }
 
 }
@@ -73,27 +168,27 @@ public:
 
         tasks::ShaderType shader_type;
         char* compilation_task_suffix = "";
-        if (strcmp(p_stage_name, node_names::VertexShader) == 0)
+        if (strcmp(p_stage_name, "VertexShader") == 0)
         {
-            shader_type = tasks::ShaderType::vertex; 
+            shader_type = tasks::ShaderType::vertex;
             compilation_task_suffix = "VS";
         }
-        else if (strcmp(p_stage_name, node_names::HullShader) == 0)
+        else if (strcmp(p_stage_name, "HullShader") == 0)
         {
             shader_type = tasks::ShaderType::hull;
             compilation_task_suffix = "HS";
         }
-        else if (strcmp(p_stage_name, node_names::DomainShader) == 0)
+        else if (strcmp(p_stage_name, "DomainShader") == 0)
         {
             shader_type = tasks::ShaderType::domain;
             compilation_task_suffix = "DS";
         }
-        else if (strcmp(p_stage_name, node_names::GeometryShader) == 0)
+        else if (strcmp(p_stage_name, "GeometryShader") == 0)
         {
             shader_type = tasks::ShaderType::geometry;
             compilation_task_suffix = "GS";
         }
-        else if (strcmp(p_stage_name, node_names::PixelShader) == 0)
+        else if (strcmp(p_stage_name, "PixelShader") == 0)
         {
             shader_type = tasks::ShaderType::pixel;
             compilation_task_suffix = "PS";
@@ -111,9 +206,8 @@ public:
         // Get attributes of the graphics PSO
         m_currently_assembled_pso_descriptor.name = node.attribute("name").as_string(("GraphicsPSO_" + m_parent.getId().toString()).c_str());
         m_currently_assembled_pso_descriptor.pso_type = dx::d3d12::PSOType::graphics;
-        
-        
-        
+
+
 
         // Retrieve shader stages
         parseAndAddToCompilationCacheShader(node, "VertexShader", true);
