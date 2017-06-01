@@ -8,19 +8,39 @@
 using namespace lexgine::core::dx::d3d12;
 
 
-namespace node_names {
+namespace {
 
-const char GraphicsPSO[] = "GraphicsPSO";
+enum class attribute_type {
+    boolean,
+    primitive_topology,
+    numeric,
+    blend_factor,
+    blend_operation,
+    logical_operation,
+    fill_mode,
+    face,
+    winding_mode,
+    comparison_function,
+    stencil_operation,
+    depth_stencil_format,
+    render_target_format
+};
 
-const char VertexShader[] = "VertexShader";
-const char HullShader[] = "HullShader";
-const char DomainShader[] = "DomainShader";
-const char GeometryShader[] = "GeometryShader";
-const char PixelShader[] = "PixelShader";
+inline bool isBooleanAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "TRUE") == 0 ||
+        std::strcmp(attribute.value(), "FALSE") == 0;
+}
 
+inline bool isTrue(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "TRUE") == 0;
+}
 
-
-const char ComputePSO[] = "ComputePSO";
+inline bool isFalse(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "FALSE") == 0;
+}
 
 }
 
@@ -91,13 +111,16 @@ public:
         // Get attributes of the graphics PSO
         m_currently_assembled_pso_descriptor.name = node.attribute("name").as_string(("GraphicsPSO_" + m_parent.getId().toString()).c_str());
         m_currently_assembled_pso_descriptor.pso_type = dx::d3d12::PSOType::graphics;
+        
+        
+        
 
         // Retrieve shader stages
-        parseAndAddToCompilationCacheShader(node, node_names::VertexShader, true);
-        parseAndAddToCompilationCacheShader(node, node_names::HullShader, false);
-        parseAndAddToCompilationCacheShader(node, node_names::DomainShader, false);
-        parseAndAddToCompilationCacheShader(node, node_names::GeometryShader, false);
-        parseAndAddToCompilationCacheShader(node, node_names::PixelShader, true);
+        parseAndAddToCompilationCacheShader(node, "VertexShader", true);
+        parseAndAddToCompilationCacheShader(node, "HullShader", false);
+        parseAndAddToCompilationCacheShader(node, "DomainShader", false);
+        parseAndAddToCompilationCacheShader(node, "GeometryShader", false);
+        parseAndAddToCompilationCacheShader(node, "PixelShader", true);
 
 
     }
@@ -125,9 +148,9 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(std::string const
     {
         for (pugi::xml_node_iterator it : xml_doc)
         {
-            if (std::strcmp(it->name(), node_names::GraphicsPSO) == 0)
+            if (std::strcmp(it->name(), "GraphicsPSO") == 0)
                 m_impl->parseGraphicsPSO(*it);
-            else if (std::strcmp(it->name(), node_names::ComputePSO) == 0)
+            else if (std::strcmp(it->name(), "ComputePSO") == 0)
                 m_impl->parseComputePSO(*it);
             else
             {
