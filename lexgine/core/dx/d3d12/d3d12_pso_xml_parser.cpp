@@ -16,7 +16,7 @@ enum class attribute_type {
     unsigned_numeric,
     blend_factor,
     blend_operation,
-    logical_operation,
+    blend_logical_operation,
     fill_mode,
     face,
     winding_mode,
@@ -37,7 +37,7 @@ bool isBooleanAttribute(pugi::xml_attribute& attribute)
         || std::strcmp(attribute.value(), "FALSE") == 0;
 }
 
-bool GetBooleanFromAttribute(pugi::xml_attribute& attribute)
+bool getBooleanFromAttribute(pugi::xml_attribute& attribute)
 {
     if (std::strcmp(attribute.value(), "TRUE") == 0) return true;
     if (std::strcmp(attribute.value(), "FALSE") == 0) return false;
@@ -136,6 +136,332 @@ lexgine::core::BlendOperation getBlendOperationFromAttribute(pugi::xml_attribute
 
     return lexgine::core::BlendOperation::add;
 }
+
+bool isBlendLogicalOperationAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "CLEAR") == 0
+        || std::strcmp(attribute.value(), "SET") == 0
+        || std::strcmp(attribute.value(), "COPY") == 0
+        || std::strcmp(attribute.value(), "COPY_INVERTED") == 0
+        || std::strcmp(attribute.value(), "NO_OPEATION") == 0
+        || std::strcmp(attribute.value(), "INVERT") == 0
+        || std::strcmp(attribute.value(), "AND") == 0
+        || std::strcmp(attribute.value(), "NAND") == 0
+        || std::strcmp(attribute.value(), "OR") == 0
+        || std::strcmp(attribute.value(), "NOR") == 0
+        || std::strcmp(attribute.value(), "XOR") == 0
+        || std::strcmp(attribute.value(), "EQUIV") == 0
+        || std::strcmp(attribute.value(), "AND_THEN_REVERSE") == 0
+        || std::strcmp(attribute.value(), "AND_THEN_INVERT") == 0
+        || std::strcmp(attribute.value(), "OR_THEN_REVERSE") == 0
+        || std::strcmp(attribute.value(), "OR_THEN_INVERT") == 0;
+}
+
+lexgine::core::BlendLogicalOperation getBlendLogicalOperationFromAttribute(pugi::xml_attribute& attribute)
+{
+    if (std::strcmp(attribute.value(), "CLEAR") == 0) return lexgine::core::BlendLogicalOperation::clear;
+    if (std::strcmp(attribute.value(), "SET") == 0) return lexgine::core::BlendLogicalOperation::set;
+    if (std::strcmp(attribute.value(), "COPY") == 0) return lexgine::core::BlendLogicalOperation::copy;
+    if (std::strcmp(attribute.value(), "COPY_INVERTED") == 0) return lexgine::core::BlendLogicalOperation::copy_inverted;
+    if (std::strcmp(attribute.value(), "NO_OPEATION") == 0) return lexgine::core::BlendLogicalOperation::no_operation;
+    if (std::strcmp(attribute.value(), "INVERT") == 0) return lexgine::core::BlendLogicalOperation::invert;
+    if (std::strcmp(attribute.value(), "AND") == 0) return lexgine::core::BlendLogicalOperation::and;
+    if (std::strcmp(attribute.value(), "NAND") == 0) return lexgine::core::BlendLogicalOperation::nand;
+    if (std::strcmp(attribute.value(), "OR") == 0) return lexgine::core::BlendLogicalOperation::or;
+    if (std::strcmp(attribute.value(), "NOR") == 0) return lexgine::core::BlendLogicalOperation::nor;
+    if (std::strcmp(attribute.value(), "XOR") == 0) return lexgine::core::BlendLogicalOperation::xor;
+    if (std::strcmp(attribute.value(), "EQUIV") == 0) return lexgine::core::BlendLogicalOperation::equiv;
+    if (std::strcmp(attribute.value(), "AND_THEN_REVERSE") == 0) return lexgine::core::BlendLogicalOperation::and_then_reverse;
+    if (std::strcmp(attribute.value(), "AND_THEN_INVERT") == 0) return lexgine::core::BlendLogicalOperation::and_then_invert;
+    if (std::strcmp(attribute.value(), "OR_THEN_REVERSE") == 0) return lexgine::core::BlendLogicalOperation::or_then_reverse;
+    if (std::strcmp(attribute.value(), "OR_THEN_INVERT") == 0) return lexgine::core::BlendLogicalOperation::or_then_invert;
+
+    return lexgine::core::BlendLogicalOperation::no_operation;
+}
+
+bool isFillModeAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "SOLID") == 0
+        || std::strcmp(attribute.value(), "WIREFRAME") == 0;
+}
+
+lexgine::core::FillMode getFillModeFromAttribute(pugi::xml_attribute& attribute)
+{
+    if (std::strcmp(attribute.value(), "SOLID") == 0) return lexgine::core::FillMode::solid;
+    if (std::strcmp(attribute.value(), "WIREFRAME") == 0) return lexgine::core::FillMode::wireframe;
+
+    return lexgine::core::FillMode::solid;
+}
+
+bool isFaceAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "FRONT") == 0
+        || std::strcmp(attribute.value(), "BACK") == 0
+        || std::strcmp(attribute.value(), "NODE") == 0;
+}
+
+lexgine::core::CullMode getFaceFromAttribute(pugi::xml_attribute& attribute)
+{
+    if (std::strcmp(attribute.value(), "FRONT") == 0) return lexgine::core::CullMode::front;
+    if (std::strcmp(attribute.value(), "BACK") == 0) return lexgine::core::CullMode::back;
+    if (std::strcmp(attribute.value(), "NODE") == 0) return lexgine::core::CullMode::none;
+
+    return lexgine::core::CullMode::back;
+}
+
+bool isWindingModeAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "CLOCKWISE") == 0
+        || std::strcmp(attribute.value(), "COUNTERCLOCKWISE") == 0;
+}
+
+lexgine::core::FrontFaceWinding getWindingModeFromAttribute(pugi::xml_attribute& attribute)
+{
+    if (std::strcmp(attribute.value(), "CLOCKWISE") == 0) return lexgine::core::FrontFaceWinding::clockwise;
+    if (std::strcmp(attribute.value(), "COUNTERCLOCKWISE") == 0) return lexgine::core::FrontFaceWinding::counterclockwise;
+
+    return lexgine::core::FrontFaceWinding::counterclockwise;
+}
+
+bool isComparisonFunctionAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "NEVER") == 0
+        || std::strcmp(attribute.value(), "LESS") == 0
+        || std::strcmp(attribute.value(), "EQUAL") == 0
+        || std::strcmp(attribute.value(), "LESS_OR_EQUAL") == 0
+        || std::strcmp(attribute.value(), "GREATER") == 0
+        || std::strcmp(attribute.value(), "NOT_EQUAL") == 0
+        || std::strcmp(attribute.value(), "GREATER_EQUAL") == 0
+        || std::strcmp(attribute.value(), "ALWAYS") == 0;
+}
+
+lexgine::core::ComparisonFunction getComparisonFunctionFromAttribute(pugi::xml_attribute& attribute)
+{
+    if (std::strcmp(attribute.value(), "NEVER") == 0) return lexgine::core::ComparisonFunction::never;
+    if (std::strcmp(attribute.value(), "LESS") == 0) return lexgine::core::ComparisonFunction::less;
+    if (std::strcmp(attribute.value(), "EQUAL") == 0) return lexgine::core::ComparisonFunction::equal;
+    if (std::strcmp(attribute.value(), "LESS_OR_EQUAL") == 0) return lexgine::core::ComparisonFunction::less_or_equal;
+    if (std::strcmp(attribute.value(), "GREATER") == 0) return lexgine::core::ComparisonFunction::greater;
+    if (std::strcmp(attribute.value(), "NOT_EQUAL") == 0) return lexgine::core::ComparisonFunction::not_equal;
+    if (std::strcmp(attribute.value(), "GREATER_EQUAL") == 0) return lexgine::core::ComparisonFunction::greater_equal;
+    if (std::strcmp(attribute.value(), "ALWAYS") == 0) return lexgine::core::ComparisonFunction::always;
+    
+    return lexgine::core::ComparisonFunction::always;
+}
+
+bool isStencilOperationAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "KEEP") == 0
+        || std::strcmp(attribute.value(), "ZERO") == 0
+        || std::strcmp(attribute.value(), "REPLACE") == 0
+        || std::strcmp(attribute.value(), "INCREMENT_AND_SATURATE") == 0
+        || std::strcmp(attribute.value(), "DECREMENT_AND_SATURATE") == 0
+        || std::strcmp(attribute.value(), "INVERT") == 0
+        || std::strcmp(attribute.value(), "INCREMENT") == 0
+        || std::strcmp(attribute.value(), "DECREMENT") == 0;
+}
+
+lexgine::core::StencilOperation getStencilOperationFromAttribute(pugi::xml_attribute& attribute)
+{
+    if (std::strcmp(attribute.value(), "KEEP") == 0) return lexgine::core::StencilOperation::keep;
+    if (std::strcmp(attribute.value(), "ZERO") == 0) return lexgine::core::StencilOperation::zero;
+    if (std::strcmp(attribute.value(), "REPLACE") == 0) return lexgine::core::StencilOperation::replace;
+    if (std::strcmp(attribute.value(), "INCREMENT_AND_SATURATE") == 0) return lexgine::core::StencilOperation::increment_and_saturate;
+    if (std::strcmp(attribute.value(), "DECREMENT_AND_SATURATE") == 0) return lexgine::core::StencilOperation::decrement_and_saturate;
+    if (std::strcmp(attribute.value(), "INVERT") == 0) return lexgine::core::StencilOperation::invert;
+    if (std::strcmp(attribute.value(), "INCREMENT") == 0) return lexgine::core::StencilOperation::increment;
+    if (std::strcmp(attribute.value(), "DECREMENT") == 0) return lexgine::core::StencilOperation::decrement;
+
+    return lexgine::core::StencilOperation::keep;
+}
+
+bool isDepthStencilFormatAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "DXGI_FORMAT_D32_FLOAT_S8X24_UINT") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_D32_FLOAT") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_D24_UNORM_S8_UINT") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_D16_UNORM") == 0;
+}
+
+DXGI_FORMAT getDepthStencilFormatFromAttribute(pugi::xml_attribute& attribute)
+{
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_D32_FLOAT_S8X24_UINT") == 0) return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_D32_FLOAT") == 0) return DXGI_FORMAT_D32_FLOAT;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_D24_UNORM_S8_UINT") == 0) return DXGI_FORMAT_D24_UNORM_S8_UINT;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_D16_UNORM") == 0) return DXGI_FORMAT_D16_UNORM;
+
+    return DXGI_FORMAT_D24_UNORM_S8_UINT;
+}
+
+bool isRenderTargetFormatAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "DXGI_FORMAT_R32G32B32A32_FLOAT") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R16G16B16A16_FLOAT") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R16G16B16A16_UNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R16G16B16A16_SNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R32G32_FLOAT") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R10G10B10A2_UNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R11G11B10_FLOAT") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R8G8B8A8_UNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R8G8B8A8_UNORM_SRGB") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R8G8B8A8_SNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R16G16_FLOAT") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R16G16_UNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R16G16_SNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R32_FLOAT") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R8G8_UNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R8G8_SNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R16_FLOAT") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R16_UNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R16_SNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R8_UNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_R8_SNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_A8_UNORM") == 0
+        || std::strcmp(attribute.value(), "DXGI_FORMAT_B5G6R5_UNORM") == 0;
+}
+
+DXGI_FORMAT getRenderTargetFormatFromAttribute(pugi::xml_attribute& attribute)
+{
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R32G32B32A32_FLOAT") == 0) return DXGI_FORMAT_R32G32B32A32_FLOAT;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R16G16B16A16_FLOAT") == 0) return DXGI_FORMAT_R16G16B16A16_FLOAT;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R16G16B16A16_UNORM") == 0) return DXGI_FORMAT_R16G16B16A16_UNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R16G16B16A16_SNORM") == 0) return DXGI_FORMAT_R16G16B16A16_SNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R32G32_FLOAT") == 0) return DXGI_FORMAT_R32G32_FLOAT;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R10G10B10A2_UNORM") == 0) return DXGI_FORMAT_R10G10B10A2_UNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R11G11B10_FLOAT") == 0) return DXGI_FORMAT_R11G11B10_FLOAT;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R8G8B8A8_UNORM") == 0) return DXGI_FORMAT_R8G8B8A8_UNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R8G8B8A8_UNORM_SRGB") == 0) return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R8G8B8A8_SNORM") == 0) return DXGI_FORMAT_R8G8B8A8_SNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R16G16_FLOAT") == 0) return DXGI_FORMAT_R16G16_FLOAT;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R16G16_UNORM") == 0) return DXGI_FORMAT_R16G16_UNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R16G16_SNORM") == 0) return DXGI_FORMAT_R16G16_SNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R32_FLOAT") == 0) return DXGI_FORMAT_R32_FLOAT;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R8G8_UNORM") == 0) return DXGI_FORMAT_R8G8_UNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R8G8_SNORM") == 0) return DXGI_FORMAT_R8G8_SNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R16_FLOAT") == 0) return DXGI_FORMAT_R16_FLOAT;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R16_UNORM") == 0) return DXGI_FORMAT_R16_UNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R16_SNORM") == 0) return DXGI_FORMAT_R16_SNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R8_UNORM") == 0) return DXGI_FORMAT_R8_UNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_R8_SNORM") == 0) return DXGI_FORMAT_R8_SNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_A8_UNORM") == 0) return DXGI_FORMAT_A8_UNORM;
+    if (std::strcmp(attribute.value(), "DXGI_FORMAT_B5G6R5_UNORM") == 0) return DXGI_FORMAT_B5G6R5_UNORM;
+}
+
+template<attribute_type _type> 
+struct attribute_format_to_cpp_format;
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::boolean>
+{
+    using value_type = bool;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isBooleanAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getBooleanFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::primitive_topology>
+{
+    using value_type = lexgine::core::PrimitiveTopology;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isPrimitiveTopologyAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getPrimitiveTopologyFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::unsigned_numeric>
+{
+    using value_type = uint32_t;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isUnsignedNumericAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getUnsignedNumericFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::blend_factor>
+{
+    using value_type = lexgine::core::BlendFactor;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isBlendFactorAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getBlendFactorFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::blend_operation>
+{
+    using value_type = lexgine::core::BlendOperation;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isBlendOperationAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getBlendOperationFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::blend_logical_operation>
+{
+    using value_type = lexgine::core::BlendLogicalOperation;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isBlendLogicalOperationAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getBlendLogicalOperationFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::fill_mode>
+{
+    using value_type = lexgine::core::FillMode;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isFillModeAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getFillModeFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::face>
+{
+    using value_type = lexgine::core::CullMode;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isFaceAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getFaceFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::winding_mode>
+{
+    using value_type = lexgine::core::FrontFaceWinding;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isWindingModeAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getWindingModeFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::comparison_function>
+{
+    using value_type = lexgine::core::ComparisonFunction;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isComparisonFunctionAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getComparisonFunctionFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::stencil_operation>
+{
+    using value_type = lexgine::core::StencilOperation;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isStencilOperationAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getStencilOperationFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::depth_stencil_format>
+{
+    using value_type = DXGI_FORMAT;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isDepthStencilFormatAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getDepthStencilFormatFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::render_target_format>
+{
+    using value_type = DXGI_FORMAT;
+    bool(*is_correct_format_func)(pugi::xml_attribute&) = isRenderTargetFormatAttribute;
+    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getRenderTargetFormatFromAttribute;
+};
+
+template<attribute_type _type>
+attribute_format_to_cpp_format<_type>::value_type extractAttribute(pugi::xml_attribute& attribute,
+    attribute_format_to_cpp_format<_type>::value_type default_value, 
+    bool* was_successful)
+{
+    
+}
+
 
 }
 
