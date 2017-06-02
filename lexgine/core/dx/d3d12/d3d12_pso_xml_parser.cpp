@@ -245,7 +245,7 @@ lexgine::core::ComparisonFunction getComparisonFunctionFromAttribute(pugi::xml_a
     if (std::strcmp(attribute.value(), "NOT_EQUAL") == 0) return lexgine::core::ComparisonFunction::not_equal;
     if (std::strcmp(attribute.value(), "GREATER_EQUAL") == 0) return lexgine::core::ComparisonFunction::greater_equal;
     if (std::strcmp(attribute.value(), "ALWAYS") == 0) return lexgine::core::ComparisonFunction::always;
-    
+
     return lexgine::core::ComparisonFunction::always;
 }
 
@@ -345,121 +345,136 @@ DXGI_FORMAT getRenderTargetFormatFromAttribute(pugi::xml_attribute& attribute)
     if (std::strcmp(attribute.value(), "DXGI_FORMAT_R8_SNORM") == 0) return DXGI_FORMAT_R8_SNORM;
     if (std::strcmp(attribute.value(), "DXGI_FORMAT_A8_UNORM") == 0) return DXGI_FORMAT_A8_UNORM;
     if (std::strcmp(attribute.value(), "DXGI_FORMAT_B5G6R5_UNORM") == 0) return DXGI_FORMAT_B5G6R5_UNORM;
+
+    return DXGI_FORMAT_R32G32B32A32_FLOAT;
 }
 
-template<attribute_type _type> 
+template<attribute_type _type>
 struct attribute_format_to_cpp_format;
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::boolean>
 {
     using value_type = bool;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isBooleanAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getBooleanFromAttribute;
+    static constexpr bool (*is_correct_format_func)(pugi::xml_attribute&) = isBooleanAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getBooleanFromAttribute;
 };
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::primitive_topology>
 {
     using value_type = lexgine::core::PrimitiveTopology;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isPrimitiveTopologyAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getPrimitiveTopologyFromAttribute;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isPrimitiveTopologyAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getPrimitiveTopologyFromAttribute;
 };
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::unsigned_numeric>
 {
     using value_type = uint32_t;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isUnsignedNumericAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getUnsignedNumericFromAttribute;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isUnsignedNumericAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getUnsignedNumericFromAttribute;
 };
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::blend_factor>
 {
     using value_type = lexgine::core::BlendFactor;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isBlendFactorAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getBlendFactorFromAttribute;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isBlendFactorAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getBlendFactorFromAttribute;
 };
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::blend_operation>
 {
     using value_type = lexgine::core::BlendOperation;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isBlendOperationAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getBlendOperationFromAttribute;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isBlendOperationAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getBlendOperationFromAttribute;
 };
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::blend_logical_operation>
 {
     using value_type = lexgine::core::BlendLogicalOperation;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isBlendLogicalOperationAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getBlendLogicalOperationFromAttribute;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isBlendLogicalOperationAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getBlendLogicalOperationFromAttribute;
 };
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::fill_mode>
 {
     using value_type = lexgine::core::FillMode;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isFillModeAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getFillModeFromAttribute;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isFillModeAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getFillModeFromAttribute;
 };
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::face>
 {
     using value_type = lexgine::core::CullMode;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isFaceAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getFaceFromAttribute;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isFaceAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getFaceFromAttribute;
 };
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::winding_mode>
 {
     using value_type = lexgine::core::FrontFaceWinding;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isWindingModeAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getWindingModeFromAttribute;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isWindingModeAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getWindingModeFromAttribute;
 };
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::comparison_function>
 {
     using value_type = lexgine::core::ComparisonFunction;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isComparisonFunctionAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getComparisonFunctionFromAttribute;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isComparisonFunctionAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getComparisonFunctionFromAttribute;
 };
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::stencil_operation>
 {
     using value_type = lexgine::core::StencilOperation;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isStencilOperationAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getStencilOperationFromAttribute;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isStencilOperationAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getStencilOperationFromAttribute;
 };
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::depth_stencil_format>
 {
     using value_type = DXGI_FORMAT;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isDepthStencilFormatAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getDepthStencilFormatFromAttribute;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isDepthStencilFormatAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getDepthStencilFormatFromAttribute;
 };
 
 template<>
 struct attribute_format_to_cpp_format<attribute_type::render_target_format>
 {
     using value_type = DXGI_FORMAT;
-    bool(*is_correct_format_func)(pugi::xml_attribute&) = isRenderTargetFormatAttribute;
-    value_type(*extract_attribute_funct)(pugi::xml_attribute&) = getRenderTargetFormatFromAttribute;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isRenderTargetFormatAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getRenderTargetFormatFromAttribute;
 };
 
 template<attribute_type _type>
-attribute_format_to_cpp_format<_type>::value_type extractAttribute(pugi::xml_attribute& attribute,
-    attribute_format_to_cpp_format<_type>::value_type default_value, 
-    bool* was_successful)
+typename attribute_format_to_cpp_format<_type>::value_type extractAttribute(pugi::xml_attribute& attribute,
+    typename attribute_format_to_cpp_format<_type>::value_type default_value,
+    bool* was_successful = nullptr)
 {
-    
+    if (attribute_format_to_cpp_format<_type>::is_correct_format_func(attribute))
+    {
+        // attribute has expected format
+
+        if (was_successful) *was_successful = true;
+        return attribute_format_to_cpp_format<_type>::extract_attribute_func(attribute);
+    }
+    else
+    {
+        // attribute has wrong format or was not found at all, return specified default value
+
+        if (was_successful) *was_successful = false;
+        return default_value;
+    }
 }
 
 
@@ -532,7 +547,11 @@ public:
         // Get attributes of the graphics PSO
         m_currently_assembled_pso_descriptor.name = node.attribute("name").as_string(("GraphicsPSO_" + m_parent.getId().toString()).c_str());
         m_currently_assembled_pso_descriptor.pso_type = dx::d3d12::PSOType::graphics;
-
+        m_currently_assembled_pso_descriptor.graphics.primitive_restart = extractAttribute<attribute_type::boolean>(node.attribute("primitive_restart"), false);
+        m_currently_assembled_pso_descriptor.graphics.primitive_topology = extractAttribute<attribute_type::primitive_topology>(node.attribute("primitive_topology"), lexgine::core::PrimitiveTopology::triangle);
+        m_currently_assembled_pso_descriptor.graphics.sample_mask = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_mask"), 0xFFFFFFFF);
+        m_currently_assembled_pso_descriptor.graphics.multi_sampling_format.count = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_count"), 1);
+        m_currently_assembled_pso_descriptor.graphics.multi_sampling_format.quality = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_quality"), 1);
 
 
         // Retrieve shader stages
@@ -543,6 +562,16 @@ public:
         parseAndAddToCompilationCacheShader(node, "PixelShader", true);
 
 
+        // Read stream output descriptor if present
+        auto stream_output_descriptor_node = node.find_child([](pugi::xml_node& n) -> bool
+        {
+            return std::strcmp(n.name(), "StreamOutput") == 0;
+        });
+        if (!stream_output_descriptor_node.empty())
+        {
+            // stream output descriptor is present!
+
+        }
     }
 
     void parseComputePSO(pugi::xml_node& node)

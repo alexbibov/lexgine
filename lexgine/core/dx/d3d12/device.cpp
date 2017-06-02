@@ -120,7 +120,7 @@ ComPtr<ID3D12Device> Device::native() const
 void Device::setStringName(std::string const & entity_string_name)
 {
     Entity::setStringName(entity_string_name);
-    m_device->SetName(misc::AsciiStringToWstring(entity_string_name).c_str());
+    m_device->SetName(misc::asciiStringToWstring(entity_string_name).c_str());
 }
 
 ComPtr<ID3D12RootSignature> Device::createRootSignature(lexgine::core::D3DDataBlob const& serialized_root_signature, uint32_t node_mask) const
@@ -131,7 +131,7 @@ ComPtr<ID3D12RootSignature> Device::createRootSignature(lexgine::core::D3DDataBl
         m_device->CreateRootSignature(node_mask, serialized_root_signature.data(), serialized_root_signature.size(), IID_PPV_ARGS(&rv)),
         S_OK
     );
-    rv->SetName(misc::AsciiStringToWstring("device_" + getStringName() + "_root_signature").c_str());
+    rv->SetName(misc::asciiStringToWstring("device_" + getStringName() + "_root_signature").c_str());
     return rv;
 }
 

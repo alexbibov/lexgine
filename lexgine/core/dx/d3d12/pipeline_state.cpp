@@ -28,7 +28,7 @@ PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_
     ComPtr<ID3D12RootSignature> root_signature = device.createRootSignature(serialized_root_signature, pso_descriptor.node_mask);
 
     #ifdef D3D12DEBUG
-    root_signature->SetName(misc::AsciiStringToWstring(getStringName() + "_root_signature").c_str());
+    root_signature->SetName(misc::asciiStringToWstring(getStringName() + "_root_signature").c_str());
     #endif
 
 
@@ -201,7 +201,7 @@ PipelineState::PipelineState(Device & device, D3DDataBlob const & serialized_roo
     m_device.native()->CreateRootSignature(pso_descriptor.node_mask, serialized_root_signature.data(), serialized_root_signature.size(), __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(&p_root_signature));
 
     #ifdef D3D12DEBUG
-    p_root_signature->SetName(misc::AsciiStringToWstring(getStringName()+"_root_signature").c_str());
+    p_root_signature->SetName(misc::asciiStringToWstring(getStringName()+"_root_signature").c_str());
     #endif
 
 
@@ -231,7 +231,7 @@ PipelineState::PipelineState(Device & device, D3DDataBlob const & serialized_roo
 void PipelineState::setStringName(std::string const & entity_string_name)
 {
     Entity::setStringName(entity_string_name);
-    m_pipeline_state->SetName(misc::AsciiStringToWstring(entity_string_name).c_str());
+    m_pipeline_state->SetName(misc::asciiStringToWstring(entity_string_name).c_str());
 }
 
 GraphicsPSODescriptor::GraphicsPSODescriptor(VertexAttributeSpecificationList const& vertex_attribute_specs, D3DDataBlob const& vs, D3DDataBlob const& ps,

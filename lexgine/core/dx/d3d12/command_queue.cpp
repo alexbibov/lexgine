@@ -50,7 +50,7 @@ ComPtr<ID3D12CommandQueue> CommandQueue::native() const
 void CommandQueue::setStringName(std::string const & entity_string_name)
 {
     Entity::setStringName(entity_string_name);
-    m_command_queue->SetName(misc::AsciiStringToWstring(entity_string_name).c_str());
+    m_command_queue->SetName(misc::asciiStringToWstring(entity_string_name).c_str());
 }
 
 void CommandQueue::synchronize(Fence const & fence)

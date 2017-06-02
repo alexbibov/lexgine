@@ -316,7 +316,7 @@ HwAdapter::HwAdapter(ComPtr<IDXGIFactory4> const& adapter_factory, ComPtr<IDXGIA
             m_properties.local = m_p_details->getLocalMemoryDescription();
             m_properties.non_local = m_p_details->getNonLocalMemoryDescription();
 
-            setStringName(WstringToAsciiString(m_properties.details.name) + "_VendorID:" + std::to_string(m_properties.details.vendor_id)
+            setStringName(wstringToAsciiString(m_properties.details.name) + "_VendorID:" + std::to_string(m_properties.details.vendor_id)
                 + "_DeviceID:" + std::to_string(m_properties.details.device_id) + "_SubSystemID:" + std::to_string(m_properties.details.sub_system_id)
                 + "_Revision:" + std::to_string(m_properties.details.revision) + "_LUID:" + std::to_string(m_properties.details.luid.HighPart)
                 + std::to_string(m_properties.details.luid.LowPart));
