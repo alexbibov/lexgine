@@ -87,15 +87,15 @@ uint32_t const DefaultRasterizedStream = 0;
 /*! Converts single-byte string to multi-byte string assuming that the string can contain only characters from the basic ASCII table
  This function will not work properly for international strings
 */
-std::wstring AsciiStringToWstring(std::string const& str);
+std::wstring asciiStringToWstring(std::string const& str);
 
 /*! Converts multi-byte string to single-byte string assuming that provided multi-byte string contains only ASCII characters.
  This functions will yield incorrect results for international characters
 */
-std::string WstringToAsciiString(std::wstring const& wstr);
+std::string wstringToAsciiString(std::wstring const& wstr);
 
 //! Reads ASCII text data from provided source file and returns them as an optional string (with undefined value in case of failure)
-Optional<std::string> ReadAsciiTextFromSourceFile(std::string const& source_file);
+Optional<std::string> readAsciiTextFromSourceFile(std::string const& source_file);
 
 }}}
 

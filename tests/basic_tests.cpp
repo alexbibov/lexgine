@@ -346,7 +346,7 @@ public:
                 TaskGraph testGraph{ std::list<TaskGraphNode*>{&Head, &F, &A} };
                 if (testGraph.getErrorState())
                 {
-                    Assert::Fail(lexgine::core::misc::AsciiStringToWstring(testGraph.getErrorString()).c_str());
+                    Assert::Fail(lexgine::core::misc::asciiStringToWstring(testGraph.getErrorString()).c_str());
                 }
                 testGraph.createDotRepresentation("task_graph.gv");
             }
@@ -505,7 +505,7 @@ public:
                 }
                 catch (lexgine::core::Exception const& e)
                 {
-                    Assert::Fail(lexgine::core::misc::AsciiStringToWstring(e.description()).c_str());
+                    Assert::Fail(lexgine::core::misc::asciiStringToWstring(e.description()).c_str());
                 }
                 
 
@@ -531,7 +531,7 @@ public:
             Log::create(test_d3d12_pso_xml_parser_log, 2, false);
             
             {
-                auto content = ReadAsciiTextFromSourceFile("../../scripts/d3d12_PSOs/example_serialized_pso.xml");
+                auto content = readAsciiTextFromSourceFile("../../scripts/d3d12_PSOs/example_serialized_pso.xml");
                 D3D12PSOXMLParser xml_parser{ content };
             }
 

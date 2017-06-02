@@ -10,8 +10,14 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{D6B5F646-9963-45EB-BEB9-A49106F00646}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BasicTests", "tests\BasicTests.vcxproj", "{4C3B130F-6923-4609-9279-AB64744A43C6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5DC120BC-E2B4-454D-82ED-565E3A9A9C50} = {5DC120BC-E2B4-454D-82ED-565E3A9A9C50}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "swe_demo", "demos\swe_demo\swe_demo.vcxproj", "{B8B8490D-8614-4D11-9985-FAD365069DBC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5DC120BC-E2B4-454D-82ED-565E3A9A9C50} = {5DC120BC-E2B4-454D-82ED-565E3A9A9C50}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

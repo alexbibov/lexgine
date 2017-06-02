@@ -4,7 +4,7 @@
 
 namespace lexgine{namespace core {namespace misc{
 
-std::wstring AsciiStringToWstring(std::string const& str)
+std::wstring asciiStringToWstring(std::string const& str)
 {
     size_t len = str.size();
     wchar_t* wstr = new wchar_t[len];
@@ -16,7 +16,7 @@ std::wstring AsciiStringToWstring(std::string const& str)
     return rv;
 }
 
-std::string WstringToAsciiString(std::wstring const& wstr)
+std::string wstringToAsciiString(std::wstring const& wstr)
 {
     size_t len = wstr.size();
     char* str = new char[len];
@@ -31,7 +31,7 @@ std::string WstringToAsciiString(std::wstring const& wstr)
     return rv;
 }
 
-Optional<std::string> ReadAsciiTextFromSourceFile(std::string const& source_file)
+Optional<std::string> readAsciiTextFromSourceFile(std::string const& source_file)
 {
     std::ifstream source_file_input_stream{ source_file.c_str(), std::ios_base::in };
     if (!source_file_input_stream)
