@@ -5,6 +5,8 @@
 #include <utility>
 #include <list>
 
+#include "misc/misc.h"
+
 namespace lexgine {namespace core {
 
 //! API- and OS- agnostic declaration of geometry shader stream output (apparently not supported by Metal)
@@ -48,11 +50,11 @@ struct StreamOutput
 {
     std::list<StreamOutputDeclarationEntry> so_declarations;    //!< declaration entries determining how stream output is organized
     std::list<uint32_t> buffer_strides;    //!< strides for the stream output buffers, each stride is the size of element for that buffer
-    bool disable_rasterization;    //!< if 'true' the rasterization stage is disabled, if 'false' the stream0 from geometry shader stage gets rasterized
+    uint32_t rasterized_stream = misc::DefaultRasterizedStream;    //!< determines, which stream to send to the rasterizer stage
 
     StreamOutput() = default; //! default stream output declaration: no stream output
 
-    StreamOutput(std::list<StreamOutputDeclarationEntry> const& so_declarations, std::list<uint32_t> const& buffer_strides, bool disable_rasterization = false);
+    StreamOutput(std::list<StreamOutputDeclarationEntry> const& so_declarations, std::list<uint32_t> const& buffer_strides, uint32_t rasterized_stream = misc::DefaultRasterizedStream);
 };
 
 

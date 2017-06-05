@@ -82,6 +82,7 @@ uint32_t const PrimitiveRestartIndex = 0xFFFFFFFF;
 
 //! Default stream that gets rasterized
 uint32_t const DefaultRasterizedStream = 0;
+uint32_t const NoRasterizationStream = D3D12_SO_NO_RASTERIZED_STREAM;
 
 
 /*! Converts single-byte string to multi-byte string assuming that the string can contain only characters from the basic ASCII table

@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <regex>
 
 #include "d3d12_pso_xml_parser.h"
 
@@ -14,6 +15,7 @@ enum class attribute_type {
     boolean,
     primitive_topology,
     unsigned_numeric,
+    list_of_unsigned_numerics,
     blend_factor,
     blend_operation,
     blend_logical_operation,
@@ -23,7 +25,8 @@ enum class attribute_type {
     comparison_function,
     stencil_operation,
     depth_stencil_format,
-    render_target_format
+    render_target_format,
+    string
 };
 
 bool isNullAttribute(pugi::xml_attribute& attribute)
@@ -71,6 +74,34 @@ bool isUnsignedNumericAttribute(pugi::xml_attribute& attribute)
 uint32_t getUnsignedNumericFromAttribute(pugi::xml_attribute& attribute)
 {
     return attribute.as_uint();
+}
+
+bool isListOfUnsignedNumerics(pugi::xml_attribute& attribute)
+{
+    std::regex list_of_unsigned_numeric_regular_expression{ R"?(\s*[0-9]+(\s*,\s*[0-9]+)*\s*)?" };
+    return std::regex_match(attribute.value(), list_of_unsigned_numeric_regular_expression, std::regex_constants::match_not_null);
+}
+
+std::list<uint32_t> getListOfUnsignedNumericsFromArgument(pugi::xml_attribute& attribute)
+{
+    std::list<uint32_t> rv;
+    std::string source_string{ attribute.value() };
+    int i = 0;
+    while (i < source_string.length())
+    {
+        for (; i < source_string.length() && source_string[i] < '0' && source_string[i] > '9'; ++i);
+        std::string numeric_value;
+        while (i < source_string.length() && source_string[i] >= '0' && source_string[i] <= '9')
+        {
+            numeric_value += source_string[i];
+            ++i;
+        }
+        if (!numeric_value.empty())
+        {
+            rv.push_back(static_cast<uint32_t>(std::stoul(numeric_value)));
+            source_string = source_string.substr(i);
+        }
+    }
 }
 
 bool isBlendFactorAttribute(pugi::xml_attribute& attribute)
@@ -349,6 +380,16 @@ DXGI_FORMAT getRenderTargetFormatFromAttribute(pugi::xml_attribute& attribute)
     return DXGI_FORMAT_R32G32B32A32_FLOAT;
 }
 
+bool isStringAttribute(pugi::xml_attribute& attribute)
+{
+    return !attribute.empty();
+}
+
+std::string getStringFromAttribute(pugi::xml_attribute& attribute)
+{
+    return attribute.value();
+}
+
 template<attribute_type _type>
 struct attribute_format_to_cpp_format;
 
@@ -374,6 +415,14 @@ struct attribute_format_to_cpp_format<attribute_type::unsigned_numeric>
     using value_type = uint32_t;
     static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isUnsignedNumericAttribute;
     static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getUnsignedNumericFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::list_of_unsigned_numerics>
+{
+    using value_type = std::list<uint32_t>;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isListOfUnsignedNumerics;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getListOfUnsignedNumericsFromArgument;
 };
 
 template<>
@@ -454,6 +503,14 @@ struct attribute_format_to_cpp_format<attribute_type::render_target_format>
     using value_type = DXGI_FORMAT;
     static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isRenderTargetFormatAttribute;
     static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getRenderTargetFormatFromAttribute;
+};
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::string>
+{
+    using value_type = std::string;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isStringAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getStringFromAttribute;
 };
 
 template<attribute_type _type>
@@ -563,14 +620,62 @@ public:
 
 
         // Read stream output descriptor if present
-        auto stream_output_descriptor_node = node.find_child([](pugi::xml_node& n) -> bool
         {
-            return std::strcmp(n.name(), "StreamOutput") == 0;
-        });
-        if (!stream_output_descriptor_node.empty())
-        {
-            // stream output descriptor is present!
+            auto stream_output_descriptor_node = node.find_child([](pugi::xml_node& n) -> bool
+            {
+                return std::strcmp(n.name(), "StreamOutput") == 0;
+            });
+            if (!stream_output_descriptor_node.empty())
+            {
+                // stream output descriptor is present, continue parsing
+                bool is_attribute_present{ false };
 
+                auto rasterized_stream_attribute = stream_output_descriptor_node.attribute("rasterized_stream");
+                uint32_t rasterized_stream = isNullAttribute(rasterized_stream_attribute) ? lexgine::core::misc::NoRasterizationStream :
+                    extractAttribute<attribute_type::unsigned_numeric>(rasterized_stream_attribute, 0);
+                std::list<uint32_t> buffer_strides = extractAttribute<attribute_type::list_of_unsigned_numerics>(stream_output_descriptor_node.attribute("strides"),
+                    std::list<uint32_t>{}, &is_attribute_present);
+                if (!is_attribute_present)
+                {
+                    m_parent.raiseError("error parsing XML PSO source: stream output descriptor must define attribute \"strides\"");
+                    return;
+                }
+
+                std::list<lexgine::core::StreamOutputDeclarationEntry> so_entry_descs;
+                for (auto& node : stream_output_descriptor_node)
+                {
+                    if (std::strcmp(node.name(), "DeclarationEntry") == 0)
+                    {
+                        uint32_t stream = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("stream"), 0);
+                        std::string name = extractAttribute<attribute_type::string>(node.attribute("name"), "", &is_attribute_present);
+                        if (!is_attribute_present)
+                        {
+                            m_parent.raiseError("error parsing XML PSO source: attribute \"name\" must be defined by \"DeclarationEntry\"");
+                            return;
+                        }
+                        char const* processed_name = name == "NULL" ? nullptr : name.c_str();
+                        uint32_t name_index = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("name_index"), 0);
+                        uint32_t start_component = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("start_component"), 0, &is_attribute_present);
+                        if (!is_attribute_present)
+                        {
+                            m_parent.raiseError("error parsing XML PSO source: attribute \"start_component\" must be defined by \"DeclaraionEntry\"");
+                            return;
+                        }
+                        uint32_t component_count = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("component_count"), 4, &is_attribute_present);
+                        if (!is_attribute_present)
+                        {
+                            m_parent.raiseError("error parsing XML PSO source: attribute \"component_count\" must be defined by \"DeclaraionEntry\"");
+                            return;
+                        }
+                        uint32_t slot = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("slot"), 0, &is_attribute_present);
+                        if (!is_attribute_present)
+                        {
+                            m_parent.raiseError("error parsing XML PSO source: attribute \"start_component\" must be defined by \"DeclaraionEntry\"");
+                            return;
+                        }
+                    }
+                }
+            }
         }
     }
 
