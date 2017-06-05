@@ -69,7 +69,7 @@ PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_
         p_buffer_strides[buffer_stride_idx] = *p;
     so_desc.pBufferStrides = p_buffer_strides;
 
-    so_desc.RasterizedStream = misc::DefaultRasterizedStream;
+    so_desc.RasterizedStream = pso_descriptor.stream_output.rasterized_stream;
 
     desc.StreamOutput = so_desc;
 
