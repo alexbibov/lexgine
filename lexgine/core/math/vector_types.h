@@ -63,13 +63,13 @@ public:
     }
 
     //returns norm of contained vector
-    decltype(1.0f / static_cast<bool_to_int<T>::type>(T{ 1 })) norm() const
+    decltype(1.0f / static_cast<typename bool_to_int<T>::type>(T{ 1 })) norm() const
     {
         return std::sqrt(x*x + y*y + z*z + w*w);
     }
 
     //returns normalized version of contained vector
-    tag_vec4<decltype(1.0f / static_cast<bool_to_int<T>::type>(T{ 1 })) > get_normalized() const
+    tag_vec4<decltype(1.0f / static_cast<typename bool_to_int<T>::type>(T{ 1 })) > get_normalized() const
     {
         typedef decltype(1.0f / T{ 1 }) result_type;
         result_type norm_factor = norm();
@@ -309,13 +309,13 @@ public:
     }
 
     //returns norm of contained vector
-    decltype(1.0f / static_cast<bool_to_int<T>::type>(T{ 1 })) norm() const
+    decltype(1.0f / static_cast<typename bool_to_int<T>::type>(T{ 1 })) norm() const
     {
         return std::sqrt(x*x + y*y + z*z);
     }
 
     //returns normalized version of contained vector
-    tag_vec3<decltype(1.0f / static_cast<bool_to_int<T>::type>(T{ 1 })) > get_normalized() const
+    tag_vec3<decltype(1.0f / static_cast<typename bool_to_int<T>::type>(T{ 1 })) > get_normalized() const
     {
         typedef decltype(1.0f / T{ 1 }) result_type;
         result_type norm_factor = norm();
@@ -554,13 +554,13 @@ public:
     }
 
     //returns norm of contained vector
-    decltype(1.0f / static_cast<bool_to_int<T>::type>(T{ 1 })) norm() const
+    decltype(1.0f / static_cast<typename bool_to_int<T>::type>(T{ 1 })) norm() const
     {
         return std::sqrt(x*x + y*y);
     }
 
     //returns normalized version of contained vector
-    tag_vec2<decltype(1.0f / static_cast<bool_to_int<T>::type>(T{ 1 })) > get_normalized() const
+    tag_vec2<decltype(1.0f / static_cast<typename bool_to_int<T>::type>(T{ 1 })) > get_normalized() const
     {
         typedef decltype(1.0f / T{ 1 }) result_type;
         result_type norm_factor = norm();

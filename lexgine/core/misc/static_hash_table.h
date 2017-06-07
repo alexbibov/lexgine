@@ -407,7 +407,8 @@ private:
 template<typename H, template<typename H> class Hash, typename KVTypeHead>
 class StaticHashTable<H, Hash, KVTypeHead>
 {
-protected:
+//protected:
+public:
     using series_type = HashBucketSeries<Hash, HashValueHashBucketPair<H, Hash<H>:: template hash<KVTypeHead>(), HashBucket<KVTypeHead>>>;
 
 public:
@@ -444,7 +445,8 @@ private:
 template<typename H, template<typename H> class Hash, typename KVTypeHead, typename ... KVTypesTail>
 class StaticHashTable<H, Hash, KVTypeHead, KVTypesTail...>
 {
-protected:
+//protected:
+public:
     using series_type = typename StaticHashTable<H, Hash, KVTypesTail...>::series_type:: template add_entry_type<KVTypeHead>;
 
 public:
