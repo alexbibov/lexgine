@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <cmath>
 #include <string>
+#include <d3d12.h>
 
 #include "optional.h"
 

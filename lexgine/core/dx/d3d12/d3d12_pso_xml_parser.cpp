@@ -84,7 +84,7 @@ bool isListOfUnsignedNumerics(pugi::xml_attribute& attribute)
 
 std::list<uint32_t> getListOfUnsignedNumericsFromArgument(pugi::xml_attribute& attribute)
 {
-    std::list<uint32_t> rv;
+    std::list<uint32_t> rv{};
     std::string source_string{ attribute.value() };
     int i = 0;
     while (i < source_string.length())
@@ -102,6 +102,8 @@ std::list<uint32_t> getListOfUnsignedNumericsFromArgument(pugi::xml_attribute& a
             source_string = source_string.substr(i);
         }
     }
+
+    return rv;
 }
 
 bool isBlendFactorAttribute(pugi::xml_attribute& attribute)
