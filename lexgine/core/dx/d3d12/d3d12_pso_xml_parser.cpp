@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <regex>
+#include <limits>
 
 #include "d3d12_pso_xml_parser.h"
 
@@ -25,8 +26,10 @@ enum class attribute_type {
     comparison_function,
     stencil_operation,
     depth_stencil_format,
+    data_format,
     render_target_format,
-    string
+    string,
+    floating_point
 };
 
 bool isNullAttribute(pugi::xml_attribute& attribute)
@@ -89,7 +92,8 @@ std::list<uint32_t> getListOfUnsignedNumericsFromArgument(pugi::xml_attribute& a
     int i = 0;
     while (i < source_string.length())
     {
-        for (; i < source_string.length() && source_string[i] < '0' && source_string[i] > '9'; ++i);
+        while (i < source_string.length() && source_string[i] < '0' && source_string[i] > '9') ++i;
+
         std::string numeric_value;
         while (i < source_string.length() && source_string[i] >= '0' && source_string[i] <= '9')
         {
@@ -326,6 +330,28 @@ DXGI_FORMAT getDepthStencilFormatFromAttribute(pugi::xml_attribute& attribute)
     return DXGI_FORMAT_D24_UNORM_S8_UINT;
 }
 
+bool isDataFormatAttribute(pugi::xml_attribute& attribute)
+{
+    return std::strcmp(attribute.value(), "FLOAT32") == 0
+        || std::strcmp(attribute.value(), "FLOAT16") == 0
+        || std::strcmp(attribute.value(), "INT32") == 0
+        || std::strcmp(attribute.value(), "INT16") == 0
+        || std::strcmp(attribute.value(), "UINT32") == 0
+        || std::strcmp(attribute.value(), "UINT16") == 0;
+}
+
+lexgine::core::misc::DataFormat getDataFormatFromAttribute(pugi::xml_attribute& attribute)
+{
+    if (std::strcmp(attribute.value(), "FLOAT32") == 0) return lexgine::core::misc::DataFormat::float32;
+    if (std::strcmp(attribute.value(), "FLOAT16") == 0) return lexgine::core::misc::DataFormat::float16;
+    if (std::strcmp(attribute.value(), "INT32") == 0) return lexgine::core::misc::DataFormat::int32;
+    if (std::strcmp(attribute.value(), "INT16") == 0) return lexgine::core::misc::DataFormat::int16;
+    if (std::strcmp(attribute.value(), "UINT32") == 0) return lexgine::core::misc::DataFormat::uint32;
+    if (std::strcmp(attribute.value(), "UINT16") == 0) return lexgine::core::misc::DataFormat::uint16;
+
+    return lexgine::core::misc::DataFormat::unknown;
+}
+
 bool isRenderTargetFormatAttribute(pugi::xml_attribute& attribute)
 {
     return std::strcmp(attribute.value(), "DXGI_FORMAT_R32G32B32A32_FLOAT") == 0
@@ -391,6 +417,17 @@ std::string getStringFromAttribute(pugi::xml_attribute& attribute)
 {
     return attribute.value();
 }
+
+bool isFloatingPointAttribute(pugi::xml_attribute& attribute)
+{
+    return !std::isnan(attribute.as_float(std::numeric_limits<float>::quiet_NaN()));
+}
+
+float getFloatingPointFromAttribute(pugi::xml_attribute& attribute)
+{
+    return attribute.as_float(std::numeric_limits<float>::quiet_NaN());
+}
+
 
 template<attribute_type _type>
 struct attribute_format_to_cpp_format;
@@ -500,6 +537,14 @@ struct attribute_format_to_cpp_format<attribute_type::depth_stencil_format>
 };
 
 template<>
+struct attribute_format_to_cpp_format<attribute_type::data_format>
+{
+    using value_type = lexgine::core::misc::DataFormat;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isDataFormatAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getDataFormatFromAttribute;
+};
+
+template<>
 struct attribute_format_to_cpp_format<attribute_type::render_target_format>
 {
     using value_type = DXGI_FORMAT;
@@ -514,6 +559,15 @@ struct attribute_format_to_cpp_format<attribute_type::string>
     static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isStringAttribute;
     static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getStringFromAttribute;
 };
+
+template<>
+struct attribute_format_to_cpp_format<attribute_type::floating_point>
+{
+    using value_type = float;
+    static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isFloatingPointAttribute;
+    static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getFloatingPointFromAttribute;
+};
+
 
 template<attribute_type _type>
 typename attribute_format_to_cpp_format<_type>::value_type extractAttribute(pugi::xml_attribute& attribute,
@@ -639,7 +693,7 @@ public:
                     std::list<uint32_t>{}, &is_attribute_present);
                 if (!is_attribute_present)
                 {
-                    m_parent.raiseError("error parsing XML PSO source: stream output descriptor must define attribute \"strides\"");
+                    m_parent.raiseError("error parsing XML PSO source of graphics PSO " + m_currently_assembled_pso_descriptor.name + ": stream output descriptor must define attribute \"strides\"");
                     return;
                 }
 
@@ -649,10 +703,10 @@ public:
                     if (std::strcmp(node.name(), "DeclarationEntry") == 0)
                     {
                         uint32_t stream = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("stream"), 0);
-                        std::string name = extractAttribute<attribute_type::string>(node.attribute("name"), "", &is_attribute_present);
+                        std::string name = extractAttribute<attribute_type::string>(node.attribute("name"), "OUTPUT_STREAM", &is_attribute_present);
                         if (!is_attribute_present)
                         {
-                            m_parent.raiseError("error parsing XML PSO source: attribute \"name\" must be defined by \"DeclarationEntry\"");
+                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + m_currently_assembled_pso_descriptor.name + ": attribute \"name\" must be defined by \"DeclarationEntry\"");
                             return;
                         }
                         char const* processed_name = name == "NULL" ? nullptr : name.c_str();
@@ -660,24 +714,185 @@ public:
                         uint32_t start_component = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("start_component"), 0, &is_attribute_present);
                         if (!is_attribute_present)
                         {
-                            m_parent.raiseError("error parsing XML PSO source: attribute \"start_component\" must be defined by \"DeclaraionEntry\"");
+                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + m_currently_assembled_pso_descriptor.name + ": attribute \"start_component\" must be defined by \"DeclaraionEntry\"");
                             return;
                         }
                         uint32_t component_count = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("component_count"), 4, &is_attribute_present);
                         if (!is_attribute_present)
                         {
-                            m_parent.raiseError("error parsing XML PSO source: attribute \"component_count\" must be defined by \"DeclaraionEntry\"");
+                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + m_currently_assembled_pso_descriptor.name + ": attribute \"component_count\" must be defined by \"DeclaraionEntry\"");
                             return;
                         }
                         uint32_t slot = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("slot"), 0, &is_attribute_present);
                         if (!is_attribute_present)
                         {
-                            m_parent.raiseError("error parsing XML PSO source: attribute \"start_component\" must be defined by \"DeclaraionEntry\"");
+                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + m_currently_assembled_pso_descriptor.name + ": attribute \"start_component\" must be defined by \"DeclaraionEntry\"");
                             return;
                         }
+
+                        so_entry_descs.emplace_back(stream, name.c_str(), name_index, start_component, component_count, slot);
                     }
                 }
+
+                m_currently_assembled_pso_descriptor.graphics.stream_output = lexgine::core::StreamOutput{ so_entry_descs, buffer_strides, rasterized_stream };
             }
+        }
+
+        // Read blending stage declaration if present
+        {
+            auto blend_state_node = node.find_child([](pugi::xml_node& n) -> bool
+            {
+                return std::strcmp(n.name(), "BlendState") == 0;
+            });
+
+            if (!blend_state_node.empty())
+            {
+                // Blend state is present, read contents
+                bool alpha_to_coverage = extractAttribute<attribute_type::boolean>(blend_state_node.attribute("alpha_to_coverage"), false);
+                bool independent_blending = extractAttribute<attribute_type::boolean>(blend_state_node.attribute("independent_blending"), false);
+
+                m_currently_assembled_pso_descriptor.graphics.blend_state = lexgine::core::BlendState{ alpha_to_coverage, independent_blending };
+                
+                for (auto& blend_desc_node : blend_state_node)
+                {
+                    if (std::strcmp(blend_desc_node.name(), "BlendDescriptor") == 0)
+                    {
+                        bool is_attribute_present{ false };
+
+                        uint8_t render_target =
+                            static_cast<uint8_t>(extractAttribute<attribute_type::unsigned_numeric>(blend_desc_node.attribute("render_target"), 0, &is_attribute_present));
+                        if (!is_attribute_present)
+                        {
+                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + m_currently_assembled_pso_descriptor.name + ": BlendDescriptor must have attribute \"render_target\"");
+                            return;
+                        }
+
+                        bool enable_blending = extractAttribute<attribute_type::boolean>(blend_desc_node.attribute("enable_blending"), true);
+                        bool enable_logic_operation = extractAttribute<attribute_type::boolean>(blend_desc_node.attribute("enable_logic_operation"), false);
+
+                        lexgine::core::BlendFactor source_blend_factor =
+                            extractAttribute<attribute_type::blend_factor>(blend_desc_node.attribute("source_blend_factor"), lexgine::core::BlendFactor::one);
+                        lexgine::core::BlendFactor destination_blend_factor =
+                            extractAttribute<attribute_type::blend_factor>(blend_desc_node.attribute("destination_blend_factor"), lexgine::core::BlendFactor::zero);
+                        lexgine::core::BlendFactor source_alpha_blend_factor =
+                            extractAttribute<attribute_type::blend_factor>(blend_desc_node.attribute("source_alpha_blend_factor"), lexgine::core::BlendFactor::one);
+                        lexgine::core::BlendFactor destination_alpha_blend_factor =
+                            extractAttribute<attribute_type::blend_factor>(blend_desc_node.attribute("destination_alpha_blend_factor"), lexgine::core::BlendFactor::zero);
+
+                        lexgine::core::BlendOperation blend_op =
+                            extractAttribute<attribute_type::blend_operation>(blend_desc_node.attribute("blend_operation"), lexgine::core::BlendOperation::add);
+                        lexgine::core::BlendOperation alpha_blend_op =
+                            extractAttribute<attribute_type::blend_operation>(blend_desc_node.attribute("alpha_blend_operation"), lexgine::core::BlendOperation::add);
+
+                        lexgine::core::BlendLogicalOperation blend_logical_op =
+                            extractAttribute<attribute_type::blend_logical_operation>(blend_desc_node.attribute("logical_operation"), lexgine::core::BlendLogicalOperation::no_operation);
+
+                        uint8_t color_mask =
+                            static_cast<uint8_t>(extractAttribute<attribute_type::unsigned_numeric>(blend_desc_node.attribute("color_mask"), 0xF));
+
+                        m_currently_assembled_pso_descriptor.graphics.blend_state.render_target_blend_descriptor[render_target] = lexgine::core::BlendDescriptor{
+                            source_blend_factor, source_alpha_blend_factor, destination_blend_factor, destination_alpha_blend_factor,
+                            blend_op, alpha_blend_op, enable_logic_operation, blend_logical_op, color_mask };
+                    }
+
+                }
+            }
+        }
+
+        // Read rasterization descriptor if present
+        {
+            auto rasterization_desc_node = node.find_child([](pugi::xml_node& n) -> bool
+            {
+                return std::strcmp(n.name(), "RasterizerDescriptor") == 0;
+            });
+
+            if (!rasterization_desc_node.empty())
+            {
+                // Rasterization descriptor has been found, proceed to read the contents
+                
+                lexgine::core::FillMode fill_mode = extractAttribute<attribute_type::fill_mode>(rasterization_desc_node.attribute("fill_mode"), lexgine::core::FillMode::solid);
+                lexgine::core::CullMode cull_mode = extractAttribute<attribute_type::face>(rasterization_desc_node.attribute("cull_mode"), lexgine::core::CullMode::back);
+                lexgine::core::FrontFaceWinding front_face_winding = extractAttribute<attribute_type::winding_mode>(rasterization_desc_node.attribute("front_face_winding"), 
+                    lexgine::core::FrontFaceWinding::counterclockwise);
+                int depth_bias = extractAttribute<attribute_type::unsigned_numeric>(rasterization_desc_node.attribute("depth_bias"), 0);
+                float depth_bias_clamp = extractAttribute<attribute_type::floating_point>(rasterization_desc_node.attribute("depth_bias_clamp"), 0.f);
+                float slope_scaled_depth_bias = extractAttribute<attribute_type::floating_point>(rasterization_desc_node.attribute("slope_scaled_depth_bias"), 0.f);
+                bool depth_clip = extractAttribute<attribute_type::boolean>(rasterization_desc_node.attribute("depth_clip"), true);
+                bool line_anti_aliasing = extractAttribute<attribute_type::boolean>(rasterization_desc_node.attribute("line_anti_aliasing"), false);
+                bool multi_sampling = extractAttribute<attribute_type::boolean>(rasterization_desc_node.attribute("multi_sampling"), false);
+                bool concervative_rasterization = extractAttribute<attribute_type::boolean>(rasterization_desc_node.attribute("concervative_rasterization"), false);
+
+                m_currently_assembled_pso_descriptor.graphics.rasterization_descriptor =
+                    lexgine::core::RasterizerDescriptor{ fill_mode, cull_mode, front_face_winding, depth_bias, depth_bias_clamp, slope_scaled_depth_bias, depth_clip,
+                    multi_sampling, line_anti_aliasing, concervative_rasterization ? lexgine::core::ConservativeRasterizationMode::on : lexgine::core::ConservativeRasterizationMode::off };
+            }
+        }
+
+        // Read depth-stencil descriptor if present
+        {
+            auto depth_stencil_desc_node = node.find_child([](pugi::xml_node& n) -> bool
+            {
+                return std::strcmp(n.name(), "DepthStencilDescriptor") == 0;
+            });
+
+            if (!depth_stencil_desc_node.empty())
+            {
+                bool enable_depth_test = extractAttribute<attribute_type::boolean>(depth_stencil_desc_node.attribute("enable_depth_test"), true);
+                bool allow_depth_writes = extractAttribute<attribute_type::boolean>(depth_stencil_desc_node.attribute("allow_depth_writes"), true);
+                lexgine::core::ComparisonFunction depth_test_comparison_function =
+                    extractAttribute<attribute_type::comparison_function>(depth_stencil_desc_node.attribute("depth_test_comparison_function"), lexgine::core::ComparisonFunction::less);
+                bool enable_stencil_test = extractAttribute<attribute_type::boolean>(depth_stencil_desc_node.attribute("enable_stencil_test"), false);
+                uint32_t stencil_read_mask = extractAttribute<attribute_type::unsigned_numeric>(depth_stencil_desc_node.attribute("stencil_read_mask"), 0xFF);
+                uint32_t stencil_write_mask = extractAttribute<attribute_type::unsigned_numeric>(depth_stencil_desc_node.attribute("stencil_write_mask"), 0xFF);
+
+
+                lexgine::core::StencilBehavior stencil_test_beavior[2];
+                for (auto& stencil_test_behavior_node : depth_stencil_desc_node)
+                {
+                    if (std::strcmp(stencil_test_behavior_node.name(), "StencilTestBehavior") == 0)
+                    {
+                        bool was_successful{ false };
+                        auto front_face = extractAttribute<attribute_type::face>(stencil_test_behavior_node.attribute("face"), lexgine::core::CullMode::front, &was_successful);
+                        if (!was_successful)
+                        {
+                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + m_currently_assembled_pso_descriptor.name + 
+                                ": StencilTestBehavior node must define attribute \"face\"");
+                            return;
+                        }
+
+                        auto comparison_function = 
+                            extractAttribute<attribute_type::comparison_function>(stencil_test_behavior_node.attribute("comparison_function"), lexgine::core::ComparisonFunction::always);
+                        auto operation_st_fail = 
+                            extractAttribute<attribute_type::stencil_operation>(stencil_test_behavior_node.attribute("operation_st_fail"), lexgine::core::StencilOperation::keep);
+                        auto operation_st_pass_dt_fail = 
+                            extractAttribute<attribute_type::stencil_operation>(stencil_test_behavior_node.attribute("operation_st_pass_dt_fail"), lexgine::core::StencilOperation::keep);
+                        auto operation_st_pass_dt_pass = 
+                            extractAttribute<attribute_type::stencil_operation>(stencil_test_behavior_node.attribute("operation_st_pass_dt_pass"), lexgine::core::StencilOperation::keep);
+                        DXGI_FORMAT dsv_target_format =
+                            extractAttribute<attribute_type::depth_stencil_format>(stencil_test_behavior_node.attribute("dsv_target_format"), DXGI_FORMAT_D32_FLOAT_S8X24_UINT, &was_successful);
+                        if (!was_successful)
+                        {
+                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + m_currently_assembled_pso_descriptor.name + 
+                                ": StencilTestBehavior node must define attribute \"dsv_target_format\"");
+                            return;
+                        }
+
+                        stencil_test_beavior[front_face == lexgine::core::CullMode::front ? 0 : 1] =
+                            lexgine::core::StencilBehavior{ operation_st_fail, operation_st_pass_dt_fail, operation_st_pass_dt_pass, comparison_function };
+                    }
+                }
+
+                m_currently_assembled_pso_descriptor.graphics.depth_stencil_descriptor = lexgine::core::DepthStencilDescriptor{ enable_depth_test, allow_depth_writes,
+                depth_test_comparison_function, enable_stencil_test, stencil_test_beavior[0], stencil_test_beavior[1] };
+            }
+
+            
+
+        }
+
+        // Read vertex input attributes
+        {
+
         }
     }
 

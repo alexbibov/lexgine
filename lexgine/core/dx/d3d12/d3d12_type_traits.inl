@@ -237,6 +237,72 @@ struct d3d12_type_traits<int16_t, 4U, half_precision, true>
 };
 // ********************************************
 
+
+template<misc::DataFormat data_format>
+struct DataFormatToStaticType;
+
+template<>
+struct DataFormatToStaticType<misc::DataFormat::float64>
+{
+    using value_type = double;
+};
+
+template<>
+struct DataFormatToStaticType<misc::DataFormat::float32>
+{
+    using value_type = float;
+};
+
+
+// NOTE: implement half-precision floating-point arithmetics
+template<>
+struct DataFormatToStaticType<misc::DataFormat::float16>
+{
+    using value_type = half;
+};
+
+template<>
+struct DataFormatToStaticType<misc::DataFormat::int64>
+{
+    using value_type = std::int64_t;
+};
+
+template<>
+struct DataFormatToStaticType<misc::DataFormat::int32>
+{
+    using value_type = std::int32_t;
+};
+
+template<>
+struct DataFormatToStaticType<misc::DataFormat::int16>
+{
+    using value_type = std::int16_t;
+};
+
+template<>
+struct DataFormatToStaticType<misc::DataFormat::uint64>
+{
+    using value_type = std::uint64_t;
+};
+
+template<>
+struct DataFormatToStaticType<misc::DataFormat::uint32>
+{
+    using value_type = std::uint32_t;
+};
+
+template<>
+struct DataFormatToStaticType<misc::DataFormat::uint16>
+{
+    using value_type = std::uint16_t;
+};
+
+template<>
+struct DataFormatToStaticType<misc::DataFormat::unknown>
+{
+    using value_type = void*;
+};
+
 }}}}
 
 #define LEXGINE_CORE_DX_D3D12_TYPE_TRAITS_INL

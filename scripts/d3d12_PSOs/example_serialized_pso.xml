@@ -91,6 +91,7 @@ for different pixel shader output channels during the blending stage of the pipe
 <BlendState alpha_to_coverage="FALSE" independent_blending="TRUE">
 
 <!-- Blend descriptors are declared separately for each render target (see attribute "render_target" below). Up to 8 render targets are currently supported. 
+It will not raise error if multiple blend descriptors with same render target are listed, but only the last declaration will take effect.
 Each BlendDescriptor entry supports the following attributes:
 
 attribute "render_target" determines render target, to which the blend descriptor applies
@@ -192,7 +193,7 @@ logical_operation="NO_OPEATION" color_mask="0x9" />    <!-- here only red and al
 
 
 <!--Rasterizer descriptors define how rasterization should be performed by the graphics pipeline. There could be only one such entry
-per pipeline description. This entry is optional. If not provided, default values for all attributes this entry supports will be used.
+per pipeline description. This entry is optional. If not provided, the default values for all attributes this entry supports will be used.
 
 
 This entry has the following attributes, all of which are optional:
@@ -211,7 +212,7 @@ listed in counter clockwise order produce front facing polygones). Default value
 
 "depth_bias_clamp" maximum depth bias of a pixel. Can be any floating point value. Default is 0.0
 
-"slope_scaled_depth_bias" scalar on a given pixel's slope. Can be any floating point value. Default is 0.
+"slope_scaled_depth_bias" scalar on a given pixel's slope. Can be any floating point value. Default is 0.0
 
 "depth_clip" determines if z-clipping is enabled. Can be TRUE or FALSE. Default is TRUE.
 
@@ -258,8 +259,8 @@ data will be written. Using this attribute only makes sence when depth and stenc
 Depth stencil descriptor supports child entries called "StencilTestBehavior". There can be at most two such entries 
 determining behavior of stencil test as applies to front and back polygone faces, i.e. one entry can define 
 behavior for the front faces and one entry — for the back faces. Listing multiple entries defining different behavior for
-same polygone faces is not allowed as it makes no sense. Each StencilTestBehavior entry supports the following
-attributes:
+same polygone faces makes no sense (technically it is still possible, but only the last declatations will take effect). 
+Each StencilTestBehavior entry supports the following attributes:
 
 "face" can be either FRONT or BACK and determines to which polygone faces this behavior applies
 
@@ -274,6 +275,7 @@ tokens:
     NOT_EQUAL (passes if source data is not equal to the destination data),
     GREATER_EQUAL (passes if source data is greater than or equal to the destination data),
     ALWAYS (depth test always passes)
+This attribute is optional and defaults to ALWAYS
 	
 "operation_st_fail" determines action performed on the stencil buffer when stencil test fails.
 This attribute may take on of the following tokens:
