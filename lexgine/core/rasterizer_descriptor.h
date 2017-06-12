@@ -13,7 +13,7 @@ enum class FillMode: int8_t
 //! API-agnostic cull mode
 enum class CullMode: int8_t
 {
-    none, front, back
+    front, back, none
 };
 
 //! API-agnostic conservative rasterization mode

@@ -9,6 +9,8 @@
 
 #include "optional.h"
 
+#include "../../../3rd_party/half/half.h"
+
 namespace lexgine { namespace core { namespace misc {
 
 //! Version of the renderer
@@ -44,16 +46,6 @@ template<typename T1, typename T2, typename T3> struct triplet
 #define TW_RENDERING_MODE_WIREFRAME_COMBINED 2		//combines TW_RENDERING_MODE_DEFAULT and TW_RENDERING_MODE_WIREFRAME_COMBINED into single rendering request.
 #define TW_RENDERING_MODE_SILHOUETTE		 3		//draws dark silhouette of the object. This mode is mainly used to render crepuscular  rays in post-processing pass.
 
-
-//The following namespace contains constant used by atmospheric scattering computations
-namespace atmospheric_scattering_constants
-{
-float const planet_radius = 40.0f / 9.0f;	//radius of the planet
-float const sky_sphere_radius = 41.0f / 9.0f;	//radius of the sky sphere
-float const horizon_angle = std::asin(40.0f / 41.0f);	//angle from equator of the planet to the edge of horizon
-float const length_scale = 9.0f;	//length scale assumed by the ray tracers in scattering computations
-float const fH0 = 0.25f;	//non-dimensional height at which atmosphere has its average density
-}
 
 //Enumerates some standard return codes
 #define TW_INVALID_RETURN_VALUE 0xFFFFFFFF	//constant encoding an invalid value returned by some functions on failure
@@ -98,6 +90,22 @@ std::string wstringToAsciiString(std::wstring const& wstr);
 
 //! Reads ASCII text data from provided source file and returns them as an optional string (with undefined value in case of failure)
 Optional<std::string> readAsciiTextFromSourceFile(std::string const& source_file);
+
+
+enum class DataFormat
+{
+    float64,
+    float32,
+    float16,
+    int64,
+    int32,
+    int16,
+    uint64,
+    uint32,
+    uint16,
+    unknown
+};
+
 
 }}}
 

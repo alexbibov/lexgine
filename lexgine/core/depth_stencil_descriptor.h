@@ -47,8 +47,8 @@ class DepthStencilDescriptor
 public:
     DepthStencilDescriptor(bool depth_test_enable = true, bool depth_writes = true, ComparisonFunction depth_test_predicate = ComparisonFunction::less,
         bool stencil_test_enable = false,
-        StencilBehavior front_face = StencilBehavior{ StencilOperation::keep, StencilOperation::keep, StencilOperation::keep, ComparisonFunction::always },
-        StencilBehavior back_face = StencilBehavior{ StencilOperation::keep, StencilOperation::keep, StencilOperation::keep, ComparisonFunction::always },
+        StencilBehavior const& front_face = StencilBehavior{ StencilOperation::keep, StencilOperation::keep, StencilOperation::keep, ComparisonFunction::always },
+        StencilBehavior const& back_face = StencilBehavior{ StencilOperation::keep, StencilOperation::keep, StencilOperation::keep, ComparisonFunction::always },
         uint8_t stencil_read_mask = 0xFF, uint8_t stencil_write_mask = 0xFF);
 
     bool isDepthTestEnabled() const;

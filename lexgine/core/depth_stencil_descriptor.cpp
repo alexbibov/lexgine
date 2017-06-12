@@ -4,7 +4,7 @@ using namespace lexgine::core;
 
 
 DepthStencilDescriptor::DepthStencilDescriptor(bool depth_test_enable, bool depth_writes, ComparisonFunction depth_test_predicate,
-    bool stencil_test_enable, StencilBehavior front_face, StencilBehavior back_face, uint8_t stencil_read_mask, uint8_t stencil_write_mask):
+    bool stencil_test_enable, StencilBehavior const& front_face, StencilBehavior const& back_face, uint8_t stencil_read_mask, uint8_t stencil_write_mask):
     m_dt_enable{ depth_test_enable },
     m_depth_writes{ depth_writes },
     m_cmp_fun{ depth_test_predicate },
