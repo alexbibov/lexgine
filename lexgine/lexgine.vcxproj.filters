@@ -267,6 +267,9 @@
     <ClInclude Include="..\3rd_party\pugixml\src\pugixml.hpp">
       <Filter>3rd_party\pugixml</Filter>
     </ClInclude>
+    <ClInclude Include="core\misc\template_argument_iterator.h">
+      <Filter>core\misc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
