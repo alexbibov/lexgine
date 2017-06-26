@@ -3,6 +3,9 @@
 #include <limits>
 
 #include "d3d12_pso_xml_parser.h"
+#include "d3d12_tools.h"
+#include "../../misc/template_for_loop.h"
+#include "../../misc/template_argument_iterator.h"
 
 #include "pugixml.hpp"
 
@@ -892,7 +895,55 @@ public:
 
         // Read vertex input attributes
         {
+            auto va_specification_node = node.find_child([](pugi::xml_node& n) -> bool
+            {
+                return std::strcmp(n.name(), "VertexAttributeSpecification") == 0;
+            });
 
+            
+            unsigned char slot{ 0U };
+            for (auto& va : va_specification_node)
+            {
+                if (std::strcmp(va.name(), "VertexAttribute") == 0)
+                {
+                    bool was_successful{ false };
+                    std::string name = extractAttribute<attribute_type::string>(va.attribute("name"), "", &was_successful);
+                    if (!was_successful)
+                    {
+                        m_parent.raiseError("error parsing XML PSO source of graphics PSO " + m_currently_assembled_pso_descriptor.name + ": VertexAttribute node must define attribute \"name\"");
+                        return;
+                    }
+
+                    uint32_t index = extractAttribute<attribute_type::unsigned_numeric>(va.attribute("index"), 0, &was_successful);
+                    if (!was_successful)
+                    {
+                        m_parent.raiseError("error parsing XML PSO source of graphics PSO " + m_currently_assembled_pso_descriptor.name + ": VertexAttribute node must define attribute \"index\"");
+                        return;
+                    }
+
+
+                    uint32_t size = extractAttribute<attribute_type::unsigned_numeric>(va.attribute("size"), 0, &was_successful);
+                    if (!was_successful)
+                    {
+                        m_parent.raiseError("error parsing XML PSO source of graphics PSO " + m_currently_assembled_pso_descriptor.name + ": VertexAttribute node must define attribute \"size\"");
+                        return;
+                    }
+
+                    lexgine::core::misc::DataFormat type = extractAttribute<attribute_type::data_format>(va.attribute("type"), lexgine::core::misc::DataFormat::float32, &was_successful);
+                    if (!was_successful)
+                    {
+                        m_parent.raiseError("error parsing XML PSO source of graphics PSO " + m_currently_assembled_pso_descriptor.name + ": VertexAttribute node must define attribute \"type\"");
+                        return;
+                    }
+
+                    bool normalized = extractAttribute<attribute_type::boolean>(va.attribute("normalized"), false);
+                    uint32_t instancing_rate = extractAttribute<attribute_type::unsigned_numeric>(va.attribute("instancing_rate"), 0);
+
+
+                    using arg_pack0 = lexgine::core::misc::arg_pack<half, float, int16_t, int32_t, uint16_t, uint32_t>;
+                    
+                }
+            }
         }
     }
 
