@@ -125,7 +125,7 @@ namespace lexgine { namespace core { namespace misc {
             HeadArgPack::is_value_pack
             >;
             
-        using next_tuple_container_type = convert_arg_pack_plane_index_to_argument_tuple_list<index - index % HeadArgPack::size, TailArgPacks...>;
+        using next_tuple_container_type = convert_arg_pack_plane_index_to_argument_tuple_list<index / HeadArgPack::size, TailArgPacks...>;
     };
 
     template<size_t index, typename HeadArgPack>
