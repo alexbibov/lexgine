@@ -4,12 +4,11 @@
 
 namespace lexgine { namespace core { namespace misc {
 
-    template<typename ... Args> struct arg_pack;
-
     template<typename Head, typename ... Tail>
-    struct arg_pack<Head, Tail...>
+    struct arg_pack
     {
         static size_t const size = sizeof...(Tail) + 1U;
+        static int const value = 0;
         using value_type = Head;
         using next_pack = arg_pack<Tail...>;
         static bool const is_value_pack = false;
@@ -19,6 +18,7 @@ namespace lexgine { namespace core { namespace misc {
     struct arg_pack<Head>
     {
         static size_t const size = 1U;
+        static int const value = 0;
         using value_type = Head;
         using next_pack = void;
         static bool const is_value_pack = false;
@@ -29,7 +29,7 @@ namespace lexgine { namespace core { namespace misc {
     struct value_arg_pack
     {
         static size_t const size = sizeof...(TailValues) + 1U;
-        static T const value = HeadValue;
+        static constexpr T value = HeadValue;
         using value_type = T;
         using next_pack = value_arg_pack<T, TailValues...>;
         static bool const is_value_pack = true;
@@ -39,72 +39,177 @@ namespace lexgine { namespace core { namespace misc {
     struct value_arg_pack<T, HeadValue>
     {
         static size_t const size = 1U;
-        static T const value = HeadValue;
+        static constexpr T value = HeadValue;
         using value_type = T;
         using next_pack = void;
         static bool const is_value_pack = true;
     };
 
 
-    template<uint32_t index, typename arg_pack_type>
+
+    template<size_t index, typename ArgPackType>
     struct get_type_in_arg_pack_by_index
     {
-        using value_type = typename get_type_in_arg_pack_by_index<index - 1, typename arg_pack_type::next_pack>::value_type;
+        using value_type = typename get_type_in_arg_pack_by_index<index - 1, typename ArgPackType::next_pack>::value_type;
     };
 
-    template<typename arg_pack_type>
-    struct get_type_in_arg_pack_by_index<0, arg_pack_type>
+    template<typename ArgPackType>
+    struct get_type_in_arg_pack_by_index<0, ArgPackType>
     {
-        using value_type = typename arg_pack_type::value_type;
+        using value_type = typename ArgPackType::value_type;
     };
 
-    template<uint32_t index, typename Head, typename ... Args> 
-    struct get_element_in_variadic_by_index
+
+    template<size_t index, typename ValueArgPackType>
+    struct get_value_in_value_arg_pack_by_index
     {
-        using value_type = typename get_element_in_variadic_by_index<index - 1, Args...>::value_type;
+        static typename ValueArgPackType::value_type const value =
+            get_value_in_value_arg_pack_by_index<index - 1, typename ValueArgPackType::next_pack>::value;
     };
 
-    template<typename Head, typename ... Args>
-    struct get_element_in_variadic_by_index<0, Head, Args...>
+    template<typename ValueArgPackType>
+    struct get_value_in_value_arg_pack_by_index<0, ValueArgPackType>
     {
-        using value_type = Head;
+        static typename ValueArgPackType::value_type const value = ValueArgPackType::value;
     };
 
 
+    template<typename T, bool is_value_pack>
+    struct arg_pack_value_type_converter;
+
+    template<typename T>
+    struct arg_pack_value_type_converter<T, true>
+    {
+        using value_type = T;
+    };
+
+    template<typename T>
+    struct arg_pack_value_type_converter<T, false>
+    {
+        using value_type = int;
+    };
+
+
+    template<size_t index, typename GenericArgPackType>
+    struct get_value_in_generic_arg_pack_by_index
+    {
+        using value_type = typename arg_pack_value_type_converter<typename GenericArgPackType::value_type, GenericArgPackType::is_value_pack>::value_type;
+        static constexpr value_type value = get_value_in_generic_arg_pack_by_index<index - 1, typename GenericArgPackType::next_pack>::value;
+    };
+
+    template<typename GenericArgPackType>
+    struct get_value_in_generic_arg_pack_by_index<0, GenericArgPackType>
+    {
+        using value_type = typename arg_pack_value_type_converter<typename GenericArgPackType::value_type, GenericArgPackType::is_value_pack>::value_type;
+        static constexpr value_type value = GenericArgPackType::value;
+    };
+
+
+
+    template<typename T, typename U, U v, bool has_value>
+    struct value_type_and_value_union
+    {
+        using value_type = T;
+        using aux_value_type = U;
+        static constexpr aux_value_type value = v;
+        static bool const is_value = has_value;
+    };
+
+    template<size_t index, typename HeadArgPack, typename ... TailArgPacks>
+    struct convert_arg_pack_plane_index_to_argument_tuple_list
+    {
+        using tuple_type = value_type_and_value_union<
+            typename get_type_in_arg_pack_by_index<(index % HeadArgPack::size), HeadArgPack>::value_type,
+            typename arg_pack_value_type_converter<typename HeadArgPack::value_type, HeadArgPack::is_value_pack>::value_type,
+            get_value_in_generic_arg_pack_by_index<(index % HeadArgPack::size), HeadArgPack>::value,
+            HeadArgPack::is_value_pack
+            >;
+            
+        using next_tuple_container_type = convert_arg_pack_plane_index_to_argument_tuple_list<index - index % HeadArgPack::size, TailArgPacks...>;
+    };
+
+    template<size_t index, typename HeadArgPack>
+    struct convert_arg_pack_plane_index_to_argument_tuple_list<index, HeadArgPack>
+    {
+        using tuple_type = value_type_and_value_union<typename get_type_in_arg_pack_by_index<index % HeadArgPack::size, HeadArgPack>::value_type,
+            typename arg_pack_value_type_converter<typename HeadArgPack::value_type, HeadArgPack::is_value_pack>::value_type,
+            get_value_in_generic_arg_pack_by_index<index % HeadArgPack::size, HeadArgPack>::value, HeadArgPack::is_value_pack>;
+    };
 
     
-
-
-
-    template<uint32_t index, int32_t cumsum, int32_t idx, typename HeadArgPack, typename ... TailArgPacks>
-    struct arg_pack_index_locator
+    template<size_t tuple_element_index, typename ArgumentTupleListType>
+    struct get_element_from_argument_tuple_list
     {
-        static uint32_t const index = index - cumsum >= 0 ? arg_pack_index_locator<idx + 1, cumsum + HeadArgPack::size, TailArgPacks...>::index : idx;
+        using tuple_type = typename get_element_from_argument_tuple_list<tuple_element_index - 1, typename ArgumentTupleListType::next_tuple_container_type>::tuple_type;
     };
 
+    template<typename ArgumentTupleListType>
+    struct get_element_from_argument_tuple_list<0, ArgumentTupleListType>
+    {
+        using tuple_type = typename ArgumentTupleListType::tuple_type;
+    };
+
+
+    template<typename TupleType, bool is_value_tuple = TupleType::is_value> struct tuple_type_adapter;
+
+    template<typename TupleType> struct tuple_type_adapter<TupleType, false>
+    {
+        using value_type = typename TupleType::value_type;
+    };
+
+    template<typename TupleType> struct tuple_type_adapter<TupleType, true>
+    {
+        static constexpr typename TupleType::aux_value_type value = TupleType::value;
+    };
 
 
     template<typename HeadArgPack, typename ... TailArgPacks>
+    struct get_number_of_tuples
+    {
+        static size_t const size = HeadArgPack::size * get_number_of_tuples<TailArgPacks...>::size;
+    };
+    
+    template<typename HeadArgPack>
+    struct get_number_of_tuples<HeadArgPack>
+    {
+        static size_t const size = HeadArgPack::size;
+    };
+
+
+    template<template<size_t index> class LoopBodyType, typename HeadArgPack, typename ... TailArgPacks>
     class TemplateArgumentIterator
     {
     private:
+        template<size_t tuple_index>
+        using tuple_list_type = convert_arg_pack_plane_index_to_argument_tuple_list<tuple_index, HeadArgPack, TailArgPacks...>;
 
-        template<uint32_t arg_pack_index, uint32_t element_in_arg_pack_index>
-        using item_by_index_type = typename get_type_in_arg_pack_by_index<element_in_arg_pack_index,
-            typename get_element_in_pack_by_index<arg_pack_index, HeadArgPack, TailArgPacks...>::value_type>::value_type;
-
-        template<uint32_t index>
-        struct convert_index
-        {
-            static int32_t const arg_pack_index = arg_pack_index_locator<index, HeadArgPack::size, 0, TailArgPacks...>::index;
-            static int32_t const element_index = index - arg_pack_index_locator<index, HeadArgPack::size, 0, TailArgPacks...>::index;
-        };
+        template<size_t tuple_index, size_t tuple_element_index>
+        using tuple_type = tuple_type_adapter<typename get_element_from_argument_tuple_list<tuple_element_index, tuple_list_type<tuple_index>>::tuple_type>;
 
     public:
-        static size_t const size = HeadArgPack::size + TemplateArgumentIterator<TailArgPacks...>::size;
+        template<size_t tuple_index, size_t tuple_element_index>
+        using get_element = tuple_type<tuple_index, tuple_element_index>;
 
-        template<uint32_t index>
-        using value_type = item_by_index_type<convert_index<index>::arg_pack_index, convert_index<index>::element_index>;
+        static const size_t number_of_tuples = get_number_of_tuples<HeadArgPack, TailArgPacks...>::size;
+
+    private:
+        template<size_t index>
+        static void loop_iteration()
+        {
+            if (LoopBodyType<index>::iterate())
+            {
+                return loop_iteration<index + 1>();
+            }
+        }
+
+        template<>
+        static void loop_iteration<number_of_tuples - 1>(std::function<bool(size_t)> const& /*loop_body*/) {}
+
+    public:
+        static void loop()
+        {
+            loop_iteration<0>();
+        }
     };
 
 }}}

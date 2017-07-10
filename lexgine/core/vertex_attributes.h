@@ -46,7 +46,8 @@ public:
 
 
 protected:
-    AbstractVertexAttributeSpecification(char const* name, uint32_t name_index, uint32_t instancing_data_rate):
+    AbstractVertexAttributeSpecification(unsigned char primitive_assembler_input_slot, char const* name, uint32_t name_index, uint32_t instancing_data_rate):
+        m_primitive_assembler_input_slot{ primitive_assembler_input_slot },
         m_semantics_name{ name },
         m_semantics_index{ name_index },
         m_instancing_data_rate{ instancing_data_rate }
@@ -92,12 +93,15 @@ public:
     }
 
     unsigned char size() const override { return vertex_attribute_size; }
-    unsigned char capacity() const override { return vertex_attribute_size * sizeof(value_type); }
+    unsigned char capacity() const override 
+    { 
+        return lexgine::core::dx::d3d12::d3d12_type_traits<vertex_attribute_format, vertex_attribute_size, special_vertex_attribute_format, normalized>::total_size_in_bytes;
+    }
 
 private:
     DXGI_FORMAT d3d12VertexFormat() const override
     {
-        return misc::d3d12_type_traits<vertex_attribute_format, vertex_attribute_size, special_vertex_attribute_format, normalized>::dxgi_format;
+        return lexgine::core::dx::d3d12::d3d12_type_traits<vertex_attribute_format, vertex_attribute_size, special_vertex_attribute_format, normalized>::dxgi_format;
     }
 };
 
