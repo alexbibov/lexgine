@@ -5,7 +5,14 @@ namespace lexgine { namespace core { namespace dx { namespace d3d12 {
 //! Helper: converts static representation of a format to the corresponding DXGI_FORMAT value.
 //! NOTE that not all formats are supported nor are all of them listed in the partial specializations below.
 //! Add partial specializations on "when it is needed" basis
-template<typename T, unsigned char num_components = 1U, bool half_precision = false, bool normalized = true> struct d3d12_type_traits;
+template<typename T, unsigned char num_components = 1U, bool half_precision = false, bool normalized = true> 
+struct d3d12_type_traits
+{
+    using iso_c_type = void;
+    static unsigned char const num_components = 0;
+    static unsigned char const total_size_in_bytes = 4U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_UNKNOWN;
+};
 
 // ********** floating point formats **********
 template<bool normalized>

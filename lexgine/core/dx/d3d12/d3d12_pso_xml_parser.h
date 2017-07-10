@@ -12,7 +12,8 @@
 namespace lexgine { namespace core { namespace dx { namespace d3d12 {
 
 /*! Convenience class that parses supplied XML descriptions of PSO objects and constructs
- corresponding GraphicsPSODescriptor and ComputePSODescriptor structures
+ corresponding GraphicsPSODescriptor and ComputePSODescriptor structures. Note that this 
+ class is NOT thread safe
 */
 class D3D12PSOXMLParser : public NamedEntity<class_names::D3D12PSOXMLParser>
 {

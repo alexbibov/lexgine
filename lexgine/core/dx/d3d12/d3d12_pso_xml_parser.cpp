@@ -596,32 +596,46 @@ namespace {
     class LoopBodyCommonPart
     {
     protected:
-        static lexgine::core::misc::DataFormat m_type;
-        static unsigned char m_size;
-        static bool m_is_normalized;
-        static unsigned char m_primitive_assembler_input_slot;
-        static char const* m_name;
-        static uint32_t m_name_index;
-        static uint32_t m_instancing_data_rate;
-        static std::unique_ptr<lexgine::core::AbstractVertexAttributeSpecification> m_va_specification;
-    };
+        static std::shared_ptr<lexgine::core::AbstractVertexAttributeSpecification> m_va_specification;
 
-    template<size_t tuple_index = 0>
-    class LoopBody : public LoopBodyCommonPart
-    {
+    public:
+        static lexgine::core::misc::DataFormat type;
+        static unsigned char size;
+        static bool is_normalized;
+        static unsigned char primitive_assembler_input_slot;
+        static char const* name;
+        static uint32_t name_index;
+        static uint32_t instancing_data_rate;
+
     public:
         using arg_pack0 = lexgine::core::misc::arg_pack<float, int16_t, int32_t, uint16_t, uint32_t>;
         using value_arg_pack0 = lexgine::core::misc::value_arg_pack<unsigned char, 1U, 2U, 3U, 4U>;
         using value_arg_pack1 = lexgine::core::misc::value_arg_pack<bool, false, true>;
         using value_arg_pack2 = lexgine::core::misc::value_arg_pack<bool, false, true>;
-        using unrolling_type = lexgine::core::misc::TemplateArgumentIterator<LoopBody, arg_pack0, value_arg_pack0, value_arg_pack1, value_arg_pack2>;
+        
+        static std::shared_ptr<lexgine::core::AbstractVertexAttributeSpecification> getVASpecification() { return m_va_specification; }
+    };
+    std::shared_ptr<lexgine::core::AbstractVertexAttributeSpecification> LoopBodyCommonPart::m_va_specification{ nullptr };
+    lexgine::core::misc::DataFormat LoopBodyCommonPart::type{ lexgine::core::misc::DataFormat::unknown };
+    unsigned char LoopBodyCommonPart::size{ 0U };
+    bool LoopBodyCommonPart::is_normalized{ false };
+    unsigned char LoopBodyCommonPart::primitive_assembler_input_slot{ 0U };
+    char const* LoopBodyCommonPart::name{ nullptr };
+    uint32_t LoopBodyCommonPart::name_index{ 0U };
+    uint32_t LoopBodyCommonPart::instancing_data_rate{ 0U };
 
-        static iterate()
+
+
+    template<typename TupleListType>
+    class LoopBody : public LoopBodyCommonPart
+    {
+    public:
+        static bool iterate()
         {
-            using arg0 = typename unrolling_type::get_element<tuple_index, 0>::value_type;
-            static unsigned char arg1 = unrolling_type::get_element<tuple_index, 1>::value;
-            static bool arg2 = unrolling_type::get_element<tuple_index, 2>::value;
-            static bool arg3 = unrolling_type::get_element<tuple_index, 1>::value;
+            using arg0 = typename lexgine::core::misc::get_tuple_element<TupleListType, 0>::value_type;
+            constexpr auto arg1 = lexgine::core::misc::get_tuple_element<TupleListType, 1>::value;
+            constexpr auto arg2 = lexgine::core::misc::get_tuple_element<TupleListType, 2>::value;
+            constexpr auto arg3 = lexgine::core::misc::get_tuple_element<TupleListType, 3>::value;
 
             if ((type == lexgine::core::dx::d3d12::StaticTypeToDataFormat<arg0>::data_format ||
                 lexgine::core::dx::d3d12::StaticTypeToDataFormat<arg0>::data_format == lexgine::core::misc::DataFormat::float32 &&
@@ -631,20 +645,31 @@ namespace {
                 m_va_specification.reset(
                     new lexgine::core::VertexAttributeSpecification<
                         arg0,
-                        unrolling_type::get_element<tuple_index, 1>::value,
-                        unrolling_type::get_element<tuple_index, 2>::value,
-                        unrolling_type::get_element<tuple_index, 3>::value>{ primitive_assembler_input_slot,name, name_index, instancing_data_rate });
+                        arg1,
+                        arg2,
+                        arg3>{ primitive_assembler_input_slot, name, name_index, instancing_data_rate });
+                return false;
             }
+
+            return true;
         }
         
         static std::unique_ptr<lexgine::core::AbstractVertexAttributeSpecification> getVASpecification() { return m_va_specification; }
     };
 
-    std::unique_ptr<lexgine::core::AbstractVertexAttributeSpecification> createVertexAttributeSpecification(lexgine::core::misc::DataFormat type, uint32_t size, bool is_normalized,
+    std::shared_ptr<lexgine::core::AbstractVertexAttributeSpecification> createVertexAttributeSpecification(lexgine::core::misc::DataFormat type, uint32_t size, bool is_normalized,
         unsigned char primitive_assembler_input_slot, char const* name, uint32_t name_index, uint32_t instancing_data_rate)
     {
-        LoopBody<>::unrolling_type::loop();
-        return LoopBody<>::getVASpecification();
+        LoopBodyCommonPart::type = type;
+        LoopBodyCommonPart::size = size;
+        LoopBodyCommonPart::is_normalized = is_normalized;
+        LoopBodyCommonPart::primitive_assembler_input_slot = primitive_assembler_input_slot;
+        LoopBodyCommonPart::name = name;
+        LoopBodyCommonPart::name_index = name_index;
+        LoopBodyCommonPart::instancing_data_rate = instancing_data_rate;
+        lexgine::core::misc::TemplateArgumentIterator<LoopBody, LoopBodyCommonPart::arg_pack0, LoopBodyCommonPart::value_arg_pack0, LoopBodyCommonPart::value_arg_pack1, LoopBodyCommonPart::value_arg_pack2>::loop();
+
+        return LoopBodyCommonPart::getVASpecification();
     }
 }
 
@@ -991,8 +1016,7 @@ public:
                     bool normalized = extractAttribute<attribute_type::boolean>(va.attribute("normalized"), false);
                     uint32_t instancing_rate = extractAttribute<attribute_type::unsigned_numeric>(va.attribute("instancing_rate"), 0);
 
-                    std::unique_ptr<AbstractVertexAttributeSpecification> va_specification = createVertexAttributeSpecification(type, size, normalized, slot, name.c_str(), index, instancing_rate);
-                    
+                    m_currently_assembled_pso_descriptor.graphics.vertex_attributes.push_back(createVertexAttributeSpecification(type, size, normalized, slot, name.c_str(), index, instancing_rate));
                 }
             }
         }

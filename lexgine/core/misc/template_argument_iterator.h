@@ -175,35 +175,30 @@ namespace lexgine { namespace core { namespace misc {
         static size_t const size = HeadArgPack::size;
     };
 
+    
+    template<typename TupleListType, uint32_t tuple_element_index>
+    using get_tuple_element = tuple_type_adapter<typename get_element_from_argument_tuple_list<tuple_element_index, TupleListType>::tuple_type>;
 
-    template<template<size_t index> class LoopBodyType, typename HeadArgPack, typename ... TailArgPacks>
+
+    template<template<typename> class LoopBodyType, typename HeadArgPack, typename ... TailArgPacks>
     class TemplateArgumentIterator
     {
     private:
         template<size_t tuple_index>
         using tuple_list_type = convert_arg_pack_plane_index_to_argument_tuple_list<tuple_index, HeadArgPack, TailArgPacks...>;
-
-        template<size_t tuple_index, size_t tuple_element_index>
-        using tuple_type = tuple_type_adapter<typename get_element_from_argument_tuple_list<tuple_element_index, tuple_list_type<tuple_index>>::tuple_type>;
-
-    public:
-        template<size_t tuple_index, size_t tuple_element_index>
-        using get_element = tuple_type<tuple_index, tuple_element_index>;
-
         static const size_t number_of_tuples = get_number_of_tuples<HeadArgPack, TailArgPacks...>::size;
 
-    private:
         template<size_t index>
         static void loop_iteration()
         {
-            if (LoopBodyType<index>::iterate())
+            if (LoopBodyType<tuple_list_type<index>>::iterate())
             {
                 return loop_iteration<index + 1>();
             }
         }
 
         template<>
-        static void loop_iteration<number_of_tuples - 1>(std::function<bool(size_t)> const& /*loop_body*/) {}
+        static void loop_iteration<number_of_tuples - 1>() {}
 
     public:
         static void loop()
