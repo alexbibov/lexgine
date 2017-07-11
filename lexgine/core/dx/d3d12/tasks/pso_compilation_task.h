@@ -1,8 +1,8 @@
 #ifndef LEXGINE_CORE_DX_D3D12_TASKS_PSO_COMPILATION_TASK_H
 
-#include "schedulable_task.h"
-#include "pipeline_state.h"
-#include "data_blob.h"
+#include "../../../concurrency/schedulable_task.h"
+#include "../pipeline_state.h"
+#include "../../../data_blob.h"
 
 #include <list>
 

@@ -18,18 +18,44 @@ namespace lexgine { namespace core { namespace dx { namespace d3d12 {
 class D3D12PSOXMLParser : public NamedEntity<class_names::D3D12PSOXMLParser>
 {
 public:
-    using const_graphics_pso_descriptor_iterator = std::list<dx::d3d12::GraphicsPSODescriptor>::const_iterator;
-    using const_compute_pso_descriptor_iterator = std::list<dx::d3d12::ComputePSODescriptor>::const_iterator;
+    struct GraphicsPSODescriptorCacheEntry
+    {
+        GraphicsPSODescriptor descriptor;
+        std::string cache_name;
+    };
+
+    struct ComputePSODescriptorCacheEntry
+    {
+        ComputePSODescriptor descriptor;
+        std::string cache_name;
+    };
+
+    using const_graphics_pso_descriptor_iterator = std::list<GraphicsPSODescriptorCacheEntry>::const_iterator;
+    using const_compute_pso_descriptor_iterator = std::list<ComputePSODescriptorCacheEntry>::const_iterator;
+
+    struct ShaderCompilationInfo
+    {
+
+    };
+
 
     /*! Constructs the parser and immediately parses provided sources
      constructing related PSO description structures
     */
-    D3D12PSOXMLParser(std::string const& xml_source, bool deferred_shader_compilation = true);
+    D3D12PSOXMLParser(std::string const& xml_source, bool deferred_shader_compilation = true, uint32_t node_mask = 0x1);
 
     ~D3D12PSOXMLParser() override;
 
-    //! returns 'true' if PSO parsing and compilation has been completed. Returns 'false' otherwise
+    //! returns 'true' if PSO parsing and related shader compilation has been completed. Returns 'false' otherwise
     bool isCompleted() const;
+
+    /*! blocks calling thread until compilation of all shaders is completed. Returns 'true' if the shaders were compiled successfully.
+     Returns 'false' otherwise. Call getShaderCompilationInfo() to retrieve more information about compilation errors.
+    */
+    bool waitUntilShadersAreCompiled() const;
+
+    //! Retrieves detailed information about shader compilation process
+    ShaderCompilationInfo getShaderCompilationInfo() const;
 
     //! returns iterator pointing at the first parsed graphics PSO description
     const_graphics_pso_descriptor_iterator getFirstGraphicsPSOIterator() const;
@@ -52,30 +78,13 @@ public:
     uint32_t getNumberOfParsedComputePSOs() const;
 
 private:
-    struct PSOIntermediateDescriptor
-    {
-        std::string name;
-        dx::d3d12::PSOType pso_type;
-        
-        union{
-            dx::d3d12::GraphicsPSODescriptor graphics;
-            dx::d3d12::ComputePSODescriptor compute;
-        };
-
-        PSOIntermediateDescriptor();
-        ~PSOIntermediateDescriptor();
-
-        PSOIntermediateDescriptor& operator=(PSOIntermediateDescriptor const& other);
-        PSOIntermediateDescriptor& operator=(PSOIntermediateDescriptor&& other);
-    };
-
-
     class impl;
 
     std::string const m_source_xml;
     bool m_deferred_shader_compilation;
     std::unique_ptr<impl> m_impl;
-    std::list<PSOIntermediateDescriptor> m_pso_list;
+    std::list<GraphicsPSODescriptorCacheEntry> m_graphics_pso_descriptor_cache;
+    std::list<ComputePSODescriptorCacheEntry> m_compute_pso_descriptor_cache;
     task_caches::HLSLCompilationTaskCache m_hlsl_compilation_task_cache;
 };
 

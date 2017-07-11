@@ -371,6 +371,9 @@ DXGI_FORMAT_R8_UNORM
 DXGI_FORMAT_R8_SNORM
 DXGI_FORMAT_A8_UNORM
 DXGI_FORMAT_B5G6R5_UNORM
+
+!!!NOTE!!! that current API assumes that render target slots being in use form a contiguous range starting from 0. In XML description they may appear in any order.
+In other words, one is allowed to use slots 0, 1, ..., N (N <= 7), but not slots 1, 2, 3 (doesn't begin form 0) or slots 0, 2, 3, 4 (not contiguous range) and so on.
 -->
 <RenderTarget slot="0" format="DXGI_FORMAT_R16G16B16A16_UNORM" />
 <RenderTarget slot="1" format="DXGI_FORMAT_R16G16B16A16_FLOAT" />
