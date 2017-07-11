@@ -49,7 +49,7 @@ private:
 
 
 //! Implements simplified automated memory data chunk with unique ownership that automatically allocates
-//!  a memory buffer of given size on creation and deallocates it on destruction. This class is API- and OS- agnostic
+//! a memory buffer of given size on creation and deallocates it on destruction. This class is API- and OS- agnostic
 class DataChunk : public DataBlob
 {
 public:
