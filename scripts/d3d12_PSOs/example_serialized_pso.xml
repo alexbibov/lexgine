@@ -36,9 +36,9 @@ identifies the entry point of the shader.
 -->
 <VertexShader entry="VS_main">sample.vs.hlsl</VertexShader>
 <HullShader entry="HS_main">sample.hs.hlsl</HullShader>
-<DomainShader entry="DS_main">sampler.ds.hlsl</DomainShader>
-<GeometryShader entry="GS_main">sampler.gs.hlsl</GeometryShader>
-<PixelShader entry="PS_main">sampler.ps.hlsl</PixelShader>
+<DomainShader entry="DS_main">sample.ds.hlsl</DomainShader>
+<GeometryShader entry="GS_main">sample.gs.hlsl</GeometryShader>
+<PixelShader entry="PS_main">sample.ps.hlsl</PixelShader>
 
 <!-- StreamOutput defines stream output for the pipeline state object. This declaration is optional.
 Only one StreamOutput entry may appear per pipeline description.

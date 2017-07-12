@@ -7,6 +7,7 @@
 #include "../../entity.h"
 #include "../../class_names.h"
 #include "task_caches/hlsl_compilation_task_cache.h"
+#include "../../global_settings.h"
 
 
 namespace lexgine { namespace core { namespace dx { namespace d3d12 {
@@ -44,7 +45,7 @@ public:
      NOTE: parameter node_mask identifies, for which nodes to create PSO descriptors.
      For example if node_mask=0x3, all descriptors will be dubbed for the 0-th node and for the 1-st node
     */
-    D3D12PSOXMLParser(std::string const& xml_source, bool deferred_shader_compilation = true, uint32_t node_mask = 0x1);
+    D3D12PSOXMLParser(core::GlobalSettings const& global_settings, std::string const& xml_source, bool deferred_shader_compilation = true, uint32_t node_mask = 0x1);
 
     ~D3D12PSOXMLParser() override;
 
@@ -82,6 +83,7 @@ public:
 private:
     class impl;
 
+    core::GlobalSettings const& m_global_settings;
     std::string const m_source_xml;
     bool m_deferred_shader_compilation;
     uint32_t m_node_mask;
