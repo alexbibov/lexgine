@@ -55,6 +55,9 @@
     <Filter Include="3rd_party\pugixml">
       <UniqueIdentifier>{ab8a1f3c-044c-484b-8277-a4f1450e589b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd_party\SpookyHash">
+      <UniqueIdentifier>{543e323c-4d8c-4634-a7a5-9837ea5936a5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="osinteraction\keyboard.h">
@@ -273,6 +276,9 @@
     <ClInclude Include="core\global_settings.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="..\3rd_party\SpookyHash\SpookyV2.h">
+      <Filter>3rd_party\SpookyHash</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -415,6 +421,9 @@
     </ClCompile>
     <ClCompile Include="core\global_settings.cpp">
       <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\3rd_party\SpookyHash\SpookyV2.cpp">
+      <Filter>3rd_party\SpookyHash</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

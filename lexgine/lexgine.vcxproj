@@ -135,6 +135,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\3rd_party\pugixml\src\pugixml.cpp" />
+    <ClCompile Include="..\3rd_party\SpookyHash\SpookyV2.cpp" />
     <ClCompile Include="core\blend_descriptor.cpp" />
     <ClCompile Include="core\class_names.cpp" />
     <ClCompile Include="core\concurrency\abstract_task.cpp" />
@@ -185,6 +186,7 @@
   <ItemGroup>
     <ClInclude Include="..\3rd_party\pugixml\src\pugiconfig.hpp" />
     <ClInclude Include="..\3rd_party\pugixml\src\pugixml.hpp" />
+    <ClInclude Include="..\3rd_party\SpookyHash\SpookyV2.h" />
     <ClInclude Include="core\allocator.h" />
     <ClInclude Include="core\blend_descriptor.h" />
     <ClInclude Include="core\class_names.h" />
