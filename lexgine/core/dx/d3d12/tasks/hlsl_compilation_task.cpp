@@ -6,20 +6,19 @@ using namespace lexgine::core::dx::d3d12::tasks;
 
 HLSLCompilationTask::HLSLCompilationTask(std::string const& source, std::string const& source_name,
     ShaderType shader_type, std::string const& shader_entry_point, lexgine::core::ShaderSourceCodePreprocessor::SourceType source_type,
+    void* p_target_pso_descriptors, uint32_t num_descriptors,
     std::list<HLSLMacroDefinition> const& macro_definitions) :
     m_source{ source },
     m_source_name{ source_name },
     m_type{ shader_type },
     m_shader_entry_point{ shader_entry_point },
     m_source_type{ source_type },
+    m_p_target_pso_descriptors{ p_target_pso_descriptors },
+    m_num_target_descriptors{ num_descriptors },
     m_preprocessor_macro_definitions{ macro_definitions }
 {
 }
 
-lexgine::core::D3DDataBlob HLSLCompilationTask::getTaskData() const
-{
-    return m_shader_bytecode;
-}
 
 bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 {
@@ -80,7 +79,41 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
     }
     else
     {
-        m_shader_bytecode = D3DDataBlob{ Microsoft::WRL::ComPtr<ID3DBlob>{p_shader_bytecode_blob} };
+        D3DDataBlob shader_bytecode{ Microsoft::WRL::ComPtr<ID3DBlob>{p_shader_bytecode_blob} };
+
+        if (m_type == ShaderType::compute)
+        {
+            ComputePSODescriptor* p_compute_pso_descriptors = static_cast<ComputePSODescriptor*>(m_p_target_pso_descriptors);
+            
+            for (uint32_t i = 0; i < m_num_target_descriptors; ++i)
+                p_compute_pso_descriptors[i].compute_shader = shader_bytecode;
+        }
+        else
+        {
+            GraphicsPSODescriptor* p_graphics_pso_descriptors = static_cast<GraphicsPSODescriptor*>(m_p_target_pso_descriptors);
+
+            for(uint32_t i = 0; i < m_num_target_descriptors; ++i)
+            {
+                switch (m_type)
+                {
+                case ShaderType::vertex:
+                    p_graphics_pso_descriptors[i].vertex_shader = shader_bytecode;
+                    break;
+                case ShaderType::hull:
+                    p_graphics_pso_descriptors[i].hull_shader = shader_bytecode;
+                    break;
+                case ShaderType::domain:
+                    p_graphics_pso_descriptors[i].domain_shader = shader_bytecode;
+                    break;
+                case ShaderType::geometry:
+                    p_graphics_pso_descriptors[i].geometry_shader = shader_bytecode;
+                    break;
+                case ShaderType::pixel:
+                    p_graphics_pso_descriptors[i].pixel_shader = shader_bytecode;
+                    break;
+                }
+            }
+        }
     }
 
     return true;

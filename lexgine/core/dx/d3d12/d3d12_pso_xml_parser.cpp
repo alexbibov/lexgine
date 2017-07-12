@@ -683,7 +683,7 @@ public:
 
     }
 
-    void parseAndAddToCompilationCacheShader(pugi::xml_node& node, char const* p_stage_name, bool is_obligatory_shader_stage, std::string const& pso_name)
+    void parseAndAddToCompilationCacheShader(pugi::xml_node& node, char const* p_stage_name, bool is_obligatory_shader_stage, GraphicsPSODescriptorCacheEntry const& graphics_pso_cache_entry)
     {
         // parse and attempt to compile vertex shader
         auto shader_node = node.find_child([p_stage_name](pugi::xml_node& n) -> bool
@@ -730,9 +730,9 @@ public:
 
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
 
-        m_parent.m_hlsl_compilation_task_cache.addTask(shader_source_location, pso_name + "_"
+        m_parent.m_hlsl_compilation_task_cache.addTask(shader_source_location, graphics_pso_cache_entry.cache_name + "_"
             + shader_source_location + "_" + compilation_task_suffix, shader_type, shader_entry_point_name,
-            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file);
+            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &graphics_pso_cache_entry, 1);
     }
 
     GraphicsPSODescriptorCacheEntry parseGraphicsPSO(pugi::xml_node& node)
@@ -750,11 +750,11 @@ public:
 
 
         // Retrieve shader stages
-        parseAndAddToCompilationCacheShader(node, "VertexShader", true, currently_assembled_pso_descriptor.cache_name);
-        parseAndAddToCompilationCacheShader(node, "HullShader", false, currently_assembled_pso_descriptor.cache_name);
-        parseAndAddToCompilationCacheShader(node, "DomainShader", false, currently_assembled_pso_descriptor.cache_name);
-        parseAndAddToCompilationCacheShader(node, "GeometryShader", false, currently_assembled_pso_descriptor.cache_name);
-        parseAndAddToCompilationCacheShader(node, "PixelShader", true, currently_assembled_pso_descriptor.cache_name);
+        parseAndAddToCompilationCacheShader(node, "VertexShader", true, currently_assembled_pso_descriptor);
+        parseAndAddToCompilationCacheShader(node, "HullShader", false, currently_assembled_pso_descriptor);
+        parseAndAddToCompilationCacheShader(node, "DomainShader", false, currently_assembled_pso_descriptor);
+        parseAndAddToCompilationCacheShader(node, "GeometryShader", false, currently_assembled_pso_descriptor);
+        parseAndAddToCompilationCacheShader(node, "PixelShader", true, currently_assembled_pso_descriptor);
 
 
         // Read stream output descriptor if present
