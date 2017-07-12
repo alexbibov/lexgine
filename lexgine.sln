@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lexgine", "lexgine\lexgine.vcxproj", "{5DC120BC-E2B4-454D-82ED-565E3A9A9C50}"
 EndProject
@@ -15,6 +15,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BasicTests", "tests\BasicTe
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "swe_demo", "demos\swe_demo\swe_demo.vcxproj", "{B8B8490D-8614-4D11-9985-FAD365069DBC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5DC120BC-E2B4-454D-82ED-565E3A9A9C50} = {5DC120BC-E2B4-454D-82ED-565E3A9A9C50}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestSpooky", "3rd_party\SpookyHash\TestSpooky\TestSpooky.vcxproj", "{B5A17086-98F8-4BA8-8DA9-352399BCA4A5}"
 	ProjectSection(ProjectDependencies) = postProject
 		{5DC120BC-E2B4-454D-82ED-565E3A9A9C50} = {5DC120BC-E2B4-454D-82ED-565E3A9A9C50}
 	EndProjectSection
@@ -51,6 +56,14 @@ Global
 		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Release|x64.Build.0 = Release|x64
 		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Release|x86.ActiveCfg = Release|Win32
 		{B8B8490D-8614-4D11-9985-FAD365069DBC}.Release|x86.Build.0 = Release|Win32
+		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5}.Debug|x64.ActiveCfg = Debug|x64
+		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5}.Debug|x64.Build.0 = Debug|x64
+		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5}.Debug|x86.ActiveCfg = Debug|Win32
+		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5}.Debug|x86.Build.0 = Debug|Win32
+		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5}.Release|x64.ActiveCfg = Release|x64
+		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5}.Release|x64.Build.0 = Release|x64
+		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5}.Release|x86.ActiveCfg = Release|Win32
+		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -58,5 +71,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{4C3B130F-6923-4609-9279-AB64744A43C6} = {D6B5F646-9963-45EB-BEB9-A49106F00646}
 		{B8B8490D-8614-4D11-9985-FAD365069DBC} = {11E16777-7FA1-4633-8A5C-ACEA8097BB65}
+		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5} = {D6B5F646-9963-45EB-BEB9-A49106F00646}
 	EndGlobalSection
 EndGlobal
