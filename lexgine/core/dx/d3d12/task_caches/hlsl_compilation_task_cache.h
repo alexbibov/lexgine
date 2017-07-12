@@ -26,6 +26,8 @@ public:
     const_iterator begin() const;
     const_iterator end() const;
 
+    size_t size() const;
+
 private:
     std::list<tasks::HLSLCompilationTask> m_task_list;
 };

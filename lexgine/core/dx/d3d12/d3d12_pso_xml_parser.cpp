@@ -5,6 +5,7 @@
 #include "d3d12_pso_xml_parser.h"
 #include "d3d12_tools.h"
 #include "../../misc/template_argument_iterator.h"
+#include "../../concurrency/task_graph.h"
 
 #include "pugixml.hpp"
 
@@ -683,7 +684,31 @@ public:
 
     }
 
-    void parseAndAddToCompilationCacheShader(pugi::xml_node& node, char const* p_stage_name, bool is_obligatory_shader_stage, GraphicsPSODescriptorCacheEntry const& graphics_pso_cache_entry)
+    bool parseAndAddToCompilationCacheShader(pugi::xml_node& node, ComputePSODescriptorCacheEntry& compute_pso_descritptor_cache_entry)
+    {
+        auto shader_node = node.find_child([](pugi::xml_node& n) -> bool
+        {
+            return std::strcmp(n.name(), "ComputeShader") == 0;
+        });
+
+        if (shader_node.empty())
+        {
+            m_parent.raiseError(R"*(Error while parsing D3D12 PSO XML description from source ")*"
+                + m_parent.m_source_xml + R"*(": obligatory attribute ComputeShader is not found)*");
+            return false;
+        }
+
+        pugi::char_t const* shader_source_location = shader_node.child_value();
+        pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
+
+        m_parent.m_hlsl_compilation_task_cache.addTask(shader_source_location, compute_pso_descritptor_cache_entry.cache_name + "_"
+            + shader_source_location + "_CS" , tasks::ShaderType::compute, shader_entry_point_name,
+            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &compute_pso_descritptor_cache_entry, 1);
+
+        return true;
+    }
+
+    bool parseAndAddToCompilationCacheShader(pugi::xml_node& node, char const* p_stage_name, bool is_obligatory_shader_stage, GraphicsPSODescriptorCacheEntry& graphics_pso_descriptor_cache_entry)
     {
         // parse and attempt to compile vertex shader
         auto shader_node = node.find_child([p_stage_name](pugi::xml_node& n) -> bool
@@ -695,7 +720,7 @@ public:
         {
             m_parent.raiseError(R"*(Error while parsing D3D12 PSO XML description from source ")*"
                 + m_parent.m_source_xml + R"*(": obligatory attribute )*" + p_stage_name + " is not found");
-            return;
+            return false;
         }
 
         pugi::char_t const* shader_source_location = shader_node.child_value();
@@ -730,9 +755,11 @@ public:
 
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
 
-        m_parent.m_hlsl_compilation_task_cache.addTask(shader_source_location, graphics_pso_cache_entry.cache_name + "_"
+        m_parent.m_hlsl_compilation_task_cache.addTask(shader_source_location, graphics_pso_descriptor_cache_entry.cache_name + "_"
             + shader_source_location + "_" + compilation_task_suffix, shader_type, shader_entry_point_name,
-            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &graphics_pso_cache_entry, 1);
+            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &graphics_pso_descriptor_cache_entry, 1);
+
+        return true;
     }
 
     GraphicsPSODescriptorCacheEntry parseGraphicsPSO(pugi::xml_node& node)
@@ -750,11 +777,11 @@ public:
 
 
         // Retrieve shader stages
-        parseAndAddToCompilationCacheShader(node, "VertexShader", true, currently_assembled_pso_descriptor);
-        parseAndAddToCompilationCacheShader(node, "HullShader", false, currently_assembled_pso_descriptor);
-        parseAndAddToCompilationCacheShader(node, "DomainShader", false, currently_assembled_pso_descriptor);
-        parseAndAddToCompilationCacheShader(node, "GeometryShader", false, currently_assembled_pso_descriptor);
-        parseAndAddToCompilationCacheShader(node, "PixelShader", true, currently_assembled_pso_descriptor);
+        if (!parseAndAddToCompilationCacheShader(node, "VertexShader", true, currently_assembled_pso_descriptor)) return currently_assembled_pso_descriptor;
+        if (!parseAndAddToCompilationCacheShader(node, "HullShader", false, currently_assembled_pso_descriptor)) return currently_assembled_pso_descriptor;
+        if (!parseAndAddToCompilationCacheShader(node, "DomainShader", false, currently_assembled_pso_descriptor)) return currently_assembled_pso_descriptor;
+        if (!parseAndAddToCompilationCacheShader(node, "GeometryShader", false, currently_assembled_pso_descriptor)) return currently_assembled_pso_descriptor;
+        if (!parseAndAddToCompilationCacheShader(node, "PixelShader", true, currently_assembled_pso_descriptor)) return currently_assembled_pso_descriptor;
 
 
         // Read stream output descriptor if present
@@ -1087,6 +1114,9 @@ public:
     ComputePSODescriptorCacheEntry parseComputePSO(pugi::xml_node& node)
     {
         ComputePSODescriptorCacheEntry currently_assembled_pso_descriptor;
+        currently_assembled_pso_descriptor.cache_name = node.attribute("name").as_string(("GraphicsPSO_" + m_parent.getId().toString()).c_str());
+
+        parseAndAddToCompilationCacheShader(node, currently_assembled_pso_descriptor);
 
         return currently_assembled_pso_descriptor;
     }
@@ -1096,7 +1126,8 @@ private:
 };
 
 
-lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(std::string const& xml_source, bool deferred_shader_compilation, uint32_t node_mask) :
+lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::GlobalSettings const& global_settings, std::string const& xml_source, bool deferred_shader_compilation, uint32_t node_mask) :
+    m_global_settings{ global_settings },
     m_source_xml{ xml_source },
     m_deferred_shader_compilation{ deferred_shader_compilation },
     m_impl{ new impl{*this} }
@@ -1109,9 +1140,34 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(std::string const
         for (pugi::xml_node_iterator it : xml_doc)
         {
             if (std::strcmp(it->name(), "GraphicsPSO") == 0)
-                m_graphics_pso_descriptor_cache.emplace_back(m_impl->parseGraphicsPSO(*it));
+            {
+                GraphicsPSODescriptorCacheEntry entry = m_impl->parseGraphicsPSO(*it);
+                unsigned long index;
+                unsigned long node_index{ 0 };
+                for (unsigned long mask = node_mask; _BitScanForward(&index, mask); mask >>= index + 1, node_index += index + 1)
+                {
+                    GraphicsPSODescriptorCacheEntry dubbed_entry{ entry };
+                    dubbed_entry.cache_name += "_node" + std::to_string(node_index);
+                    dubbed_entry.descriptor.node_mask = 0x1 << node_index;
+
+                    m_graphics_pso_descriptor_cache.push_back(dubbed_entry);
+                }
+            }
+                
             else if (std::strcmp(it->name(), "ComputePSO") == 0)
-                m_compute_pso_descriptor_cache.emplace_back(m_impl->parseComputePSO(*it));
+            {
+                ComputePSODescriptorCacheEntry entry = m_impl->parseComputePSO(*it);
+                unsigned long index;
+                unsigned long node_index{ 0 };
+                for (unsigned long mask = node_mask; _BitScanForward(&index, mask); mask >>= index + 1, node_index += index + 1)
+                {
+                    ComputePSODescriptorCacheEntry dubbed_entry{ entry };
+                    dubbed_entry.cache_name += "_node" + std::to_string(node_index);
+                    dubbed_entry.descriptor.node_mask = 0x1 << node_index;
+
+                    m_compute_pso_descriptor_cache.push_back(dubbed_entry);
+                }
+            }
             else
             {
                 ErrorBehavioral::raiseError(std::string{ R"*(Unknown attribute ")*" }
@@ -1128,6 +1184,25 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(std::string const
             "Location: " + std::string{ xml_source.c_str() + parse_result.offset, std::min<size_t>(xml_source.size() - parse_result.offset, 80) - 1 }
         );
     }
+
+
+    if (m_deferred_shader_compilation)
+    {
+        std::list<concurrency::TaskGraphNode*> compilation_tasks{ m_hlsl_compilation_task_cache.size() };
+        std::transform(m_hlsl_compilation_task_cache.begin(), m_hlsl_compilation_task_cache.end(), compilation_tasks.begin(), 
+            [](tasks::HLSLCompilationTask& t) -> concurrency::TaskGraphNode*
+        {
+            return &t;
+        });
+        concurrency::TaskGraph shader_compilation_graph { compilation_tasks, m_global_settings.getNumberOfWorkers(), "deferred_shader_compilation_task_graph" };
+        
+        #ifdef _DEBUG
+        shader_compilation_graph.createDotRepresentation("deferred_shader_compilation_task_graph__" + getId().toString() + ".gv");
+        #endif
+
+        
+    }
+    
 }
 
 lexgine::core::dx::d3d12::D3D12PSOXMLParser::~D3D12PSOXMLParser() = default;

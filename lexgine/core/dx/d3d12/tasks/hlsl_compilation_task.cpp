@@ -15,10 +15,23 @@ HLSLCompilationTask::HLSLCompilationTask(std::string const& source, std::string 
     m_source_type{ source_type },
     m_p_target_pso_descriptors{ p_target_pso_descriptors },
     m_num_target_descriptors{ num_descriptors },
-    m_preprocessor_macro_definitions{ macro_definitions }
+    m_preprocessor_macro_definitions{ macro_definitions },
+    m_was_compilation_successful{ false },
+    m_compilation_log{ "" }
 {
+    Entity::setStringName(source_name);
 }
 
+
+bool HLSLCompilationTask::wasSuccessful() const
+{
+    return m_was_compilation_successful;
+}
+
+std::string HLSLCompilationTask::getCompilationLog() const
+{
+    return m_compilation_log;
+}
 
 bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 {
@@ -74,11 +87,13 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
     // if the call of D3DCompile(...) has failed this object then was set to erroneous state
     if (p_compilation_errors_blob)
     {
-        char const* p_compilation_error_message = static_cast<char const*>(p_compilation_errors_blob->GetBufferPointer());
-        misc::Log::retrieve()->out(p_compilation_error_message);  
+        m_compilation_log = std::string{ static_cast<char const*>(p_compilation_errors_blob->GetBufferPointer()) };
+        misc::Log::retrieve()->out(m_compilation_log);  
     }
     else
     {
+        m_was_compilation_successful = true;
+
         D3DDataBlob shader_bytecode{ Microsoft::WRL::ComPtr<ID3DBlob>{p_shader_bytecode_blob} };
 
         if (m_type == ShaderType::compute)

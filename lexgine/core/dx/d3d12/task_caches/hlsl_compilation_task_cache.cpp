@@ -26,3 +26,8 @@ HLSLCompilationTaskCache::const_iterator HLSLCompilationTaskCache::end() const
 {
     return m_task_list.end();
 }
+
+size_t lexgine::core::dx::d3d12::task_caches::HLSLCompilationTaskCache::size() const
+{
+    return m_task_list.size();
+}

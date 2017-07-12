@@ -39,6 +39,17 @@ public:
         void* p_target_pso_descriptors, uint32_t num_descriptors,
         std::list<HLSLMacroDefinition> const& macro_definitions = std::list<HLSLMacroDefinition>{});
 
+    /*! Returns 'true' if the compilation was successful, returns 'false' otherwise. Note that if task has not been attempted to 
+     execute the function will return false. During execution of the task the return value is undefined.
+    */
+    bool wasSuccessful() const;
+
+    /*! Returns compilation log string. If the compilation was successful or the task has not yet been executed returns empty string.
+     During execution of the task the return value is undefined.
+    */
+    std::string getCompilationLog() const;
+
+
 private:
     bool do_task(uint8_t worker_id, uint16_t frame_index) override;    //! performs actual compilation of the shader
     concurrency::TaskType get_task_type() const override;    //! returns type of this task (CPU)
@@ -51,6 +62,9 @@ private:
     void* m_p_target_pso_descriptors;
     uint32_t m_num_target_descriptors;
     std::list<HLSLMacroDefinition> m_preprocessor_macro_definitions;
+
+    bool m_was_compilation_successful;
+    std::string m_compilation_log;
 };
 
 }}}}}
