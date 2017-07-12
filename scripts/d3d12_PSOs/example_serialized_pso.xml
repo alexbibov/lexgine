@@ -379,3 +379,28 @@ In other words, one is allowed to use slots 0, 1, ..., N (N <= 7), but not slots
 <RenderTarget slot="1" format="DXGI_FORMAT_R16G16B16A16_FLOAT" />
 
 </GraphicsPSO>
+
+
+
+
+
+<!--
+This code snippet demonstrates compute pipeline state serialized to XML format. 
+This serialization is heavily tailored to Direct3D 12 data structures and serves
+as intermediate format between high level material definition language and 
+lower-level Direct3D rendering backend.
+-->
+
+<!--
+Each compute PSO has only single string attribute that defines user-friendly name of the PSO. Even this attribute is optional and if
+not provided the system will supply automatically generated value.
+-->
+<ComputePSO name="SampleComputePSO">
+
+<!--
+Compute PSOs must contain single ComputeShader declaration identifying compute routine assosiated with the PSO. If several declarations
+are provided, then similarly to graphics PSO shader declarations only the first one will be taken into account with the rest being silently disregarded.
+-->
+<ComputeShader entry="CS_main">sample.cs.hlsl</ComputeShader>
+
+</ComputePSO>
