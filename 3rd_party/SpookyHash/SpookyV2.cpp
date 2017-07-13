@@ -12,6 +12,8 @@
 #include <memory.h>
 #include "SpookyV2.h"
 
+using namespace spooky_hash_v2;
+
 #define ALLOW_UNALIGNED_READS 1
 
 //

@@ -279,6 +279,9 @@
     <ClInclude Include="..\3rd_party\SpookyHash\SpookyV2.h">
       <Filter>3rd_party\SpookyHash</Filter>
     </ClInclude>
+    <ClInclude Include="core\globals.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -424,6 +427,9 @@
     </ClCompile>
     <ClCompile Include="..\3rd_party\SpookyHash\SpookyV2.cpp">
       <Filter>3rd_party\SpookyHash</Filter>
+    </ClCompile>
+    <ClCompile Include="core\globals.cpp">
+      <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -1,0 +1,1 @@
+<Playlist Version="1.0"><Add Test="TestLogging::BasicTests::TestD3D12PSOXMLParser" /><Add Test="TestLogging::BasicTests::TestBasicLogging" /><Add Test="TestLogging::BasicTests::TestTaskGraphParser" /><Add Test="TestLogging::BasicTests::TestStaticHashTable" /><Add Test="TestLogging::BasicTests::TestConcurrency" /><Add Test="TestLogging::BasicTests::TestTaskScheuling" /></Playlist>

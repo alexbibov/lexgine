@@ -370,11 +370,23 @@ namespace TestSpooky
 
     public:
         
-        TEST_METHOD(TestSpookyHashV2)
+        TEST_METHOD(TestSpookyHashV2_Results)
         {
             TestResults();
+        }
+
+        TEST_METHOD(TestSpookyHashV2_Alignment)
+        {
             TestAlignment();
+        }
+
+        TEST_METHOD(TestSpookyHashV2_Pieces)
+        {
             TestPieces();
+        }
+
+        TEST_METHOD(TestSpookyHashV2_Deltas)
+        {
             TestDeltas(static_cast<int>(time(nullptr)));
         }
 

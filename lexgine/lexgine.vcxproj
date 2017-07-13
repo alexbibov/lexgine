@@ -169,6 +169,7 @@
     <ClCompile Include="core\error_behavioral.cpp" />
     <ClCompile Include="core\exception.cpp" />
     <ClCompile Include="core\filter.cpp" />
+    <ClCompile Include="core\globals.cpp" />
     <ClCompile Include="core\global_settings.cpp" />
     <ClCompile Include="core\math\rectangle.cpp" />
     <ClCompile Include="core\misc\datetime.cpp" />
@@ -230,6 +231,7 @@
     <ClInclude Include="core\error_behavioral.h" />
     <ClInclude Include="core\exception.h" />
     <ClInclude Include="core\filter.h" />
+    <ClInclude Include="core\globals.h" />
     <ClInclude Include="core\global_settings.h" />
     <ClInclude Include="core\math\matrix_types.h" />
     <ClInclude Include="core\math\rectangle.h" />
