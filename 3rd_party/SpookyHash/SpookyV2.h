@@ -26,6 +26,10 @@
 // slower than MD5.
 //
 
+
+#ifndef SPOOKY_HASH_V2_H
+#define SPOOKY_HASH_V2_H
+
 #include <cstdint>
 
 #ifdef _MSC_VER
@@ -291,3 +295,5 @@ private:
 
 
 }
+
+#endif

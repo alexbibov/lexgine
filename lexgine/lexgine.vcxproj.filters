@@ -282,6 +282,9 @@
     <ClInclude Include="core\globals.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="core\misc\hashed_string.h">
+      <Filter>core\misc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -430,6 +433,9 @@
     </ClCompile>
     <ClCompile Include="core\globals.cpp">
       <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\misc\hashed_string.cpp">
+      <Filter>core\misc</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

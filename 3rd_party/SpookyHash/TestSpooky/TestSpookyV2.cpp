@@ -14,7 +14,7 @@
 
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
-
+using namespace spooky_hash_v2;
 
 
 namespace TestSpooky

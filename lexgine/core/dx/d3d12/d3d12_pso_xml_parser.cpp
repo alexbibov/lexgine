@@ -6,6 +6,8 @@
 #include "d3d12_tools.h"
 #include "../../misc/template_argument_iterator.h"
 #include "../../concurrency/task_graph.h"
+#include "../../concurrency/task_sink.h"
+#include "../../global_settings.h"
 
 #include "pugixml.hpp"
 
@@ -1126,10 +1128,9 @@ private:
 };
 
 
-lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::GlobalSettings const& global_settings, std::string const& xml_source, bool deferred_shader_compilation, uint32_t node_mask) :
-    m_global_settings{ global_settings },
+lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals const& globals, std::string const& xml_source, bool deferred_shader_compilation, uint32_t node_mask) :
+    m_globals{ globals },
     m_source_xml{ xml_source },
-    m_deferred_shader_compilation{ deferred_shader_compilation },
     m_impl{ new impl{*this} }
 {
     pugi::xml_document xml_doc;
@@ -1186,7 +1187,9 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::GlobalSetti
     }
 
 
-    if (m_deferred_shader_compilation)
+
+    core::GlobalSettings const& global_settings = *m_globals.get<core::GlobalSettings>();
+    if (global_settings.deferredShaderCompilation())
     {
         std::list<concurrency::TaskGraphNode*> compilation_tasks{ m_hlsl_compilation_task_cache.size() };
         std::transform(m_hlsl_compilation_task_cache.begin(), m_hlsl_compilation_task_cache.end(), compilation_tasks.begin(), 
@@ -1194,7 +1197,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::GlobalSetti
         {
             return &t;
         });
-        concurrency::TaskGraph shader_compilation_graph { compilation_tasks, m_global_settings.getNumberOfWorkers(), "deferred_shader_compilation_task_graph" };
+        concurrency::TaskGraph shader_compilation_graph { compilation_tasks, global_settings.getNumberOfWorkers(), "deferred_shader_compilation_task_graph" };
         
         #ifdef _DEBUG
         shader_compilation_graph.createDotRepresentation("deferred_shader_compilation_task_graph__" + getId().toString() + ".gv");

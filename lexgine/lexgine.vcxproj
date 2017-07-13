@@ -173,6 +173,7 @@
     <ClCompile Include="core\global_settings.cpp" />
     <ClCompile Include="core\math\rectangle.cpp" />
     <ClCompile Include="core\misc\datetime.cpp" />
+    <ClCompile Include="core\misc\hashed_string.cpp" />
     <ClCompile Include="core\misc\log.cpp" />
     <ClCompile Include="core\misc\misc.cpp" />
     <ClCompile Include="core\multisampling.cpp" />
@@ -240,6 +241,7 @@
     <ClInclude Include="core\misc\constant_converter.h" />
     <ClInclude Include="core\misc\datetime.h" />
     <ClInclude Include="core\misc\flags.h" />
+    <ClInclude Include="core\misc\hashed_string.h" />
     <ClInclude Include="core\misc\log.h" />
     <ClInclude Include="core\misc\misc.h" />
     <ClInclude Include="core\misc\optional.h" />
