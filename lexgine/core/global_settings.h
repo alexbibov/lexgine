@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_GLOBAL_SETTINGS_H
+#define LEXGINE_CORE_GLOBAL_SETTINGS_H
 
 #include <cstdint>
 
@@ -13,6 +14,7 @@ private:
     static GlobalSettings* m_p_self;
 
     uint8_t m_number_of_workers = 8U;
+    bool m_deferred_shader_compilation = true;
 
 
     GlobalSettings();
@@ -29,9 +31,10 @@ public:
     static void destroy();
 
     uint8_t getNumberOfWorkers() const;
+
+    bool deferredShaderCompilation() const;
 };
 
 }}
 
-#define LEXGINE_CORE_GLOBAL_SETTINGS_H
 #endif

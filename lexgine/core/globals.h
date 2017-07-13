@@ -4,7 +4,8 @@
 #include <string>
 #include <memory>
 
-#include "../../../3rd_party/SpookyHash/SpookyV2.h"
+#include "../../3rd_party/SpookyHash/SpookyV2.h"
+#include "misc/hashed_string.h"
 
 
 namespace lexgine { namespace core {
@@ -12,28 +13,19 @@ namespace lexgine { namespace core {
 class Globals
 {
 private:
+    using global_object_pool_type = std::map<misc::HashedString, void*>;
 
-    class StringAndHash
-    {
-    private:
-        std::string m_string;
-        uint64_t m_hash;
 
-    public:
-        StringAndHash(spooky_hash_v2::SpookyHash& hash_generator, uint64_t seed, std::string const& str);
-
-        bool operator<=(StringAndHash const& other) const;
-        bool operator==(StringAndHash const& other) const;
-    };
-
-    class impl;
-
-    
-    std::unique_ptr<impl> m_impl;
+private:
 
     static Globals* m_p_self;
-    std::map<StringAndHash, void*> m_global_object_pool;
+    global_object_pool_type m_global_object_pool;
 
+    spooky_hash_v2::SpookyHash m_spooky_hash_generator;
+    unsigned long long m_hash_seed;
+
+
+private:
 
     Globals();
 
@@ -44,8 +36,12 @@ private:
     Globals& operator=(Globals&&) = delete;
 
 
-    void* get(char const* object_type_name, void* p_object);
-    void const* get(char const* object_type_name) const;
+    void* find(misc::HashedString const& hashed_name);
+    void const* find(misc::HashedString const& hashed_name) const;
+
+    bool put(misc::HashedString const& hashed_name, void* p_object);
+
+    misc::HashedString attachHasToString(std::string const& str);
 
 
 public:
@@ -59,13 +55,32 @@ public:
     template<typename T>
     T* get()
     {
-        return static_cast<T*>(get(typeid(T).name()));
+        misc::HashedString hashed_type_name{ attachHasToString(typeid(T).name()) };
+        void* rv{ nullptr };
+
+        if ((rv = find(hashed_type_name)))
+            return static_cast<T*>(rv);
+        
+        rv = new T{};
+        put(hashed_type_name, rv);
+        return rv;
     }
 
     template<typename T>
     T const* get() const
     {
-        return static_cast<T const*>(get(typeid(T).name()));
+        misc::HashedString hashed_type_name{ attachHasToString(typeid(T).name()) };
+        void const* rv = find(hashed_type_name);
+        assert(rv);
+
+        return static_cast<T const*>(rv);
+    }
+
+    template<typename T>
+    bool put(T* obj)
+    {
+        misc::HashedString hashed_type_name{ attachHasToString(typeid(T).name()) };
+        return put(hashed_type_name, obj);
     }
 };
 

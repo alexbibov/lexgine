@@ -30,3 +30,8 @@ uint8_t GlobalSettings::getNumberOfWorkers() const
 {
     return m_number_of_workers;
 }
+
+bool GlobalSettings::deferredShaderCompilation() const
+{
+    return m_deferred_shader_compilation;
+}
