@@ -86,7 +86,7 @@ public:
     void defineGlobalSettings(GlobalSettings const& global_settings);
     void registerThreadLog(uint8_t worker_id, std::ostream* logging_output_stream);
 
-    Globals build() const;
+    Globals build();
 };
 
 

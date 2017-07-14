@@ -533,11 +533,25 @@ public:
 
             MainGlobalsBuilder globals_builder;
             GlobalSettings global_settings;
-            
+            globals_builder.defineGlobalSettings(global_settings);
+
+            std::vector<std::ofstream*> output_logs;
+
+            for (uint8_t wid = 0; wid < global_settings.getNumberOfWorkers(); ++wid)
+            {
+                output_logs.push_back(new std::ofstream{ (std::string{"worker"} +std::to_string(wid) + "_log.log").c_str() });
+
+                globals_builder.registerThreadLog(wid, output_logs.back());
+            }
+
+            Globals globals = globals_builder.build();
+
             {
                 auto content = readAsciiTextFromSourceFile("../../scripts/d3d12_PSOs/example_serialized_pso.xml");
                 D3D12PSOXMLParser xml_parser{ globals, content };
             }
+
+            for (uint8_t wid = 0; wid < global_settings.getNumberOfWorkers(); ++wid) { delete output_logs[wid]; }
 
             Log::shutdown();
         }

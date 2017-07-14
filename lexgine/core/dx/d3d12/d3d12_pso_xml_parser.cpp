@@ -1188,7 +1188,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals con
 
 
     core::GlobalSettings const& global_settings = *m_globals.get<core::GlobalSettings>();
-    if (global_settings.deferredShaderCompilation())
+    if (global_settings.isDeferredShaderCompilationOn())
     {
         std::list<concurrency::TaskGraphNode*> compilation_tasks{ m_hlsl_compilation_task_cache.size() };
         std::transform(m_hlsl_compilation_task_cache.begin(), m_hlsl_compilation_task_cache.end(), compilation_tasks.begin(), 
@@ -1201,6 +1201,13 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals con
         #ifdef _DEBUG
         shader_compilation_graph.createDotRepresentation("deferred_shader_compilation_task_graph__" + getId().toString() + ".gv");
         #endif
+
+        
+        std::vector<std::ostream*> worker_log_streams = *m_globals.get<std::vector<std::ostream*>>();
+
+        concurrency::TaskSink task_sink{ shader_compilation_graph, worker_log_streams, 1, "shader_compilation_task_sink_" + getId().toString() };
+        task_sink.run();
+        task_sink.dispatchExitSignal();
 
         
     }

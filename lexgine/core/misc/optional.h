@@ -53,6 +53,8 @@ public:
     {
         m_value = value;
         m_is_valid = true;
+
+        return *this;
     }
 
     //! Moves value to the wrapper
@@ -60,6 +62,8 @@ public:
     {
         m_value = std::move(value);
         m_is_valid = true;
+
+        return *this;
     }
 
     //! Invalidates wrapper

@@ -41,10 +41,10 @@ void MainGlobalsBuilder::registerThreadLog(uint8_t worker_id, std::ostream* logg
     m_thread_logs[worker_id] = logging_output_stream;
 }
 
-Globals lexgine::core::MainGlobalsBuilder::build() const
+Globals lexgine::core::MainGlobalsBuilder::build()
 {
     Globals rv;
-    GlobalSettings const& global_settings = static_cast<GlobalSettings const&>(m_global_settings);
+    GlobalSettings& global_settings = static_cast<GlobalSettings&>(m_global_settings);
     rv.put(&global_settings);
     rv.put(&m_thread_logs);
 
