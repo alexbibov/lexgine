@@ -1,23 +1,10 @@
 #include "globals.h"
 
-#include <chrono>
+#include <cassert>
 
 using namespace lexgine::core;
 
 
-
-Globals* Globals::m_p_self{ nullptr };
-
-
-Globals::Globals()
-{
-    unsigned long long seed1 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-    unsigned long long seed2 = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-    seed2 = (seed2 << 32) | (seed2 >> 32);
-    m_hash_seed = ((seed1 << 16) | (seed1 >> 48)) + seed2;
-
-    m_spooky_hash_generator.Init(seed1, seed2);
-}
 
 void* Globals::find(misc::HashedString const& hashed_name)
 {
@@ -37,26 +24,29 @@ bool Globals::put(misc::HashedString const& hashed_name, void* p_object)
     return m_global_object_pool.insert(std::make_pair(hashed_name, p_object)).second;
 }
 
-misc::HashedString Globals::attachHasToString(std::string const& str)
+
+
+
+void MainGlobalsBuilder::defineGlobalSettings(GlobalSettings const& global_settings)
 {
-    return misc::HashedString{ m_spooky_hash_generator, m_hash_seed, str };
+    m_global_settings = global_settings;
+    m_thread_logs.resize(global_settings.getNumberOfWorkers());
 }
 
-Globals::~Globals() = default;
-
-Globals* Globals::create()
+void MainGlobalsBuilder::registerThreadLog(uint8_t worker_id, std::ostream* logging_output_stream)
 {
-    if (!m_p_self) m_p_self = new Globals{};
-    return m_p_self;
+    assert(m_global_settings.isValid());
+    assert(worker_id < static_cast<GlobalSettings&>(m_global_settings).getNumberOfWorkers());
+
+    m_thread_logs[worker_id] = logging_output_stream;
 }
 
-void Globals::destroy()
+Globals lexgine::core::MainGlobalsBuilder::build() const
 {
-    if (m_p_self)
-    {
-        delete m_p_self;
-        m_p_self = nullptr;
-    }
+    Globals rv;
+    GlobalSettings const& global_settings = static_cast<GlobalSettings const&>(m_global_settings);
+    rv.put(&global_settings);
+    rv.put(&m_thread_logs);
+
+    return rv;
 }
-
-

@@ -4,11 +4,25 @@ using namespace lexgine::core::misc;
 
 
 
-HashedString::HashedString(spooky_hash_v2::SpookyHash& hash_generator, uint64_t seed, std::string const& str) :
-    m_string{ str },
-    m_hash{ hash_generator.Hash64(str.c_str(), str.length(), seed) }
-{
+thread_local spooky_hash_v2::SpookyHash HashedString::m_hash_generator{};
 
+
+HashedString::HashedString() : 
+    m_string{ "" }
+{
+    if (!m_hash_generator.IsInitialized())
+        m_hash_generator.Init(m_seed1, m_seed2);
+
+    m_hash = m_hash_generator.Hash64(m_string.c_str(), m_string.length(), m_seed3);
+}
+
+HashedString::HashedString(std::string const& str):
+    m_string{ str }
+{
+    if (!m_hash_generator.IsInitialized())
+        m_hash_generator.Init(m_seed1, m_seed2);
+
+    m_hash = m_hash_generator.Hash64(m_string.c_str(), m_string.length(), m_seed3);
 }
 
 bool HashedString::operator<(HashedString const& other) const

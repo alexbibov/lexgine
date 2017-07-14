@@ -76,6 +76,19 @@ public:
         else throw std::logic_error{ "Attempt to dereference invalid Optional type" };
     }
 
+    //! Converts wrapper type to reference to the wrapped value
+    operator T const&() const noexcept(false)
+    {
+        return const_cast<Optional<T>*>(this)->operator T&();
+    }
+
+    //! Converts wrapper type to reference to the wrapped value
+    operator T&() noexcept(false)
+    {
+        if (m_is_valid) return m_value;
+        else throw std::logic_error{ "Attempt to dereference invalid Optional type" };
+    }
+
     //! Allows to convert any type to an Optional<> object wrapping it
     template<typename V>
     operator Optional<V>() const

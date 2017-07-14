@@ -7,7 +7,6 @@
 #include "../../misc/template_argument_iterator.h"
 #include "../../concurrency/task_graph.h"
 #include "../../concurrency/task_sink.h"
-#include "../../global_settings.h"
 
 #include "pugixml.hpp"
 
