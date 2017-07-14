@@ -255,6 +255,13 @@ public:
         h1 ^= h0;  h0 = Rot64(h0, 63);  h1 += h0;
     }
 
+
+    //
+    // Returns "true" if the hash generator has been already initialized.
+    // Returns "false" otherwise
+    //
+    bool IsInitialized() const;
+
 private:
 
     //
@@ -291,6 +298,7 @@ private:
     uint64_t m_state[sc_numVars];  // internal state of the hash
     size_t m_length;             // total length of the input so far
     uint8_t  m_remainder;          // length of unhashed data stashed in m_data
+    bool m_is_initialized = false;    // tells if the hash generator has already been initialized
 };
 
 

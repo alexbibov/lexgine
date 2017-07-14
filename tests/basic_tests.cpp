@@ -530,15 +530,16 @@ public:
 
             std::ofstream test_d3d12_pso_xml_parser_log{ "TestD3D12PSOXMLParserLog.txt" };
             Log::create(test_d3d12_pso_xml_parser_log, 2, false);
-            GlobalSettings* globals = GlobalSettings::initialize();
+
+            MainGlobalsBuilder globals_builder;
+            GlobalSettings global_settings;
             
             {
                 auto content = readAsciiTextFromSourceFile("../../scripts/d3d12_PSOs/example_serialized_pso.xml");
-                D3D12PSOXMLParser xml_parser{ *globals, content };
+                D3D12PSOXMLParser xml_parser{ globals, content };
             }
 
             Log::shutdown();
-            GlobalSettings::destroy();
         }
 
     };

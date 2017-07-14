@@ -16,6 +16,7 @@ using namespace spooky_hash_v2;
 
 #define ALLOW_UNALIGNED_READS 1
 
+
 //
 // short hash ... it could be used on any message, 
 // but it's used by Spooky just for short messages.
@@ -196,6 +197,8 @@ void SpookyHash::Init(uint64_t seed1, uint64_t seed2)
     m_remainder = 0;
     m_state[0] = seed1;
     m_state[1] = seed2;
+
+    m_is_initialized = true;
 }
 
 
@@ -349,5 +352,10 @@ void SpookyHash::Final(uint64_t *hash1, uint64_t *hash2)
 
     *hash1 = h0;
     *hash2 = h1;
+}
+
+bool spooky_hash_v2::SpookyHash::IsInitialized() const
+{
+    return m_is_initialized;
 }
 
