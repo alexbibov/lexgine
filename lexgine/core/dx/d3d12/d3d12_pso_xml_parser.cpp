@@ -1321,3 +1321,33 @@ void D3D12PSOXMLParser::waitUntilShadersAreCompiled() const
 {
     while (!isCompleted());
 }
+
+D3D12PSOXMLParser::const_graphics_pso_descriptor_iterator D3D12PSOXMLParser::getFirstGraphicsPSOIterator() const
+{
+    return m_graphics_pso_descriptor_cache.begin();
+}
+
+D3D12PSOXMLParser::const_graphics_pso_descriptor_iterator D3D12PSOXMLParser::getLastGraphicsPSOIterator() const
+{
+    return m_graphics_pso_descriptor_cache.end();
+}
+
+D3D12PSOXMLParser::const_compute_pso_descriptor_iterator D3D12PSOXMLParser::getFirstComputePSOIterator() const
+{
+    return m_compute_pso_descriptor_cache.begin();
+}
+
+D3D12PSOXMLParser::const_compute_pso_descriptor_iterator D3D12PSOXMLParser::getLastComputePSOIterator() const
+{
+    return m_compute_pso_descriptor_cache.end();
+}
+
+size_t D3D12PSOXMLParser::getNumberOfParsedGraphicsPSOs() const
+{
+    return m_graphics_pso_descriptor_cache.size();
+}
+
+size_t D3D12PSOXMLParser::getNumberOfParsedComputePSOs() const
+{
+    return m_compute_pso_descriptor_cache.size();
+}
