@@ -65,10 +65,10 @@ public:
 
 
     //! returns total amount of parsed graphics PSO descriptors
-    uint32_t getNumberOfParsedGraphicsPSOs() const;
+    size_t getNumberOfParsedGraphicsPSOs() const;
 
     //! returns total amount of parsed computed PSO descriptors
-    uint32_t getNumberOfParsedComputePSOs() const;
+    size_t getNumberOfParsedComputePSOs() const;
 
 private:
     class impl;
