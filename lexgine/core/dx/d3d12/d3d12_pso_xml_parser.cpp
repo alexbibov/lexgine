@@ -7,6 +7,7 @@
 #include "../../misc/template_argument_iterator.h"
 #include "../../concurrency/task_graph.h"
 #include "../../concurrency/task_sink.h"
+#include "../../exception.h"
 
 #include "pugixml.hpp"
 
@@ -1122,8 +1123,55 @@ public:
         return currently_assembled_pso_descriptor;
     }
 
+
 private:
     D3D12PSOXMLParser& m_parent;
+
+
+private:
+
+    class DeferredShaderCompilationExitTask : public concurrency::SchedulableTask
+    {
+    public:
+
+        DeferredShaderCompilationExitTask() : SchedulableTask{ "deferred_shader_compilation_task_graph_exit_op" }
+        {
+
+        }
+
+        void setIntput(concurrency::TaskSink* p_sink)
+        {
+            m_sink = p_sink;
+        }
+
+
+    private:
+
+        concurrency::TaskSink* m_sink;
+
+
+    private:
+
+        bool do_task(uint8_t /* worker_id */, uint16_t /* frame_index */) override
+        {
+            m_sink->dispatchExitSignal();
+            return true;
+        }
+
+        concurrency::TaskType get_task_type() const override
+        {
+            return concurrency::TaskType::cpu;
+        }
+
+    }m_deferred_shader_compilation_exit_task;
+
+
+public:
+
+    DeferredShaderCompilationExitTask* deferredShaderCompilationExitTask()
+    {
+        return &m_deferred_shader_compilation_exit_task;
+    }
 };
 
 
@@ -1191,11 +1239,19 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals con
     if (global_settings.isDeferredShaderCompilationOn())
     {
         std::list<concurrency::TaskGraphNode*> compilation_tasks{ m_hlsl_compilation_task_cache.size() };
-        std::transform(m_hlsl_compilation_task_cache.begin(), m_hlsl_compilation_task_cache.end(), compilation_tasks.begin(), 
+        std::transform(m_hlsl_compilation_task_cache.begin(), m_hlsl_compilation_task_cache.end(), compilation_tasks.begin(),
             [](tasks::HLSLCompilationTask& t) -> concurrency::TaskGraphNode*
         {
             return &t;
         });
+
+
+        for (auto node : compilation_tasks)
+        {
+            node->addDependent(*m_impl->deferredShaderCompilationExitTask());
+        }
+
+
         concurrency::TaskGraph shader_compilation_graph { compilation_tasks, global_settings.getNumberOfWorkers(), "deferred_shader_compilation_task_graph" };
         
         #ifdef _DEBUG
@@ -1206,12 +1262,28 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals con
         std::vector<std::ostream*> worker_log_streams = *m_globals.get<std::vector<std::ostream*>>();
 
         concurrency::TaskSink task_sink{ shader_compilation_graph, worker_log_streams, 1, "shader_compilation_task_sink_" + getId().toString() };
-        task_sink.run();
-        task_sink.dispatchExitSignal();
 
+        try
+        {
+            task_sink.run();
+        }
+        catch (core::Exception& e)
+        {
+            throw core::Exception{ *this, "Unable to create PSO descriptors from XML source due to shader compilation error(s) (" + e.description() + "). See logs for further details" };
+        }
         
     }
     
 }
 
-lexgine::core::dx::d3d12::D3D12PSOXMLParser::~D3D12PSOXMLParser() = default;
+D3D12PSOXMLParser::~D3D12PSOXMLParser() = default;
+
+bool D3D12PSOXMLParser::isCompleted() const
+{
+    return m_impl->deferredShaderCompilationExitTask()->isCompleted();
+}
+
+void D3D12PSOXMLParser::waitUntilShadersAreCompiled() const
+{
+    while (!isCompleted());
+}

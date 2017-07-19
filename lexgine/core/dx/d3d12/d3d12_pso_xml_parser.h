@@ -34,11 +34,6 @@ public:
     using const_graphics_pso_descriptor_iterator = std::list<GraphicsPSODescriptorCacheEntry>::const_iterator;
     using const_compute_pso_descriptor_iterator = std::list<ComputePSODescriptorCacheEntry>::const_iterator;
 
-    struct ShaderCompilationInfo
-    {
-
-    };
-
 
     /*! Constructs the parser and immediately parses provided sources
      constructing related PSO description structures. 
@@ -52,13 +47,8 @@ public:
     //! returns 'true' if PSO parsing and related shader compilation has been completed. Returns 'false' otherwise
     bool isCompleted() const;
 
-    /*! blocks calling thread until compilation of all shaders is completed. Returns 'true' if the shaders were compiled successfully.
-     Returns 'false' otherwise. Call getShaderCompilationInfo() to retrieve more information about compilation errors.
-    */
-    bool waitUntilShadersAreCompiled() const;
-
-    //! Retrieves detailed information about shader compilation process
-    ShaderCompilationInfo getShaderCompilationInfo() const;
+    // blocks calling thread until compilation of all shaders is completed
+    void waitUntilShadersAreCompiled() const;
 
     //! returns iterator pointing at the first parsed graphics PSO description
     const_graphics_pso_descriptor_iterator getFirstGraphicsPSOIterator() const;

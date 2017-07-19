@@ -30,7 +30,7 @@ public:
     AbstractTask(std::string const& debug_name = "", bool expose_in_task_graph = true);
     AbstractTask(AbstractTask const&) = delete;
     AbstractTask(AbstractTask&&) = delete;
-    ~AbstractTask() = default;
+    virtual ~AbstractTask() = default;
     AbstractTask& operator=(AbstractTask const&) = delete;
     AbstractTask& operator=(AbstractTask&&) = delete;
 
