@@ -33,6 +33,11 @@ std::string HLSLCompilationTask::getCompilationLog() const
     return m_compilation_log;
 }
 
+bool HLSLCompilationTask::execute(uint8_t worker_id)
+{
+    return do_task(worker_id, 0);
+}
+
 bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 {
     ShaderSourceCodePreprocessor shader_preprocessor{ m_source, m_source_type };

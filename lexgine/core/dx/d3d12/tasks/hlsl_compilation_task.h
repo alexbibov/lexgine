@@ -50,6 +50,10 @@ public:
     std::string getCompilationLog() const;
 
 
+    // Executed the task manually
+    bool execute(uint8_t worker_id);
+
+
 private:
     bool do_task(uint8_t worker_id, uint16_t frame_index) override;    //! performs actual compilation of the shader
     concurrency::TaskType get_task_type() const override;    //! returns type of this task (CPU)
