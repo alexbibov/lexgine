@@ -35,7 +35,15 @@ std::string HLSLCompilationTask::getCompilationLog() const
 
 bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 {
-    std::string processed_sader_source{ ShaderSourceCodePreprocessor{ m_source, m_source_type }.getPreprocessedSource() };
+    ShaderSourceCodePreprocessor shader_preprocessor{ m_source, m_source_type };
+
+    if (shader_preprocessor.getErrorState())
+    {
+        raiseError("Unable to process shader source");
+        return true;
+    }
+
+    std::string processed_sader_source{ shader_preprocessor.getPreprocessedSource() };
 
     D3D_SHADER_MACRO* macro_definitions = new D3D_SHADER_MACRO[m_preprocessor_macro_definitions.size()];
     uint32_t i;

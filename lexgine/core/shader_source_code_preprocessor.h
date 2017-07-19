@@ -2,12 +2,15 @@
 
 #include <string>
 
+#include "entity.h"
+#include "class_names.h"
+
 namespace lexgine {namespace core {
 
 /*! Implements preprocessing of shader source code, which does not depend on the shading language
  This API is OS-agnostic
 */
-class ShaderSourceCodePreprocessor
+class ShaderSourceCodePreprocessor : public NamedEntity<class_names::ShaderSourceCodePreprocessor>
 {
 public:
 
@@ -21,13 +24,22 @@ public:
     */
     ShaderSourceCodePreprocessor(std::string const& source, SourceType source_type);
 
+    ~ShaderSourceCodePreprocessor();
 
     char const* getPreprocessedSource() const;    //! returns string containing preprocessed shader source code
 
 
 private:
+
     std::string m_shader_source;    //!< contains original shader source code
     std::string m_preprocessed_shader_source;    //!< contains preprocessed shader source code
+
+
+private:
+
+    class impl;
+
+    std::unique_ptr<impl> m_impl;    //!< conceals implementation details
 };
 
 }}

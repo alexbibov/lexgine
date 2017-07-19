@@ -32,7 +32,7 @@ public:
     TaskGraphNode& operator=(TaskGraphNode const&) = delete;
     TaskGraphNode& operator=(TaskGraphNode&&) = default;
 
-    ~TaskGraphNode() = default;
+    virtual ~TaskGraphNode() = default;
 
     /*! executes the task assigned to this node. This function returns 'true' if execution of the task has been 
      completed and the task is allowed to be removed from the execution queue. If the task has been rescheduled for

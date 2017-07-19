@@ -40,3 +40,6 @@
 *.VC.VC.opendb
 *.sdf
 *.suo
+
+# Auxiliary files
+*.pdf

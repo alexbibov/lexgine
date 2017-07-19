@@ -9,11 +9,13 @@
 #include "misc/hashed_string.h"
 #include "misc/optional.h"
 #include "global_settings.h"
+#include "entity.h"
+#include "class_names.h"
 
 
 namespace lexgine { namespace core {
 
-class Globals
+class Globals : NamedEntity<class_names::Globals>
 {
 private:
     
