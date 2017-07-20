@@ -532,7 +532,8 @@ public:
             Log::create(test_d3d12_pso_xml_parser_log, 2, false);
 
             MainGlobalsBuilder globals_builder;
-            GlobalSettings global_settings;
+            GlobalSettings global_settings{ "../../settings/global_settings.json" };
+            global_settings.serialize("test_global_settings.json");    // test serialization of the global settings
             globals_builder.defineGlobalSettings(global_settings);
 
             std::vector<std::ofstream*> output_logs;
