@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.26430.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lexgine", "lexgine\lexgine.vcxproj", "{5DC120BC-E2B4-454D-82ED-565E3A9A9C50}"
+	ProjectSection(ProjectDependencies) = postProject
+		{36F390F1-9DBA-4785-9B15-046B6C761258} = {36F390F1-9DBA-4785-9B15-046B6C761258}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "demos", "demos", "{11E16777-7FA1-4633-8A5C-ACEA8097BB65}"
 EndProject
@@ -23,6 +26,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestSpooky", "3rd_party\Spo
 	ProjectSection(ProjectDependencies) = postProject
 		{5DC120BC-E2B4-454D-82ED-565E3A9A9C50} = {5DC120BC-E2B4-454D-82ED-565E3A9A9C50}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lua", "3rd_party\lua\lua.vcxproj", "{36F390F1-9DBA-4785-9B15-046B6C761258}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -64,6 +69,14 @@ Global
 		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5}.Release|x64.Build.0 = Release|x64
 		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5}.Release|x86.ActiveCfg = Release|Win32
 		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5}.Release|x86.Build.0 = Release|Win32
+		{36F390F1-9DBA-4785-9B15-046B6C761258}.Debug|x64.ActiveCfg = Debug|x64
+		{36F390F1-9DBA-4785-9B15-046B6C761258}.Debug|x64.Build.0 = Debug|x64
+		{36F390F1-9DBA-4785-9B15-046B6C761258}.Debug|x86.ActiveCfg = Debug|Win32
+		{36F390F1-9DBA-4785-9B15-046B6C761258}.Debug|x86.Build.0 = Debug|Win32
+		{36F390F1-9DBA-4785-9B15-046B6C761258}.Release|x64.ActiveCfg = Release|x64
+		{36F390F1-9DBA-4785-9B15-046B6C761258}.Release|x64.Build.0 = Release|x64
+		{36F390F1-9DBA-4785-9B15-046B6C761258}.Release|x86.ActiveCfg = Release|Win32
+		{36F390F1-9DBA-4785-9B15-046B6C761258}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
