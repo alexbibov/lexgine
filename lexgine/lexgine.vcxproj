@@ -151,6 +151,10 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\3rd_party\imgui\extra_fonts\binary_to_compressed_c.cpp" />
+    <ClCompile Include="..\3rd_party\imgui\imgui.cpp" />
+    <ClCompile Include="..\3rd_party\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\3rd_party\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\3rd_party\pugixml\src\pugixml.cpp" />
     <ClCompile Include="..\3rd_party\SpookyHash\SpookyV2.cpp" />
     <ClCompile Include="core\blend_descriptor.cpp" />
@@ -204,6 +208,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\3rd_party\half\half.h" />
+    <ClInclude Include="..\3rd_party\imgui\imconfig.h" />
+    <ClInclude Include="..\3rd_party\imgui\imgui.h" />
+    <ClInclude Include="..\3rd_party\imgui\imgui_internal.h" />
+    <ClInclude Include="..\3rd_party\imgui\stb_rect_pack.h" />
+    <ClInclude Include="..\3rd_party\imgui\stb_textedit.h" />
+    <ClInclude Include="..\3rd_party\imgui\stb_truetype.h" />
     <ClInclude Include="..\3rd_party\pugixml\src\pugiconfig.hpp" />
     <ClInclude Include="..\3rd_party\pugixml\src\pugixml.hpp" />
     <ClInclude Include="..\3rd_party\rapidjson\allocators.h" />
