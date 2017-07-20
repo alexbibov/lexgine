@@ -40,6 +40,8 @@
 *.VC.VC.opendb
 *.sdf
 *.suo
+TestResults/*
+TestLogging/*
 
 # Auxiliary files
 *.pdf

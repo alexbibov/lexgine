@@ -1,0 +1,4 @@
+{
+    "number_of_workers" : 8,
+    "deferred_shader_compilation" : true
+}
