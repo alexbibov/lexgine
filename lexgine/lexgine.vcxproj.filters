@@ -73,6 +73,9 @@
     <Filter Include="3rd_party\rapidjson\msinttypes">
       <UniqueIdentifier>{a1dd1460-a2f9-47d5-a381-d956ae56ca75}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd_party\imgui">
+      <UniqueIdentifier>{df9bd2a9-debf-4cd5-949c-e0057e17bdd6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="osinteraction\keyboard.h">
@@ -408,6 +411,24 @@
     <ClInclude Include="..\3rd_party\rapidjson\msinttypes\stdint.h">
       <Filter>3rd_party\rapidjson\msinttypes</Filter>
     </ClInclude>
+    <ClInclude Include="..\3rd_party\imgui\imconfig.h">
+      <Filter>3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\imgui\imgui.h">
+      <Filter>3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\imgui\imgui_internal.h">
+      <Filter>3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\imgui\stb_rect_pack.h">
+      <Filter>3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\imgui\stb_textedit.h">
+      <Filter>3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\imgui\stb_truetype.h">
+      <Filter>3rd_party\imgui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -559,6 +580,18 @@
     </ClCompile>
     <ClCompile Include="core\misc\hashed_string.cpp">
       <Filter>core\misc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\3rd_party\imgui\imgui.cpp">
+      <Filter>3rd_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\3rd_party\imgui\imgui_demo.cpp">
+      <Filter>3rd_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\3rd_party\imgui\imgui_draw.cpp">
+      <Filter>3rd_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\3rd_party\imgui\extra_fonts\binary_to_compressed_c.cpp">
+      <Filter>3rd_party\imgui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
