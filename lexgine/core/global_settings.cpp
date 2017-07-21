@@ -4,6 +4,7 @@
 #include "../../3rd_party/rapidjson/writer.h"
 #include "misc/misc.h"
 #include "misc/log.h"
+#include "initializer.h"
 
 #include <fstream>
 
@@ -55,6 +56,29 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         m_deferred_shader_compilation = document["deferred_shader_compilation"].GetBool();
     }
 
+    if (!document["shader_lookup_directories"].IsNull())
+    {
+        if (!document["shader_lookup_directories"].IsArray())
+        {
+            misc::Log::retrieve()->out("WARNING: unable to get value for \"shader_lookup_directories\" from settings file located at \""
+                + json_settings_source_path + "\"shader_lookup_directories\" is expected to be an array of strings but turned out to have different format."
+                " The system will search for shaders in the current working directory");
+            return;
+        }
+
+        for (auto& e : document["shader_lookup_directory"].GetArray())
+        {
+            if (!e.IsString())
+            {
+                misc::Log::retrieve()->out("WARNING: unable to get value for \"shader_lookup_directories\" from settings file located at \""
+                    + json_settings_source_path + "\"shader_lookup_directories\" is expected to be an array of strings but some of its elements look like they have a non-string format.");
+                return;
+            }
+
+            m_shader_lookup_directories.push_back(e.GetString());
+        }
+    }
+
 }
 
 void GlobalSettings::serialize(std::string const& json_serialization_path) const
@@ -73,6 +97,16 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
     w.Uint(m_number_of_workers);
     w.Key("deferred_shader_compilation");
     w.Bool(m_deferred_shader_compilation);
+    if (m_shader_lookup_directories.size())
+    {
+        w.Key("shader_lookup_directories");
+        w.StartArray();
+        for (auto& e : m_shader_lookup_directories)
+        {
+            w.String(e.c_str(), static_cast<SizeType>(e.length()), true);
+        }
+        w.EndArray();
+    }
     w.EndObject();
 
     ofile.close();
@@ -86,4 +120,45 @@ uint8_t GlobalSettings::getNumberOfWorkers() const
 bool GlobalSettings::isDeferredShaderCompilationOn() const
 {
     return m_deferred_shader_compilation;
+}
+
+std::vector<std::string> const& GlobalSettings::getShaderLookupDirectories() const
+{
+    return m_shader_lookup_directories;
+}
+
+bool lexgine::core::GlobalSettings::setNumberOfWorkers(uint8_t num_workers)
+{
+    if (Initializer::isRendererInitialized())
+        return false;
+
+    m_number_of_workers = num_workers;
+    return true;
+}
+
+bool GlobalSettings::setIsDeferredShaderCompilationOn(bool is_enabled)
+{
+    if (Initializer::isRendererInitialized())
+        return false;
+
+    m_deferred_shader_compilation = is_enabled;
+    return true;
+}
+
+bool GlobalSettings::addShaderLookupDirectory(std::string const & path)
+{
+    if (Initializer::isRendererInitialized())
+        return false;
+
+    m_shader_lookup_directories.push_back(path);
+    return true;
+}
+
+bool GlobalSettings::clearShaderLookupDirectories()
+{
+    if (Initializer::isRendererInitialized())
+        return false;
+
+    m_shader_lookup_directories.clear();
+    return true;
 }
