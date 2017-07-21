@@ -96,7 +96,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>D3D12DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LEXGINE_D3D12DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Lib>
@@ -108,7 +108,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>D3D12DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LEXGINE_D3D12DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Lib>
@@ -192,6 +192,7 @@
     <ClCompile Include="core\filter.cpp" />
     <ClCompile Include="core\globals.cpp" />
     <ClCompile Include="core\global_settings.cpp" />
+    <ClCompile Include="core\initializer.cpp" />
     <ClCompile Include="core\math\rectangle.cpp" />
     <ClCompile Include="core\misc\datetime.cpp" />
     <ClCompile Include="core\misc\hashed_string.cpp" />
@@ -297,6 +298,7 @@
     <ClInclude Include="core\filter.h" />
     <ClInclude Include="core\globals.h" />
     <ClInclude Include="core\global_settings.h" />
+    <ClInclude Include="core\initializer.h" />
     <ClInclude Include="core\math\matrix_types.h" />
     <ClInclude Include="core\math\rectangle.h" />
     <ClInclude Include="core\math\vector_types.h" />

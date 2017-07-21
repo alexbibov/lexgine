@@ -429,6 +429,9 @@
     <ClInclude Include="..\3rd_party\imgui\stb_truetype.h">
       <Filter>3rd_party\imgui</Filter>
     </ClInclude>
+    <ClInclude Include="core\initializer.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -592,6 +595,9 @@
     </ClCompile>
     <ClCompile Include="..\3rd_party\imgui\extra_fonts\binary_to_compressed_c.cpp">
       <Filter>3rd_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="core\initializer.cpp">
+      <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
