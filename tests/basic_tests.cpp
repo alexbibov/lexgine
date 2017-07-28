@@ -8,6 +8,7 @@
 #include "../lexgine/core/concurrency/schedulable_task.h"
 #include "../lexgine/core/misc/misc.h"
 #include "../lexgine/core/exception.h"
+#include "../lexgine/core/initializer.h"
 #include "../lexgine/core/dx/d3d12/d3d12_pso_xml_parser.h"
 
 #pragma warning(push)
@@ -528,33 +529,14 @@ public:
             using namespace lexgine::core::misc;
             using namespace lexgine::core;
 
-            std::ofstream test_d3d12_pso_xml_parser_log{ "TestD3D12PSOXMLParserLog.txt" };
-            Log::create(test_d3d12_pso_xml_parser_log, 2, false);
-
-            MainGlobalsBuilder globals_builder;
-            GlobalSettings global_settings{ "../../settings/global_settings.json" };
-            global_settings.serialize("test_global_settings.json");    // test serialization of the global settings
-            globals_builder.defineGlobalSettings(global_settings);
-
-            std::vector<std::ofstream*> output_logs;
-
-            for (uint8_t wid = 0; wid < global_settings.getNumberOfWorkers(); ++wid)
-            {
-                output_logs.push_back(new std::ofstream{ (std::string{"worker"} +std::to_string(wid) + "_log.log").c_str() });
-
-                globals_builder.registerThreadLog(wid, output_logs.back());
-            }
-
-            Globals globals = globals_builder.build();
+            Initializer::initializeEnvironment("../../scripts/d3d12_PSOs");
 
             {
                 auto content = readAsciiTextFromSourceFile("../../scripts/d3d12_PSOs/example_serialized_pso.xml");
-                D3D12PSOXMLParser xml_parser{ globals, content };
+                D3D12PSOXMLParser xml_parser{ Initializer::getGlobalParameterObjectPool(), content };
             }
 
-            for (uint8_t wid = 0; wid < global_settings.getNumberOfWorkers(); ++wid) { delete output_logs[wid]; }
-
-            Log::shutdown();
+            Initializer::shutdownEnvironment();
         }
 
     };

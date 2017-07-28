@@ -83,10 +83,12 @@ class MainGlobalsBuilder
 private:
     misc::Optional<GlobalSettings> m_global_settings;
     std::vector<std::ostream*> m_thread_logs;
+    std::ostream* m_main_log;
 
 public:
     void defineGlobalSettings(GlobalSettings const& global_settings);
     void registerThreadLog(uint8_t worker_id, std::ostream* logging_output_stream);
+    void registerMainLog(std::ostream* logging_output_stream);
 
     Globals build();
 };
