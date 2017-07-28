@@ -30,6 +30,9 @@ bool Initializer::initializeEnvironment(
 
 
     MainGlobalsBuilder builder;
+
+    builder.registerMainLog(&m_logging_file_stream);
+
     GlobalSettings global_settings{ global_lookup_prefix + settings_lookup_path };
     if(global_lookup_prefix.length())
     {
@@ -51,7 +54,10 @@ bool Initializer::initializeEnvironment(
     for (uint8_t i = 0; i < num_workers; ++i)
     {
         m_logging_worker_filer_streams[i].open(logging_output_path + log_name + "_worker" + std::to_string(i) + ".txt", std::ios::out);
+        builder.registerThreadLog(i, &m_logging_worker_filer_streams[i]);
     }
+
+    builder.build();
 
     return true;
 }
