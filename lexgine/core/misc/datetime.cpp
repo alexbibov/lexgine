@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cassert>
 #include <algorithm>
+#include <sstream>
 
 
 using namespace lexgine::core::misc;
@@ -386,6 +387,94 @@ DateTime DateTime::convertNanosecondsToDate(unsigned long long nanoseconds, int8
         - std::chrono::duration_cast<std::chrono::minutes>(duration_since_epoch).count() * minutes_to_nanoseconds) / 1e9;
 
     return DateTime{ year, month, day, hour, minute, second, time_zone, daylight_saving };
+}
+
+std::string lexgine::core::misc::DateTime::toString(unsigned char mask, DateOutputStyle style) const
+{
+    std::string month_name[] = { "January", "February", 
+        "March", "April", "May", 
+        "June", "July", "August",
+        "September", "October", "November", 
+        "December" };
+
+    std::ostringstream output_string_stream{};
+    bool preceeding_date_token_exists = false;
+
+    switch (style)
+    {
+    case DateOutputStyle::european:
+        if (mask & DateOutputMask::day)
+        {
+            output_string_stream << std::to_string(m_day);
+            preceeding_date_token_exists = true;
+        }
+
+        if (mask & DateOutputMask::month)
+        {
+            if (preceeding_date_token_exists) output_string_stream << "/";
+
+            output_string_stream << month_name[m_month - 1];
+            preceeding_date_token_exists = true;
+        }
+
+        break;
+
+    case DateOutputStyle::american:
+        if (mask & DateOutputMask::month)
+        {
+            output_string_stream << month_name[m_month - 1];
+            preceeding_date_token_exists = true;
+        }
+
+        if (mask & DateOutputMask::day)
+        {
+            if (preceeding_date_token_exists) output_string_stream << "/";
+
+            output_string_stream << std::to_string(m_day);
+            preceeding_date_token_exists = true;
+        }
+
+        break;
+    }
+
+    if (mask & DateOutputMask::year)
+    {
+        if (preceeding_date_token_exists) output_string_stream << "/";
+        output_string_stream << std::to_string(m_year);
+        preceeding_date_token_exists = true;
+    }
+
+
+    bool preceding_time_token_exists = false;
+    if (mask & DateOutputMask::hour)
+    {
+        if (preceeding_date_token_exists) output_string_stream << "/ (";
+        output_string_stream << std::to_string(m_hour);
+        preceding_time_token_exists = true;
+    }
+
+    if (mask & DateOutputMask::minute)
+    {
+        if (preceeding_date_token_exists && !preceding_time_token_exists)
+            output_string_stream << "/ (";
+        else if (preceding_time_token_exists)
+            output_string_stream << ":";
+        if (m_minute < 10) output_string_stream << "0";
+        output_string_stream << std::to_string(m_minute);
+        preceding_time_token_exists = true;
+    }
+
+    if (mask & DateOutputMask::second)
+    {
+        if (preceeding_date_token_exists && !preceding_time_token_exists)
+            output_string_stream << "/ (";
+        else if (preceding_time_token_exists)
+            output_string_stream << ":";
+        if (m_second < 10) output_string_stream << "0";
+        output_string_stream << std::to_string(m_second) << ")";
+    }
+
+    return output_string_stream.str();
 }
 
 

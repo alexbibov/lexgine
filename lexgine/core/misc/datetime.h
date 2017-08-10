@@ -1,6 +1,7 @@
 #ifndef LEXGINE_CORE_MISC_DATE_TIME_H
 
 #include <stdint.h>
+#include <string>
 
 namespace lexgine { namespace core { namespace misc {
 
@@ -12,6 +13,22 @@ class TimeSpan;
 //! Note that this calendar can only represent the dates after Christ
 class DateTime
 {
+public:
+    struct DateOutputMask
+    {
+        static unsigned char const year = 0x1;
+        static unsigned char const month = 0x2;
+        static unsigned char const day = 0x4;
+        static unsigned char const hour = 0x8;
+        static unsigned char const minute = 0x10;
+        static unsigned char const second = 0x20;
+    };
+
+    enum class DateOutputStyle
+    {
+        european, american
+    };
+
 public:
     //! Initializes the date-time object to January 1, 1970 UTC.
     //! @param time_zone determines the time shift in hours from the UTC time calculated as the winter time (i.e. without taking the daylight saving into account).
@@ -72,6 +89,7 @@ public:
     static DateTime now(int8_t time_zone = 0, bool daylight_saving = 0);	//! Returns date-time object encapsulating current date and time with the given time zone and DTS mode
     static DateTime convertNanosecondsToDate(unsigned long long nanoseconds, int8_t time_zone = 0, bool daylight_saving = 0);	//! Converts amount of nanoseconds passed from January 1, 1970, 00:00:00 into date-time representation
 
+    std::string toString(unsigned char mask = 0x3F, DateOutputStyle style = DateOutputStyle::european) const;
 
 private:
     uint16_t m_year;
