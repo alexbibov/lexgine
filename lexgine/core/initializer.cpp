@@ -46,7 +46,7 @@ bool Initializer::initializeEnvironment(
     // Initialize logging
     {
 
-        m_logging_file_stream.open(corrected_logging_output_path + log_name + ".txt", std::ios::out);
+        m_logging_file_stream.open(corrected_logging_output_path + log_name + ".html", std::ios::out);
 
         DYNAMIC_TIME_ZONE_INFORMATION time_zone_info;
         DWORD time_zone_id = GetDynamicTimeZoneInformation(&time_zone_info);
@@ -88,7 +88,7 @@ bool Initializer::initializeEnvironment(
         m_logging_worker_file_streams.resize(num_workers);
         for (uint8_t i = 0; i < num_workers; ++i)
         {
-            m_logging_worker_file_streams[i].open(corrected_logging_output_path + log_name + "_worker" + std::to_string(i) + ".txt", std::ios::out);
+            m_logging_worker_file_streams[i].open(corrected_logging_output_path + log_name + "_worker" + std::to_string(i) + ".html", std::ios::out);
         }
 
         m_logging_worker_generic_streams.resize(m_logging_worker_file_streams.size());
