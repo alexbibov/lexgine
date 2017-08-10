@@ -1,13 +1,16 @@
 #include "hlsl_compilation_task.h"
 #include "../../../data_blob.h"
 #include <d3dcompiler.h>
+#include "../../../global_settings.h"
 
 using namespace lexgine::core::dx::d3d12::tasks;
+using namespace lexgine::core;
 
-HLSLCompilationTask::HLSLCompilationTask(std::string const& source, std::string const& source_name,
+HLSLCompilationTask::HLSLCompilationTask(GlobalSettings const& global_settings, std::string const& source, std::string const& source_name,
     ShaderType shader_type, std::string const& shader_entry_point, lexgine::core::ShaderSourceCodePreprocessor::SourceType source_type,
     void* p_target_pso_descriptors, uint32_t num_descriptors,
     std::list<HLSLMacroDefinition> const& macro_definitions) :
+    m_global_settings{ global_settings },
     m_source{ source },
     m_source_name{ source_name },
     m_type{ shader_type },
@@ -40,7 +43,16 @@ bool HLSLCompilationTask::execute(uint8_t worker_id)
 
 bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 {
-    ShaderSourceCodePreprocessor shader_preprocessor{ m_source, m_source_type };
+    // find the full correct path to the shader
+    std::string full_shader_path{ m_source };
+    for(auto path_prefix : m_global_settings.getShaderLookupDirectories())
+        if (misc::doesFileExist(path_prefix + m_source))
+        {
+            full_shader_path = path_prefix + m_source;
+            break;
+        }
+
+    ShaderSourceCodePreprocessor shader_preprocessor{ full_shader_path, m_source_type };
 
     if (shader_preprocessor.getErrorState())
     {
@@ -50,7 +62,8 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
 
     std::string processed_sader_source{ shader_preprocessor.getPreprocessedSource() };
 
-    D3D_SHADER_MACRO* macro_definitions = new D3D_SHADER_MACRO[m_preprocessor_macro_definitions.size()];
+    D3D_SHADER_MACRO* macro_definitions = m_preprocessor_macro_definitions.size() ?
+        new D3D_SHADER_MACRO[m_preprocessor_macro_definitions.size()] : nullptr;
     uint32_t i;
     std::list<HLSLMacroDefinition>::iterator p;
     for (p = m_preprocessor_macro_definitions.begin(), i = 0; p != m_preprocessor_macro_definitions.end(); ++p, ++i)
@@ -83,9 +96,12 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
     }
 
 
-    UINT compilation_flags = D3DCOMPILE_AVOID_FLOW_CONTROL | D3DCOMPILE_ENABLE_STRICTNESS
-        | D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY | D3DCOMPILE_IEEE_STRICTNESS
-        | D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_RESOURCES_MAY_ALIAS | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
+    UINT compilation_flags = 
+        D3DCOMPILE_AVOID_FLOW_CONTROL |
+        D3DCOMPILE_IEEE_STRICTNESS | 
+        D3DCOMPILE_WARNINGS_ARE_ERRORS | 
+        (target[0] == 'c' ? D3DCOMPILE_RESOURCES_MAY_ALIAS : 0) | 
+        D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
 #ifdef _DEBUG
     compilation_flags = compilation_flags | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
@@ -96,12 +112,15 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
     LEXGINE_ERROR_LOG(this, D3DCompile(processed_sader_source.c_str(), processed_sader_source.size(),
         m_source_name.c_str(), macro_definitions, NULL, m_shader_entry_point.c_str(), target,
         compilation_flags, NULL, &p_shader_bytecode_blob, &p_compilation_errors_blob), S_OK);
+    if (macro_definitions) delete[] macro_definitions;
 
     // if the call of D3DCompile(...) has failed this object then was set to erroneous state
     if (p_compilation_errors_blob)
     {
         m_compilation_log = std::string{ static_cast<char const*>(p_compilation_errors_blob->GetBufferPointer()) };
-        misc::Log::retrieve()->out(m_compilation_log);  
+        std::string output_log = "Unable to compile shader source located in \"" + full_shader_path + "\"\n"
+            "Detailed compiler log follows below:\n" + m_compilation_log + "\n";
+        misc::Log::retrieve()->out(output_log, misc::LogMessageType::error);  
     }
     else
     {

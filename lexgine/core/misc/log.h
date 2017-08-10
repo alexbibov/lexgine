@@ -11,6 +11,12 @@
 
 namespace lexgine {namespace core {namespace misc {
 
+enum class LogMessageType
+{
+    information = 0,
+    exclamation = 1,
+    error = 2
+};
 
 //! Implements simple logging system. NOT thread-safe. Create one logging object per thread to avoid racing.
 class Log
@@ -32,7 +38,7 @@ public:
     //! Attempts to shutdown the logging system and returns 'true' on success or 'false' on failure
     static bool shutdown();
 
-    void out(std::string const& message) const;	//! logs supplied message out
+    void out(std::string const& message, LogMessageType message_type) const;	//! logs supplied message out
 
     DateTime const& getLastEntryTimeStamp() const;	//! returns the time stamp of the last logging entry
 

@@ -106,8 +106,8 @@ Window::Window(HINSTANCE hInstance /* = NULL */,
     if (!(m_hwnd = createWindow(this, m_atom, m_hinstance, m_pos_x, m_pos_y, m_width, m_height, m_window_style, m_window_ex_style, m_title, WindowProcedure)))
     {
         std::string error_string = getLastSystemError();
+        logger().out(error_string, core::misc::LogMessageType::error);
         raiseError(error_string);
-        logger().out(error_string);
         throw;
     }
     else
@@ -136,8 +136,8 @@ void Window::setTitle(std::wstring const& title)
     if (!SetWindowText(m_hwnd, title.c_str()))
     {
         std::string error_string = getLastSystemError();
+        logger().out(error_string, core::misc::LogMessageType::error);
         raiseError(error_string);
-        logger().out(error_string);
         throw;
     }
 }
@@ -164,8 +164,8 @@ void Window::setDimensions(uint32_t width, uint32_t height)
     if (!SetWindowPlacement(m_hwnd, &wndplacement))
     {
         std::string error_string = getLastSystemError();
+        logger().out(error_string, core::misc::LogMessageType::error);
         raiseError(error_string);
-        logger().out(error_string);
         throw;
     }
 }

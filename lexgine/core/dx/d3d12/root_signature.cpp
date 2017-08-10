@@ -77,7 +77,7 @@ D3DDataBlob RootSignature::compile(RootSignatureFlags const& flags) const
         if (m_root_parameters.find(i) == m_root_parameters.end())
         {
             std::string err_msg{ "Root signature " + getStringName() + " has undefined slots" };
-            logger().out(err_msg);
+            logger().out(err_msg, LogMessageType::error);
             raiseError(err_msg);
             throw;
         }
@@ -111,7 +111,7 @@ D3DDataBlob RootSignature::compile(RootSignatureFlags const& flags) const
         delete[] p_params;
         delete[] p_static_sampler_descs;
 
-        logger().out(err_msg);
+        logger().out(err_msg, LogMessageType::error);
         raiseError(err_msg);
         throw;    // this error is critical
     }

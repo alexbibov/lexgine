@@ -30,7 +30,7 @@ HwOutputEnumerator::HwOutputEnumerator(ComPtr<IDXGIAdapter3> const& adapter, LUI
                 adapter_name[i] = static_cast<char>(desc2.Description[i]);
             std::string err_msg = "unable to enumerate output devices for adapter \"" + std::string{ adapter_name } +"\"";
             delete[] adapter_name;
-            logger().out(err_msg);
+            logger().out(err_msg, misc::LogMessageType::error);
             raiseError(err_msg);
         }
         IDXGIOutput5* p_dxgi_output5;

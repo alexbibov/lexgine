@@ -34,7 +34,8 @@ public:
 
         std::size_t file_length = static_cast<size_t>(file_end_pos - file_start_pos);
         char *read_buffer = new char[file_length + 1];
-        ifile.get(read_buffer, static_cast<std::streamsize>(file_length));
+        ifile.read(read_buffer, static_cast<std::streamsize>(file_length));
+        read_buffer[ifile.gcount()] = 0;
 
         std::string rv{ read_buffer };
         delete[] read_buffer;
@@ -79,8 +80,8 @@ private:
     inline size_t get_current_line_end_index(std::string const& str, size_t search_start_index)
     {
         size_t rv = search_start_index;
-        while (str[rv] != '\n') ++rv;
-        return rv;
+        while (rv < str.length() && str[rv] != '\n') ++rv;
+        return std::min<long long>(static_cast<long long>(rv), static_cast<long long>(str.length()) - 1);
     }
 
 

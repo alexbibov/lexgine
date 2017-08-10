@@ -33,7 +33,7 @@ public:
 
     void raiseError(std::string const& message) const
     {
-        lexgine::core::misc::Log::retrieve()->out(message);
+        lexgine::core::misc::Log::retrieve()->out(message, lexgine::core::misc::LogMessageType::error);
     }
 
 };
@@ -398,22 +398,22 @@ public:
                         switch (m_op)
                         {
                         case operation_type::add:
-                            Log::retrieve()->out(std::to_string(m_a) + "+" + std::to_string(m_b));
+                            Log::retrieve()->out(std::to_string(m_a) + "+" + std::to_string(m_b), LogMessageType::information);
                             m_result = m_a + m_b;
                             break;
 
                         case operation_type::subtract:
-                            Log::retrieve()->out(std::to_string(m_a) + "-" + std::to_string(m_b));
+                            Log::retrieve()->out(std::to_string(m_a) + "-" + std::to_string(m_b), LogMessageType::information);
                             m_result = m_a - m_b;
                             break;
 
                         case operation_type::multiply:
-                            Log::retrieve()->out(std::to_string(m_a) + "*" + std::to_string(m_b));
+                            Log::retrieve()->out(std::to_string(m_a) + "*" + std::to_string(m_b), LogMessageType::information);
                             m_result = m_a * m_b;
                             break;
 
                         case operation_type::divide:
-                            Log::retrieve()->out(std::to_string(m_a) + "/" + std::to_string(m_b));
+                            Log::retrieve()->out(std::to_string(m_a) + "/" + std::to_string(m_b), LogMessageType::information);
                             m_result = m_a / m_b;
 
                             if (!m_b) raiseError("division by zero!");
@@ -513,7 +513,7 @@ public:
                 Assert::IsTrue(r11 == control_value);
             }
 
-            Log::retrieve()->out("Alive entities: " + std::to_string(lexgine::core::Entity::aliveEntities()));
+            Log::retrieve()->out("Alive entities: " + std::to_string(lexgine::core::Entity::aliveEntities()), LogMessageType::information);
             Log::shutdown();
 
             for (auto thread_log_stream : worker_thread_logs)
@@ -529,7 +529,7 @@ public:
             using namespace lexgine::core::misc;
             using namespace lexgine::core;
 
-            Initializer::initializeEnvironment("../../scripts/d3d12_PSOs");
+            Initializer::initializeEnvironment("../../", "settings/");
 
             {
                 auto content = readAsciiTextFromSourceFile("../../scripts/d3d12_PSOs/example_serialized_pso.xml");

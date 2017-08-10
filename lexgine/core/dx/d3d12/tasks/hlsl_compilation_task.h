@@ -4,6 +4,7 @@
 #include "../../../shader_source_code_preprocessor.h"
 #include "../../../data_blob.h"
 #include "../pipeline_state.h"
+#include "../../../lexgine_core_fwd.h"
 
 #include <list>
 
@@ -34,7 +35,7 @@ public:
      compiled shader blob. The exact type of PSO descriptor as well as its shader stage receiving the blob is determined based on
      provided value of parameter shader_type.
     */
-    HLSLCompilationTask(std::string const& source, std::string const& source_name,
+    HLSLCompilationTask(GlobalSettings const& global_settings, std::string const& source, std::string const& source_name,
         ShaderType shader_type, std::string const& shader_entry_point, ShaderSourceCodePreprocessor::SourceType source_type,
         void* p_target_pso_descriptors, uint32_t num_descriptors,
         std::list<HLSLMacroDefinition> const& macro_definitions = std::list<HLSLMacroDefinition>{});
@@ -58,6 +59,7 @@ private:
     bool do_task(uint8_t worker_id, uint16_t frame_index) override;    //! performs actual compilation of the shader
     concurrency::TaskType get_task_type() const override;    //! returns type of this task (CPU)
 
+    GlobalSettings const& m_global_settings;
     std::string m_source;
     std::string m_source_name;
     ShaderType m_type;

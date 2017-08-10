@@ -44,4 +44,9 @@ Optional<std::string> readAsciiTextFromSourceFile(std::string const& source_file
     return Optional<std::string>{content_stream.str()};
 }
 
+bool doesFileExist(std::string const& file_path)
+{
+    return static_cast<bool>(std::ifstream(file_path.c_str(), std::ios::in));
+}
+
 }}}

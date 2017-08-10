@@ -19,7 +19,7 @@ Log const& Log::create(std::ostream& output_logging_stream, int8_t time_zone /* 
     if (!p_thread_logger)
     {
         p_thread_logger = new Log(output_logging_stream, time_zone, is_dts);
-        p_thread_logger->out("*****************Log started*****************");
+        p_thread_logger->out("*****************Log started*****************", LogMessageType::information);
         return *p_thread_logger;
     }
     else
@@ -37,7 +37,7 @@ Log const* Log::retrieve()
 bool Log::shutdown()
 {
     if (!p_thread_logger) return false; // nothing to shutdown
-    p_thread_logger->out("*****************End of the log*****************\n\n\n");
+    p_thread_logger->out("*****************End of the log*****************\n\n\n", LogMessageType::information);
     delete p_thread_logger;
     p_thread_logger = nullptr;
     return true;
@@ -51,7 +51,7 @@ Log::Log(std::ostream& output_logging_stream, int8_t time_zone, bool is_dts) :
 }
 
 
-void Log::out(std::string const& message) const
+void Log::out(std::string const& message, LogMessageType message_type) const
 {
     std::stringstream sstream{};
 

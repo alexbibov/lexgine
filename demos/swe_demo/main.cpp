@@ -165,7 +165,8 @@ int main(int argc, char* argv[])
     }
 
     lexgine::core::dx::d3d12::DebugInterface::shutdown();
-    lexgine::core::misc::Log::retrieve()->out("alive entities: " + std::to_string(lexgine::core::Entity::aliveEntities()));
+    lexgine::core::misc::Log::retrieve()->out("alive entities: " + std::to_string(lexgine::core::Entity::aliveEntities()),
+        lexgine::core::misc::LogMessageType::information);
     lexgine::core::misc::Log::shutdown();
 
 

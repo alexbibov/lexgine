@@ -56,7 +56,7 @@ void ErrorBehavioral::raiseError(std::string const& error_message) const
     m_error_string = error_message;
     m_error_callback(m_error_string);
 
-    m_p_logger->out(error_message);
+    m_p_logger->out(error_message, lexgine::core::misc::LogMessageType::error);
 }
 
 misc::Log const& ErrorBehavioral::logger() const { return *m_p_logger; }

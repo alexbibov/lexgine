@@ -133,7 +133,7 @@ void HwAdapterEnumerator::refresh()
         if (hres != S_OK)
         {
             char const* err_msg = "error while enumerating adapters";
-            logger().out(err_msg);
+            logger().out(err_msg, LogMessageType::error);
             raiseError(err_msg);
             return;
         }
@@ -156,7 +156,7 @@ void HwAdapterEnumerator::refresh()
             char* adapter_name = new char[wcslen(desc2.Description)];
             for (size_t i = 0; i < wcslen(desc2.Description); ++i)
                 adapter_name[i] = static_cast<char>(desc2.Description[i]);
-            logger().out(std::string{ "unable to create Direct3D12 device for adapter \"" } + adapter_name + "\"");
+            logger().out(std::string{ "unable to create Direct3D12 device for adapter \"" } + adapter_name + "\"", LogMessageType::error);
             delete[] adapter_name;
         }
         p_dxgi_adapter3->Release();
@@ -309,7 +309,7 @@ HwAdapter::HwAdapter(ComPtr<IDXGIFactory4> const& adapter_factory, ComPtr<IDXGIA
             IID_PPV_ARGS(&m_d3d12_device)) == S_OK)
         {
             logger().out("Device " + std::string{ m_properties.details.name.begin(), m_properties.details.name.end() } +
-                ": feature level " + feature_level.second + " detected");
+                ": feature level " + feature_level.second + " detected", LogMessageType::information);
             m_p_details = std::shared_ptr<details>{ new details{ this } };
             m_properties.d3d12_feature_level = feature_level.first;
             m_properties.num_nodes = m_d3d12_device->GetNodeCount();
