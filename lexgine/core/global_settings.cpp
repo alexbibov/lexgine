@@ -12,7 +12,6 @@ using namespace lexgine::core;
 using namespace rapidjson;
 
 
-
 GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
 {
     Document document;
@@ -20,14 +19,16 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
     misc::Optional<std::string> source_json = misc::readAsciiTextFromSourceFile(json_settings_source_path);
     if (!source_json.isValid())
     {
-        misc::Log::retrieve()->out("WARNING: unable to parse global settings json file located at \"" + json_settings_source_path + "\". The system will fall back to default settings");
+        misc::Log::retrieve()->out("WARNING: unable to parse global settings json file located at \"" + json_settings_source_path + "\". The system will fall back to default settings",
+            misc::LogMessageType::exclamation);
         return;
     }
 
     document.Parse(static_cast<std::string>(source_json).c_str());
     if (!document.IsObject())
     {
-        misc::Log::retrieve()->out("WARNING: json file located at \"" + json_settings_source_path + "\" had invalid format. The system will fall back to default settings");
+        misc::Log::retrieve()->out("WARNING: json file located at \"" + json_settings_source_path + "\" had invalid format. The system will fall back to default settings",
+            misc::LogMessageType::exclamation);
         return;
     }
 
@@ -36,7 +37,8 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
     if (!document["number_of_workers"].IsUint())
     {
         misc::Log::retrieve()->out("WARNING: unable to get value for \"number_of_workers\" from settings file located at \"" 
-            + json_settings_source_path + "\". The system will fall back to default value \"number_of_workers = 8\"");
+            + json_settings_source_path + "\". The system will fall back to default value \"number_of_workers = 8\"",
+            misc::LogMessageType::exclamation);
         return;
     }
     else
@@ -48,7 +50,8 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
     if (!document["deferred_shader_compilation"].IsBool())
     {
         misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_shader_compilation\" from settings file located at \""
-            + json_settings_source_path + "\". The system will fall back to default value \"deferred_shader_compilation = true\"");
+            + json_settings_source_path + "\". The system will fall back to default value \"deferred_shader_compilation = true\"",
+            misc::LogMessageType::exclamation);
         return;
     }
     else
@@ -62,16 +65,18 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         {
             misc::Log::retrieve()->out("WARNING: unable to get value for \"shader_lookup_directories\" from settings file located at \""
                 + json_settings_source_path + "\"shader_lookup_directories\" is expected to be an array of strings but turned out to have different format."
-                " The system will search for shaders in the current working directory");
+                " The system will search for shaders in the current working directory",
+                misc::LogMessageType::exclamation);
             return;
         }
 
-        for (auto& e : document["shader_lookup_directory"].GetArray())
+        for (auto& e : document["shader_lookup_directories"].GetArray())
         {
             if (!e.IsString())
             {
                 misc::Log::retrieve()->out("WARNING: unable to get value for \"shader_lookup_directories\" from settings file located at \""
-                    + json_settings_source_path + "\"shader_lookup_directories\" is expected to be an array of strings but some of its elements look like they have a non-string format.");
+                    + json_settings_source_path + "\"shader_lookup_directories\" is expected to be an array of strings but some of its elements look like they have a non-string format.",
+                    misc::LogMessageType::exclamation);
                 return;
             }
 
@@ -86,7 +91,8 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
     std::ofstream ofile{ json_serialization_path, std::ios::out };
     if (!ofile)
     {
-        misc::Log::retrieve()->out("WARNING: unable to establish output stream for the destination at \"" + json_serialization_path + "\". The current settings will not be serialized");
+        misc::Log::retrieve()->out("WARNING: unable to establish output stream for the destination at \"" + json_serialization_path + "\". The current settings will not be serialized",
+            misc::LogMessageType::exclamation);
         return;
     }
 

@@ -91,6 +91,9 @@ std::string wstringToAsciiString(std::wstring const& wstr);
 //! Reads ASCII text data from provided source file and returns them as an optional string (with undefined value in case of failure)
 Optional<std::string> readAsciiTextFromSourceFile(std::string const& source_file);
 
+//! Checks if requested file exists and returns 'true' in case of success
+bool doesFileExist(std::string const& file_path);
+
 
 enum class DataFormat
 {

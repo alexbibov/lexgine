@@ -432,6 +432,9 @@
     <ClInclude Include="core\initializer.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="core\lexgine_core_fwd.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">

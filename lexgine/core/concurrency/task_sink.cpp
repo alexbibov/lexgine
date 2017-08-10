@@ -66,7 +66,7 @@ TaskSink::~TaskSink() = default;
 void TaskSink::run()
 {
     // Start workers
-    Log::retrieve()->out("Starting worker threads");
+    Log::retrieve()->out("Starting worker threads", LogMessageType::information);
     uint8_t i = 0;
     for (auto worker = m_workers_list.begin(); worker != m_workers_list.end(); ++worker, ++i)
     {
@@ -103,7 +103,7 @@ void TaskSink::run()
         {
             AbstractTask* p_failed_task = reinterpret_cast<AbstractTask*>(error_status);
             Log::retrieve()->out("Task " + p_failed_task->getStringName() + " has failed during execution (" + p_failed_task->getErrorString()
-                + "). Worker thread logs may contain more details");
+                + "). Worker thread logs may contain more details", LogMessageType::error);
 
             m_exit_signal.store(true, std::memory_order_release);
             m_exit_level.store(0U, std::memory_order_release);
@@ -113,7 +113,7 @@ void TaskSink::run()
 
     }
 
-    Log::retrieve()->out("Main loop finished");
+    Log::retrieve()->out("Main loop finished", LogMessageType::information);
 }
 
 void TaskSink::dispatchExitSignal()
@@ -126,7 +126,7 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
     if (logging_stream)
     {
         Log::create(*logging_stream, logging_time_zone, logging_dts);
-        Log::retrieve()->out("Thread " + std::to_string(worker_id) + " log started");
+        Log::retrieve()->out("Thread " + std::to_string(worker_id) + " log started", LogMessageType::information);
     }
 
     Optional<TaskGraphNode*> task;

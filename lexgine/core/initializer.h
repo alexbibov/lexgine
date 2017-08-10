@@ -6,6 +6,7 @@
 #include "misc/log.h"
 
 #include <fstream>
+#include <memory>
 
 namespace lexgine { namespace core {
 
@@ -28,6 +29,7 @@ public:
     static bool initializeEnvironment(
         std::string const& global_lookup_prefix = "",
         std::string const& settings_lookup_path = "",
+        std::string const& global_settings_json_file = "global_settings.json",
         std::string const& logging_output_path = "",
         std::string const& log_name = "lexgine_log");
 
@@ -57,8 +59,10 @@ private:
     static bool m_is_renderer_initialized;
 
     static std::ofstream m_logging_file_stream;
-    static std::vector<std::ofstream> m_logging_worker_filer_streams;
-    static Globals m_globals;
+    static std::vector<std::ofstream> m_logging_worker_file_streams;
+    static std::vector<std::ostream*> m_logging_worker_generic_streams;
+    static std::unique_ptr<GlobalSettings> m_global_settings;
+    static std::unique_ptr<Globals> m_globals;
 };
 
 }}

@@ -27,32 +27,31 @@ bool Globals::put(misc::HashedString const& hashed_name, void* p_object)
 
 
 
-void MainGlobalsBuilder::defineGlobalSettings(GlobalSettings const& global_settings)
+void MainGlobalsBuilder::defineGlobalSettings(GlobalSettings& global_settings)
 {
-    m_global_settings = global_settings;
-    m_thread_logs.resize(global_settings.getNumberOfWorkers());
+    m_global_settings = &global_settings;
 }
 
-void MainGlobalsBuilder::registerThreadLog(uint8_t worker_id, std::ostream* logging_output_stream)
+void MainGlobalsBuilder::registerWorkerThreadLogs(std::vector<std::ostream*>& worker_threads_logging_output_streams)
 {
-    assert(m_global_settings.isValid());
-    assert(worker_id < static_cast<GlobalSettings&>(m_global_settings).getNumberOfWorkers());
+    assert(m_global_settings);
+    uint8_t num_workers = m_global_settings->getNumberOfWorkers();
+    assert(worker_threads_logging_output_streams.size() == num_workers);
 
-    m_thread_logs[worker_id] = logging_output_stream;
+    m_worker_logs = &worker_threads_logging_output_streams;
 }
 
-void MainGlobalsBuilder::registerMainLog(std::ostream* logging_output_stream)
+void MainGlobalsBuilder::registerMainLog(std::ostream& logging_output_stream)
 {
-    m_main_log = logging_output_stream;
+    m_main_log = &logging_output_stream;
 }
 
 Globals MainGlobalsBuilder::build()
 {
     Globals rv;
-    GlobalSettings& global_settings = static_cast<GlobalSettings&>(m_global_settings);
-    rv.put(&global_settings);
-    rv.put(&m_thread_logs);
-    rv.put(&m_main_log);
+    rv.put(m_global_settings);
+    rv.put(m_worker_logs);
+    rv.put(m_main_log);
 
     return rv;
 }

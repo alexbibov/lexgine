@@ -299,6 +299,7 @@
     <ClInclude Include="core\globals.h" />
     <ClInclude Include="core\global_settings.h" />
     <ClInclude Include="core\initializer.h" />
+    <ClInclude Include="core\lexgine_core_fwd.h" />
     <ClInclude Include="core\math\matrix_types.h" />
     <ClInclude Include="core\math\rectangle.h" />
     <ClInclude Include="core\math\vector_types.h" />

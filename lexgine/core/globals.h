@@ -7,7 +7,6 @@
 #include <ostream>
 
 #include "misc/hashed_string.h"
-#include "misc/optional.h"
 #include "global_settings.h"
 #include "entity.h"
 #include "class_names.h"
@@ -81,14 +80,14 @@ public:
 class MainGlobalsBuilder
 {
 private:
-    misc::Optional<GlobalSettings> m_global_settings;
-    std::vector<std::ostream*> m_thread_logs;
+    GlobalSettings* m_global_settings;
     std::ostream* m_main_log;
+    std::vector<std::ostream*>* m_worker_logs;
 
 public:
-    void defineGlobalSettings(GlobalSettings const& global_settings);
-    void registerThreadLog(uint8_t worker_id, std::ostream* logging_output_stream);
-    void registerMainLog(std::ostream* logging_output_stream);
+    void defineGlobalSettings(GlobalSettings& global_settings);
+    void registerWorkerThreadLogs(std::vector<std::ostream*>& worker_threads_logging_output_streams);
+    void registerMainLog(std::ostream& logging_output_stream);
 
     Globals build();
 };
