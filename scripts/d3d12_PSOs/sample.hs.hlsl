@@ -3,30 +3,31 @@ struct VS_OUTPUT_HS_INPUT
     float4 pos : SV_Position;
 };
 
-struct HS_CONSTANT_DATA_OUTPUT
+struct HS_CONSTANT_DATA
 {
-    float[4] outTessFactor : SV_TessFactor;
-    float[2] inTessFactor : SV_InsideTessFactor;
+    float outTessFactor[4] : SV_TessFactor;
+    float inTessFactor[2] : SV_InsideTessFactor;
 };
 
 struct HS_CONTROL_POINT_DATA_OUTPUT
 {
-    float4[4] position : SV_Position;
-}
+    float4 position : ControlPointPosition;
+};
 
 
-HS_CONSTANT_DATA_OUTPUT dummy(InputPatch<float3, 4> input)
+HS_CONSTANT_DATA dummy()
 {
-    HS_CONSTANT_DATA_OUTPUT ouput;
-
+    HS_CONSTANT_DATA output;
+	int i;
+	
     [unroll]
-    for(int i = 0; i < 4; ++i)
+    for(i = 0; i < 4; ++i)
     {
         output.outTessFactor[i] = 0;
     }
 
     [unroll]
-    for(int i = 0; i < 2; ++i)
+    for(i = 0; i < 2; ++i)
     {
         output.inTessFactor[i] = 0;
     }
@@ -43,10 +44,6 @@ HS_CONTROL_POINT_DATA_OUTPUT HS_main(InputPatch<VS_OUTPUT_HS_INPUT, 4> input,
 uint controlPointID : SV_OutputControlPointID)
 {
     HS_CONTROL_POINT_DATA_OUTPUT output;
-
-    [unroll]
-    for(int i = 0; i < 4; ++i)
-    {
-        output.position = input[i].position;
-    }
+    output.position = input[controlPointID].pos;
+	return output;
 }

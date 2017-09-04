@@ -1,5 +1,7 @@
 @ECHO OFF
 
+setlocal
+set PATH=%PATH%;../3rd_party/graphviz-2.38/release/bin/
 
 dot ../x64/Debug/task_graph.gv -Tpdf > task_graph.pdf
 

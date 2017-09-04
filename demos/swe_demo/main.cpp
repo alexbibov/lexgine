@@ -129,7 +129,7 @@ public:
 
 int main(int argc, char* argv[])
 {
-    lexgine::core::misc::Log::create(std::cout);
+    lexgine::core::misc::Log::create(std::cout, "Test");
     lexgine::core::dx::d3d12::DebugInterface::retrieve();
     {
         HwAdapter default_adapter = *(HwAdapterEnumerator{}.begin());

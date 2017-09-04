@@ -47,7 +47,7 @@ public:
             using namespace lexgine::core::misc;
             std::stringstream test_log;
             {
-                Log const& logger = Log::create(test_log, 2, true);
+                Log const& logger = Log::create(test_log, "Test", 2, true);
 
                 auto ref_time = DateTime::now(2, true);
                 TestErrorBehavioral test_error_behavioral;
@@ -61,16 +61,6 @@ public:
                 auto log_time = logger.getLastEntryTimeStamp();
 
                 Assert::IsTrue(ref_time.timeSince(log_time).seconds() < 1e-3);
-
-                std::string month_name[] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
-                std::string ref_string = std::string{ "/" } +std::to_string(log_time.day()) + " " + month_name[log_time.month() - 1] + " "
-                    + std::to_string(log_time.year()) + "/ (" + std::to_string(log_time.hour()) + ":" + std::to_string(log_time.minute()) + ":" + std::to_string(log_time.second()) + "): ";
-
-                std::string log_string = test_log.rdbuf()->str();
-                log_string = log_string.substr(log_string.find_first_of('\n') + 1, ref_string.size());
-
-
-                Assert::IsTrue(log_string.compare(ref_string) == 0);
             }
 
             Log::shutdown();
@@ -83,7 +73,7 @@ public:
 
             std::stringstream test_log;
             {
-                Log const& logger = Log::create(test_log, 2, true);
+                Log const& logger = Log::create(test_log, "Test Static Hash Table", 2, true);
 
                 struct custom_type
                 {
@@ -213,7 +203,7 @@ public:
             using namespace lexgine::core::misc;
 
             std::stringstream test_log;
-            Log::create(test_log, 2, true);
+            Log::create(test_log, "Test Task Graph Parser", 2, true);
 
             class CPUTask : public SchedulableTask
             {
@@ -363,13 +353,13 @@ public:
 
             uint8_t const num_worker_threads = 8U;
 
-            std::ofstream TestTaskShedulingMainLog{ "TestTaskSchedulingLog_Main.txt" };
-            Log::create(TestTaskShedulingMainLog, 2, false);
+            std::ofstream TestTaskShedulingMainLog{ "TestTaskSchedulingLog_Main.html" };
+            Log::create(TestTaskShedulingMainLog, "Test Task Scheduling", 2, false);
 
             std::vector<std::ostream*> worker_thread_logs;
             for (uint8_t i = 0; i < num_worker_threads; ++i)
             {
-                worker_thread_logs.push_back(new std::ofstream{ "TestTaskSchedulingLog_WorkerThread" + std::to_string(i) + ".txt" });
+                worker_thread_logs.push_back(new std::ofstream{ "TestTaskSchedulingLog_WorkerThread" + std::to_string(i) + ".html" });
             }
 
 
