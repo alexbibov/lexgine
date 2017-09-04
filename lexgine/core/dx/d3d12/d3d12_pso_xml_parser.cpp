@@ -1056,7 +1056,7 @@ public:
 
         // Parse render target descriptors
         {
-            int8_t rt_occupied_slots[8]{ -1 };
+            uint8_t rt_occupied_slots[8]; std::fill_n(rt_occupied_slots, 8, 8);
             uint8_t num_rt{ 0U };
             for (auto& child_node : node)
             {

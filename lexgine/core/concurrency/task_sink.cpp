@@ -125,7 +125,7 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
 {
     if (logging_stream)
     {
-        Log::create(*logging_stream, logging_time_zone, logging_dts);
+        Log::create(*logging_stream, "Worker #" + std::to_string(worker_id),  logging_time_zone, logging_dts);
         Log::retrieve()->out("Thread " + std::to_string(worker_id) + " log started", LogMessageType::information);
     }
 

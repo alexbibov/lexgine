@@ -118,8 +118,8 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
     if (p_compilation_errors_blob)
     {
         m_compilation_log = std::string{ static_cast<char const*>(p_compilation_errors_blob->GetBufferPointer()) };
-        std::string output_log = "Unable to compile shader source located in \"" + full_shader_path + "\"\n"
-            "Detailed compiler log follows below:\n" + m_compilation_log + "\n";
+        std::string output_log = "Unable to compile shader source located in \"" + full_shader_path + "\". "
+            "Detailed compiler log follows: <em>" + m_compilation_log + "</em>";
         misc::Log::retrieve()->out(output_log, misc::LogMessageType::error);  
     }
     else

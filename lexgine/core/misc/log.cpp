@@ -14,20 +14,20 @@ static thread_local Log const* p_thread_logger = nullptr;
 }
 
 
-Log const& Log::create(std::ostream& output_logging_stream, int8_t time_zone /* = 0 */, bool is_dts /* = false */)
+Log const& Log::create(std::ostream& output_logging_stream, std::string const& log_name, int8_t time_zone /* = 0 */, bool is_dts /* = false */)
 {
     if (!p_thread_logger)
     {
         p_thread_logger = new Log(output_logging_stream, time_zone, is_dts);
 
-        std::string log_header_string{ "Lexgine log output(" +
+        std::string log_header_string{ log_name + " log output(" +
             DateTime::now(time_zone, is_dts).toString(DateTime::DateOutputMask::year |
                 DateTime::DateOutputMask::month |
-                DateTime::DateOutputMask::day) + ")</title></head>" };
+                DateTime::DateOutputMask::day) + ")" };
 
         output_logging_stream << "<!DOCTYPE html>" << std::endl;
         output_logging_stream << "<html>" << std::endl;
-        output_logging_stream << "<head> <title>" << log_header_string << "</title></head>" << std::endl;
+        output_logging_stream << "<head><title>" << log_header_string << "</title></head>" << std::endl;
         output_logging_stream << "<body>" << std::endl;
         output_logging_stream << "<table>" << std::endl;
         output_logging_stream << "<thead><tr>" << std::endl;

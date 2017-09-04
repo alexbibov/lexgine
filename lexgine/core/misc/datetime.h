@@ -93,13 +93,14 @@ public:
 
 private:
     uint16_t m_year;
+    bool m_is_leap_year;
+    uint8_t m_days_in_month[12];
     uint8_t m_month;
     uint8_t m_day;
     uint8_t m_hour;
     uint8_t m_minute;
     double m_second;
-    bool m_is_leap_year;
-    int8_t m_unc_time_shift;	//!< time shift from UNC in winter
+    int8_t m_time_shift_from_utc;    //!< total time shift to be added to the UNC time to get local time of the host
     bool m_is_dts;	//!< 'true' if the time is a daylight saving time
 };
 

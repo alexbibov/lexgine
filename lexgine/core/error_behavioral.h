@@ -19,7 +19,7 @@ public:
     void registerErrorCallback(std::function<void(std::string const& err_msg)> error_callback);
 
     //! Adds output stream to the list of streams used by the logging system
-    void addLoggingStream(std::ostream& log_stream);
+    void addLoggingStream(std::ostream& log_stream, std::string const& log_name);
 
     //! Resets error state of the object to 'false' and returns the previous value of the error state
     bool resetErrorState();

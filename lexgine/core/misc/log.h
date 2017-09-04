@@ -22,17 +22,19 @@ enum class LogMessageType
 class Log
 {
 public:
-    //! Initializes the logging system and associates it with provided output stream.
-    //! The time stamps used by the logging system can be adjusted to the time zone via @param time_zone, which
-    //! can take values between -11 and +12 and @param is_dts, which determines whether daylight saving time is enabled
-    //! for the selected time zone.
-    //! Note that there can be only one logging object per thread. If this function is invoked twice, the second invocation
-    //! will return reference to the same object as the first one, but provided output stream will be added to the list of
-    //! output streams used by the logging system on this thread.
-    static Log const& create(std::ostream& output_logging_stream, int8_t time_zone = 0, bool is_dts = false);
+    /*! Initializes the logging system and associates it with provided output stream.
+     The time stamps used by the logging system can be adjusted to the time zone via parameter time_zone, which
+     can take values between -11 and +12 and parameter is_dts, which determines whether daylight saving time is enabled
+     for the selected time zone.
+     Note that there can be only one logging object per thread. If this function is invoked twice, the second invocation
+     will return reference to the same object as the first one, but provided output stream will be added to the list of
+     output streams used by the logging system on this thread.
+     */
+    static Log const& create(std::ostream& output_logging_stream, std::string const& log_name, int8_t time_zone = 0, bool is_dts = false);
 
-    //! Retrieves pointer referring to the logging object assigned to the calling thread.
-    //! If no logger has been assigned to the thread, the function will return nullptr.
+    /*! Retrieves pointer referring to the logging object assigned to the calling thread.
+     If no logger has been assigned to the thread, the function will return nullptr.
+     */
     static Log const* retrieve();
 
     //! Attempts to shutdown the logging system and returns 'true' on success or 'false' on failure

@@ -1,7 +1,10 @@
 #include "initializer.h"
+#include "exception.h"
+#include "misc/build_info.h"
 
 #include <windows.h>
 #include <algorithm>
+#include <cwchar>
 
 using namespace lexgine::core;
 
@@ -51,9 +54,18 @@ bool Initializer::initializeEnvironment(
         DYNAMIC_TIME_ZONE_INFORMATION time_zone_info;
         DWORD time_zone_id = GetDynamicTimeZoneInformation(&time_zone_info);
         bool dts = time_zone_id == 0 || time_zone_id == 2;
-        int8_t time_zone_bias = static_cast<uint8_t>((time_zone_info.Bias + time_zone_info.StandardBias) / 60);
+        int8_t time_zone_bias = static_cast<uint8_t>(-(time_zone_info.Bias + time_zone_info.StandardBias) / 60);
 
-        misc::Log::create(m_logging_file_stream, time_zone_bias, dts);
+        wchar_t host_computer_name[MAX_COMPUTERNAME_LENGTH + 1];
+        DWORD host_computer_name_length;
+        if (!GetComputerName(host_computer_name, &host_computer_name_length))
+            wcscpy_s(host_computer_name, L"Unknown host system name");
+
+        std::string log_name{ std::string{ PROJECT_CODE_NAME } +" v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
+        + std::to_string(PROJECT_VERSION_MINOR) + " rev." + std::to_string(PROJECT_VERSION_REVISION)
+        + "(" + PROJECT_VERSION_STAGE + ")" + " (" + misc::wstringToAsciiString(host_computer_name) + ")" };
+
+        misc::Log::create(m_logging_file_stream, log_name, time_zone_bias, dts);
     }
 
 

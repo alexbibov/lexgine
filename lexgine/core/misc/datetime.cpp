@@ -12,15 +12,12 @@ using namespace lexgine::core::misc;
 
 namespace
 {
-// Number of days in each month starting from January
-uint8_t days_in_month[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-
 
 // Helper: transforms provided day to the given time zone
-void adjust_time_shift(uint16_t year, bool is_leap_year, uint8_t month, uint8_t day, uint8_t hour, int8_t time_zone, bool is_dts,
+void adjust_time_shift(uint16_t year, uint8_t const days_in_month[], uint8_t month, uint8_t day, uint8_t hour, int8_t time_shift_from_utc,
     uint16_t& adjusted_year, uint8_t& adjusted_month, uint8_t& adjusted_day, uint8_t& adjusted_hour)
 {
-    int8_t raw_hour = static_cast<int8_t>(hour) + time_zone + is_dts;
+    int8_t raw_hour = static_cast<int8_t>(hour) + time_shift_from_utc;
     int8_t day_shift = raw_hour / 24; raw_hour %= 24;
     if (raw_hour < 0) --day_shift;
 
@@ -41,25 +38,39 @@ void adjust_time_shift(uint16_t year, bool is_leap_year, uint8_t month, uint8_t 
 
 
 DateTime::DateTime(int8_t time_zone /* = 0 */, bool daylight_saving_time /* = false */) :
-    m_year{ 1970 }, m_month{ 1 }, m_day{ 1 }, m_hour{ 0 }, m_minute{ 0 }, m_second{ 0.0 }, m_is_leap_year{ false },
-    m_unc_time_shift{ time_zone }, m_is_dts{ daylight_saving_time }
+    m_year{ 1970 }, 
+    m_is_leap_year{ false },
+    m_days_in_month{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+    m_month{ 1 }, 
+    m_day{ 1 }, 
+    m_hour{ 0 }, 
+    m_minute{ 0 }, 
+    m_second{ 0.0 },
+    m_time_shift_from_utc{ daylight_saving_time + time_zone }, 
+    m_is_dts{ daylight_saving_time }
 {
-    adjust_time_shift(m_year, m_is_leap_year, m_month, m_day, m_hour, time_zone, daylight_saving_time,
+    adjust_time_shift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
         m_year, m_month, m_day, m_hour);
 }
 
 DateTime::DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, double second,
     int8_t time_zone /* = 0 */, bool daylight_saving_time /* = false */) :
-    m_year{ year }, m_month{ month <= 12 ? month : 12U }, m_day{ day <= days_in_month[month - 1] ? day : days_in_month[month - 1] },
-    m_hour{ hour <= 23 ? hour : 23U }, m_minute{ minute <= 59 ? minute : 59U }, m_second{ second < 60 ? second : 59.999999999 },
-    m_unc_time_shift{ time_zone }, m_is_dts{ daylight_saving_time }
-
+    m_year{ year }, 
+    m_is_leap_year{ m_year % 400 == 0 || m_year % 4 == 0 && m_year % 100 != 0 },
+    m_days_in_month{ 31, static_cast<uint8_t>(28 + m_is_leap_year), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+    m_month{ month <= 12 ? month : 12U }, 
+    m_day{ day <= m_days_in_month[month - 1] ? day : m_days_in_month[month - 1] },
+    m_hour{ hour <= 23 ? hour : 23U }, 
+    m_minute{ minute <= 59 ? minute : 59U }, 
+    m_second{ second < 60 ? second : 59.999999999 },
+    m_time_shift_from_utc{ daylight_saving_time + time_zone }, 
+    m_is_dts{ daylight_saving_time }
 {
     assert(second >= 0);
-    m_is_leap_year = m_year % 400 == 0 || m_year % 4 == 0 && m_year % 100 != 0;
 
-    adjust_time_shift(m_year, m_is_leap_year, m_month, m_day, m_hour, time_zone, daylight_saving_time,
-        m_year, m_month, m_day, m_hour);
+    if(time_zone || daylight_saving_time)
+        adjust_time_shift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
+            m_year, m_month, m_day, m_hour);
 }
 
 DateTime::DateTime(unsigned long long nanoseconds)
@@ -81,13 +92,18 @@ double DateTime::second() const { return m_second; }
 
 bool DateTime::isLeapYear() const { return m_is_leap_year; }
 
-int8_t DateTime::getTimeZone() const { return m_unc_time_shift; }
+int8_t DateTime::getTimeZone() const { return m_time_shift_from_utc - m_is_dts; }
 
 bool DateTime::isDTS() const { return m_is_dts; }
 
 DateTime DateTime::getUTC() const
 {
-    return DateTime{ m_year, m_month, m_day, m_hour, m_minute, m_second, -m_unc_time_shift - m_is_dts, false };
+    uint16_t utc_year;
+    uint8_t utc_month, utc_day, utc_hour;
+    adjust_time_shift(m_year, m_days_in_month, m_month, m_day, m_hour, -m_time_shift_from_utc,
+        utc_year, utc_month, utc_day, utc_hour);
+
+    return DateTime{ utc_year, utc_month, utc_day, utc_hour, m_minute, m_second, 0, false };
 }
 
 DateTime DateTime::getLocalTime(int8_t time_zone, bool daylight_saving) const
@@ -128,9 +144,9 @@ DateTime DateTime::operator+(TimeSpan const& span) const
 
 
     int day = static_cast<int>(m_day) + span.days();
-    auto align_days = [&day, &month]()->void
+    auto align_days = [&day, &month, this]()->void
     {
-        while (day > days_in_month[month - 1]) day -= days_in_month[month++ - 1];
+        while (day > m_days_in_month[month - 1]) day -= m_days_in_month[month++ - 1];
     };
     align_days();
     align_months();
@@ -211,7 +227,7 @@ TimeSpan DateTime::timeSince(DateTime const& other) const
     if (other <= *this) return TimeSpan{};
 
     uint8_t months_till_next_year = 12U - m_month;
-    uint8_t days_till_next_month = days_in_month[m_month - 1] - m_day;
+    uint8_t days_till_next_month = m_days_in_month[m_month - 1] - m_day;
     uint8_t hours_till_next_day = 23 - m_hour;
     uint8_t minutes_till_next_hour = 59 - m_minute;
     double seconds_till_next_minute = std::max(59.999999999 - m_second, 0.0);
@@ -304,11 +320,11 @@ DateTime DateTime::convertNanosecondsToDate(unsigned long long nanoseconds, int8
     std::chrono::nanoseconds duration_since_epoch{ static_cast<std::chrono::nanoseconds::rep>(nanoseconds) };
     uint32_t days_since_epoch = std::chrono::duration_cast<days>(duration_since_epoch).count();
 
-    const uint16_t year1970_year2001_days = 11323U;	// hard-coded number of days between January 1, 1970, 00:00:00 and January 1, 2001, 00:00:00
-    const uint16_t year1970_year1973_days = 1096;	// hard-coded number of days between January 1, 1970, 00:00:00 and January 1, 1973, 00:00:00
-    const uint32_t num_days_in_400year_period = 146097U;	//number of days in 400-year period between January 1, 1, 00:00:00 and January 1, 400, 00:00:00
-    const uint32_t num_days_in_100year_period = 36524U;	//number of days in 100-year period between January 1, 1, 00:00:00 and January 1, 100, 00:00:00
-    const uint32_t num_days_in_4year_period = 1461U;	//number of days in 4-year period between January 1, 1, 00:00:00 and January 1, 4, 00:00:00
+    uint16_t const year1970_year2001_days = 11323U;	// hard-coded number of days between January 1, 1970, 00:00:00 and January 1, 2001, 00:00:00
+    uint16_t const year1970_year1973_days = 1096;	// hard-coded number of days between January 1, 1970, 00:00:00 and January 1, 1973, 00:00:00
+    uint32_t const num_days_in_400year_period = 146097U;	//number of days in 400-year period between January 1, 1, 00:00:00 and January 1, 400, 00:00:00
+    uint32_t const num_days_in_100year_period = 36524U;	//number of days in 100-year period between January 1, 1, 00:00:00 and January 1, 100, 00:00:00
+    uint32_t const num_days_in_4year_period = 1461U;	//number of days in 4-year period between January 1, 1, 00:00:00 and January 1, 4, 00:00:00
     int days_since_jan1;
 
     if (days_since_epoch <= year1970_year1973_days)
@@ -362,6 +378,7 @@ DateTime DateTime::convertNanosecondsToDate(unsigned long long nanoseconds, int8
 
 
     bool is_leap_year = year % 400 == 0 || year % 4 == 0 && year % 100 != 0;
+    uint8_t days_in_month[] = { 31, static_cast<uint8_t>(28 + is_leap_year), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
     for (uint32_t i = 0; i <= 11; ++i)
     {
         ++month;

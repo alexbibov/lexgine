@@ -304,6 +304,7 @@
     <ClInclude Include="core\math\rectangle.h" />
     <ClInclude Include="core\math\vector_types.h" />
     <ClInclude Include="core\metal\metal_tools.h" />
+    <ClInclude Include="core\misc\build_info.h" />
     <ClInclude Include="core\misc\constant_converter.h" />
     <ClInclude Include="core\misc\datetime.h" />
     <ClInclude Include="core\misc\flags.h" />
