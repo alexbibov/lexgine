@@ -1,6 +1,7 @@
 #include "initializer.h"
 #include "exception.h"
 #include "misc/build_info.h"
+#include "misc/misc.h"
 
 #include <windows.h>
 #include <algorithm>
@@ -92,6 +93,19 @@ bool Initializer::initializeEnvironment(
         m_global_settings->addShaderLookupDirectory(corrected_global_lookup_prefix);
     }
 
+    // Correct cache path
+    {
+        std::string corrected_cache_path = correct_path(corrected_global_lookup_prefix + m_global_settings->getCacheDirectory());
+        m_global_settings->setCacheDirectory(corrected_cache_path);
+
+        if (!CreateDirectory(misc::asciiStringToWstring(corrected_cache_path).c_str(), NULL) &&
+            GetLastError() != ERROR_ALREADY_EXISTS)
+        {
+            misc::Log::retrieve()->out("Unable to create cache path \"" + corrected_cache_path + "\". Caching may not function properly, which "
+                "may deteriorate performance of the system", misc::LogMessageType::exclamation);
+        }
+    }
+
     builder.defineGlobalSettings(*m_global_settings);
 
     // Create logging streams for workers
@@ -118,6 +132,7 @@ bool Initializer::initializeEnvironment(
 
 void Initializer::shutdownEnvironment()
 {
+    m_globals.release();    // Globals must be destroyed before the logger has been shut down
     misc::Log::shutdown();
     m_logging_file_stream.close();
     for (auto& s : m_logging_worker_file_streams) s.close();

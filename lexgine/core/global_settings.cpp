@@ -4,6 +4,7 @@
 #include "../../3rd_party/rapidjson/writer.h"
 #include "misc/misc.h"
 #include "misc/log.h"
+#include "misc/build_info.h"
 #include "initializer.h"
 
 #include <fstream>
@@ -19,7 +20,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
     misc::Optional<std::string> source_json = misc::readAsciiTextFromSourceFile(json_settings_source_path);
     if (!source_json.isValid())
     {
-        misc::Log::retrieve()->out("WARNING: unable to parse global settings json file located at \"" + json_settings_source_path + "\". The system will fall back to default settings",
+        misc::Log::retrieve()->out("WARNING: unable to parse global settings JSON file located at \"" + json_settings_source_path + "\". The system will fall back to default settings",
             misc::LogMessageType::exclamation);
         return;
     }
@@ -27,19 +28,19 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
     document.Parse(static_cast<std::string>(source_json).c_str());
     if (!document.IsObject())
     {
-        misc::Log::retrieve()->out("WARNING: json file located at \"" + json_settings_source_path + "\" had invalid format. The system will fall back to default settings",
+        misc::Log::retrieve()->out("WARNING: JSON file located at \"" + json_settings_source_path + "\" has invalid format. The system will fall back to default settings",
             misc::LogMessageType::exclamation);
         return;
     }
 
     
     // number_of_workers
+    m_number_of_workers = 8U;
     if (!document["number_of_workers"].IsUint())
     {
         misc::Log::retrieve()->out("WARNING: unable to get value for \"number_of_workers\" from settings file located at \"" 
             + json_settings_source_path + "\". The system will fall back to default value \"number_of_workers = 8\"",
             misc::LogMessageType::exclamation);
-        return;
     }
     else
     {
@@ -52,14 +53,13 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_shader_compilation\" from settings file located at \""
             + json_settings_source_path + "\". The system will fall back to default value \"deferred_shader_compilation = true\"",
             misc::LogMessageType::exclamation);
-        return;
     }
     else
     {
         m_deferred_shader_compilation = document["deferred_shader_compilation"].GetBool();
     }
 
-    if (!document["shader_lookup_directories"].IsNull())
+    if (document.FindMember("shader_lookup_directories") != document.MemberEnd())
     {
         if (!document["shader_lookup_directories"].IsArray())
         {
@@ -67,23 +67,41 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
                 + json_settings_source_path + "\"shader_lookup_directories\" is expected to be an array of strings but turned out to have different format."
                 " The system will search for shaders in the current working directory",
                 misc::LogMessageType::exclamation);
-            return;
         }
-
-        for (auto& e : document["shader_lookup_directories"].GetArray())
+        else
         {
-            if (!e.IsString())
+            for (auto& e : document["shader_lookup_directories"].GetArray())
             {
-                misc::Log::retrieve()->out("WARNING: unable to get value for \"shader_lookup_directories\" from settings file located at \""
-                    + json_settings_source_path + "\"shader_lookup_directories\" is expected to be an array of strings but some of its elements look like they have a non-string format.",
-                    misc::LogMessageType::exclamation);
-                return;
+                if (!e.IsString())
+                {
+                    misc::Log::retrieve()->out("WARNING: unable to get value for \"shader_lookup_directories\" from settings file located at \""
+                        + json_settings_source_path + "\"shader_lookup_directories\" is expected to be an array of strings but some of its elements look like they have a non-string format.",
+                        misc::LogMessageType::exclamation);
+                }
+                else
+                {
+                    m_shader_lookup_directories.push_back(e.GetString());
+                }
             }
-
-            m_shader_lookup_directories.push_back(e.GetString());
         }
     }
 
+    m_cache_path = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
+        + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
+        + "__" + PROJECT_VERSION_STAGE + "__cache/";
+    if (document.FindMember("cache_path") != document.MemberEnd())
+    {
+        if (!document["cache_path"].IsString())
+        {
+            misc::Log::retrieve()->out("WARNING: unable to get value for \"cache_path\" from settings file located at \""
+                + json_settings_source_path + "\"cache_path\" must have string value", misc::LogMessageType::exclamation);
+        }
+        else
+        {
+            m_cache_path = document["cache_path"].GetString();
+        }
+    }
+    
 }
 
 void GlobalSettings::serialize(std::string const& json_serialization_path) const
@@ -113,6 +131,8 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
         }
         w.EndArray();
     }
+    w.Key("cache_path");
+    w.String(m_cache_path.c_str(), static_cast<SizeType>(m_cache_path.length()), true);
     w.EndObject();
 
     ofile.close();
@@ -131,6 +151,11 @@ bool GlobalSettings::isDeferredShaderCompilationOn() const
 std::vector<std::string> const& GlobalSettings::getShaderLookupDirectories() const
 {
     return m_shader_lookup_directories;
+}
+
+std::string GlobalSettings::getCacheDirectory() const
+{
+    return m_cache_path;
 }
 
 bool lexgine::core::GlobalSettings::setNumberOfWorkers(uint8_t num_workers)
@@ -166,5 +191,14 @@ bool GlobalSettings::clearShaderLookupDirectories()
         return false;
 
     m_shader_lookup_directories.clear();
+    return true;
+}
+
+bool GlobalSettings::setCacheDirectory(std::string const& path)
+{
+    if (Initializer::isRendererInitialized())
+        return false;
+
+    m_cache_path = path;
     return true;
 }

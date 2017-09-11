@@ -1,6 +1,8 @@
 #include "data_blob.h"
 
+#include <cassert>
 #include <utility>
+#include <d3dcompiler.h>
 
 using namespace lexgine::core;
 
@@ -42,6 +44,12 @@ DataBlob::~DataBlob()
 
 }
 
+void DataBlob::declareBufferPointer(void* ptr)
+{
+    assert(!m_p_data);
+    m_p_data = ptr;
+}
+
 
 D3DDataBlob::D3DDataBlob():
     m_blob{ nullptr }
@@ -58,6 +66,14 @@ D3DDataBlob::D3DDataBlob(Microsoft::WRL::ComPtr<ID3DBlob> const& blob) :
     m_blob{ blob }
 {
 
+}
+
+D3DDataBlob::D3DDataBlob(size_t blob_size):
+    DataBlob{ nullptr, blob_size },
+    m_blob{ nullptr }
+{
+    D3DCreateBlob(static_cast<SIZE_T>(blob_size), m_blob.GetAddressOf());
+    declareBufferPointer(m_blob->GetBufferPointer());
 }
 
 Microsoft::WRL::ComPtr<ID3DBlob> D3DDataBlob::native() const

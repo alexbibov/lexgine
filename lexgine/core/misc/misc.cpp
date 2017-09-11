@@ -1,6 +1,7 @@
 #include "misc.h"
 #include <fstream>
 #include <sstream>
+#include <limits>
 
 namespace lexgine{namespace core {namespace misc{
 
@@ -47,6 +48,46 @@ Optional<std::string> readAsciiTextFromSourceFile(std::string const& source_file
 bool doesFileExist(std::string const& file_path)
 {
     return static_cast<bool>(std::ifstream(file_path.c_str(), std::ios::in));
+}
+
+unsigned long long getFileSize(std::string const& file_path)
+{
+    if (!doesFileExist(file_path)) return 0;
+
+    std::filebuf fbuf{};
+    if (!fbuf.open(file_path, std::ios_base::in)) return 0;
+
+    std::streampos file_start_pos = fbuf.pubseekoff(0, std::ios_base::beg);
+    std::streampos file_end_pos = fbuf.pubseekoff(0, std::ios_base::end);
+
+    std::streamoff file_size = file_end_pos - file_start_pos;
+
+    fbuf.close();
+    return static_cast<unsigned long long>(file_size);
+}
+
+void readBinaryDataFromSourceFile(std::string const& file_path, void* destination_memory_address)
+{
+    std::ifstream ifile{ file_path, std::ios_base::in | std::ios_base::binary };
+
+    if (ifile)
+    {
+        std::filebuf* p_read_buffer = ifile.rdbuf();
+        p_read_buffer->sgetn(static_cast<char*>(destination_memory_address), (std::numeric_limits<std::streamsize>::max)());
+    }
+
+    ifile.close();
+}
+
+bool writeBinaryDataToFile(std::string const& file_path, void* source_memory_address, size_t data_size)
+{
+    std::ofstream ofile{ file_path, std::ios_base::out | std::ios_base::binary };
+    if (!ofile) return false;
+
+    std::filebuf* p_write_buffer = ofile.rdbuf();
+    if (p_write_buffer->sputn(static_cast<char*>(source_memory_address), static_cast<std::streamsize>(data_size)) != data_size)
+        return false;
+    return true;
 }
 
 }}}

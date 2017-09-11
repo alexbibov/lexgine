@@ -706,7 +706,7 @@ public:
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
 
         m_parent.m_hlsl_compilation_task_cache.addTask(*m_parent.m_globals.get<GlobalSettings>(), shader_source_location, compute_pso_descritptor_cache_entry.cache_name + "_"
-            + shader_source_location + "_CS" , tasks::ShaderType::compute, shader_entry_point_name,
+            + shader_source_location + "_CS" , tasks::ShaderModel::model_50, tasks::ShaderType::compute, shader_entry_point_name,
             lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &compute_pso_descritptor_cache_entry.descriptor, 1);
 
         return true;
@@ -760,7 +760,7 @@ public:
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
 
         m_parent.m_hlsl_compilation_task_cache.addTask(*m_parent.m_globals.get<GlobalSettings>(), shader_source_location, graphics_pso_descriptor_cache_entry.cache_name + "_"
-            + shader_source_location + "_" + compilation_task_suffix, shader_type, shader_entry_point_name,
+            + shader_source_location + "_" + compilation_task_suffix, tasks::ShaderModel::model_50, shader_type, shader_entry_point_name,
             lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &graphics_pso_descriptor_cache_entry.descriptor, 1);
 
         return true;
@@ -1145,7 +1145,7 @@ private:
 
         }
 
-        void setIntput(concurrency::TaskSink* p_sink)
+        void setInput(concurrency::TaskSink* p_sink)
         {
             m_p_sink = p_sink;
         }
@@ -1281,7 +1281,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals con
         std::vector<std::ostream*> worker_log_streams = *m_globals.get<std::vector<std::ostream*>>();
 
         concurrency::TaskSink task_sink{ shader_compilation_graph, worker_log_streams, 1, "shader_compilation_task_sink_" + getId().toString() };
-        m_impl->deferredShaderCompilationExitTask()->setIntput(&task_sink);
+        m_impl->deferredShaderCompilationExitTask()->setInput(&task_sink);
 
         try
         {

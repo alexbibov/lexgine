@@ -2,17 +2,21 @@
 #include "../../../data_blob.h"
 #include <d3dcompiler.h>
 #include "../../../global_settings.h"
+#include "../../../misc/hashed_string.h"
+
 
 using namespace lexgine::core::dx::d3d12::tasks;
 using namespace lexgine::core;
 
 HLSLCompilationTask::HLSLCompilationTask(GlobalSettings const& global_settings, std::string const& source, std::string const& source_name,
-    ShaderType shader_type, std::string const& shader_entry_point, lexgine::core::ShaderSourceCodePreprocessor::SourceType source_type,
+    ShaderModel shader_model, ShaderType shader_type, std::string const& shader_entry_point, 
+    lexgine::core::ShaderSourceCodePreprocessor::SourceType source_type,
     void* p_target_pso_descriptors, uint32_t num_descriptors,
     std::list<HLSLMacroDefinition> const& macro_definitions) :
     m_global_settings{ global_settings },
     m_source{ source },
     m_source_name{ source_name },
+    m_shader_model{ shader_model },
     m_type{ shader_type },
     m_shader_entry_point{ shader_entry_point },
     m_source_type{ source_type },
@@ -60,7 +64,7 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
         return true;
     }
 
-    std::string processed_sader_source{ shader_preprocessor.getPreprocessedSource() };
+    std::string processed_shader_source{ shader_preprocessor.getPreprocessedSource() };
 
     D3D_SHADER_MACRO* macro_definitions = m_preprocessor_macro_definitions.size() ?
         new D3D_SHADER_MACRO[m_preprocessor_macro_definitions.size()] : nullptr;
@@ -72,28 +76,31 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
         macro_definitions[i].Definition = p->value.c_str();
     }
 
-    char* target = nullptr;
+    char* shader_type_prefix = nullptr;
     switch (m_type)
     {
     case ShaderType::vertex:
-        target = "vs_5_0";
+        shader_type_prefix = "vs_";
         break;
     case ShaderType::hull:
-        target = "hs_5_0";
+        shader_type_prefix = "hs_";
         break;
     case ShaderType::domain:
-        target = "ds_5_0";
+        shader_type_prefix = "ds_";
         break;
     case ShaderType::geometry:
-        target = "gs_5_0";
+        shader_type_prefix = "gs_";
         break;
     case ShaderType::pixel:
-        target = "ps_5_0";
+        shader_type_prefix = "ps_";
         break;
     case ShaderType::compute:
-        target = "cs_5_0";
+        shader_type_prefix = "cs_";
         break;
     }
+    std::string target = shader_type_prefix 
+        + std::to_string(static_cast<unsigned>(m_shader_model) / 10U) + "_"
+        + std::to_string(static_cast<unsigned>(m_shader_model) % 10U);
 
 
     UINT compilation_flags = 
@@ -108,10 +115,33 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
     compilation_flags = compilation_flags | D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif 
 
-    ID3DBlob* p_shader_bytecode_blob, *p_compilation_errors_blob;
-    LEXGINE_ERROR_LOG(this, D3DCompile(processed_sader_source.c_str(), processed_sader_source.size(),
-        m_source_name.c_str(), macro_definitions, NULL, m_shader_entry_point.c_str(), target,
-        compilation_flags, NULL, &p_shader_bytecode_blob, &p_compilation_errors_blob), S_OK);
+    ID3DBlob* p_shader_bytecode_blob{ nullptr }, *p_compilation_errors_blob{ nullptr };
+    
+    std::string shader_source_for_hashing{ processed_shader_source + "_with_preprocessor_definitions_" };
+    for (D3D_SHADER_MACRO* p_def = macro_definitions; 
+        p_def < macro_definitions + m_preprocessor_macro_definitions.size();
+        ++p_def)
+    {
+        shader_source_for_hashing += std::string{ "_name_" } +p_def->Name + "_value_" + p_def->Definition;
+    }
+    misc::HashedString shader_hashed_source{ shader_source_for_hashing.c_str() };
+
+    std::string cached_shader_blob_name{ m_source + "_" + target + "_" 
+        + std::to_string(shader_hashed_source.hash()) + ".shader" };
+    std::string cached_blob_path{ m_global_settings.getCacheDirectory() + cached_shader_blob_name };
+
+    if (misc::doesFileExist(cached_blob_path))
+    {
+        size_t compiled_shader_size = misc::getFileSize(cached_blob_path);
+        D3DCreateBlob(compiled_shader_size, &p_shader_bytecode_blob);
+        misc::readBinaryDataFromSourceFile(cached_blob_path, p_shader_bytecode_blob->GetBufferPointer());
+    }
+    else
+    {
+        LEXGINE_ERROR_LOG(this, D3DCompile(processed_shader_source.c_str(), processed_shader_source.size(),
+            m_source_name.c_str(), macro_definitions, NULL, m_shader_entry_point.c_str(), target.c_str(),
+            compilation_flags, NULL, &p_shader_bytecode_blob, &p_compilation_errors_blob), S_OK);
+    }
     if (macro_definitions) delete[] macro_definitions;
 
     // if the call of D3DCompile(...) has failed this object then was set to erroneous state
@@ -125,6 +155,8 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
     else
     {
         m_was_compilation_successful = true;
+
+        misc::writeBinaryDataToFile(cached_blob_path, p_shader_bytecode_blob->GetBufferPointer(), p_shader_bytecode_blob->GetBufferSize());
 
         D3DDataBlob shader_bytecode{ Microsoft::WRL::ComPtr<ID3DBlob>{p_shader_bytecode_blob} };
 
