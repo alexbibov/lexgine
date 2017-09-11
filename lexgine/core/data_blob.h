@@ -27,6 +27,9 @@ public:
 
     virtual ~DataBlob();
 
+protected:
+    void declareBufferPointer(void* ptr);
+
 private:
     void* m_p_data;    //!< pointer to the data contained in the blob
     size_t m_size;    //!< size of the blob
@@ -40,6 +43,7 @@ public:
     D3DDataBlob();
     D3DDataBlob(nullptr_t);
     D3DDataBlob(Microsoft::WRL::ComPtr<ID3DBlob> const& blob);
+    D3DDataBlob(size_t blob_size);
 
     Microsoft::WRL::ComPtr<ID3DBlob> native() const;    //! returns native pointer to Direct3D blob interface
 

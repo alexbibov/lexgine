@@ -13,10 +13,10 @@ class GlobalSettings
 {
 private:
 
-    uint8_t m_number_of_workers = 8U;
-    bool m_deferred_shader_compilation = true;
+    uint8_t m_number_of_workers;
+    bool m_deferred_shader_compilation;
     std::vector<std::string> m_shader_lookup_directories;
-
+    std::string m_cache_path;
 
 public:
     GlobalSettings() = default;
@@ -30,6 +30,7 @@ public:
     uint8_t getNumberOfWorkers() const;
     bool isDeferredShaderCompilationOn() const;
     std::vector<std::string> const& getShaderLookupDirectories() const;
+    std::string getCacheDirectory() const;
 
     
     // *** the following functions are used to alter the global settings during run time. All functions return 'true' in case of success and 'false' if the parameter's value cannot be changed ***
@@ -38,6 +39,7 @@ public:
     bool setIsDeferredShaderCompilationOn(bool is_enabled);
     bool addShaderLookupDirectory(std::string const& path);
     bool clearShaderLookupDirectories();
+    bool setCacheDirectory(std::string const& path);
 };
 
 }}

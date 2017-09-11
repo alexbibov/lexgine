@@ -16,6 +16,11 @@ enum class ShaderType
     tessellation_control = 1, tesselation_evaluation = 2, fragment = 4    // OpenGL/Vulkan terminology for convenience
 };
 
+enum class ShaderModel : unsigned
+{
+    model_50 = 50
+};
+
 //! Implements compilation of provided HLSL source code
 class HLSLCompilationTask : public concurrency::SchedulableTask
 {
@@ -36,7 +41,7 @@ public:
      provided value of parameter shader_type.
     */
     HLSLCompilationTask(GlobalSettings const& global_settings, std::string const& source, std::string const& source_name,
-        ShaderType shader_type, std::string const& shader_entry_point, ShaderSourceCodePreprocessor::SourceType source_type,
+        ShaderModel shader_model, ShaderType shader_type, std::string const& shader_entry_point, ShaderSourceCodePreprocessor::SourceType source_type,
         void* p_target_pso_descriptors, uint32_t num_descriptors,
         std::list<HLSLMacroDefinition> const& macro_definitions = std::list<HLSLMacroDefinition>{});
 
@@ -62,6 +67,7 @@ private:
     GlobalSettings const& m_global_settings;
     std::string m_source;
     std::string m_source_name;
+    ShaderModel m_shader_model;
     ShaderType m_type;
     std::string m_shader_entry_point;
     ShaderSourceCodePreprocessor::SourceType m_source_type;
