@@ -1,4 +1,4 @@
-#ifndef LEXGINE_CORE_MISC_DATA_BLOB
+#ifndef LEXGINE_CORE_DATA_BLOB
 
 #include <d3d12.h>
 #include <wrl.h>
@@ -52,8 +52,9 @@ private:
 };
 
 
-//! Implements simplified automated memory data chunk with unique ownership that automatically allocates
-//! a memory buffer of given size on creation and deallocates it on destruction. This class is API- and OS- agnostic
+/*! Implements simplified automated memory data chunk with unique ownership that automatically allocates
+ a memory buffer of given size on creation and deallocates it on destruction. This class is API- and OS- agnostic
+*/
 class DataChunk : public DataBlob
 {
 public:
@@ -71,5 +72,5 @@ public:
 
 }}
 
-#define LEXGINE_CORE_MISC_DATA_BLOB
+#define LEXGINE_CORE_DATA_BLOB
 #endif

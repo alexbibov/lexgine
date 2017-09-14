@@ -438,7 +438,7 @@
     <ClInclude Include="core\misc\build_info.h">
       <Filter>core\misc</Filter>
     </ClInclude>
-    <ClInclude Include="core\on_disk_cache.h">
+    <ClInclude Include="core\streamed_cache.h">
       <Filter>core</Filter>
     </ClInclude>
   </ItemGroup>
