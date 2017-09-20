@@ -29,5 +29,6 @@ extern char const TaskSink[] = "lexgine::core::concurrency::TaskSink";
 extern char const D3D12PSOXMLParser[] = "lexgine::core::dx::d3d12::D3D12PSOXMLParser";
 extern char const ShaderSourceCodePreprocessor[] = "lexgine::core::ShaderSourceCodePreprocessor";
 extern char const Globals[] = "lexgine::core::Globals";
+extern char const StreamedCache[] = "lexgine::core::StreamedCache<Key>";
 
 }}}
