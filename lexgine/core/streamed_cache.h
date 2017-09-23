@@ -10,6 +10,7 @@
 #include "misc/datetime.h"
 #include "entity.h"
 #include "class_names.h"
+#include "misc/optional.h"
 
 namespace lexgine {
 namespace core {
@@ -33,10 +34,10 @@ private:
 };
 
 
-//! Single 64KB cluster of the cache
+//! Single 16KB cluster of the cache
 struct CacheCluster final
 {
-    char data[65536];
+    char data[16384];
     uint64_t next_cluster_offset;
 };
 
@@ -45,10 +46,12 @@ struct CacheCluster final
 template<typename Key>
 struct StreamedCacheIndexTreeEntry final
 {
+    bool to_be_deleted = false;
+
     uint64_t data_offset;
     Key cache_entry_key;
 
-    bool node_color;
+    unsigned char node_color;
 
     size_t parent_node;
     size_t right_leave;
@@ -60,16 +63,30 @@ struct StreamedCacheIndexTreeEntry final
 template<typename Key>
 class StreamedCacheIndex final
 {
+    friend class StreamedCache<Key>;
+
 public:
+
     using key_type = Key;
 
-    void addEntry(std::pair<Key, uint64_t> const& key_offset_pair);    //! adds entry into cache index tree
+public:
 
-    void removeEntry(Key const& key);    //! removes entry from cache index tree
+    misc::Optional<uint64_t> getCacheEntryDataOffsetFromKey(Key const& key) const;    //! retrieves offset of cache entry in the associated stream based on provided key
 
-    uint64_t getCacheEntryDataOffsetFromKey(Key const& key);    //! retrieves offset of cache entry in the associated stream based on provided key
+    size_t getCurrentRedundancy() const;    //! returns current redundancy of the index tree buffer represented in bytes
+
+    size_t getMaxAllowedRedundancy() const;    //! returns maximal allowed redundancy of the tree buffer represented in bytes
+
+    /*! Sets maximal redundancy allowed for the index tree buffer represented in bytes. Note that the real maximal allowed redundancy applied to the index tree
+     buffer may be slightly less then the value provided to this function as the latter gets aligned to the size of certain internal structure representing
+     single entry of the index tree. Call getMaxAllowedRedundancy() to get factual redundancy value applied to the index tree buffer
+    */
+    void setMaxAllowedRedundancy(size_t max_redundancy_in_bytes);
 
 private:
+    void add_entry(std::pair<Key, uint64_t> const& key_offset_pair);    //! adds entry into cache index tree
+    void remove_entry(Key const& key);    //! removes entry from cache index tree
+
 
     size_t bst_insert(std::pair<Key, uint64_t> const& key_offset_pair);    //! standard BST-insertion without RED-BLACK properties check
     void swap_colors(bool& color1, bool& color2);
@@ -78,9 +95,19 @@ private:
     void RRcase(size_t p, size_t g);
     void RLcase(size_t p, size_t g);
 
+    void bst_delete(Key const& key);    //! standard BST deletion based on provided key
+
+    std::pair<size_t, bool> bst_search(Key const& key);    //! retrieves address of the node having the given key. The second element of returned pair is 'true' if the node has been found and 'false' otherwise.
+
+    void rebuild_index();    //! builds new index tree buffer without unused entries
+
+private:
+
     size_t const m_key_size = Key::size;
-    std::vector<StreamedCacheIndexTreeEntry> m_index_tree;
+    std::vector<StreamedCacheIndexTreeEntry<Key>> m_index_tree;
     std::vector<uint64_t> m_empty_cluster_list;
+    size_t m_current_index_redundant_growth_pressure = 0U;
+    size_t m_max_index_redundant_growth_pressure = 1000U;    //!< maximal allowed amount of unused entries in the index tree buffer, after which the buffer is rebuilt
 };
 
 
@@ -126,17 +153,44 @@ inline StreamedCacheEntry<Key>::StreamedCacheEntry(Key const& key, DataBlob cons
 
 }
 
+template<typename Key>
+inline misc::Optional<uint64_t> StreamedCacheIndex<Key>::getCacheEntryDataOffsetFromKey(Key const& key) const
+{
+    std::pair<size_t, bool> search_result = bst_search(key);
+    if (search_result.second)
+        return misc::Optional<uint64_t>{ m_index_tree[search_result.first].data_offset };
+
+    return misc::Optional<uint64_t>{};
+}
 
 template<typename Key>
-inline void core::StreamedCacheIndex<Key>::addEntry(std::pair<Key, uint64_t> const& key_offset_pair)
+inline size_t StreamedCacheIndex<Key>::getCurrentRedundancy() const
+{
+    return m_current_index_redundant_growth_pressure * sizeof(StreamedCacheIndexTreeEntry<Key>);
+}
+
+template<typename Key>
+inline size_t StreamedCacheIndex<Key>::getMaxAllowedRedundancy() const
+{
+    return m_current_index_redundant_growth_pressure * sizeof(StreamedCacheIndexTreeEntry<Key>);
+}
+
+template<typename Key>
+inline void StreamedCacheIndex<Key>::setMaxAllowedRedundancy(size_t max_redundancy_in_bytes)
+{
+    m_current_index_redundant_growth_pressure = max_redundancy_in_bytes / sizeof(StreamedCacheIndexTreeEntry<Key>);
+}
+
+template<typename Key>
+inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> const& key_offset_pair)
 {
     if (m_index_tree.size() == 0)
     {
-        StreamedCacheIndexTreeEntry root_entry;
+        StreamedCacheIndexTreeEntry<Key> root_entry;
 
         root_entry.data_offset = key_offset_pair.second;
         root_entry.cache_entry_key = key_offset_pair.first;
-        root_entry.node_color = false;    // root is always BLACK
+        root_entry.node_color = 0;    // root is always BLACK
         root_entry.parent_node = 0;    // 0 is index of the tree buffer where the root of the tree always resides. But no leave ever has root as child, so use 0 to encode leave nodes
         root_entry.right_leave = 0;
         root_entry.left_leave = 0;
@@ -161,9 +215,9 @@ inline void core::StreamedCacheIndex<Key>::addEntry(std::pair<Key, uint64_t> con
             while (!root_reached && uncle_idx && m_index_tree[uncle_idx].node_color)
             {
                 // uncle is RED case
-                m_index_tree[parent_idx].node_color = false;
-                m_index_tree[uncle_idx].node_color = false;
-                m_index_tree[grandparent_idx].node_color = grandparent_idx != 0;
+                m_index_tree[parent_idx].node_color = 0;
+                m_index_tree[uncle_idx].node_color = 0;
+                m_index_tree[grandparent_idx].node_color = static_cast<unsigned char>(grandparent_idx != 0);
                 root_reached = grandparent_idx == 0;
 
                 current_idx = grandparent_idx;
@@ -205,6 +259,12 @@ inline void core::StreamedCacheIndex<Key>::addEntry(std::pair<Key, uint64_t> con
 }
 
 template<typename Key>
+inline void StreamedCacheIndex<Key>::remove_entry(Key const& key)
+{
+
+}
+
+template<typename Key>
 inline size_t core::StreamedCacheIndex<Key>::bst_insert(std::pair<Key, uint64_t> const& key_offset_pair)
 {
     size_t const target_index = m_index_tree.size();
@@ -227,10 +287,10 @@ inline size_t core::StreamedCacheIndex<Key>::bst_insert(std::pair<Key, uint64_t>
     else m_index_tree[insertion_node_idx].right_leave = target_index;
 
     // finally, physically insert new node into the tree buffer
-    StreamedCacheIndexTreeEntry new_entry;
+    StreamedCacheIndexTreeEntry<Key> new_entry;
     new_entry.data_offset = key_offset_pair.second;
     new_entry.cache_entry_key = key_offset_pair.first;
-    new_entry.node_color = true;    // newly inserted nodes are RED
+    new_entry.node_color = 1;    // newly inserted nodes are RED
     new_entry.parent_node = insertion_node_idx;
     new_entry.left_leave = 0;
     new_entry.right_leave = 0;
@@ -279,6 +339,63 @@ inline void StreamedCacheIndex<Key>::RLcase(size_t p, size_t g)
     m_index_tree[p].left_leave = m_index_tree[current_index].right_leave;
     m_index_tree[current_index].right_leave = p;
     RRcase(x, g);
+}
+
+template<typename Key>
+inline void StreamedCacheIndex<Key>::bst_delete(Key const& key)
+{
+    size_t node_to_delete_idx = bst_search(key).first;
+
+    if (!m_index_tree[node_to_delete_idx].left_leave && !m_index_tree[node_to_delete_idx].right_leave)
+    {
+        // node to be deleted is a leaf
+
+        size_t parent_idx = m_index_tree[node_to_delete_idx].parent_node;
+        if (m_index_tree[parent_idx].left_leave == node_to_delete_idx)
+            m_index_tree[parent_idx].left_leave = 0;
+        else
+            m_index_tree[parent_idx].right_leave = 0;
+
+        m_index_tree[node_to_delete_idx].to_be_deleted = true;
+    }
+    else if (m_index_tree[node_to_delete_idx].left_leave && !m_index_tree[node_to_delete_idx].right_leave
+        || !m_index_tree[node_to_delete_idx].left_leave && m_index_tree[node_to_delete_idx].right_leave)
+    {
+        // node to be deleted has only one child
+
+        size_t child_node_idx = 
+            m_index_tree[node_to_delete_idx].left_leave 
+            ? m_index_tree[node_to_delete_idx].left_leave 
+            : m_index_tree[node_to_delete_idx].right_leave;
+
+        m_index_tree[node_to_delete_idx] = m_index_tree[child_node_idx];
+        m_index_tree[child_node_idx].to_be_deleted = true;
+    }
+    else
+    {
+        size_t in_order_successor_idx{ 0U };
+    }
+
+    ++m_current_index_redundant_growth_pressure;
+    if (m_current_index_redundant_growth_pressure == m_max_index_redundant_growth_pressure) rebuild_index();
+}
+
+template<typename Key>
+inline std::pair<size_t, bool> StreamedCacheIndex<Key>::bst_search(Key const& key)
+{
+    size_t current_index = 0;
+    do 
+    {
+        if (key == m_index_tree[current_index].cache_entry_key)
+            return std::make_pair(current_index, true);
+
+        current_index = key < m_index_tree[current_index].cache_entry_key
+            ? m_index_tree[current_index].left_leave
+            : m_index_tree[current_index].right_leave;
+
+    } while (current_index);
+
+    return std::make_pair(0, false);
 }
 
 
