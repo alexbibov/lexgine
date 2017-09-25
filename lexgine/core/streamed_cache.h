@@ -54,8 +54,8 @@ struct StreamedCacheIndexTreeEntry final
     unsigned char node_color;
 
     size_t parent_node;
-    size_t right_leave;
-    size_t left_leave;
+    size_t right_leaf;
+    size_t left_leaf;
 };
 
 
@@ -90,12 +90,18 @@ private:
 
     size_t bst_insert(std::pair<Key, uint64_t> const& key_offset_pair);    //! standard BST-insertion without RED-BLACK properties check
     void swap_colors(bool& color1, bool& color2);
-    void LLcase(size_t p, size_t g);
-    void LRcase(size_t p, size_t g);
-    void RRcase(size_t p, size_t g);
-    void RLcase(size_t p, size_t g);
+    void insLLcase(size_t p, size_t g);
+    void insLRcase(size_t p, size_t g);
+    void insRRcase(size_t p, size_t g);
+    void insRLcase(size_t p, size_t g);
 
-    void bst_delete(Key const& key);    //! standard BST deletion based on provided key
+    void delLLcase(size_t p, size_t s);
+    void delLRcase(size_t p, size_t s);
+    void delRRcase(size_t p, size_t s);
+    void delRLcase(size_t p, size_t s);
+    void delRecolor(size_t c, size_t p, size_t s);
+
+    std::pair<size_t, size_t> bst_delete(Key const& key);    //! standard BST deletion based on provided key
 
     std::pair<size_t, bool> bst_search(Key const& key);    //! retrieves address of the node having the given key. The second element of returned pair is 'true' if the node has been found and 'false' otherwise.
 
@@ -172,13 +178,13 @@ inline size_t StreamedCacheIndex<Key>::getCurrentRedundancy() const
 template<typename Key>
 inline size_t StreamedCacheIndex<Key>::getMaxAllowedRedundancy() const
 {
-    return m_current_index_redundant_growth_pressure * sizeof(StreamedCacheIndexTreeEntry<Key>);
+    return m_max_index_redundant_growth_pressure * sizeof(StreamedCacheIndexTreeEntry<Key>);
 }
 
 template<typename Key>
 inline void StreamedCacheIndex<Key>::setMaxAllowedRedundancy(size_t max_redundancy_in_bytes)
 {
-    m_current_index_redundant_growth_pressure = max_redundancy_in_bytes / sizeof(StreamedCacheIndexTreeEntry<Key>);
+    m_max_index_redundant_growth_pressure = max_redundancy_in_bytes / sizeof(StreamedCacheIndexTreeEntry<Key>);
 }
 
 template<typename Key>
@@ -190,10 +196,10 @@ inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> co
 
         root_entry.data_offset = key_offset_pair.second;
         root_entry.cache_entry_key = key_offset_pair.first;
-        root_entry.node_color = 0;    // root is always BLACK
+        root_entry.node_color = 1;    // root is always BLACK
         root_entry.parent_node = 0;    // 0 is index of the tree buffer where the root of the tree always resides. But no leave ever has root as child, so use 0 to encode leave nodes
-        root_entry.right_leave = 0;
-        root_entry.left_leave = 0;
+        root_entry.right_leaf = 0;
+        root_entry.left_leaf = 0;
 
         m_index_tree.push_back(root_entry);
     }
@@ -208,50 +214,50 @@ inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> co
             // in this case the RED-BLACK structure of the tree is corrupted and needs to be recovered
 
             size_t grandparent_idx = m_index_tree[parent_idx].parent_node;
-            bool T1 = m_index_tree[grandparent_idx].left_leave == parent_idx;    // does parent reside in the left sub-tree?
-            size_t uncle_idx = T1 ? m_index_tree[grandparent_idx].right_leave : m_index_tree[grandparent_idx].left_leave;
+            bool T1 = m_index_tree[grandparent_idx].left_leaf == parent_idx;    // does parent reside in the left sub-tree?
+            size_t uncle_idx = T1 ? m_index_tree[grandparent_idx].right_leaf : m_index_tree[grandparent_idx].left_leaf;
 
             bool root_reached{ false };
-            while (!root_reached && uncle_idx && m_index_tree[uncle_idx].node_color)
+            while (!root_reached && uncle_idx && m_index_tree[uncle_idx].node_color == 0)
             {
                 // uncle is RED case
-                m_index_tree[parent_idx].node_color = 0;
-                m_index_tree[uncle_idx].node_color = 0;
-                m_index_tree[grandparent_idx].node_color = static_cast<unsigned char>(grandparent_idx != 0);
+                m_index_tree[parent_idx].node_color = 1;
+                m_index_tree[uncle_idx].node_color = 1;
+                m_index_tree[grandparent_idx].node_color = static_cast<unsigned char>(grandparent_idx == 0);
                 root_reached = grandparent_idx == 0;
 
                 current_idx = grandparent_idx;
                 parent_idx = m_index_tree[current_idx].parent_node;
                 grandparent_idx = m_index_tree[parent_idx].parent_node;
-                T1 = m_index_tree[grandparent_idx].left_leave == parent_idx;
-                uncle_idx = T1 ? m_index_tree[grandparent_idx].right_leave : m_index_tree[grandparent_idx].left_leave;
+                T1 = m_index_tree[grandparent_idx].left_leaf == parent_idx;
+                uncle_idx = T1 ? m_index_tree[grandparent_idx].right_leaf : m_index_tree[grandparent_idx].left_leaf;
             }
 
             if (!root_reached)
             {
                 // uncle is BLACK cases
 
-                bool T2 = m_index_tree[parent_idx].left_leave == current_idx;    // does new node reside in the left sub-tree?
+                bool T2 = m_index_tree[parent_idx].left_leaf == current_idx;    // does new node reside in the left sub-tree?
 
                 if (T1 && T2)
                 {
                     // Left-Left case
-                    LLcase(parent_idx, grandparent_idx);
+                    insLLcase(parent_idx, grandparent_idx);
                 }
                 else if (T1 && !T2)
                 {
                     // Left-Right case
-                    LRcase(parent_idx, grandparent_idx);
+                    insLRcase(parent_idx, grandparent_idx);
                 }
                 else if (!T1 && T2)
                 {
                     // Right-Left case
-                    RLcase(parent_idx, grandparent_idx);
+                    insRLcase(parent_idx, grandparent_idx);
                 }
                 else
                 {
                     // Right-Right case
-                    RRcase(parent_idx, grandparent_idx);
+                    insRRcase(parent_idx, grandparent_idx);
                 }
             }
         }
@@ -261,13 +267,93 @@ inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> co
 template<typename Key>
 inline void StreamedCacheIndex<Key>::remove_entry(Key const& key)
 {
+    std::pair<size_t, size_t> d_and_s = bst_delete(key);
+    size_t removed_node_idx = d_and_s.first;
+    size_t removed_node_sibling_idx = d_and_s.second;
+    size_t parent_of_removed_node_idx = m_index_tree[removed_node_sibling_idx].parent_node;
 
+    if (m_index_tree[removed_node_idx].node_color == 0
+        || m_index_tree[parent_of_removed_node_idx].node_color == 0)
+    {
+        // either the node to be removed or its parent is red (both cannot be red due to the RED-BLACK requirements)
+        m_index_tree[parent_of_removed_node_idx].node_color = 1;
+    }else
+    {
+        // both the node to be removed and its parent are black 
+        m_index_tree[removed_node_idx].node_color = 2;    // "2" means the node is double-black
+
+        size_t current_node_idx = removed_node_idx;
+        size_t current_node_sibling_idx = removed_node_sibling_idx;
+        while (current_node_idx && m_index_tree[current_node_idx].node_color == 2)
+        {
+            size_t parent_of_current_node_idx = m_index_tree[current_node_idx];
+
+            // true when the sibling is the left child of its parent
+            bool T1 = m_index_tree[parent_of_current_node_idx].left_leaf == current_node_sibling_idx;
+
+            if (m_index_tree[current_node_sibling_idx].node_color == 1)
+            {
+                // sibling is BLACK
+
+                // true is the left child of the sibling is RED
+                bool T2 = m_index_tree[current_node_sibling_idx].left_leaf
+                    && m_index_tree[m_index_tree[current_node_sibling_idx].left_leaf].node_color == 0;
+
+                // true is the right child of the sibling is RED
+                bool T3 = m_index_tree[current_node_sibling_idx].right_leaf
+                    && m_index_tree[m_index_tree[current_node_sibling_idx].right_leaf].node_color == 0;
+                if (T2 || T3)
+                {
+                    // either of the sibling's children is RED
+
+                    if (T1 && T2)
+                    {
+                        // left-left case
+                        delLLcase(parent_of_current_node_idx, current_node_sibling_idx);
+
+                    } else if (T1 && T3)
+                    {
+                        // left-right case
+                        delLRcase(parent_of_removed_node_idx, current_node_sibling_idx);
+
+                    } else if (!T1 && T3)
+                    {
+                        // right-right case
+
+
+                    } else
+                    {
+                        // right-left case
+
+
+                    }
+                }
+                else
+                {
+                    // both of the sibling's children are BLACK
+
+
+                }
+            }
+        }
+    }
+
+    ++m_current_index_redundant_growth_pressure;
+    if (m_current_index_redundant_growth_pressure == m_max_index_redundant_growth_pressure) rebuild_index();
 }
 
 template<typename Key>
 inline size_t core::StreamedCacheIndex<Key>::bst_insert(std::pair<Key, uint64_t> const& key_offset_pair)
 {
     size_t const target_index = m_index_tree.size();
+
+    StreamedCacheIndexTreeEntry<Key> new_entry;
+    new_entry.data_offset = key_offset_pair.second;
+    new_entry.cache_entry_key = key_offset_pair.first;
+    new_entry.node_color = 0;    // newly inserted nodes are RED
+    new_entry.parent_node = insertion_node_idx;
+    new_entry.left_leaf = 0;
+    new_entry.right_leaf = 0;
 
     size_t insertion_node_idx;
     bool is_insertion_subtree_left;
@@ -277,23 +363,16 @@ inline size_t core::StreamedCacheIndex<Key>::bst_insert(std::pair<Key, uint64_t>
         {
             insertion_node_idx = search_idx;
             search_idx = (is_insertion_subtree_left = new_entry.cache_entry_key < m_index_tree[search_idx].cache_entry_key)
-                ? m_index_tree[search_idx].left_leave
+                ? m_index_tree[search_idx].left_leaf
                 : m_index_tree[search_idx].right_leave;
         } while (search_idx);
     }
 
     // setup connection to the new node
-    if (is_insertion_subtree_left) m_index_tree[insertion_node_idx].left_leave = target_index;
-    else m_index_tree[insertion_node_idx].right_leave = target_index;
+    if (is_insertion_subtree_left) m_index_tree[insertion_node_idx].left_leaf = target_index;
+    else m_index_tree[insertion_node_idx].right_leaf = target_index;
 
     // finally, physically insert new node into the tree buffer
-    StreamedCacheIndexTreeEntry<Key> new_entry;
-    new_entry.data_offset = key_offset_pair.second;
-    new_entry.cache_entry_key = key_offset_pair.first;
-    new_entry.node_color = 1;    // newly inserted nodes are RED
-    new_entry.parent_node = insertion_node_idx;
-    new_entry.left_leave = 0;
-    new_entry.right_leave = 0;
     m_index_tree.push_back(new_entry);
 
     return insertion_node_idx;
@@ -308,76 +387,178 @@ inline void core::StreamedCacheIndex<Key>::swap_colors(bool& color1, bool& color
 }
 
 template<typename Key>
-inline void core::StreamedCacheIndex<Key>::LLcase(size_t p, size_t g)
+inline void core::StreamedCacheIndex<Key>::insLLcase(size_t p, size_t g)
 {
-    m_index_tree[g].left_leave = m_index_tree[p].right_leave;
-    m_index_tree[p].right_leave = g;
+    m_index_tree[g].left_leaf = m_index_tree[p].right_leaf;
+    m_index_tree[p].right_leaf = g;
     swap_colors(m_index_tree[p].node_color, m_index_tree[g].node_color);
 }
 
 template<typename Key>
-inline void StreamedCacheIndex<Key>::LRcase(size_t p, size_t g)
+inline void StreamedCacheIndex<Key>::insLRcase(size_t p, size_t g)
 {
-    size_t current_idx = m_index_tree[p].right_leave;
-    m_index_tree[p].right_leave = m_index_tree[current_idx].left_leave;
-    m_index_tree[current_idx].left_leave = p;
-    LLcase(current_idx, g);
+    size_t current_idx = m_index_tree[p].right_leaf;
+    m_index_tree[p].right_leaf = m_index_tree[current_idx].left_leaf;
+    m_index_tree[current_idx].left_leaf = p;
+    insLLcase(current_idx, g);
 }
 
 template<typename Key>
-inline void StreamedCacheIndex<Key>::RRcase(size_t p, size_t g)
+inline void StreamedCacheIndex<Key>::insRRcase(size_t p, size_t g)
 {
-    m_index_tree[g].right_leave = m_index_tree[p].left_leave;
-    m_index_tree[p].left_leave = g;
+    m_index_tree[g].right_leaf = m_index_tree[p].left_leaf;
+    m_index_tree[p].left_leaf = g;
     swap_colors(m_index_tree[p].node_color, m_index_tree[g].node_color);
 }
 
 template<typename Key>
-inline void StreamedCacheIndex<Key>::RLcase(size_t p, size_t g)
+inline void StreamedCacheIndex<Key>::insRLcase(size_t p, size_t g)
 {
-    size_t current_index = m_index_tree[p].left_leave;
-    m_index_tree[p].left_leave = m_index_tree[current_index].right_leave;
-    m_index_tree[current_index].right_leave = p;
-    RRcase(x, g);
+    size_t current_index = m_index_tree[p].left_leaf;
+    m_index_tree[p].left_leaf = m_index_tree[current_index].right_leaf;
+    m_index_tree[current_index].right_leaf = p;
+    insRRcase(x, g);
 }
 
 template<typename Key>
-inline void StreamedCacheIndex<Key>::bst_delete(Key const& key)
+inline void StreamedCacheIndex<Key>::delLLcase(size_t p, size_t s)
+{
+    m_index_tree[s].parent_node = m_index_tree[p].parent_node;
+    m_index_tree[p].parent_node = s;
+    m_index_tree[p].left_leaf = m_index_tree[s].right_leaf;
+    m_index_tree[s].right_leaf = p;
+
+    m_index_tree[m_index_tree[s].left_leaf].node_color = 1;
+}
+
+template<typename Key>
+inline void StreamedCacheIndex<Key>::delLRcase(size_t p, size_t s)
+{
+    m_index_tree[s].parent_node = m_index_tree[p].parent_node;
+    m_index_tree[p].parent_node = s;
+    m_index_tree[p].left_leaf = m_index_tree[s].right_leaf;
+    m_index_tree[s].right_leaf = p;
+}
+
+template<typename Key>
+inline void StreamedCacheIndex<Key>::delRRcase(size_t p, size_t s)
+{
+}
+
+template<typename Key>
+inline void StreamedCacheIndex<Key>::delRLcase(size_t p, size_t s)
+{
+}
+
+template<typename Key>
+inline void StreamedCacheIndex<Key>::delRecolor(size_t c, size_t p, size_t s)
+{
+}
+
+template<typename Key>
+inline std::pair<size_t, size_t> StreamedCacheIndex<Key>::bst_delete(Key const& key)
 {
     size_t node_to_delete_idx = bst_search(key).first;
+    size_t actually_removed_node_idx;
+    size_t sibling_of_actually_removed_node_idx;
 
-    if (!m_index_tree[node_to_delete_idx].left_leave && !m_index_tree[node_to_delete_idx].right_leave)
+
+    if (!m_index_tree[node_to_delete_idx].left_leaf && !m_index_tree[node_to_delete_idx].right_leaf)
     {
         // node to be deleted is a leaf
 
         size_t parent_idx = m_index_tree[node_to_delete_idx].parent_node;
-        if (m_index_tree[parent_idx].left_leave == node_to_delete_idx)
-            m_index_tree[parent_idx].left_leave = 0;
+
+        if (m_index_tree[parent_idx].left_leaf == node_to_delete_idx)
+        {
+            m_index_tree[parent_idx].left_leaf = 0;
+            sibling_of_actually_removed_node_idx = m_index_tree[parent_idx].right_leaf;
+        }
         else
-            m_index_tree[parent_idx].right_leave = 0;
+        {
+            m_index_tree[parent_idx].right_leaf = 0;
+            sibling_of_actually_removed_node_idx = m_index_tree[parent_idx].left_leaf;
+        }
 
         m_index_tree[node_to_delete_idx].to_be_deleted = true;
-    }
-    else if (m_index_tree[node_to_delete_idx].left_leave && !m_index_tree[node_to_delete_idx].right_leave
-        || !m_index_tree[node_to_delete_idx].left_leave && m_index_tree[node_to_delete_idx].right_leave)
+        actually_removed_node_idx = node_to_delete_idx;
+    }else if (m_index_tree[node_to_delete_idx].left_leaf && !m_index_tree[node_to_delete_idx].right_leaf
+        || !m_index_tree[node_to_delete_idx].left_leaf && m_index_tree[node_to_delete_idx].right_leaf)
     {
         // node to be deleted has only one child
 
         size_t child_node_idx = 
-            m_index_tree[node_to_delete_idx].left_leave 
-            ? m_index_tree[node_to_delete_idx].left_leave 
-            : m_index_tree[node_to_delete_idx].right_leave;
+            m_index_tree[node_to_delete_idx].left_leaf 
+            ? m_index_tree[node_to_delete_idx].left_leaf 
+            : m_index_tree[node_to_delete_idx].right_leaf;
 
-        m_index_tree[node_to_delete_idx] = m_index_tree[child_node_idx];
-        m_index_tree[child_node_idx].to_be_deleted = true;
+        size_t parent_node_idx = m_index_tree[node_to_delete_idx].parent_node;
+        StreamedCacheIndexTreeEntry<Key>& parent_node = m_index_tree[parent_node_idx];
+        StreamedCacheIndexTreeEntry<Key>& child_node = m_index_tree[child_node_idx];
+        if (parent_node.left_leaf == node_to_delete_idx;)
+        {
+            parent_node.left_leaf = child_node_idx;
+            sibling_of_actually_removed_node_idx = m_index_tree[parent_node_idx].right_leaf;
+        }
+        else
+        {
+            parent_node.right_leaf = child_node_idx;
+            sibling_of_actually_removed_node_idx = m_index_tree[parent_node_idx].left_leaf;
+        }
+        child_node.parent_node = parent_node_idx;
+        
+        m_index_tree[node_to_delete_idx].to_be_deleted = true;
+        actually_removed_node_idx = node_to_delete_idx;
     }
     else
     {
-        size_t in_order_successor_idx{ 0U };
-    }
+        size_t in_order_successor_idx{ m_index_tree[node_to_delete_idx].right_leaf };
+        while (m_index_tree[in_order_successor_idx].left_leaf)
+            in_order_successor_idx = m_index_tree[in_order_successor_idx].left_leaf;
+        StreamedCacheIndexTreeEntry<Key>& node_to_delete = m_index_tree[node_to_delete_idx];
+        StreamedCacheIndexTreeEntry<Key>& in_order_successor_node = m_index_tree[in_order_successor_idx];
+        node_to_delete.data_offset = in_order_successor_node.data_offset;
+        node_to_delete.cache_entry_key = in_order_successor_node.cache_entry_key;
 
-    ++m_current_index_redundant_growth_pressure;
-    if (m_current_index_redundant_growth_pressure == m_max_index_redundant_growth_pressure) rebuild_index();
+        size_t right_child_idx;
+        size_t successor_parent_node_idx = m_index_tree[in_order_successor_idx].parent_node;
+        if (right_child_idx = m_index_tree[in_order_successor_idx].right_leaf)
+        {
+            
+            StreamedCacheIndexTreeEntry<Key>& successor_parent_node = m_index_tree[successor_parent_node_idx];
+            StreamedCacheIndexTreeEntry<Key>& successor_child_node = m_index_tree[right_child_idx];
+            if (successor_parent_node.left_leaf == in_order_successor_idx)
+            {
+                successor_parent_node.left_leaf = right_child_idx;
+                sibling_of_actually_removed_node_idx = successor_parent_node.right_leaf;
+            }
+            else
+            {
+                successor_parent_node.right_leaf = right_child_idx;
+                sibling_of_actually_removed_node_idx = successor_parent_node.left_leaf;
+            }
+            successor_child_node.parent_node = successor_parent_node_idx;
+        }
+        else
+        {
+            if (m_index_tree[successor_parent_node_idx].left_leaf == in_order_successor_idx)
+            {
+                m_index_tree[successor_parent_node_idx].left_leaf = 0;
+                sibling_of_actually_removed_node_idx = m_index_tree[successor_parent_node_idx].right_leaf;
+            }
+            else
+            {
+                m_index_tree[successor_parent_node_idx].right_leaf = 0;
+                sibling_of_actually_removed_node_idx = m_index_tree[successor_parent_node_idx].left_leaf;
+            }
+        }
+
+        m_index_tree[in_order_successor_idx].to_be_deleted = true;
+        actually_removed_node_idx = in_order_successor_idx;
+    }
+    
+     
+    return std::make_pair(actually_removed_node_idx, sibling_of_actually_removed_node_idx);
 }
 
 template<typename Key>
@@ -390,8 +571,8 @@ inline std::pair<size_t, bool> StreamedCacheIndex<Key>::bst_search(Key const& ke
             return std::make_pair(current_index, true);
 
         current_index = key < m_index_tree[current_index].cache_entry_key
-            ? m_index_tree[current_index].left_leave
-            : m_index_tree[current_index].right_leave;
+            ? m_index_tree[current_index].left_leaf
+            : m_index_tree[current_index].right_leaf;
 
     } while (current_index);
 
