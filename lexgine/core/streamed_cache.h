@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <mutex>
+#include <iterator>
 #include "data_blob.h"
 #include "misc/datetime.h"
 #include "entity.h"
@@ -65,9 +66,47 @@ class StreamedCacheIndex final
 {
     friend class StreamedCache<Key>;
 
+
+public:
+
+    class StreamedCacheIndexIterator : public std::iterator<std::bidirectional_iterator_tag, StreamedCacheIndexTreeEntry<Key>>
+    {
+    public:
+        // required by output iterator standard behavior
+
+        StreamedCacheIndexIterator(StreamedCacheIndexIterator const& other);
+        StreamedCacheIndexIterator& operator++();
+        StreamedCacheIndexIterator operator++(int);
+        StreamedCacheIndexTreeEntry<Key>& operator*();
+        
+
+        // required by input iterator standard behavior
+
+        StreamedCacheIndexTreeEntry<Key> const& operator*() const;
+        StreamedCacheIndexTreeEntry<Key> const* operator->() const;
+        bool operator==(StreamedCacheIndexIterator const& other) const;
+        bool operator!=(StreamedCacheIndexIterator const& other) const;
+
+
+        // required by forward iterator standard behavior
+        StreamedCacheIndexIterator();
+        StreamedCacheIndexTreeEntry<Key>* operator->();
+        StreamedCacheIndexIterator& operator=(StreamedCacheIndexIterator const& other);
+
+
+        // required by bidirectional iterator standard behavior
+        StreamedCacheIndexIterator& operator--();
+        StreamedCacheIndexIterator operator--(int);
+
+    private:
+        size_t m_current_index;
+    };
+
 public:
 
     using key_type = Key;
+    using iterator = StreamedCacheIndexIterator;
+    using const_iterator = StreamedCacheIndexIterator const;
 
 public:
 
@@ -98,7 +137,7 @@ private:
 
     std::pair<size_t, bool> bst_search(Key const& key);    //! retrieves address of the node having the given key. The second element of returned pair is 'true' if the node has been found and 'false' otherwise.
 
-    void rebuild_index();    //! builds new index tree buffer without unused entries
+    void rebuild_index();    //! builds new index tree buffer cleaned up from unused entries
 
 private:
 
@@ -119,6 +158,7 @@ public:
 
 public:
     StreamedCache(std::ostream& cache_output_stream, size_t max_cache_size_in_bytes);
+    virtual ~StreamedCache();
 
     void addEntry(StreamedCacheEntry<Key> const& entry); // ! adds entry into the cache and immediately attempts to write it into the cache stream
 
@@ -352,7 +392,22 @@ inline void StreamedCacheIndex<Key>::remove_entry(Key const& key)
             {
                 // sibling is RED
 
-
+                if (m_index_tree[parent_of_current_node_idx].left_leaf == current_node_sibling_idx)
+                {
+                    // left case
+                    right_rotate(current_node_sibling_idx, parent_of_current_node_idx);
+                    swap_colors(m_index_tree[current_node_sibling_idx].node_color,
+                        m_index_tree[parent_of_current_node_idx].node_color);
+                    current_node_sibling_idx = m_index_tree[parent_of_current_node_idx].left_leaf;
+                }
+                else
+                {
+                    // right case
+                    left_rotate(parent_of_current_node_idx, current_node_sibling_idx);
+                    swap_colors(m_index_tree[parent_of_current_node_idx].node_color,
+                        m_index_tree[current_node_sibling_idx].node_color);
+                    current_node_sibling_idx = m_index_tree[parent_of_current_node_idx].right_leaf;
+                }
             }
         }
 
@@ -389,7 +444,7 @@ inline size_t core::StreamedCacheIndex<Key>::bst_insert(std::pair<Key, uint64_t>
             insertion_node_idx = search_idx;
             search_idx = (is_insertion_subtree_left = new_entry.cache_entry_key < m_index_tree[search_idx].cache_entry_key)
                 ? m_index_tree[search_idx].left_leaf
-                : m_index_tree[search_idx].right_leave;
+                : m_index_tree[search_idx].right_leaf;
         } while (search_idx);
     }
 
@@ -551,6 +606,20 @@ inline std::pair<size_t, bool> StreamedCacheIndex<Key>::bst_search(Key const& ke
     } while (current_index);
 
     return std::make_pair(0, false);
+}
+
+template<typename Key>
+inline void StreamedCacheIndex<Key>::rebuild_index()
+{
+    std::vector<StreamedCacheIndexTreeEntry> new_index_tree_buffer;
+    new_index_tree_buffer.reserve(m_index_tree.size());
+
+    for (auto& entry : m_index_tree)
+    {
+        if (!entry.to_be_deleted)
+            new_index_tree_buffer.push_back(entry);
+    }
+
 }
 
 
