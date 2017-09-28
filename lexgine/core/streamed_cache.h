@@ -89,17 +89,10 @@ private:
 
 
     size_t bst_insert(std::pair<Key, uint64_t> const& key_offset_pair);    //! standard BST-insertion without RED-BLACK properties check
-    void swap_colors(bool& color1, bool& color2);
-    void insLLcase(size_t p, size_t g);
-    void insLRcase(size_t p, size_t g);
-    void insRRcase(size_t p, size_t g);
-    void insRLcase(size_t p, size_t g);
+    static void swap_colors(unsigned char& color1, unsigned char& color2);
 
-    void delLLcase(size_t p, size_t s);
-    void delLRcase(size_t p, size_t s);
-    void delRRcase(size_t p, size_t s);
-    void delRLcase(size_t p, size_t s);
-    void delRecolor(size_t c, size_t p, size_t s);
+    void right_rotate(size_t a, size_t b);
+    void left_rotate(size_t a, size_t b);
 
     std::pair<size_t, size_t> bst_delete(Key const& key);    //! standard BST deletion based on provided key
 
@@ -242,22 +235,32 @@ inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> co
                 if (T1 && T2)
                 {
                     // Left-Left case
-                    insLLcase(parent_idx, grandparent_idx);
+                    right_rotate(parent_idx, grandparent_idx);
+                    swap_colors(m_index_tree[parent_idx].node_color,
+                        m_index_tree[grandparent_idx].node_color);
                 }
                 else if (T1 && !T2)
                 {
                     // Left-Right case
-                    insLRcase(parent_idx, grandparent_idx);
+                    left_rotate(parent_idx, current_idx);
+                    right_rotate(current_idx, grandparent_idx);
+                    swap_colors(m_index_tree[current_idx].node_color,
+                        m_index_tree[grandparent_idx].node_color);
                 }
                 else if (!T1 && T2)
                 {
                     // Right-Left case
-                    insRLcase(parent_idx, grandparent_idx);
+                    right_rotate(current_idx, parent_idx);
+                    left_rotate(grandparent_idx, current_idx);
+                    swap_colors(m_index_tree[grandparent_idx].node_color,
+                        m_index_tree[current_idx].node_color);
                 }
                 else
                 {
                     // Right-Right case
-                    insRRcase(parent_idx, grandparent_idx);
+                    left_rotate(grandparent_idx, parent_idx);
+                    swap_colors(m_index_tree[grandparent_idx].node_color,
+                        m_index_tree[parent_idx].node_color);
                 }
             }
         }
@@ -284,9 +287,10 @@ inline void StreamedCacheIndex<Key>::remove_entry(Key const& key)
 
         size_t current_node_idx = removed_node_idx;
         size_t current_node_sibling_idx = removed_node_sibling_idx;
+        size_t parent_of_current_node_idx = m_index_tree[removed_node_sibling_idx].parent_node;
         while (current_node_idx && m_index_tree[current_node_idx].node_color == 2)
         {
-            size_t parent_of_current_node_idx = m_index_tree[current_node_idx];
+            
 
             // true when the sibling is the left child of its parent
             bool T1 = m_index_tree[parent_of_current_node_idx].left_leaf == current_node_sibling_idx;
@@ -295,46 +299,69 @@ inline void StreamedCacheIndex<Key>::remove_entry(Key const& key)
             {
                 // sibling is BLACK
 
-                // true is the left child of the sibling is RED
+                // true if the left child of the sibling is RED
                 bool T2 = m_index_tree[current_node_sibling_idx].left_leaf
                     && m_index_tree[m_index_tree[current_node_sibling_idx].left_leaf].node_color == 0;
 
-                // true is the right child of the sibling is RED
+                // true if the right child of the sibling is RED
                 bool T3 = m_index_tree[current_node_sibling_idx].right_leaf
                     && m_index_tree[m_index_tree[current_node_sibling_idx].right_leaf].node_color == 0;
-                if (T2 || T3)
+
+
+                if (T1 && T2)
                 {
-                    // either of the sibling's children is RED
-
-                    if (T1 && T2)
-                    {
-                        // left-left case
-                        delLLcase(parent_of_current_node_idx, current_node_sibling_idx);
-
-                    } else if (T1 && T3)
-                    {
-                        // left-right case
-                        delLRcase(parent_of_removed_node_idx, current_node_sibling_idx);
-
-                    } else if (!T1 && T3)
-                    {
-                        // right-right case
-
-
-                    } else
-                    {
-                        // right-left case
-
-
-                    }
+                    // left-left case
+                    left_rotate(current_node_sibling_idx, parent_of_current_node_idx);
+                    m_index_tree[m_index_tree[current_node_sibling_idx].left_leaf].node_color = 1;
+                }
+                else if (T1 && T3)
+                {
+                    // left-right case
+                    size_t r_idx = m_index_tree[current_node_sibling_idx].right_leaf;
+                    right_rotate(current_node_sibling_idx, r_idx);
+                    left_rotate(r_idx, parent_of_current_node_idx);
+                    m_index_tree[r_idx].node_color = 1;
+                }
+                else if (!T1 && T3)
+                {
+                    // right-right case
+                    right_rotate(parent_of_current_node_idx, current_node_sibling_idx);
+                    m_index_tree[m_index_tree[current_node_sibling_idx].right_leaf].node_color = 1;
+                }
+                else if (!T1 && T2)
+                {
+                    // right-left case
+                    size_t r_idx = m_index_tree[current_node_sibling_idx].left_leaf;
+                    left_rotate(r_idx, current_node_sibling_idx);
+                    right_rotate(parent_of_current_node_idx, r_idx);
+                    m_index_tree[r_idx].node_color = 1;
                 }
                 else
                 {
                     // both of the sibling's children are BLACK
+                    --m_index_tree[current_node_idx].node_color;
+                    m_index_tree[parent_of_current_node_idx].node_color +=
+                        m_index_tree[current_node_idx].node_color;
 
-
+                    current_node_idx = parent_of_current_node_idx;
+                    parent_of_current_node_idx = m_index_tree[current_node_idx].parent_node;
+                    current_node_sibling_idx = m_index_tree[parent_of_current_node_idx].left_leaf == current_node_idx
+                        ? m_index_tree[parent_of_current_node_idx].right_leaf
+                        : m_index_tree[parent_of_current_node_idx].left_leaf;
                 }
             }
+            else
+            {
+                // sibling is RED
+
+            }
+
+        }
+
+        if (!current_node_idx)
+        {
+            // we have reached the root of the tree, remove double-black label
+            --m_index_tree[0].node_color;
         }
     }
 
@@ -379,7 +406,7 @@ inline size_t core::StreamedCacheIndex<Key>::bst_insert(std::pair<Key, uint64_t>
 }
 
 template<typename Key>
-inline void core::StreamedCacheIndex<Key>::swap_colors(bool& color1, bool& color2)
+inline void core::StreamedCacheIndex<Key>::swap_colors(unsigned char& color1, unsigned char& color2)
 {
     color1 = color1^color2;
     color2 = color2^color1;
@@ -387,72 +414,21 @@ inline void core::StreamedCacheIndex<Key>::swap_colors(bool& color1, bool& color
 }
 
 template<typename Key>
-inline void core::StreamedCacheIndex<Key>::insLLcase(size_t p, size_t g)
+inline void StreamedCacheIndex<Key>::right_rotate(size_t a, size_t b)
 {
-    m_index_tree[g].left_leaf = m_index_tree[p].right_leaf;
-    m_index_tree[p].right_leaf = g;
-    swap_colors(m_index_tree[p].node_color, m_index_tree[g].node_color);
+    m_index_tree[a].parent_node = m_index_tree[b].parent_node;
+    m_index_tree[b].parent_node = a;
+    m_index_tree[b].left_leaf = m_index_tree[a].right_leaf;
+    m_index_tree[a].right_leaf = b;
 }
 
 template<typename Key>
-inline void StreamedCacheIndex<Key>::insLRcase(size_t p, size_t g)
+inline void StreamedCacheIndex<Key>::left_rotate(size_t a, size_t b)
 {
-    size_t current_idx = m_index_tree[p].right_leaf;
-    m_index_tree[p].right_leaf = m_index_tree[current_idx].left_leaf;
-    m_index_tree[current_idx].left_leaf = p;
-    insLLcase(current_idx, g);
-}
-
-template<typename Key>
-inline void StreamedCacheIndex<Key>::insRRcase(size_t p, size_t g)
-{
-    m_index_tree[g].right_leaf = m_index_tree[p].left_leaf;
-    m_index_tree[p].left_leaf = g;
-    swap_colors(m_index_tree[p].node_color, m_index_tree[g].node_color);
-}
-
-template<typename Key>
-inline void StreamedCacheIndex<Key>::insRLcase(size_t p, size_t g)
-{
-    size_t current_index = m_index_tree[p].left_leaf;
-    m_index_tree[p].left_leaf = m_index_tree[current_index].right_leaf;
-    m_index_tree[current_index].right_leaf = p;
-    insRRcase(x, g);
-}
-
-template<typename Key>
-inline void StreamedCacheIndex<Key>::delLLcase(size_t p, size_t s)
-{
-    m_index_tree[s].parent_node = m_index_tree[p].parent_node;
-    m_index_tree[p].parent_node = s;
-    m_index_tree[p].left_leaf = m_index_tree[s].right_leaf;
-    m_index_tree[s].right_leaf = p;
-
-    m_index_tree[m_index_tree[s].left_leaf].node_color = 1;
-}
-
-template<typename Key>
-inline void StreamedCacheIndex<Key>::delLRcase(size_t p, size_t s)
-{
-    m_index_tree[s].parent_node = m_index_tree[p].parent_node;
-    m_index_tree[p].parent_node = s;
-    m_index_tree[p].left_leaf = m_index_tree[s].right_leaf;
-    m_index_tree[s].right_leaf = p;
-}
-
-template<typename Key>
-inline void StreamedCacheIndex<Key>::delRRcase(size_t p, size_t s)
-{
-}
-
-template<typename Key>
-inline void StreamedCacheIndex<Key>::delRLcase(size_t p, size_t s)
-{
-}
-
-template<typename Key>
-inline void StreamedCacheIndex<Key>::delRecolor(size_t c, size_t p, size_t s)
-{
+    m_index_tree[b].parent_node = m_index_tree[a].parent_node;
+    m_index_tree[a].parent_node = b;
+    m_index_tree[a].right_leaf = m_index_tree[b].left_leaf;
+    m_index_tree[b].left_leaf = a;
 }
 
 template<typename Key>
