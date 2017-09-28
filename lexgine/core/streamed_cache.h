@@ -290,8 +290,6 @@ inline void StreamedCacheIndex<Key>::remove_entry(Key const& key)
         size_t parent_of_current_node_idx = m_index_tree[removed_node_sibling_idx].parent_node;
         while (current_node_idx && m_index_tree[current_node_idx].node_color == 2)
         {
-            
-
             // true when the sibling is the left child of its parent
             bool T1 = m_index_tree[parent_of_current_node_idx].left_leaf == current_node_sibling_idx;
 
@@ -354,8 +352,8 @@ inline void StreamedCacheIndex<Key>::remove_entry(Key const& key)
             {
                 // sibling is RED
 
-            }
 
+            }
         }
 
         if (!current_node_idx)
