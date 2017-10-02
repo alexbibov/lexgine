@@ -132,7 +132,7 @@ public:
 
 private:
     void add_entry(std::pair<Key, uint64_t> const& key_offset_pair);    //! adds entry into cache index tree
-    void remove_entry(Key const& key);    //! removes entry from cache index tree
+    bool remove_entry(Key const& key);    //! removes entry from cache index tree
 
 
     size_t bst_insert(std::pair<Key, uint64_t> const& key_offset_pair);    //! standard BST-insertion without RED-BLACK properties check
@@ -141,7 +141,7 @@ private:
     void right_rotate(size_t a, size_t b);
     void left_rotate(size_t a, size_t b);
 
-    std::pair<size_t, size_t> bst_delete(Key const& key);    //! standard BST deletion based on provided key
+    std::tuple<size_t, size_t, bool> bst_delete(Key const& key);    //! standard BST deletion based on provided key
 
     std::pair<size_t, bool> bst_search(Key const& key);    //! retrieves address of the node having the given key. The second element of returned pair is 'true' if the node has been found and 'false' otherwise.
 
@@ -317,11 +317,14 @@ inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> co
 }
 
 template<typename Key>
-inline void StreamedCacheIndex<Key>::remove_entry(Key const& key)
+inline bool StreamedCacheIndex<Key>::remove_entry(Key const& key)
 {
-    std::pair<size_t, size_t> d_and_s = bst_delete(key);
-    size_t removed_node_idx = d_and_s.first;
-    size_t removed_node_sibling_idx = d_and_s.second;
+    std::tuple<size_t, size_t, bool> d_and_s = bst_delete(key);
+    if (!std::get<2>(d_and_s)) return false;
+
+
+    size_t removed_node_idx = std::get<0>(d_and_s);
+    size_t removed_node_sibling_idx = std::get<1>(d_and_s);
     size_t parent_of_removed_node_idx = m_index_tree[removed_node_sibling_idx].parent_node;
 
     if (m_index_tree[removed_node_idx].node_color == 0
@@ -486,125 +489,137 @@ inline void core::StreamedCacheIndex<Key>::swap_colors(unsigned char& color1, un
 template<typename Key>
 inline void StreamedCacheIndex<Key>::right_rotate(size_t a, size_t b)
 {
-    m_index_tree[a].parent_node = m_index_tree[b].parent_node;
-    m_index_tree[b].parent_node = a;
-    m_index_tree[b].left_leaf = m_index_tree[a].right_leaf;
-    m_index_tree[a].right_leaf = b;
+    StreamedCacheIndexTreeEntry<Key>& node_a = m_index_tree[a];
+    StreamedCacheIndexTreeEntry<Key>& node_b = m_index_tree[b];
+
+    node_a.parent_node = node_b.parent_node;
+    node_b.parent_node = a;
+    node_b.left_leaf = node_a.right_leaf;
+    node_a.right_leaf = b;
 }
 
 template<typename Key>
 inline void StreamedCacheIndex<Key>::left_rotate(size_t a, size_t b)
 {
-    m_index_tree[b].parent_node = m_index_tree[a].parent_node;
-    m_index_tree[a].parent_node = b;
-    m_index_tree[a].right_leaf = m_index_tree[b].left_leaf;
-    m_index_tree[b].left_leaf = a;
+    StreamedCacheIndexTreeEntry<Key>& node_a = m_index_tree[a];
+    StreamedCacheIndexTreeEntry<Key>& node_b = m_index_tree[b];
+
+    node_b.parent_node = node_a.parent_node;
+    node_a.parent_node = b;
+    node_a.right_leaf = node_b.left_leaf;
+    node_b.left_leaf = a;
 }
 
 template<typename Key>
-inline std::pair<size_t, size_t> StreamedCacheIndex<Key>::bst_delete(Key const& key)
+inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key>::bst_delete(Key const& key)
 {
-    size_t node_to_delete_idx = bst_search(key).first;
+    auto deletion_result = bst_search(key);
+    if (!deletion_result.second)
+        return std::make_tuple(static_cast<size_t>(0U), static_cast<size_t(0U), false);
+
+
+    size_t node_to_delete_idx = deletion_result.first;
     size_t actually_removed_node_idx;
     size_t sibling_of_actually_removed_node_idx;
-
-
-    if (!m_index_tree[node_to_delete_idx].left_leaf && !m_index_tree[node_to_delete_idx].right_leaf)
+    
+    StreamedCacheIndexTreeEntry<Key>& node_to_delete = m_index_tree[node_to_delete_idx];
+    if (!node_to_delete.left_leaf && !node_to_delete.right_leaf)
     {
         // node to be deleted is a leaf
 
-        size_t parent_idx = m_index_tree[node_to_delete_idx].parent_node;
-
-        if (m_index_tree[node_to_delete_idx].inheritance_category == 1)
+        StreamedCacheIndexTreeEntry<Key>& parent_node = m_index_tree[node_to_delete.parent_node];
+        if (node_to_delete.inheritance_category == 1)
         {
-            m_index_tree[parent_idx].left_leaf = 0;
-            sibling_of_actually_removed_node_idx = m_index_tree[parent_idx].right_leaf;
+            
+            parent_node.left_leaf = 0;
+            sibling_of_actually_removed_node_idx = parent_node.right_leaf;
         }
         else
         {
-            m_index_tree[parent_idx].right_leaf = 0;
-            sibling_of_actually_removed_node_idx = m_index_tree[parent_idx].left_leaf;
+            parent_node.right_leaf = 0;
+            sibling_of_actually_removed_node_idx = parent_node.left_leaf;
         }
 
-        m_index_tree[node_to_delete_idx].to_be_deleted = true;
+        node_to_delete.to_be_deleted = true;
         actually_removed_node_idx = node_to_delete_idx;
-    }else if (m_index_tree[node_to_delete_idx].left_leaf && !m_index_tree[node_to_delete_idx].right_leaf
-        || !m_index_tree[node_to_delete_idx].left_leaf && m_index_tree[node_to_delete_idx].right_leaf)
+    }else if (node_to_delete.left_leaf && !node_to_delete.right_leaf
+        || !node_to_delete.left_leaf && node_to_delete.right_leaf)
     {
         // node to be deleted has only one child
 
-        size_t child_node_idx = 
-            m_index_tree[node_to_delete_idx].left_leaf 
-            ? m_index_tree[node_to_delete_idx].left_leaf 
-            : m_index_tree[node_to_delete_idx].right_leaf;
+        size_t child_node_idx = node_to_delete.left_leaf 
+            ? node_to_delete.left_leaf 
+            : node_to_delete.right_leaf;
 
-        size_t parent_node_idx = m_index_tree[node_to_delete_idx].parent_node;
+        size_t parent_node_idx = node_to_delete.parent_node;
         StreamedCacheIndexTreeEntry<Key>& parent_node = m_index_tree[parent_node_idx];
         StreamedCacheIndexTreeEntry<Key>& child_node = m_index_tree[child_node_idx];
-        if (parent_node.left_leaf == node_to_delete_idx;)
+        if (parent_node.left_leaf == node_to_delete_idx)
         {
             parent_node.left_leaf = child_node_idx;
-            sibling_of_actually_removed_node_idx = m_index_tree[parent_node_idx].right_leaf;
+            sibling_of_actually_removed_node_idx = parent_node.right_leaf;
         }
         else
         {
             parent_node.right_leaf = child_node_idx;
-            sibling_of_actually_removed_node_idx = m_index_tree[parent_node_idx].left_leaf;
+            sibling_of_actually_removed_node_idx = parent_node.left_leaf;
         }
         child_node.parent_node = parent_node_idx;
         
-        m_index_tree[node_to_delete_idx].to_be_deleted = true;
+        node_to_delete.to_be_deleted = true;
         actually_removed_node_idx = node_to_delete_idx;
     }
     else
     {
-        size_t in_order_successor_idx{ m_index_tree[node_to_delete_idx].right_leaf };
-        while (m_index_tree[in_order_successor_idx].left_leaf)
-            in_order_successor_idx = m_index_tree[in_order_successor_idx].left_leaf;
-        StreamedCacheIndexTreeEntry<Key>& node_to_delete = m_index_tree[node_to_delete_idx];
+        size_t in_order_successor_idx{ node_to_delete.right_leaf };
+        {
+            size_t aux;
+            while (aux = m_index_tree[in_order_successor_idx].left_leaf)
+                in_order_successor_idx = aux;
+        }
+
         StreamedCacheIndexTreeEntry<Key>& in_order_successor_node = m_index_tree[in_order_successor_idx];
         node_to_delete.data_offset = in_order_successor_node.data_offset;
         node_to_delete.cache_entry_key = in_order_successor_node.cache_entry_key;
 
-        size_t right_child_idx;
+        size_t successor_right_child_idx = m_index_tree[in_order_successor_idx].right_leaf;
         size_t successor_parent_node_idx = m_index_tree[in_order_successor_idx].parent_node;
-        if (right_child_idx = m_index_tree[in_order_successor_idx].right_leaf)
+        StreamedCacheIndexTreeEntry<Key>& successor_parent_node = m_index_tree[successor_parent_node_idx];
+        if (successor_right_child_idx)
         {
-            
-            StreamedCacheIndexTreeEntry<Key>& successor_parent_node = m_index_tree[successor_parent_node_idx];
-            StreamedCacheIndexTreeEntry<Key>& successor_child_node = m_index_tree[right_child_idx];
+            StreamedCacheIndexTreeEntry<Key>& successor_child_node = m_index_tree[successor_right_child_idx];
             if (successor_parent_node.left_leaf == in_order_successor_idx)
             {
-                successor_parent_node.left_leaf = right_child_idx;
+                successor_parent_node.left_leaf = successor_right_child_idx;
                 sibling_of_actually_removed_node_idx = successor_parent_node.right_leaf;
             }
             else
             {
-                successor_parent_node.right_leaf = right_child_idx;
+                successor_parent_node.right_leaf = successor_right_child_idx;
                 sibling_of_actually_removed_node_idx = successor_parent_node.left_leaf;
             }
             successor_child_node.parent_node = successor_parent_node_idx;
         }
         else
         {
-            if (m_index_tree[successor_parent_node_idx].left_leaf == in_order_successor_idx)
+            if (successor_parent_node.left_leaf == in_order_successor_idx)
             {
-                m_index_tree[successor_parent_node_idx].left_leaf = 0;
-                sibling_of_actually_removed_node_idx = m_index_tree[successor_parent_node_idx].right_leaf;
+                successor_parent_node.left_leaf = 0;
+                sibling_of_actually_removed_node_idx = successor_parent_node.right_leaf;
             }
             else
             {
-                m_index_tree[successor_parent_node_idx].right_leaf = 0;
-                sibling_of_actually_removed_node_idx = m_index_tree[successor_parent_node_idx].left_leaf;
+                successor_parent_node.right_leaf = 0;
+                sibling_of_actually_removed_node_idx = successor_parent_node.left_leaf;
             }
         }
 
-        m_index_tree[in_order_successor_idx].to_be_deleted = true;
+        in_order_successor_node.to_be_deleted = true;
         actually_removed_node_idx = in_order_successor_idx;
     }
     
      
-    return std::make_pair(actually_removed_node_idx, sibling_of_actually_removed_node_idx);
+    return std::make_tuple(actually_removed_node_idx, sibling_of_actually_removed_node_idx, true);
 }
 
 template<typename Key>
@@ -613,21 +628,25 @@ inline std::pair<size_t, bool> StreamedCacheIndex<Key>::bst_search(Key const& ke
     size_t current_index = 0;
     do 
     {
-        if (key == m_index_tree[current_index].cache_entry_key)
+        StreamedCacheIndex<Key>& current_node = m_index_tree[current_index];
+
+        if (key == current_node.cache_entry_key)
             return std::make_pair(current_index, true);
 
-        current_index = key < m_index_tree[current_index].cache_entry_key
-            ? m_index_tree[current_index].left_leaf
-            : m_index_tree[current_index].right_leaf;
+        current_index = key < current_node.cache_entry_key
+            ? current_node.left_leaf
+            : current_node.right_leaf;
 
     } while (current_index);
 
-    return std::make_pair(0, false);
+    return std::make_pair(static_cast<size_t>(0), false);
 }
 
 template<typename Key>
 inline void StreamedCacheIndex<Key>::rebuild_index()
 {
+    // !!!TO BE IMPLEMENTED!!!
+
     std::vector<StreamedCacheIndexTreeEntry> new_index_tree_buffer;
     new_index_tree_buffer.reserve(m_index_tree.size());
 
