@@ -231,8 +231,12 @@ inline void StreamedCacheIndex<Key>::setMaxAllowedRedundancy(size_t max_redundan
 template<typename Key>
 inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> const& key_offset_pair)
 {
-    if (m_index_tree.size() == 0)
+    if (m_index_tree.size() - m_current_index_redundant_growth_pressure == 0)
     {
+        // we are adding root
+        m_index_tree.clear();    // ensure that the index buffer is empty, if there were redundant previously deleted nodes, it's perfect time the remove them
+        m_current_index_redundant_growth_pressure = 0U;
+
         StreamedCacheIndexTreeEntry<Key> root_entry;
 
         root_entry.data_offset = key_offset_pair.second;
@@ -663,6 +667,8 @@ inline void StreamedCacheIndex<Key>::rebuild_index()
             new_index_tree_buffer.push_back(entry);
     }
 
+
+    m_current_index_redundant_growth_pressure = 0U;
 }
 
 
