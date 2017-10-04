@@ -68,7 +68,7 @@ struct StreamedCacheIndexTreeEntry final
 
     size_t const key_serialized_size = Key::serialized_size;
     size_t const serialized_size = 32    //!< left and right leafs, parent node index, and the data offset
-        + key_serialized_size    //!< size of serialized key
+        + key_serialized_size    //!< key
         + 1;    //!< node color (2 low order bits) + inheritance category (2 next bits) + is subject for deletion at some point (1 bit) + 3 currently unused bits   
 
     void prepare_serialization_blob(void* p_blob_memory);    //! serializes entry to memory provided (and owned) by the caller
@@ -779,12 +779,12 @@ inline StreamedCacheIndexIterator& core::StreamedCacheIndex<Key>::StreamedCacheI
         return *this;
     }
 
-    do 
+    do
     {
         m_current_index = index_tree[m_current_index].parent_node;
-    } while (m_current_index 
-        && (index_tree[m_current_index].inheritance 
-            == StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child 
+    } while (m_current_index
+        && (index_tree[m_current_index].inheritance
+            == StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child
             || !index_tree[index_tree[m_current_index].parent_node].right_leaf));
 
     if (!m_current_index) m_has_reached_end = true;
@@ -843,7 +843,7 @@ inline StreamedCacheIndexTreeEntry<Key>* StreamedCacheIndex<Key>::StreamedCacheI
 template<typename Key>
 inline StreamedCacheIndexIterator & StreamedCacheIndex<Key>::StreamedCacheIndexIterator::operator--()
 {
-    if(m_is_at_beginning)
+    if (m_is_at_beginning)
         throw std::out_of_range{ "index tree iterator is out of range" };
 
     m_current_index = (*m_p_target_index_tree)[m_current_index].parent_node;
@@ -860,6 +860,42 @@ inline StreamedCacheIndexIterator StreamedCacheIndex<Key>::StreamedCacheIndexIte
     return rv;
 }
 
+
+template<typename Key>
+inline void StreamedCacheIndexTreeEntry<Key>::prepare_serialization_blob(void* p_blob_memory)
+{
+    uint64_t* p_leaves_parent_and_data_offset = static_cast<uint64_t*>(p_blob_memory);
+    p_leaves_parent_and_data_offset[0] = left_leaf;
+    p_leaves_parent_and_data_offset[1] = right_leaf;
+    p_leaves_parent_and_data_offset[2] = parent_node;
+    p_leaves_parent_and_data_offset[3] = data_offset;
+
+    void* p_key = static_cast<void*>(static_cast<uint64_t*>(p_blob_memory) + 4);
+    cache_entry_key.serialize(p_key);
+
+    unsigned char* p_color_inheritance_and_deletion_status =
+        static_cast<unsigned char*>(p_key) + key_serialized_size;
+    *p_color_inheritance_and_deletion_status = node_color | (inheritance << 2) | (static_cast<unsigned char>(to_be_deleted) << 4);
+}
+
+template<typename Key>
+inline void StreamedCacheIndexTreeEntry<Key>::deserialize_from_blob(void* p_blob_memory)
+{
+    uint64_t* p_leaves_parent_and_data_offset = static_cast<uint64_t*>(p_blob_memory);
+    left_leaf = p_leaves_parent_and_data_offset[0];
+    right_leaf = p_leaves_parent_and_data_offset[1];
+    parent_node = p_leaves_parent_and_data_offset[2];
+    data_offset = p_leaves_parent_and_data_offset[3];
+
+    void* p_key = static_cast<void*>(static_cast<uint64_t*>(p_blob_memory) + 4);
+    cache_entry_key.deserialize(p_key);
+
+    unsigned char* p_color_inheritance_and_deletion_status =
+        static_cast<unsigned char*>(p_key) + key_serialized_size;
+    node_color = (*p_color_inheritance_and_deletion_status & 0x3);
+    inheritance = (*p_color_inheritance_and_deletion_status & 0xC) >> 2;
+    to_be_deleted = (*p_color_inheritance_and_deletion_status & 0x10) != 0;
+}
 
 }}
 #endif
