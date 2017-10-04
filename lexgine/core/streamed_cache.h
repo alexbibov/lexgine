@@ -87,14 +87,16 @@ public:
 
     class StreamedCacheIndexIterator : public std::iterator<std::bidirectional_iterator_tag, StreamedCacheIndexTreeEntry<Key>>
     {
+        friend class StreamedCacheIndex;
+
     public:
         // required by output iterator standard behavior
 
-        StreamedCacheIndexIterator(StreamedCacheIndexIterator const& other);
+        StreamedCacheIndexIterator(StreamedCacheIndexIterator const& other) = default;
         StreamedCacheIndexIterator& operator++();
         StreamedCacheIndexIterator operator++(int);
         StreamedCacheIndexTreeEntry<Key>& operator*();
-        
+
 
         // required by input iterator standard behavior
 
@@ -105,17 +107,22 @@ public:
 
 
         // required by forward iterator standard behavior
-        StreamedCacheIndexIterator();
+
+        StreamedCacheIndexIterator() = default;
         StreamedCacheIndexTreeEntry<Key>* operator->();
-        StreamedCacheIndexIterator& operator=(StreamedCacheIndexIterator const& other);
+        StreamedCacheIndexIterator& operator=(StreamedCacheIndexIterator const& other) = default;
 
 
         // required by bidirectional iterator standard behavior
+
         StreamedCacheIndexIterator& operator--();
         StreamedCacheIndexIterator operator--(int);
 
     private:
-        size_t m_current_index;
+        bool m_is_at_beginning = false;
+        bool m_has_reached_end = true;
+        size_t m_current_index = 0U;
+        vector<StreamedCacheIndexTreeEntry<Key>>* m_p_target_index_tree = nullptr;
     };
 
 public:
@@ -137,6 +144,13 @@ public:
      single entry of the index tree. Call getMaxAllowedRedundancy() to get factual redundancy value applied to the index tree buffer
     */
     void setMaxAllowedRedundancy(size_t max_redundancy_in_bytes);
+
+    iterator begin();
+    iterator end();
+    const_iterator begin() const;
+    const_iterator end() const;
+    const_iterator cbegin() const;
+    const_iterator cend() const;
 
 private:
     void add_entry(std::pair<Key, uint64_t> const& key_offset_pair);    //! adds entry into cache index tree
@@ -237,6 +251,48 @@ inline void StreamedCacheIndex<Key>::setMaxAllowedRedundancy(size_t max_redundan
 }
 
 template<typename Key>
+inline iterator StreamedCacheIndex<Key>::begin()
+{
+    iterator rv{};
+    rv.m_is_at_beginning = true;
+    rv.m_has_reached_end = false;
+    rv.m_p_target_index_tree = &m_index_tree;
+    return rv;
+}
+
+template<typename Key>
+inline iterator StreamedCacheIndex<Key>::end()
+{
+    iterator rv{};
+    rv.m_p_target_index_tree = &m_index_tree;
+    return rv;
+}
+
+template<typename Key>
+inline const_iterator StreamedCacheIndex<Key>::begin() const
+{
+    return const_cast<StreamedCacheIndex<Key>*>(this)->begin();
+}
+
+template<typename Key>
+inline const_iterator StreamedCacheIndex<Key>::end() const
+{
+    return const_cast<StreamedCacheIndex<Key>*>(this)->end();
+}
+
+template<typename Key>
+inline const_iterator StreamedCacheIndex<Key>::cbegin() const
+{
+    return begin();
+}
+
+template<typename Key>
+inline const_iterator StreamedCacheIndex<Key>::cend() const
+{
+    return end();
+}
+
+template<typename Key>
 inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> const& key_offset_pair)
 {
     if (m_index_tree.size() - m_current_index_redundant_growth_pressure == 0)
@@ -261,30 +317,42 @@ inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> co
     {
         size_t parent_idx = bst_insert(key_offset_pair);
         size_t current_idx = m_index_tree.size() - 1;
+        StreamedCacheIndexTreeEntry<Key>& parent_of_inserted_node = m_index_tree[parent_idx];
+        StreamedCacheIndexTreeEntry<Key>& inserted_node = &m_index_tree[current_idx];
 
-        if (m_index_tree[parent_idx].node_color == 0)
+        size_t grandparent_idx = parent_of_inserted_node.parent_node;
+        StreamedCacheIndexTreeEntry<Key>& grandparent_of_inserted_node = m_index_tree[grandparent_idx];
+
+        if (parent_of_inserted_node.node_color == 0)
         {
             // parent is RED:
             // in this case the RED-BLACK structure of the tree is corrupted and needs to be recovered
 
-            size_t grandparent_idx = m_index_tree[parent_idx].parent_node;
-            bool T1 = m_index_tree[parent_idx].inheritance 
-                == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;    
-            size_t uncle_idx = T1 ? m_index_tree[grandparent_idx].right_leaf : m_index_tree[grandparent_idx].left_leaf;
+
+            bool T1 = parent_of_inserted_node.inheritance
+                == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
+            size_t uncle_idx = T1 ? grandparent_of_inserted_node.right_leaf : grandparent_of_inserted_node.left_leaf;
 
             bool root_reached{ false };
             while (!root_reached && uncle_idx && m_index_tree[uncle_idx].node_color == 0)
             {
                 // uncle is RED case
+
                 root_reached = grandparent_idx == 0;
-                m_index_tree[parent_idx].node_color = 1;
-                m_index_tree[uncle_idx].node_color = 1;
-                m_index_tree[grandparent_idx].node_color = static_cast<unsigned char>(root_reached);
+
+                StreamedCacheIndexTreeEntry<Key>& parent_of_current_node = m_index_tree[parent_idx];
+                StreamedCacheIndexTreeEntry<Key>& current_node = m_index_tree[current_idx];
+                StreamedCacheIndexTreeEntry<Key>& grandparent_of_current_node = m_index_tree[grandparent_idx];
+                StreamedCacheIndexTreeEntry<Key>& uncle_of_current_node = m_index_tree[uncle_idx];
+
+                parent_of_current_node.node_color = 1;
+                uncle_of_current_node.node_color = 1;
+                grandparent_of_current_node.node_color = static_cast<unsigned char>(root_reached);
 
                 current_idx = grandparent_idx;
-                parent_idx = m_index_tree[current_idx].parent_node;
+                parent_idx = grandparent_of_current_node.parent_node;
                 grandparent_idx = m_index_tree[parent_idx].parent_node;
-                T1 = m_index_tree[parent_idx].inheritance_category 
+                T1 = m_index_tree[parent_idx].inheritance_category
                     == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
                 uncle_idx = T1 ? m_index_tree[grandparent_idx].right_leaf : m_index_tree[grandparent_idx].left_leaf;
             }
@@ -293,38 +361,42 @@ inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> co
             {
                 // uncle is BLACK cases
 
-                bool T2 = m_index_tree[current_idx].inheritance_category 
+                StreamedCacheIndexTreeEntry<Key>& parent_of_current_node = m_index_tree[parent_idx];
+                StreamedCacheIndexTreeEntry<Key>& current_node = m_index_tree[current_idx];
+                StreamedCacheIndexTreeEntry<Key>& grandparent_of_current_node = m_index_tree[grandparent_idx];
+
+                bool T2 = current_node.inheritance_category
                     == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
 
                 if (T1 && T2)
                 {
                     // Left-Left case
                     right_rotate(parent_idx, grandparent_idx);
-                    swap_colors(m_index_tree[parent_idx].node_color,
-                        m_index_tree[grandparent_idx].node_color);
+                    swap_colors(parent_of_current_node.node_color,
+                        grandparent_of_current_node.node_color);
                 }
                 else if (T1 && !T2)
                 {
                     // Left-Right case
                     left_rotate(parent_idx, current_idx);
                     right_rotate(current_idx, grandparent_idx);
-                    swap_colors(m_index_tree[current_idx].node_color,
-                        m_index_tree[grandparent_idx].node_color);
+                    swap_colors(current_node.node_color,
+                        grandparent_of_current_node.node_color);
                 }
                 else if (!T1 && T2)
                 {
                     // Right-Left case
                     right_rotate(current_idx, parent_idx);
                     left_rotate(grandparent_idx, current_idx);
-                    swap_colors(m_index_tree[grandparent_idx].node_color,
-                        m_index_tree[current_idx].node_color);
+                    swap_colors(grandparent_of_current_node.node_color,
+                        current_node.node_color);
                 }
                 else
                 {
                     // Right-Right case
                     left_rotate(grandparent_idx, parent_idx);
-                    swap_colors(m_index_tree[grandparent_idx].node_color,
-                        m_index_tree[parent_idx].node_color);
+                    swap_colors(grandparent_of_current_node.node_color,
+                        parent_of_current_node.node_color);
                 }
             }
         }
@@ -352,7 +424,8 @@ inline bool StreamedCacheIndex<Key>::remove_entry(Key const& key)
     {
         // either the node to be removed or its parent is red (both cannot be red due to the RED-BLACK requirements)
         parent_of_removed_node.node_color = 1;
-    }else
+    }
+    else
     {
         // both the node to be removed and its parent are black 
         removed_node.node_color = 2;    // "2" means the node is double-black
@@ -418,7 +491,7 @@ inline bool StreamedCacheIndex<Key>::remove_entry(Key const& key)
 
                     current_node_idx = parent_of_current_node_idx;
                     parent_of_current_node_idx = parent_of_current_node.parent_node;
-                    current_node_sibling_idx = 
+                    current_node_sibling_idx =
                         parent_of_current_node.inheritance_category == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child
                         ? m_index_tree[parent_of_current_node_idx].right_leaf
                         : m_index_tree[parent_of_current_node_idx].left_leaf;
@@ -544,7 +617,7 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key>::bst_delete(Key 
     size_t node_to_delete_idx = deletion_result.first;
     size_t actually_removed_node_idx;
     size_t sibling_of_actually_removed_node_idx;
-    
+
     StreamedCacheIndexTreeEntry<Key>& node_to_delete = m_index_tree[node_to_delete_idx];
     if (!node_to_delete.left_leaf && !node_to_delete.right_leaf)
     {
@@ -564,13 +637,14 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key>::bst_delete(Key 
 
         node_to_delete.to_be_deleted = true;
         actually_removed_node_idx = node_to_delete_idx;
-    }else if (node_to_delete.left_leaf && !node_to_delete.right_leaf
+    }
+    else if (node_to_delete.left_leaf && !node_to_delete.right_leaf
         || !node_to_delete.left_leaf && node_to_delete.right_leaf)
     {
         // node to be deleted has only one child
 
-        size_t child_node_idx = node_to_delete.left_leaf 
-            ? node_to_delete.left_leaf 
+        size_t child_node_idx = node_to_delete.left_leaf
+            ? node_to_delete.left_leaf
             : node_to_delete.right_leaf;
 
         size_t parent_node_idx = node_to_delete.parent_node;
@@ -587,7 +661,7 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key>::bst_delete(Key 
             sibling_of_actually_removed_node_idx = parent_node.left_leaf;
         }
         child_node.parent_node = parent_node_idx;
-        
+
         node_to_delete.to_be_deleted = true;
         actually_removed_node_idx = node_to_delete_idx;
     }
@@ -639,8 +713,8 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key>::bst_delete(Key 
         in_order_successor_node.to_be_deleted = true;
         actually_removed_node_idx = in_order_successor_idx;
     }
-    
-     
+
+
     return std::make_tuple(actually_removed_node_idx, sibling_of_actually_removed_node_idx, true);
 }
 
@@ -648,7 +722,7 @@ template<typename Key>
 inline std::pair<size_t, bool> StreamedCacheIndex<Key>::bst_search(Key const& key)
 {
     size_t current_index = 0;
-    do 
+    do
     {
         StreamedCacheIndex<Key>& current_node = m_index_tree[current_index];
 
@@ -683,6 +757,109 @@ inline void StreamedCacheIndex<Key>::rebuild_index()
 }
 
 
-}}
 
+template<typename Key>
+inline StreamedCacheIndexIterator& core::StreamedCacheIndex<Key>::StreamedCacheIndexIterator::operator++()
+{
+    if (m_has_reached_end)
+        throw std::out_of_range{ "index tree iterator is out of range" };
+
+    std::vector<StreamedCacheIndexTreeEntry<Key>>& index_tree = *m_p_target_index_tree;
+    StreamedCacheIndexTreeEntry<Key>& current_node = index_tree[m_current_index];
+
+    if (current_node.left_leaf)
+    {
+        m_current_index = current_node.left_leaf;
+        return *this;
+    }
+
+    if (current_node.right_leaf)
+    {
+        m_current_index = current_node.right_leaf;
+        return *this;
+    }
+
+    do 
+    {
+        m_current_index = index_tree[m_current_index].parent_node;
+    } while (m_current_index 
+        && (index_tree[m_current_index].inheritance 
+            == StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child 
+            || !index_tree[index_tree[m_current_index].parent_node].right_leaf));
+
+    if (!m_current_index) m_has_reached_end = true;
+    else m_current_index = index_tree[index_tree[m_current_index].parent_node].right_leaf;
+
+    return *this;
+}
+
+template<typename Key>
+inline StreamedCacheIndexIterator StreamedCacheIndex<Key>::StreamedCacheIndexIterator::operator++(int)
+{
+    StreamedCacheIndexIterator<Key> rv{ *this };
+    ++(*this);
+    return rv;
+}
+
+template<typename Key>
+inline StreamedCacheIndexTreeEntry<Key>& StreamedCacheIndex<Key>::StreamedCacheIndexIterator::operator*()
+{
+    return (*m_p_target_index_tree)[m_current_index];
+}
+
+template<typename Key>
+inline StreamedCacheIndexTreeEntry<Key> const& StreamedCacheIndex<Key>::StreamedCacheIndexIterator::operator*() const
+{
+    return const_cast<StreamedCacheIndex<Key>::StreamedCacheIndexIterator*>(this)->operator*();
+}
+
+template<typename Key>
+inline StreamedCacheIndexTreeEntry<Key> const * StreamedCacheIndex<Key>::StreamedCacheIndexIterator::operator->() const
+{
+    return const_cast<StreamedCacheIndex<Key>::StreamedCacheIndexIterator*>(this)->operator->();
+}
+
+template<typename Key>
+inline bool StreamedCacheIndex<Key>::StreamedCacheIndexIterator::operator==(StreamedCacheIndexIterator const& other) const
+{
+    return m_is_at_beginning == other.m_is_at_beginning
+        && m_has_reached_end == other.m_has_reached_end
+        && m_current_index == other.m_current_index
+        && m_p_target_index_tree == other.m_p_target_index_tree;
+}
+
+template<typename Key>
+inline bool StreamedCacheIndex<Key>::StreamedCacheIndexIterator::operator!=(StreamedCacheIndexIterator const& other) const
+{
+    return !(*this == other);
+}
+
+template<typename Key>
+inline StreamedCacheIndexTreeEntry<Key>* StreamedCacheIndex<Key>::StreamedCacheIndexIterator::operator->()
+{
+    return &(*m_p_target_index_tree)[m_current_index];
+}
+
+template<typename Key>
+inline StreamedCacheIndexIterator & StreamedCacheIndex<Key>::StreamedCacheIndexIterator::operator--()
+{
+    if(m_is_at_beginning)
+        throw std::out_of_range{ "index tree iterator is out of range" };
+
+    m_current_index = (*m_p_target_index_tree)[m_current_index].parent_node;
+    if (!m_current_index) m_is_at_beginning = true;
+
+    return *this;
+}
+
+template<typename Key>
+inline StreamedCacheIndexIterator StreamedCacheIndex<Key>::StreamedCacheIndexIterator::operator--(int)
+{
+    StreamedCacheIndexIterator<Key> rv{ *this };
+    --(*this);
+    return rv;
+}
+
+
+}}
 #endif

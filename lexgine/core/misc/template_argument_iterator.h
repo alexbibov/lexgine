@@ -1,5 +1,9 @@
 #ifndef LEXGINE_CORE_MISC_TEMPLATE_ARGUMENT_ITERATOR_H
 
+// Template class implemented below allows to perform compile-time iteration over template parameters.
+// For usage example see e.g. d3d12_pso_xml_parser.cpp
+
+
 #include <cstdint>
 
 namespace lexgine { namespace core { namespace misc {
