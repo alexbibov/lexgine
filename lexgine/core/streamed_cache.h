@@ -47,20 +47,28 @@ struct CacheCluster final
 template<typename Key>
 struct StreamedCacheIndexTreeEntry final
 {
+    enum class inheritance_category : unsigned char
+    {
+        root = 0,
+        left_child = 1,
+        right_child = 2
+    };
+
     bool to_be_deleted = false;
 
     uint64_t data_offset;
     Key cache_entry_key;
 
     unsigned char node_color;
-    unsigned char inheritance_category;    //!< 0 is root; 1 is left child; 2 is right child
+    inheritance_category inheritance;    //!< 0 is root; 1 is left child; 2 is right child
 
+    size_t parent_node;
     size_t right_leaf;
     size_t left_leaf;
 
-
-    size_t const serialized_size = 24U    //!< left and right leafs and the data offset
-        + Key::serialized_size    //!< size of serialized key
+    size_t const key_serialized_size = Key::serialized_size;
+    size_t const serialized_size = 32    //!< left and right leafs, parent node index, and the data offset
+        + key_serialized_size    //!< size of serialized key
         + 1;    //!< node color (2 low order bits) + inheritance category (2 next bits) + is subject for deletion at some point (1 bit) + 3 currently unused bits   
 
     void prepare_serialization_blob(void* p_blob_memory);    //! serializes entry to memory provided (and owned) by the caller
@@ -238,7 +246,7 @@ inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> co
         root_entry.data_offset = key_offset_pair.second;
         root_entry.cache_entry_key = key_offset_pair.first;
         root_entry.node_color = 1;    // root is always BLACK
-        root_entry.inheritance_category = 0;    // no inheritance category for root
+        root_entry.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::root;
         root_entry.parent_node = 0;    // 0 is index of the tree buffer where the root of the tree always resides. But no leave ever has root as child, so use 0 to encode leave nodes
         root_entry.right_leaf = 0;
         root_entry.left_leaf = 0;
@@ -256,22 +264,24 @@ inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> co
             // in this case the RED-BLACK structure of the tree is corrupted and needs to be recovered
 
             size_t grandparent_idx = m_index_tree[parent_idx].parent_node;
-            bool T1 = m_index_tree[parent_idx].inheritance_category == 1;    // does parent reside in the left sub-tree?
+            bool T1 = m_index_tree[parent_idx].inheritance 
+                == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;    
             size_t uncle_idx = T1 ? m_index_tree[grandparent_idx].right_leaf : m_index_tree[grandparent_idx].left_leaf;
 
             bool root_reached{ false };
             while (!root_reached && uncle_idx && m_index_tree[uncle_idx].node_color == 0)
             {
                 // uncle is RED case
+                root_reached = grandparent_idx == 0;
                 m_index_tree[parent_idx].node_color = 1;
                 m_index_tree[uncle_idx].node_color = 1;
-                m_index_tree[grandparent_idx].node_color = static_cast<unsigned char>(grandparent_idx == 0);
-                root_reached = grandparent_idx == 0;
+                m_index_tree[grandparent_idx].node_color = static_cast<unsigned char>(root_reached);
 
                 current_idx = grandparent_idx;
                 parent_idx = m_index_tree[current_idx].parent_node;
                 grandparent_idx = m_index_tree[parent_idx].parent_node;
-                T1 = m_index_tree[parent_idx].inheritance_category == 1;    // does parent node reside in the left sub-tree?
+                T1 = m_index_tree[parent_idx].inheritance_category 
+                    == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
                 uncle_idx = T1 ? m_index_tree[grandparent_idx].right_leaf : m_index_tree[grandparent_idx].left_leaf;
             }
 
@@ -279,7 +289,8 @@ inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> co
             {
                 // uncle is BLACK cases
 
-                bool T2 = m_index_tree[current_idx].inheritance_category == 1;    // does the new node reside in the left sub-tree?
+                bool T2 = m_index_tree[current_idx].inheritance_category 
+                    == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
 
                 if (T1 && T2)
                 {
@@ -403,7 +414,8 @@ inline bool StreamedCacheIndex<Key>::remove_entry(Key const& key)
 
                     current_node_idx = parent_of_current_node_idx;
                     parent_of_current_node_idx = parent_of_current_node.parent_node;
-                    current_node_sibling_idx = parent_of_current_node.inheritance_category == 1
+                    current_node_sibling_idx = 
+                        parent_of_current_node.inheritance_category == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child
                         ? m_index_tree[parent_of_current_node_idx].right_leaf
                         : m_index_tree[parent_of_current_node_idx].left_leaf;
                 }
@@ -412,7 +424,7 @@ inline bool StreamedCacheIndex<Key>::remove_entry(Key const& key)
             {
                 // sibling is RED
 
-                if (current_node_sibling.inheritance_category == 1)
+                if (current_node_sibling.inheritance_category == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child)
                 {
                     // left case
                     right_rotate(current_node_sibling_idx, parent_of_current_node_idx);
@@ -471,12 +483,12 @@ inline size_t core::StreamedCacheIndex<Key>::bst_insert(std::pair<Key, uint64_t>
     if (is_insertion_subtree_left)
     {
         m_index_tree[insertion_node_idx].left_leaf = target_index;
-        new_entry.inheritance_category = 1;
+        new_entry.inheritance_category = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
     }
     else
     {
         m_index_tree[insertion_node_idx].right_leaf = target_index;
-        new_entry.inheritance_category = 2;
+        new_entry.inheritance_category = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
     }
 
     // finally, physically insert new node into the tree buffer
@@ -535,9 +547,8 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key>::bst_delete(Key 
         // node to be deleted is a leaf
 
         StreamedCacheIndexTreeEntry<Key>& parent_node = m_index_tree[node_to_delete.parent_node];
-        if (node_to_delete.inheritance_category == 1)
+        if (node_to_delete.inheritance_category == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child)
         {
-            
             parent_node.left_leaf = 0;
             sibling_of_actually_removed_node_idx = parent_node.right_leaf;
         }
