@@ -16,8 +16,17 @@
 namespace lexgine {
 namespace core {
 
+//! Single cluster of the cache
+template<size_t size>
+struct CacheCluster final
+{
+    size_t const cluster_size = size;
+    char data[size];
+    uint64_t next_cluster_offset;
+};
+
 //! Describes single entry of the cache
-template<typename Key>
+template<typename Key, size_t cluster_size>
 class StreamedCacheEntry final
 {
     friend class StreamedCache<Key>;
@@ -29,17 +38,13 @@ public:
     StreamedCacheEntry(Key const& key, DataBlob const& source_data_blob);
 
 private:
+    void serialize_to_stream(ostream& output_stream, size_t base_cluster_offset);
+    void deserialize_from_stream(istream& input_stream, size_t base_cluster_offset);
+
+private:
     Key m_key;
     DataBlob const& m_data_blob_to_be_cached;
     misc::DateTime m_date_stamp;
-};
-
-
-//! Single 16KB cluster of the cache
-struct CacheCluster final
-{
-    char data[16384];
-    uint64_t next_cluster_offset;
 };
 
 
@@ -159,6 +164,7 @@ private:
 
     size_t bst_insert(std::pair<Key, uint64_t> const& key_offset_pair);    //! standard BST-insertion without RED-BLACK properties check
     static void swap_colors(unsigned char& color1, unsigned char& color2);
+    static uint32_t locate_bin(size_t n, std::vector<size_t> const& bins_in_accending_order);
 
     void right_rotate(size_t a, size_t b);
     void left_rotate(size_t a, size_t b);
@@ -180,17 +186,18 @@ private:
 
 
 //! Class implementing main functionality for streamed data cache. This class is thread safe.
-template<typename Key>
+template<typename Key, size_t cluster_size = 16384U>
 class StreamedCache : public NamedEntity<class_names::StreamedCache>
 {
 public:
     using key_type = Key;
 
 public:
-    StreamedCache(std::ostream& cache_output_stream, size_t max_cache_size_in_bytes);
+    StreamedCache(std::iostream& cache_io_stream, size_t max_cache_size_in_bytes);    //! initializes new cache
+    StreamedCache(std::iostream& cache_io_stream);    //! opens IO stream containing existing cache
     virtual ~StreamedCache();
 
-    void addEntry(StreamedCacheEntry<Key> const& entry); // ! adds entry into the cache and immediately attempts to write it into the cache stream
+    void addEntry(StreamedCacheEntry<Key, cluster_size> const& entry);    //! adds entry into the cache and immediately attempts to write it into the cache stream
 
     void finalize(); //! writes index data and free cluster look-up table into the end of the cache stream and closes the stream before returning execution control to the caller
 
@@ -198,23 +205,27 @@ public:
 
     size_t usedSpace() const;    //! returns space used by the cache so far
 
-    StreamedCacheEntry retrieveEntry(Key const& key) const;    //! retrieves an entry from the cache based on its key
+    StreamedCacheEntry<Key, cluster_size> retrieveEntry(Key const& key) const;    //! retrieves an entry from the cache based on its key
 
     void removeEntry(Key const& key) const;    //! removes entry from the cache (and immediately from its associated stream) given its key
 
 private:
-    void writeData(void* p_source_data_addr, size_t data_size_in_bytes, size_t stream_write_offset);
-
+    void rebuild_empty_cluster_table();
 
 private:
-    std::ostream& m_write_stream;
+    using empty_cluster_reference = std::pair<size_t, size_t>;
+
+private:
+    std::iostream& m_write_stream;
     size_t m_max_cache_size;
+    StreamedCacheIndex<Key> m_index;
+    std::vector<empty_cluster_reference> m_empty_cluster_table;
 };
 
 
 
-template<typename Key>
-inline StreamedCacheEntry<Key>::StreamedCacheEntry(Key const& key, DataBlob const& source_data_blob) :
+template<typename Key, size_t cluster_size>
+inline StreamedCacheEntry<Key, cluster_size>::StreamedCacheEntry(Key const& key, DataBlob const& source_data_blob) :
     m_key{ key },
     m_data_blob_to_be_cached{ source_data_blob },
     m_date_stamp{ misc::DateTime::now() }
@@ -295,7 +306,7 @@ inline const_iterator StreamedCacheIndex<Key>::cend() const
 template<typename Key>
 inline void core::StreamedCacheIndex<Key>::add_entry(std::pair<Key, uint64_t> const& key_offset_pair)
 {
-    if (m_index_tree.size() - m_current_index_redundant_growth_pressure == 0)
+    if (m_index_tree[0].to_be_deleted)
     {
         // we are adding root
         m_index_tree.clear();    // ensure that the index buffer is empty, if there were redundant previously deleted nodes, it's perfect time the remove them
@@ -583,6 +594,24 @@ inline void core::StreamedCacheIndex<Key>::swap_colors(unsigned char& color1, un
 }
 
 template<typename Key>
+inline uint32_t StreamedCacheIndex<Key>::locate_bin(size_t n, std::vector<size_t> const& bins_in_accending_order)
+{
+    size_t left = 0U, right = bins_in_accending_order.size() - 1;
+    
+    while (right - left > 1)
+    {
+        size_t pivot = static_cast<size_t>(std::floor((right - left + 1) / 2.f));
+
+        if (n < bins_in_accending_order[pivot])
+            right = pivot;
+        else
+            left = pivot;
+    }
+
+    return left;
+}
+
+template<typename Key>
 inline void StreamedCacheIndex<Key>::right_rotate(size_t a, size_t b)
 {
     StreamedCacheIndexTreeEntry<Key>& node_a = m_index_tree[a];
@@ -769,20 +798,28 @@ inline std::pair<size_t, bool> StreamedCacheIndex<Key>::bst_search(Key const& ke
 template<typename Key>
 inline void StreamedCacheIndex<Key>::rebuild_index()
 {
-    std::vector<StreamedCacheIndexTreeEntry> new_index_tree_buffer;
+    std::vector<StreamedCacheIndexTreeEntry<Key>> new_index_tree_buffer;
     std::vector<size_t> to_be_deleted_indeces;
     new_index_tree_buffer.reserve(m_index_tree.size());
-    to_be_deleted_indeces.reserve(m_index_tree.size());
+    to_be_deleted_indeces.reserve(m_index_tree.size() + 1U);
 
+    to_be_deleted_indeces.push_back(0U);
     for (size_t i = 0U; i < m_index_tree.size(); ++i)
     {
         if (m_index_tree[i].to_be_deleted)
             to_be_deleted_indeces.push_back(i);
         else
             new_index_tree_buffer.push_back(m_index_tree[i]);
-            
     }
 
+    for (auto const& e : new_index_tree_buffer)
+    {
+        e.left_leaf -= locate_bin(e.left_leaf, to_be_deleted_indeces);
+        e.right_leaf -= locate_bin(e.right_leaf, to_be_deleted_indeces);
+        e.parent_node -= locate_bin(e.parent_node, to_be_deleted_indeces);
+    }
+
+    m_index_tree = std::move(new_index_tree_buffer);
 
     m_current_index_redundant_growth_pressure = 0U;
 }
