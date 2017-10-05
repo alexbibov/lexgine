@@ -564,32 +564,54 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key>::bst_delete(Key 
 
         node_to_delete.to_be_deleted = true;
         actually_removed_node_idx = node_to_delete_idx;
-    }else if (node_to_delete.left_leaf && !node_to_delete.right_leaf
+    }
+    else if (node_to_delete.left_leaf && !node_to_delete.right_leaf
         || !node_to_delete.left_leaf && node_to_delete.right_leaf)
     {
         // node to be deleted has only one child
 
-        size_t child_node_idx = node_to_delete.left_leaf 
-            ? node_to_delete.left_leaf 
+        size_t child_node_idx = node_to_delete.left_leaf
+            ? node_to_delete.left_leaf
             : node_to_delete.right_leaf;
-
-        size_t parent_node_idx = node_to_delete.parent_node;
-        StreamedCacheIndexTreeEntry<Key>& parent_node = m_index_tree[parent_node_idx];
         StreamedCacheIndexTreeEntry<Key>& child_node = m_index_tree[child_node_idx];
-        if (parent_node.left_leaf == node_to_delete_idx)
+
+        if (node_to_delete)
         {
-            parent_node.left_leaf = child_node_idx;
-            sibling_of_actually_removed_node_idx = parent_node.right_leaf;
+            // node to be deleted is not the root of the index tree
+
+            size_t parent_node_idx = node_to_delete.parent_node;
+            StreamedCacheIndexTreeEntry<Key>& parent_node = m_index_tree[parent_node_idx];
+            
+            if (parent_node.left_leaf == node_to_delete_idx)
+            {
+                parent_node.left_leaf = child_node_idx;
+                sibling_of_actually_removed_node_idx = parent_node.right_leaf;
+            }
+            else
+            {
+                parent_node.right_leaf = child_node_idx;
+                sibling_of_actually_removed_node_idx = parent_node.left_leaf;
+            }
+            child_node.parent_node = parent_node_idx;
+
+            node_to_delete.to_be_deleted = true;
+            actually_removed_node_idx = node_to_delete_idx;
         }
         else
         {
-            parent_node.right_leaf = child_node_idx;
-            sibling_of_actually_removed_node_idx = parent_node.left_leaf;
+            // node to be deleted is the root of the index tree
+            // here we will use the fact that we are indeed dealing with RED-BLACK trees, which
+            // means that if the root of the tree has only one child (currently considered case),
+            // then this child has to be RED and there are only two nodes left (including the root)
+
+            node_to_delete.cache_entry_key = child_node.cache_entry_key;
+            node_to_delete.data_offset = node_to_delete.data_offset;
+            node_to_delete.left_leaf = node_to_delete.right_leaf = 0U;
+
+            child_node.to_be_deleted = true;
+            actually_removed_node_idx = child_node_idx;
+            sibling_of_actually_removed_node_idx = 0U;    // does not matter in this case as the actually removed node is RED
         }
-        child_node.parent_node = parent_node_idx;
-        
-        node_to_delete.to_be_deleted = true;
-        actually_removed_node_idx = node_to_delete_idx;
     }
     else
     {
@@ -647,6 +669,13 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key>::bst_delete(Key 
 template<typename Key>
 inline std::pair<size_t, bool> StreamedCacheIndex<Key>::bst_search(Key const& key)
 {
+    if (m_index_tree[0].to_be_deleted)
+    {
+        // the index tree is empty 
+        return std::make_pair(static_cast<size_t>(0U), false);
+    }
+
+
     size_t current_index = 0;
     do 
     {
@@ -667,15 +696,18 @@ inline std::pair<size_t, bool> StreamedCacheIndex<Key>::bst_search(Key const& ke
 template<typename Key>
 inline void StreamedCacheIndex<Key>::rebuild_index()
 {
-    // !!!TO BE IMPLEMENTED!!!
-
     std::vector<StreamedCacheIndexTreeEntry> new_index_tree_buffer;
+    std::vector<size_t> to_be_deleted_indeces;
     new_index_tree_buffer.reserve(m_index_tree.size());
+    to_be_deleted_indeces.reserve(m_index_tree.size());
 
-    for (auto& entry : m_index_tree)
+    for (size_t i = 0U; i < m_index_tree.size(); ++i)
     {
-        if (!entry.to_be_deleted)
-            new_index_tree_buffer.push_back(entry);
+        if (m_index_tree[i].to_be_deleted)
+            to_be_deleted_indeces.push_back(i);
+        else
+            new_index_tree_buffer.push_back(m_index_tree[i]);
+            
     }
 
 
