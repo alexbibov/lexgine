@@ -68,7 +68,7 @@ struct StreamedCacheIndexTreeEntry final
 
     size_t const key_serialized_size = Key::serialized_size;
     size_t const serialized_size = 32    //!< left and right leafs, parent node index, and the data offset
-        + key_serialized_size    //!< size of serialized key
+        + key_serialized_size    //!< key
         + 1;    //!< node color (2 low order bits) + inheritance category (2 next bits) + is subject for deletion at some point (1 bit) + 3 currently unused bits   
 
     void prepare_serialization_blob(void* p_blob_memory);    //! serializes entry to memory provided (and owned) by the caller
@@ -685,6 +685,13 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key>::bst_delete(Key 
             actually_removed_node_idx = child_node_idx;
             sibling_of_actually_removed_node_idx = 0U;    // does not matter in this case as the actually removed node is RED
         }
+<<<<<<< HEAD
+=======
+        child_node.parent_node = parent_node_idx;
+
+        node_to_delete.to_be_deleted = true;
+        actually_removed_node_idx = node_to_delete_idx;
+>>>>>>> 5bcd8ba56eb3641612fb736f8edc2aea65751208
     }
     else
     {

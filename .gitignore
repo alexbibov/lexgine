@@ -45,3 +45,6 @@ TestLogging/*
 
 # Auxiliary files
 *.pdf
+
+# Merge originals 
+*.orig
