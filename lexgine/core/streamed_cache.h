@@ -125,8 +125,6 @@ public:
 
 public:
 
-    misc::Optional<uint64_t> getCacheEntryDataOffsetFromKey(Key const& key) const;    //! retrieves offset of cache entry in the associated stream based on provided key
-
     size_t getCurrentRedundancy() const;    //! returns current redundancy of the index tree buffer represented in bytes
 
     size_t getMaxAllowedRedundancy() const;    //! returns maximal allowed redundancy of the tree buffer represented in bytes
@@ -137,6 +135,8 @@ public:
     */
     void setMaxAllowedRedundancy(size_t max_redundancy_in_bytes);
 
+    size_t getNumberOfEntries() const;    //! returns number of entries stored in the index tree
+
     iterator begin();
     iterator end();
     const_iterator begin() const;
@@ -145,6 +145,8 @@ public:
     const_iterator cend() const;
 
 private:
+    misc::Optional<uint64_t> get_cache_entry_data_offset_from_key(Key const& key) const;    //! retrieves offset of cache entry in the associated stream based on provided key
+
     void add_entry(std::pair<Key, uint64_t> const& key_offset_pair);    //! adds entry into cache index tree
     bool remove_entry(Key const& key);    //! removes entry from cache index tree
 
@@ -166,7 +168,6 @@ private:
 
     size_t const m_key_size = Key::size;
     std::vector<StreamedCacheIndexTreeEntry<Key>> m_index_tree;
-    std::vector<uint64_t> m_empty_cluster_list;
     size_t m_current_index_redundant_growth_pressure = 0U;
     size_t m_max_index_redundant_growth_pressure = 1000U;    //!< maximal allowed amount of unused entries in the index tree buffer, after which the buffer is rebuilt
 };
@@ -178,9 +179,13 @@ class StreamedCache : public NamedEntity<class_names::StreamedCache>
 {
 public:
     using key_type = Key;
+    struct CustomHeader
+    {
+        unsigned char data[31];
+    };
 
 public:
-    StreamedCache(std::iostream& cache_io_stream, size_t max_cache_size_in_bytes);    //! initializes new cache
+    StreamedCache(std::iostream& cache_io_stream, size_t max_cache_size_in_bytes, bool is_compressed = false);    //! initializes new cache
     StreamedCache(std::iostream& cache_io_stream);    //! opens IO stream containing existing cache
     virtual ~StreamedCache();
 
@@ -196,12 +201,22 @@ public:
 
     void removeEntry(Key const& key) const;    //! removes entry from the cache (and immediately from its associated stream) given its key
 
+    StreamedCacheIndex const& getIndex() const;    //! returns index tree of the cache
+
+    std::pair<uint16_t, uint16_t> getVersion() const;    //! returns major and minor versions of the cache (in this order) packed into std::pair
+
+    void writeCustomHeader(CustomHeader const& custom_header);    //! writes custom header data into the cache
+    CustomHeader retrieveCustomHeader() const;    //! retrieves custom header data from the cache
+
+    bool isCompressed() const;    //! returns 'true' if the cache stream is compressed, returns 'false' otherwise
+
 private:
     void rebuild_empty_cluster_table();
     void serialize_entry(StreamedCacheEntry const& entry);
     StreamedCacheEntry deserialize_entry();
     static void pack_date_stamp(misc::DateTime const& date_stamp, char packed_date_stamp[13]);
     static misc::DateTime unpack_date_stamp(char packed_date_stamp[13]);
+    void write_header_data();
 
 private:
     using empty_cluster_reference = std::pair<size_t, size_t>;
@@ -210,8 +225,10 @@ private:
     std::iostream& m_cache_stream;
     size_t m_max_cache_size;
     size_t m_current_cache_size;
+    bool m_is_compressed;
     StreamedCacheIndex<Key> m_index;
     std::vector<empty_cluster_reference> m_empty_cluster_table;
+    uint32_t const m_version = 0x10;    //!< hi-word contains major version number; lo-word conains the minor version
 };
 
 
@@ -259,16 +276,6 @@ inline misc::DateTime StreamedCacheEntry<Key, cluster_size>::unpack_date_stamp(c
 }
 
 template<typename Key>
-inline misc::Optional<uint64_t> StreamedCacheIndex<Key>::getCacheEntryDataOffsetFromKey(Key const& key) const
-{
-    std::pair<size_t, bool> search_result = bst_search(key);
-    if (search_result.second)
-        return misc::Optional<uint64_t>{ m_index_tree[search_result.first].data_offset };
-
-    return misc::Optional<uint64_t>{};
-}
-
-template<typename Key>
 inline size_t StreamedCacheIndex<Key>::getCurrentRedundancy() const
 {
     return m_current_index_redundant_growth_pressure * StreamedCacheIndexTreeEntry<Key>::serialized_size;
@@ -284,6 +291,12 @@ template<typename Key>
 inline void StreamedCacheIndex<Key>::setMaxAllowedRedundancy(size_t max_redundancy_in_bytes)
 {
     m_max_index_redundant_growth_pressure = max_redundancy_in_bytes / StreamedCacheIndexTreeEntry<Key>::serialized_size;
+}
+
+template<typename Key>
+inline size_t StreamedCacheIndex<Key>::getNumberOfEntries() const
+{
+    return m_index_tree.size();
 }
 
 template<typename Key>
@@ -326,6 +339,16 @@ template<typename Key>
 inline const_iterator StreamedCacheIndex<Key>::cend() const
 {
     return end();
+}
+
+template<typename Key>
+inline misc::Optional<uint64_t> StreamedCacheIndex<Key>::get_cache_entry_data_offset_from_key(Key const& key) const
+{
+    std::pair<size_t, bool> search_result = bst_search(key);
+    if (search_result.second)
+        return misc::Optional<uint64_t>{ m_index_tree[search_result.first].data_offset };
+
+    return misc::Optional<uint64_t>{};
 }
 
 template<typename Key>
@@ -993,7 +1016,7 @@ inline void StreamedCacheIndexTreeEntry<Key>::deserialize_from_blob(void* p_blob
 template<typename Key, size_t cluster_size>
 inline void core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCacheEntry const& entry)
 {
-    size_t entry_size = m_data_blob_to_be_cached.size()
+    size_t entry_size = entry.m_data_blob_to_be_cached.size()
         + 8    // size of the entry field
         + 13;  // date stamp field
 
@@ -1001,16 +1024,40 @@ inline void core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCach
 }
 
 template<typename Key, size_t cluster_size>
-inline core::StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_stream, size_t max_cache_size_in_bytes):
+inline void StreamedCache<Key, cluster_size>::write_header_data()
+{
+    m_cache_stream.seekg(0, std::ios::beg);
+    m_cache_stream << m_version;
+    // TO BE IMPLEMENTED
+}
+
+template<typename Key, size_t cluster_size>
+inline core::StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_stream, size_t max_cache_size_in_bytes, bool is_compressed/* = false*/):
     m_cache_stream{ cache_io_stream },
     m_max_cache_size{ max_cache_size_in_bytes },
-    m_current_cache_size{ 0U }
+    m_current_cache_size{ 0U },
+    m_is_compressed{ is_compressed }
 {
     if (!cache_io_stream)
     {
         misc::Log::retrieve()->out("Unable to open cache IO stream", misc::LogMessageType::error);
         return;
     }
+
+    // reserve space for the cache header
+    cache_io_stream.seekg(
+        4U      // cache version
+        + 8U    // maximal allowed size of this cache
+        + 8U    // current size of the cache body
+        + 4U    // current size of the index tree
+        + 4U    // current size of the empty cluster table
+        + 4U    // size of the key used for index tree look-ups
+        + 4U    // current redundancy pressure in the index tree
+        + 4U    // maximal allowed redundancy pressure in the index tree
+        + 1U    // lowest-order bit identifies whether the cache stream is compressed, the remaining 7 bits are reserved
+        + 31U,  // 31 bytes are reserved for user's custom header data
+        std::ios::beg
+    );
 }
 
 
