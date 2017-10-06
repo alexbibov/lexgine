@@ -16,15 +16,6 @@
 namespace lexgine {
 namespace core {
 
-//! Single cluster of the cache
-template<size_t size>
-struct CacheCluster final
-{
-    size_t const cluster_size = size;
-    char data[size];
-    uint64_t next_cluster_offset;
-};
-
 //! Describes single entry of the cache
 template<typename Key, size_t cluster_size>
 class StreamedCacheEntry final
@@ -36,10 +27,6 @@ public:
 
 public:
     StreamedCacheEntry(Key const& key, DataBlob const& source_data_blob);
-
-private:
-    void serialize_to_stream(ostream& output_stream, size_t base_cluster_offset);
-    void deserialize_from_stream(istream& input_stream, size_t base_cluster_offset);
 
 private:
     Key m_key;
@@ -211,13 +198,18 @@ public:
 
 private:
     void rebuild_empty_cluster_table();
+    void serialize_entry(StreamedCacheEntry const& entry);
+    StreamedCacheEntry deserialize_entry();
+    static void pack_date_stamp(misc::DateTime const& date_stamp, char packed_date_stamp[13]);
+    static misc::DateTime unpack_date_stamp(char packed_date_stamp[13]);
 
 private:
     using empty_cluster_reference = std::pair<size_t, size_t>;
 
 private:
-    std::iostream& m_write_stream;
+    std::iostream& m_cache_stream;
     size_t m_max_cache_size;
+    size_t m_current_cache_size;
     StreamedCacheIndex<Key> m_index;
     std::vector<empty_cluster_reference> m_empty_cluster_table;
 };
@@ -231,6 +223,39 @@ inline StreamedCacheEntry<Key, cluster_size>::StreamedCacheEntry(Key const& key,
     m_date_stamp{ misc::DateTime::now() }
 {
 
+}
+
+template<typename Key, size_t cluster_size>
+inline void StreamedCacheEntry<Key, cluster_size>::pack_date_stamp(misc::DateTime const& date_stamp, char packed_date_stamp[13])
+{
+    *static_cast<uint16_t*>(packed_date_stamp) = date_stamp.year();    // 16-bit storage for year
+    uint8_t month = date_stamp.month();
+    uint8_t day = date_stamp.day();
+    uint8_t hour = date_stamp.hour();
+    uint8_t minute = date_stamp.minute();
+    double second = date_stamp.second();
+
+    packed_date_stamp[2] = static_cast<uint8_t>(month);    // 4-bit storage for month
+    packed_date_stamp[2] |= day << 4;    // 5-bit storage for day
+    packed_date_stamp[3] = day >> 4;
+    packed_date_stamp[3] |= hour << 1;    // 5-bit storage for hour
+    packed_date_stamp[3] |= minute << 6;    // 6-bit storage for minute
+    packed_date_stamp[4] |= minute >> 2;    // 4-bits reserved for future use (time zones?)
+
+    *static_cast<double*>(packed_date_stamp + 5) = second;    // 64-bit storage for high-precision second
+}
+
+template<typename Key, size_t cluster_size>
+inline misc::DateTime StreamedCacheEntry<Key, cluster_size>::unpack_date_stamp(char packed_date_stamp[13])
+{
+    uint16_t year = *static_cast<uint16_t*>(packed_date_stamp);
+    uint8_t month = packed_date_stamp[2] & 0xF;
+    uint8_t day = packed_date_stamp[2] >> 4; day |= (packed_date_stamp[3] & 0x1) << 4;
+    uint8_t hour = (packed_date_stamp[3] & 0x3E) >> 1;
+    uint8_t minute = packed_date_stamp[3] >> 6; minute |= packed_date_stamp[4] << 2;
+    double second = *static_cast<double*>(packed_date_stamp + 5);
+
+    return misc::DateTime{ year, month, day, hour, minute, second };
 }
 
 template<typename Key>
@@ -597,7 +622,7 @@ template<typename Key>
 inline uint32_t StreamedCacheIndex<Key>::locate_bin(size_t n, std::vector<size_t> const& bins_in_accending_order)
 {
     size_t left = 0U, right = bins_in_accending_order.size() - 1;
-    
+
     while (right - left > 1)
     {
         size_t pivot = static_cast<size_t>(std::floor((right - left + 1) / 2.f));
@@ -683,7 +708,7 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key>::bst_delete(Key 
 
             size_t parent_node_idx = node_to_delete.parent_node;
             StreamedCacheIndexTreeEntry<Key>& parent_node = m_index_tree[parent_node_idx];
-            
+
             if (parent_node.left_leaf == node_to_delete_idx)
             {
                 parent_node.left_leaf = child_node_idx;
@@ -964,6 +989,30 @@ inline void StreamedCacheIndexTreeEntry<Key>::deserialize_from_blob(void* p_blob
     inheritance = (*p_color_inheritance_and_deletion_status & 0xC) >> 2;
     to_be_deleted = (*p_color_inheritance_and_deletion_status & 0x10) != 0;
 }
+
+template<typename Key, size_t cluster_size>
+inline void core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCacheEntry const& entry)
+{
+    size_t entry_size = m_data_blob_to_be_cached.size()
+        + 8    // size of the entry field
+        + 13;  // date stamp field
+
+    size_t total_number_of_clusters = entry_size / cluster_size + static_cast<size_t>(entry_size % cluster_size > 0);
+}
+
+template<typename Key, size_t cluster_size>
+inline core::StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_stream, size_t max_cache_size_in_bytes):
+    m_cache_stream{ cache_io_stream },
+    m_max_cache_size{ max_cache_size_in_bytes },
+    m_current_cache_size{ 0U }
+{
+    if (!cache_io_stream)
+    {
+        misc::Log::retrieve()->out("Unable to open cache IO stream", misc::LogMessageType::error);
+        return;
+    }
+}
+
 
 }}
 #endif
