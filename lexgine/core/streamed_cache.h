@@ -143,7 +143,9 @@ public:
     */
     void setMaxAllowedRedundancy(size_t max_redundancy_in_bytes);
 
-    size_t getNumberOfEntries() const;    //! returns number of entries stored in the index tree
+    size_t getSize() const;    //! returns total number of fields stored in the index tree
+
+    size_t getNumberOfEntries() const;    //! returns number of fields in the index tree that are not "to be deleted"
 
     bool isEmpty() const;    //! returns 'true' if the index is empty; returns 'false' otherwise
 
@@ -180,6 +182,7 @@ private:
     std::vector<StreamedCacheIndexTreeEntry<Key>> m_index_tree;
     size_t m_current_index_redundant_growth_pressure = 0U;
     size_t m_max_index_redundant_growth_pressure = 1000U;    //!< maximal allowed amount of unused entries in the index tree buffer, after which the buffer is rebuilt
+    size_t m_number_of_entries = 0U;    //!< number of living entities in the index tree (size of the tree excluding the entries that are marked as "to be deleted")
 };
 
 
@@ -197,7 +200,7 @@ public:
 
 public:
     //! initializes new cache
-    StreamedCache(std::iostream& cache_io_stream, size_t max_cache_size_in_bytes, 
+    StreamedCache(std::iostream& cache_io_stream, size_t max_cache_body_size_in_bytes, 
         bool is_compressed = false, bool are_overwrites_allowed = false);
 
     StreamedCache(std::iostream& cache_io_stream);    //! opens IO stream containing existing cache
@@ -235,13 +238,13 @@ private:
     void write_header_data();
     void remove_entry(size_t base_offset);
     void remove_oldest_entry();
-    std::pair<size_t, size_t> retrieve_available_cluster_sequence();
+    std::pair<size_t, size_t> extract_available_cluster_sequence();
 
 private:
     std::iostream& m_cache_stream;
     size_t m_current_cache_size;
-    size_t m_cache_body_size;
-    size_t m_max_cache_size;
+    size_t m_current_cache_body_size;
+    size_t m_max_cache_body_size;
     bool m_is_compressed;
     bool m_are_overwrites_allowed;
     StreamedCacheIndex<Key, cluster_size> m_index;
@@ -249,11 +252,12 @@ private:
     uint32_t const m_version = 0x10;    //!< hi-word contains major version number; lo-word contains the minor version
     uint32_t const m_size_of_header =
           4U    // cache version
-        + 8U    // maximal allowed size of this cache
-        + 8U    // currently used cache space
-        + 8U    // current size of the cache body
-        + 4U    // current size of the index tree
-        + 4U    // current size of the empty cluster table
+        + 8U    // current size of the cache in bytes (cache header plus size of the body plus size of the service structures)
+        + 8U    // maximal allowed size of the body of this cache, in bytes (size of the body does not include the size of the service structures and cluster overhead)
+        + 8U    // current size of the cache body given in bytes (not counting the cluster overhead)
+        + 4U    // current total size of the index tree represented in bytes
+        + 4U    // number of "living" entities in the index tree
+        + 4U    // current size of the empty cluster table represented in bytes
         + 4U    // current redundancy pressure in the index tree
         + 4U    // maximal allowed redundancy pressure in the index tree
         + 1U    // lowest-order bit identifies whether the cache stream is compressed, the remaining 7 bits are reserved
@@ -330,9 +334,15 @@ inline void StreamedCacheIndex<Key, cluster_size>::setMaxAllowedRedundancy(size_
 }
 
 template<typename Key, size_t cluster_size>
-inline size_t StreamedCacheIndex<Key, cluster_size>::getNumberOfEntries() const
+inline size_t StreamedCacheIndex<Key, cluster_size>::getSize() const
 {
     return m_index_tree.size();
+}
+
+template<typename Key, size_t cluster_size>
+inline size_t StreamedCacheIndex<Key, cluster_size>::getNumberOfEntries() const
+{
+    return m_number_of_entries;
 }
 
 template<typename Key, size_t cluster_size>
@@ -502,6 +512,8 @@ inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint
             }
         }
     }
+
+    ++m_number_of_entries;
 }
 
 template<typename Key, size_t cluster_size>
@@ -632,6 +644,8 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
     {
         rebuild_index();
     }
+
+    --m_number_of_entries;
 }
 
 template<typename Key, size_t cluster_size>
@@ -1076,28 +1090,27 @@ inline bool StreamedCache<Key, cluster_size>::isCompressed() const
 template<typename Key, size_t cluster_size>
 inline bool core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCacheEntry<Key, cluster_size> const& entry)
 {
-    size_t const raw_entry_size = 
+    size_t const aligned_entry_size = align_to_cluster_size(
         entry.m_data_blob_to_be_cached.size()    // contained data
         + 8    // total size of the entry field (always aligned to the cluster size)
-        + 13;  // date stamp field
+        + 13);  // date stamp field
 
-    size_t const aligned_raw_entry_size = align_to_cluster_size(raw_entry_size);
-    size_t const number_of_clusters = aligned_raw_entry_size / cluster_size;
+    size_t const number_of_clusters = aligned_entry_size / cluster_size;
     size_t const cluster_overhead = number_of_clusters * 8U;
-    size_t const entry_size = aligned_raw_entry_size + cluster_overhead + StreamedCacheIndexTreeEntry<Key>::serialized_size;
+    size_t const entry_size_plus_overhead = aligned_entry_size + cluster_overhead + StreamedCacheIndexTreeEntry<Key>::serialized_size;
 
 
-    if (entry_size > m_max_cache_size - m_size_of_header);
+    if (aligned_entry_size > m_max_cache_body_size);
     {
         misc::Log::retrieve()->out("Cache is too small to serialize requested entry", LogMessageType::error);
         return false;
     }
 
-    if (entry_size > m_max_cache_size - m_current_cache_size)
+    if (aligned_entry_size > m_max_cache_body_size - m_current_cache_body_size)
     {
         if (m_are_overwrites_allowed)
         {
-            while (entry_size > m_max_cache_size - m_current_cache_size) remove_oldest_entry();
+            while (aligned_entry_size > m_max_cache_body_size - m_current_cache_body_size) remove_oldest_entry();
         }
         else
         {
@@ -1106,23 +1119,38 @@ inline bool core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCach
         }
     }
 
-    
+    size_t num_remaining_bytes{ aligned_entry_size };
+    while (num_remaining_bytes)
+    {
+        std::pair<size_t, size_t> empty_cluster_sequence_desc = extract_available_cluster_sequence();
+        size_t cluster_base_addr{ empty_cluster_sequence_desc.first };
+        size_t data_addr;
+        for (size_t i = 0, data_addr = static_cast<size_t>(entry.m_data_blob_to_be_cached.data());
+            i < empty_cluster_sequence_desc.second && data_addr < static_cast<size_t>(entry.m_data_blob_to_be_cached.data()) + entry.m_data_blob_to_be_cached.size();
+            ++i, data_addr += cluster_size)
+        {
+            m_cache_stream.seekp(cluster_base_addr, std::ios::beg);
 
+        }
+
+    }
 }
 
 template<typename Key, size_t cluster_size>
 inline void StreamedCache<Key, cluster_size>::write_header_data()
 {
-    std::streampos current_stream_pos = m_cache_stream.tellp();
+    std::streampos old_stream_writing_position = m_cache_stream.tellp();
 
     m_cache_stream.seekp(0, std::ios::beg);
     m_cache_stream.write(static_cast<char*>(&m_version), 4U);
-    m_cache_stream.write(static_cast<char*>(&m_max_cache_size), 8U);
     m_cache_stream.write(static_cast<char*>(&m_current_cache_size), 8U);
-    m_cache_stream.write(static_cast<char*>(&m_cache_body_size), 8U);
+    m_cache_stream.write(static_cast<char*>(&m_max_cache_body_size), 8U);
+    m_cache_stream.write(static_cast<char*>(&m_current_cache_body_size), 8U);
 
-    size_t size_of_index_tree = m_index.m_index_tree.size()*StreamedCacheIndexTreeEntry<Key>::serialized_size;
+    size_t size_of_index_tree = m_index.getSize()*StreamedCacheIndexTreeEntry<Key>::serialized_size;
+    size_t living_size_of_index_tree = m_index.getNumberOfEntries();
     m_cache_stream.write(static_cast<char*>(&size_of_index_tree));
+    m_cache_stream.write(static_cast<char*>(&living_size_of_index_tree));
 
     size_t size_of_empty_cluster_table = m_empty_cluster_table.size() * 8U;
     m_cache_stream.write(static_cast<char*>(&size_of_empty_cluster_table));
@@ -1131,7 +1159,7 @@ inline void StreamedCache<Key, cluster_size>::write_header_data()
     m_cache_stream.write(static_cast<char*>(&m_index.m_max_index_redundant_growth_pressure));
     m_cache_stream.write(static_cast<char*>(&m_is_compressed));
 
-    m_cache_stream.seekp(current_stream_pos);
+    m_cache_stream.seekp(old_stream_writing_position);
 }
 
 template<typename Key, size_t cluster_size>
@@ -1150,22 +1178,36 @@ inline void StreamedCache<Key, cluster_size>::remove_oldest_entry()
 }
 
 template<typename Key, size_t cluster_size>
-inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::retrieve_available_cluster_sequence()
+inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::extract_available_cluster_sequence()
 {
-    if (m_current_cache_size < m_max_cache_size)
-        return std::make_pair<size_t, size_t>(
-            m_size_of_header + m_cache_body_size,
-            (m_max_cache_size - m_current_cache_size) / cluster_size
-            );
+    if (m_current_cache_body_size < m_max_cache_body_size)
+    {
+        return std::make_pair(
+            m_size_of_header    // cache header
+            + m_cache_body_size    // size of the cache body in bytes
+            + m_cache_body_size / cluster_size * 8U,    // cluster overhead in bytes
+            (m_max_cache_body_size - m_current_cache_body_size) / cluster_size);
+    }
+
+    std::streampos old_stream_reading_position = m_cache_stream.tellg();
+
+    size_t base_offset = m_empty_cluster_table.back(); m_empty_cluster_table.pop_back();
+    m_cache_stream.seekg(base_offset, std::ios::beg);
+
+    size_t size_of_cluster_sequence_in_bytes;
+    m_cache_stream.read(static_cast<char*>(&size_of_cluster_sequence_in_bytes), 8U);
+    
+    m_cache_stream.seekg(old_stream_reading_position, std::ios::beg);
+    return std::make_pair(base_offset, size_of_cluster_sequence_in_bytes / cluster_size);
 }
 
 template<typename Key, size_t cluster_size>
-inline core::StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_stream, size_t max_cache_size_in_bytes, 
+inline core::StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_stream, size_t max_cache_body_size_in_bytes, 
     bool is_compressed/* = false*/, bool are_overwrites_allowed/* = false*/):
     m_cache_stream{ cache_io_stream },
     m_current_cache_size{ m_size_of_header },
-    m_cache_body_size{ 0U },
-    m_max_cache_size{ align_to_cluster_size(std::max(max_cache_size_in_bytes, m_current_cache_size)) },
+    m_current_cache_body_size{ 0U },
+    m_max_cache_body_size{ align_to_cluster_size(max_cache_body_size_in_bytes) },
     m_is_compressed{ is_compressed },
     m_are_overwrites_allowed{ are_overwrites_allowed }
 {
@@ -1184,7 +1226,7 @@ inline core::StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cach
 template<typename Key, size_t cluster_size>
 inline size_t StreamedCache<Key, cluster_size>::freeSpace() const
 {
-    return m_max_cache_size - m_current_cache_size;
+    return m_max_cache_body_size - m_current_cache_size;
 }
 
 template<typename Key, size_t cluster_size>
