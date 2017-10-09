@@ -1124,16 +1124,57 @@ inline bool core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCach
     {
         std::pair<size_t, size_t> empty_cluster_sequence_desc = extract_available_cluster_sequence();
         size_t cluster_base_addr{ empty_cluster_sequence_desc.first };
-        size_t data_addr;
-        for (size_t i = 0, data_addr = static_cast<size_t>(entry.m_data_blob_to_be_cached.data());
-            i < empty_cluster_sequence_desc.second && data_addr < static_cast<size_t>(entry.m_data_blob_to_be_cached.data()) + entry.m_data_blob_to_be_cached.size();
-            ++i, data_addr += cluster_size)
+        size_t const num_clusters{ empty_cluster_sequence_desc.second };
+        size_t data_addr{ reinterpret_cast<size_t>(entry.m_data_blob_to_be_cached.data()) };
+        size_t const data_end_addr{ data_addr + entry.m_data_blob_to_be_cached.size() };
+        bool is_first_cluster = num_remaining_bytes == aligned_entry_size;
+
+        if (is_first_cluster)
         {
+            // account for service data record
+
             m_cache_stream.seekp(cluster_base_addr, std::ios::beg);
 
+            m_cache_stream.write(reinterpret_cast<char*>(&aligned_entry_size), sizeof(size_t));
+            m_cache_stream.seekp(8U - sizeof(size_t), std::ios::cur);
+
+            char date_stamp[13];
+            pack_date_stamp(entry.m_date_stamp, date_stamp);
+            m_cache_stream.write(date_stamp, 13U);
+
+            cluster_base_addr += 21U;
+        }
+        else
+        {
+            m_cache_stream.write(reinterpret_cast<char*>(&cluster_base_addr), sizeof(size_t));
+            m_cache_stream.seekp(8U - sizeof(size_t), std::ios::cur);
         }
 
+        for (size_t i = 0;
+            i < num_clusters && data_addr < data_end_addr;
+            ++i, data_addr += cluster_size)
+        {
+            size_t available_cluster_size = is_first_cluster ? cluster_size - 21U : cluster_size;
+            size_t num_bytes_to_write = std::min(available_cluster_size, data_end_addr - data_addr);
+            
+            m_cache_stream.seekp(cluster_base_addr, std::ios::beg);
+            m_cache_stream.write(reinterpret_cast<char*>(data_addr), num_bytes_to_write);
+            
+            m_cache_stream.seekp(cluster_base_addr + available_cluster_size, std::ios::beg);
+            if(i < num_clusters - 1U)
+            {
+                cluster_base_addr = cluster_base_addr + available_cluster_size + 8U;
+                m_cache_stream.write(reinterpret_cast<char*>(&cluster_base_addr), sizeof(size_t));
+                m_cache_stream.seekp(8U - sizeof(size_t), std::ios::cur);
+            }
+
+            num_remaining_bytes -= cluster_size;
+        }
     }
+    uint64_t const zero_end{ 0 };
+    m_cache_stream.write(reinterpret_cast<char*>(&zero_end), 8U);
+
+    return true;
 }
 
 template<typename Key, size_t cluster_size>
@@ -1142,22 +1183,38 @@ inline void StreamedCache<Key, cluster_size>::write_header_data()
     std::streampos old_stream_writing_position = m_cache_stream.tellp();
 
     m_cache_stream.seekp(0, std::ios::beg);
-    m_cache_stream.write(static_cast<char*>(&m_version), 4U);
-    m_cache_stream.write(static_cast<char*>(&m_current_cache_size), 8U);
-    m_cache_stream.write(static_cast<char*>(&m_max_cache_body_size), 8U);
-    m_cache_stream.write(static_cast<char*>(&m_current_cache_body_size), 8U);
+    m_cache_stream.write(reinterpret_cast<char*>(&m_version), 4U);
+    
+    m_cache_stream.write(reinterpret_cast<char*>(&m_current_cache_size), sizeof(size_t));
+    m_cache_stream.seekp(8U - sizeof(size_t), std::ios::cur);
+
+    m_cache_stream.write(reinterpret_cast<char*>(&m_max_cache_body_size), sizeof(size_t));
+    m_cache_stream.seekp(8U - sizeof(size_t), std::ios::cur);
+
+    m_cache_stream.write(reinterpret_cast<char*>(&m_current_cache_body_size), sizeof(size_t));
+    m_cache_stream.seekp(8U - sizeof(size_t), std::ios::cur);
 
     size_t size_of_index_tree = m_index.getSize()*StreamedCacheIndexTreeEntry<Key>::serialized_size;
     size_t living_size_of_index_tree = m_index.getNumberOfEntries();
-    m_cache_stream.write(static_cast<char*>(&size_of_index_tree));
-    m_cache_stream.write(static_cast<char*>(&living_size_of_index_tree));
+
+    m_cache_stream.write(reinterpret_cast<char*>(&size_of_index_tree), sizeof(size_t));
+    m_cache_stream.seekp(8U - sizeof(size_t), std::ios::cur);
+
+    m_cache_stream.write(reinterpret_cast<char*>(&living_size_of_index_tree), sizeof(size_t));
+    m_cache_stream.seekp(8U - sizeof(size_t), std::ios::cur);
 
     size_t size_of_empty_cluster_table = m_empty_cluster_table.size() * 8U;
-    m_cache_stream.write(static_cast<char*>(&size_of_empty_cluster_table));
+    m_cache_stream.write(reinterpret_cast<char*>(&size_of_empty_cluster_table), sizeof(size_t));
+    m_cache_stream.seekp(8U - sizeof(size_t), std::ios::cur);
 
-    m_cache_stream.write(static_cast<char*>(&m_index.m_current_index_redundant_growth_pressure));
-    m_cache_stream.write(static_cast<char*>(&m_index.m_max_index_redundant_growth_pressure));
-    m_cache_stream.write(static_cast<char*>(&m_is_compressed));
+    m_cache_stream.write(reinterpret_cast<char*>(&m_index.m_current_index_redundant_growth_pressure), sizeof(size_t));
+    m_cache_stream.seekp(8U - sizeof(size_t), std::ios::cur);
+
+    m_cache_stream.write(reinterpret_cast<char*>(&m_index.m_max_index_redundant_growth_pressure), sizeof(size_t));
+    m_cache_stream.seekp(8U - sizeof(size_t), std::ios::cur);
+
+    char is_compressed = static_cast<char>(m_is_compressed);
+    m_cache_stream.write(&is_compressed, 1U);
 
     m_cache_stream.seekp(old_stream_writing_position);
 }
@@ -1184,8 +1241,8 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::extract_avail
     {
         return std::make_pair(
             m_size_of_header    // cache header
-            + m_cache_body_size    // size of the cache body in bytes
-            + m_cache_body_size / cluster_size * 8U,    // cluster overhead in bytes
+            + m_current_cache_body_size    // size of the cache body in bytes
+            + m_current_cache_body_size / cluster_size * 8U,    // cluster overhead in bytes
             (m_max_cache_body_size - m_current_cache_body_size) / cluster_size);
     }
 
@@ -1207,7 +1264,7 @@ inline core::StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cach
     m_cache_stream{ cache_io_stream },
     m_current_cache_size{ m_size_of_header },
     m_current_cache_body_size{ 0U },
-    m_max_cache_body_size{ align_to_cluster_size(max_cache_body_size_in_bytes) },
+    m_max_cache_body_size{ align_to_cluster_size(max_cache_body_size_in_bytes) + cluster_size },
     m_is_compressed{ is_compressed },
     m_are_overwrites_allowed{ are_overwrites_allowed }
 {
@@ -1226,13 +1283,13 @@ inline core::StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cach
 template<typename Key, size_t cluster_size>
 inline size_t StreamedCache<Key, cluster_size>::freeSpace() const
 {
-    return m_max_cache_body_size - m_current_cache_size;
+    return m_max_cache_body_size - m_current_cache_body_size;
 }
 
 template<typename Key, size_t cluster_size>
 inline size_t StreamedCache<Key, cluster_size>::usedSpace() const
 {
-    return m_current_cache_size;
+    return m_current_cache_body_size;
 }
 
 template<typename Key, size_t cluster_size>
