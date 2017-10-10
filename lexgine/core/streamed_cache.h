@@ -252,6 +252,7 @@ private:
     uint32_t const m_version = 0x10;    //!< hi-word contains major version number; lo-word contains the minor version
     uint32_t const m_size_of_header =
           4U    // cache version
+        + 4U    // endiannes: 0x1234 for Big-Endian, 0x4321 for Little-Endian
         + 8U    // current size of the cache in bytes (cache header plus size of the body plus size of the service structures)
         + 8U    // maximal allowed size of the body of this cache, in bytes (size of the body does not include the size of the service structures and cluster overhead)
         + 8U    // current size of the cache body given in bytes (not counting the cluster overhead)
@@ -1184,6 +1185,13 @@ inline void StreamedCache<Key, cluster_size>::write_header_data()
 
     m_cache_stream.seekp(0, std::ios::beg);
     m_cache_stream.write(reinterpret_cast<char*>(&m_version), 4U);
+
+    union {
+        uint32_t flag;
+        char[4] byte_seq;
+    }endiannes;
+    endiannes.flag = 0x1234;
+    m_cache_stream.write(endiannes.byte_seq, 4U);
     
     m_cache_stream.write(reinterpret_cast<char*>(&m_current_cache_size), sizeof(size_t));
     m_cache_stream.seekp(8U - sizeof(size_t), std::ios::cur);
