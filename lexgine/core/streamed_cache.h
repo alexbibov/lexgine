@@ -1221,12 +1221,10 @@ inline void StreamedCache<Key, cluster_size>::write_header_data()
 template<typename Key, size_t cluster_size>
 inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::extract_available_cluster_sequence()
 {
-    if (m_current_cache_body_size < m_max_cache_body_size)
+    if (freeSpace() >= cluster_size)
     {
         return std::make_pair(
-            m_header_size    // cache header
-            + m_current_cache_body_size    // size of the cache body in bytes
-            + m_current_cache_body_size / cluster_size * 8U,    // cluster overhead in bytes
+            m_header_size + m_cache_body_size,
             (m_max_cache_body_size - m_current_cache_body_size) / cluster_size);
     }
 
@@ -1272,7 +1270,19 @@ inline size_t StreamedCache<Key, cluster_size>::freeSpace() const
 template<typename Key, size_t cluster_size>
 inline size_t StreamedCache<Key, cluster_size>::usedSpace() const
 {
-    return m_header_size + m_cache_body_size + m_index.getSize() + m_empty_cluster_table.size() * 8U;
+    std::streampos old_read_position = m_cache_stream.tellg();
+    size_t emptied_cluster_sequences_total_capacity{ 0U };
+    for (size_t addr : m_empty_cluster_table)
+    {
+        m_cache_stream.seekg(addr, std::ios::beg);
+        uint64_t seq_size;
+        m_cache_stream.read(reinterpret_cast<char*>(&seq_size), 8U);
+        emptied_cluster_sequences_total_capacity += static_cast<size_t>(seq_size);
+    }
+
+    m_cache_stream.seekg(old_read_position);
+    return m_header_size + m_cache_body_size + m_index.getSize()
+        + m_empty_cluster_table.size() * 8U + emptied_cluster_sequences_total_capacity;
 }
 
 template<typename Key, size_t cluster_size>
