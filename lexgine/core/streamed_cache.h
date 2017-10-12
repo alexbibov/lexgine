@@ -230,25 +230,18 @@ public:
     bool isCompressed() const;    //! returns 'true' if the cache stream is compressed, returns 'false' otherwise
 
 private:
-    struct ClusterSequenceDesc
-    {
-        size_t base_addr;
-        size_t num_clusters;
-        size_t overhead;
-    };
-
-private:
     bool serialize_entry(StreamedCacheEntry<Key, cluster_size> const& entry);
     StreamedCacheEntry<Key, cluster_size> deserialize_entry(size_t base_offset);
 
     static void pack_date_stamp(misc::DateTime const& date_stamp, char packed_date_stamp[13]) const;
     static misc::DateTime unpack_date_stamp(char packed_date_stamp[13]) const;
-    static size_t align_to_cluster_size(size_t input, bool align_redundant = true);
+    static size_t get_number_of_clusters_for_capacity(size_t capacity);
 
     void write_header_data();
     void remove_entry(size_t base_offset);
     void remove_oldest_entry();
-    misc::Optional<ClusterSequenceDesc> extract_available_cluster_sequence(size_t size_hint);
+    std::pair<size_t, size_t> reserve_available_cluster_sequence(size_t size_hint);
+    std::list<std::pair<size_t, size_t>> allocate_space_in_cache(size_t size);
 
 private:
     uint32_t const m_version = 0x0100;    //!< hi-word contains major version number; lo-word contains the minor version
@@ -259,6 +252,10 @@ private:
     std::vector<size_t> m_empty_cluster_table;
     bool m_is_compressed;
     bool m_are_overwrites_allowed;
+
+    uint8_t const m_cluster_overhead = 8U;
+    uint8_t const m_sequence_overhead = 8U;
+    uint8_t const m_entry_record_overhead = 13U;
 
     uint32_t const m_header_size =
           4U    // cache version
@@ -287,46 +284,6 @@ inline StreamedCacheEntry<Key, cluster_size>::StreamedCacheEntry(Key const& key,
     m_date_stamp{ misc::DateTime::now() }
 {
 
-}
-
-template<typename Key, size_t cluster_size>
-inline void StreamedCache<Key, cluster_size>::pack_date_stamp(misc::DateTime const& date_stamp, char packed_date_stamp[13]) const
-{
-    *static_cast<uint16_t*>(packed_date_stamp) = date_stamp.year();    // 16-bit storage for year
-    uint8_t month = date_stamp.month();
-    uint8_t day = date_stamp.day();
-    uint8_t hour = date_stamp.hour();
-    uint8_t minute = date_stamp.minute();
-    double second = date_stamp.second();
-
-    packed_date_stamp[2] = static_cast<uint8_t>(month);    // 4-bit storage for month
-    packed_date_stamp[2] |= day << 4;    // 5-bit storage for day
-    packed_date_stamp[3] = day >> 4;
-    packed_date_stamp[3] |= hour << 1;    // 5-bit storage for hour
-    packed_date_stamp[3] |= minute << 6;    // 6-bit storage for minute
-    packed_date_stamp[4] |= minute >> 2;    // 4-bits reserved for future use (time zones?)
-
-    *static_cast<double*>(packed_date_stamp + 5) = second;    // 64-bit storage for high-precision second
-}
-
-template<typename Key, size_t cluster_size>
-inline misc::DateTime StreamedCache<Key, cluster_size>::unpack_date_stamp(char packed_date_stamp[13]) const
-{
-    uint16_t year = *static_cast<uint16_t*>(packed_date_stamp);
-    uint8_t month = packed_date_stamp[2] & 0xF;
-    uint8_t day = packed_date_stamp[2] >> 4; day |= (packed_date_stamp[3] & 0x1) << 4;
-    uint8_t hour = (packed_date_stamp[3] & 0x3E) >> 1;
-    uint8_t minute = packed_date_stamp[3] >> 6; minute |= packed_date_stamp[4] << 2;
-    double second = *static_cast<double*>(packed_date_stamp + 5);
-
-    return misc::DateTime{ year, month, day, hour, minute, second };
-}
-
-template<typename Key, size_t cluster_size>
-inline size_t StreamedCache<Key, cluster_size>::align_to_cluster_size(size_t input, bool align_redundant/* = true*/)
-{
-    std::div_t aux = std::div(input, cluster_size);
-    return (aux.quot + (align_redundant ? static_cast<size_t>(aux.rem > 0) : 0U))*cluster_size;
 }
 
 template<typename Key, size_t cluster_size>
@@ -1102,6 +1059,46 @@ inline bool StreamedCache<Key, cluster_size>::isCompressed() const
 }
 
 template<typename Key, size_t cluster_size>
+inline void StreamedCache<Key, cluster_size>::pack_date_stamp(misc::DateTime const& date_stamp, char packed_date_stamp[13]) const
+{
+    *static_cast<uint16_t*>(packed_date_stamp) = date_stamp.year();    // 16-bit storage for year
+    uint8_t month = date_stamp.month();
+    uint8_t day = date_stamp.day();
+    uint8_t hour = date_stamp.hour();
+    uint8_t minute = date_stamp.minute();
+    double second = date_stamp.second();
+
+    packed_date_stamp[2] = static_cast<uint8_t>(month);    // 4-bit storage for month
+    packed_date_stamp[2] |= day << 4;    // 5-bit storage for day
+    packed_date_stamp[3] = day >> 4;
+    packed_date_stamp[3] |= hour << 1;    // 5-bit storage for hour
+    packed_date_stamp[3] |= minute << 6;    // 6-bit storage for minute
+    packed_date_stamp[4] |= minute >> 2;    // 4-bits reserved for future use (time zones?)
+
+    *static_cast<double*>(packed_date_stamp + 5) = second;    // 64-bit storage for high-precision second
+}
+
+template<typename Key, size_t cluster_size>
+inline misc::DateTime StreamedCache<Key, cluster_size>::unpack_date_stamp(char packed_date_stamp[13]) const
+{
+    uint16_t year = *static_cast<uint16_t*>(packed_date_stamp);
+    uint8_t month = packed_date_stamp[2] & 0xF;
+    uint8_t day = packed_date_stamp[2] >> 4; day |= (packed_date_stamp[3] & 0x1) << 4;
+    uint8_t hour = (packed_date_stamp[3] & 0x3E) >> 1;
+    uint8_t minute = packed_date_stamp[3] >> 6; minute |= packed_date_stamp[4] << 2;
+    double second = *static_cast<double*>(packed_date_stamp + 5);
+
+    return misc::DateTime{ year, month, day, hour, minute, second };
+}
+
+template<typename Key, size_t cluster_size>
+inline size_t StreamedCache<Key, cluster_size>::get_number_of_clusters_for_capacity(size_t capacity)
+{
+    std::div_t aux = std::div(capacity, cluster_size);
+    return aux.quot + static_cast<size_t>(aux.rem > 0);
+}
+
+template<typename Key, size_t cluster_size>
 inline bool core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCacheEntry<Key, cluster_size> const& entry)
 {
     size_t const aligned_entry_size = align_to_cluster_size(
@@ -1227,7 +1224,7 @@ inline void StreamedCache<Key, cluster_size>::write_header_data()
 }
 
 template<typename Key, size_t cluster_size>
-inline misc::Optional<StreamedCache<Key, cluster_size>::ClusterSequenceDesc> StreamedCache<Key, cluster_size>::extract_available_cluster_sequence(size_t size_hint)
+inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::reserve_available_cluster_sequence(size_t size_hint)
 {
     if(m_empty_cluster_table.size())
     {
@@ -1236,45 +1233,72 @@ inline misc::Optional<StreamedCache<Key, cluster_size>::ClusterSequenceDesc> Str
         size_t base_offset = m_empty_cluster_table.back(); m_empty_cluster_table.pop_back();
         m_cache_stream.seekg(base_offset, std::ios::beg);
 
-        uint64_t size_of_cluster_sequence_in_bytes;
-        m_cache_stream.read(reinterpret_cast<char*>(&size_of_cluster_sequence_in_bytes), 8U);
+        uint64_t cluster_sequence_length;
+        m_cache_stream.read(reinterpret_cast<char*>(&cluster_sequence_length), 8U);
 
-        m_cache_stream.seekg(old_stream_reading_position, std::ios::beg);
+        m_cache_stream.seekg(old_stream_reading_position);
         
-        return ClusterSequenceDesc{ base_offset, size_of_cluster_sequence_in_bytes / cluster_size, 0U };
+        return std::make_pair(base_offset, static_cast<size_t>(cluster_sequence_length));
     }
     
+    size_t remaining_space = freeSpace() + m_sequence_overhead + m_entry_record_overhead;    // space usable for data storage plus associated overheads
+    if (remaining_space < cluster_size) return std::make_pair<size_t, size_t>(0U, 0U);
 
-    size_t remaining_space = freeSpace();
-    if (remaining_space < cluster_size + 8U) return misc::Optional<StreamedCache<Key, cluster_size>>{};
-
-    size_t base_offset = m_header_size + m_cache_body_size; 
-    uint64_t sequence_size_in_bytes = std::min(size_hint, align_to_cluster_size(remaining_space, false));
+    size_t new_sequence_base_offset = m_header_size + m_cache_body_size; 
+    uint64_t new_sequence_length = std::min(
+        remaining_space / cluster_size, 
+        get_number_of_clusters_for_capacity(size_hint + m_sequence_overhead));
 
     std::streampos old_stream_writing_position = m_cache_stream.tellp();
-    m_cache_stream.seekp(base_offset, std::ios::beg);
-    m_cache_stream.write(reinterpret_cast<char*>(&sequence_size_in_bytes), 8U);
-    size_t sequence_length{ 0U };
+    m_cache_stream.seekp(new_sequence_base_offset, std::ios::beg);
+    m_cache_stream.write(reinterpret_cast<char*>(&new_sequence_length), 8U);
 
-    ClusterSequenceDesc rv{};
-    rv.base_addr = base_offset;
-    while (remaining_space >= cluster_size + 8U)
+    uint64_t cluster_base_offset{ new_sequence_base_offset };
+    for(size_t i = 0; i < new_sequence_length; ++i, cluster_base_offset += cluster_size + 8U)
     {
-        uint64_t next_cluster_base_offset = base_offset + cluster_size + 8U;
-        m_cache_stream.seekp(base_offset + cluster_size, std::ios::beg);
+        uint64_t next_cluster_base_offset = i < new_sequence_length - 1 ? cluster_base_offset + cluster_size + 8U : 0U;
+        m_cache_stream.seekp(cluster_base_offset + cluster_size, std::ios::beg);
         m_cache_stream.write(reinterpret_cast<char*>(&next_cluster_base_offset), 8U);
-
-        remaining_space -= cluster_size + 8U;
-        base_offset = next_cluster_base_offset;
-        ++sequence_length;
     }
-
-    m_cache_body_size = base_offset;
+    m_cache_body_size += new_sequence_length*(cluster_size + 8U);
     m_cache_stream.seekp(old_stream_writing_position);
 
-    rv.num_clusters = sequence_length;
-    rv.overhead = 8U * sequence_length;
-    return rv;
+    return std::make_pair(new_sequence_base_offset, static_cast<size_t>(new_sequence_length));
+}
+
+template<typename Key, size_t cluster_size>
+inline std::list<std::pair<size_t, size_t>> StreamedCache<Key, cluster_size>::allocate_space_in_cache(size_t size)
+{
+    if (freeSpace() < size) return std::list<std::pair<size_t, size_t>>{};
+
+    std::list<std::pair<size_t, size_t>> rv{};
+    size_t allocated_so_far{ 0U };
+    while (allocated_so_far < size)
+    {
+        std::pair<size_t, size_t> cluster_sequence_desc = reserve_available_cluster_sequence(size - allocated_so_far);
+        allocated_so_far += cluster_sequence_desc.second*cluster_size;
+        rv.push_back(cluster_sequence_desc);
+    }
+
+    if (allocated_so_far > size)
+    {
+        uint64_t num_redundant_clusters = (allocated_so_far - size) / cluster_size;
+        
+        uint64_t last_cluster_sequence_length;
+        std::pair<size_t, size_t> last_cluster_sequence_desc = rv.back();
+
+        std::streampos old_writing_location = m_cache_stream.tellp();
+        std::streamoff seq_dissection_addr = last_cluster_sequence_desc.first
+            + (last_cluster_sequence_desc.second - num_redundant_clusters)*(cluster_size + 8U) - 8U;
+        
+        uint64_t aux{ 0 };
+        m_cache_stream.seekp(seq_dissection_addr, std::ios::beg);
+        m_cache_stream.write(reinterpret_cast<char*>(&aux), 8U);
+        m_cache_stream.write(reinterpret_cast<char*>(&num_redundant_clusters), 8U);
+        m_cache_stream.seekp(old_writing_location);
+        
+        m_empty_cluster_table.push_back(static_cast<size_t>(seq_dissection_addr) + 8U);
+    }
 }
 
 template<typename Key, size_t cluster_size>
@@ -1312,21 +1336,33 @@ inline size_t StreamedCache<Key, cluster_size>::usedSpace() const
     for (size_t addr : m_empty_cluster_table)
     {
         m_cache_stream.seekg(addr, std::ios::beg);
-        uint64_t seq_size;
-        m_cache_stream.read(reinterpret_cast<char*>(&seq_size), 8U);
-        emptied_cluster_sequences_total_capacity += static_cast<size_t>(seq_size);
+        uint64_t cluster_sequence_length;
+        m_cache_stream.read(reinterpret_cast<char*>(&cluster_sequence_length), 8U);
+        emptied_cluster_sequences_total_capacity += static_cast<size_t>(cluster_sequence_length)*cluster_size - m_sequence_overhead;
     }
     m_cache_stream.seekg(old_read_position);
 
-    return m_header_size + m_cache_body_size - emptied_cluster_sequences_total_capacity
+
+    size_t raw_used_space =    // used space without cluster overhead in the remaining cache body capacity
+        m_header_size + m_cache_body_size - emptied_cluster_sequences_total_capacity
         + m_index.getSize() + m_empty_cluster_table.size() * 8U
-        + StreamedCacheIndexTreeEntry<Key>::serialized_size;    // here we account for the space that will be taken by the index tree after adding new entry
+        + StreamedCacheIndexTreeEntry<Key>::serialized_size;
+
+    std::div_t aux = std::div(m_max_cache_size - raw_used_space, cluster_size + m_cluster_overhead);
+    size_t cluster_reservation_overhead = aux.quot * m_cluster_overhead;
+    size_t padding = aux.rem;
+    size_t theoretical_used_space = raw_used_space + cluster_reservation_overhead + padding
+        + m_sequence_overhead + m_entry_record_overhead;
+
+    return std::min(m_max_cache_size, theoretical_used_space);
 }
 
 template<typename Key, size_t cluster_size>
 inline size_t StreamedCache<Key, cluster_size>::totalSpace() const
 {
-    return m_max_cache_size;
+    size_t raw_total_space = m_max_cache_size - m_header_size - StreamedCacheIndexTreeEntry<Key>::serialized_size;
+    size_t cluster_overhead = raw_total_space / cluster_size * m_cluster_overhead;
+    return raw_total_space - cluster_overhead - m_sequence_overhead - m_entry_record_overhead;
 }
 
 template<typename Key, size_t cluster_size>
