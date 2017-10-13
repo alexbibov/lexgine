@@ -237,6 +237,8 @@ private:
     static misc::DateTime unpack_date_stamp(char packed_date_stamp[13]) const;
     static size_t get_number_of_clusters_for_capacity(size_t capacity);
 
+    std::pair<size_t, size_t> calculate_partitioning();
+
     void write_header_data();
     void remove_entry(size_t base_offset);
     void remove_oldest_entry();
@@ -1099,6 +1101,16 @@ inline size_t StreamedCache<Key, cluster_size>::get_number_of_clusters_for_capac
 }
 
 template<typename Key, size_t cluster_size>
+inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::calculate_partitioning()
+{
+    size_t unpartitioned_space = m_max_cache_size - (m_header_size + m_cache_body_size
+        + m_index.getSize() + m_empty_cluster_table.size() * 8U
+        + StreamedCacheIndexTreeEntry<Key>::serialized_size);
+    std::div_t aux = std::div(unpartitioned_space, cluster_size + m_cluster_overhead);
+    return std::make_pair<size_t, size_t>(aux.quot, aux.rem);
+}
+
+template<typename Key, size_t cluster_size>
 inline bool core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCacheEntry<Key, cluster_size> const& entry)
 {
     size_t const aligned_entry_size = align_to_cluster_size(
@@ -1343,15 +1355,16 @@ inline size_t StreamedCache<Key, cluster_size>::usedSpace() const
     m_cache_stream.seekg(old_read_position);
 
 
-    size_t raw_used_space =    // used space without cluster overhead in the remaining cache body capacity
-        m_header_size + m_cache_body_size - emptied_cluster_sequences_total_capacity
+    size_t partitioned_space =    // size of the cache area that has been partitioned
+        m_header_size + m_cache_body_size
         + m_index.getSize() + m_empty_cluster_table.size() * 8U
         + StreamedCacheIndexTreeEntry<Key>::serialized_size;
 
-    std::div_t aux = std::div(m_max_cache_size - raw_used_space, cluster_size + m_cluster_overhead);
+    std::div_t aux = std::div(m_max_cache_size - partitioned_space, cluster_size + m_cluster_overhead);
     size_t cluster_reservation_overhead = aux.quot * m_cluster_overhead;
     size_t padding = aux.rem;
-    size_t theoretical_used_space = raw_used_space + cluster_reservation_overhead + padding
+    size_t theoretical_used_space = 
+        partitioned_space + cluster_reservation_overhead + padding - emptied_cluster_sequences_total_capacity
         + m_sequence_overhead + m_entry_record_overhead;
 
     return std::min(m_max_cache_size, theoretical_used_space);
