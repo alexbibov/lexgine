@@ -7,6 +7,8 @@
 #include <vector>
 #include <mutex>
 #include <iterator>
+#include <numeric>
+
 #include "data_blob.h"
 #include "misc/datetime.h"
 #include "entity.h"
@@ -243,7 +245,8 @@ private:
     void remove_entry(size_t base_offset);
     void remove_oldest_entry();
     std::pair<size_t, size_t> reserve_available_cluster_sequence(size_t size_hint);
-    std::list<std::pair<size_t, size_t>> allocate_space_in_cache(size_t size);
+    std::list<std::pair<size_t, size_t>> allocate_space_in_cache(size_t size_hint);
+    void optimize_reservation(std::list<std::pair<size_t, size_t>>& reserved_sequence_list, size_t size_hint);
 
 private:
     uint32_t const m_version = 0x0100;    //!< hi-word contains major version number; lo-word contains the minor version
@@ -1253,12 +1256,12 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::reserve_avail
         return std::make_pair(base_offset, static_cast<size_t>(cluster_sequence_length));
     }
     
-    size_t remaining_space = freeSpace() + m_sequence_overhead + m_entry_record_overhead;    // space usable for data storage plus associated overheads
-    if (remaining_space < cluster_size) return std::make_pair<size_t, size_t>(0U, 0U);
+    size_t num_unpartitioned_clusters = calculate_partitioning().first;
+    if (!num_unpartitioned_clusters) return std::make_pair<size_t, size_t>(0U, 0U);
 
     size_t new_sequence_base_offset = m_header_size + m_cache_body_size; 
     uint64_t new_sequence_length = std::min(
-        remaining_space / cluster_size, 
+        num_unpartitioned_clusters, 
         get_number_of_clusters_for_capacity(size_hint + m_sequence_overhead));
 
     std::streampos old_stream_writing_position = m_cache_stream.tellp();
@@ -1266,50 +1269,88 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::reserve_avail
     m_cache_stream.write(reinterpret_cast<char*>(&new_sequence_length), 8U);
 
     uint64_t cluster_base_offset{ new_sequence_base_offset };
-    for(size_t i = 0; i < new_sequence_length; ++i, cluster_base_offset += cluster_size + 8U)
+    for(size_t i = 0; i < new_sequence_length; ++i, cluster_base_offset += cluster_size + m_cluster_overhead)
     {
-        uint64_t next_cluster_base_offset = i < new_sequence_length - 1 ? cluster_base_offset + cluster_size + 8U : 0U;
+        uint64_t next_cluster_base_offset = i < new_sequence_length - 1 ? cluster_base_offset + cluster_size + m_cluster_overhead : 0U;
         m_cache_stream.seekp(cluster_base_offset + cluster_size, std::ios::beg);
         m_cache_stream.write(reinterpret_cast<char*>(&next_cluster_base_offset), 8U);
     }
-    m_cache_body_size += new_sequence_length*(cluster_size + 8U);
+    m_cache_body_size += new_sequence_length*(cluster_size + m_cluster_overhead);
     m_cache_stream.seekp(old_stream_writing_position);
 
     return std::make_pair(new_sequence_base_offset, static_cast<size_t>(new_sequence_length));
 }
 
 template<typename Key, size_t cluster_size>
-inline std::list<std::pair<size_t, size_t>> StreamedCache<Key, cluster_size>::allocate_space_in_cache(size_t size)
+inline std::list<std::pair<size_t, size_t>> StreamedCache<Key, cluster_size>::allocate_space_in_cache(size_t size_hint)
 {
-    if (freeSpace() < size) return std::list<std::pair<size_t, size_t>>{};
-
     std::list<std::pair<size_t, size_t>> rv{};
     size_t allocated_so_far{ 0U };
     while (allocated_so_far < size)
     {
         std::pair<size_t, size_t> cluster_sequence_desc = reserve_available_cluster_sequence(size - allocated_so_far);
-        allocated_so_far += cluster_sequence_desc.second*cluster_size;
+        if (!cluster_sequence_desc.second) return rv;    // the cache is exhausted
+        allocated_so_far += cluster_sequence_desc.second*cluster_size - m_sequence_overhead;
         rv.push_back(cluster_sequence_desc);
     }
 
-    if (allocated_so_far > size)
-    {
-        uint64_t num_redundant_clusters = (allocated_so_far - size) / cluster_size;
-        
-        uint64_t last_cluster_sequence_length;
-        std::pair<size_t, size_t> last_cluster_sequence_desc = rv.back();
+    
+}
 
-        std::streampos old_writing_location = m_cache_stream.tellp();
-        std::streamoff seq_dissection_addr = last_cluster_sequence_desc.first
-            + (last_cluster_sequence_desc.second - num_redundant_clusters)*(cluster_size + 8U) - 8U;
-        
-        uint64_t aux{ 0 };
-        m_cache_stream.seekp(seq_dissection_addr, std::ios::beg);
-        m_cache_stream.write(reinterpret_cast<char*>(&aux), 8U);
-        m_cache_stream.write(reinterpret_cast<char*>(&num_redundant_clusters), 8U);
-        m_cache_stream.seekp(old_writing_location);
-        
-        m_empty_cluster_table.push_back(static_cast<size_t>(seq_dissection_addr) + 8U);
+template<typename Key, size_t cluster_size>
+inline void StreamedCache<Key, cluster_size>::optimize_reservation(std::list<std::pair<size_t, size_t>>& reserved_sequence_list, size_t size_hint)
+{
+    reserved_sequence_list.sort([](std::pair<size_t, size_t> const& e1, std::pair<size_t, size_t> const& e2) -> bool
+    {
+        return e1.first < e2.first;
+    });
+
+    std::streampos old_writing_position = m_cache_stream.tellp();
+    std::list<std::pair<size_t, size_t>>::iterator p = reserved_sequence_list.begin();
+    while (p != reserved_sequence_list.end())
+    {
+        uint64_t next_cluster_addr = p->first + p->second*(cluster_size + m_cluster_overhead);
+        std::list<std::pair<size_t, size_t>>::iterator q = p;
+        ++q;
+        if (q->first == next_cluster_addr)
+        {
+            p->second += q->second;
+            m_cache_stream.seekp(next_cluster_addr - m_cluster_overhead, std::ios::beg);
+            m_cache_stream.write(reinterpret_cast<char*>(&next_cluster_addr), 8U);
+            reserved_sequence_list.erase(q);
+        }
+        ++p;
+    }
+    m_cache_stream.seekg(old_writing_position);
+
+
+    size_t contracted_sequence_capacity = 
+        std::accumulate(reserved_sequence_list.begin(), reserved_sequence_list.end(), 0U,
+            [](size_t a, std::pair<size_t, size_t> const& b) -> size_t
+    {
+        return a + b.second*cluster_size - m_sequence_overhead;
+    });
+
+
+    if (contracted_sequence_capacity > size_hint)
+    {
+        // remove possible redundant sequences from the allocation
+        std::list<std::pair<size_t, size_t>>::iterator p = --reserved_sequence_list.end();
+        while (contracted_sequence_capacity - (p->second*cluster_size - m_sequence_overhead) > size_hint)
+        {
+            std::list<std::pair<size_t, size_t>>::iterator q{ p };
+            contracted_sequence_capacity -= q->second*cluster_size - m_sequence_overhead;
+            m_empty_cluster_table.push_back(q->first);
+            reserved_sequence_list.erase(q);
+            --p;
+        }
+
+        if (contracted_sequence_capacity > size_hint)
+        {
+            // fragment the last sequence if possible to reduce the allocation overhead
+            // TODO
+            size_t unused_sequence_capacity = contracted_sequence_capacity - size_hint;
+        }
     }
 }
 
