@@ -188,6 +188,11 @@ private:
 };
 
 
+enum class StreamCacheCompressionLevel : int
+{
+    level0 = 0, level1, level2, level3, level4, level5, level6, level7, level8, level9
+};
+
 //! Class implementing main functionality for streamed data cache. This class is thread safe.
 template<typename Key, size_t cluster_size = 16384U>
 class StreamedCache : public NamedEntity<class_names::StreamedCache>
@@ -203,7 +208,7 @@ public:
 public:
     //! initializes new cache
     StreamedCache(std::iostream& cache_io_stream, size_t capacity, 
-        bool is_compressed = false, bool are_overwrites_allowed = false);
+       StreamCacheCompressionLevel compression_level = StreamCacheCompressionLevel::level0, bool are_overwrites_allowed = false);
 
     StreamedCache(std::iostream& cache_io_stream);    //! opens IO stream containing existing cache
     virtual ~StreamedCache();
@@ -276,6 +281,7 @@ private:
     size_t m_cache_body_size;
     StreamedCacheIndex<Key, cluster_size> m_index;
     std::vector<size_t> m_empty_cluster_table;
+    StreamCacheCompressionLevel m_compression_level;
     bool m_is_compressed;
     bool m_are_overwrites_allowed;   
 };
@@ -1060,7 +1066,7 @@ inline void StreamedCacheIndexTreeEntry<Key>::deserialize_from_blob(void* p_blob
 template<typename Key, size_t cluster_size>
 inline bool StreamedCache<Key, cluster_size>::isCompressed() const
 {
-    return m_is_compressed;
+    return static_cast<int>(m_compression_level) > 0;
 }
 
 template<typename Key, size_t cluster_size>
@@ -1116,8 +1122,7 @@ inline bool core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCach
     m_cache_stream.write(packed_date_stamp, m_entry_record_overhead);
 
     char* p_data = static_cast<char*>(entry.m_data_blob_to_be_cached.data());
-
-    if (m_is_compressed)
+    if (isCompressed())
     {
 
     }
@@ -1154,7 +1159,7 @@ inline void StreamedCache<Key, cluster_size>::write_header_data()
     uint64_t size_of_empty_cluster_table = m_empty_cluster_table.size() * m_eclt_entry_size;
     m_cache_stream.write(reinterpret_cast<char*>(&size_of_empty_cluster_table), 8U);
 
-    char flags = static_cast<uint64_t>(m_is_compressed) | static_cast<uint64_t>(m_are_overwrites_allowed) << 1;
+    char flags = static_cast<uint64_t>(isCompressed()) | static_cast<uint64_t>(m_are_overwrites_allowed) << 1;
     m_cache_stream.write(&flags, 1U);
 
     m_cache_stream.seekp(old_stream_writing_position);
@@ -1277,12 +1282,12 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::optimize_rese
 
 template<typename Key, size_t cluster_size>
 inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_stream, size_t capacity, 
-    bool is_compressed/* = false*/, bool are_overwrites_allowed/* = false*/):
+    StreamCacheCompressionLevel compression_level/* = StreamCacheCompressionLevel::level0*/, bool are_overwrites_allowed/* = false*/):
     m_cache_stream{ cache_io_stream },
     m_max_cache_size{ align_to(align_to(capacity, cluster_size) / cluster_size
     * (cluster_size + m_cluster_overhead + m_sequence_overhead + m_entry_record_overhead), cluster_size + m_cluster_overhead) },
     m_cache_body_size{ 0U },
-    m_is_compressed{ is_compressed },
+    m_compression_level{ compression_level },
     m_are_overwrites_allowed{ are_overwrites_allowed }
 {
     if (!cache_io_stream)
