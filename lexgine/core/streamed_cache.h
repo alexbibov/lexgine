@@ -9,6 +9,8 @@
 #include <iterator>
 #include <numeric>
 
+#include "../../3rd_party/zlib/zlib.h"
+
 #include "data_blob.h"
 #include "misc/datetime.h"
 #include "entity.h"
@@ -282,7 +284,6 @@ private:
     StreamedCacheIndex<Key, cluster_size> m_index;
     std::vector<size_t> m_empty_cluster_table;
     StreamCacheCompressionLevel m_compression_level;
-    bool m_is_compressed;
     bool m_are_overwrites_allowed;   
 };
 
