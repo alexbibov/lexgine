@@ -20,7 +20,11 @@ public:
     DataBlob();
     DataBlob(DataBlob const& other) = default;
     DataBlob(DataBlob&& other) = default;
-    DataBlob(void *p_blob_data, size_t blob_size);
+
+    /*! creates data blob around provided pointer. Note that the ownership of the pointer data is not transfered
+     to the blob, so it is the caller's responsibility to perform required memory clean-ups when necessary
+    */
+    DataBlob(void *p_blob_data, size_t blob_size);     
 
     DataBlob& operator=(DataBlob const&) = default;
     DataBlob& operator=(DataBlob&& other) = default;
