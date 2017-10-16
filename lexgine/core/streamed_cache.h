@@ -285,6 +285,7 @@ private:
     std::vector<size_t> m_empty_cluster_table;
     StreamCacheCompressionLevel m_compression_level;
     bool m_are_overwrites_allowed;   
+    z_stream m_zlib_stream;
 };
 
 
@@ -1116,17 +1117,57 @@ inline bool core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCach
     size_t entry_size = m_entry_record_overhead + entry.m_data_blob_to_be_cached.size();
     std::pair<size_t, size_t> cache_allocation_desc = allocate_space_in_cache(entry_size);
     std::streampos old_writing_position = m_cache_stream.tellp();
-    m_cache_stream.seekp(cache_allocation_desc.first, std::ios::beg);
+    m_cache_stream.seekp(cache_allocation_desc.first + m_sequence_overhead, std::ios::beg);
 
     char packed_date_stamp[m_entry_record_overhead];
     pack_date_stamp(entry.m_date_stamp, packed_date_stamp);
     m_cache_stream.write(packed_date_stamp, m_entry_record_overhead);
 
-    char* p_data = static_cast<char*>(entry.m_data_blob_to_be_cached.data());
+    std::unique_ptr<DataBlob> blob_to_serialize_ptr{ nullptr };
     if (isCompressed())
     {
+        m_zlib_stream.next_in = static_cast<Bytef*>(entry.m_data_blob_to_be_cached.data());
+        m_zlib_stream.avail_in = static_cast<uInt>(entry.m_data_blob_to_be_cached.size());
+        
+        uLong deflated_entry_size = deflateBound(m_zlib_stream, static_cast<uLong>(entry.m_data_blob_to_be_cached.size()));
+        
+        blob_to_serialize_ptr.reset(new DataChunk{ static_cast<size_t>(deflated_entry_size) });
+        m_zlib_stream.next_out = static_cast<Bytef*>(blob_to_serialize_ptr->data());
+        m_zlib_stream.avail_out = deflated_entry_size;
 
+        if (deflate(m_zlib_stream, Z_FINISH) != Z_STREAM_END)
+        {
+            misc::Log::retrieve()->out("Unable to compress entry record during serialization to streamed cache \""
+                + getStringName() + "\" (zlib deflate() error", LogMessageType::error);
+            return false;
+        }
     }
+    else
+    {
+        blob_to_serialize_ptr.reset(new DataBlob{ entry.m_data_blob_to_be_cached.data(), entry.m_data_blob_to_be_cached.size() });
+    }
+
+    uint64_t current_cluster_base_address{ cache_allocation_desc.first + m_sequence_overhead + m_entry_record_overhead };
+    size_t num_bytes_to_write_into_current_cluster{ cluster_size - m_sequence_overhead - m_entry_record_overhead };
+    size_t total_bytes_left_to_write = blob_to_serialize_ptr->size();
+    size_t total_bytes_written{ 0U };
+    std::streampos old_reading_position = m_cache_stream.tellg();
+    while (total_bytes_left_to_write)
+    {
+        m_cache_stream.seekp(current_cluster_base_address, std::ios::beg);
+        m_cache_stream.write(static_cast<char*>(blob_to_serialize_ptr->data()) + total_bytes_written, 
+            num_bytes_to_write_into_current_cluster);
+
+        m_cache_stream.seekg(m_cache_stream.tellp());
+        m_cache_stream.read(reinterpret_cast<char*>(&current_cluster_base_address));
+
+        total_bytes_left_to_write -= num_bytes_to_write_into_current_cluster;
+        total_bytes_written = num_bytes_to_write_into_current_cluster;
+        num_bytes_to_write_into_current_cluster = std::min(total_bytes_left_to_write, cluster_size);
+    }
+
+    m_cache_stream.seekg(old_reading_position);
+    m_cache_stream.seekp(old_writing_position);
 
     return true;
 }
@@ -1299,6 +1340,37 @@ inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_s
 
     // reserve space for the cache header
     cache_io_stream.seekp(m_header_size, std::ios::beg);
+
+    if (isCompressed())
+    {
+        m_zlib_stream.zalloc = Z_NULL;
+        m_zlib_stream.zfree = Z_NULL;
+
+        int rv = deflateInit(&m_zlib_stream, static_cast<int>(m_compression_level));
+        if (rv != Z_OK)
+        {
+            m_compression_level = StreamCacheCompressionLevel::level0;
+            switch (rv)
+            {
+            case Z_MEM_ERROR:
+                misc::Log::retrieve()->out("Not enough memory to initialize zlib. The streamed cache \"" + getStringName() +
+                    "\" will default to uncompressed state", LogMessageType::exclamation);
+                break;
+
+            case Z_STREAM_ERROR:
+                misc::Log::retrieve()->out("zlib was provided with incorrect compression level of \"" +
+                    std::to_string(static_cast<int>(m_compression_level)) + "\". The streamed cache \"" + getStringName() +
+                    "\" will default to uncompressed state", LogMessageType::exclamation);
+                break;
+
+            case Z_VERSION_ERROR:
+                misc::Log::retrieve()->out("zlib binary version differs from the version assumed by the caller."
+                    " The streamed cache \"" + getStringName() +
+                    "\" will default to uncompressed state", LogMessageType::exclamation);
+                break;
+            }
+        }
+    }
 }
 
 
