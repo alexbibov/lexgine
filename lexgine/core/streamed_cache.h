@@ -1114,23 +1114,14 @@ inline size_t StreamedCache<Key, cluster_size>::align_to(size_t value, size_t al
 template<typename Key, size_t cluster_size>
 inline bool core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCacheEntry<Key, cluster_size> const& entry)
 {
-    size_t entry_size = m_entry_record_overhead + entry.m_data_blob_to_be_cached.size();
-    std::pair<size_t, size_t> cache_allocation_desc = allocate_space_in_cache(entry_size);
-    std::streampos old_writing_position = m_cache_stream.tellp();
-    m_cache_stream.seekp(cache_allocation_desc.first + m_sequence_overhead, std::ios::beg);
-
-    char packed_date_stamp[m_entry_record_overhead];
-    pack_date_stamp(entry.m_date_stamp, packed_date_stamp);
-    m_cache_stream.write(packed_date_stamp, m_entry_record_overhead);
-
     std::unique_ptr<DataBlob> blob_to_serialize_ptr{ nullptr };
     if (isCompressed())
     {
         m_zlib_stream.next_in = static_cast<Bytef*>(entry.m_data_blob_to_be_cached.data());
         m_zlib_stream.avail_in = static_cast<uInt>(entry.m_data_blob_to_be_cached.size());
-        
+
         uLong deflated_entry_size = deflateBound(m_zlib_stream, static_cast<uLong>(entry.m_data_blob_to_be_cached.size()));
-        
+
         blob_to_serialize_ptr.reset(new DataChunk{ static_cast<size_t>(deflated_entry_size) });
         m_zlib_stream.next_out = static_cast<Bytef*>(blob_to_serialize_ptr->data());
         m_zlib_stream.avail_out = deflated_entry_size;
@@ -1146,6 +1137,15 @@ inline bool core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCach
     {
         blob_to_serialize_ptr.reset(new DataBlob{ entry.m_data_blob_to_be_cached.data(), entry.m_data_blob_to_be_cached.size() });
     }
+
+    size_t entry_size = m_entry_record_overhead + blob_to_serialize_ptr->size();
+    std::pair<size_t, size_t> cache_allocation_desc = allocate_space_in_cache(entry_size);
+    std::streampos old_writing_position = m_cache_stream.tellp();
+    m_cache_stream.seekp(cache_allocation_desc.first + m_sequence_overhead, std::ios::beg);
+
+    char packed_date_stamp[13U];
+    pack_date_stamp(entry.m_date_stamp, packed_date_stamp);
+    m_cache_stream.write(packed_date_stamp, m_entry_record_overhead);
 
     uint64_t current_cluster_base_address{ cache_allocation_desc.first + m_sequence_overhead + m_entry_record_overhead };
     size_t num_bytes_to_write_into_current_cluster{ cluster_size - m_sequence_overhead - m_entry_record_overhead };
