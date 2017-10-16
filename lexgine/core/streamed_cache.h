@@ -1162,7 +1162,7 @@ inline bool core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCach
         m_cache_stream.read(reinterpret_cast<char*>(&current_cluster_base_address));
 
         total_bytes_left_to_write -= num_bytes_to_write_into_current_cluster;
-        total_bytes_written = num_bytes_to_write_into_current_cluster;
+        total_bytes_written += num_bytes_to_write_into_current_cluster;
         num_bytes_to_write_into_current_cluster = std::min(total_bytes_left_to_write, cluster_size);
     }
 
