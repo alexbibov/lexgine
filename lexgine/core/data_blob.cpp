@@ -96,3 +96,14 @@ DataChunk::~DataChunk()
     if (this->data())
         free(this->data());
 }
+
+SharedDataChunk::SharedDataChunk(nullptr_t)
+{
+}
+
+SharedDataChunk::SharedDataChunk(size_t chunk_size):
+    DataBlob{ nullptr, chunk_size },
+    m_allocation_ptr{ malloc(chunk_size), free }
+{
+    declareBufferPointer(m_allocation_ptr.get());
+}

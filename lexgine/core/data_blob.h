@@ -2,6 +2,7 @@
 
 #include <d3d12.h>
 #include <wrl.h>
+#include <memory>
 
 namespace lexgine {namespace core {
 
@@ -72,6 +73,28 @@ public:
     DataChunk& operator=(DataChunk&&) = default;
 
     ~DataChunk();    //! destroys the data chunk and deallocates the memory buffer associated with it
+};
+
+/*! Implements memory chunk with shared ownership based on reference counting. The memory is released as soon as the counter reaches
+ the value of zero. Thread-safe, but take into account that the underlying shared pointer, which implements reference counting
+ is based on atomics, which may introduce additional overhead.
+*/
+class SharedDataChunk : public DataBlob
+{
+public:
+    SharedDataChunk() = default;    //! empty memory block without actual memory allocation
+    SharedDataChunk(SharedDataChunk const&) = default;
+    SharedDataChunk(SharedDataChunk&&) = default;
+    SharedDataChunk(nullptr_t);    //! empty data chunk without actual memory
+    SharedDataChunk(size_t chunk_size);    //! creates new data chunk with requested size of memory allocation associated to it
+
+    SharedDataChunk& operator=(SharedDataChunk const&) = default;
+    SharedDataChunk& operator=(SharedDataChunk&&) = default;
+
+    ~SharedDataChunk() = default;
+
+private:
+    std::shared_ptr<void> m_allocation_ptr;
 };
 
 }}
