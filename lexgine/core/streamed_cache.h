@@ -1259,6 +1259,10 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::allocate_spac
     std::list<std::pair<size_t, size_t>> reserved_sequence_list{};
     size_t allocated_so_far{ 0U };
     size_t requested_capacity_plus_overhead = size + m_sequence_overhead;
+
+    size_t max_allocation_size = align_to(requested_capacity_plus_overhead + m_cluster_overhead, cluster_size + m_cluster_overhead);
+    if (max_allocation_size > m_max_cache_size) return std::make_pair<size_t, size_t>(0U, 0U);
+
     while (allocated_so_far < requested_capacity_plus_overhead)
     {
         std::pair<size_t, size_t> cluster_sequence_desc = reserve_available_cluster_sequence(requested_capacity_plus_overhead - allocated_so_far);
@@ -1347,6 +1351,9 @@ inline void StreamedCache<Key, cluster_size>::remove_oldest_entry_record()
         }
     }
     
+    m_index.remove_entry(p_oldest_entry->cache_entry_key);
+    m_empty_cluster_table.push_back(static_cast<size_t>(p_oldest_entry->data_offset));
+
     m_cache_stream.seekg(old_reading_position);
 }
 
