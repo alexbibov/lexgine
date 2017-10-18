@@ -188,7 +188,7 @@ enum class StreamCacheCompressionLevel : int
 };
 
 //! Class implementing main functionality for streamed data cache. This class is thread safe.
-template<typename Key, size_t cluster_size = 16384U>
+template<typename Key, size_t cluster_size = 4096U>
 class StreamedCache : public NamedEntity<class_names::StreamedCache>
 {
 public:
@@ -219,9 +219,9 @@ public:
 
     size_t hardSizeLimit() const;    //! returns total capacity of the cache plus maximal possible overhead. The cache cannot grow larger than this value.
 
-    StreamedCacheEntry<Key, cluster_size> retrieveEntry(Key const& key) const;    //! retrieves an entry from the cache based on its key
+    SharedDataChunk retrieveEntry(Key const& entry_key) const;    //! retrieves an entry from the cache based on its key
 
-    void removeEntry(Key const& key) const;    //! removes entry from the cache (and immediately from its associated stream) given its key
+    void removeEntry(Key const& entry_key) const;    //! removes entry from the cache (and immediately from its associated stream) given its key
 
     StreamedCacheIndex const& getIndex() const;    //! returns index tree of the cache
 
@@ -234,14 +234,23 @@ public:
 
 private:
     void write_header_data();
+    void write_index_data();
+    void write_eclt_data();
 
+    void load_header_data();
+    void load_index_data();
+    void load_eclt_data();
+
+private:
     std::pair<size_t, bool> serialize_entry(StreamedCacheEntry<Key, cluster_size> const& entry);
-    StreamedCacheEntry<Key, cluster_size> deserialize_entry(size_t base_offset);
+    SharedDataChunk deserialize_entry(Key const& entry_key);
 
+private:
     static void pack_date_stamp(misc::DateTime const& date_stamp, char packed_date_stamp[13]) const;
     static misc::DateTime unpack_date_stamp(char packed_date_stamp[13]) const;
     static size_t align_to(size_t value, size_t alignment);
 
+private:
     std::pair<size_t, size_t> reserve_available_cluster_sequence(size_t size_hint);
     std::pair<size_t, size_t> allocate_space_in_cache(size_t size);
     std::pair<size_t, size_t> optimize_reservation(std::list<std::pair<size_t, size_t>>& reserved_sequence_list, size_t size_hint);
@@ -1133,7 +1142,7 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
 
     size_t entry_size = m_entry_record_overhead + blob_to_serialize_ptr->size();
     std::pair<size_t, size_t> cache_allocation_desc = allocate_space_in_cache(entry_size);
-
+    if (!cache_allocation_desc.second) return std::make_pair(0U, false);
 
 
     std::streampos old_writing_position = m_cache_stream.tellp();
@@ -1169,9 +1178,30 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
 }
 
 template<typename Key, size_t cluster_size>
-inline StreamedCacheEntry<Key, cluster_size> StreamedCache<Key, cluster_size>::deserialize_entry(size_t base_offset)
+inline SharedDataChunk StreamedCache<Key, cluster_size>::deserialize_entry(Key const& entry_key)
 {
-    
+    size_t rv = m_index.get_cache_entry_data_offset_from_key(entry_key);
+
+    std::streampos old_reading_position = m_cache_stream.tellg();
+    m_cache_stream.seekg(base_offset, std::ios::beg);
+    uint64_t sequence_length; m_cache_stream.read(reinterpret_cast<char*>(&sequence_length), 8U);
+    m_cache_stream.seekg(m_entry_record_overhead, std::ios::cur);    // skip the entry record
+
+    SharedDataChunk output_data_chunk{ sequence_length*cluster_size };
+    char* p_data = static_cast<char*>(output_data_chunk.data());
+    uint64_t cluster_base_offset{ base_offset + m_sequence_overhead + m_entry_record_overhead };
+    for (uint64_t i = 0; i < sequence_length; ++i)
+    {
+        m_cache_stream.read(p_data + i*cluster_size, 
+            i == 0 ? cluster_size - m_sequence_overhead - m_entry_record_overhead : cluster_size);
+        m_cache_stream.read(reinterpret_cast<char*>(&cluster_base_offset), 8U);
+    }
+    m_cache_stream.seekg(old_reading_position);
+
+    m_index.remove_entry(entry_key);
+    m_empty_cluster_table.push_back(base_offset);
+
+    return output_data_chunk;
 }
 
 template<typename Key, size_t cluster_size>
@@ -1375,8 +1405,7 @@ inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_s
         return;
     }
 
-    // reserve space for the cache header
-    cache_io_stream.seekp(m_header_size, std::ios::beg);
+    write_header_data();
 
     if (isCompressed())
     {
@@ -1413,6 +1442,12 @@ inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_s
 
 
 template<typename Key, size_t cluster_size>
+inline StreamedCache<Key, cluster_size>::~StreamedCache()
+{
+    finalize();
+}
+
+template<typename Key, size_t cluster_size>
 inline void StreamedCache<Key, cluster_size>::addEntry(StreamedCacheEntry<Key, cluster_size> const &entry)
 {
     std::pair<size_t, bool> rv = serialize_entry(entry);
@@ -1423,6 +1458,13 @@ inline void StreamedCache<Key, cluster_size>::addEntry(StreamedCacheEntry<Key, c
     }
 
     m_index.add_entry(std::make_pair(entry.m_key, rv.first));
+}
+
+template<typename Key, size_t cluster_size>
+inline void StreamedCache<Key, cluster_size>::finalize()
+{
+    write_index_data();
+    write_eclt_data();
 }
 
 template<typename Key, size_t cluster_size>
@@ -1466,9 +1508,53 @@ inline size_t StreamedCache<Key, cluster_size>::hardSizeLimit() const
 }
 
 template<typename Key, size_t cluster_size>
+inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const& entry_key) const
+{
+    auto rv = m_index.get_cache_entry_data_offset_from_key(entry_key);
+    if (!rv.isValid())
+    {
+        misc::Log::retrieve()->out("Unable to remove entry with key \"" 
+            + entry_key.toString() + "\" from streamed cache \""
+            + getStringName() + "\".", misc::LogMessageType::error);
+        return;
+    }
+
+    SharedDataChunk raw_data_chunk = deserialize_entry(entry_key);
+    if (static_cast<int>(m_compression_level) > 0)
+    {
+        // the data are compressed and should be inflated before getting returned to the caller
+        // TODO
+    }
+    else
+        return raw_data_chunk;
+}
+
+template<typename Key, size_t cluster_size>
+inline void StreamedCache<Key, cluster_size>::removeEntry(Key const& entry_key) const
+{
+    auto rv = m_index.get_cache_entry_data_offset_from_key(entry_key);
+    if (!rv.isValid())
+    {
+        misc::Log::retrieve()->out("Unable to remove entry with key \"" + entry_key.toString() + "\" from streamed cache \""
+            + getStringName() + "\". The entry with requested key is not found in the cache", misc::LogMessageType::error);
+        return;
+    }
+
+    size_t base_offset = rv;
+    m_empty_cluster_table.push_back(base_offset);
+    m_index.remove_entry(entry_key);
+}
+
+template<typename Key, size_t cluster_size>
 inline StreamedCacheIndex const & StreamedCache<Key, cluster_size>::getIndex() const
 {
     return m_index;
+}
+
+template<typename Key, size_t cluster_size>
+inline std::pair<uint16_t, uint16_t> StreamedCache<Key, cluster_size>::getVersion() const
+{
+    return std::make_pair<uint16_t, uint16_t>(m_version >> 16, m_version & 0xFFFF);
 }
 
 
