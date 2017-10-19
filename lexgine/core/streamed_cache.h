@@ -182,7 +182,7 @@ private:
 };
 
 
-enum class StreamCacheCompressionLevel : int
+enum class StreamedCacheCompressionLevel : int
 {
     level0 = 0, level1, level2, level3, level4, level5, level6, level7, level8, level9
 };
@@ -202,7 +202,7 @@ public:
 public:
     //! initializes new cache
     StreamedCache(std::iostream& cache_io_stream, size_t capacity, 
-       StreamCacheCompressionLevel compression_level = StreamCacheCompressionLevel::level0, bool are_overwrites_allowed = false);
+       StreamedCacheCompressionLevel compression_level = StreamedCacheCompressionLevel::level0, bool are_overwrites_allowed = false);
 
     StreamedCache(std::iostream& cache_io_stream);    //! opens IO stream containing existing cache
     virtual ~StreamedCache();
@@ -237,9 +237,9 @@ private:
     void write_index_data();
     void write_eclt_data();
 
-    void load_header_data();
-    void load_index_data();
-    void load_eclt_data();
+    void load_service_data();
+    void load_index_data(size_t index_tree_size_in_bytes);
+    void load_eclt_data(size_t eclt_data_size_in_bytes);
 
 private:
     std::pair<size_t, bool> serialize_entry(StreamedCacheEntry<Key, cluster_size> const& entry);
@@ -257,7 +257,7 @@ private:
     void remove_oldest_entry_record();
 
 private:
-    StreamCacheCompressionLevel m_compression_level;
+    StreamedCacheCompressionLevel m_compression_level;
 
     uint32_t const m_version = 0x0100;    //!< hi-word contains major version number; lo-word contains the minor version
     uint8_t const m_cluster_overhead = 8U;
@@ -280,7 +280,7 @@ private:
 
         + 8U    // current size of the empty cluster table represented in bytes
 
-        + 1U    // flags (1st bit identifies whether the cache is compressed, 2nd defines whether overwrites are allowed, 6 bits are reserved)
+        + 1U    // flags (first 4 bits identify compression level of the cache, the 5th bit defines whether overwrites are allowed, 3 bits are reserved)
 
         + CustomHeader::size;
 
@@ -291,6 +291,7 @@ private:
     std::vector<size_t> m_empty_cluster_table;
     bool m_are_overwrites_allowed;   
     z_stream m_zlib_stream;
+    bool m_endianness_conversion_required;
 };
 
 
@@ -1223,9 +1224,9 @@ inline void StreamedCache<Key, cluster_size>::write_header_data()
     union {
         uint32_t flag;
         char bytes[4];
-    }endiannes;
-    endiannes.flag = 0x1234;
-    m_cache_stream.write(endiannes.bytes, 4U);
+    }endianness;
+    endianness.flag = 0x1234;
+    m_cache_stream.write(endianness.bytes, 4U);
 
     uint64_t aux;
 
@@ -1241,7 +1242,7 @@ inline void StreamedCache<Key, cluster_size>::write_header_data()
     uint64_t size_of_empty_cluster_table = m_empty_cluster_table.size() * m_eclt_entry_size;
     m_cache_stream.write(reinterpret_cast<char*>(&size_of_empty_cluster_table), 8U);
 
-    char flags = static_cast<uint64_t>(isCompressed()) | static_cast<uint64_t>(m_are_overwrites_allowed) << 1;
+    char flags = static_cast<char>(m_compression_level & 0xF) | static_cast<char>(m_are_overwrites_allowed) << 4;
     m_cache_stream.write(&flags, 1U);
 }
 
@@ -1270,6 +1271,105 @@ inline void StreamedCache<Key, cluster_size>::write_eclt_data()
         return static_cast<uint64_t>(e);
     });
     m_cache_stream.write(reinterpret_cast<char*>(eclt.data()), 8U * eclt.size());
+}
+
+template<typename Key, size_t cluster_size>
+inline void StreamedCache<Key, cluster_size>::load_service_data()
+{
+    // retrieve the version of the streamed cache
+    {
+        m_cache_stream.seekg(0, std::ios::beg);
+        uint32_t cache_version;
+        m_cache_stream.read(reinterpret_cast<char*>(&cache_version), 4U);
+
+        uint16_t assumed_major = m_version >> 16;
+        uint16_t assumed_minor = m_version & 0xFFFF;
+        uint16_t loaded_major = cache_version >> 16;
+        uint16_t loaded_minor = cache_version & 0xFFFF;
+
+        if (assumed_major < loaded_major || assumed_major == loaded_major && assumed_minor < loaded_minor)
+        {
+            misc::Log::retrieve()->out("Streamed cache \"" + getStringName() + "\" cannot be loaded as it's version is "
+                + std::to_string(loaded_major) + "." + std::to_string(loaded_minor) + " whereas the highest version supported by "
+                "the parser is " + std::to_string(assumed_major) + "." + std::to_string(assumed_minor));
+            return;
+        }
+    }
+
+    // retrieve endianness of the streamed cache and compare it with the endianness of the host
+    {
+        union {
+            uint32_t flag;
+            char bytes[4];
+        }this_machine_endianness, serialization_machine_endianness;
+        this_machine_endianness.flag = 0x1234;
+        m_cache_stream.read(serialization_machine_endianness.bytes, 4U);
+        m_endianness_conversion_required = memcmp(this_machine_endianness.bytes, serialization_machine_endianness.bytes, 4U) != 0;
+    }
+
+    // retrieve parameters of the cache body
+    {
+        uint64_t aux;
+        m_cache_stream.read(reinterpret_cast<char*>(&aux), 8U); m_max_cache_size = aux;
+        m_cache_stream.read(reinterpret_cast<char*>(&aux), 8U); m_cache_body_size = aux;
+    }
+
+    // retrieve parameters of the index tree
+    {
+        uint64_t size_of_index_tree;
+        m_cache_stream.read(reinterpret_cast<char*>(&size_of_index_tree), 8U);
+
+        m_cache_stream.read(reinterpret_cast<char*>(&aux), 8U); m_index.m_max_index_redundant_growth_pressure = aux;
+        m_cache_stream.read(reinterpret_cast<char*>(&aux), 8U); m_index.m_current_index_redundant_growth_pressure = aux;
+    }
+
+    // retrieve size of the ECLT
+    {
+        uint64_t size_of_empty_cluster_table;
+        m_cache_stream.read(reinterpret_cast<char*>(&size_of_empty_cluster_table), 8U);
+    }
+
+    // parse flags of the streamed cache
+    {
+        char flags;
+        m_cache_stream.read(&flags, 1U);
+        m_compression_level = static_cast<StreamedCacheCompressionLevel>(flags & 0xF);
+        m_are_overwrites_allowed = (flags >> 4 & 0x1) != 0;
+    }
+
+    load_index_data(size_of_index_tree);
+    load_eclt_data(size_of_empty_cluster_table);
+}
+
+template<typename Key, size_t cluster_size>
+inline void StreamedCache<Key, cluster_size>::load_index_data(size_t index_tree_size_in_bytes)
+{
+    m_cache_stream.seekg(m_header_size + m_cache_body_size, std::ios::beg);
+    size_t num_entries_in_index_tree = index_tree_size_in_bytes / StreamedCacheIndexTreeEntry<Key>::serialized_size;
+    DataChunk index_data_blob{ StreamedCacheIndexTreeEntry<Key>::serialized_size };
+    for (size_t i = 0; i < num_entries_in_index_tree; ++i)
+    {
+        m_cache_stream.read(static_cast<char*>(index_data_blob.data()), index_data_blob.size());
+        StreamedCacheIndexTreeEntry<Key> e{};
+        e.deserialize_from_blob(index_data_blob.data());
+        m_index.m_index_tree.push_back(e);
+    }
+}
+
+template<typename Key, size_t cluster_size>
+inline void StreamedCache<Key, cluster_size>::load_eclt_data(size_t eclt_data_size_in_bytes)
+{
+    m_cache_stream(m_header_size + m_cache_body_size + m_index.getSize(), std::ios::beg);
+    size_t num_entries_in_eclt = eclt_data_size_in_bytes / 8U;
+
+    std::vector<uint64_t> aux_vector(num_entries_in_eclt);
+    m_cache_stream.read(reinterpret_cast<char*>(aux_vector.data()), eclt_data_size_in_bytes);
+    m_empty_cluster_table.resize(num_entries_in_eclt);
+    std::transform(aux_vector.begin(), aux_vector.end(), m_empty_cluster_table.begin(),
+        [](uint64_t e) -> size_t
+    {
+        return static_cast<size_t>(e);
+    });
 }
 
 template<typename Key, size_t cluster_size>
@@ -1413,7 +1513,7 @@ inline void StreamedCache<Key, cluster_size>::remove_oldest_entry_record()
 
 template<typename Key, size_t cluster_size>
 inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_stream, size_t capacity, 
-    StreamCacheCompressionLevel compression_level/* = StreamCacheCompressionLevel::level0*/, bool are_overwrites_allowed/* = false*/):
+    StreamedCacheCompressionLevel compression_level/* = StreamCacheCompressionLevel::level0*/, bool are_overwrites_allowed/* = false*/):
     m_compression_level{ compression_level },
     m_entry_record_overhead{static_cast<int>(compression_level) > 0 ? m_datestamp_size + m_uncompressed_size_record : m_datestamp_size },
     m_cache_stream{ cache_io_stream },
@@ -1440,7 +1540,7 @@ inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_s
         int rv = deflateInit(&m_zlib_stream, static_cast<int>(m_compression_level));
         if (rv != Z_OK)
         {
-            m_compression_level = StreamCacheCompressionLevel::level0;
+            m_compression_level = StreamedCacheCompressionLevel::level0;
             m_entry_record_overhead = m_datestamp_size;
             m_max_cache_size = align_to(m_max_cache_size - m_uncompressed_size_record*cluster_size, cluster_size + m_cluster_overhead);
             switch (rv)
@@ -1467,6 +1567,14 @@ inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_s
 }
 
 
+
+template<typename Key, size_t cluster_size>
+inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_stream):
+    m_cache_stream{ cache_io_stream }
+{
+    load_service_data();
+    m_entry_record_overhead = static_cast<int>(compression_level) > 0 ? m_datestamp_size + m_uncompressed_size_record : m_datestamp_size;
+}
 
 template<typename Key, size_t cluster_size>
 inline StreamedCache<Key, cluster_size>::~StreamedCache()
@@ -1635,6 +1743,22 @@ template<typename Key, size_t cluster_size>
 inline std::pair<uint16_t, uint16_t> StreamedCache<Key, cluster_size>::getVersion() const
 {
     return std::make_pair<uint16_t, uint16_t>(m_version >> 16, m_version & 0xFFFF);
+}
+
+template<typename Key, size_t cluster_size>
+inline void StreamedCache<Key, cluster_size>::writeCustomHeader(CustomHeader const& custom_header)
+{
+    m_cache_stream.seekp(m_header_size - CustomHeader::size, std::ios::beg);
+    m_cache_stream.write(custom_header.data, CustomHeader::size);
+}
+
+template<typename Key, size_t cluster_size>
+inline CustomHeader StreamedCache<Key, cluster_size>::retrieveCustomHeader() const
+{
+    m_cache_stream.seekg(m_header_size - CustomHeader::size, std::ios::beg);
+    CustomHeader rv{};
+    m_cache_stream.read(rv.data, CustomHeader::size);
+    return rv;
 }
 
 
