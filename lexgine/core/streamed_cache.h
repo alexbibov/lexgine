@@ -1246,6 +1246,33 @@ inline void StreamedCache<Key, cluster_size>::write_header_data()
 }
 
 template<typename Key, size_t cluster_size>
+inline void StreamedCache<Key, cluster_size>::write_index_data()
+{
+    m_cache_stream.seekp(m_header_size + m_cache_body_size, std::ios::beg);
+    DataChunk index_tree_entry_serialization_chunk{ StreamedCacheIndexTreeEntry<Key>::serialized_size };
+    for (size_t i = 0; i < m_index.m_index_tree.size(); ++i)
+    {
+        StreamedCacheIndexTreeEntry<Key>& entry = m_index.m_index_tree[i];
+        entry.prepare_serialization_blob(index_tree_entry_serialization_chunk.data());
+        m_cache_stream.write(static_cast<char*>(index_tree_entry_serialization_chunk.data()),
+            index_tree_entry_serialization_chunk.size());
+    }
+}
+
+template<typename Key, size_t cluster_size>
+inline void StreamedCache<Key, cluster_size>::write_eclt_data()
+{
+    m_cache_stream.seekp(m_header_size + m_cache_body_size + m_index.getSize(), std::ios::beg);
+    std::vector<uint64_t> eclt(m_empty_cluster_table.size());
+    std::transform(m_empty_cluster_table.begin(), m_empty_cluster_table.end(), eclt.begin(),
+        [](size_t e) -> uint64_t
+    {
+        return static_cast<uint64_t>(e);
+    });
+    m_cache_stream.write(reinterpret_cast<char*>(eclt.data()), 8U * eclt.size());
+}
+
+template<typename Key, size_t cluster_size>
 inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::reserve_available_cluster_sequence(size_t size_hint)
 {
     if(m_empty_cluster_table.size())
