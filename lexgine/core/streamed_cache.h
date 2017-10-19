@@ -243,7 +243,7 @@ private:
 
 private:
     std::pair<size_t, bool> serialize_entry(StreamedCacheEntry<Key, cluster_size> const& entry);
-    SharedDataChunk deserialize_entry(Key const& entry_key);
+    std::pair<SharedDataChunk, size_t> deserialize_entry(Key const& entry_key);
 
 private:
     static void pack_date_stamp(misc::DateTime const& date_stamp, char packed_date_stamp[13]) const;
@@ -257,10 +257,14 @@ private:
     void remove_oldest_entry_record();
 
 private:
+    StreamCacheCompressionLevel m_compression_level;
+
     uint32_t const m_version = 0x0100;    //!< hi-word contains major version number; lo-word contains the minor version
     uint8_t const m_cluster_overhead = 8U;
     uint8_t const m_sequence_overhead = 8U;
-    uint8_t const m_entry_record_overhead = 13U;
+    uint8_t const m_datestamp_size = 13U;
+    uint8_t const m_uncompressed_size_record = 8U;
+    uint8_t m_entry_record_overhead;    // initialized in constructor that creates new cache
     uint8_t const m_eclt_entry_size = 8U;
 
     uint32_t const m_header_size =
@@ -285,7 +289,6 @@ private:
     size_t m_cache_body_size;
     StreamedCacheIndex<Key, cluster_size> m_index;
     std::vector<size_t> m_empty_cluster_table;
-    StreamCacheCompressionLevel m_compression_level;
     bool m_are_overwrites_allowed;   
     z_stream m_zlib_stream;
 };
@@ -1134,6 +1137,13 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
                 + getStringName() + "\" (zlib deflate() error", misc::LogMessageType::error);
             return std::make_pair(0U, false);
         }
+
+        if (deflateEnd() != Z_OK)
+        {
+            misc::Log::retrieve()->out("Unable to release zlib deflation stream upon compression finalization of a data chunk",
+                misc::LogMessageType::error);
+            return std::make_pair(0U, false);
+        }
     }
     else
     {
@@ -1144,19 +1154,21 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
     std::pair<size_t, size_t> cache_allocation_desc = allocate_space_in_cache(entry_size);
     if (!cache_allocation_desc.second) return std::make_pair(0U, false);
 
-
-    std::streampos old_writing_position = m_cache_stream.tellp();
     m_cache_stream.seekp(cache_allocation_desc.first + m_sequence_overhead, std::ios::beg);
 
     char packed_date_stamp[13U];
     pack_date_stamp(entry.m_date_stamp, packed_date_stamp);
     m_cache_stream.write(packed_date_stamp, m_entry_record_overhead);
+    if (isCompressed())
+    {
+        uint64_t uncompressed_data_size = entry.m_data_blob_to_be_cached.size();
+        m_cache_stream.write(reinterpret_cast<char*>(&uncompressed_data_size), 8U);
+    }
 
     uint64_t current_cluster_base_address{ cache_allocation_desc.first + m_sequence_overhead + m_entry_record_overhead };
     size_t num_bytes_to_write_into_current_cluster{ cluster_size - m_sequence_overhead - m_entry_record_overhead };
     size_t total_bytes_left_to_write = blob_to_serialize_ptr->size();
     size_t total_bytes_written{ 0U };
-    std::streampos old_reading_position = m_cache_stream.tellg();
     while (total_bytes_left_to_write)
     {
         m_cache_stream.seekp(current_cluster_base_address, std::ios::beg);
@@ -1171,44 +1183,40 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
         num_bytes_to_write_into_current_cluster = std::min(total_bytes_left_to_write, cluster_size);
     }
 
-    m_cache_stream.seekg(old_reading_position);
-    m_cache_stream.seekp(old_writing_position);
-
     return std::make_pair(cache_allocation_desc.first, true);
 }
 
 template<typename Key, size_t cluster_size>
-inline SharedDataChunk StreamedCache<Key, cluster_size>::deserialize_entry(Key const& entry_key)
+inline std::pair<SharedDataChunk, size_t> StreamedCache<Key, cluster_size>::deserialize_entry(Key const& entry_key)
 {
     size_t rv = m_index.get_cache_entry_data_offset_from_key(entry_key);
 
-    std::streampos old_reading_position = m_cache_stream.tellg();
     m_cache_stream.seekg(base_offset, std::ios::beg);
     uint64_t sequence_length; m_cache_stream.read(reinterpret_cast<char*>(&sequence_length), 8U);
-    m_cache_stream.seekg(m_entry_record_overhead, std::ios::cur);    // skip the entry record
+    m_cache_stream.seekg(m_datestamp_size, std::ios::cur);    // skip the datestamp
+    uint64_t uncompressed_entry_size{ sequence_length*cluster_size };
+    if (isCompressed()) m_cache_stream.read(reinterpret_cast<char*>(&uncompressed_entry_size), 8U);
 
     SharedDataChunk output_data_chunk{ sequence_length*cluster_size };
     char* p_data = static_cast<char*>(output_data_chunk.data());
     uint64_t cluster_base_offset{ base_offset + m_sequence_overhead + m_entry_record_overhead };
     for (uint64_t i = 0; i < sequence_length; ++i)
     {
+        m_cache_stream.seekg(cluster_base_offset, std::ios::beg);
         m_cache_stream.read(p_data + i*cluster_size, 
             i == 0 ? cluster_size - m_sequence_overhead - m_entry_record_overhead : cluster_size);
         m_cache_stream.read(reinterpret_cast<char*>(&cluster_base_offset), 8U);
     }
-    m_cache_stream.seekg(old_reading_position);
 
     m_index.remove_entry(entry_key);
     m_empty_cluster_table.push_back(base_offset);
 
-    return output_data_chunk;
+    return std::make_pair(output_data_chunk, static_cast<size_t>(uncompressed_entry_size));
 }
 
 template<typename Key, size_t cluster_size>
 inline void StreamedCache<Key, cluster_size>::write_header_data()
 {
-    std::streampos old_stream_writing_position = m_cache_stream.tellp();
-
     m_cache_stream.seekp(0, std::ios::beg);
     m_cache_stream.write(reinterpret_cast<char*>(&m_version), 4U);
 
@@ -1235,8 +1243,6 @@ inline void StreamedCache<Key, cluster_size>::write_header_data()
 
     char flags = static_cast<uint64_t>(isCompressed()) | static_cast<uint64_t>(m_are_overwrites_allowed) << 1;
     m_cache_stream.write(&flags, 1U);
-
-    m_cache_stream.seekp(old_stream_writing_position);
 }
 
 template<typename Key, size_t cluster_size>
@@ -1244,15 +1250,11 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::reserve_avail
 {
     if(m_empty_cluster_table.size())
     {
-        std::streampos old_stream_reading_position = m_cache_stream.tellg();
-
         size_t base_offset = m_empty_cluster_table.back(); m_empty_cluster_table.pop_back();
         m_cache_stream.seekg(base_offset, std::ios::beg);
 
         uint64_t cluster_sequence_length;
         m_cache_stream.read(reinterpret_cast<char*>(&cluster_sequence_length), 8U);
-
-        m_cache_stream.seekg(old_stream_reading_position);
         
         return std::make_pair(base_offset, static_cast<size_t>(cluster_sequence_length));
     }
@@ -1266,7 +1268,6 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::reserve_avail
         num_unpartitioned_clusters,
         align_to(size_hint, cluster_size) / cluster_size);
 
-    std::streampos old_stream_writing_position = m_cache_stream.tellp();
     m_cache_stream.seekp(new_sequence_base_offset, std::ios::beg);
     m_cache_stream.write(reinterpret_cast<char*>(&new_sequence_length), 8U);
 
@@ -1278,7 +1279,6 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::reserve_avail
         m_cache_stream.write(reinterpret_cast<char*>(&next_cluster_base_offset), 8U);
     }
     m_cache_body_size += new_sequence_length*(cluster_size + m_cluster_overhead);
-    m_cache_stream.seekp(old_stream_writing_position);
 
     return std::make_pair(new_sequence_base_offset, static_cast<size_t>(new_sequence_length));
 }
@@ -1319,7 +1319,6 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::optimize_rese
     std::list<std::pair<size_t, size_t>>& reserved_sequence_list, 
     size_t size_hint)
 {
-    std::streampos old_writing_position = m_cache_stream.tellp();
     uint64_t total_sequence_length{ 0U };
     for(auto p = reserved_sequence_list.begin(); p != reserved_sequence_list.end(); ++p)
     {
@@ -1359,7 +1358,6 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::optimize_rese
 
     m_cache_stream.seekp(reserved_sequence_list.front().first, std::ios::beg);
     m_cache_stream.write(reinterpret_cast<char*>(&total_sequence_length), 8U);
-    m_cache_stream.seekp(old_writing_position);
 
     return std::make_pair(reserved_sequence_list.front().first, static_cast<size_t>(total_sequence_length));
 }
@@ -1367,7 +1365,6 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::optimize_rese
 template<typename Key, size_t cluster_size>
 inline void StreamedCache<Key, cluster_size>::remove_oldest_entry_record()
 {
-    std::streampos old_reading_position = m_cache_stream.tellg();
     misc::DateTime oldest_entry_datestampt{ 0xFF, 12, 31, 23, 59, 59.9999 };
     StreamedCacheIndexTreeEntry<Key>* p_oldest_entry{ nullptr };
     for (StreamedCacheIndexTreeEntry<Key>& e : m_index)
@@ -1385,18 +1382,19 @@ inline void StreamedCache<Key, cluster_size>::remove_oldest_entry_record()
     
     m_index.remove_entry(p_oldest_entry->cache_entry_key);
     m_empty_cluster_table.push_back(static_cast<size_t>(p_oldest_entry->data_offset));
-
-    m_cache_stream.seekg(old_reading_position);
 }
 
 template<typename Key, size_t cluster_size>
 inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_stream, size_t capacity, 
     StreamCacheCompressionLevel compression_level/* = StreamCacheCompressionLevel::level0*/, bool are_overwrites_allowed/* = false*/):
-    m_cache_stream{ cache_io_stream },
-    m_max_cache_size{ align_to(align_to(capacity, cluster_size) / cluster_size
-    * (cluster_size + m_cluster_overhead + m_sequence_overhead + m_entry_record_overhead), cluster_size + m_cluster_overhead) },
-    m_cache_body_size{ 0U },
     m_compression_level{ compression_level },
+    m_entry_record_overhead{static_cast<int>(compression_level) > 0 ? m_datestamp_size + m_uncompressed_size_record : m_datestamp_size },
+    m_cache_stream{ cache_io_stream },
+    m_max_cache_size{ 
+    align_to(
+        align_to(capacity, cluster_size)/cluster_size*(cluster_size + m_cluster_overhead + m_sequence_overhead + m_entry_record_overhead),
+        cluster_size + m_cluster_overhead) },
+    m_cache_body_size{ 0U },
     m_are_overwrites_allowed{ are_overwrites_allowed }
 {
     if (!cache_io_stream)
@@ -1416,6 +1414,8 @@ inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_s
         if (rv != Z_OK)
         {
             m_compression_level = StreamCacheCompressionLevel::level0;
+            m_entry_record_overhead = m_datestamp_size;
+            m_max_cache_size = align_to(m_max_cache_size - m_uncompressed_size_record*cluster_size, cluster_size + m_cluster_overhead);
             switch (rv)
             {
             case Z_MEM_ERROR:
@@ -1476,7 +1476,6 @@ inline size_t StreamedCache<Key, cluster_size>::freeSpace() const
 template<typename Key, size_t cluster_size>
 inline size_t StreamedCache<Key, cluster_size>::usedSpace() const
 {
-    std::streampos old_read_position = m_cache_stream.tellg();
     size_t emptied_cluster_sequences_total_capacity{ 0U };
     for (size_t addr : m_empty_cluster_table)
     {
@@ -1485,7 +1484,6 @@ inline size_t StreamedCache<Key, cluster_size>::usedSpace() const
         m_cache_stream.read(reinterpret_cast<char*>(&cluster_sequence_length), 8U);
         emptied_cluster_sequences_total_capacity += static_cast<size_t>(cluster_sequence_length)*cluster_size;
     }
-    m_cache_stream.seekg(old_read_position);
 
     size_t unpartitioned_cache_size = m_max_cache_size - m_cache_body_size;
     size_t cluster_reservation_overhead = unpartitioned_cache_size / (cluster_size + m_cluster_overhead) * m_cluster_overhead;
@@ -1516,17 +1514,72 @@ inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const
         misc::Log::retrieve()->out("Unable to remove entry with key \"" 
             + entry_key.toString() + "\" from streamed cache \""
             + getStringName() + "\".", misc::LogMessageType::error);
-        return;
+        return SharedDataChunk{};
     }
 
-    SharedDataChunk raw_data_chunk = deserialize_entry(entry_key);
+    std::pair<SharedDataChunk, size_t> raw_data_chunk_and_uncompressed_size = deserialize_entry(entry_key);
     if (static_cast<int>(m_compression_level) > 0)
     {
         // the data are compressed and should be inflated before getting returned to the caller
-        // TODO
+        m_zlib_stream.next_in = static_cast<Bytef*>(raw_data_chunk_and_uncompressed_size.first.data());
+        m_zlib_stream.avail_in = static_cast<uInt>(raw_data_chunk_and_uncompressed_size.first.size());
+        m_zlib_stream.zalloc = Z_NULL;
+        m_zlib_stream.zfree = Z_NULL;
+
+        int rv = inflateInit(&m_zlib_stream);
+        if (rv != Z_OK)
+        {
+            switch (rv)
+            {
+            case Z_MEM_ERROR:
+                misc::Log::retrieve()->out("Unable to inflate entry with key \""
+                    + entry_key.toString() + "\" from streamed cache \""
+                    + getStringName() + "\"; zlib is out of memory",
+                    misc::LogMessageType::error);
+                break;
+
+            case Z_VERSION_ERROR:
+                misc::Log::retrieve()->out("Unable to inflate entry with key \""
+                    + entry_key.toString() + "\" from streamed cache \""
+                    + getStringName() + "\"; zlib version assumed by the streamed cache differs from "
+                    "the source actually linked to the executable",
+                    misc::LogMessageType::error);
+                break;
+
+            case Z_STREAM_ERROR:
+                misc::Log::retrieve()->out("Unable to inflate entry with key \""
+                    + entry_key.toString() + "\" from streamed cache \""
+                    + getStringName() + "\"; zlib's inflateInit() function was supplied with invalid parameters",
+                    misc::LogMessageType::error);
+                break;
+            }
+
+            return SharedDataChunk{};
+        }
+
+        SharedDataChunk uncompressed_data_chunk{ raw_data_chunk_and_uncompressed_size.second };
+        m_zlib_stream.next_out = static_cast<Bytef*>(uncompressed_data_chunk.data());
+        m_zlib_stream.avail_out = static_cast<uInt>(uncompressed_data_chunk.size());
+        if (inflate(&m_zlib_stream, Z_FINISH) != Z_STREAM_END)
+        {
+            misc::Log::retrieve()->out("Unable to inflate entry with key \""
+                + entry_key.toString() + "\" from streamed cache \""
+                + getStringName() + "\"", misc::LogMessageType::error);
+            return SharedDataChunk{};
+        }
+
+        if (inflateEnd(&m_zlib_stream) != Z_OK)
+        {
+            misc::Log::retrieve()->out("Unable to finalize zlib stream after inflating entry with key \""
+                + entry_key.toString() + "\" from streamed cache \""
+                + getStringName() + "\"", misc::LogMessageType::error);
+            return SharedDataChunk{};
+        }
+
+        return uncompressed_data_chunk;
     }
     else
-        return raw_data_chunk;
+        return raw_data_chunk_and_uncompressed_size.first;
 }
 
 template<typename Key, size_t cluster_size>
