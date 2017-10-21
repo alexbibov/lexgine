@@ -10,6 +10,7 @@
 #include "../lexgine/core/exception.h"
 #include "../lexgine/core/initializer.h"
 #include "../lexgine/core/dx/d3d12/d3d12_pso_xml_parser.h"
+#include "../lexgine/core/streamed_cache.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4307)    // this is needed to suppress the warning caused by the static hash function
@@ -20,6 +21,8 @@
 #include <windows.h>
 #include <utility>
 #include <fstream>
+#include <chrono>
+#include <random>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -524,6 +527,45 @@ public:
             {
                 auto content = readAsciiTextFromSourceFile("../../scripts/d3d12_PSOs/example_serialized_pso.xml");
                 D3D12PSOXMLParser xml_parser{ Initializer::getGlobalParameterObjectPool(), content };
+            }
+
+            Initializer::shutdownEnvironment();
+        }
+
+
+        TEST_METHOD(TestStreamedCache)
+        {
+            using namespace lexgine::core;
+            using namespace lexgine::core::misc;
+
+            Initializer::initializeEnvironment("../..", "settings/");
+
+            {
+                std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc };
+                StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile, 1024 * 1024 * 100, StreamedCacheCompressionLevel::level0, false };
+
+                std::default_random_engine rand_eng{ static_cast<unsigned int>(
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()) };
+                std::uniform_int_distribution<uint32_t> distribution{ 0, 0xFFFFFFFF };
+                uint32_t* random_value_buffer = new uint32_t[26214400];    // 100MB buffer
+                for (uint32_t i = 0; i < 26214400U; ++i)
+                {
+                    random_value_buffer[i] = distribution(rand_eng);
+                }
+
+                for (int i = 0; i < 10; ++i)
+                {
+                    DataBlob blob{ random_value_buffer + i * 2621440U, 26214400U };
+                    StreamedCache_KeyInt64_Cluster8KB::entry_type e{ i, blob };
+                    streamed_cache.addEntry(e);
+                }
+
+                for (int i = 9; i >= 0; --i)
+                {
+
+                }
+
+                delete[] random_value_buffer;
             }
 
             Initializer::shutdownEnvironment();
