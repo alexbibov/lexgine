@@ -541,28 +541,40 @@ public:
             Initializer::initializeEnvironment("../..", "settings/");
 
             {
-                std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc };
-                StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile, 1024 * 1024 * 100, StreamedCacheCompressionLevel::level0, false };
-
                 std::default_random_engine rand_eng{ static_cast<unsigned int>(
                     std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()) };
                 std::uniform_int_distribution<uint32_t> distribution{ 0, 0xFFFFFFFF };
-                uint32_t* random_value_buffer = new uint32_t[26214400];    // 100MB buffer
-                for (uint32_t i = 0; i < 26214400U; ++i)
+                uint32_t* random_value_buffer = new uint32_t[2621440];    // 10MB buffer
+
+                for (uint32_t i = 0; i < 2621440; ++i)
                 {
                     random_value_buffer[i] = distribution(rand_eng);
                 }
 
-                for (int i = 0; i < 10; ++i)
+
                 {
-                    DataBlob blob{ random_value_buffer + i * 2621440U, 26214400U };
-                    StreamedCache_KeyInt64_Cluster8KB::entry_type e{ i, blob };
-                    streamed_cache.addEntry(e);
+                    std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc };
+                    StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile, 1024 * 1024 * 10, StreamedCacheCompressionLevel::level0, false };
+
+                    for (int i = 0; i < 10; ++i)
+                    {
+                        DataBlob blob{ random_value_buffer + i * 262144U, 1048576 };
+                        StreamedCache_KeyInt64_Cluster8KB::entry_type e{ i, blob };
+                        streamed_cache.addEntry(e);
+                    }
                 }
-
-                for (int i = 9; i >= 0; --i)
+                
                 {
+                    std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out };
+                    StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile };
 
+                    for (int i = 9; i >= 0; --i)
+                    {
+                        SharedDataChunk chunk = streamed_cache.retrieveEntry(i);
+                        bool res = std::memcmp(chunk.data(), random_value_buffer + i * 262144U, 1048576) == 0;
+
+                        Assert::IsTrue(res, (L"Memory chunk " + std::to_wstring(i) + L" failed comparison").c_str());
+                    }
                 }
 
                 delete[] random_value_buffer;
