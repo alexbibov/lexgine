@@ -162,7 +162,8 @@ private:
 
 
     size_t bst_insert(std::pair<Key, uint64_t> const& key_offset_pair);    //! standard BST-insertion without RED-BLACK properties check
-    static void swap_colors(unsigned char& color1, unsigned char& color2);
+    template<typename T1, typename T2>
+    static void swap_values(T1& value1, T2& value2);
     static size_t locate_bin(size_t n, std::vector<size_t> const& bins_in_accending_order);
 
     void right_rotate(size_t a, size_t b);
@@ -508,7 +509,7 @@ inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint
                 {
                     // Left-Left case
                     right_rotate(parent_idx, grandparent_idx);
-                    swap_colors(parent_of_current_node.node_color,
+                    swap_values(parent_of_current_node.node_color,
                         grandparent_of_current_node.node_color);
                 }
                 else if (T1 && !T2)
@@ -516,7 +517,7 @@ inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint
                     // Left-Right case
                     left_rotate(parent_idx, current_idx);
                     right_rotate(current_idx, grandparent_idx);
-                    swap_colors(current_node.node_color,
+                    swap_values(current_node.node_color,
                         grandparent_of_current_node.node_color);
                 }
                 else if (!T1 && T2)
@@ -524,14 +525,14 @@ inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint
                     // Right-Left case
                     right_rotate(current_idx, parent_idx);
                     left_rotate(grandparent_idx, current_idx);
-                    swap_colors(grandparent_of_current_node.node_color,
+                    swap_values(grandparent_of_current_node.node_color,
                         current_node.node_color);
                 }
                 else
                 {
                     // Right-Right case
                     left_rotate(grandparent_idx, parent_idx);
-                    swap_colors(grandparent_of_current_node.node_color,
+                    swap_values(grandparent_of_current_node.node_color,
                         parent_of_current_node.node_color);
                 }
             }
@@ -643,14 +644,14 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
                 {
                     // left case
                     right_rotate(current_node_sibling_idx, parent_of_current_node_idx);
-                    swap_colors(current_node_sibling.node_color, parent_of_current_node.node_color);
+                    swap_values(current_node_sibling.node_color, parent_of_current_node.node_color);
                     current_node_sibling_idx = parent_of_current_node.left_leaf;
                 }
                 else
                 {
                     // right case
                     left_rotate(parent_of_current_node_idx, current_node_sibling_idx);
-                    swap_colors(parent_of_current_node.node_color, current_node_sibling.node_color);
+                    swap_values(parent_of_current_node.node_color, current_node_sibling.node_color);
                     current_node_sibling_idx = parent_of_current_node.right_leaf;
                 }
             }
@@ -720,14 +721,6 @@ inline size_t StreamedCacheIndex<Key, cluster_size>::bst_insert(std::pair<Key, u
 }
 
 template<typename Key, size_t cluster_size>
-inline void StreamedCacheIndex<Key, cluster_size>::swap_colors(unsigned char& color1, unsigned char& color2)
-{
-    color1 = color1^color2;
-    color2 = color2^color1;
-    color1 = color1^color2;
-}
-
-template<typename Key, size_t cluster_size>
 inline size_t StreamedCacheIndex<Key, cluster_size>::locate_bin(size_t n, std::vector<size_t> const& bins_in_accending_order)
 {
     size_t left = 0U, right = bins_in_accending_order.size() - 1;
@@ -754,31 +747,31 @@ inline void StreamedCacheIndex<Key, cluster_size>::right_rotate(size_t a, size_t
     if (node_b.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::root)
     {
         // swap nodes a and b (everything, but inheritance and adjacency)
-        {
-            node_a.to_be_deleted = node_a.to_be_deleted ^ node_b.to_be_deleted;
-            node_b.to_be_deleted = node_b.to_be_deleted ^ node_a.to_be_deleted;
-            node_a.to_be_deleted = node_a.to_be_deleted ^ node_b.to_be_deleted;
+        swap_values(node_a.to_be_deleted, node_b.to_be_deleted);
+        swap_values(node_a.data_offset, node_b.data_offset);
+        std::swap(node_a.cache_entry_key, node_b.cache_entry_key);
+        swap_values(node_a.node_color, node_b.node_color);
 
-            node_a.data_offset = node_a.data_offset ^ node_b.data_offset;
-            node_b.data_offset = node_b.data_offset ^ node_a.data_offset;
-            node_a.data_offset = node_a.data_offset ^ node_b.data_offset;
+        swap_values(node_b.left_leaf, node_b.right_leaf);
+        node_a.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
 
-            node_a.cache_entry_key = node_a.cache_entry_key ^ node_b.cache_entry_key;
-            node_b.cache_entry_key = node_b.cache_entry_key ^ node_a.cache_entry_key;
-            node_a.cache_entry_key = node_a.cache_entry_key ^ node_b.cache_entry_key;
+        swap_values(node_b.left_leaf, node_a.left_leaf);
+        m_index_tree[node_a.left_leaf].parent_node = 0;
+        m_index_tree[node_b.left_leaf].parent_node = a;
 
-            node_a.node_color = node_a.node_color ^ node_b.node_color;
-            node_b.node_color = node_b.node_color ^ node_a.node_color;
-            node_a.node_color = node_a.node_color ^ node_b.node_color;
-        }
-
+        swap_values(node_a.right_leaf, node_a.left_leaf);
+        m_index_tree[node_a.left_leaf].inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
     }
     else
     {
+        node_a.inheritance = node_b.inheritance;
+        node_b.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
+
         node_a.parent_node = node_b.parent_node;
         node_b.parent_node = a;
         node_b.left_leaf = node_a.right_leaf;
         node_a.right_leaf = b;
+        m_index_tree[node_b.left_leaf].inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
     }
 }
 
@@ -791,30 +784,31 @@ inline void StreamedCacheIndex<Key, cluster_size>::left_rotate(size_t a, size_t 
     if (node_a.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::root)
     {
         // swap nodes a and b (everything, but inheritance and adjacency)
-        node_a.to_be_deleted = node_a.to_be_deleted ^ node_b.to_be_deleted;
-        node_b.to_be_deleted = node_b.to_be_deleted ^ node_a.to_be_deleted;
-        node_a.to_be_deleted = node_a.to_be_deleted ^ node_b.to_be_deleted;
+        swap_values(node_a.to_be_deleted, node_b.to_be_deleted);
+        swap_values(node_a.data_offset, node_b.data_offset);
+        std::swap(node_a.cache_entry_key, node_b.cache_entry_key);
+        swap_values(node_a.node_color, node_b.node_color);
+        
+        swap_values(node_a.left_leaf, node_a.right_leaf);
+        node_b.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
 
-        node_a.data_offset = node_a.data_offset ^ node_b.data_offset;
-        node_b.data_offset = node_b.data_offset ^ node_a.data_offset;
-        node_a.data_offset = node_a.data_offset ^ node_b.data_offset;
+        swap_values(node_a.right_leaf, node_b.right_leaf);
+        m_index_tree[node_a.right_leaf].parent_node = 0;
+        m_index_tree[node_b.right_leaf].parent_node = b;
 
-        node_a.cache_entry_key = node_a.cache_entry_key ^ node_b.cache_entry_key;
-        node_b.cache_entry_key = node_b.cache_entry_key ^ node_a.cache_entry_key;
-        node_a.cache_entry_key = node_a.cache_entry_key ^ node_b.cache_entry_key;
-
-        node_a.node_color = node_a.node_color ^ node_b.node_color;
-        node_b.node_color = node_b.node_color ^ node_a.node_color;
-        node_a.node_color = node_a.node_color ^ node_b.node_color;
-
-
+        swap_values(node_b.left_leaf, node_b.right_leaf);
+        m_index_tree[node_b.right_leaf].inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
     }
     else
     {
+        node_b.inheritance = node_a.inheritance;
+        node_a.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
+
         node_b.parent_node = node_a.parent_node;
         node_a.parent_node = b;
-        node_a.right_leaf = node_b.left_leaf;
+        node_a.right_leaf = node_b.left_leaf; 
         node_b.left_leaf = a;
+        m_index_tree[node_a.right_leaf].inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
     }
 }
 
@@ -1873,6 +1867,14 @@ inline typename StreamedCache<Key, cluster_size>::CustomHeader StreamedCache<Key
     return rv;
 }
 
+template<typename Key, size_t cluster_size>
+template<typename T1, typename T2>
+inline void core::StreamedCacheIndex<Key, cluster_size>::swap_values(T1& value1, T2& value2)
+{
+    value1 = value1 ^ value2;
+    value2 = value2 ^ value1;
+    value1 = value1 ^ value2;
+}
 
 }}
 #endif
