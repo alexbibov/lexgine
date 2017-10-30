@@ -562,7 +562,7 @@ public:
                         StreamedCache_KeyInt64_Cluster8KB::entry_type e{ i, blob };
                         streamed_cache.addEntry(e);
                     }
-					streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_test.gv");
+					streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test.gv");
                 }
                 
                 {

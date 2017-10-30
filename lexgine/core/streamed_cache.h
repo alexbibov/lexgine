@@ -394,18 +394,30 @@ inline void StreamedCacheIndex<Key, cluster_size>::generateDOTRepresentation(std
 		return;
 	}
 
-	ofile << "graph {" << std::endl;
+	ofile << "digraph {" << std::endl;
+	ofile << "node[style=filled];" << std::endl;
 	for (StreamedCacheIndexTreeEntry<Key>& n : *this)
 	{
 		std::string current_node_name{ "node" + std::to_string(n.data_offset) };
 		ofile << current_node_name << "[label=" << n.cache_entry_key.toString() << ", "
-			<< "shape=circle, color=white, bgcolor=" << (n.node_color ? "black]" : "red]")
+			<< "shape=circle, fontcolor=white, fillcolor=" << (n.node_color ? "black];" : "red];")
 			<< std::endl;
-		/*ofile << current_node_name << "--" << "node" << m_index_tree[n.left_leaf].data_offset 
-			<< std::endl;
-		ofile << current_node_name << "--" << "node" << m_index_tree[n.right_leaf].data_offset
-			<< std::endl;*/
 	}
+	for (StreamedCacheIndexTreeEntry<Key>& n : *this)
+	{
+		if(n.left_leaf)
+		{
+			ofile << "node" << std::to_string(n.data_offset) << "->"
+				<< "node" << std::to_string(m_index_tree[n.left_leaf].data_offset) << ";" << std::endl;
+		}
+
+		if(n.right_leaf)
+		{
+			ofile << "node" << std::to_string(n.data_offset) << "->"
+				<< "node" << std::to_string(m_index_tree[n.right_leaf].data_offset) << ";" << std::endl;
+		}
+	}
+
 	ofile << "}" << std::endl;
 }
 
@@ -1163,8 +1175,34 @@ inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterato
     if (m_is_at_beginning)
         throw std::out_of_range{ "index tree iterator is out of range" };
 
-    m_current_index = (*m_p_target_index_tree)[m_current_index].parent_node;
-    if (!m_current_index) m_is_at_beginning = true;
+	std::vector<StreamedCacheIndexTreeEntry<Key>>& index_tree = *m_p_target_index_tree;
+
+	if (m_has_reached_end)
+	{
+		m_current_index = 0U;
+		m_has_reached_end = false;
+	}
+	else
+	{
+		while (m_current_index 
+			&& (index_tree[m_current_index].inheritance 
+				== StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child
+			|| !index_tree[index_tree[m_current_index].parent_node].left_leaf))
+		{
+			m_current_index = index_tree[m_current_index].parent_node;
+		}
+
+		if (!m_current_index) 
+		{
+			m_is_at_beginning = true;
+			return *this;
+		}
+
+		m_current_index = index_tree[index_tree[m_current_index].parent_node].left_leaf;
+	}
+
+	while (index_tree[m_current_index].right_leaf)
+		m_current_index = index_tree[m_current_index].right_leaf;
 
     return *this;
 }
