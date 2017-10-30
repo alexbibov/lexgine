@@ -1382,11 +1382,15 @@ inline std::pair<SharedDataChunk, size_t> StreamedCache<Key, cluster_size>::dese
     SharedDataChunk output_data_chunk{ sequence_length*cluster_size };
     char* p_data = static_cast<char*>(output_data_chunk.data());
     uint64_t cluster_base_offset{ base_offset + m_sequence_overhead + m_entry_record_overhead };
+	size_t reading_offset{ 0U };
     for (uint64_t i = 0; i < sequence_length; ++i)
     {
         m_cache_stream.seekg(cluster_base_offset, std::ios::beg);
-        m_cache_stream.read(p_data + i*cluster_size, 
-            i == 0 ? cluster_size - m_sequence_overhead - m_entry_record_overhead : cluster_size);
+		size_t num_bytes_to_read{ i == 0
+			? cluster_size - m_sequence_overhead - m_entry_record_overhead
+			: cluster_size };
+        m_cache_stream.read(p_data + reading_offset, num_bytes_to_read);
+		reading_offset += num_bytes_to_read;
         m_cache_stream.read(reinterpret_cast<char*>(&cluster_base_offset), 8U);
     }
 
@@ -1529,13 +1533,16 @@ inline void StreamedCache<Key, cluster_size>::load_index_data(size_t index_tree_
     m_cache_stream.seekg(m_header_size + m_cache_body_size, std::ios::beg);
     size_t num_entries_in_index_tree = index_tree_size_in_bytes / StreamedCacheIndexTreeEntry<Key>::serialized_size;
     DataChunk index_data_blob{ StreamedCacheIndexTreeEntry<Key>::serialized_size };
+	size_t num_alive_entries{ 0U };
     for (size_t i = 0; i < num_entries_in_index_tree; ++i)
     {
         m_cache_stream.read(static_cast<char*>(index_data_blob.data()), index_data_blob.size());
         StreamedCacheIndexTreeEntry<Key> e{};
         e.deserialize_from_blob(index_data_blob.data());
         m_index.m_index_tree.push_back(e);
+		if (!e.to_be_deleted) ++num_alive_entries;
     }
+	m_index.m_number_of_entries = num_alive_entries;
 }
 
 template<typename Key, size_t cluster_size>
