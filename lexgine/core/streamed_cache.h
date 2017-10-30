@@ -503,10 +503,9 @@ inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint
             size_t uncle_idx = T1 ? grandparent_of_inserted_node.right_leaf : grandparent_of_inserted_node.left_leaf;
 
             bool root_reached{ false };
-            while (!(root_reached = grandparent_idx == 0) && uncle_idx && m_index_tree[uncle_idx].node_color == 0)
+            while (!(root_reached = parent_idx == 0) && uncle_idx && m_index_tree[uncle_idx].node_color == 0)
             {
                 // uncle is RED case
-
                 StreamedCacheIndexTreeEntry<Key>& parent_of_current_node = m_index_tree[parent_idx];
                 StreamedCacheIndexTreeEntry<Key>& current_node = m_index_tree[current_idx];
                 StreamedCacheIndexTreeEntry<Key>& grandparent_of_current_node = m_index_tree[grandparent_idx];
@@ -514,7 +513,7 @@ inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint
 
                 parent_of_current_node.node_color = 1;
                 uncle_of_current_node.node_color = 1;
-                grandparent_of_current_node.node_color = static_cast<unsigned char>(root_reached);
+                grandparent_of_current_node.node_color = static_cast<unsigned char>(grandparent_idx == 0);
 
                 current_idx = grandparent_idx;
                 parent_idx = grandparent_of_current_node.parent_node;
@@ -526,7 +525,7 @@ inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint
 
             if (!root_reached)
             {
-                // uncle is BLACK cases
+                // uncle is BLACK case
 
                 StreamedCacheIndexTreeEntry<Key>& parent_of_current_node = m_index_tree[parent_idx];
                 StreamedCacheIndexTreeEntry<Key>& current_node = m_index_tree[current_idx];
@@ -1087,22 +1086,23 @@ inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterato
     if (current_node.left_leaf)
     {
         m_current_index = current_node.left_leaf;
+        m_is_at_beginning = false;
         return *this;
     }
 
     if (current_node.right_leaf)
     {
         m_current_index = current_node.right_leaf;
+        m_is_at_beginning = false;
         return *this;
     }
 
-    do
+
+    while (m_current_index && (index_tree[m_current_index].inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child
+        || !index_tree[index_tree[m_current_index].parent_node].right_leaf))
     {
         m_current_index = index_tree[m_current_index].parent_node;
-    } while (m_current_index
-        && (index_tree[m_current_index].inheritance
-            == StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child
-            || !index_tree[index_tree[m_current_index].parent_node].right_leaf));
+    }
 
     if (!m_current_index) m_has_reached_end = true;
     else m_current_index = index_tree[index_tree[m_current_index].parent_node].right_leaf;
