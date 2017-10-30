@@ -147,6 +147,12 @@ public:
 
     bool isEmpty() const;    //! returns 'true' if the index is empty; returns 'false' otherwise
 
+	/*! Generates representation of the underlying RED-BLACK tree structure using DOT graph description language and 
+	 stores this representation into provided destination file. This function is useful for debugging purposes and 
+	 for analyzing cached content as well as associated look-up overhead
+	*/
+	void generateDOTRepresentation(std::string const& destination_file) const;
+
     iterator begin();
     iterator end();
     iterator const begin() const;
@@ -378,6 +384,32 @@ inline bool StreamedCacheIndex<Key, cluster_size>::isEmpty() const
 }
 
 template<typename Key, size_t cluster_size>
+inline void StreamedCacheIndex<Key, cluster_size>::generateDOTRepresentation(std::string const& destination_file) const
+{
+	std::ofstream ofile{ destination_file };
+	if (!ofile)
+	{
+		misc::Log::retrieve()->out("Unable to open destination file \""
+			+ destination_file + "\" to store DOT representation of the index tree", misc::LogMessageType::error);
+		return;
+	}
+
+	ofile << "graph {" << std::endl;
+	for (StreamedCacheIndexTreeEntry<Key>& n : *this)
+	{
+		std::string current_node_name{ "node" + std::to_string(n.data_offset) };
+		ofile << current_node_name << "[label=" << n.cache_entry_key.toString() << ", "
+			<< "shape=circle, color=white, bgcolor=" << (n.node_color ? "black]" : "red]")
+			<< std::endl;
+		/*ofile << current_node_name << "--" << "node" << m_index_tree[n.left_leaf].data_offset 
+			<< std::endl;
+		ofile << current_node_name << "--" << "node" << m_index_tree[n.right_leaf].data_offset
+			<< std::endl;*/
+	}
+	ofile << "}" << std::endl;
+}
+
+template<typename Key, size_t cluster_size>
 inline typename StreamedCacheIndex<Key, cluster_size>::iterator StreamedCacheIndex<Key, cluster_size>::begin()
 {
     iterator rv{};
@@ -471,11 +503,9 @@ inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint
             size_t uncle_idx = T1 ? grandparent_of_inserted_node.right_leaf : grandparent_of_inserted_node.left_leaf;
 
             bool root_reached{ false };
-            while (!root_reached && uncle_idx && m_index_tree[uncle_idx].node_color == 0)
+            while (!(root_reached = grandparent_idx == 0) && uncle_idx && m_index_tree[uncle_idx].node_color == 0)
             {
                 // uncle is RED case
-
-                root_reached = grandparent_idx == 0;
 
                 StreamedCacheIndexTreeEntry<Key>& parent_of_current_node = m_index_tree[parent_idx];
                 StreamedCacheIndexTreeEntry<Key>& current_node = m_index_tree[current_idx];
@@ -756,11 +786,16 @@ inline void StreamedCacheIndex<Key, cluster_size>::right_rotate(size_t a, size_t
         node_a.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
 
         swap_values(node_b.left_leaf, node_a.left_leaf);
-        m_index_tree[node_a.left_leaf].parent_node = 0;
-        m_index_tree[node_b.left_leaf].parent_node = a;
+        m_index_tree[node_b.left_leaf].parent_node = 0;
+		if (node_a.left_leaf) m_index_tree[node_a.left_leaf].parent_node = a;
 
         swap_values(node_a.right_leaf, node_a.left_leaf);
-        m_index_tree[node_a.left_leaf].inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
+		if (node_a.left_leaf)
+		{
+			StreamedCacheIndexTreeEntry<Key>& n = m_index_tree[node_a.left_leaf];
+			n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
+			n.parent_node = a;
+		}
     }
     else
     {
@@ -769,9 +804,21 @@ inline void StreamedCacheIndex<Key, cluster_size>::right_rotate(size_t a, size_t
 
         node_a.parent_node = node_b.parent_node;
         node_b.parent_node = a;
-        node_b.left_leaf = node_a.right_leaf;
+
+		if (node_a.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child)
+			m_index_tree[node_a.parent_node].left_leaf = a;
+		else
+			m_index_tree[node_a.parent_node].right_leaf = a;
+        
+		node_b.left_leaf = node_a.right_leaf;
         node_a.right_leaf = b;
-        m_index_tree[node_b.left_leaf].inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
+
+		if(node_b.left_leaf)
+		{
+			StreamedCacheIndexTreeEntry<Key>& n = m_index_tree[node_b.left_leaf];
+			n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
+			n.parent_node = b;
+		}
     }
 }
 
@@ -794,10 +841,15 @@ inline void StreamedCacheIndex<Key, cluster_size>::left_rotate(size_t a, size_t 
 
         swap_values(node_a.right_leaf, node_b.right_leaf);
         m_index_tree[node_a.right_leaf].parent_node = 0;
-        m_index_tree[node_b.right_leaf].parent_node = b;
+		if (node_b.right_leaf) m_index_tree[node_b.right_leaf].parent_node = b;
 
         swap_values(node_b.left_leaf, node_b.right_leaf);
-        m_index_tree[node_b.right_leaf].inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
+		if (node_b.right_leaf)
+		{
+			StreamedCacheIndexTreeEntry<Key>& n = m_index_tree[node_b.right_leaf];
+			n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
+			n.parent_node = b;
+		}
     }
     else
     {
@@ -806,9 +858,21 @@ inline void StreamedCacheIndex<Key, cluster_size>::left_rotate(size_t a, size_t 
 
         node_b.parent_node = node_a.parent_node;
         node_a.parent_node = b;
+
+		if (node_b.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child)
+			m_index_tree[node_b.parent_node].left_leaf = b;
+		else
+			m_index_tree[node_b.parent_node].right_leaf = b;
+
         node_a.right_leaf = node_b.left_leaf; 
         node_b.left_leaf = a;
-        m_index_tree[node_a.right_leaf].inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
+
+		if(node_a.right_leaf)
+		{
+			StreamedCacheIndexTreeEntry<Key>& n = m_index_tree[node_a.right_leaf];
+			n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
+			n.parent_node = a;
+		}
     }
 }
 
