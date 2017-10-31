@@ -261,8 +261,8 @@ private:
     std::pair<SharedDataChunk, size_t> deserialize_entry(size_t data_offset) const;
 
 private:
-    static void pack_date_stamp(misc::DateTime const& date_stamp, char packed_date_stamp[13]);
-    static misc::DateTime unpack_date_stamp(char packed_date_stamp[13]);
+    static void pack_date_stamp(misc::DateTime const& date_stamp, unsigned char packed_date_stamp[13]);
+    static misc::DateTime unpack_date_stamp(unsigned char packed_date_stamp[13]);
     static size_t align_to(size_t value, size_t alignment);
 
 private:
@@ -1271,7 +1271,7 @@ inline bool StreamedCache<Key, cluster_size>::isCompressed() const
 }
 
 template<typename Key, size_t cluster_size>
-inline void StreamedCache<Key, cluster_size>::pack_date_stamp(misc::DateTime const& date_stamp, char packed_date_stamp[13])
+inline void StreamedCache<Key, cluster_size>::pack_date_stamp(misc::DateTime const& date_stamp, unsigned char packed_date_stamp[13])
 {
     *reinterpret_cast<uint16_t*>(packed_date_stamp) = date_stamp.year();    // 16-bit storage for year
     uint8_t month = date_stamp.month();
@@ -1280,18 +1280,18 @@ inline void StreamedCache<Key, cluster_size>::pack_date_stamp(misc::DateTime con
     uint8_t minute = date_stamp.minute();
     double second = date_stamp.second();
 
-    packed_date_stamp[2] = static_cast<char>(month);    // 4-bit storage for month
+    packed_date_stamp[2] = static_cast<unsigned char>(month);    // 4-bit storage for month
     packed_date_stamp[2] |= day << 4;    // 5-bit storage for day
     packed_date_stamp[3] = day >> 4;
     packed_date_stamp[3] |= hour << 1;    // 5-bit storage for hour
     packed_date_stamp[3] |= minute << 6;    // 6-bit storage for minute
-    packed_date_stamp[4] |= minute >> 2;    // 4-bits reserved for future use (time zones?)
+    packed_date_stamp[4] = minute >> 2;    // 4-bits reserved for future use (time zones?)
 
     *reinterpret_cast<double*>(packed_date_stamp + 5) = second;    // 64-bit storage for high-precision second
 }
 
 template<typename Key, size_t cluster_size>
-inline misc::DateTime StreamedCache<Key, cluster_size>::unpack_date_stamp(char packed_date_stamp[13])
+inline misc::DateTime StreamedCache<Key, cluster_size>::unpack_date_stamp(unsigned char packed_date_stamp[13])
 {
     uint16_t year = *reinterpret_cast<uint16_t*>(packed_date_stamp);
     uint8_t month = packed_date_stamp[2] & 0xF;
@@ -1350,9 +1350,9 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
 
     m_cache_stream.seekp(cache_allocation_desc.first + m_sequence_overhead, std::ios::beg);
 
-    char packed_date_stamp[13U];
+    unsigned char packed_date_stamp[13U];
     pack_date_stamp(entry.m_date_stamp, packed_date_stamp);
-    m_cache_stream.write(packed_date_stamp, m_entry_record_overhead);
+    m_cache_stream.write(reinterpret_cast<char*>(packed_date_stamp), m_entry_record_overhead);
     if (isCompressed())
     {
         uint64_t uncompressed_data_size = entry.m_data_blob_to_be_cached.size();
@@ -1705,9 +1705,9 @@ inline void StreamedCache<Key, cluster_size>::remove_oldest_entry_record()
     StreamedCacheIndexTreeEntry<Key>* p_oldest_entry{ nullptr };
     for (StreamedCacheIndexTreeEntry<Key>& e : m_index)
     {
-        m_cache_stream.seekg(e.data_offset, std::ios::beg);
-        char packed_date_stamp[13];
-        m_cache_stream.read(packed_date_stamp, 13);
+        m_cache_stream.seekg(e.data_offset + m_sequence_overhead, std::ios::beg);
+        unsigned char packed_date_stamp[13];
+        m_cache_stream.read(reinterpret_cast<char*>(packed_date_stamp), 13);
         misc::DateTime unpacked_date_stamp = unpack_date_stamp(packed_date_stamp);
         if (unpacked_date_stamp <= oldest_entry_datestampt)
         {

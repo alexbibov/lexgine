@@ -554,7 +554,7 @@ public:
 
                 {
                     std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc };
-                    StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile, 1024 * 1024 * 10, StreamedCacheCompressionLevel::level0, false };
+                    StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile, 1024 * 1024 * 10, StreamedCacheCompressionLevel::level0, true };
 
                     for (int i = 0; i < 10; ++i)
                     {
@@ -584,13 +584,24 @@ public:
 						StreamedCache_KeyInt64_Cluster8KB::entry_type e{ 2, blob };
 						streamed_cache.addEntry(e);
 					}
+                    {
+                        DataBlob blob{ random_value_buffer + 9 * 262144U, 1048576U };
+                        StreamedCache_KeyInt64_Cluster8KB::entry_type e{ 25, blob };
+                        streamed_cache.addEntry(e);
+                    }
 
 					streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test3.gv");
 
                     for (int i = 9; i >= 0; --i)
                     {
-						SharedDataChunk chunk = streamed_cache.retrieveEntry(i != 5 ? i : 15);
-                        bool res = std::memcmp(chunk.data(), random_value_buffer + i * 262144U, 1048576) == 0;
+                        int j = i;
+                        if (i == 5) j = 15;
+                        if (i == 0) j = 25;
+
+                        int offset = i != 0 ? i : 9;
+
+						SharedDataChunk chunk = streamed_cache.retrieveEntry(j);
+                        bool res = std::memcmp(chunk.data(), random_value_buffer + offset * 262144U, 1048576) == 0;
 
                         Assert::IsTrue(res, (L"Memory chunk " + std::to_wstring(i) + L" failed comparison").c_str());
                     }
