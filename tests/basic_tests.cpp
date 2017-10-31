@@ -558,20 +558,38 @@ public:
 
                     for (int i = 0; i < 10; ++i)
                     {
-                        DataBlob blob{ random_value_buffer + i * 262144U, 1048576 };
+                        DataBlob blob{ random_value_buffer + i * 262144U, 1048576U };
                         StreamedCache_KeyInt64_Cluster8KB::entry_type e{ i, blob };
                         streamed_cache.addEntry(e);
                     }
-					streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test.gv");
+					streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test1.gv");
                 }
                 
                 {
                     std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out };
                     StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile };
 
+					streamed_cache.removeEntry(5);
+					streamed_cache.removeEntry(2);
+
+					streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test2.gv");
+
+					{
+						DataBlob blob{ random_value_buffer + 5 * 262144U, 1048576U };
+						StreamedCache_KeyInt64_Cluster8KB::entry_type e{ 15, blob };
+						streamed_cache.addEntry(e);
+					}
+					{
+						DataBlob blob{ random_value_buffer + 2 * 262144U, 1048576U };
+						StreamedCache_KeyInt64_Cluster8KB::entry_type e{ 2, blob };
+						streamed_cache.addEntry(e);
+					}
+
+					streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test3.gv");
+
                     for (int i = 9; i >= 0; --i)
                     {
-                        SharedDataChunk chunk = streamed_cache.retrieveEntry(i);
+						SharedDataChunk chunk = streamed_cache.retrieveEntry(i != 5 ? i : 15);
                         bool res = std::memcmp(chunk.data(), random_value_buffer + i * 262144U, 1048576) == 0;
 
                         Assert::IsTrue(res, (L"Memory chunk " + std::to_wstring(i) + L" failed comparison").c_str());
