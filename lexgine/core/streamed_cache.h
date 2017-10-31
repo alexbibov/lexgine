@@ -1701,7 +1701,7 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::optimize_rese
 template<typename Key, size_t cluster_size>
 inline void StreamedCache<Key, cluster_size>::remove_oldest_entry_record()
 {
-    misc::DateTime oldest_entry_datestampt{ 0xFF, 12, 31, 23, 59, 59.9999 };
+    misc::DateTime oldest_entry_datestampt{ 0xFFFF, 12, 31, 23, 59, 59.9999 };
     StreamedCacheIndexTreeEntry<Key>* p_oldest_entry{ nullptr };
     for (StreamedCacheIndexTreeEntry<Key>& e : m_index)
     {
