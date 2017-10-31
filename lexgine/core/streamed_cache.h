@@ -175,7 +175,11 @@ private:
     void right_rotate(size_t a, size_t b);
     void left_rotate(size_t a, size_t b);
 
-    std::tuple<size_t, size_t, bool> bst_delete(Key const& key);    //! standard BST deletion based on provided key
+    /*! standard BST deletion based on provided key. This function returns tuple containing indices of the node to be deleted, the node that 
+     is going to replace the node to be deleted (zero in case if the node to be deleted is a leaf node) and the index of the sibling node of the node to be deleted.
+     The fourth and the last item of the tuple will be set to 'true' if deletion was successful; otherwise it will be set to 'false'
+    */
+    std::tuple<size_t, size_t, size_t, bool> bst_delete(Key const& key);    
 
     std::pair<size_t, bool> bst_search(Key const& key) const;    //! retrieves address of the node having the given key. The second element of returned pair is 'true' if the node has been found and 'false' otherwise.
 
@@ -599,15 +603,14 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
     size_t parent_of_removed_node_idx = removed_node_sibling.parent_node;
     StreamedCacheIndexTreeEntry<Key>& parent_of_removed_node = m_index_tree[parent_of_removed_node_idx];
 
-
     if (removed_node.node_color == 0 || parent_of_removed_node.node_color == 0)
     {
-        // either the node to be removed or its parent is red (both cannot be red due to the RED-BLACK requirements)
-        parent_of_removed_node.node_color = 1;
+        // either the node to be removed or its parent are RED (both cannot be RED due to RED-BLACK structure assumptions)
+
     }
     else
     {
-        // both the node to be removed and its parent are black 
+        // both the node to be removed and its parent are BLACK 
         removed_node.node_color = 2;    // "2" means the node is double-black
 
         size_t current_node_idx = removed_node_idx;
@@ -888,16 +891,17 @@ inline void StreamedCacheIndex<Key, cluster_size>::left_rotate(size_t a, size_t 
 }
 
 template<typename Key, size_t cluster_size>
-inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key, cluster_size>::bst_delete(Key const& key)
+inline std::tuple<size_t, size_t, size_t, bool> StreamedCacheIndex<Key, cluster_size>::bst_delete(Key const& key)
 {
     auto deletion_result = bst_search(key);
     if (!deletion_result.second)
-        return std::make_tuple(static_cast<size_t>(0U), static_cast<size_t>(0U), false);
+        return std::make_tuple(static_cast<size_t>(0U), static_cast<size_t>(0U), static_cast<size_t>(0U), false);
 
 
     size_t node_to_delete_idx = deletion_result.first;
     size_t actually_removed_node_idx;
     size_t sibling_of_actually_removed_node_idx;
+    size_t replacing_node_idx{ 0U };
 
     StreamedCacheIndexTreeEntry<Key>& node_to_delete = m_index_tree[node_to_delete_idx];
     if (!node_to_delete.left_leaf && !node_to_delete.right_leaf)
@@ -927,6 +931,7 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key, cluster_size>::b
         size_t child_node_idx = node_to_delete.left_leaf
             ? node_to_delete.left_leaf
             : node_to_delete.right_leaf;
+        replacing_node_idx = child_node_idx;
         StreamedCacheIndexTreeEntry<Key>& child_node = m_index_tree[child_node_idx];
 
         if (node_to_delete_idx)
@@ -959,7 +964,7 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key, cluster_size>::b
             // then this child has to be RED and there are only two nodes left (including the root)
 
             node_to_delete.cache_entry_key = child_node.cache_entry_key;
-            node_to_delete.data_offset = node_to_delete.data_offset;
+            node_to_delete.data_offset = child_node.data_offset;
             node_to_delete.left_leaf = node_to_delete.right_leaf = 0U;
 
             child_node.to_be_deleted = true;
@@ -1017,7 +1022,7 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key, cluster_size>::b
     }
 
 
-    return std::make_tuple(actually_removed_node_idx, sibling_of_actually_removed_node_idx, true);
+    return std::make_tuple(actually_removed_node_idx, replacing_node_idx, sibling_of_actually_removed_node_idx, true);
 }
 
 template<typename Key, size_t cluster_size>
