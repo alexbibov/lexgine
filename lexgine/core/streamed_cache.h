@@ -233,7 +233,7 @@ public:
 
     SharedDataChunk retrieveEntry(Key const& entry_key) const;    //! retrieves an entry from the cache based on its key
 
-    void removeEntry(Key const& entry_key) const;    //! removes entry from the cache (and immediately from its associated stream) given its key
+    void removeEntry(Key const& entry_key);    //! removes entry from the cache (and immediately from its associated stream) given its key
 
     StreamedCacheIndex<Key, cluster_size> const& getIndex() const;    //! returns index tree of the cache
 
@@ -255,7 +255,7 @@ private:
 
 private:
     std::pair<size_t, bool> serialize_entry(StreamedCacheEntry<Key, cluster_size> const& entry);
-    std::pair<SharedDataChunk, size_t> deserialize_entry(Key const& entry_key) const;
+    std::pair<SharedDataChunk, size_t> deserialize_entry(size_t data_offset) const;
 
 private:
     static void pack_date_stamp(misc::DateTime const& date_stamp, char packed_date_stamp[13]);
@@ -1369,11 +1369,11 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
 }
 
 template<typename Key, size_t cluster_size>
-inline std::pair<SharedDataChunk, size_t> StreamedCache<Key, cluster_size>::deserialize_entry(Key const& entry_key) const
+inline std::pair<SharedDataChunk, size_t> StreamedCache<Key, cluster_size>::deserialize_entry(size_t data_offset) const
 {
-    size_t base_offset = m_index.get_cache_entry_data_offset_from_key(entry_key);
+    //size_t base_offset = m_index.get_cache_entry_data_offset_from_key(entry_key);
 
-    m_cache_stream.seekg(base_offset, std::ios::beg);
+    m_cache_stream.seekg(data_offset, std::ios::beg);
     uint64_t sequence_length; m_cache_stream.read(reinterpret_cast<char*>(&sequence_length), 8U);
     m_cache_stream.seekg(m_datestamp_size, std::ios::cur);    // skip the datestamp
     uint64_t uncompressed_entry_size{ sequence_length*cluster_size };
@@ -1381,7 +1381,7 @@ inline std::pair<SharedDataChunk, size_t> StreamedCache<Key, cluster_size>::dese
 
     SharedDataChunk output_data_chunk{ sequence_length*cluster_size };
     char* p_data = static_cast<char*>(output_data_chunk.data());
-    uint64_t cluster_base_offset{ base_offset + m_sequence_overhead + m_entry_record_overhead };
+    uint64_t cluster_base_offset{ data_offset + m_sequence_overhead + m_entry_record_overhead };
 	size_t reading_offset{ 0U };
     for (uint64_t i = 0; i < sequence_length; ++i)
     {
@@ -1862,7 +1862,7 @@ inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const
         return SharedDataChunk{};
     }
 
-    std::pair<SharedDataChunk, size_t> raw_data_chunk_and_uncompressed_size = deserialize_entry(entry_key);
+    std::pair<SharedDataChunk, size_t> raw_data_chunk_and_uncompressed_size = deserialize_entry(rv);
     if (static_cast<int>(m_compression_level) > 0)
     {
         // the data are compressed and should be inflated before getting returned to the caller
@@ -1929,7 +1929,7 @@ inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const
 }
 
 template<typename Key, size_t cluster_size>
-inline void StreamedCache<Key, cluster_size>::removeEntry(Key const& entry_key) const
+inline void StreamedCache<Key, cluster_size>::removeEntry(Key const& entry_key)
 {
     assert(!m_is_finalized);
 
