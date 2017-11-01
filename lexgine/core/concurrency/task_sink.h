@@ -33,7 +33,8 @@ private:
 
     std::atomic_bool m_exit_signal;    //!< becomes 'true' when the sink encounters an exit task, which has been successfully executed
     std::atomic_uint16_t m_exit_level;    //!< counts number of uncompleted frames, this is needed to control stopping of the main thread only when all slave threads have completed their jobs
-    
+    std::atomic_uint8_t m_num_threads_finished;    //!< number of threads finished their tasks
+
     /*!< equals 0 if all tasks have been executing without errors. Acquires non-zero value otherwise. 
      The acquired value stores pointer to the task graph node that yielded the error.
     */

@@ -42,6 +42,7 @@ TaskSink::TaskSink(TaskGraph const& source_task_graph, std::vector<std::ostream*
     m_task_graph_execution_busy_vector(max_frames_to_queue),
     m_exit_signal{ false },
     m_exit_level{ 0U },
+    m_num_threads_finished{ 0U },
     m_error_watchdog{ 0U },
     m_task_graph_end_execution_guarding_task{ new TaskGraphEndExecutionGuard{m_task_graph_execution_busy_vector, m_exit_level} }
 {
@@ -76,7 +77,9 @@ void TaskSink::run()
     }
 
     bool exit_signal;
-    while (!(exit_signal = m_exit_signal.load(std::memory_order_acquire)) || m_exit_level.load(std::memory_order_acquire) > 0)
+    uint64_t error_status{ 0x0 };
+    while (!(error_status = m_error_watchdog.load(std::memory_order_acquire))
+        && (!(exit_signal = m_exit_signal.load(std::memory_order_acquire)) || m_exit_level.load(std::memory_order_acquire) > 0))
     {
         for (uint16_t i = 0; i < m_task_graph_execution_busy_vector.size(); ++i)
         {
@@ -95,22 +98,20 @@ void TaskSink::run()
                     task->schedule(m_task_queue);
             }
         }
+    }
 
-        
-        // errors may occur at any time during execution
-        uint64_t error_status = 0x0;
-        if (error_status = m_error_watchdog.load(std::memory_order_acquire))
-        {
-            AbstractTask* p_failed_task = reinterpret_cast<AbstractTask*>(error_status);
-            Log::retrieve()->out("Task " + p_failed_task->getStringName() + " has failed during execution (" + p_failed_task->getErrorString()
-                + "). Worker thread logs may contain more details", LogMessageType::error);
+    m_task_queue.shutdown();
+    while (m_num_threads_finished.load(std::memory_order_acquire) < m_workers_list.size());    // wait until all workers are done with their tasks
+    m_num_threads_finished.store(0U, std::memory_order_release);    // reset "job done" semaphore
 
-            m_exit_signal.store(true, std::memory_order_release);
-            m_exit_level.store(0U, std::memory_order_release);
+    // errors may occur at any time during execution
+    if (error_status)
+    {
+        AbstractTask* p_failed_task = reinterpret_cast<AbstractTask*>(error_status);
+        Log::retrieve()->out("Task " + p_failed_task->getStringName() + " has failed during execution (" + p_failed_task->getErrorString()
+            + "). Worker thread logs may contain more details", LogMessageType::error);
 
-            throw lexgine::core::Exception{ "concurrent execution failed" };
-        }
-
+        throw lexgine::core::Exception{ "concurrent execution failed" };
     }
 
     Log::retrieve()->out("Main loop finished", LogMessageType::information);
@@ -130,7 +131,8 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
     }
 
     Optional<TaskGraphNode*> task;
-    while ((task = m_task_queue.dequeueTask()).isValid() || !m_exit_signal.load(std::memory_order_acquire) || m_exit_level.load(std::memory_order_acquire) > 0)
+    while (!m_error_watchdog.load(std::memory_order_acquire)
+        && ((task = m_task_queue.dequeueTask()).isValid() || !m_exit_signal.load(std::memory_order_acquire) || m_exit_level.load(std::memory_order_acquire) > 0))
     {
         if(task.isValid())
         {
@@ -150,5 +152,9 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
         }
     }
 
+    m_task_queue.shutdown();
+
     Log::shutdown();
+
+    ++m_num_threads_finished;
 }
