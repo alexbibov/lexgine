@@ -124,9 +124,9 @@ public:
                     queue.enqueueTask(nullptr);
                     ++tasks_produced;
                 }
-                production_finished = true;
 
                 queue.shutdown();
+                production_finished = true;
             };
 
             //! Consumes an element from the queue, simulates "work" by sleeping for 1ms, then consumes next element from the queue and so on
@@ -157,7 +157,7 @@ public:
                     }
                 }
 
-                queue.clearCache();
+                queue.shutdown();
                 consumption_thread_finished_work[thread_id] = true;
             };
 
@@ -554,7 +554,7 @@ public:
 
                 {
                     std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc };
-                    StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile, 1024 * 1024 * 10, StreamedCacheCompressionLevel::level9, true };
+                    StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile, 1024 * 1024 * 10, StreamedCacheCompressionLevel::level6, true };
 
                     for (int i = 0; i < 10; ++i)
                     {

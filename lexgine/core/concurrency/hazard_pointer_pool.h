@@ -113,6 +113,8 @@ public:
         , m_hp_list_tail{ m_hp_list_head }
 
 #ifdef _DEBUG
+        , m_dlist_length{ 0U }
+        , m_plist_length{ 0U }
         , m_num_hps{ 1U }
         , m_num_buffers_freed{ 0U }
 #endif
@@ -123,6 +125,8 @@ public:
 
     ~HazardPointerPool()
     {
+        cleanup();
+
         // remove hazard pointer pool cache
         HPListEntry* p_hp_next;
         while (p_hp_next = m_hp_list_head->next.load(std::memory_order_acquire))
@@ -131,8 +135,6 @@ public:
             m_hp_list_head = p_hp_next;
         }
         delete m_hp_list_head;
-
-        cleanup();
     }
 
     HazardPointerPool(HazardPointerPool const&) = delete;
@@ -232,27 +234,28 @@ public:
 
     /*!
      Cleans up the hazard pointer pool. This function must be called on each thread that was using the HP-pool before the thread is about to exit.
-     After this function is called the HP-pool cannot be longer used on the calling thread
+     After this function is called the HP-pool should be longer used on the calling thread
     */
     void cleanup()
     {
-        flush();    // remove data that might still be in the dlist
+        while(m_dlist_cardinality) flush();    // remove data that might still be in the dlist
 
         // clear dlist and plist caches
-        GCListEntry* p_pd_next;
-        while (p_pd_next = m_dlist_head->p_next)
+        GCListEntry* p_pd_next = m_dlist_head->p_next;
+        while (p_pd_next)
         {
-            delete m_dlist_head;
-            m_dlist_head = p_pd_next;
-        }
-        delete m_dlist_head;
+            GCListEntry* aux = p_pd_next;
+            p_pd_next = p_pd_next->p_next;
+            delete aux;
+        };
 
-        while (p_pd_next = m_plist_head->p_next)
+        p_pd_next = m_plist_head->p_next;
+        while (p_pd_next)
         {
-            delete m_plist_head;
-            m_plist_head = p_pd_next;
-        }
-        delete m_plist_head;
+            GCListEntry* aux = p_pd_next;
+            p_pd_next = p_pd_next->p_next;
+            delete aux;
+        };
     }
 
 
@@ -295,6 +298,12 @@ private:
         if (!p_list_tail->p_next)
         {
             p_list_tail->p_next = new GCListEntry{ p_hp_entry->value, nullptr, true };
+
+#ifdef _DEBUG
+            if (p_list_tail == m_dlist_tail) ++m_dlist_length;
+            if (p_list_tail == m_plist_tail) ++m_plist_length;
+#endif
+
             p_list_tail = p_list_tail->p_next;
         }
         else
@@ -370,12 +379,16 @@ private:
     HPListEntry* m_hp_list_head;    //!< "head" of the hazard pointer list. This value never changes after initialization
     std::atomic<HPListEntry*> m_hp_list_tail;    //!< "tail" of the hazard pointer list. This value gets updated in lock-free style
 
+    static thread_local GCListEntry m_dlist_head_instance, m_plist_head_instance;
+
     static thread_local GCListEntry* m_dlist_head, *m_dlist_tail;
     static thread_local GCListEntry* m_plist_head, *m_plist_tail;
 
     static thread_local uint32_t m_dlist_cardinality;
 
 #ifdef _DEBUG
+    std::atomic_uint32_t m_dlist_length;    //!< length of thread local deletion list
+    std::atomic_uint32_t m_plist_length;    //!< length of thread local P-list (list of pointers visible as hazardous to this thread)
     std::atomic_uint32_t m_num_hps;    //!< number of hazard pointers residing in the cache
     std::atomic_uint32_t m_num_buffers_freed;    //!< total number of buffers deallocated
 #endif
@@ -383,10 +396,13 @@ private:
 
 
 template<typename AllocatorInstance>
-thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_dlist_head = new HazardPointerPool<AllocatorInstance>::GCListEntry{ nullptr, nullptr, false };
+thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry HazardPointerPool<AllocatorInstance>::m_dlist_head_instance{ nullptr, nullptr, true };
 
 template<typename AllocatorInstance>
-thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_dlist_tail = { m_dlist_head };
+thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_dlist_head{ &m_dlist_head_instance };
+
+template<typename AllocatorInstance>
+thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_dlist_tail{ &m_dlist_head_instance };
 
 template<typename AllocatorInstance>
 thread_local uint32_t HazardPointerPool<AllocatorInstance>::m_dlist_cardinality = 0U;
@@ -394,10 +410,13 @@ thread_local uint32_t HazardPointerPool<AllocatorInstance>::m_dlist_cardinality 
 
 
 template<typename AllocatorInstance>
-thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_plist_head = new HazardPointerPool<AllocatorInstance>::GCListEntry{ nullptr, nullptr, false };
+thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry HazardPointerPool<AllocatorInstance>::m_plist_head_instance{ nullptr, nullptr, true };
 
 template<typename AllocatorInstance>
-thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_plist_tail = { m_plist_head };
+thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_plist_head{ &m_plist_head_instance };
+
+template<typename AllocatorInstance>
+thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardPointerPool<AllocatorInstance>::m_plist_tail{ &m_plist_head_instance };
 
 
 
