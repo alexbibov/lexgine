@@ -306,6 +306,7 @@ private:
     bool m_are_overwrites_allowed;
     bool m_endianness_conversion_required;
     bool m_is_finalized;
+    std::unique_ptr<DataChunk> m_aux_compression_buffer;
 };
 
 
@@ -1311,7 +1312,8 @@ inline size_t StreamedCache<Key, cluster_size>::align_to(size_t value, size_t al
 template<typename Key, size_t cluster_size>
 inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize_entry(StreamedCacheEntry<Key, cluster_size> const& entry)
 {
-    std::unique_ptr<DataBlob> blob_to_serialize_ptr{ nullptr };
+    void* p_data_to_serialize{ nullptr };
+    size_t compressed_entry_size;
     if (isCompressed())
     {
         // initialize zlib deflation stream
@@ -1353,11 +1355,12 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
             deflation_stream.next_in = static_cast<Bytef*>(entry.m_data_blob_to_be_cached.data());
             deflation_stream.avail_in = static_cast<uInt>(entry.m_data_blob_to_be_cached.size());
 
-            uLong deflated_entry_size = deflateBound(&deflation_stream, static_cast<uLong>(entry.m_data_blob_to_be_cached.size()));
+            uLong deflated_entry_max_size = deflateBound(&deflation_stream, static_cast<uLong>(entry.m_data_blob_to_be_cached.size()));
+            if (!m_aux_compression_buffer || m_aux_compression_buffer->size() < deflated_entry_max_size)
+                m_aux_compression_buffer.reset(new DataChunk{ 2 * deflated_entry_max_size });
 
-            blob_to_serialize_ptr.reset(new DataChunk{ static_cast<size_t>(deflated_entry_size) });
-            deflation_stream.next_out = static_cast<Bytef*>(blob_to_serialize_ptr->data());
-            deflation_stream.avail_out = deflated_entry_size;
+            deflation_stream.next_out = static_cast<Bytef*>(m_aux_compression_buffer->data());
+            deflation_stream.avail_out = static_cast<uInt>(m_aux_compression_buffer->size());
 
             if (deflate(&deflation_stream, Z_FINISH) != Z_STREAM_END)
             {
@@ -1372,14 +1375,18 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
                     misc::LogMessageType::error);
                 return std::make_pair(0U, false);
             }
+
+            p_data_to_serialize = m_aux_compression_buffer->data();
+            compressed_entry_size = deflation_stream.total_out;
         }
     }
     else
     {
-        blob_to_serialize_ptr.reset(new DataBlob{ entry.m_data_blob_to_be_cached.data(), entry.m_data_blob_to_be_cached.size() });
+        p_data_to_serialize = entry.m_data_blob_to_be_cached.data();
+        compressed_entry_size = entry.m_data_blob_to_be_cached.size();
     }
 
-    size_t entry_size = m_entry_record_overhead + blob_to_serialize_ptr->size();
+    size_t entry_size = m_entry_record_overhead + compressed_entry_size;
     std::pair<size_t, size_t> cache_allocation_desc = allocate_space_in_cache(entry_size);
     if (!cache_allocation_desc.second) return std::make_pair(0U, false);
 
@@ -1394,12 +1401,12 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
 
     uint64_t current_cluster_base_address{ cache_allocation_desc.first + m_sequence_overhead + m_entry_record_overhead };
     size_t num_bytes_to_write_into_current_cluster{ cluster_size - m_sequence_overhead - m_entry_record_overhead };
-    size_t total_bytes_left_to_write = blob_to_serialize_ptr->size();
+    size_t total_bytes_left_to_write = compressed_entry_size;
     size_t total_bytes_written{ 0U };
     while (total_bytes_left_to_write)
     {
         m_cache_stream.seekp(current_cluster_base_address, std::ios::beg);
-        m_cache_stream.write(static_cast<char*>(blob_to_serialize_ptr->data()) + total_bytes_written, 
+        m_cache_stream.write(static_cast<char*>(p_data_to_serialize) + total_bytes_written, 
             num_bytes_to_write_into_current_cluster);
 
         m_cache_stream.seekg(m_cache_stream.tellp());
