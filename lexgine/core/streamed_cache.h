@@ -272,14 +272,12 @@ private:
     void remove_oldest_entry_record();
 
 private:
-    StreamedCacheCompressionLevel m_compression_level;
-
     uint32_t const m_version = 0x10000;    //!< hi-word contains major version number; lo-word contains the minor version
     uint8_t const m_cluster_overhead = 8U;
     uint8_t const m_sequence_overhead = 8U;
     uint8_t const m_datestamp_size = 13U;
     uint8_t const m_uncompressed_size_record = 8U;
-    uint8_t m_entry_record_overhead;    // initialized in constructor that creates new cache
+    uint8_t const m_entry_record_overhead = m_uncompressed_size_record + m_datestamp_size;    // initialized in constructor that creates new cache
     uint8_t const m_eclt_entry_size = 8U;
 
     uint32_t const m_header_size =
@@ -304,8 +302,8 @@ private:
     size_t m_cache_body_size;
     StreamedCacheIndex<Key, cluster_size> m_index;
     std::vector<size_t> m_empty_cluster_table;
-    bool m_are_overwrites_allowed;   
-    z_stream m_zlib_stream;
+    StreamedCacheCompressionLevel m_compression_level;
+    bool m_are_overwrites_allowed;
     bool m_endianness_conversion_required;
     bool m_is_finalized;
 };
@@ -1316,27 +1314,64 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
     std::unique_ptr<DataBlob> blob_to_serialize_ptr{ nullptr };
     if (isCompressed())
     {
-        m_zlib_stream.next_in = static_cast<Bytef*>(entry.m_data_blob_to_be_cached.data());
-        m_zlib_stream.avail_in = static_cast<uInt>(entry.m_data_blob_to_be_cached.size());
+        // initialize zlib deflation stream
+        z_stream deflation_stream{};
 
-        uLong deflated_entry_size = deflateBound(&m_zlib_stream, static_cast<uLong>(entry.m_data_blob_to_be_cached.size()));
 
-        blob_to_serialize_ptr.reset(new DataChunk{ static_cast<size_t>(deflated_entry_size) });
-        m_zlib_stream.next_out = static_cast<Bytef*>(blob_to_serialize_ptr->data());
-        m_zlib_stream.avail_out = deflated_entry_size;
-
-        if (deflate(&m_zlib_stream, Z_FINISH) != Z_STREAM_END)
         {
-            misc::Log::retrieve()->out("Unable to compress entry record during serialization to streamed cache \""
-                + getStringName() + "\" (zlib deflate() error", misc::LogMessageType::error);
-            return std::make_pair(0U, false);
+            deflation_stream.zalloc = Z_NULL;
+            deflation_stream.zfree = Z_NULL;
+
+            int rv = deflateInit(&deflation_stream, static_cast<int>(m_compression_level));
+            if (rv != Z_OK)
+            {
+                switch (rv)
+                {
+                case Z_MEM_ERROR:
+                    misc::Log::retrieve()->out("Not enough memory to initialize zlib. The streamed cache \"" + getStringName() 
+                        + "\" will default to uncompressed state", misc::LogMessageType::exclamation);
+                    return std::make_pair(0U, false);
+
+                case Z_STREAM_ERROR:
+                    misc::Log::retrieve()->out("zlib was provided with incorrect compression level of \"" +
+                        std::to_string(static_cast<int>(m_compression_level)) + "\". The streamed cache \"" + getStringName() 
+                        + "\" will default to uncompressed state", misc::LogMessageType::exclamation);
+                    return std::make_pair(0U, false);
+
+                case Z_VERSION_ERROR:
+                    misc::Log::retrieve()->out("zlib binary version differs from the version assumed by the caller."
+                        " The streamed cache \"" + getStringName() 
+                        + "\" will default to uncompressed state", misc::LogMessageType::exclamation);
+                    return std::make_pair(0U, false);
+                }
+            }
         }
 
-        if (deflateEnd(&m_zlib_stream) != Z_OK)
+
+        // deflate
         {
-            misc::Log::retrieve()->out("Unable to release zlib deflation stream upon compression finalization of a data chunk",
-                misc::LogMessageType::error);
-            return std::make_pair(0U, false);
+            deflation_stream.next_in = static_cast<Bytef*>(entry.m_data_blob_to_be_cached.data());
+            deflation_stream.avail_in = static_cast<uInt>(entry.m_data_blob_to_be_cached.size());
+
+            uLong deflated_entry_size = deflateBound(&deflation_stream, static_cast<uLong>(entry.m_data_blob_to_be_cached.size()));
+
+            blob_to_serialize_ptr.reset(new DataChunk{ static_cast<size_t>(deflated_entry_size) });
+            deflation_stream.next_out = static_cast<Bytef*>(blob_to_serialize_ptr->data());
+            deflation_stream.avail_out = deflated_entry_size;
+
+            if (deflate(&deflation_stream, Z_FINISH) != Z_STREAM_END)
+            {
+                misc::Log::retrieve()->out("Unable to compress entry record during serialization to streamed cache \""
+                    + getStringName() + "\" (zlib deflate() error", misc::LogMessageType::error);
+                return std::make_pair(0U, false);
+            }
+
+            if (deflateEnd(&deflation_stream) != Z_OK)
+            {
+                misc::Log::retrieve()->out("Unable to release zlib deflation stream upon compression finalization of a data chunk",
+                    misc::LogMessageType::error);
+                return std::make_pair(0U, false);
+            }
         }
     }
     else
@@ -1352,12 +1387,10 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
 
     unsigned char packed_date_stamp[13U];
     pack_date_stamp(entry.m_date_stamp, packed_date_stamp);
-    m_cache_stream.write(reinterpret_cast<char*>(packed_date_stamp), m_entry_record_overhead);
-    if (isCompressed())
-    {
-        uint64_t uncompressed_data_size = entry.m_data_blob_to_be_cached.size();
-        m_cache_stream.write(reinterpret_cast<char*>(&uncompressed_data_size), 8U);
-    }
+    m_cache_stream.write(reinterpret_cast<char*>(packed_date_stamp), m_entry_record_overhead - m_uncompressed_size_record);
+
+    uint64_t uncompressed_data_size = entry.m_data_blob_to_be_cached.size();
+    m_cache_stream.write(reinterpret_cast<char*>(&uncompressed_data_size), m_uncompressed_size_record);
 
     uint64_t current_cluster_base_address{ cache_allocation_desc.first + m_sequence_overhead + m_entry_record_overhead };
     size_t num_bytes_to_write_into_current_cluster{ cluster_size - m_sequence_overhead - m_entry_record_overhead };
@@ -1383,13 +1416,10 @@ inline std::pair<size_t, bool> core::StreamedCache<Key, cluster_size>::serialize
 template<typename Key, size_t cluster_size>
 inline std::pair<SharedDataChunk, size_t> StreamedCache<Key, cluster_size>::deserialize_entry(size_t data_offset) const
 {
-    //size_t base_offset = m_index.get_cache_entry_data_offset_from_key(entry_key);
-
     m_cache_stream.seekg(data_offset, std::ios::beg);
     uint64_t sequence_length; m_cache_stream.read(reinterpret_cast<char*>(&sequence_length), 8U);
     m_cache_stream.seekg(m_datestamp_size, std::ios::cur);    // skip the datestamp
-    uint64_t uncompressed_entry_size{ sequence_length*cluster_size };
-    if (isCompressed()) m_cache_stream.read(reinterpret_cast<char*>(&uncompressed_entry_size), 8U);
+    uint64_t uncompressed_entry_size; m_cache_stream.read(reinterpret_cast<char*>(&uncompressed_entry_size), 8U);
 
     SharedDataChunk output_data_chunk{ sequence_length*cluster_size };
     char* p_data = static_cast<char*>(output_data_chunk.data());
@@ -1405,9 +1435,6 @@ inline std::pair<SharedDataChunk, size_t> StreamedCache<Key, cluster_size>::dese
 		reading_offset += num_bytes_to_read;
         m_cache_stream.read(reinterpret_cast<char*>(&cluster_base_offset), 8U);
     }
-
-    //m_index.remove_entry(entry_key);
-    //m_empty_cluster_table.push_back(base_offset);
 
     return std::make_pair(output_data_chunk, static_cast<size_t>(uncompressed_entry_size));
 }
@@ -1723,14 +1750,13 @@ inline void StreamedCache<Key, cluster_size>::remove_oldest_entry_record()
 template<typename Key, size_t cluster_size>
 inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_stream, size_t capacity, 
     StreamedCacheCompressionLevel compression_level/* = StreamCacheCompressionLevel::level0*/, bool are_overwrites_allowed/* = false*/):
-    m_compression_level{ compression_level },
-    m_entry_record_overhead{ static_cast<uint8_t>(static_cast<int>(compression_level) > 0 ? m_datestamp_size + m_uncompressed_size_record : m_datestamp_size) },
     m_cache_stream{ cache_io_stream },
     m_max_cache_size{ 
     align_to(
         align_to(capacity, cluster_size)/cluster_size*(cluster_size + m_cluster_overhead + m_sequence_overhead + m_entry_record_overhead),
         cluster_size + m_cluster_overhead) },
     m_cache_body_size{ 0U },
+    m_compression_level{ compression_level },
     m_are_overwrites_allowed{ are_overwrites_allowed },
     m_is_finalized{ false }
 {
@@ -1738,39 +1764,6 @@ inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_s
     {
         misc::Log::retrieve()->out("Unable to open cache IO stream", misc::LogMessageType::error);
         return;
-    }
-
-    if (isCompressed())
-    {
-        m_zlib_stream.zalloc = Z_NULL;
-        m_zlib_stream.zfree = Z_NULL;
-
-        int rv = deflateInit(&m_zlib_stream, static_cast<int>(m_compression_level));
-        if (rv != Z_OK)
-        {
-            m_compression_level = StreamedCacheCompressionLevel::level0;
-            m_entry_record_overhead = m_datestamp_size;
-            m_max_cache_size = align_to(m_max_cache_size - m_uncompressed_size_record*cluster_size, cluster_size + m_cluster_overhead);
-            switch (rv)
-            {
-            case Z_MEM_ERROR:
-                misc::Log::retrieve()->out("Not enough memory to initialize zlib. The streamed cache \"" + getStringName() +
-                    "\" will default to uncompressed state", misc::LogMessageType::exclamation);
-                break;
-
-            case Z_STREAM_ERROR:
-                misc::Log::retrieve()->out("zlib was provided with incorrect compression level of \"" +
-                    std::to_string(static_cast<int>(m_compression_level)) + "\". The streamed cache \"" + getStringName() +
-                    "\" will default to uncompressed state", misc::LogMessageType::exclamation);
-                break;
-
-            case Z_VERSION_ERROR:
-                misc::Log::retrieve()->out("zlib binary version differs from the version assumed by the caller."
-                    " The streamed cache \"" + getStringName() +
-                    "\" will default to uncompressed state", misc::LogMessageType::exclamation);
-                break;
-            }
-        }
     }
 }
 
@@ -1788,7 +1781,6 @@ inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_s
     }
 
     load_service_data();
-    m_entry_record_overhead = static_cast<int>(m_compression_level) > 0 ? m_datestamp_size + m_uncompressed_size_record : m_datestamp_size;
 }
 
 template<typename Key, size_t cluster_size>
