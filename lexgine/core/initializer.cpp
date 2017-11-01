@@ -60,7 +60,7 @@ bool Initializer::initializeEnvironment(
         wchar_t host_computer_name[MAX_COMPUTERNAME_LENGTH + 1];
         DWORD host_computer_name_length;
         if (!GetComputerName(host_computer_name, &host_computer_name_length))
-            wcscpy_s(host_computer_name, L"Unknown host system name");
+            wcscpy_s(host_computer_name, L"UNKNOWN_HOST");
 
         std::string log_name{ std::string{ PROJECT_CODE_NAME } +" v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
         + std::to_string(PROJECT_VERSION_MINOR) + " rev." + std::to_string(PROJECT_VERSION_REVISION)
