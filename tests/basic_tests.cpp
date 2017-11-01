@@ -543,7 +543,7 @@ public:
             {
                 std::default_random_engine rand_eng{ static_cast<unsigned int>(
                     std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()) };
-                std::uniform_int_distribution<uint32_t> distribution{ 0, 0xFFFFFFFF };
+                std::uniform_int_distribution<uint32_t> distribution{ 0, 5 };
                 uint32_t* random_value_buffer = new uint32_t[2621440];    // 10MB buffer
 
                 for (uint32_t i = 0; i < 2621440; ++i)
