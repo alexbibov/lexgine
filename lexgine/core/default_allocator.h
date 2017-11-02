@@ -12,7 +12,9 @@ public:
     //! Allocates new object of type T from the heap memory using default constructor
     address_type allocate()
     {
-        return address_type{ new DefaultAllocatorMemoryBlock{} };
+        auto& rv = address_type{ new DefaultAllocatorMemoryBlock{} };
+        rv->size = sizeof(DefaultAllocatorMemoryBlock);
+        return rv;
     }
 
     //! Removes the object instance at the address provided from the heap and guarantees that the object gets properly destructed

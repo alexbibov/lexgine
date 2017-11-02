@@ -139,7 +139,7 @@ public:
      buffer may be slightly less then the value provided to this function as the latter gets aligned to the size of certain internal structure representing
      single entry of the index tree. Call getMaxAllowedRedundancy() to get factual redundancy value applied to the index tree buffer
     */
-    void setMaxAllowedRedundancy(size_t max_redundancy_in_bytes);
+    void setMaxAllowedRedundancy(size_t max_redundancy_in_bytes) const;
 
     size_t getSize() const;    //! returns total number of fields stored in the index tree
 
@@ -147,11 +147,11 @@ public:
 
     bool isEmpty() const;    //! returns 'true' if the index is empty; returns 'false' otherwise
 
-	/*! Generates representation of the underlying RED-BLACK tree structure using DOT graph description language and 
-	 stores this representation into provided destination file. This function is useful for debugging purposes and 
-	 for analyzing cached content as well as associated look-up overhead
-	*/
-	void generateDOTRepresentation(std::string const& destination_file) const;
+    /*! Generates representation of the underlying RED-BLACK tree structure using DOT graph description language and 
+     stores this representation into provided destination file. This function is useful for debugging purposes and 
+     for analyzing cached content as well as associated look-up overhead
+    */
+    void generateDOTRepresentation(std::string const& destination_file) const;
 
     iterator begin();
     iterator end();
@@ -189,7 +189,7 @@ private:
     size_t const m_key_size = Key::serialized_size;
     std::vector<StreamedCacheIndexTreeEntry<Key>> m_index_tree;
     size_t m_current_index_redundant_growth_pressure = 0U;
-    size_t m_max_index_redundant_growth_pressure = 1000U;    //!< maximal allowed amount of unused entries in the index tree buffer, after which the buffer is rebuilt
+    size_t mutable m_max_index_redundant_growth_pressure = 1000U;    //!< maximal allowed amount of unused entries in the index tree buffer, after which the buffer is rebuilt
     size_t m_number_of_entries = 0U;    //!< number of living entities in the index tree (size of the tree excluding the entries that are marked as "to be deleted")
 };
 
@@ -337,7 +337,10 @@ struct Int64Key final
     bool operator==(Int64Key const& other) const { return value == other.value; }
 };
 
+
+using StreamedCache_KeyInt64_Cluster16KB = StreamedCache<Int64Key, 16384>;
 using StreamedCache_KeyInt64_Cluster8KB = StreamedCache<Int64Key, 8192>;
+using StreamedCache_KeyInt64_Cluster4KB = StreamedCache<Int64Key, 4096>;
 
 
 template<typename Key, size_t cluster_size>
@@ -362,9 +365,10 @@ inline size_t StreamedCacheIndex<Key, cluster_size>::getMaxAllowedRedundancy() c
 }
 
 template<typename Key, size_t cluster_size>
-inline void StreamedCacheIndex<Key, cluster_size>::setMaxAllowedRedundancy(size_t max_redundancy_in_bytes)
+inline void StreamedCacheIndex<Key, cluster_size>::setMaxAllowedRedundancy(size_t max_redundancy_in_bytes) const
 {
     m_max_index_redundant_growth_pressure = max_redundancy_in_bytes / StreamedCacheIndexTreeEntry<Key>::serialized_size;
+
 }
 
 template<typename Key, size_t cluster_size>
@@ -388,39 +392,39 @@ inline bool StreamedCacheIndex<Key, cluster_size>::isEmpty() const
 template<typename Key, size_t cluster_size>
 inline void StreamedCacheIndex<Key, cluster_size>::generateDOTRepresentation(std::string const& destination_file) const
 {
-	std::ofstream ofile{ destination_file };
-	if (!ofile)
-	{
-		misc::Log::retrieve()->out("Unable to open destination file \""
-			+ destination_file + "\" to store DOT representation of the index tree", misc::LogMessageType::error);
-		return;
-	}
+    std::ofstream ofile{ destination_file };
+    if (!ofile)
+    {
+        misc::Log::retrieve()->out("Unable to open destination file \""
+            + destination_file + "\" to store DOT representation of the index tree", misc::LogMessageType::error);
+        return;
+    }
 
-	ofile << "digraph {" << std::endl;
-	ofile << "node[style=filled];" << std::endl;
-	for (StreamedCacheIndexTreeEntry<Key>& n : *this)
-	{
-		std::string current_node_name{ "node" + std::to_string(n.data_offset) };
-		ofile << current_node_name << "[label=" << n.cache_entry_key.toString() << ", "
-			<< "shape=circle, fontcolor=white, fillcolor=" << (n.node_color ? "black];" : "red];")
-			<< std::endl;
-	}
-	for (StreamedCacheIndexTreeEntry<Key>& n : *this)
-	{
-		if(n.left_leaf)
-		{
-			ofile << "node" << std::to_string(n.data_offset) << "->"
-				<< "node" << std::to_string(m_index_tree[n.left_leaf].data_offset) << ";" << std::endl;
-		}
+    ofile << "digraph {" << std::endl;
+    ofile << "node[style=filled];" << std::endl;
+    for (StreamedCacheIndexTreeEntry<Key>& n : *this)
+    {
+        std::string current_node_name{ "node" + std::to_string(n.data_offset) };
+        ofile << current_node_name << "[label=" << n.cache_entry_key.toString() << ", "
+            << "shape=circle, fontcolor=white, fillcolor=" << (n.node_color ? "black];" : "red];")
+            << std::endl;
+    }
+    for (StreamedCacheIndexTreeEntry<Key>& n : *this)
+    {
+        if(n.left_leaf)
+        {
+            ofile << "node" << std::to_string(n.data_offset) << "->"
+                << "node" << std::to_string(m_index_tree[n.left_leaf].data_offset) << ";" << std::endl;
+        }
 
-		if(n.right_leaf)
-		{
-			ofile << "node" << std::to_string(n.data_offset) << "->"
-				<< "node" << std::to_string(m_index_tree[n.right_leaf].data_offset) << ";" << std::endl;
-		}
-	}
+        if(n.right_leaf)
+        {
+            ofile << "node" << std::to_string(n.data_offset) << "->"
+                << "node" << std::to_string(m_index_tree[n.right_leaf].data_offset) << ";" << std::endl;
+        }
+    }
 
-	ofile << "}" << std::endl;
+    ofile << "}" << std::endl;
 }
 
 template<typename Key, size_t cluster_size>
@@ -805,15 +809,15 @@ inline void StreamedCacheIndex<Key, cluster_size>::right_rotate(size_t a, size_t
 
         swap_values(node_b.left_leaf, node_a.left_leaf);
         m_index_tree[node_b.left_leaf].parent_node = 0;
-		if (node_a.left_leaf) m_index_tree[node_a.left_leaf].parent_node = a;
+        if (node_a.left_leaf) m_index_tree[node_a.left_leaf].parent_node = a;
 
         swap_values(node_a.right_leaf, node_a.left_leaf);
-		if (node_a.left_leaf)
-		{
-			StreamedCacheIndexTreeEntry<Key>& n = m_index_tree[node_a.left_leaf];
-			n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
-			n.parent_node = a;
-		}
+        if (node_a.left_leaf)
+        {
+            StreamedCacheIndexTreeEntry<Key>& n = m_index_tree[node_a.left_leaf];
+            n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
+            n.parent_node = a;
+        }
     }
     else
     {
@@ -823,20 +827,20 @@ inline void StreamedCacheIndex<Key, cluster_size>::right_rotate(size_t a, size_t
         node_a.parent_node = node_b.parent_node;
         node_b.parent_node = a;
 
-		if (node_a.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child)
-			m_index_tree[node_a.parent_node].left_leaf = a;
-		else
-			m_index_tree[node_a.parent_node].right_leaf = a;
+        if (node_a.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child)
+            m_index_tree[node_a.parent_node].left_leaf = a;
+        else
+            m_index_tree[node_a.parent_node].right_leaf = a;
         
-		node_b.left_leaf = node_a.right_leaf;
+        node_b.left_leaf = node_a.right_leaf;
         node_a.right_leaf = b;
 
-		if(node_b.left_leaf)
-		{
-			StreamedCacheIndexTreeEntry<Key>& n = m_index_tree[node_b.left_leaf];
-			n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
-			n.parent_node = b;
-		}
+        if(node_b.left_leaf)
+        {
+            StreamedCacheIndexTreeEntry<Key>& n = m_index_tree[node_b.left_leaf];
+            n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
+            n.parent_node = b;
+        }
     }
 }
 
@@ -859,15 +863,15 @@ inline void StreamedCacheIndex<Key, cluster_size>::left_rotate(size_t a, size_t 
 
         swap_values(node_a.right_leaf, node_b.right_leaf);
         m_index_tree[node_a.right_leaf].parent_node = 0;
-		if (node_b.right_leaf) m_index_tree[node_b.right_leaf].parent_node = b;
+        if (node_b.right_leaf) m_index_tree[node_b.right_leaf].parent_node = b;
 
         swap_values(node_b.left_leaf, node_b.right_leaf);
-		if (node_b.right_leaf)
-		{
-			StreamedCacheIndexTreeEntry<Key>& n = m_index_tree[node_b.right_leaf];
-			n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
-			n.parent_node = b;
-		}
+        if (node_b.right_leaf)
+        {
+            StreamedCacheIndexTreeEntry<Key>& n = m_index_tree[node_b.right_leaf];
+            n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
+            n.parent_node = b;
+        }
     }
     else
     {
@@ -877,20 +881,20 @@ inline void StreamedCacheIndex<Key, cluster_size>::left_rotate(size_t a, size_t 
         node_b.parent_node = node_a.parent_node;
         node_a.parent_node = b;
 
-		if (node_b.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child)
-			m_index_tree[node_b.parent_node].left_leaf = b;
-		else
-			m_index_tree[node_b.parent_node].right_leaf = b;
+        if (node_b.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child)
+            m_index_tree[node_b.parent_node].left_leaf = b;
+        else
+            m_index_tree[node_b.parent_node].right_leaf = b;
 
         node_a.right_leaf = node_b.left_leaf; 
         node_b.left_leaf = a;
 
-		if(node_a.right_leaf)
-		{
-			StreamedCacheIndexTreeEntry<Key>& n = m_index_tree[node_a.right_leaf];
-			n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
-			n.parent_node = a;
-		}
+        if(node_a.right_leaf)
+        {
+            StreamedCacheIndexTreeEntry<Key>& n = m_index_tree[node_a.right_leaf];
+            n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
+            n.parent_node = a;
+        }
     }
 }
 
@@ -1186,34 +1190,34 @@ inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterato
     if (m_is_at_beginning)
         throw std::out_of_range{ "index tree iterator is out of range" };
 
-	std::vector<StreamedCacheIndexTreeEntry<Key>>& index_tree = *m_p_target_index_tree;
+    std::vector<StreamedCacheIndexTreeEntry<Key>>& index_tree = *m_p_target_index_tree;
 
-	if (m_has_reached_end)
-	{
-		m_current_index = 0U;
-		m_has_reached_end = false;
-	}
-	else
-	{
-		while (m_current_index 
-			&& (index_tree[m_current_index].inheritance 
-				== StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child
-			|| !index_tree[index_tree[m_current_index].parent_node].left_leaf))
-		{
-			m_current_index = index_tree[m_current_index].parent_node;
-		}
+    if (m_has_reached_end)
+    {
+        m_current_index = 0U;
+        m_has_reached_end = false;
+    }
+    else
+    {
+        while (m_current_index 
+            && (index_tree[m_current_index].inheritance 
+                == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child
+            || !index_tree[index_tree[m_current_index].parent_node].left_leaf))
+        {
+            m_current_index = index_tree[m_current_index].parent_node;
+        }
 
-		if (!m_current_index) 
-		{
-			m_is_at_beginning = true;
-			return *this;
-		}
+        if (!m_current_index) 
+        {
+            m_is_at_beginning = true;
+            return *this;
+        }
 
-		m_current_index = index_tree[index_tree[m_current_index].parent_node].left_leaf;
-	}
+        m_current_index = index_tree[index_tree[m_current_index].parent_node].left_leaf;
+    }
 
-	while (index_tree[m_current_index].right_leaf)
-		m_current_index = index_tree[m_current_index].right_leaf;
+    while (index_tree[m_current_index].right_leaf)
+        m_current_index = index_tree[m_current_index].right_leaf;
 
     return *this;
 }
@@ -1431,15 +1435,15 @@ inline std::pair<SharedDataChunk, size_t> StreamedCache<Key, cluster_size>::dese
     SharedDataChunk output_data_chunk{ sequence_length*cluster_size };
     char* p_data = static_cast<char*>(output_data_chunk.data());
     uint64_t cluster_base_offset{ data_offset + m_sequence_overhead + m_entry_record_overhead };
-	size_t reading_offset{ 0U };
+    size_t reading_offset{ 0U };
     for (uint64_t i = 0; i < sequence_length; ++i)
     {
         m_cache_stream.seekg(cluster_base_offset, std::ios::beg);
-		size_t num_bytes_to_read{ i == 0
-			? cluster_size - m_sequence_overhead - m_entry_record_overhead
-			: cluster_size };
+        size_t num_bytes_to_read{ i == 0
+            ? cluster_size - m_sequence_overhead - m_entry_record_overhead
+            : cluster_size };
         m_cache_stream.read(p_data + reading_offset, num_bytes_to_read);
-		reading_offset += num_bytes_to_read;
+        reading_offset += num_bytes_to_read;
         m_cache_stream.read(reinterpret_cast<char*>(&cluster_base_offset), 8U);
     }
 
@@ -1579,16 +1583,16 @@ inline void StreamedCache<Key, cluster_size>::load_index_data(size_t index_tree_
     m_cache_stream.seekg(m_header_size + m_cache_body_size, std::ios::beg);
     size_t num_entries_in_index_tree = index_tree_size_in_bytes / StreamedCacheIndexTreeEntry<Key>::serialized_size;
     DataChunk index_data_blob{ StreamedCacheIndexTreeEntry<Key>::serialized_size };
-	size_t num_alive_entries{ 0U };
+    size_t num_alive_entries{ 0U };
     for (size_t i = 0; i < num_entries_in_index_tree; ++i)
     {
         m_cache_stream.read(static_cast<char*>(index_data_blob.data()), index_data_blob.size());
         StreamedCacheIndexTreeEntry<Key> e{};
         e.deserialize_from_blob(index_data_blob.data());
         m_index.m_index_tree.push_back(e);
-		if (!e.to_be_deleted) ++num_alive_entries;
+        if (!e.to_be_deleted) ++num_alive_entries;
     }
-	m_index.m_number_of_entries = num_alive_entries;
+    m_index.m_number_of_entries = num_alive_entries;
 }
 
 template<typename Key, size_t cluster_size>

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.16
+VisualStudioVersion = 15.0.27004.2005
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lexgine", "lexgine\lexgine.vcxproj", "{5DC120BC-E2B4-454D-82ED-565E3A9A9C50}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -30,6 +30,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lua", "3rd_party\lua\lua.vcxproj", "{36F390F1-9DBA-4785-9B15-046B6C761258}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "3rd_party\zlib\zlib.vcxproj", "{BA5147B4-8629-4A36-A89D-821A0AAD4D1E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3rd_party", "3rd_party", "{00FC0530-0CC9-476D-8DC9-17FC061C4516}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -95,5 +97,10 @@ Global
 		{4C3B130F-6923-4609-9279-AB64744A43C6} = {D6B5F646-9963-45EB-BEB9-A49106F00646}
 		{B8B8490D-8614-4D11-9985-FAD365069DBC} = {11E16777-7FA1-4633-8A5C-ACEA8097BB65}
 		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5} = {D6B5F646-9963-45EB-BEB9-A49106F00646}
+		{36F390F1-9DBA-4785-9B15-046B6C761258} = {00FC0530-0CC9-476D-8DC9-17FC061C4516}
+		{BA5147B4-8629-4A36-A89D-821A0AAD4D1E} = {00FC0530-0CC9-476D-8DC9-17FC061C4516}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1C75400B-E3B6-452D-B08F-380F3B915F4B}
 	EndGlobalSection
 EndGlobal

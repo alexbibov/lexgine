@@ -562,35 +562,35 @@ public:
                         StreamedCache_KeyInt64_Cluster8KB::entry_type e{ i, blob };
                         streamed_cache.addEntry(e);
                     }
-					streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test1.gv");
+                    streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test1.gv");
                 }
                 
                 {
                     std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out };
                     StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile };
 
-					streamed_cache.removeEntry(5);
-					streamed_cache.removeEntry(2);
+                    streamed_cache.removeEntry(5);
+                    streamed_cache.removeEntry(2);
 
-					streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test2.gv");
+                    streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test2.gv");
 
-					{
-						DataBlob blob{ random_value_buffer + 5 * 262144U, 1048576U };
-						StreamedCache_KeyInt64_Cluster8KB::entry_type e{ 15, blob };
-						streamed_cache.addEntry(e);
-					}
-					{
-						DataBlob blob{ random_value_buffer + 2 * 262144U, 1048576U };
-						StreamedCache_KeyInt64_Cluster8KB::entry_type e{ 2, blob };
-						streamed_cache.addEntry(e);
-					}
+                    {
+                        DataBlob blob{ random_value_buffer + 5 * 262144U, 1048576U };
+                        StreamedCache_KeyInt64_Cluster8KB::entry_type e{ 15, blob };
+                        streamed_cache.addEntry(e);
+                    }
+                    {
+                        DataBlob blob{ random_value_buffer + 2 * 262144U, 1048576U };
+                        StreamedCache_KeyInt64_Cluster8KB::entry_type e{ 2, blob };
+                        streamed_cache.addEntry(e);
+                    }
                     {
                         DataBlob blob{ random_value_buffer + 9 * 262144U, 1048576U };
                         StreamedCache_KeyInt64_Cluster8KB::entry_type e{ 25, blob };
                         streamed_cache.addEntry(e);
                     }
 
-					streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test3.gv");
+                    streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test3.gv");
 
                     for (int i = 9; i >= 0; --i)
                     {
@@ -600,12 +600,77 @@ public:
 
                         int offset = i != 0 ? i : 9;
 
-						SharedDataChunk chunk = streamed_cache.retrieveEntry(j);
+                        SharedDataChunk chunk = streamed_cache.retrieveEntry(j);
                         bool res = std::memcmp(chunk.data(), random_value_buffer + offset * 262144U, 1048576) == 0;
 
                         Assert::IsTrue(res, (L"Memory chunk " + std::to_wstring(i) + L" failed comparison").c_str());
                     }
                 }
+
+                delete[] random_value_buffer;
+            }
+
+            Initializer::shutdownEnvironment();
+        }
+
+
+        TEST_METHOD(StreamedCacheExtensiveTest)
+        {
+            using namespace lexgine::core;
+            using namespace lexgine::core::misc;
+
+            Initializer::initializeEnvironment("../..", "settings/");
+
+            {
+                size_t const test_cache_size{ 26214400U };    // 100 megabytes
+                size_t const single_chunk_size{ 16384U };    // 1600 chunks all together
+                size_t const num_chunks = test_cache_size / single_chunk_size;
+                size_t const num_secondary_iterations = 1000;
+                size_t const num_deletion_operations_each_iter = 100;
+                size_t const num_write_operations_each_iter = 150;
+                size_t const initial_cache_redundancy = 50;
+
+
+                std::default_random_engine rand_eng{ static_cast<unsigned int>(
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()) };
+                std::uniform_int_distribution<uint32_t> distribution{ 0, 0xFFFFFFFF };
+
+                uint32_t* random_value_buffer = new uint32_t[test_cache_size + single_chunk_size * initial_cache_redundancy];
+                for (uint32_t i = 0; i < test_cache_size + single_chunk_size * initial_cache_redundancy; ++i)
+                    random_value_buffer[i] = distribution(rand_eng);
+
+
+                // Populate cache with some added cache pressure
+                {
+                    std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc };
+                    StreamedCache_KeyInt64_Cluster4KB streamed_cache{ iofile, test_cache_size * sizeof(uint32_t), StreamedCacheCompressionLevel::level6, true };
+                    streamed_cache.getIndex().setMaxAllowedRedundancy(100 * 1024);
+
+                    // Note that the first 10 chunks should be removed from the cache
+                    for (size_t i = 0; i < num_chunks + initial_cache_redundancy; ++i)
+                    {
+                        DataBlob b{ random_value_buffer + i*single_chunk_size, single_chunk_size * sizeof(uint32_t) };
+                        StreamedCache_KeyInt64_Cluster4KB::entry_type e{ i, b };
+                        streamed_cache.addEntry(e);
+                    }
+
+                    streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__extensive_test1.gv");
+                }
+
+
+                // Load the populated cache back
+                {
+                    std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out };
+                    StreamedCache_KeyInt64_Cluster4KB streamed_cache{ iofile };
+
+
+
+                }
+
+
+
+
+
 
                 delete[] random_value_buffer;
             }
