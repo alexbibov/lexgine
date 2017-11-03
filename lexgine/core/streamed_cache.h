@@ -592,8 +592,12 @@ inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint
 template<typename Key, size_t cluster_size>
 inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
 {
+    assert(m_index_tree[0].node_color);    // root cannot become RED
+
     std::tuple<size_t, size_t, bool> d_s_and_success_flag = bst_delete(key);
     if (!std::get<2>(d_s_and_success_flag)) return false;
+
+    assert(m_index_tree[0].node_color);    // root cannot become RED
 
 
     size_t replaced_node_idx = std::get<0>(d_s_and_success_flag);
@@ -607,6 +611,8 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
         // we get here iff the node actually being removed is a leaf (iff it's RED) or a single-child parent (must be BLACK with RED child, which is necessarily a leaf node)
         if (replaced_node.right_leaf) m_index_tree[replaced_node.right_leaf].node_color = 1;
         if (replaced_node.left_leaf) m_index_tree[replaced_node.left_leaf].node_color = 1;
+
+        assert(m_index_tree[0].node_color);    // root cannot become RED
     }
     else
     {
@@ -651,6 +657,8 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
 
                     left_rotate(current_node_sibling_idx, r_idx);
                     right_rotate(r_idx, parent_of_current_node_idx);
+
+                    assert(m_index_tree[0].node_color);    // root cannot become RED
                 }
                 else if (T1 && T2)
                 {
@@ -660,6 +668,8 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
                     current_node.node_color = 1;
 
                     right_rotate(current_node_sibling_idx, parent_of_current_node_idx);
+
+                    assert(m_index_tree[0].node_color);    // root cannot become RED
                 }
                 else if (!T1 && T2)
                 {
@@ -673,6 +683,8 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
 
                     right_rotate(r_idx, current_node_sibling_idx);
                     left_rotate(parent_of_current_node_idx, r_idx);
+
+                    assert(m_index_tree[0].node_color);    // root cannot become RED
                 }
                 else if (!T1 && T3)
                 {
@@ -682,6 +694,8 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
                     current_node.node_color = 1;
 
                     left_rotate(parent_of_current_node_idx, current_node_sibling_idx);
+
+                    assert(m_index_tree[0].node_color);    // root cannot become RED
                 }
                 else
                 {
@@ -696,6 +710,8 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
                         parent_of_current_node.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child
                         ? m_index_tree[parent_of_current_node_idx].right_leaf
                         : m_index_tree[parent_of_current_node_idx].left_leaf;
+
+                    assert(m_index_tree[0].node_color);    // root cannot become RED
                 }
             }
             else
@@ -708,6 +724,8 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
                     right_rotate(current_node_sibling_idx, parent_of_current_node_idx);
                     swap_values(current_node_sibling.node_color, parent_of_current_node.node_color);
                     current_node_sibling_idx = parent_of_current_node.left_leaf;
+
+                    assert(m_index_tree[0].node_color);    // root cannot become RED
                 }
                 else
                 {
@@ -715,6 +733,8 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
                     left_rotate(parent_of_current_node_idx, current_node_sibling_idx);
                     swap_values(parent_of_current_node.node_color, current_node_sibling.node_color);
                     current_node_sibling_idx = parent_of_current_node.right_leaf;
+
+                    assert(m_index_tree[0].node_color);    // root cannot become RED
                 }
             }
         }

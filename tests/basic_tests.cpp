@@ -699,6 +699,8 @@ public:
                                 streamed_cache.addEntry(e);
                             }
                         }
+
+                        streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__extensive_test2.gv");
                     }
 
                     std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out };
