@@ -642,36 +642,46 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
                 if (T1 && T3)
                 {
                     // left-right case
+
                     size_t r_idx = current_node_sibling.right_leaf;
-                    left_rotate(current_node_sibling_idx, r_idx);
-                    right_rotate(r_idx, parent_of_current_node_idx);
+
                     m_index_tree[r_idx].node_color = parent_of_current_node.node_color;
                     parent_of_current_node.node_color = 1;
                     current_node.node_color = 1;
+
+                    left_rotate(current_node_sibling_idx, r_idx);
+                    right_rotate(r_idx, parent_of_current_node_idx);
                 }
                 else if (T1 && T2)
                 {
                     // left-left case
-                    right_rotate(current_node_sibling_idx, parent_of_current_node_idx);
+
                     m_index_tree[current_node_sibling.left_leaf].node_color = parent_of_current_node.node_color;
                     current_node.node_color = 1;
+
+                    right_rotate(current_node_sibling_idx, parent_of_current_node_idx);
                 }
                 else if (!T1 && T2)
                 {
                     // right-left case
+
                     size_t r_idx = current_node_sibling.left_leaf;
-                    right_rotate(r_idx, current_node_sibling_idx);
-                    left_rotate(parent_of_current_node_idx, r_idx);
+
                     m_index_tree[r_idx].node_color = parent_of_current_node.node_color;
                     parent_of_current_node.node_color = 1;
                     current_node.node_color = 1;
+
+                    right_rotate(r_idx, current_node_sibling_idx);
+                    left_rotate(parent_of_current_node_idx, r_idx);
                 }
                 else if (!T1 && T3)
                 {
                     // right-right case
-                    left_rotate(parent_of_current_node_idx, current_node_sibling_idx);
+
                     m_index_tree[current_node_sibling.right_leaf].node_color = parent_of_current_node.node_color;
                     current_node.node_color = 1;
+
+                    left_rotate(parent_of_current_node_idx, current_node_sibling_idx);
                 }
                 else
                 {
@@ -950,11 +960,13 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key, cluster_size>::b
             {
                 parent_node.left_leaf = child_node_idx;
                 replaced_node_sibling_idx = parent_node.right_leaf;
+                child_node.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
             }
             else
             {
                 parent_node.right_leaf = child_node_idx;
                 replaced_node_sibling_idx = parent_node.left_leaf;
+                child_node.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
             }
             child_node.parent_node = parent_node_idx;
 
@@ -1003,6 +1015,7 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key, cluster_size>::b
             {
                 successor_parent_node.left_leaf = successor_right_child_idx;
                 replaced_node_sibling_idx = successor_parent_node.right_leaf;
+                successor_child_node.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
             }
             else
             {
