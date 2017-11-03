@@ -643,7 +643,7 @@ public:
                 // Populate cache with some added cache pressure
                 {
                     std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc };
-                    StreamedCache_KeyInt64_Cluster4KB streamed_cache{ iofile, test_cache_size * sizeof(uint32_t), StreamedCacheCompressionLevel::level6, true };
+                    StreamedCache_KeyInt64_Cluster4KB streamed_cache{ iofile, test_cache_size * sizeof(uint32_t), StreamedCacheCompressionLevel::level0, true };
                     streamed_cache.getIndex().setMaxAllowedRedundancy(100 * 1024);
 
                     // Note that the first 10 chunks should be removed from the cache
