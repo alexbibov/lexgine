@@ -624,16 +624,24 @@ public:
             {
                 size_t const test_cache_size{ 26214400U };    // 100 megabytes
                 size_t const single_chunk_size{ 16384U };    // 1600 chunks all together
-                size_t const num_chunks = test_cache_size / single_chunk_size;
-                size_t const num_secondary_iterations = 1000;
-                size_t const num_deletion_operations_each_iter = 100;
-                size_t const num_write_operations_each_iter = 150;
-                size_t const initial_cache_redundancy = 50;
+                size_t const initial_cache_redundancy = 200;
 
+                size_t const num_chunks = test_cache_size / single_chunk_size;
+                size_t const num_secondary_iterations = 15;
+
+                size_t const num_deletion_batches = 10;
+                size_t const num_deletion_operations_in_singe_batch = 10;
+                size_t const num_deletions_per_iter = num_deletion_batches*num_deletion_operations_in_singe_batch;
+
+                size_t const num_write_batches = 15;
+                size_t const num_write_operations_in_single_batch = 15;
+                size_t const num_writes_per_iter = num_write_batches*num_write_operations_in_single_batch;
+
+                
 
                 std::default_random_engine rand_eng{ static_cast<unsigned int>(
                     std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()) };
-                std::uniform_int_distribution<uint32_t> distribution{ 0, 0xFFFFFFFF };
+                std::uniform_int_distribution<uint32_t> distribution{ 0, 5 };
 
                 uint32_t* random_value_buffer = new uint32_t[test_cache_size + single_chunk_size * initial_cache_redundancy];
                 for (uint32_t i = 0; i < test_cache_size + single_chunk_size * initial_cache_redundancy; ++i)
@@ -643,10 +651,10 @@ public:
                 // Populate cache with some added cache pressure
                 {
                     std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc };
-                    StreamedCache_KeyInt64_Cluster4KB streamed_cache{ iofile, test_cache_size * sizeof(uint32_t), StreamedCacheCompressionLevel::level0, true };
-                    streamed_cache.getIndex().setMaxAllowedRedundancy(100 * 1024);
+                    StreamedCache_KeyInt64_Cluster4KB streamed_cache{ iofile, test_cache_size * sizeof(uint32_t), StreamedCacheCompressionLevel::level6, true };
+                    streamed_cache.getIndex().setMaxAllowedRedundancy(100 * 10240);
 
-                    // Note that the first 10 chunks should be removed from the cache
+                    // Note that the first "initial_cache_redundancy" chunks may be removed from the cache
                     for (size_t i = 0; i < num_chunks + initial_cache_redundancy; ++i)
                     {
                         DataBlob b{ random_value_buffer + i*single_chunk_size, single_chunk_size * sizeof(uint32_t) };
@@ -660,11 +668,42 @@ public:
 
                 // Load the populated cache back
                 {
+                    for (size_t i = 0; i < num_secondary_iterations; ++i)
+                    {
+                        std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out };
+                        StreamedCache_KeyInt64_Cluster4KB streamed_cache{ iofile };
+
+                        std::vector<uint64_t> keys{}; keys.reserve((streamed_cache.getIndex().getNumberOfEntries()));
+                        for (auto& e : streamed_cache.getIndex())
+                            keys.push_back(e.cache_entry_key.value);
+
+                        std::vector<uint64_t> deletion_keys(num_deletion_operations_in_singe_batch * num_deletion_batches);
+                        std::random_shuffle(keys.begin(), keys.end());
+                        std::copy(keys.begin(), keys.begin() + deletion_keys.size(), deletion_keys.begin());
+
+                        std::uniform_int_distribution<uint64_t> w_distribution{ 0, num_chunks + initial_cache_redundancy - 1 };
+                        std::vector<uint64_t> write_keys(num_write_operations_in_single_batch * num_write_batches);
+                        for (size_t j = 0; j < num_write_operations_in_single_batch * num_write_batches; ++j)
+                            write_keys[j] = w_distribution(rand_eng);
+
+                        for (size_t b_id = 0; b_id < (std::max)(num_deletion_batches, num_write_batches); ++b_id)
+                        {
+                            for (size_t d_op = 0; b_id < num_deletion_batches && d_op < num_deletion_operations_in_singe_batch; ++d_op)
+                                streamed_cache.removeEntry(deletion_keys[b_id*num_deletion_operations_in_singe_batch + d_op]);
+
+                            for (size_t w_op = 0; b_id < num_write_batches && w_op < num_write_operations_in_single_batch; ++w_op)
+                            {
+                                uint64_t wkey = write_keys[b_id*num_write_operations_in_single_batch + w_op];
+                                DataBlob b{ random_value_buffer + wkey*single_chunk_size, single_chunk_size * sizeof(uint32_t) };
+                                StreamedCache_KeyInt64_Cluster4KB::entry_type e{ wkey, b };
+                                streamed_cache.addEntry(e);
+                            }
+                        }
+                    }
+
                     std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out };
                     StreamedCache_KeyInt64_Cluster4KB streamed_cache{ iofile };
-
-
-
+                    streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__extensive_test2.gv");
                 }
 
 
