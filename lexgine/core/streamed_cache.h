@@ -1051,7 +1051,7 @@ inline std::tuple<size_t, size_t, bool> StreamedCacheIndex<Key, cluster_size>::b
 template<typename Key, size_t cluster_size>
 inline std::pair<size_t, bool> StreamedCacheIndex<Key, cluster_size>::bst_search(Key const& key) const
 {
-    if (m_index_tree[0].to_be_deleted)
+    if (!m_index_tree.size() || m_index_tree[0].to_be_deleted)
     {
         // the index tree is empty 
         return std::make_pair(static_cast<size_t>(0U), false);
@@ -1817,6 +1817,12 @@ template<typename Key, size_t cluster_size>
 inline void StreamedCache<Key, cluster_size>::addEntry(entry_type const &entry)
 {
     assert(!m_is_finalized);
+    if (m_index.bst_search(entry.m_key).second)
+    {
+        misc::Log::retrieve()->out("Unable to serialize entry to cache \"" + getStringName() + "\". An entry with same key \""
+            + entry.m_key.toString() + "\" already exists in the cache", misc::LogMessageType::error);
+        return;
+    }
 
     std::pair<size_t, bool> rv = serialize_entry(entry);
     if (!rv.second)
