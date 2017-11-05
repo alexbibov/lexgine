@@ -172,8 +172,8 @@ private:
     static void swap_values(T1& value1, T2& value2);
     static size_t locate_bin(size_t n, std::vector<size_t> const& bins_in_accending_order);
 
-    void right_rotate(size_t a, size_t b);
-    void left_rotate(size_t a, size_t b);
+    void right_rotate(size_t& a, size_t& b);
+    void left_rotate(size_t& a, size_t& b);
 
     /*! standard BST deletion based on provided key. This function returns tuple containing index of the node that gets replaced and the 
      index of its sibling node. The third and the last item of the tuple will be set to 'true' if deletion was successful; otherwise it will be set to 'false'
@@ -482,7 +482,7 @@ inline misc::Optional<uint64_t> StreamedCacheIndex<Key, cluster_size>::get_cache
 template<typename Key, size_t cluster_size>
 inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint64_t> const& key_offset_pair)
 {
-    if (!m_index_tree.size())
+    if (!m_number_of_entries)
     {
         // we are adding root
         m_index_tree.clear();    // ensure that the index buffer is empty, if there were redundant previously deleted nodes, it's perfect time the remove them
@@ -504,50 +504,42 @@ inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint
     {
         size_t parent_idx = bst_insert(key_offset_pair);
         size_t current_idx = m_index_tree.size() - 1;
-        StreamedCacheIndexTreeEntry<Key>& parent_of_inserted_node = m_index_tree[parent_idx];
+        StreamedCacheIndexTreeEntry<Key>* p_parent_of_current_node = &m_index_tree[parent_idx];
         StreamedCacheIndexTreeEntry<Key>& inserted_node = m_index_tree[current_idx];
 
-        size_t grandparent_idx = parent_of_inserted_node.parent_node;
+        size_t grandparent_idx = p_parent_of_current_node->parent_node;
         StreamedCacheIndexTreeEntry<Key>& grandparent_of_inserted_node = m_index_tree[grandparent_idx];
 
-        if (parent_of_inserted_node.node_color == 0)
+        bool T1 = p_parent_of_current_node->inheritance
+            == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
+        size_t uncle_idx = T1 ? grandparent_of_inserted_node.right_leaf : grandparent_of_inserted_node.left_leaf;
+
+        bool is_parent_black{ false };
+        while (!(is_parent_black = p_parent_of_current_node->node_color == 1))
         {
-            // parent is RED:
-            // in this case the RED-BLACK structure of the tree is corrupted and needs to be recovered
+            StreamedCacheIndexTreeEntry<Key>& current_node = m_index_tree[current_idx];
+            StreamedCacheIndexTreeEntry<Key>& grandparent_of_current_node = m_index_tree[grandparent_idx];
+            StreamedCacheIndexTreeEntry<Key>& uncle_of_current_node = m_index_tree[uncle_idx];
 
-
-            bool T1 = parent_of_inserted_node.inheritance
-                == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
-            size_t uncle_idx = T1 ? grandparent_of_inserted_node.right_leaf : grandparent_of_inserted_node.left_leaf;
-
-            bool root_reached{ false };
-            while (!(root_reached = parent_idx == 0) && uncle_idx && m_index_tree[uncle_idx].node_color == 0)
+            if(uncle_of_current_node.node_color == 0)
             {
-                // uncle is RED case
-                StreamedCacheIndexTreeEntry<Key>& parent_of_current_node = m_index_tree[parent_idx];
-                StreamedCacheIndexTreeEntry<Key>& current_node = m_index_tree[current_idx];
-                StreamedCacheIndexTreeEntry<Key>& grandparent_of_current_node = m_index_tree[grandparent_idx];
-                StreamedCacheIndexTreeEntry<Key>& uncle_of_current_node = m_index_tree[uncle_idx];
-
-                parent_of_current_node.node_color = 1;
+                // parent is RED and uncle is RED
+                p_parent_of_current_node->node_color = 1;
                 uncle_of_current_node.node_color = 1;
                 grandparent_of_current_node.node_color = static_cast<unsigned char>(grandparent_idx == 0);
 
                 current_idx = grandparent_idx;
                 parent_idx = grandparent_of_current_node.parent_node;
-                grandparent_idx = m_index_tree[parent_idx].parent_node;
+                p_parent_of_current_node = &m_index_tree[parent_idx];
+                grandparent_idx = p_parent_of_current_node->parent_node;
+
                 T1 = m_index_tree[parent_idx].inheritance
                     == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
                 uncle_idx = T1 ? m_index_tree[grandparent_idx].right_leaf : m_index_tree[grandparent_idx].left_leaf;
             }
-
-            if (!root_reached)
+            else
             {
-                // uncle is BLACK case
-
-                StreamedCacheIndexTreeEntry<Key>& parent_of_current_node = m_index_tree[parent_idx];
-                StreamedCacheIndexTreeEntry<Key>& current_node = m_index_tree[current_idx];
-                StreamedCacheIndexTreeEntry<Key>& grandparent_of_current_node = m_index_tree[grandparent_idx];
+                // parent is RED and uncle is BLACK case
 
                 bool T2 = current_node.inheritance
                     == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
@@ -555,35 +547,38 @@ inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint
                 if (T1 && T2)
                 {
                     // Left-Left case
-                    right_rotate(parent_idx, grandparent_idx);
-                    swap_values(parent_of_current_node.node_color,
+                    swap_values(p_parent_of_current_node->node_color,
                         grandparent_of_current_node.node_color);
+                    right_rotate(parent_idx, grandparent_idx);
                 }
                 else if (T1 && !T2)
                 {
                     // Left-Right case
-                    left_rotate(parent_idx, current_idx);
-                    right_rotate(current_idx, grandparent_idx);
                     swap_values(current_node.node_color,
                         grandparent_of_current_node.node_color);
+                    left_rotate(parent_idx, current_idx);
+                    right_rotate(current_idx, grandparent_idx);
                 }
                 else if (!T1 && T2)
                 {
                     // Right-Left case
-                    right_rotate(current_idx, parent_idx);
-                    left_rotate(grandparent_idx, current_idx);
                     swap_values(grandparent_of_current_node.node_color,
                         current_node.node_color);
+                    right_rotate(current_idx, parent_idx);
+                    left_rotate(grandparent_idx, current_idx);
                 }
                 else
                 {
                     // Right-Right case
-                    left_rotate(grandparent_idx, parent_idx);
                     swap_values(grandparent_of_current_node.node_color,
-                        parent_of_current_node.node_color);
+                        p_parent_of_current_node->node_color);
+                    left_rotate(grandparent_idx, parent_idx);
                 }
+
+                break;    // we can break the loop at this point
             }
         }
+        
     }
 
     ++m_number_of_entries;
@@ -592,13 +587,8 @@ inline void StreamedCacheIndex<Key, cluster_size>::add_entry(std::pair<Key, uint
 template<typename Key, size_t cluster_size>
 inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
 {
-    assert(m_index_tree[0].node_color);    // root cannot become RED
-
     std::tuple<size_t, size_t, bool> d_s_and_success_flag = bst_delete(key);
     if (!std::get<2>(d_s_and_success_flag)) return false;
-
-    assert(m_index_tree[0].node_color);    // root cannot become RED
-
 
     size_t replaced_node_idx = std::get<0>(d_s_and_success_flag);
     size_t replaced_node_sibling_idx = std::get<1>(d_s_and_success_flag);
@@ -611,8 +601,6 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
         // we get here iff the node actually being removed is a leaf (iff it's RED) or a single-child parent (must be BLACK with RED child, which is necessarily a leaf node)
         if (replaced_node.right_leaf) m_index_tree[replaced_node.right_leaf].node_color = 1;
         if (replaced_node.left_leaf) m_index_tree[replaced_node.left_leaf].node_color = 1;
-
-        assert(m_index_tree[0].node_color);    // root cannot become RED
     }
     else
     {
@@ -657,8 +645,6 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
 
                     left_rotate(current_node_sibling_idx, r_idx);
                     right_rotate(r_idx, parent_of_current_node_idx);
-
-                    assert(m_index_tree[0].node_color);    // root cannot become RED
                 }
                 else if (T1 && T2)
                 {
@@ -668,8 +654,6 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
                     current_node.node_color = 1;
 
                     right_rotate(current_node_sibling_idx, parent_of_current_node_idx);
-
-                    assert(m_index_tree[0].node_color);    // root cannot become RED
                 }
                 else if (!T1 && T2)
                 {
@@ -683,8 +667,6 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
 
                     right_rotate(r_idx, current_node_sibling_idx);
                     left_rotate(parent_of_current_node_idx, r_idx);
-
-                    assert(m_index_tree[0].node_color);    // root cannot become RED
                 }
                 else if (!T1 && T3)
                 {
@@ -694,8 +676,6 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
                     current_node.node_color = 1;
 
                     left_rotate(parent_of_current_node_idx, current_node_sibling_idx);
-
-                    assert(m_index_tree[0].node_color);    // root cannot become RED
                 }
                 else
                 {
@@ -710,8 +690,6 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
                         parent_of_current_node.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child
                         ? m_index_tree[parent_of_current_node_idx].right_leaf
                         : m_index_tree[parent_of_current_node_idx].left_leaf;
-
-                    assert(m_index_tree[0].node_color);    // root cannot become RED
                 }
             }
             else
@@ -721,20 +699,16 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
                 if (current_node_sibling.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child)
                 {
                     // left case
-                    right_rotate(current_node_sibling_idx, parent_of_current_node_idx);
                     swap_values(current_node_sibling.node_color, parent_of_current_node.node_color);
-                    current_node_sibling_idx = parent_of_current_node.left_leaf;
-
-                    assert(m_index_tree[0].node_color);    // root cannot become RED
+                    right_rotate(current_node_sibling_idx, parent_of_current_node_idx);
+                    current_node_sibling_idx = m_index_tree[parent_of_current_node_idx].left_leaf;
                 }
                 else
                 {
                     // right case
-                    left_rotate(parent_of_current_node_idx, current_node_sibling_idx);
                     swap_values(parent_of_current_node.node_color, current_node_sibling.node_color);
-                    current_node_sibling_idx = parent_of_current_node.right_leaf;
-
-                    assert(m_index_tree[0].node_color);    // root cannot become RED
+                    left_rotate(parent_of_current_node_idx, current_node_sibling_idx);
+                    current_node_sibling_idx = m_index_tree[parent_of_current_node_idx].right_leaf;
                 }
             }
         }
@@ -754,6 +728,9 @@ inline bool StreamedCacheIndex<Key, cluster_size>::remove_entry(Key const& key)
     }
 
     --m_number_of_entries;
+
+    assert(m_index_tree[0].node_color);    // root cannot become RED
+
     return true;
 }
 
@@ -807,9 +784,9 @@ inline size_t StreamedCacheIndex<Key, cluster_size>::locate_bin(size_t n, std::v
 {
     size_t left = 0U, right = bins_in_accending_order.size() - 1;
 
-    while (right - left > 1)
+    while (right - left != 1)
     {
-        size_t pivot = static_cast<size_t>(std::floor((right - left + 1) / 2.f));
+        size_t pivot = static_cast<size_t>(std::floor((right + left) / 2.f));
 
         if (n < bins_in_accending_order[pivot])
             right = pivot;
@@ -821,7 +798,7 @@ inline size_t StreamedCacheIndex<Key, cluster_size>::locate_bin(size_t n, std::v
 }
 
 template<typename Key, size_t cluster_size>
-inline void StreamedCacheIndex<Key, cluster_size>::right_rotate(size_t a, size_t b)
+inline void StreamedCacheIndex<Key, cluster_size>::right_rotate(size_t& a, size_t& b)
 {
     StreamedCacheIndexTreeEntry<Key>& node_a = m_index_tree[a];
     StreamedCacheIndexTreeEntry<Key>& node_b = m_index_tree[b];
@@ -848,6 +825,8 @@ inline void StreamedCacheIndex<Key, cluster_size>::right_rotate(size_t a, size_t
             n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child;
             n.parent_node = a;
         }
+
+        swap_values(a, b);
     }
     else
     {
@@ -875,7 +854,7 @@ inline void StreamedCacheIndex<Key, cluster_size>::right_rotate(size_t a, size_t
 }
 
 template<typename Key, size_t cluster_size>
-inline void StreamedCacheIndex<Key, cluster_size>::left_rotate(size_t a, size_t b)
+inline void StreamedCacheIndex<Key, cluster_size>::left_rotate(size_t& a, size_t& b)
 {
     StreamedCacheIndexTreeEntry<Key>& node_a = m_index_tree[a];
     StreamedCacheIndexTreeEntry<Key>& node_b = m_index_tree[b];
@@ -902,6 +881,8 @@ inline void StreamedCacheIndex<Key, cluster_size>::left_rotate(size_t a, size_t 
             n.inheritance = StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child;
             n.parent_node = b;
         }
+
+        swap_values(a, b);
     }
     else
     {
@@ -1119,6 +1100,7 @@ inline void StreamedCacheIndex<Key, cluster_size>::rebuild_index()
         else
             new_index_tree_buffer.push_back(m_index_tree[i]);
     }
+    to_be_deleted_indeces.push_back(m_index_tree.size());
 
     for (auto& e : new_index_tree_buffer)
     {
