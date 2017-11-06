@@ -48,3 +48,8 @@ TestLogging/*
 
 # Merge originals 
 *.orig
+
+# DLLs, executables and static libraries should NOT be excluded for 3rd-party components
+!3rd_party/**/*.dll
+!3rd_party/**/*.exe
+!3rd_party/**/*.lib
