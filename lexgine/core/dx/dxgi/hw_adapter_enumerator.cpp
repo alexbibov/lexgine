@@ -110,12 +110,12 @@ void HwAdapterEnumerator::refresh()
     IDXGIFactory2* p_dxgi_factory2;
 
     //Create DXGI factory
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), reinterpret_cast<void**>(&p_dxgi_factory2)),
         S_OK
     );
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         p_dxgi_factory2->QueryInterface(IID_PPV_ARGS(&m_dxgi_factory4)),
         S_OK
@@ -138,7 +138,7 @@ void HwAdapterEnumerator::refresh()
             return;
         }
 
-        LEXGINE_ERROR_LOG(
+        LEXGINE_LOG_ERROR_IF_FAILED(
             this,
             p_dxgi_adapter->QueryInterface(__uuidof(IDXGIAdapter3), reinterpret_cast<void**>(&p_dxgi_adapter3)),
             S_OK
@@ -165,12 +165,12 @@ void HwAdapterEnumerator::refresh()
     }
 
     //Add WARP adapter to the end of the list (i.e. the WARP adapter is always enumerated and it is always the last adapter in the list)
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         m_dxgi_factory4->EnumWarpAdapter(__uuidof(IDXGIAdapter), reinterpret_cast<void**>(&p_dxgi_adapter)),
         S_OK
     );
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         p_dxgi_adapter->QueryInterface(__uuidof(IDXGIAdapter3), reinterpret_cast<void**>(&p_dxgi_adapter3)),
         S_OK
@@ -253,7 +253,7 @@ void HwAdapter::details::refreshMemoryStatistics()
     {
         DXGI_QUERY_VIDEO_MEMORY_INFO vm_info_desc;
 
-        LEXGINE_ERROR_LOG(
+        LEXGINE_LOG_ERROR_IF_FAILED(
             m_p_outer,
             m_p_outer->m_dxgi_adapter->QueryVideoMemoryInfo(i, DXGI_MEMORY_SEGMENT_GROUP::DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &vm_info_desc),
             S_OK
@@ -263,7 +263,7 @@ void HwAdapter::details::refreshMemoryStatistics()
         m_local_memory_desc[i].current_usage = vm_info_desc.CurrentUsage;
         m_local_memory_desc[i].current_reservation = vm_info_desc.CurrentReservation;
 
-        LEXGINE_ERROR_LOG(
+        LEXGINE_LOG_ERROR_IF_FAILED(
             m_p_outer,
             m_p_outer->m_dxgi_adapter->QueryVideoMemoryInfo(i, DXGI_MEMORY_SEGMENT_GROUP::DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &vm_info_desc),
             S_OK
@@ -283,7 +283,7 @@ HwAdapter::HwAdapter(ComPtr<IDXGIFactory4> const& adapter_factory, ComPtr<IDXGIA
     m_p_details{ nullptr }
 {
     DXGI_ADAPTER_DESC2 desc;
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         adapter->GetDesc2(&desc),
         S_OK
@@ -338,7 +338,7 @@ HwAdapter::HwAdapter(ComPtr<IDXGIFactory4> const& adapter_factory, ComPtr<IDXGIA
 
 void HwAdapter::reserveVideoMemory(uint32_t node_index, MemoryBudget budget_type, uint64_t amount_in_bytes) const
 {
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         m_dxgi_adapter->SetVideoMemoryReservation(node_index, static_cast<DXGI_MEMORY_SEGMENT_GROUP>(static_cast<int>(budget_type)), amount_in_bytes),
         S_OK

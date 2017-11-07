@@ -67,7 +67,7 @@ TaskSink::~TaskSink() = default;
 void TaskSink::run()
 {
     // Start workers
-    Log::retrieve()->out("Starting worker threads", LogMessageType::information);
+    logger().out("Starting worker threads", LogMessageType::information);
     uint8_t i = 0;
     for (auto worker = m_workers_list.begin(); worker != m_workers_list.end(); ++worker, ++i)
     {
@@ -108,13 +108,12 @@ void TaskSink::run()
     if (error_status)
     {
         AbstractTask* p_failed_task = reinterpret_cast<AbstractTask*>(error_status);
-        Log::retrieve()->out("Task " + p_failed_task->getStringName() + " has failed during execution (" + p_failed_task->getErrorString()
-            + "). Worker thread logs may contain more details", LogMessageType::error);
 
-        throw lexgine::core::Exception{ "concurrent execution failed" };
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(*this,
+            "Task " + p_failed_task->getStringName() + " has failed during execution (" + p_failed_task->getErrorString() + "). Worker thread logs may contain more details");
     }
 
-    Log::retrieve()->out("Main loop finished", LogMessageType::information);
+    logger().out("Main loop finished", LogMessageType::information);
 }
 
 void TaskSink::dispatchExitSignal()
@@ -127,7 +126,7 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
     if (logging_stream)
     {
         Log::create(*logging_stream, "Worker #" + std::to_string(worker_id),  logging_time_zone, logging_dts);
-        Log::retrieve()->out("Thread " + std::to_string(worker_id) + " log started", LogMessageType::information);
+        logger().out("Thread " + std::to_string(worker_id) + " log started", LogMessageType::information);
     }
 
     Optional<TaskGraphNode*> task;

@@ -68,7 +68,7 @@ Heap::Heap(Device& device, AbstractHeapType type, uint64_t size, HeapCreationFla
     heap_desc.Alignment = is_msaa_supported ? D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
     heap_desc.Flags = static_cast<D3D12_HEAP_FLAGS>(flags.getValue());
 
-    LEXGINE_ERROR_LOG(this,
+    LEXGINE_LOG_ERROR_IF_FAILED(this,
         device.native()->CreateHeap(&heap_desc, IID_PPV_ARGS(&m_heap)),
         S_OK);
 }
@@ -95,7 +95,7 @@ Heap::Heap(Device& device, CPUPageProperty cpu_page_property, GPUMemoryPool gpu_
     heap_desc.Alignment = is_msaa_supported ? D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
     heap_desc.Flags = static_cast<D3D12_HEAP_FLAGS>(flags.getValue());
 
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         device.native()->CreateHeap(&heap_desc, IID_PPV_ARGS(&m_heap)),
         S_OK

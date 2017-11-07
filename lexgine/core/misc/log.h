@@ -67,27 +67,41 @@ private:
     std::list<std::ostream*> m_out_streams;	//!< list of output streams used by the logging system
 };
 
+}}}
 
 
 /*! Helper macro that outputs error message to the logger and sets the context object to erroneous state when expr
- does not evaluate equal to one of the success codes listed in the variadic argument. In order for this macro to work
- properly context must be inherited from ErrorBehavioral type.
+does not evaluate equal to one of the success codes listed in the variadic argument. In order for this macro to work
+properly, supplied context must be inherited from ErrorBehavioral type.
 */
-#define LEXGINE_ERROR_LOG(context, expr, ...) \
+#define LEXGINE_LOG_ERROR_IF_FAILED(context, expr, ...) \
 { \
 auto lexgine_error_log_rv = (expr); \
 if (!lexgine::core::misc::equalsAny(lexgine_error_log_rv, __VA_ARGS__)) \
 { \
 std::stringstream out_message; \
 out_message << "error while executing expression \"" << #expr << \
-"\" in function " << __FUNCTION__ << " at line " << __LINE__ << " (" << __FILE__ << "). Error code = 0x" << std::uppercase << std::hex << lexgine_error_log_rv; \
-using context_type = std::remove_reference<decltype(*(context))>::type;\
-void(context_type::*p_handler)(std::string const&) const  = &context_type::raiseError;\
-((context)->*p_handler)(out_message.str()); \
+"\" in function <" << __FUNCTION__ << "> of module <" << __FILE__ << "> at line " << __LINE__ << ". Error code = 0x" << std::uppercase << std::hex << lexgine_error_log_rv; \
+using context_type = std::remove_reference<std::remove_pointer<decltype(context)>::type>::type; \
+lexgine::core::misc::dereference<context_type>::resolve(context).raiseError(out_message.str()); \
 } \
 }
 
-}}}
+
+/*!
+Unconditionally outputs provided error message to the logger and sets the context object to erroneous state
+*/
+#define LEXGINE_LOG_ERROR(context, message) \
+{ \
+std::stringstream out_message; \
+out_message << "error occurred in module <" << __FILE__ << ">, function <" << __FUNCTION__ << "> at line " << __LINE__ \
+<< ": " << message; \
+using context_type = std::remove_reference<std::remove_pointer<decltype(context)>::type>::type; \
+void(context_type::*p_handler)(std::string const&) const = &context_type::raiseError; \
+lexgine::core::misc::dereference<context_type>::resolve(context).raiseError(out_message.str()); \
+}
+
+
 
 #define LEXGINE_CORE_MISC_LOG
 #endif

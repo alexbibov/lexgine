@@ -30,6 +30,7 @@ extern char const D3D12PSOXMLParser[];
 extern char const ShaderSourceCodePreprocessor[];
 extern char const Globals[];
 extern char const StreamedCache[];
+extern char const Dummy[];
 }}}
 
 #define LEXGINE_CORE_CLASS_NAMES_CLASS_NAMES_H

@@ -4,6 +4,7 @@
 #include <string>
 
 #include "error_behavioral.h"
+#include "class_names.h"
 
 namespace lexgine { namespace core {
 
@@ -111,6 +112,9 @@ public:
     static constexpr char const* getMetaName() { return name; }
 };
 
+
+//! Dummy named entity. May be used when exact named entity is not accessible (for example, when throwing exceptions by objects that are not descendants of NamedEntity<>)
+class Dummy : public NamedEntity<class_names::Dummy> {};
 
 
 }}

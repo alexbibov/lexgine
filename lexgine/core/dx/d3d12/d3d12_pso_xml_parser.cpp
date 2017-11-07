@@ -1289,7 +1289,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals con
         }
         catch (core::Exception& e)
         {
-            std::string error_message = "Unable to create PSO descriptors from XML source due to shader compilation error(s) (" + e.description() + "). See logs for further details";
+            std::string error_message = std::string{ "Unable to create PSO descriptors from XML source due to shader compilation error(s) (" } + e.what() + "). See logs for further details";
             misc::Log::retrieve()->out(error_message, misc::LogMessageType::error);
             throw core::Exception{ *this, error_message };
         } 
@@ -1301,7 +1301,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals con
             hlsl_compilation_task.execute(0);
             if (hlsl_compilation_task.getErrorState())
             {
-                std::string error_message = std::string{ "Unable to create PSO descriptors from XML source due to shader compilation error (" } +hlsl_compilation_task.getErrorString() + ") See logs for further details.";
+                std::string error_message = std::string{ "Unable to create PSO descriptors from XML source due to shader compilation error (" } + hlsl_compilation_task.getErrorString() + ") See logs for further details.";
                 misc::Log::retrieve()->out(error_message, misc::LogMessageType::error);
                 throw core::Exception{ *this, error_message };
             }

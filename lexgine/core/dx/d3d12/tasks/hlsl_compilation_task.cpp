@@ -138,7 +138,7 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
     }
     else
     {
-        LEXGINE_ERROR_LOG(this, D3DCompile(processed_shader_source.c_str(), processed_shader_source.size(),
+        LEXGINE_LOG_ERROR_IF_FAILED(this, D3DCompile(processed_shader_source.c_str(), processed_shader_source.size(),
             m_source_name.c_str(), macro_definitions, NULL, m_shader_entry_point.c_str(), target.c_str(),
             compilation_flags, NULL, &p_shader_bytecode_blob, &p_compilation_errors_blob), S_OK);
     }
@@ -150,7 +150,7 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
         m_compilation_log = std::string{ static_cast<char const*>(p_compilation_errors_blob->GetBufferPointer()) };
         std::string output_log = "Unable to compile shader source located in \"" + full_shader_path + "\". "
             "Detailed compiler log follows: <em>" + m_compilation_log + "</em>";
-        misc::Log::retrieve()->out(output_log, misc::LogMessageType::error);  
+        LEXGINE_LOG_ERROR(this, output_log);
     }
     else
     {

@@ -65,6 +65,13 @@ template<typename T>
 bool equalsAny(T const& reference_expression) { return false; }
 
 
+//! Helper: generic dereference. Works correctly regardless of whether the underlying type is an actualpointer
+template<typename T> struct dereference {
+    static inline T const& resolve(T const& v) { return v; }
+    static inline T const& resolve(T const* v) { return *v; }
+};
+
+
 //! special index value used to mark end of the currently assembled primitive (such as triangle strip) and
 //! beginning of a new one
 // NOTICE_TO_DEVELOPER: this value was selected to fit requirements of Direct3D12, Vulkan, and OpenGL
