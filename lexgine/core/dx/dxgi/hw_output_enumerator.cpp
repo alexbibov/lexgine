@@ -135,7 +135,7 @@ HwOutput::HwOutput(ComPtr<IDXGIOutput5> const& output) : m_output{ output }
 HwOutput::Description HwOutput::getDescription() const
 {
     DXGI_OUTPUT_DESC desc;
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         m_output->GetDesc(&desc),
         S_OK
@@ -148,14 +148,14 @@ HwOutput::Description HwOutput::getDescription() const
 std::vector<HwOutput::DisplayMode> HwOutput::getDisplayModes(DXGI_FORMAT format, HwOutput::DisplayModeEnumerationOptions const& options) const
 {
     UINT num_modes;
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         m_output->GetDisplayModeList1(format, static_cast<DisplayModeEnumerationOptions::base_int_type>(options), &num_modes, NULL),
         S_OK
     );
 
     DXGI_MODE_DESC1* p_descs = new DXGI_MODE_DESC1[num_modes];
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         m_output->GetDisplayModeList1(format, static_cast<DisplayModeEnumerationOptions::base_int_type>(options), &num_modes, p_descs),
         S_OK
@@ -184,7 +184,7 @@ HwOutput::DisplayMode HwOutput::findMatchingDisplayMode(DisplayMode const& mode_
         mode_to_match.format, mode_to_match.scanline_order, mode_to_match.scaling, mode_to_match.is_stereo };
 
     DXGI_MODE_DESC1 found_mode_desc;
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         m_output->FindClosestMatchingMode1(&mode_to_seek, &found_mode_desc, NULL),
         S_OK
@@ -196,7 +196,7 @@ HwOutput::DisplayMode HwOutput::findMatchingDisplayMode(DisplayMode const& mode_
 
 void HwOutput::waitForVBI() const
 {
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         m_output->WaitForVBlank(),
         S_OK

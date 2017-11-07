@@ -61,7 +61,7 @@ DescriptorHeap::DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t
     }
     desc.NodeMask = node_mask;
 
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         device.native()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_descriptor_heap)),
         S_OK

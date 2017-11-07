@@ -1,4 +1,5 @@
 #include "command_allocator.h"
+#include "../../exception.h"
 
 using namespace lexgine::core::dx::d3d12;
 
@@ -6,7 +7,7 @@ CommandAllocator::CommandAllocator(Device& device, CommandListType command_list_
     m_device{ device },
     m_command_list_type{ command_list_type }
 {
-    LEXGINE_ERROR_LOG(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this, 
         device.native()->CreateCommandAllocator(static_cast<D3D12_COMMAND_LIST_TYPE>(m_command_list_type), IID_PPV_ARGS(&m_command_allocator)), 
         S_OK
@@ -15,7 +16,7 @@ CommandAllocator::CommandAllocator(Device& device, CommandListType command_list_
 
 void CommandAllocator::reset()
 {
-    LEXGINE_ERROR_LOG(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_command_allocator->Reset(), 
         S_OK

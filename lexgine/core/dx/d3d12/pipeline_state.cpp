@@ -183,7 +183,7 @@ PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_
     desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
     #endif
 
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this, 
         m_device.native()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&m_pipeline_state)), 
         S_OK
@@ -219,7 +219,7 @@ PipelineState::PipelineState(Device & device, D3DDataBlob const & serialized_roo
     desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
     #endif
 
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this, 
         m_device.native()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&m_pipeline_state)), 
         S_OK

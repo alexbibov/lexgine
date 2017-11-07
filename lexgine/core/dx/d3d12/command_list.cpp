@@ -1,5 +1,6 @@
 #include "command_list.h"
 #include "command_allocator.h"
+#include "../../exception.h"
 
 using namespace lexgine::core::dx::d3d12;
 
@@ -51,13 +52,13 @@ CommandList::CommandList(CommandAllocator& command_allocator, uint32_t node_mask
     m_node_mask{ node_mask },
     m_is_closed{ true }
 {
-    LEXGINE_ERROR_LOG(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         command_allocator.device().native()->CreateCommandList(node_mask, static_cast<D3D12_COMMAND_LIST_TYPE>(command_allocator.getCommandListType()),
             command_allocator.native().Get(), initial_pipeline_state.native().Get(), IID_PPV_ARGS(&m_command_list)),
         S_OK);
 
-    m_command_list->Close();
+    LEXGINE_THROW_ERROR_IF_FAILED(this, m_command_list->Close(), S_OK);
 }
 
 
@@ -66,11 +67,11 @@ CommandList::CommandList(CommandAllocator& command_allocator, uint32_t node_mask
     m_node_mask{ node_mask },
     m_is_closed{ true }
 {
-    LEXGINE_ERROR_LOG(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         command_allocator.device().native()->CreateCommandList(node_mask, static_cast<D3D12_COMMAND_LIST_TYPE>(command_allocator.getCommandListType()),
             command_allocator.native().Get(), NULL, IID_PPV_ARGS(&m_command_list)),
         S_OK);
 
-    m_command_list->Close();
+    LEXGINE_THROW_ERROR_IF_FAILED(this, m_command_list->Close(), S_OK);
 }

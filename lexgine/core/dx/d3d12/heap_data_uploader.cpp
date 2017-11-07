@@ -28,7 +28,7 @@ void HeapDataUploader::addResourceForUpload(DestinationDescriptor const& destina
 
     // Get reference to the device interface owning the upload buffer
     ID3D12Device* p_device{ nullptr };
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         upload_buffer_native_reference->GetDevice(__uuidof(ID3D12Device), reinterpret_cast<void**>(&p_device)),
         S_OK
@@ -57,7 +57,7 @@ void HeapDataUploader::addResourceForUpload(DestinationDescriptor const& destina
 
         // Copy contents of the current upload task into upload buffer
         char* p_upload_buffer_addr{ nullptr };
-        LEXGINE_ERROR_LOG(
+        LEXGINE_LOG_ERROR_IF_FAILED(
             this,
             upload_buffer_native_reference->Map(0, NULL, reinterpret_cast<void**>(&p_upload_buffer_addr)),
             S_OK
@@ -102,7 +102,7 @@ void HeapDataUploader::addResourceForUpload(DestinationDescriptor const& destina
 
         // Copy the contents of the current upload task into upload buffer
         char* p_upload_buffer_addr{ nullptr };
-        LEXGINE_ERROR_LOG(
+        LEXGINE_LOG_ERROR_IF_FAILED(
             this,
             upload_buffer_native_reference->Map(0, NULL, reinterpret_cast<void**>(&p_upload_buffer_addr)),
             S_OK

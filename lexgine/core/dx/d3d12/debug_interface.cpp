@@ -27,7 +27,7 @@ void DebugInterface::shutdown()
 DebugInterface::DebugInterface()
 {
 #ifdef LEXGINE_D3D12DEBUG
-    LEXGINE_ERROR_LOG(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         D3D12GetDebugInterface(IID_PPV_ARGS(&m_d3d12_debug)),
         S_OK

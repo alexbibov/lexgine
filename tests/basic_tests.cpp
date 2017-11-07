@@ -55,7 +55,7 @@ public:
                 auto ref_time = DateTime::now(2, true);
                 TestErrorBehavioral test_error_behavioral;
 
-                LEXGINE_ERROR_LOG(
+                LEXGINE_LOG_ERROR_IF_FAILED(
                     &test_error_behavioral,
                     (2 * 2),
                     2, 3, 5, 19, 6, 7, 8, 10, 0
@@ -499,7 +499,7 @@ public:
                 }
                 catch (lexgine::core::Exception const& e)
                 {
-                    Assert::Fail(lexgine::core::misc::asciiStringToWstring(e.description()).c_str());
+                    Assert::Fail(lexgine::core::misc::asciiStringToWstring(e.what()).c_str());
                 }
                 
 

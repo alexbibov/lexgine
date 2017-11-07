@@ -73,7 +73,7 @@ public:
 
     void setStringName(std::string const& entity_string_name);	//! sets new user-friendly string name for the command queue
 
-    void synchronize(Fence const& fence);    //! puts synchronization fence into the command queue
+    void signal(Fence const& fence);    //! puts signal into the queue
 
     void wait(Fence const& fence, uint64_t num_crosses) const;    //! blocks the calling thread until fence is crossed at least num_crosses times
 

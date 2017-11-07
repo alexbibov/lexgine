@@ -2,23 +2,28 @@
 
 using namespace lexgine::core;
 
-Exception::Exception(std::string const& description):
-    m_thrower_name{ "lexgine::core::dummy" },
-    m_description{ description }
-{
-}
-
 EntityID Exception::throwingEntityId() const
 {
     return m_thrower_id;
 }
 
-std::string Exception::throwingEntityName() const
+std::string const& Exception::throwingEntityName() const
 {
     return m_thrower_name;
 }
 
-std::string Exception::description() const
+std::string const& Exception::throwingModuleName() const
 {
-    return m_description;
+    return m_module_name;
 }
+
+std::string const& Exception::throwingFunctionName() const
+{
+    return m_function_name;
+}
+
+uint32_t Exception::lineNumber() const
+{
+    return m_line_number;
+}
+
