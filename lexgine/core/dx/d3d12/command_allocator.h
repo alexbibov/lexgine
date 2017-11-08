@@ -15,12 +15,13 @@ namespace lexgine {namespace core {namespace dx {namespace d3d12 {
 class CommandAllocator : public NamedEntity<class_names::D3D12CommandAllocator>
 {
 public:
+    //! This constructor may THROW
     CommandAllocator(Device& device, CommandListType command_list_type);
 
     CommandAllocator(CommandAllocator const&) = delete;
     CommandAllocator(CommandAllocator&&) = default;
 
-    void reset();    //! resets command allocator. It is up to the other parts of the engine to make sure that there is no GPU tasks running from within the command lists allocated by this allocator
+    void reset();    //! resets command allocator. It is up to the other parts of the engine to make sure that there is no GPU tasks running from within the command lists allocated by this allocator. THROWS
 
     ComPtr<ID3D12CommandAllocator> native() const;    //! returns pointer to the native ID3D12CommandAllocator interface
 

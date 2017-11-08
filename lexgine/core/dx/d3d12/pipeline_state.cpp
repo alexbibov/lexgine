@@ -18,7 +18,11 @@ Device& PipelineState::device() const
 D3DDataBlob PipelineState::getCache() const
 {
     ID3DBlob* p_blob;
-    m_pipeline_state->GetCachedBlob(&p_blob);
+    LEXGINE_LOG_ERROR_IF_FAILED(
+        this,
+        m_pipeline_state->GetCachedBlob(&p_blob),
+        S_OK
+    );
     return D3DDataBlob{ p_blob };
 }
 
@@ -198,7 +202,11 @@ PipelineState::PipelineState(Device & device, D3DDataBlob const & serialized_roo
     m_device{ device }
 {
     ID3D12RootSignature* p_root_signature;
-    m_device.native()->CreateRootSignature(pso_descriptor.node_mask, serialized_root_signature.data(), serialized_root_signature.size(), __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(&p_root_signature));
+    LEXGINE_LOG_ERROR_IF_FAILED(
+        this,
+        m_device.native()->CreateRootSignature(pso_descriptor.node_mask, serialized_root_signature.data(), serialized_root_signature.size(), __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(&p_root_signature)),
+        S_OK
+    );
 
     #ifdef D3D12DEBUG
     p_root_signature->SetName(misc::asciiStringToWstring(getStringName()+"_root_signature").c_str());

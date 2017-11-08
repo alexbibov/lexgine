@@ -57,6 +57,7 @@ public:
     math::vector2u getDimensions() const;
 
 private:
+    //! This constructor THROWS
     SwapChain(ComPtr<IDXGIFactory4> const& dxgi_factory, d3d12::Device& device, osinteraction::windows::Window const& window, SwapChainDescriptor const& desc);
 
     ComPtr<IDXGIFactory4> m_dxgi_factory;   //!< DXGI factory used to create the swap chain

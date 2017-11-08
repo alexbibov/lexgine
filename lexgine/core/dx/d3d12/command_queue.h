@@ -47,6 +47,7 @@ using CommandQueueFlags = misc::Flags<__tag::tagCommandQueueFlags>;
 class CommandQueue final : public NamedEntity<class_names::D3D12CommandQueue>
 {
 public:
+    //! This constructor may THROW
     explicit CommandQueue(Device& device,
         CommandQueueType type = CommandQueueType::direct,
         uint32_t node_mask = 0,

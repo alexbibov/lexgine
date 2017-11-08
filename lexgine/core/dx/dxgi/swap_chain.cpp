@@ -1,4 +1,5 @@
 #include "swap_chain.h"
+#include "../../exception.h"
 
 using namespace lexgine;
 using namespace lexgine::core;
@@ -61,13 +62,13 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory4> const& dxgi_factory,
     swap_chain_fs_desc.Windowed = desc.windowed;
 
     IDXGISwapChain1* p_swap_chain1 = nullptr;
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_dxgi_factory->CreateSwapChainForHwnd(m_default_command_queue.native().Get(), m_window.native(), &swap_chain_desc1, &swap_chain_fs_desc, NULL, &p_swap_chain1),
         S_OK
     );
 
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         p_swap_chain1->QueryInterface(IID_PPV_ARGS(&m_dxgi_swap_chain)),
         S_OK

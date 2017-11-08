@@ -1,5 +1,6 @@
 #include "fence.h"
 #include "device.h"
+#include "../../exception.h"
 
 using namespace lexgine::core::dx::d3d12;
 
@@ -15,7 +16,7 @@ ComPtr<ID3D12Fence> lexgine::core::dx::d3d12::Fence::native() const
 
 void Fence::setEvent(uint64_t number_of_crosses, lexgine::osinteraction::windows::FenceEvent const& event) const
 {
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_fence->SetEventOnCompletion(number_of_crosses, event.native()),
         S_OK
@@ -41,7 +42,7 @@ Fence::Fence(Device& device, bool is_shared) :
     m_is_shared{ is_shared },
     m_target_value{ 1 }
 {
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_device.native()->CreateFence(0, is_shared ? D3D12_FENCE_FLAG_SHARED | D3D12_FENCE_FLAG_SHARED_CROSS_ADAPTER : D3D12_FENCE_FLAG_NONE , IID_PPV_ARGS(&m_fence)),
         S_OK
