@@ -1,5 +1,6 @@
 #include "hw_adapter_enumerator.h"
 #include "../../misc/log.h"
+#include "../../exception.h"
 
 using namespace lexgine;
 using namespace lexgine::core;
@@ -110,12 +111,12 @@ void HwAdapterEnumerator::refresh()
     IDXGIFactory2* p_dxgi_factory2;
 
     //Create DXGI factory
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), reinterpret_cast<void**>(&p_dxgi_factory2)),
         S_OK
     );
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         p_dxgi_factory2->QueryInterface(IID_PPV_ARGS(&m_dxgi_factory4)),
         S_OK
@@ -125,7 +126,7 @@ void HwAdapterEnumerator::refresh()
     //Enumerate DXGI adapters and attempt to create DX12 device with minimal required feature level (i.e. dx11.0) with
     //every of them. If the call successes, add the corresponding adapter to the iteration list
     IDXGIAdapter* p_dxgi_adapter;
-    IDXGIAdapter3* p_dxgi_adapter3;
+    IDXGIAdapter3* p_dxgi_adapter3{ nullptr };
     HRESULT hres = S_OK;
     UINT id = 0;
     while ((hres = m_dxgi_factory4->EnumAdapters(id, &p_dxgi_adapter)) != DXGI_ERROR_NOT_FOUND)
@@ -146,7 +147,7 @@ void HwAdapterEnumerator::refresh()
         p_dxgi_adapter->Release();
 
         HRESULT res;
-        if ((res = D3D12CreateDevice(p_dxgi_adapter3, static_cast<D3D_FEATURE_LEVEL>(D3D12FeatureLevel::_11_0), __uuidof(ID3D12Device), nullptr)) == S_OK || res == S_FALSE)
+        if (p_dxgi_adapter3 && ((res = D3D12CreateDevice(p_dxgi_adapter3, static_cast<D3D_FEATURE_LEVEL>(D3D12FeatureLevel::_11_0), __uuidof(ID3D12Device), nullptr)) == S_OK || res == S_FALSE))
             m_adapter_list.emplace_back(m_dxgi_factory4, ComPtr<IDXGIAdapter3>{p_dxgi_adapter3});
         else
         {
@@ -156,7 +157,7 @@ void HwAdapterEnumerator::refresh()
             char* adapter_name = new char[wcslen(desc2.Description)];
             for (size_t i = 0; i < wcslen(desc2.Description); ++i)
                 adapter_name[i] = static_cast<char>(desc2.Description[i]);
-            logger().out(std::string{ "unable to create Direct3D12 device for adapter \"" } + adapter_name + "\"", LogMessageType::error);
+            logger().out(std::string{ "unable to create Direct3D12 device for adapter \"" } + adapter_name + "\"", LogMessageType::exclamation);
             delete[] adapter_name;
         }
         p_dxgi_adapter3->Release();
@@ -165,12 +166,12 @@ void HwAdapterEnumerator::refresh()
     }
 
     //Add WARP adapter to the end of the list (i.e. the WARP adapter is always enumerated and it is always the last adapter in the list)
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_dxgi_factory4->EnumWarpAdapter(__uuidof(IDXGIAdapter), reinterpret_cast<void**>(&p_dxgi_adapter)),
         S_OK
     );
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         p_dxgi_adapter->QueryInterface(__uuidof(IDXGIAdapter3), reinterpret_cast<void**>(&p_dxgi_adapter3)),
         S_OK
