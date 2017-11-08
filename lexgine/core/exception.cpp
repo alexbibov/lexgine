@@ -22,7 +22,7 @@ std::string const& Exception::throwingFunctionName() const
     return m_function_name;
 }
 
-uint32_t Exception::lineNumber() const
+long Exception::lineNumber() const
 {
     return m_line_number;
 }
