@@ -22,6 +22,7 @@ public:
     static void shutdown();    //! destroys debug interface
 
 private:
+    //! This constructor THROWS when compiled in debug mode
     DebugInterface();
     DebugInterface(DebugInterface const& other) = delete;
     DebugInterface(DebugInterface&& other) = default;

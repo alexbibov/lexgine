@@ -129,8 +129,9 @@ class Resource final : public NamedEntity<class_names::D3D12Resource>
     template<size_t> friend class ResourceBarrier;    // resource state transitions are allowed to change the current resource state, which is otherwise hidden
 
 public:
-    //! Creates placed resource in provided @param heap at the given @param offset. Note that @param initial_state and @param optimized_clear_value
-    //! may be overridden to certain values depending on the type of the heap and on the dimension of the resource being created
+    /*! Creates placed resource in provided @param heap at the given @param offset. Note that @param initial_state and @param optimized_clear_value
+     may be overridden to certain values depending on the type of the heap and on the dimension of the resource being created. THROWS
+     */
     Resource(Heap& heap, uint64_t heap_offset, ResourceState const& initial_state, D3D12_CLEAR_VALUE const& optimized_clear_value, ResourceDescriptor const& descriptor);
 
 
