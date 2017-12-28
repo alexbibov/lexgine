@@ -1,4 +1,5 @@
 #include "debug_interface.h"
+#include "../../exception.h"
 
 using namespace lexgine::core::dx::d3d12;
 
@@ -27,7 +28,7 @@ void DebugInterface::shutdown()
 DebugInterface::DebugInterface()
 {
 #ifdef LEXGINE_D3D12DEBUG
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         D3D12GetDebugInterface(IID_PPV_ARGS(&m_d3d12_debug)),
         S_OK

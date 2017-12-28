@@ -51,7 +51,11 @@ ComPtr<ID3D12CommandQueue> CommandQueue::native() const
 void CommandQueue::setStringName(std::string const & entity_string_name)
 {
     Entity::setStringName(entity_string_name);
-    m_command_queue->SetName(misc::asciiStringToWstring(entity_string_name).c_str());
+    LEXGINE_THROW_ERROR_IF_FAILED(
+        this,
+        m_command_queue->SetName(misc::asciiStringToWstring(entity_string_name).c_str()),
+        S_OK
+    );
 }
 
 void CommandQueue::signal(Fence const & fence)

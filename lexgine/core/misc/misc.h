@@ -107,9 +107,10 @@ bool doesFileExist(std::string const& file_path);
 unsigned long long getFileSize(std::string const& file_path);
 
 /*! Reads binary data from specified source file into provided memory chunk. It is assumed that there was enough memory capacity allocated
- for the chunk to receive the whole data. Use getFileSize(...) to determine required capacity.
+ for the chunk to receive the whole data. Use getFileSize(...) to determine required capacity. If the function succeeds, it returns 'true'.
+ If the source file cannot be read, the function returns 'false'
  */
-void readBinaryDataFromSourceFile(std::string const& file_path, void* destination_memory_address);
+bool readBinaryDataFromSourceFile(std::string const& file_path, void* destination_memory_address);
 
 // Writes provided binary data to file. Returns 'true' in case of success and 'false' in case of failure
 bool writeBinaryDataToFile(std::string const& file_path, void* source_memory_address, size_t data_size);

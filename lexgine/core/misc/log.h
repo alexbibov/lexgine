@@ -76,13 +76,13 @@ properly, supplied context must be inherited from ErrorBehavioral type.
 */
 #define LEXGINE_LOG_ERROR_IF_FAILED(context, expr, ...) \
 { \
-auto lexgine_error_log_rv = (expr); \
-if (!lexgine::core::misc::equalsAny(lexgine_error_log_rv, __VA_ARGS__)) \
+auto __lexgine_error_log_rv__ = (expr); \
+if (!lexgine::core::misc::equalsAny(__lexgine_error_log_rv__, __VA_ARGS__)) \
 { \
 std::stringstream out_message; \
 out_message << "Error while executing expression \"" << #expr \
 << "\" in function <" << __FUNCTION__ << "> of module <" << __FILE__ << "> at line " << __LINE__ << ". Error code = 0x" \
-<< std::uppercase << std::hex << lexgine_error_log_rv; \
+<< std::uppercase << std::hex << __lexgine_error_log_rv__; \
 using context_type = std::remove_reference<std::remove_pointer<decltype(context)>::type>::type; \
 lexgine::core::misc::dereference<context_type>::resolve(context).raiseError(out_message.str()); \
 } \

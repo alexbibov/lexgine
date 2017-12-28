@@ -1,7 +1,9 @@
 #include "misc.h"
+
 #include <fstream>
 #include <sstream>
 #include <limits>
+
 
 namespace lexgine{namespace core {namespace misc{
 
@@ -66,7 +68,7 @@ unsigned long long getFileSize(std::string const& file_path)
     return static_cast<unsigned long long>(file_size);
 }
 
-void readBinaryDataFromSourceFile(std::string const& file_path, void* destination_memory_address)
+bool readBinaryDataFromSourceFile(std::string const& file_path, void* destination_memory_address)
 {
     std::ifstream ifile{ file_path, std::ios_base::in | std::ios_base::binary };
 
@@ -74,9 +76,13 @@ void readBinaryDataFromSourceFile(std::string const& file_path, void* destinatio
     {
         std::filebuf* p_read_buffer = ifile.rdbuf();
         p_read_buffer->sgetn(static_cast<char*>(destination_memory_address), (std::numeric_limits<std::streamsize>::max)());
+
+        ifile.close();
+
+        return true;
     }
 
-    ifile.close();
+    return false;
 }
 
 bool writeBinaryDataToFile(std::string const& file_path, void* source_memory_address, size_t data_size)

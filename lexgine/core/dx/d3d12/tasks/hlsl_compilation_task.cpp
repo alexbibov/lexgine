@@ -3,6 +3,7 @@
 #include <d3dcompiler.h>
 #include "../../../global_settings.h"
 #include "../../../misc/hashed_string.h"
+#include "../../../exception.h"
 
 
 using namespace lexgine::core::dx::d3d12::tasks;
@@ -57,12 +58,6 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
         }
 
     ShaderSourceCodePreprocessor shader_preprocessor{ full_shader_path, m_source_type };
-
-    if (shader_preprocessor.getErrorState())
-    {
-        raiseError("Unable to process shader source");
-        return true;
-    }
 
     std::string processed_shader_source{ shader_preprocessor.getPreprocessedSource() };
 
@@ -133,14 +128,21 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
     if (misc::doesFileExist(cached_blob_path))
     {
         size_t compiled_shader_size = misc::getFileSize(cached_blob_path);
-        D3DCreateBlob(compiled_shader_size, &p_shader_bytecode_blob);
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            D3DCreateBlob(compiled_shader_size, &p_shader_bytecode_blob),
+            S_OK
+        );
         misc::readBinaryDataFromSourceFile(cached_blob_path, p_shader_bytecode_blob->GetBufferPointer());
     }
     else
     {
-        LEXGINE_LOG_ERROR_IF_FAILED(this, D3DCompile(processed_shader_source.c_str(), processed_shader_source.size(),
+        LEXGINE_LOG_ERROR_IF_FAILED(
+            this, 
+            D3DCompile(processed_shader_source.c_str(), processed_shader_source.size(),
             m_source_name.c_str(), macro_definitions, NULL, m_shader_entry_point.c_str(), target.c_str(),
-            compilation_flags, NULL, &p_shader_bytecode_blob, &p_compilation_errors_blob), S_OK);
+            compilation_flags, NULL, &p_shader_bytecode_blob, &p_compilation_errors_blob), 
+            S_OK);
     }
     if (macro_definitions) delete[] macro_definitions;
 
@@ -150,13 +152,15 @@ bool lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::do_task(uint8_t worke
         m_compilation_log = std::string{ static_cast<char const*>(p_compilation_errors_blob->GetBufferPointer()) };
         std::string output_log = "Unable to compile shader source located in \"" + full_shader_path + "\". "
             "Detailed compiler log follows: <em>" + m_compilation_log + "</em>";
-        LEXGINE_LOG_ERROR(this, output_log);
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, output_log);
     }
     else
     {
         m_was_compilation_successful = true;
 
-        misc::writeBinaryDataToFile(cached_blob_path, p_shader_bytecode_blob->GetBufferPointer(), p_shader_bytecode_blob->GetBufferSize());
+        if (!misc::writeBinaryDataToFile(cached_blob_path, p_shader_bytecode_blob->GetBufferPointer(), p_shader_bytecode_blob->GetBufferSize()))
+            logger().out("Unable to save compiled binary blob into destination path \"" + cached_blob_path + "\" for shader \""
+                + m_source_name + "\"", misc::LogMessageType::exclamation);
 
         D3DDataBlob shader_bytecode{ Microsoft::WRL::ComPtr<ID3DBlob>{p_shader_bytecode_blob} };
 

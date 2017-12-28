@@ -1,7 +1,5 @@
 #include "global_settings.h"
-#include "../../3rd_party/rapidjson/document.h"
-#include "../../3rd_party/rapidjson/ostreamwrapper.h"
-#include "../../3rd_party/rapidjson/writer.h"
+#include "../../3rd_party/json/json.hpp"
 #include "misc/misc.h"
 #include "misc/log.h"
 #include "misc/build_info.h"
@@ -10,98 +8,103 @@
 #include <fstream>
 
 using namespace lexgine::core;
-using namespace rapidjson;
+using json = nlohmann::json;
 
 
 GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
 {
-    Document document;
-
     misc::Optional<std::string> source_json = misc::readAsciiTextFromSourceFile(json_settings_source_path);
     if (!source_json.isValid())
     {
-        misc::Log::retrieve()->out("WARNING: unable to parse global settings JSON file located at \"" + json_settings_source_path + "\". The system will fall back to default settings",
+        misc::Log::retrieve()->out("WARNING: unable to parse global settings JSON file located at \"" 
+            + json_settings_source_path + "\". The system will fall back to default settings",
             misc::LogMessageType::exclamation);
         return;
     }
 
-    document.Parse(static_cast<std::string>(source_json).c_str());
-    if (!document.IsObject())
+
+    try {
+        json document = json::parse(static_cast<std::string&>(source_json));
+
+        json::iterator p;
+
+
+        if ((p = document.find("number_of_workers")) != document.end()
+            && p->is_number_unsigned())
+        {
+            m_number_of_workers = *p;
+        }
+        else
+        {
+            misc::Log::retrieve()->out("WARNING: unable to get value for \"number_of_workers\" from settings file located at \""
+                + json_settings_source_path + "\". The system will fall back to default value \"number_of_workers = 8\"",
+                misc::LogMessageType::exclamation);
+
+            m_number_of_workers = 8U;
+        }
+
+        if ((p = document.find("deferred_shader_compilation")) != document.end()
+            && p->is_boolean())
+        {
+            m_deferred_shader_compilation = *p;
+        }
+        else
+        {
+            misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_shader_compilation\" from settings file located at \""
+                + json_settings_source_path + "\". The system will fall back to default value \"deferred_shader_compilation = true\"",
+                misc::LogMessageType::exclamation);
+
+            m_deferred_shader_compilation = true;
+        }
+        
+        if ((p = document.find("shader_lookup_directories")) != document.end())
+        {
+            if (p->is_array())
+            {
+                for (auto& e : *p)
+                {
+                    if (e.is_string())
+                    {
+                        m_shader_lookup_directories.push_back(e);
+                    }
+                    else
+                    {
+                        misc::Log::retrieve()->out("WARNING: unable retrieve value from JSON array \"shader_lookup_directories\" in settings file located at \""
+                            + json_settings_source_path + "\"; \"shader_lookup_directories\" is expected to be an array of strings but some of its elements appear to have non-string format.",
+                            misc::LogMessageType::exclamation);
+                    }
+                }
+            }
+            else
+            {
+                misc::Log::retrieve()->out("WARNING: unable to get value for \"shader_lookup_directories\" from settings file located at \""
+                    + json_settings_source_path + "\"; \"shader_lookup_directories\" is expected to be an array of strings but turned out to have different format."
+                    " The system will search for shaders in the current working directory",
+                    misc::LogMessageType::exclamation);
+            }
+        }
+        
+        if ((p = document.find("cache_path")) != document.end()
+            && p->is_string())
+        {
+            m_cache_path = p->get<std::string>();
+        }
+        else
+        {
+            misc::Log::retrieve()->out("WARNING: unable to get value for \"cache_path\" from settings file located at \""
+                + json_settings_source_path + "\"; \"cache_path\" must have string value. The system will fall back to default cache path setting.", 
+                misc::LogMessageType::exclamation);
+
+            m_cache_path = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
+                + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
+                + "__" + PROJECT_VERSION_STAGE + "__cache/";
+        }
+    }
+    catch (...)
     {
         misc::Log::retrieve()->out("WARNING: JSON file located at \"" + json_settings_source_path + "\" has invalid format. The system will fall back to default settings",
             misc::LogMessageType::exclamation);
-        return;
     }
-
-    
-    // number_of_workers
-    m_number_of_workers = 8U;
-    if (!document["number_of_workers"].IsUint())
-    {
-        misc::Log::retrieve()->out("WARNING: unable to get value for \"number_of_workers\" from settings file located at \"" 
-            + json_settings_source_path + "\". The system will fall back to default value \"number_of_workers = 8\"",
-            misc::LogMessageType::exclamation);
-    }
-    else
-    {
-        m_number_of_workers = static_cast<uint8_t>(document["number_of_workers"].GetUint());
-    }
-
-    // deferred_shader_compilation
-    if (!document["deferred_shader_compilation"].IsBool())
-    {
-        misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_shader_compilation\" from settings file located at \""
-            + json_settings_source_path + "\". The system will fall back to default value \"deferred_shader_compilation = true\"",
-            misc::LogMessageType::exclamation);
-    }
-    else
-    {
-        m_deferred_shader_compilation = document["deferred_shader_compilation"].GetBool();
-    }
-
-    if (document.FindMember("shader_lookup_directories") != document.MemberEnd())
-    {
-        if (!document["shader_lookup_directories"].IsArray())
-        {
-            misc::Log::retrieve()->out("WARNING: unable to get value for \"shader_lookup_directories\" from settings file located at \""
-                + json_settings_source_path + "\"shader_lookup_directories\" is expected to be an array of strings but turned out to have different format."
-                " The system will search for shaders in the current working directory",
-                misc::LogMessageType::exclamation);
-        }
-        else
-        {
-            for (auto& e : document["shader_lookup_directories"].GetArray())
-            {
-                if (!e.IsString())
-                {
-                    misc::Log::retrieve()->out("WARNING: unable to get value for \"shader_lookup_directories\" from settings file located at \""
-                        + json_settings_source_path + "\"shader_lookup_directories\" is expected to be an array of strings but some of its elements look like they have a non-string format.",
-                        misc::LogMessageType::exclamation);
-                }
-                else
-                {
-                    m_shader_lookup_directories.push_back(e.GetString());
-                }
-            }
-        }
-    }
-
-    m_cache_path = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
-        + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
-        + "__" + PROJECT_VERSION_STAGE + "__cache/";
-    if (document.FindMember("cache_path") != document.MemberEnd())
-    {
-        if (!document["cache_path"].IsString())
-        {
-            misc::Log::retrieve()->out("WARNING: unable to get value for \"cache_path\" from settings file located at \""
-                + json_settings_source_path + "\"cache_path\" must have string value", misc::LogMessageType::exclamation);
-        }
-        else
-        {
-            m_cache_path = document["cache_path"].GetString();
-        }
-    }
-    
 }
 
 void GlobalSettings::serialize(std::string const& json_serialization_path) const
@@ -114,26 +117,15 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
         return;
     }
 
-    OStreamWrapper ofile_wrapper{ ofile };
-    Writer<OStreamWrapper> w{ ofile_wrapper };
-    w.StartObject();
-    w.Key("number_of_workers");
-    w.Uint(m_number_of_workers);
-    w.Key("deferred_shader_compilation");
-    w.Bool(m_deferred_shader_compilation);
+    json j = {
+        {"number_of_workers", m_number_of_workers},
+        {"deferred_shader_compilation", m_deferred_shader_compilation},
+        {"cache_path", m_cache_path}
+    };
     if (m_shader_lookup_directories.size())
-    {
-        w.Key("shader_lookup_directories");
-        w.StartArray();
-        for (auto& e : m_shader_lookup_directories)
-        {
-            w.String(e.c_str(), static_cast<SizeType>(e.length()), true);
-        }
-        w.EndArray();
-    }
-    w.Key("cache_path");
-    w.String(m_cache_path.c_str(), static_cast<SizeType>(m_cache_path.length()), true);
-    w.EndObject();
+        j["shader_lookup_directories"] = m_shader_lookup_directories;
+
+    ofile << j;
 
     ofile.close();
 }

@@ -23,8 +23,8 @@ public:
         std::ifstream ifile{ source_file };
         if (!ifile)
         {
-            m_parent.raiseError("Unable to open shader source file \"" + source_file + "\"");
-            return "";
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent,
+                "Unable to open shader source file \"" + source_file + "\"");
         }
 
         ifile.seekg(0, std::ios_base::end);
