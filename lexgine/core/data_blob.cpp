@@ -1,4 +1,5 @@
 #include "data_blob.h"
+#include "exception.h"
 
 #include <cassert>
 #include <utility>
@@ -72,7 +73,11 @@ D3DDataBlob::D3DDataBlob(size_t blob_size):
     DataBlob{ nullptr, blob_size },
     m_blob{ nullptr }
 {
-    D3DCreateBlob(static_cast<SIZE_T>(blob_size), m_blob.GetAddressOf());
+    HRESULT res = D3DCreateBlob(static_cast<SIZE_T>(blob_size), m_blob.GetAddressOf());
+    if (res != S_OK)
+    {
+        LEXGINE_THROW_ERROR("Unable to create Direct3D data blob");
+    }
     declareBufferPointer(m_blob->GetBufferPointer());
 }
 

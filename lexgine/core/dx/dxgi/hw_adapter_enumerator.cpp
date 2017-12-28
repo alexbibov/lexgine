@@ -1,5 +1,6 @@
 #include "hw_adapter_enumerator.h"
 #include "../../misc/log.h"
+#include "../../exception.h"
 
 using namespace lexgine;
 using namespace lexgine::core;
@@ -12,7 +13,6 @@ HwAdapterEnumerator::HwAdapterEnumerator()
 {
     refresh();
 }
-
 
 HwAdapter& HwAdapterEnumerator::operator*()
 {
@@ -107,35 +107,35 @@ void HwAdapterEnumerator::refresh()
 {
     m_adapter_list.clear();
 
-    IDXGIFactory2* p_dxgi_factory2;
+    ComPtr<IDXGIFactory2> dxgi_factory2;
 
     //Create DXGI factory
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), reinterpret_cast<void**>(&p_dxgi_factory2)),
+        CreateDXGIFactory2(0, IID_PPV_ARGS(&dxgi_factory2)),
         S_OK
     );
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        p_dxgi_factory2->QueryInterface(IID_PPV_ARGS(&m_dxgi_factory4)),
+        dxgi_factory2->QueryInterface(IID_PPV_ARGS(&m_dxgi_factory4)),
         S_OK
     );
-    p_dxgi_factory2->Release();
+    //dxgi_factory2->Release();
 
     //Enumerate DXGI adapters and attempt to create DX12 device with minimal required feature level (i.e. dx11.0) with
     //every of them. If the call successes, add the corresponding adapter to the iteration list
-    IDXGIAdapter* p_dxgi_adapter;
-    IDXGIAdapter3* p_dxgi_adapter3;
+    IDXGIAdapter* p_dxgi_adapter{ nullptr };
+    IDXGIAdapter3* p_dxgi_adapter3{ nullptr };
     HRESULT hres = S_OK;
     UINT id = 0;
     while ((hres = m_dxgi_factory4->EnumAdapters(id, &p_dxgi_adapter)) != DXGI_ERROR_NOT_FOUND)
     {
         if (hres != S_OK)
         {
-            char const* err_msg = "error while enumerating adapters";
-            logger().out(err_msg, LogMessageType::error);
-            raiseError(err_msg);
-            return;
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(
+                this,
+                "error while enumerating adapters"
+            );
         }
 
         LEXGINE_LOG_ERROR_IF_FAILED(
@@ -144,6 +144,7 @@ void HwAdapterEnumerator::refresh()
             S_OK
         );
         p_dxgi_adapter->Release();
+        if(!p_dxgi_adapter3) continue;
 
         HRESULT res;
         if ((res = D3D12CreateDevice(p_dxgi_adapter3, static_cast<D3D_FEATURE_LEVEL>(D3D12FeatureLevel::_11_0), __uuidof(ID3D12Device), nullptr)) == S_OK || res == S_FALSE)
@@ -152,12 +153,12 @@ void HwAdapterEnumerator::refresh()
         {
             DXGI_ADAPTER_DESC2 desc2;
             p_dxgi_adapter3->GetDesc2(&desc2);
+            std::string adapter_name = wstringToAsciiString(desc2.Description);
 
-            char* adapter_name = new char[wcslen(desc2.Description)];
-            for (size_t i = 0; i < wcslen(desc2.Description); ++i)
-                adapter_name[i] = static_cast<char>(desc2.Description[i]);
-            logger().out(std::string{ "unable to create Direct3D12 device for adapter \"" } + adapter_name + "\"", LogMessageType::error);
-            delete[] adapter_name;
+            LEXGINE_LOG_ERROR(
+                this, 
+                "unable to create Direct3D12 device for adapter \"" + adapter_name + "\""
+            );
         }
         p_dxgi_adapter3->Release();
 
@@ -165,19 +166,26 @@ void HwAdapterEnumerator::refresh()
     }
 
     //Add WARP adapter to the end of the list (i.e. the WARP adapter is always enumerated and it is always the last adapter in the list)
+    p_dxgi_adapter = nullptr;
+    p_dxgi_adapter3 = nullptr;
     LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         m_dxgi_factory4->EnumWarpAdapter(__uuidof(IDXGIAdapter), reinterpret_cast<void**>(&p_dxgi_adapter)),
         S_OK
     );
-    LEXGINE_LOG_ERROR_IF_FAILED(
-        this,
-        p_dxgi_adapter->QueryInterface(__uuidof(IDXGIAdapter3), reinterpret_cast<void**>(&p_dxgi_adapter3)),
-        S_OK
-    );
-    m_adapter_list.emplace_back(m_dxgi_factory4, ComPtr<IDXGIAdapter3> {p_dxgi_adapter3});
-    p_dxgi_adapter3->Release();
+    if(p_dxgi_adapter)
+    {
+        LEXGINE_LOG_ERROR_IF_FAILED(
+            this,
+            p_dxgi_adapter->QueryInterface(__uuidof(IDXGIAdapter3), reinterpret_cast<void**>(&p_dxgi_adapter3)),
+            S_OK
+        );
+        m_adapter_list.emplace_back(m_dxgi_factory4, ComPtr<IDXGIAdapter3> { p_dxgi_adapter3 });
+        if (p_dxgi_adapter3) p_dxgi_adapter3->Release();
+        p_dxgi_adapter->Release();
+    }
 
+    
     m_adapter_iterator = m_adapter_list.begin();
     m_iterated_index = 0;
 }
@@ -253,7 +261,7 @@ void HwAdapter::details::refreshMemoryStatistics()
     {
         DXGI_QUERY_VIDEO_MEMORY_INFO vm_info_desc;
 
-        LEXGINE_LOG_ERROR_IF_FAILED(
+        LEXGINE_THROW_ERROR_IF_FAILED(
             m_p_outer,
             m_p_outer->m_dxgi_adapter->QueryVideoMemoryInfo(i, DXGI_MEMORY_SEGMENT_GROUP::DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &vm_info_desc),
             S_OK
@@ -263,7 +271,7 @@ void HwAdapter::details::refreshMemoryStatistics()
         m_local_memory_desc[i].current_usage = vm_info_desc.CurrentUsage;
         m_local_memory_desc[i].current_reservation = vm_info_desc.CurrentReservation;
 
-        LEXGINE_LOG_ERROR_IF_FAILED(
+        LEXGINE_THROW_ERROR_IF_FAILED(
             m_p_outer,
             m_p_outer->m_dxgi_adapter->QueryVideoMemoryInfo(i, DXGI_MEMORY_SEGMENT_GROUP::DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &vm_info_desc),
             S_OK
@@ -283,7 +291,7 @@ HwAdapter::HwAdapter(ComPtr<IDXGIFactory4> const& adapter_factory, ComPtr<IDXGIA
     m_p_details{ nullptr }
 {
     DXGI_ADAPTER_DESC2 desc;
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         adapter->GetDesc2(&desc),
         S_OK
@@ -338,7 +346,7 @@ HwAdapter::HwAdapter(ComPtr<IDXGIFactory4> const& adapter_factory, ComPtr<IDXGIA
 
 void HwAdapter::reserveVideoMemory(uint32_t node_index, MemoryBudget budget_type, uint64_t amount_in_bytes) const
 {
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_dxgi_adapter->SetVideoMemoryReservation(node_index, static_cast<DXGI_MEMORY_SEGMENT_GROUP>(static_cast<int>(budget_type)), amount_in_bytes),
         S_OK

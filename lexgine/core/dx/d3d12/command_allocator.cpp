@@ -51,5 +51,8 @@ Device& CommandAllocator::device() const
 void CommandAllocator::setStringName(std::string const & entity_string_name)
 {
     Entity::setStringName(entity_string_name);
-    m_command_allocator->SetName(misc::asciiStringToWstring(entity_string_name).c_str());
+    LEXGINE_THROW_ERROR_IF_FAILED(this,
+        m_command_allocator->SetName(misc::asciiStringToWstring(entity_string_name).c_str()),
+        S_OK
+    );
 }

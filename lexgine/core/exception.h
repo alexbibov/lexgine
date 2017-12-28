@@ -50,13 +50,13 @@ private:
 
 
 /*! Checks if expression 'expr' was executed successfully using the list of "success codes" provided
-through __VA_ARGS__. If the expression fails, the macro throws as exception and sets the calling context
+through __VA_ARGS__. If the expression fails, the macro throws exception and sets the calling context
 to erroneous state
 */
 #define LEXGINE_THROW_ERROR_IF_FAILED(context, expr, ...) \
 { \
-auto rv = (expr); \
-if (!lexgine::core::misc::equalsAny(rv, __VA_ARGS__)) \
+auto __lexgine_error_throw_if_failed_rv__ = (expr); \
+if (!lexgine::core::misc::equalsAny(__lexgine_error_throw_if_failed_rv__, __VA_ARGS__)) \
 { \
 using context_type = std::remove_reference<std::remove_pointer<decltype(context)>::type>::type; \
 std::stringstream error_description_string_stream; \
@@ -64,17 +64,17 @@ error_description_string_stream << "Named entity <" << lexgine::core::misc::dere
 << "> with ID=<" << lexgine::core::misc::dereference<context_type>::resolve(context).getId().toString() \
 << "> has thrown an exception while executing expression \"" << #expr << "\" in function <" << __FUNCTION__ \
 << "> of module <" << __FILE__ << "> at line " << __LINE__ << ". The expression has returned error code 0x" \
-<< std::uppercase << std::hex << rv; \
+<< std::uppercase << std::hex << __lexgine_error_throw_if_failed_rv__; \
 std::stringstream short_error_description_string_stream; \
 short_error_description_string_stream << "Error while execution expression \"" << #expr \
-<< "\": the expression has been executed with error code 0x" << std::uppercase << std::hex << rv; \
+<< "\": the expression has been executed with error code 0x" << std::uppercase << std::hex << __lexgine_error_throw_if_failed_rv__; \
 lexgine::core::misc::dereference<context_type>::resolve(context).raiseError(error_description_string_stream.str()); \
 throw Exception{ misc::dereference<context_type>::resolve(context), short_error_description_string_stream.str(), __FILE__, __FUNCTION__, __LINE__ }; \
 } \
 }
 
 /*!
-Sets the context into erroneous state and throws an exception using provided description text
+Sets the context into erroneous state and throws exception using provided description text
 */
 #define LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(context, description) \
 { \
@@ -89,8 +89,12 @@ throw Exception{ misc::dereference<context_type>::resolve(context), description,
 }
 
 
-//! Throws an exception using provided description text and "dummy" named entity as the throwing context
-#define LEXGINE_THROW_ERROR(description) throw Exception{ lexgine::core::Dummy{}, description, __FILE__, __FUNCTION__, __LINE__ };
+//! Throws exception using provided description text and "dummy" named entity as the throwing context
+#define LEXGINE_THROW_ERROR(description) \
+{ \
+misc::Log::retrieve()->out(description, misc::LogMessageType::error); \
+throw Exception{ lexgine::core::Dummy{}, description, __FILE__, __FUNCTION__, __LINE__ }; \
+}
 
 
 #define LEXGINE_CORE_EXCEPTION_H

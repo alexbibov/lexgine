@@ -45,8 +45,8 @@ public:
         void* p_target_pso_descriptors, uint32_t num_descriptors,
         std::list<HLSLMacroDefinition> const& macro_definitions = std::list<HLSLMacroDefinition>{});
 
-    /*! Returns 'true' if the compilation was successful, returns 'false' otherwise. Note that if task has not been attempted to 
-     execute the function will return false. During execution of the task the return value is undefined.
+    /*! Returns 'true' if the compilation was successful, returns 'false' if compilation has not been done yet or if it has failed (and the
+     associated exception has been "eaten"). During execution of the task the return value is undefined.
     */
     bool wasSuccessful() const;
 
@@ -56,7 +56,7 @@ public:
     std::string getCompilationLog() const;
 
 
-    // Executed the task manually
+    // Executed the task manually. THROWS if compilation fails.
     bool execute(uint8_t worker_id);
 
 

@@ -136,18 +136,23 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
         if(task.isValid())
         {
             TaskGraphNode* unwrapped_task = static_cast<TaskGraphNode*>(task);
-            if (!unwrapped_task->execute(worker_id))
+            AbstractTask* p_contained_task = TaskGraphNodeAttorney<TaskSink>::getContainedTask(*unwrapped_task);
+            try
             {
-                // if execution returns 'false', this means that the task has to be rescheduled
-                TaskGraphNodeAttorney<TaskSink>::resetScheduleStatus(*unwrapped_task);
+                if (!unwrapped_task->execute(worker_id))
+                {
+                    // if execution returns 'false', this means that the task has to be rescheduled
+                    TaskGraphNodeAttorney<TaskSink>::resetScheduleStatus(*unwrapped_task);
+                }
+            }
+            catch (lexgine::core::Exception const&)
+            {
+                // we don't do anything here as the logging is done by the tasks themselves via call of raiseError(...)
+                // Note that the same call puts the task into erroneous state
             }
 
-            AbstractTask* p_contained_task = TaskGraphNodeAttorney<TaskSink>::getContainedTask(*unwrapped_task);
             if (p_contained_task->getErrorState())
-            {
-                // note that we do not output information about error into the log here since tasks do that themselves when they call raiseError(...)
                 m_error_watchdog.store(reinterpret_cast<uint64_t>(p_contained_task), std::memory_order_release);
-            }
         }
     }
 

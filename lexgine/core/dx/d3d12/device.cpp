@@ -1,4 +1,5 @@
 #include "device.h"
+#include "../../exception.h"
 
 using namespace lexgine::core::dx::d3d12;
 
@@ -14,7 +15,7 @@ FeatureD3D12Options Device::queryFeatureD3D12Options() const
     FeatureD3D12Options rv{};
 
     D3D12_FEATURE_DATA_D3D12_OPTIONS feature_desc;
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS)),
         S_OK
@@ -44,7 +45,7 @@ FeatureArchitecture Device::queryFeatureArchitecture(uint32_t node_index) const
 
     D3D12_FEATURE_DATA_ARCHITECTURE feature_desc;
     feature_desc.NodeIndex = node_index;
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &feature_desc, sizeof(D3D12_FEATURE_DATA_ARCHITECTURE)),
         S_OK
@@ -63,7 +64,7 @@ FeatureFormatSupport Device::queryFeatureFormatSupport(DXGI_FORMAT format) const
 
     D3D12_FEATURE_DATA_FORMAT_SUPPORT feature_desc;
     feature_desc.Format = format;
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &feature_desc, sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)),
         S_OK
@@ -83,7 +84,7 @@ FeatureMultisampleQualityLevels Device::queryFeatureQualityLevels(DXGI_FORMAT fo
     feature_desc.Format = format;
     feature_desc.SampleCount = sample_count;
     feature_desc.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &feature_desc, sizeof(D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS)),
         S_OK
@@ -100,7 +101,7 @@ FeatureGPUVirtualAddressSupport Device::queryFeatureGPUVirtualAddressSupport() c
     FeatureGPUVirtualAddressSupport rv{};
 
     D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT feature_desc;
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &feature_desc, sizeof(D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT)),
         S_OK
@@ -120,19 +121,27 @@ ComPtr<ID3D12Device> Device::native() const
 void Device::setStringName(std::string const & entity_string_name)
 {
     Entity::setStringName(entity_string_name);
-    m_device->SetName(misc::asciiStringToWstring(entity_string_name).c_str());
+    LEXGINE_THROW_ERROR_IF_FAILED(
+        this,
+        m_device->SetName(misc::asciiStringToWstring(entity_string_name).c_str()),
+        S_OK
+    );
 }
 
 ComPtr<ID3D12RootSignature> Device::createRootSignature(lexgine::core::D3DDataBlob const& serialized_root_signature, uint32_t node_mask) const
 {
-    ComPtr<ID3D12RootSignature> rv{};
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    ComPtr<ID3D12RootSignature> rs{};
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        m_device->CreateRootSignature(node_mask, serialized_root_signature.data(), serialized_root_signature.size(), IID_PPV_ARGS(&rv)),
+        m_device->CreateRootSignature(node_mask, serialized_root_signature.data(), serialized_root_signature.size(), IID_PPV_ARGS(&rs)),
         S_OK
     );
-    rv->SetName(misc::asciiStringToWstring("device_" + getStringName() + "_root_signature").c_str());
-    return rv;
+    LEXGINE_THROW_ERROR_IF_FAILED(
+        this,
+        rs->SetName(misc::asciiStringToWstring("device_" + getStringName() + "_root_signature").c_str()),
+        S_OK
+    );
+    return rs;
 }
 
 Fence Device::createFence(bool is_shared)
