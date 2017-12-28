@@ -1,5 +1,6 @@
 #include "resource.h"
 #include "device.h"
+#include "../../exception.h"
 
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core;
@@ -112,7 +113,7 @@ Resource::Resource(Heap & heap, uint64_t heap_offset, ResourceState const & init
     desc.Layout = static_cast<D3D12_TEXTURE_LAYOUT>(descriptor.layout);
     desc.Flags = static_cast<D3D12_RESOURCE_FLAGS>(descriptor.flags.getValue());
 
-    LEXGINE_LOG_ERROR_IF_FAILED(this,
+    LEXGINE_THROW_ERROR_IF_FAILED(this,
         heap.device().native()->CreatePlacedResource(heap.native().Get(), heap_offset, &desc, static_cast<D3D12_RESOURCE_STATES>(initial_state.getValue()), &optimized_clear_value, IID_PPV_ARGS(&m_resource)),
         S_OK);
 }

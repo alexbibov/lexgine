@@ -74,11 +74,12 @@ public:
     Heap(Heap&&) = default;
 
 private:
-    //! Initializes heap with provided abstract type, which allows to disregard hardware specifics
+    //! Initializes heap with provided abstract type, which allows to disregard hardware specifics. THROWS
     Heap(Device& device, AbstractHeapType type, uint64_t size, HeapCreationFlags flags, bool is_msaa_supported, uint32_t node_mask, uint32_t node_exposure_mask);
 
-    //! Initialized custom heap with the given CPU page and GPU memory pool parameters. Note that not all combinations of
-    //! parameters are valid on all systems. Request adapter architecture details using Device object
+    /*! Initialized custom heap with the given CPU page and GPU memory pool parameters. Note that not all combinations of
+     parameters are valid on all systems. Request adapter architecture details using Device object. THROWS
+    */
     Heap(Device& device, CPUPageProperty cpu_page_property, GPUMemoryPool gpu_memory_pool, uint64_t size, HeapCreationFlags flags, bool is_msaa_supported, uint32_t node_mask, uint32_t node_exposure_mask);
 
 
