@@ -60,9 +60,9 @@ public:
 
     Description getDescription() const; //! Returns description of DXGI output
 
-    std::vector<DisplayMode> getDisplayModes(DXGI_FORMAT format, DisplayModeEnumerationOptions const& options) const;   //! Enumerates display modes meeting requested DXGI color format
+    std::vector<DisplayMode> getDisplayModes(DXGI_FORMAT format, DisplayModeEnumerationOptions const& options) const;   //! Enumerates display modes meeting requested DXGI color format. THROWS.
 
-    DisplayMode findMatchingDisplayMode(DisplayMode const& mode_to_match) const;    //! Returns closest match for provided display mode
+    DisplayMode findMatchingDisplayMode(DisplayMode const& mode_to_match) const;    //! Returns closest match for provided display mode. THROWS.
 
     void waitForVBI() const;    //! Halts the calling thread until the next vertical blank interruption occurs
 

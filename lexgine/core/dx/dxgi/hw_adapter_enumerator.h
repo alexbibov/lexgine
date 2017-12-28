@@ -66,7 +66,7 @@ public:
         non_local = DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL
     };
 
-    //! Sends the OS notification requesting to reserve given @param amount_in_bytes from the video memory for the rendering application
+    //! Sends the OS notification requesting to reserve given @param amount_in_bytes from the video memory for the rendering application. THROWS.
     void reserveVideoMemory(uint32_t node_index, MemoryBudget budget_type, uint64_t amount_in_bytes) const;
 
     //! Returns properties structure describing this adapter
@@ -129,7 +129,7 @@ public:
     const_iterator cend() const;
 
 
-    void refresh();	//! refreshes the list of available hardware adapters with support of D3D12
+    void refresh();	//! refreshes the list of available hardware adapters with support of D3D12. THROWS.
     bool isRefreshNeeded() const;	//! returns true if the list of adapters has to be refreshed
     HwAdapter getWARPAdapter() const;   //! retrieves the WARP adapter
 

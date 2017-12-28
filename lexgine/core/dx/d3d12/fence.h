@@ -22,7 +22,7 @@ public:
     Device& device() const;    //! returns device that was used to create the fence
     ComPtr<ID3D12Fence> native() const;    //! returns native ID3D12Fence interface for the fence
 
-    void setEvent(uint64_t number_of_crosses, osinteraction::windows::FenceEvent const& event) const;    //! sets event that will be fired when the fence has been crossed the given number of times
+    void setEvent(uint64_t number_of_crosses, osinteraction::windows::FenceEvent const& event) const;    //! sets event that will be fired when the fence has been crossed the given number of times. THROWS
     bool isShared() const;    //! returns 'true' if the fence is shared between multiple GPUs
     void cross() const;    //! crosses the fence on the CPU-side
 
@@ -31,6 +31,7 @@ public:
     Fence(Fence&&) = default;
 
 private:
+    //! This constructor THROWS
     Fence(Device& device, bool is_shared);
 
     ComPtr<ID3D12Fence> m_fence;    //!< reference to the native Direct3D 12 interface

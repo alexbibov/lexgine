@@ -60,7 +60,7 @@ void CommandQueue::setStringName(std::string const & entity_string_name)
 
 void CommandQueue::signal(Fence const & fence)
 {
-    LEXGINE_THROW_ERROR_IF_FAILED(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         m_command_queue->Signal(fence.native().Get(), fence.m_target_value++), 
         S_OK
@@ -69,7 +69,7 @@ void CommandQueue::signal(Fence const & fence)
 
 void CommandQueue::wait(Fence const & fence, uint64_t num_crosses) const
 {
-    LEXGINE_THROW_ERROR_IF_FAILED(
+    LEXGINE_LOG_ERROR_IF_FAILED(
         this,
         m_command_queue->Wait(fence.native().Get(), num_crosses), 
         S_OK
