@@ -130,11 +130,7 @@ void Device::setStringName(std::string const & entity_string_name)
 
 ComPtr<ID3D12RootSignature> Device::createRootSignature(lexgine::core::D3DDataBlob const& serialized_root_signature, uint32_t node_mask) const
 {
-<<<<<<< HEAD
     ComPtr<ID3D12RootSignature> rs{};
-=======
-    ComPtr<ID3D12RootSignature> rv{};
->>>>>>> a6a0f08ed550b937598112add0d1fafdfc161a37
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_device->CreateRootSignature(node_mask, serialized_root_signature.data(), serialized_root_signature.size(), IID_PPV_ARGS(&rs)),

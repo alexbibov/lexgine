@@ -1,10 +1,6 @@
 #include "descriptor_heap.h"
 #include "device.h"
 #include "../../exception.h"
-<<<<<<< HEAD
-=======
-
->>>>>>> a6a0f08ed550b937598112add0d1fafdfc161a37
 
 using namespace lexgine::core::dx::d3d12;
 
