@@ -124,11 +124,7 @@ void HwAdapterEnumerator::refresh()
 
     //Enumerate DXGI adapters and attempt to create DX12 device with minimal required feature level (i.e. dx11.0) with
     //every of them. If the call successes, add the corresponding adapter to the iteration list
-<<<<<<< HEAD
     IDXGIAdapter* p_dxgi_adapter{ nullptr };
-=======
-    IDXGIAdapter* p_dxgi_adapter;
->>>>>>> a6a0f08ed550b937598112add0d1fafdfc161a37
     IDXGIAdapter3* p_dxgi_adapter3{ nullptr };
     HRESULT hres = S_OK;
     UINT id = 0;
@@ -159,18 +155,10 @@ void HwAdapterEnumerator::refresh()
             p_dxgi_adapter3->GetDesc2(&desc2);
             std::string adapter_name = wstringToAsciiString(desc2.Description);
 
-<<<<<<< HEAD
             LEXGINE_LOG_ERROR(
                 this, 
                 "unable to create Direct3D12 device for adapter \"" + adapter_name + "\""
             );
-=======
-            char* adapter_name = new char[wcslen(desc2.Description)];
-            for (size_t i = 0; i < wcslen(desc2.Description); ++i)
-                adapter_name[i] = static_cast<char>(desc2.Description[i]);
-            logger().out(std::string{ "unable to create Direct3D12 device for adapter \"" } + adapter_name + "\"", LogMessageType::exclamation);
-            delete[] adapter_name;
->>>>>>> a6a0f08ed550b937598112add0d1fafdfc161a37
         }
         p_dxgi_adapter3->Release();
 
@@ -178,18 +166,14 @@ void HwAdapterEnumerator::refresh()
     }
 
     //Add WARP adapter to the end of the list (i.e. the WARP adapter is always enumerated and it is always the last adapter in the list)
-<<<<<<< HEAD
     p_dxgi_adapter = nullptr;
     p_dxgi_adapter3 = nullptr;
-    LEXGINE_LOG_ERROR_IF_FAILED(
-=======
     LEXGINE_THROW_ERROR_IF_FAILED(
->>>>>>> a6a0f08ed550b937598112add0d1fafdfc161a37
         this,
         m_dxgi_factory4->EnumWarpAdapter(__uuidof(IDXGIAdapter), reinterpret_cast<void**>(&p_dxgi_adapter)),
         S_OK
     );
-<<<<<<< HEAD
+
     if(p_dxgi_adapter)
     {
         LEXGINE_LOG_ERROR_IF_FAILED(
@@ -201,16 +185,6 @@ void HwAdapterEnumerator::refresh()
         if (p_dxgi_adapter3) p_dxgi_adapter3->Release();
         p_dxgi_adapter->Release();
     }
-=======
-    LEXGINE_THROW_ERROR_IF_FAILED(
-        this,
-        p_dxgi_adapter->QueryInterface(__uuidof(IDXGIAdapter3), reinterpret_cast<void**>(&p_dxgi_adapter3)),
-        S_OK
-    );
-    m_adapter_list.emplace_back(m_dxgi_factory4, ComPtr<IDXGIAdapter3> {p_dxgi_adapter3});
-    p_dxgi_adapter3->Release();
->>>>>>> a6a0f08ed550b937598112add0d1fafdfc161a37
-
     
     m_adapter_iterator = m_adapter_list.begin();
     m_iterated_index = 0;
