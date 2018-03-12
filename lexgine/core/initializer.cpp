@@ -49,8 +49,11 @@ bool Initializer::initializeEnvironment(
 
     // Initialize logging
     {
-
         m_logging_file_stream.open(corrected_logging_output_path + log_name + ".html", std::ios::out);
+        if (!m_logging_file_stream)
+        {
+            throw std::runtime_error{ "unable to initialize main logging stream" };
+        }
 
         DYNAMIC_TIME_ZONE_INFORMATION time_zone_info;
         DWORD time_zone_id = GetDynamicTimeZoneInformation(&time_zone_info);
@@ -115,6 +118,10 @@ bool Initializer::initializeEnvironment(
         for (uint8_t i = 0; i < num_workers; ++i)
         {
             m_logging_worker_file_streams[i].open(corrected_logging_output_path + log_name + "_worker" + std::to_string(i) + ".html", std::ios::out);
+            if (!m_logging_worker_file_streams[i])
+            {
+                LEXGINE_THROW_ERROR("ERROR: unable to initialize logging stream for worker thread " + std::to_string(i));
+            }
         }
 
         m_logging_worker_generic_streams.resize(m_logging_worker_file_streams.size());
@@ -132,7 +139,8 @@ bool Initializer::initializeEnvironment(
 
 void Initializer::shutdownEnvironment()
 {
-    m_globals.release();    // Globals must be destroyed before the logger has been shut down
+    m_globals = nullptr;    // Globals must be destroyed before the logger has been shut down
+    m_global_settings = nullptr;
     misc::Log::shutdown();
     m_logging_file_stream.close();
     for (auto& s : m_logging_worker_file_streams) s.close();
