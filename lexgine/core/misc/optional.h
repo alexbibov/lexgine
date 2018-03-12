@@ -8,14 +8,14 @@ namespace lexgine { namespace core { namespace misc {
 
 //! Implements nullable type wrapper over provided type T
 template<typename T>
-class Optional
+class Optional final
 {
 public:
     Optional() noexcept : m_is_valid{ false } {}    //! initializes invalidated wrapper
 
     //! constructs wrapped type "in-place" without copy overhead
     template<typename... Args>
-    explicit Optional(Args... args) :
+    explicit Optional(Args... args):
         m_is_valid{ true }
     {
         new(m_value) T{ std::forward<Args>(args)... };
@@ -45,12 +45,13 @@ public:
     Optional(Optional&& other) :
         m_is_valid{ other.m_is_valid }
     {
-        if (other.m_is_valid)
-        {
-            new(m_value) T{ std::move(*reinterpret_cast<T const*>(other.m_value)) };
-            destruction_t::destruct(*reinterpret_cast<T const*>(other.m_value));
-            other.m_is_valid = false;
-        }
+        new(m_value) T{ std::move(*reinterpret_cast<T const*>(other.m_value)) };
+        other.invalidate();
+    }
+
+    ~Optional()
+    {
+        invalidate();
     }
 
     Optional& operator=(Optional const& other)
@@ -59,12 +60,11 @@ public:
 
         if (m_is_valid && other.m_is_valid)
             *reinterpret_cast<T*>(m_value) = *reinterpret_cast<T const*>(other.m_value);
-        else if (m_is_valid && !other.m_is_valid)
+        else if (!other.m_is_valid)
         {
-            destruction_t::destruct(*reinterpret_cast<T*>(m_value));
-            m_is_valid = false;
+            invalidate();
         }
-        else if (!m_is_valid && other.m_is_valid)
+        else
         {
             new(m_value) T{ *reinterpret_cast<T const*>(other.m_value) };
             m_is_valid = true;
@@ -79,22 +79,19 @@ public:
 
         if (m_is_valid && other.m_is_valid)
         {
-            *reinterpret_cast<T*>(m_value) = std::move(*reinterpret_cast<T const*>(other.m_value));
-            destruction_t::destruct(*reinterpret_cast<T const*>(other.m_value));
-            other.m_is_valid = false;
+            *reinterpret_cast<T*>(m_value) = std::move(*reinterpret_cast<T*>(other.m_value));
         }
-        else if (m_is_valid && !other.m_is_valid)
+        else if (!other.m_is_valid)
         {
-            destruction_t::destruct(*reinterpret_cast<T*>(m_value));
-            m_is_valid = false;
+            invalidate();
         }
-        else if (!m_is_valid && other.m_is_valid)
+        else
         {
-            new(m_value) T{ std::move(*reinterpret_cast<T const*>(other.m_value)) };
-            destruction_t::destruct(*reinterpret_cast<T const*>(other.m_value));
-            other.m_is_valid = false;
+            new(m_value) T{ std::move(*reinterpret_cast<T*>(other.m_value)) };
             m_is_valid = true;
         }
+
+        other.invalidate();
 
         return *this;
     }
@@ -169,6 +166,7 @@ public:
         if (m_is_valid)
         {
             destruction_t::destruct(*reinterpret_cast<T*>(m_value));
+            m_is_valid = false;
         }
     }
 
@@ -184,7 +182,7 @@ private:
     {
         static inline void destruct(T const& val)
         {
-            val->~T();
+            val.~T();
         }
     };
 

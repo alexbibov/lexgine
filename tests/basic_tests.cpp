@@ -627,13 +627,13 @@ public:
                 size_t const initial_cache_redundancy = 200;
 
                 size_t const num_chunks = test_cache_size / single_chunk_size;
-                size_t const num_secondary_iterations = 100;
+                size_t const num_secondary_iterations = 20;
 
                 size_t const num_deletion_batches = 10;
                 size_t const num_deletion_operations_in_singe_batch = 10;
                 size_t const num_deletions_per_iter = num_deletion_batches*num_deletion_operations_in_singe_batch;
 
-                size_t const num_write_batches = 15;
+                size_t const num_write_batches = 10;
                 size_t const num_write_operations_in_single_batch = 15;
                 size_t const num_writes_per_iter = num_write_batches*num_write_operations_in_single_batch;
 
@@ -659,7 +659,7 @@ public:
                     {
                         DataBlob b{ random_value_buffer + i*single_chunk_size, single_chunk_size * sizeof(uint32_t) };
                         StreamedCache_KeyInt64_Cluster4KB::entry_type e{ i, b };
-                        streamed_cache.addEntry(e);
+                        streamed_cache.addEntry(e, true);
                     }
 
                     streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__extensive_test1.gv");
@@ -696,7 +696,7 @@ public:
                                 uint64_t wkey = write_keys[b_id*num_write_operations_in_single_batch + w_op];
                                 DataBlob b{ random_value_buffer + wkey*single_chunk_size, single_chunk_size * sizeof(uint32_t) };
                                 StreamedCache_KeyInt64_Cluster4KB::entry_type e{ wkey, b };
-                                streamed_cache.addEntry(e);
+                                streamed_cache.addEntry(e, true);
                             }
                         }
                     }

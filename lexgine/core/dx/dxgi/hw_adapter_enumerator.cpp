@@ -147,7 +147,8 @@ void HwAdapterEnumerator::refresh()
         if(!p_dxgi_adapter3) continue;
 
         HRESULT res;
-        if (p_dxgi_adapter3 && ((res = D3D12CreateDevice(p_dxgi_adapter3, static_cast<D3D_FEATURE_LEVEL>(D3D12FeatureLevel::_11_0), __uuidof(ID3D12Device), nullptr)) == S_OK || res == S_FALSE))
+        if (p_dxgi_adapter3 
+            && ((res = D3D12CreateDevice(p_dxgi_adapter3, static_cast<D3D_FEATURE_LEVEL>(D3D12FeatureLevel::_11_0), __uuidof(ID3D12Device), nullptr)) == S_OK || res == S_FALSE))
             m_adapter_list.emplace_back(m_dxgi_factory4, ComPtr<IDXGIAdapter3>{p_dxgi_adapter3});
         else
         {

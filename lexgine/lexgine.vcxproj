@@ -151,10 +151,6 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\3rd_party\imgui\extra_fonts\binary_to_compressed_c.cpp" />
-    <ClCompile Include="..\3rd_party\imgui\imgui.cpp" />
-    <ClCompile Include="..\3rd_party\imgui\imgui_demo.cpp" />
-    <ClCompile Include="..\3rd_party\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\3rd_party\pugixml\src\pugixml.cpp" />
     <ClCompile Include="..\3rd_party\SpookyHash\SpookyV2.cpp" />
     <ClCompile Include="core\blend_descriptor.cpp" />
@@ -209,49 +205,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\3rd_party\half\half.h" />
-    <ClInclude Include="..\3rd_party\imgui\imconfig.h" />
-    <ClInclude Include="..\3rd_party\imgui\imgui.h" />
-    <ClInclude Include="..\3rd_party\imgui\imgui_internal.h" />
-    <ClInclude Include="..\3rd_party\imgui\stb_rect_pack.h" />
-    <ClInclude Include="..\3rd_party\imgui\stb_textedit.h" />
-    <ClInclude Include="..\3rd_party\imgui\stb_truetype.h" />
+    <ClInclude Include="..\3rd_party\json\json.hpp" />
     <ClInclude Include="..\3rd_party\pugixml\src\pugiconfig.hpp" />
     <ClInclude Include="..\3rd_party\pugixml\src\pugixml.hpp" />
-    <ClInclude Include="..\3rd_party\rapidjson\allocators.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\document.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\encodedstream.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\encodings.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\error\en.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\error\error.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\filereadstream.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\filewritestream.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\fwd.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\internal\biginteger.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\internal\diyfp.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\internal\dtoa.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\internal\ieee754.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\internal\itoa.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\internal\meta.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\internal\pow10.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\internal\regex.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\internal\stack.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\internal\strfunc.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\internal\strtod.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\internal\swap.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\istreamwrapper.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\memorybuffer.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\memorystream.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\msinttypes\inttypes.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\msinttypes\stdint.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\ostreamwrapper.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\pointer.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\prettywriter.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\rapidjson.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\reader.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\schema.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\stream.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\stringbuffer.h" />
-    <ClInclude Include="..\3rd_party\rapidjson\writer.h" />
     <ClInclude Include="..\3rd_party\SpookyHash\SpookyV2.h" />
     <ClInclude Include="core\allocator.h" />
     <ClInclude Include="core\blend_descriptor.h" />

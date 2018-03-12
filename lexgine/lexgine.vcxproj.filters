@@ -58,23 +58,11 @@
     <Filter Include="3rd_party\SpookyHash">
       <UniqueIdentifier>{543e323c-4d8c-4634-a7a5-9837ea5936a5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="3rd_party\folder">
+    <Filter Include="3rd_party\half">
       <UniqueIdentifier>{22074255-8731-4527-898b-3eb029886c6a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="3rd_party\rapidjson">
-      <UniqueIdentifier>{75bddb14-22f8-40c5-9c9f-64b7d7c3ca5c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="3rd_party\rapidjson\error">
-      <UniqueIdentifier>{37bdb699-a32c-4dc0-ac4f-d01d3f0d4e7d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="3rd_party\rapidjson\internal">
-      <UniqueIdentifier>{d7335772-ad16-4524-9c15-0fa489eae82e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="3rd_party\rapidjson\msinttypes">
-      <UniqueIdentifier>{a1dd1460-a2f9-47d5-a381-d956ae56ca75}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="3rd_party\imgui">
-      <UniqueIdentifier>{df9bd2a9-debf-4cd5-949c-e0057e17bdd6}</UniqueIdentifier>
+    <Filter Include="3rd_party\json">
+      <UniqueIdentifier>{9426151a-d24b-49e4-8f6b-459bd52ccaea}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -304,130 +292,7 @@
       <Filter>core\misc</Filter>
     </ClInclude>
     <ClInclude Include="..\3rd_party\half\half.h">
-      <Filter>3rd_party\folder</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\allocators.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\document.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\encodedstream.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\encodings.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\filereadstream.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\filewritestream.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\fwd.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\istreamwrapper.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\memorybuffer.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\memorystream.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\ostreamwrapper.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\pointer.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\prettywriter.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\rapidjson.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\reader.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\schema.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\stream.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\stringbuffer.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\writer.h">
-      <Filter>3rd_party\rapidjson</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\error\en.h">
-      <Filter>3rd_party\rapidjson\error</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\error\error.h">
-      <Filter>3rd_party\rapidjson\error</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\internal\biginteger.h">
-      <Filter>3rd_party\rapidjson\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\internal\diyfp.h">
-      <Filter>3rd_party\rapidjson\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\internal\dtoa.h">
-      <Filter>3rd_party\rapidjson\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\internal\ieee754.h">
-      <Filter>3rd_party\rapidjson\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\internal\itoa.h">
-      <Filter>3rd_party\rapidjson\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\internal\meta.h">
-      <Filter>3rd_party\rapidjson\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\internal\pow10.h">
-      <Filter>3rd_party\rapidjson\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\internal\regex.h">
-      <Filter>3rd_party\rapidjson\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\internal\stack.h">
-      <Filter>3rd_party\rapidjson\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\internal\strfunc.h">
-      <Filter>3rd_party\rapidjson\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\internal\strtod.h">
-      <Filter>3rd_party\rapidjson\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\internal\swap.h">
-      <Filter>3rd_party\rapidjson\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\msinttypes\inttypes.h">
-      <Filter>3rd_party\rapidjson\msinttypes</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\rapidjson\msinttypes\stdint.h">
-      <Filter>3rd_party\rapidjson\msinttypes</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\imgui\imconfig.h">
-      <Filter>3rd_party\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\imgui\imgui.h">
-      <Filter>3rd_party\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\imgui\imgui_internal.h">
-      <Filter>3rd_party\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\imgui\stb_rect_pack.h">
-      <Filter>3rd_party\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\imgui\stb_textedit.h">
-      <Filter>3rd_party\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\3rd_party\imgui\stb_truetype.h">
-      <Filter>3rd_party\imgui</Filter>
+      <Filter>3rd_party\half</Filter>
     </ClInclude>
     <ClInclude Include="core\initializer.h">
       <Filter>core</Filter>
@@ -440,6 +305,9 @@
     </ClInclude>
     <ClInclude Include="core\streamed_cache.h">
       <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\json\json.hpp">
+      <Filter>3rd_party\json</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -592,18 +460,6 @@
     </ClCompile>
     <ClCompile Include="core\misc\hashed_string.cpp">
       <Filter>core\misc</Filter>
-    </ClCompile>
-    <ClCompile Include="..\3rd_party\imgui\imgui.cpp">
-      <Filter>3rd_party\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\3rd_party\imgui\imgui_demo.cpp">
-      <Filter>3rd_party\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\3rd_party\imgui\imgui_draw.cpp">
-      <Filter>3rd_party\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\3rd_party\imgui\extra_fonts\binary_to_compressed_c.cpp">
-      <Filter>3rd_party\imgui</Filter>
     </ClCompile>
     <ClCompile Include="core\initializer.cpp">
       <Filter>core</Filter>
