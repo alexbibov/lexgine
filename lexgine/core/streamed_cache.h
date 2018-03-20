@@ -118,7 +118,7 @@ public:
         StreamedCacheIndexIterator operator--(int);
 
     private:
-        bool m_is_at_beginning = false;
+        bool m_is_at_beginning = true;
         bool m_has_reached_end = true;
         size_t m_current_index = 0U;
         std::vector<StreamedCacheIndexTreeEntry<Key>>* m_p_target_index_tree = nullptr;
@@ -438,7 +438,6 @@ template<typename Key, size_t cluster_size>
 inline typename StreamedCacheIndex<Key, cluster_size>::iterator StreamedCacheIndex<Key, cluster_size>::begin()
 {
     iterator rv{};
-    rv.m_is_at_beginning = true;
     rv.m_has_reached_end = false;
     rv.m_p_target_index_tree = &m_index_tree;
     return rv;
@@ -448,6 +447,7 @@ template<typename Key, size_t cluster_size>
 inline typename StreamedCacheIndex<Key, cluster_size>::iterator StreamedCacheIndex<Key, cluster_size>::end()
 {
     iterator rv{};
+    rv.m_is_at_beginning = false;
     rv.m_p_target_index_tree = &m_index_tree;
     return rv;
 }
@@ -1147,14 +1147,19 @@ inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterato
     }
 
 
-    while (m_current_index && (index_tree[m_current_index].inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child
-        || !index_tree[index_tree[m_current_index].parent_node].right_leaf))
     {
-        m_current_index = index_tree[m_current_index].parent_node;
-    }
+        size_t idx{ m_current_index };
+        while (idx && (index_tree[idx].inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child
+            || !index_tree[index_tree[idx].parent_node].right_leaf))
+        {
+            idx = index_tree[idx].parent_node;
+        }
 
-    if (!m_current_index) m_has_reached_end = true;
-    else m_current_index = index_tree[index_tree[m_current_index].parent_node].right_leaf;
+        if (!idx)
+            m_has_reached_end = true;
+        else
+            m_current_index = index_tree[index_tree[idx].parent_node].right_leaf;
+    }
 
     return *this;
 }
@@ -1216,6 +1221,15 @@ inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterato
 
     if (m_has_reached_end)
     {
+        m_has_reached_end = false;
+    }
+    else
+    {
+
+    }
+
+    /*if (m_has_reached_end)
+    {
         m_current_index = 0U;
         m_has_reached_end = false;
     }
@@ -1239,7 +1253,7 @@ inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterato
     }
 
     while (index_tree[m_current_index].right_leaf)
-        m_current_index = index_tree[m_current_index].right_leaf;
+        m_current_index = index_tree[m_current_index].right_leaf;*/
 
     return *this;
 }
