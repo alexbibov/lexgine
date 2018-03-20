@@ -23,6 +23,7 @@
 #include <fstream>
 #include <chrono>
 #include <random>
+#include <unordered_set>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -554,13 +555,14 @@ public:
 
                 {
                     std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc };
-                    StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile, 1024 * 1024 * 1024, StreamedCacheCompressionLevel::level6, true };
+                    StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile, 1024 * 1024 * 4 * 257, StreamedCacheCompressionLevel::level6, true };
 
                     for (int i = 0; i < 16; ++i)
                     {
-                        DataBlob blob{ random_value_buffer + i * 16777216U, 67108864U };
+                        DataBlob blob{ random_value_buffer + i * 4194304, 16777216 };
                         StreamedCache_KeyInt64_Cluster8KB::entry_type e{ i, blob };
-                        streamed_cache.addEntry(e);
+                        Assert::IsTrue(streamed_cache.addEntry(e),
+                            (L"Unable to add entry with key \"" + std::to_wstring(i) + L"\" into the cache").c_str());
                     }
                     streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test1.gv");
                 }
@@ -569,25 +571,25 @@ public:
                     std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out };
                     StreamedCache_KeyInt64_Cluster8KB streamed_cache{ iofile };
 
-                    streamed_cache.removeEntry(5);
-                    streamed_cache.removeEntry(2);
+                    Assert::IsTrue(streamed_cache.removeEntry(5) && streamed_cache.removeEntry(2),
+                        L"Cache entry removal operation failed");
 
                     streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test2.gv");
 
                     {
-                        DataBlob blob{ random_value_buffer + 5 * 16777216U, 67108864U };
+                        DataBlob blob{ random_value_buffer + 5 * 4194304, 16777216 };
                         StreamedCache_KeyInt64_Cluster8KB::entry_type e{ 17, blob };
-                        streamed_cache.addEntry(e);
+                        Assert::IsTrue(streamed_cache.addEntry(e), L"Cache write operation failed");
                     }
                     {
-                        DataBlob blob{ random_value_buffer + 2 * 16777216U, 67108864U };
+                        DataBlob blob{ random_value_buffer + 2 * 4194304, 16777216 };
                         StreamedCache_KeyInt64_Cluster8KB::entry_type e{ 2, blob };
-                        streamed_cache.addEntry(e);
+                        Assert::IsTrue(streamed_cache.addEntry(e), L"Cache write operation failed");
                     }
                     {
-                        DataBlob blob{ random_value_buffer + 9 * 16777216U, 67108864U };
+                        DataBlob blob{ random_value_buffer + 9 * 4194304, 16777216 };
                         StreamedCache_KeyInt64_Cluster8KB::entry_type e{ 25, blob };
-                        streamed_cache.addEntry(e);
+                        Assert::IsTrue(streamed_cache.addEntry(e), L"Cache write operation failed");
                     }
 
                     streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__test3.gv");
@@ -601,7 +603,7 @@ public:
                         int offset = i != -1 ? i : 9;
 
                         SharedDataChunk chunk = streamed_cache.retrieveEntry(j);
-                        bool res = std::memcmp(chunk.data(), random_value_buffer + offset * 16777216U, 67108864U) == 0;
+                        bool res = std::memcmp(chunk.data(), random_value_buffer + offset * 4194304, 16777216) == 0;
 
                         Assert::IsTrue(res, (L"Memory chunk " + std::to_wstring(i) + L" failed comparison").c_str());
                     }
@@ -624,7 +626,7 @@ public:
             {
                 size_t const test_cache_size{ 26214400U };    // 100 megabytes
                 size_t const single_chunk_size{ 16384U };    // 1600 chunks all together
-                size_t const initial_cache_redundancy = 200;
+                size_t const initial_cache_redundancy = 200;    // 200 extra chunks
 
                 size_t const num_chunks = test_cache_size / single_chunk_size;
                 size_t const num_secondary_iterations = 20;
@@ -633,7 +635,7 @@ public:
                 size_t const num_deletion_operations_in_singe_batch = 10;
                 size_t const num_deletions_per_iter = num_deletion_batches*num_deletion_operations_in_singe_batch;
 
-                size_t const num_write_batches = 10;
+                size_t const num_write_batches = 15;
                 size_t const num_write_operations_in_single_batch = 15;
                 size_t const num_writes_per_iter = num_write_batches*num_write_operations_in_single_batch;
 
@@ -659,7 +661,7 @@ public:
                     {
                         DataBlob b{ random_value_buffer + i*single_chunk_size, single_chunk_size * sizeof(uint32_t) };
                         StreamedCache_KeyInt64_Cluster4KB::entry_type e{ i, b };
-                        streamed_cache.addEntry(e, true);
+                        Assert::IsTrue(streamed_cache.addEntry(e), (L"Unable to add entry with key \"" + std::to_wstring(i) + L"\" into the cache").c_str());
                     }
 
                     streamed_cache.getIndex().generateDOTRepresentation("streamed_cache_index_tree__extensive_test1.gv");
@@ -677,26 +679,36 @@ public:
                         for (auto& e : streamed_cache.getIndex())
                             keys.push_back(e.cache_entry_key.value);
 
-                        std::vector<uint64_t> deletion_keys(num_deletion_operations_in_singe_batch * num_deletion_batches);
+                        std::vector<uint64_t> deletion_keys(num_deletions_per_iter);
                         std::random_shuffle(keys.begin(), keys.end());
                         std::copy(keys.begin(), keys.begin() + deletion_keys.size(), deletion_keys.begin());
 
                         std::uniform_int_distribution<uint64_t> w_distribution{ 0, num_chunks + initial_cache_redundancy - 1 };
-                        std::vector<uint64_t> write_keys(num_write_operations_in_single_batch * num_write_batches);
-                        for (size_t j = 0; j < num_write_operations_in_single_batch * num_write_batches; ++j)
-                            write_keys[j] = w_distribution(rand_eng);
+                        std::vector<uint64_t> write_keys_with_repetitions(num_writes_per_iter);
+                        for (size_t i = 0; i < num_writes_per_iter; ++i) 
+                            write_keys_with_repetitions[i] = w_distribution(rand_eng);
 
                         for (size_t b_id = 0; b_id < (std::max)(num_deletion_batches, num_write_batches); ++b_id)
                         {
                             for (size_t d_op = 0; b_id < num_deletion_batches && d_op < num_deletion_operations_in_singe_batch; ++d_op)
-                                streamed_cache.removeEntry(deletion_keys[b_id*num_deletion_operations_in_singe_batch + d_op]);
+                            {
+                                auto key = deletion_keys[b_id*num_deletion_operations_in_singe_batch + d_op];
+                                Assert::IsTrue(streamed_cache.removeEntry(key),
+                                    (L"Deletion operation " + std::to_wstring(d_op) + L" in batch " + std::to_wstring(b_id)
+                                        + L" on iteration " + std::to_wstring(i) + L" has failed for entry with key \""
+                                        + std::to_wstring(key) + L"\"").c_str());
+                            }
 
                             for (size_t w_op = 0; b_id < num_write_batches && w_op < num_write_operations_in_single_batch; ++w_op)
                             {
-                                uint64_t wkey = write_keys[b_id*num_write_operations_in_single_batch + w_op];
+                                uint64_t wkey = write_keys_with_repetitions[b_id*num_write_operations_in_single_batch + w_op];
                                 DataBlob b{ random_value_buffer + wkey*single_chunk_size, single_chunk_size * sizeof(uint32_t) };
                                 StreamedCache_KeyInt64_Cluster4KB::entry_type e{ wkey, b };
-                                streamed_cache.addEntry(e, true);
+                                
+                                Assert::IsTrue(streamed_cache.addEntry(e),
+                                    (L"Write operation " + std::to_wstring(w_op) + L" in batch " + std::to_wstring(b_id)
+                                        + L" on iteration " + std::to_wstring(i) + L" has failed for entry with key \""
+                                        + std::to_wstring(wkey) + L"\"").c_str());
                             }
                         }
                     }
@@ -715,6 +727,10 @@ public:
                     for (auto& index_entry : streamed_cache.getIndex())
                     {
                         auto entry = streamed_cache.retrieveEntry(index_entry.cache_entry_key);
+                        Assert::IsTrue(entry.data(),
+                            (L"Unable to retrieve data blob for key value \""
+                                + std::to_wstring(index_entry.cache_entry_key.value) + L"\"").c_str());
+
                         bool comparison_result = 0 == std::memcmp(entry.data(),
                             random_value_buffer + index_entry.cache_entry_key.value*single_chunk_size,
                             single_chunk_size * sizeof(uint32_t));
