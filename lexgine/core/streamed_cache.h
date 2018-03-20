@@ -221,7 +221,7 @@ public:
     StreamedCache(std::iostream& cache_io_stream);    //! loads existing cache from provided IO stream
     virtual ~StreamedCache();
 
-    void addEntry(entry_type const& entry, bool allow_overwrites = false);    //! adds entry into the cache and immediately attempts to write it into the cache stream
+    bool addEntry(entry_type const& entry, bool force_overwrite = false);    //! adds entry into the cache and immediately attempts to write it into the cache stream
 
     void finalize(); //! writes index data and empty cluster look-up table into the end of the cache stream and closes the stream before returning execution control to the caller
 
@@ -239,7 +239,7 @@ public:
 
     size_t getEntrySize(Key const& entry_key) const;    //! retrieves uncompressed size of entry with given key
 
-    void removeEntry(Key const& entry_key);    //! removes entry from the cache (and immediately from its associated stream) given its key
+    bool removeEntry(Key const& entry_key);    //! removes entry from the cache (and immediately from its associated stream) given its key
 
     StreamedCacheIndex<Key, cluster_size> const& getIndex() const;    //! returns index tree of the cache
 
@@ -1425,17 +1425,19 @@ inline std::pair<size_t, bool> StreamedCache<Key, cluster_size>::serialize_entry
         m_cache_stream.read(reinterpret_cast<char*>(&existing_entry_sequence_length), m_sequence_overhead);
         size_t existing_entry_cluster_aligned_size{ existing_entry_sequence_length*cluster_size };
 
-        if (existing_entry_cluster_aligned_size < new_entry_size)
+        if (existing_entry_cluster_aligned_size < new_entry_size + m_sequence_overhead)
         {
             // need to allocate more space for new data
 
-            size_t extra_space_requirement{ new_entry_size - existing_entry_cluster_aligned_size };
+            size_t extra_space_requirement{ 
+                static_cast<size_t>((std::max)(static_cast<long long>(new_entry_size) - static_cast<long long>(existing_entry_cluster_aligned_size), 0ll))
+            };
 
             std::pair<size_t, size_t> existing_entry_sequence_allocation_desc = std::make_pair(overwrite_address, existing_entry_sequence_length);
             std::pair<size_t, size_t> extra_space_allocation_desc = allocate_space_in_cache(extra_space_requirement);
             if (!extra_space_allocation_desc.second) return std::make_pair(0U, false);
 
-            std::pair<size_t, size_t> cache_allocation_desc = 
+            cache_allocation_desc = 
                 optimize_reservation(
                     std::list<std::pair<size_t, size_t>>{ existing_entry_sequence_allocation_desc, extra_space_allocation_desc }, 
                     extra_space_requirement
@@ -1443,9 +1445,10 @@ inline std::pair<size_t, bool> StreamedCache<Key, cluster_size>::serialize_entry
         }
         else
         {
+
             // possibly, need to free up some space that remains unused after new data is written
 
-            size_t redundant_sequence_length = (existing_entry_cluster_aligned_size - new_entry_size) / cluster_size;
+            size_t redundant_sequence_length = (existing_entry_cluster_aligned_size - (new_entry_size + m_sequence_overhead)) / cluster_size;
             size_t contracted_sequence_length = existing_entry_sequence_length - redundant_sequence_length;
             if(redundant_sequence_length)
             {
@@ -1799,7 +1802,7 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::optimize_rese
         std::list<std::pair<size_t, size_t>>::iterator q{ p }; ++q;
         uint64_t next_sequence_base_address = q != reserved_sequence_list.end() ? q->first : 0U;
 
-        m_cache_stream.seekp(get_cluster_base_address(*p, p->second - 1) + cluster_size, std::ios::cur);
+        m_cache_stream.seekp(get_cluster_base_address(*p, p->second - 1) + cluster_size, std::ios::beg);
         m_cache_stream.write(reinterpret_cast<char*>(&next_sequence_base_address), 8U);
 
         total_sequence_length += p->second;
@@ -1897,7 +1900,7 @@ inline StreamedCache<Key, cluster_size>::~StreamedCache()
 }
 
 template<typename Key, size_t cluster_size>
-inline void StreamedCache<Key, cluster_size>::addEntry(entry_type const &entry, bool allow_overwrites /* = false*/)
+inline bool StreamedCache<Key, cluster_size>::addEntry(entry_type const &entry, bool force_overwrite /* = false*/)
 {
     assert(!m_is_finalized);
 
@@ -1906,11 +1909,11 @@ inline void StreamedCache<Key, cluster_size>::addEntry(entry_type const &entry, 
 
     if (entry_base_offset.isValid())
     {
-        if (!allow_overwrites)
+        if (!force_overwrite && !m_are_overwrites_allowed)
         {
             misc::Log::retrieve()->out("Unable to serialize entry to stream cache \"" + getStringName() + "\"."
                 "Entry with provided key value \"" + entry.m_key.toString() + "\" already exists", misc::LogMessageType::error);
-            return;
+            return false;
         }
         else
         {
@@ -1923,10 +1926,14 @@ inline void StreamedCache<Key, cluster_size>::addEntry(entry_type const &entry, 
     if (!rv.second)
     {
         misc::Log::retrieve()->out("Error while serializing entry into stream cache \"" + getStringName() + "\"", misc::LogMessageType::error);
-        return;
+        return false;
+    }
+    else if (!overwrite_offset)
+    {
+        m_index.add_entry(std::make_pair(entry.m_key, rv.first));
     }
 
-    m_index.add_entry(std::make_pair(entry.m_key, rv.first));
+    return true;
 }
 
 template<typename Key, size_t cluster_size>
@@ -2098,7 +2105,7 @@ inline size_t StreamedCache<Key, cluster_size>::getEntrySize(Key const& entry_ke
 }
 
 template<typename Key, size_t cluster_size>
-inline void StreamedCache<Key, cluster_size>::removeEntry(Key const& entry_key)
+inline bool StreamedCache<Key, cluster_size>::removeEntry(Key const& entry_key)
 {
     assert(!m_is_finalized);
 
@@ -2107,12 +2114,14 @@ inline void StreamedCache<Key, cluster_size>::removeEntry(Key const& entry_key)
     {
         misc::Log::retrieve()->out("Unable to remove entry with key \"" + entry_key.toString() + "\" from streamed cache \""
             + getStringName() + "\". The entry with requested key is not found in the cache", misc::LogMessageType::error);
-        return;
+        return false;
     }
 
     size_t base_offset = rv;
     m_empty_cluster_table.push_back(base_offset);
     m_index.remove_entry(entry_key);
+
+    return true;
 }
 
 template<typename Key, size_t cluster_size>
