@@ -91,7 +91,7 @@ public:
     public:
         // required by output iterator standard behavior
 
-        StreamedCacheIndexIterator(StreamedCacheIndexIterator const& other) = default;
+        StreamedCacheIndexIterator(StreamedCacheIndexIterator const&) = default;
         StreamedCacheIndexIterator& operator++();
         StreamedCacheIndexIterator operator++(int);
         StreamedCacheIndexTreeEntry<Key>& operator*();
@@ -109,7 +109,7 @@ public:
 
         StreamedCacheIndexIterator() = default;
         StreamedCacheIndexTreeEntry<Key>* operator->();
-        StreamedCacheIndexIterator& operator=(StreamedCacheIndexIterator const& other) = default;
+        StreamedCacheIndexIterator& operator=(StreamedCacheIndexIterator const&) = default;
 
 
         // required by bidirectional iterator standard behavior
@@ -118,16 +118,55 @@ public:
         StreamedCacheIndexIterator operator--(int);
 
     private:
+        size_t subtree_get_leftmost_node(size_t subtree_root) const;
+        size_t subtree_get_rightmost_node(size_t subtree_root) const;
+
+    private:
         bool m_is_at_beginning = true;
         bool m_has_reached_end = true;
-        size_t m_current_index = 0U;
+        size_t m_current_index = static_cast<size_t>(-1);
         std::vector<StreamedCacheIndexTreeEntry<Key>>* m_p_target_index_tree = nullptr;
+    };
+
+    class StreamedCacheIndexConstIterator : public std::iterator<std::bidirectional_iterator_tag, StreamedCacheIndexTreeEntry<Key> const>
+    {
+        friend class StreamedCacheIndex;
+
+    public:
+        // required by input iterator standard behavior
+        
+        StreamedCacheIndexConstIterator(StreamedCacheIndexConstIterator const&) = default;
+
+        StreamedCacheIndexConstIterator& operator++();
+        StreamedCacheIndexConstIterator operator++(int);
+
+        StreamedCacheIndexTreeEntry<Key> const& operator*() const;
+        StreamedCacheIndexTreeEntry<Key> const* operator->() const;
+
+        bool operator==(StreamedCacheIndexConstIterator const& other) const;
+        bool operator!=(StreamedCacheIndexConstIterator const& other) const;
+
+
+        // required by forward iterator standard behavior
+
+        StreamedCacheIndexConstIterator() = default;
+        StreamedCacheIndexConstIterator& operator=(StreamedCacheIndexConstIterator const&) = default;
+
+
+        // required by bidirectional iterator standard behavior
+
+        StreamedCacheIndexConstIterator& operator--();
+        StreamedCacheIndexConstIterator operator--(int);
+
+    private:
+        StreamedCacheIndexIterator m_iter;
     };
 
 public:
 
     using key_type = Key;
     using iterator = StreamedCacheIndexIterator;
+    using const_iterator = StreamedCacheIndexConstIterator;
 
 public:
 
@@ -155,10 +194,10 @@ public:
 
     iterator begin();
     iterator end();
-    iterator const begin() const;
-    iterator const end() const;
-    iterator const cbegin() const;
-    iterator const cend() const;
+    const_iterator begin() const;
+    const_iterator end() const;
+    const_iterator cbegin() const;
+    const_iterator cend() const;
 
 private:
     misc::Optional<uint64_t> get_cache_entry_data_offset_from_key(Key const& key) const;    //! retrieves offset of cache entry in the associated stream based on provided key
@@ -409,14 +448,14 @@ inline void StreamedCacheIndex<Key, cluster_size>::generateDOTRepresentation(std
 
     ofile << "digraph {" << std::endl;
     ofile << "node[style=filled];" << std::endl;
-    for (StreamedCacheIndexTreeEntry<Key>& n : *this)
+    for (StreamedCacheIndexTreeEntry<Key> const& n : *this)
     {
         std::string current_node_name{ "node" + std::to_string(n.data_offset) };
         ofile << current_node_name << "[label=" << n.cache_entry_key.toString() << ", "
             << "shape=circle, fontcolor=white, fillcolor=" << (n.node_color ? "black];" : "red];")
             << std::endl;
     }
-    for (StreamedCacheIndexTreeEntry<Key>& n : *this)
+    for (StreamedCacheIndexTreeEntry<Key> const& n : *this)
     {
         if(n.left_leaf)
         {
@@ -440,6 +479,8 @@ inline typename StreamedCacheIndex<Key, cluster_size>::iterator StreamedCacheInd
     iterator rv{};
     rv.m_has_reached_end = false;
     rv.m_p_target_index_tree = &m_index_tree;
+    rv.m_current_index = rv.subtree_get_leftmost_node(0);
+
     return rv;
 }
 
@@ -449,29 +490,37 @@ inline typename StreamedCacheIndex<Key, cluster_size>::iterator StreamedCacheInd
     iterator rv{};
     rv.m_is_at_beginning = false;
     rv.m_p_target_index_tree = &m_index_tree;
+    rv.m_current_index = rv.subtree_get_rightmost_node(0);
+
     return rv;
 }
 
 template<typename Key, size_t cluster_size>
-inline typename StreamedCacheIndex<Key, cluster_size>::iterator const StreamedCacheIndex<Key, cluster_size>::begin() const
+inline typename StreamedCacheIndex<Key, cluster_size>::const_iterator StreamedCacheIndex<Key, cluster_size>::begin() const
 {
-    return const_cast<StreamedCacheIndex<Key, cluster_size>*>(this)->begin();
+    const_iterator rv{};
+    rv.m_iter = const_cast<StreamedCacheIndex<Key, cluster_size>&>(*this).begin();
+    
+    return rv;
 }
 
 template<typename Key, size_t cluster_size>
-inline typename StreamedCacheIndex<Key, cluster_size>::iterator const StreamedCacheIndex<Key, cluster_size>::end() const
+inline typename StreamedCacheIndex<Key, cluster_size>::const_iterator StreamedCacheIndex<Key, cluster_size>::end() const
 {
-    return const_cast<StreamedCacheIndex<Key, cluster_size>*>(this)->end();
+    const_iterator rv{};
+    rv.m_iter = const_cast<StreamedCacheIndex<Key, cluster_size>&>(*this).end();
+
+    return rv;
 }
 
 template<typename Key, size_t cluster_size>
-inline typename StreamedCacheIndex<Key, cluster_size>::iterator const StreamedCacheIndex<Key, cluster_size>::cbegin() const
+inline typename StreamedCacheIndex<Key, cluster_size>::const_iterator StreamedCacheIndex<Key, cluster_size>::cbegin() const
 {
     return begin();
 }
 
 template<typename Key, size_t cluster_size>
-inline typename StreamedCacheIndex<Key, cluster_size>::iterator const StreamedCacheIndex<Key, cluster_size>::cend() const
+inline typename StreamedCacheIndex<Key, cluster_size>::const_iterator StreamedCacheIndex<Key, cluster_size>::cend() const
 {
     return end();
 }
@@ -1132,33 +1181,33 @@ inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterato
     std::vector<StreamedCacheIndexTreeEntry<Key>>& index_tree = *m_p_target_index_tree;
     StreamedCacheIndexTreeEntry<Key>& current_node = index_tree[m_current_index];
 
-    if (current_node.left_leaf)
-    {
-        m_current_index = current_node.left_leaf;
+    if (m_is_at_beginning)
         m_is_at_beginning = false;
-        return *this;
-    }
 
     if (current_node.right_leaf)
     {
-        m_current_index = current_node.right_leaf;
-        m_is_at_beginning = false;
-        return *this;
+        // try begin traversing new subtree to the right
+
+        m_current_index = subtree_get_leftmost_node(current_node.right_leaf);
     }
-
-
+    else if (current_node.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child)
     {
-        size_t idx{ m_current_index };
-        while (idx && (index_tree[idx].inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child
-            || !index_tree[index_tree[idx].parent_node].right_leaf))
-        {
-            idx = index_tree[idx].parent_node;
-        }
+        // if there is nothing left to investigate to the right and we live in the left subtree, simply move up
 
-        if (!idx)
-            m_has_reached_end = true;
-        else
-            m_current_index = index_tree[index_tree[idx].parent_node].right_leaf;
+        m_current_index = index_tree[m_current_index].parent_node;
+    }
+    else
+    {
+        // we are here only if there was no way to turn to the right and we already living in a right subtree, which means
+        // that its direct parent has already been traversed. Move up until we find ourselves in a left subtree or until
+        // we reach the root, which identifies the end of tree traversal
+
+        size_t aux{ m_current_index };
+        while (index_tree[aux].inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child
+            && (aux = index_tree[aux].parent_node));
+
+        if (!aux) m_has_reached_end = true;
+        else m_current_index = index_tree[aux].parent_node;
     }
 
     return *this;
@@ -1181,13 +1230,13 @@ inline StreamedCacheIndexTreeEntry<Key>& StreamedCacheIndex<Key, cluster_size>::
 template<typename Key, size_t cluster_size>
 inline StreamedCacheIndexTreeEntry<Key> const& StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterator::operator*() const
 {
-    return const_cast<StreamedCacheIndex<Key>::StreamedCacheIndexIterator*>(this)->operator*();
+    return const_cast<StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterator*>(this)->operator*();
 }
 
 template<typename Key, size_t cluster_size>
 inline StreamedCacheIndexTreeEntry<Key> const* StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterator::operator->() const
 {
-    return const_cast<StreamedCacheIndex<Key>::StreamedCacheIndexIterator*>(this)->operator->();
+    return const_cast<StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterator*>(this)->operator->();
 }
 
 template<typename Key, size_t cluster_size>
@@ -1218,42 +1267,37 @@ inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterato
         throw std::out_of_range{ "index tree iterator is out of range" };
 
     std::vector<StreamedCacheIndexTreeEntry<Key>>& index_tree = *m_p_target_index_tree;
+    StreamedCacheIndexTreeEntry<Key>& current_node = index_tree[m_current_index];
 
     if (m_has_reached_end)
     {
         m_has_reached_end = false;
+        return *this;
+    }
+
+    if (current_node.left_leaf)
+    {
+        // try begin traversing subtree to the left
+        m_current_index = subtree_get_rightmost_node(current_node.left_leaf);
+    }
+    else if (current_node.inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::right_child)
+    {
+        // if find ourselves in right subtree, then the node that was preceding traversal
+        // of that subtree was its parent...
+        m_current_index = index_tree[m_current_index].parent_node;
     }
     else
     {
+        // we end up here only if there was no way to turn to the left (i.e. no nodes preceeding the current
+        // node within the current subtree) and we are in left subtree. The move up until we either find
+        // ourselves in right subtree again or until we reach the root with the latter identifying the end of tree traversal
+        size_t aux{ m_current_index };
+        while (index_tree[aux].inheritance == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child
+            && (aux = index_tree[aux].parent_node));
 
+        if (!aux) m_is_at_beginning = true;
+        else m_current_index = index_tree[aux].parent_node;
     }
-
-    /*if (m_has_reached_end)
-    {
-        m_current_index = 0U;
-        m_has_reached_end = false;
-    }
-    else
-    {
-        while (m_current_index 
-            && (index_tree[m_current_index].inheritance 
-                == StreamedCacheIndexTreeEntry<Key>::inheritance_category::left_child
-            || !index_tree[index_tree[m_current_index].parent_node].left_leaf))
-        {
-            m_current_index = index_tree[m_current_index].parent_node;
-        }
-
-        if (!m_current_index) 
-        {
-            m_is_at_beginning = true;
-            return *this;
-        }
-
-        m_current_index = index_tree[index_tree[m_current_index].parent_node].left_leaf;
-    }
-
-    while (index_tree[m_current_index].right_leaf)
-        m_current_index = index_tree[m_current_index].right_leaf;*/
 
     return *this;
 }
@@ -1263,6 +1307,93 @@ inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterato
 {
     StreamedCacheIndexIterator<Key> rv{ *this };
     --(*this);
+    return rv;
+}
+
+template<typename Key, size_t cluster_size>
+inline size_t StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterator::subtree_get_leftmost_node(size_t subtree_root) const 
+{
+    size_t rv{ subtree_root };
+    std::vector<StreamedCacheIndexTreeEntry<Key>>& index_tree = *m_p_target_index_tree;
+    
+    {
+        size_t aux{ 0U };
+        while (aux = index_tree[rv].left_leaf) rv = aux;
+    }
+
+    return rv;
+}
+
+template<typename Key, size_t cluster_size>
+inline size_t StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterator::subtree_get_rightmost_node(size_t subtree_root) const
+{
+    size_t rv{ subtree_root };
+    std::vector<StreamedCacheIndexTreeEntry<Key>>& index_tree = *m_p_target_index_tree;
+
+    {
+        size_t aux{ 0U };
+        while (aux = index_tree[rv].right_leaf) rv = aux;
+    }
+
+    return rv;
+}
+
+template<typename Key, size_t cluster_size>
+inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexConstIterator& 
+StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexConstIterator::operator++()
+{
+    ++m_iter;
+    return *this;
+}
+
+template<typename Key, size_t cluster_size>
+inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexConstIterator 
+StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexConstIterator::operator++(int)
+{
+    StreamedCacheIndexConstIterator rv{ *this };
+    ++m_iter;
+
+    return rv;
+}
+
+template<typename Key, size_t cluster_size>
+inline StreamedCacheIndexTreeEntry<Key> const& StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexConstIterator::operator*() const
+{
+    return *m_iter;
+}
+
+template<typename Key, size_t cluster_size>
+inline StreamedCacheIndexTreeEntry<Key> const* StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexConstIterator::operator->() const
+{
+    StreamedCacheIndexTreeEntry<Key> const& aux = *m_iter;
+    return &aux;
+}
+
+template<typename Key, size_t cluster_size>
+inline bool StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexConstIterator::operator==(StreamedCacheIndexConstIterator const& other) const
+{
+    return m_iter == other.m_iter;
+}
+
+template<typename Key, size_t cluster_size>
+inline bool StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexConstIterator::operator!=(StreamedCacheIndexConstIterator const& other) const
+{
+    return m_iter != other.m_iter;
+}
+
+template<typename Key, size_t cluster_size>
+inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexConstIterator& StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexConstIterator::operator--()
+{
+    --m_iter;
+    return *this;
+}
+
+template<typename Key, size_t cluster_size>
+inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexConstIterator StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexConstIterator::operator--(int)
+{
+    StreamedCacheIndexConstIterator rv{ *this };
+    --m_iter;
+
     return rv;
 }
 
