@@ -179,6 +179,7 @@
     <ClCompile Include="core\dx\d3d12\root_signature.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\hlsl_compilation_task.cpp" />
     <ClCompile Include="core\dx\d3d12\task_caches\hlsl_compilation_task_cache.cpp" />
+    <ClCompile Include="core\dx\dxcompilation\dxcompiler.cpp" />
     <ClCompile Include="core\dx\dxgi\hw_adapter_enumerator.cpp" />
     <ClCompile Include="core\dx\dxgi\hw_output_enumerator.cpp" />
     <ClCompile Include="core\dx\dxgi\swap_chain.cpp" />
@@ -244,6 +245,7 @@
     <ClInclude Include="core\dx\d3d12\tasks\hlsl_compilation_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\pso_compilation_task.h" />
     <ClInclude Include="core\dx\d3d12\task_caches\hlsl_compilation_task_cache.h" />
+    <ClInclude Include="core\dx\dxcompilation\dxcompiler.h" />
     <ClInclude Include="core\dx\dxgi\common.h" />
     <ClInclude Include="core\dx\dxgi\hw_adapter_enumerator.h" />
     <ClInclude Include="core\dx\dxgi\hw_output_enumerator.h" />

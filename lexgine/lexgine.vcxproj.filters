@@ -64,6 +64,9 @@
     <Filter Include="3rd_party\json">
       <UniqueIdentifier>{9426151a-d24b-49e4-8f6b-459bd52ccaea}</UniqueIdentifier>
     </Filter>
+    <Filter Include="core\dx\dxcompilation">
+      <UniqueIdentifier>{797ae9dd-0a12-4ffa-9ce1-98f268bfd560}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="osinteraction\keyboard.h">
@@ -309,6 +312,9 @@
     <ClInclude Include="..\3rd_party\json\json.hpp">
       <Filter>3rd_party\json</Filter>
     </ClInclude>
+    <ClInclude Include="core\dx\dxcompilation\dxcompiler.h">
+      <Filter>core\dx\dxcompilation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -463,6 +469,9 @@
     </ClCompile>
     <ClCompile Include="core\initializer.cpp">
       <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\dxcompilation\dxcompiler.cpp">
+      <Filter>core\dx\dxcompilation</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

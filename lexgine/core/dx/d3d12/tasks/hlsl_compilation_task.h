@@ -18,7 +18,20 @@ enum class ShaderType
 
 enum class ShaderModel : unsigned
 {
-    model_50 = 50
+    model_50 = 5,
+    model_60 = 6,
+    model_61 = (1 << 4) + 6,
+    model_62 = (2 << 4) + 6
+};
+
+enum class HLSLCompilationWarningLevel : unsigned char
+{
+    level_no = static_cast<unsigned char>(-1),
+    level0 = 0,
+    level1,
+    level2,
+    level3,
+    level4
 };
 
 //! Implements compilation of provided HLSL source code
