@@ -23,6 +23,7 @@
 #include <fstream>
 #include <chrono>
 #include <random>
+#include <set>
 #include <unordered_set>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -648,6 +649,8 @@ public:
                 uint32_t* random_value_buffer = new uint32_t[test_cache_size + single_chunk_size * initial_cache_redundancy];
                 for (uint32_t i = 0; i < test_cache_size + single_chunk_size * initial_cache_redundancy; ++i)
                     random_value_buffer[i] = distribution(rand_eng);
+                
+                std::set<uint64_t> keys_dictionary{};
 
 
                 // Populate cache with some added cache pressure
@@ -661,6 +664,7 @@ public:
                     {
                         DataBlob b{ random_value_buffer + i*single_chunk_size, single_chunk_size * sizeof(uint32_t) };
                         StreamedCache_KeyInt64_Cluster4KB::entry_type e{ i, b };
+                        keys_dictionary.insert(i);
                         Assert::IsTrue(streamed_cache.addEntry(e), (L"Unable to add entry with key \"" + std::to_wstring(i) + L"\" into the cache").c_str());
                     }
 
@@ -697,6 +701,8 @@ public:
                                     (L"Deletion operation " + std::to_wstring(d_op) + L" in batch " + std::to_wstring(b_id)
                                         + L" on iteration " + std::to_wstring(i) + L" has failed for entry with key \""
                                         + std::to_wstring(key) + L"\"").c_str());
+
+                                keys_dictionary.erase(key);
                             }
 
                             for (size_t w_op = 0; b_id < num_write_batches && w_op < num_write_operations_in_single_batch; ++w_op)
@@ -709,6 +715,8 @@ public:
                                     (L"Write operation " + std::to_wstring(w_op) + L" in batch " + std::to_wstring(b_id)
                                         + L" on iteration " + std::to_wstring(i) + L" has failed for entry with key \""
                                         + std::to_wstring(wkey) + L"\"").c_str());
+
+                                keys_dictionary.insert(wkey);
                             }
                         }
                     }
@@ -724,6 +732,10 @@ public:
                     std::fstream iofile{ "test.bin", std::ios::binary | std::ios::in | std::ios::out };
                     StreamedCache_KeyInt64_Cluster4KB streamed_cache{ iofile };
 
+                    std::vector<uint64_t> sorted_keys_dictionary{ keys_dictionary.begin(), keys_dictionary.end() };
+                    std::sort(sorted_keys_dictionary.begin(), sorted_keys_dictionary.end());
+
+                    auto p = sorted_keys_dictionary.begin();
                     for (auto& index_entry : streamed_cache.getIndex())
                     {
                         auto entry = streamed_cache.retrieveEntry(index_entry.cache_entry_key);
@@ -736,6 +748,16 @@ public:
                             single_chunk_size * sizeof(uint32_t));
 
                         Assert::IsTrue(comparison_result, (L"Memory chunk " + std::to_wstring(index_entry.cache_entry_key.value) + L" failed comparison").c_str());
+                        Assert::IsTrue(index_entry.cache_entry_key.value == *p, L"Forward iteration mismatch");
+                        ++p;
+                    }
+
+                    std::reverse_iterator<std::vector<uint64_t>::iterator> q{ sorted_keys_dictionary.end() };
+                    auto r = --streamed_cache.getIndex().end();
+                    for (; q != std::reverse_iterator<std::vector<uint64_t>::iterator>{sorted_keys_dictionary.begin()}; ++q)
+                    {
+                        Assert::IsTrue(*q == r->cache_entry_key.value, L"Backward iteration mismatch");
+                        --r;
                     }
                 }
 
