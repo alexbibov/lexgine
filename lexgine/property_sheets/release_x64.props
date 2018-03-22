@@ -14,7 +14,7 @@
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>XCOPY $(SolutionDir)3rd_party/dxcompiler/bin/dxcompiler.dll $(TargetDir)dxcompiler.dll /F /Y</Command>
+      <Command>XCOPY $(SolutionDir)3rd_party\dxcompiler\bin\dxcompiler.dll $(TargetDir) /F /Y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup />

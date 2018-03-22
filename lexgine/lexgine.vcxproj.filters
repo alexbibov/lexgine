@@ -312,7 +312,10 @@
     <ClInclude Include="..\3rd_party\json\json.hpp">
       <Filter>3rd_party\json</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\dxcompilation\dxcompiler.h">
+    <ClInclude Include="core\dx\dxcompilation\dx_compiler_proxy.h">
+      <Filter>core\dx\dxcompilation</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\dxcompilation\common.h">
       <Filter>core\dx\dxcompilation</Filter>
     </ClInclude>
   </ItemGroup>
@@ -470,7 +473,7 @@
     <ClCompile Include="core\initializer.cpp">
       <Filter>core</Filter>
     </ClCompile>
-    <ClCompile Include="core\dx\dxcompilation\dxcompiler.cpp">
+    <ClCompile Include="core\dx\dxcompilation\dx_compiler_proxy.cpp">
       <Filter>core\dx\dxcompilation</Filter>
     </ClCompile>
   </ItemGroup>
