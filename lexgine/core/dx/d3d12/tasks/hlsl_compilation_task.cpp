@@ -6,14 +6,54 @@
 #include "../../../exception.h"
 
 
-using namespace lexgine::core::dx::d3d12::tasks;
 using namespace lexgine::core;
+using namespace lexgine::core::dx::dxcompilation;
+using namespace lexgine::core::dx::d3d12::tasks;
+
+namespace {
+
+std::string shaderModelAndTypeToTargetName(ShaderModel shader_model, ShaderType shader_type)
+{
+    std::string rv{};
+
+    switch (shader_type)
+    {
+    case ShaderType::vertex:
+        rv += "vs_";
+        break;
+    case ShaderType::hull:
+        rv += "hs_";
+        break;
+    case ShaderType::domain:
+        rv += "ds_";
+        break;
+    case ShaderType::geometry:
+        rv += "gs_";
+        break;
+    case ShaderType::pixel:
+        rv += "ps_";
+        break;
+    case ShaderType::compute:
+        rv += "cs_";
+        break;
+    }
+
+    rv += static_cast<char>('0' + (static_cast<unsigned>(shader_model) & 0xFFFF)) + "_";
+    rv += static_cast<char>('0' + (static_cast<unsigned>(shader_model) >> 16));
+    return rv;
+}
+
+}
+
 
 HLSLCompilationTask::HLSLCompilationTask(GlobalSettings const& global_settings, std::string const& source, std::string const& source_name,
-    ShaderModel shader_model, ShaderType shader_type, std::string const& shader_entry_point, 
-    lexgine::core::ShaderSourceCodePreprocessor::SourceType source_type,
+    ShaderModel shader_model, ShaderType shader_type, std::string const& shader_entry_point,
+    ShaderSourceCodePreprocessor::SourceType source_type,
     void* p_target_pso_descriptors, uint32_t num_descriptors,
-    std::list<HLSLMacroDefinition> const& macro_definitions) :
+    std::list<HLSLMacroDefinition> const& macro_definitions/* = std::list<HLSLMacroDefinition>{}*/,
+    HLSLCompilationOptimizationLevel optimization_level/* = HLSLCompilationOptimizationLevel::level3*/,
+    bool strict_mode/* = true*/, bool force_ieee_standard/* = true*/, bool treat_warnings_as_errors/* = true*/,
+    bool enable_debug_information/* = false*/, bool enable_16bit_types/* = false*/) :
     m_global_settings{ global_settings },
     m_source{ source },
     m_source_name{ source_name },
@@ -24,10 +64,18 @@ HLSLCompilationTask::HLSLCompilationTask(GlobalSettings const& global_settings, 
     m_p_target_pso_descriptors{ p_target_pso_descriptors },
     m_num_target_descriptors{ num_descriptors },
     m_preprocessor_macro_definitions{ macro_definitions },
+    m_optimization_level{ optimization_level },
+    m_is_strict_mode_enabled{ strict_mode },
+    m_is_ieee_forced{ force_ieee_standard },
+    m_are_warnings_treated_as_errors{ treat_warnings_as_errors },
+    m_should_enable_debug_information{ enable_debug_information },
+    m_should_enable_16bit_types{ enable_16bit_types },
     m_was_compilation_successful{ false },
     m_compilation_log{ "" }
 {
     Entity::setStringName(source_name);
+
+    
 }
 
 

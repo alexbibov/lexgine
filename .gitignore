@@ -53,3 +53,4 @@ TestLogging/*
 !3rd_party/**/*.dll
 !3rd_party/**/*.exe
 !3rd_party/**/*.lib
+!3rd_party/dxcompiler/*.dll
