@@ -10,6 +10,7 @@
 #include "optional.h"
 
 #include "../../../3rd_party/half/half.h"
+#include "datetime.h"
 
 namespace lexgine { namespace core { namespace misc {
 
@@ -112,7 +113,7 @@ unsigned long long getFileSize(std::string const& file_path);
  */
 bool readBinaryDataFromSourceFile(std::string const& file_path, void* destination_memory_address);
 
-// Writes provided binary data to file. Returns 'true' in case of success and 'false' in case of failure
+//! Writes provided binary data to file. Returns 'true' in case of success and 'false' in case of failure
 bool writeBinaryDataToFile(std::string const& file_path, void* source_memory_address, size_t data_size);
 
 
@@ -129,6 +130,11 @@ enum class DataFormat
     uint16,
     unknown
 };
+
+/*! Retrieves date and time of the last update applied to the given file. Returned time stamp is represented
+ using UTC time format
+*/
+Optional<DateTime> getFileLastUpdatedTimeStamp(std::string const& file_path);
 
 
 }}}

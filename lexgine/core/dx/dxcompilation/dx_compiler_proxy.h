@@ -23,8 +23,9 @@ public:
     bool compile(std::string const& hlsl_source_code, std::string const& source_name,
         std::string const& entry_point_name, std::string const& target_profile_name,
         std::list<HLSLMacroDefinition> const& macro_definitions = std::list<HLSLMacroDefinition>{},
-        HLSLCompilationOptimizationLevel warning_level = HLSLCompilationOptimizationLevel::level3,
-        bool strict_mode = true, bool force_ieee_standard = true, bool treat_warnings_as_errors = true,
+        HLSLCompilationOptimizationLevel optimization_level = HLSLCompilationOptimizationLevel::level3,
+        bool strict_mode = true, bool force_all_resources_be_bound = false,
+        bool force_ieee_standard = true, bool treat_warnings_as_errors = true, bool enable_validation = true,
         bool enable_debug_inforamtion = false, bool enable_16bit_types = false);
 
     misc::Optional<D3DDataBlob> result() const;    //! returns compiled shader blob in case of success and invalid object in case of initialization or compilation failure

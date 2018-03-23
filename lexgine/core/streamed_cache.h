@@ -18,8 +18,7 @@
 #include "class_names.h"
 #include "misc/optional.h"
 
-namespace lexgine {
-namespace core {
+namespace lexgine { namespace core {
 
 template<typename Key, size_t cluster_size> class StreamedCache;
 
@@ -279,6 +278,8 @@ public:
     size_t getEntrySize(Key const& entry_key) const;    //! retrieves uncompressed size of entry with given key
 
     bool removeEntry(Key const& entry_key);    //! removes entry from the cache (and immediately from its associated stream) given its key
+
+    bool doesEntryExist(Key const& entry_key) const;    //! returns 'true' if entry with requested key exists in the cache; returns 'false' otherwise
 
     StreamedCacheIndex<Key, cluster_size> const& getIndex() const;    //! returns index tree of the cache
 
@@ -2226,7 +2227,7 @@ inline misc::DateTime StreamedCache<Key, cluster_size>::getEntryTimestamp(Key co
     m_cache_stream.seekg(static_cast<uint64_t>(entry_base_offset) + m_sequence_overhead, std::ios::beg);
     char packed_datestamp_data[m_datestamp_size];
     m_cache_stream.read(packed_datestamp_data, m_datestamp_size);
-    return unpack_date_stamp(packed_datestamp_data);
+    return unpack_date_stamp(reinterpret_cast<unsigned char*>(packed_datestamp_data));
 }
 
 template<typename Key, size_t cluster_size>
@@ -2267,6 +2268,12 @@ inline bool StreamedCache<Key, cluster_size>::removeEntry(Key const& entry_key)
     m_index.remove_entry(entry_key);
 
     return true;
+}
+
+template<typename Key, size_t cluster_size>
+inline bool StreamedCache<Key, cluster_size>::doesEntryExist(Key const& entry_key) const
+{
+    return m_index.bst_search(entry_key).second;
 }
 
 template<typename Key, size_t cluster_size>

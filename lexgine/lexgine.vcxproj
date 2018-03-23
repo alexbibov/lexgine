@@ -273,6 +273,7 @@
     <ClInclude Include="core\misc\optional.h" />
     <ClInclude Include="core\misc\static_hash_table.h" />
     <ClInclude Include="core\misc\template_argument_iterator.h" />
+    <ClInclude Include="core\misc\strict_weak_ordering.h" />
     <ClInclude Include="core\multisampling.h" />
     <ClInclude Include="core\streamed_cache.h" />
     <ClInclude Include="core\opengl45\opengl45_tools.h" />

@@ -99,6 +99,22 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
                 + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
                 + "__" + PROJECT_VERSION_STAGE + "__cache/";
         }
+
+        if ((p = document.find("shader_cache_name")) != document.end()
+            && p->is_string())
+        {
+            m_shader_cache_name = p->get<std::string>();
+        }
+        else
+        {
+            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"shader_cache_name\" from settings file located at \""
+                + json_settings_source_path + "\"; \"shader_cache_name\" either has wrong value (must be string) or was not specified in the settings source file.",
+                misc::LogMessageType::exclamation);
+
+            m_shader_cache_name = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
+                + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
+                + "__" + PROJECT_VERSION_STAGE + ".shaders";
+        }
     }
     catch (...)
     {
@@ -148,6 +164,11 @@ std::vector<std::string> const& GlobalSettings::getShaderLookupDirectories() con
 std::string GlobalSettings::getCacheDirectory() const
 {
     return m_cache_path;
+}
+
+std::string lexgine::core::GlobalSettings::getShaderCacheName() const
+{
+    return m_shader_cache_name;
 }
 
 bool lexgine::core::GlobalSettings::setNumberOfWorkers(uint8_t num_workers)

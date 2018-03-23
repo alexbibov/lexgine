@@ -1,4 +1,5 @@
 #include "datetime.h"
+#include "strict_weak_ordering.h"
 
 #include <chrono>
 #include <cassert>
@@ -7,7 +8,6 @@
 
 
 using namespace lexgine::core::misc;
-
 
 
 namespace
@@ -204,22 +204,51 @@ DateTime DateTime::operator-(TimeSpan const& span) const
 
 bool DateTime::operator>=(DateTime const& other) const
 {
-    if (m_year != other.m_year) return m_year > other.m_year;
-    if (m_month != other.m_month) return m_month > other.m_month;
-    if (m_day != other.m_day) return m_day > other.m_day;
-    if (m_hour != other.m_hour) return m_hour > other.m_hour;
-    if (m_minute != other.m_minute) return m_minute > other.m_minute;
-    if (m_second != other.m_second) return m_second > other.m_second;
-    return true;
+    return (*this) > other || (*this == other);
 }
 
 bool DateTime::operator<=(DateTime const& other) const
 {
-    if (m_year == other.m_year && m_month == other.m_month && m_day == other.m_day &&
-        m_hour == other.m_hour && m_minute == other.m_minute && m_second == other.m_second)
-        return true;
+    return (*this) < other || (*this == other);
+}
 
-    return !((*this) >= other);
+bool DateTime::operator<(DateTime const & other) const
+{
+    DateTime this_in_utc = this->getUTC();
+    DateTime other_in_utc = other.getUTC();
+
+    SWO_STEP(this_in_utc.m_year, < , other_in_utc.m_year);
+    SWO_STEP(this_in_utc.m_month, < , other_in_utc.m_month);
+    SWO_STEP(this_in_utc.m_day, < , other_in_utc.m_day);
+    SWO_STEP(this_in_utc.m_hour, < , other_in_utc.m_hour);
+    SWO_STEP(this_in_utc.m_minute, < , other_in_utc.m_minute);
+    SWO_END(this_in_utc.m_second, < , other_in_utc.m_second);
+}
+
+bool DateTime::operator>(DateTime const & other) const
+{
+    DateTime this_in_utc = this->getUTC();
+    DateTime other_in_utc = other.getUTC();
+
+    SWO_STEP(this_in_utc.m_year, > , other_in_utc.m_year);
+    SWO_STEP(this_in_utc.m_month, > , other_in_utc.m_month);
+    SWO_STEP(this_in_utc.m_day, > , other_in_utc.m_day);
+    SWO_STEP(this_in_utc.m_hour, > , other_in_utc.m_hour);
+    SWO_STEP(this_in_utc.m_minute, > , other_in_utc.m_minute);
+    SWO_END(this_in_utc.m_second, > , other_in_utc.m_second);
+}
+
+bool DateTime::operator==(DateTime const& other) const
+{
+    DateTime this_in_utc = this->getUTC();
+    DateTime other_in_utc = other.getUTC();
+
+    return this_in_utc.m_year == other_in_utc.m_year
+        && this_in_utc.m_month == other_in_utc.m_month
+        && this_in_utc.m_day == other_in_utc.m_day
+        && this_in_utc.m_hour == other_in_utc.m_hour
+        && this_in_utc.m_minute == other_in_utc.m_minute
+        && this_in_utc.m_second == other_in_utc.m_second;
 }
 
 TimeSpan DateTime::timeSince(DateTime const& other) const

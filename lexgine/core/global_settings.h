@@ -17,6 +17,7 @@ private:
     bool m_deferred_shader_compilation;
     std::vector<std::string> m_shader_lookup_directories;
     std::string m_cache_path;
+    std::string m_shader_cache_name;
 
 public:
     GlobalSettings() = default;
@@ -31,6 +32,7 @@ public:
     bool isDeferredShaderCompilationOn() const;
     std::vector<std::string> const& getShaderLookupDirectories() const;
     std::string getCacheDirectory() const;
+    std::string getShaderCacheName() const;
 
     
     // *** the following functions are used to alter the global settings during run time. All functions return 'true' in case of success and 'false' if the parameter's value cannot be changed ***

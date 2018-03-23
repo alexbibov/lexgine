@@ -318,6 +318,9 @@
     <ClInclude Include="core\dx\dxcompilation\common.h">
       <Filter>core\dx\dxcompilation</Filter>
     </ClInclude>
+    <ClInclude Include="core\misc\strict_weak_ordering.h">
+      <Filter>core\misc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
