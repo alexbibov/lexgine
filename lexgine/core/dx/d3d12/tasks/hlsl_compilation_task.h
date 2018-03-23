@@ -9,6 +9,7 @@
 
 #include "../../dxcompilation/common.h"
 #include "../../dxcompilation/dx_compiler_proxy.h"
+#include "../../../streamed_cache.h"
 
 #include <list>
 
@@ -34,7 +35,8 @@ public:
         void* p_target_pso_descriptors, uint32_t num_descriptors,
         std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions = std::list<dxcompilation::HLSLMacroDefinition>{},
         dxcompilation::HLSLCompilationOptimizationLevel optimization_level = dxcompilation::HLSLCompilationOptimizationLevel::level3,
-        bool strict_mode = true, bool force_ieee_standard = true, bool treat_warnings_as_errors = true, 
+        bool strict_mode = true, bool force_all_resources_be_bound = false,
+        bool force_ieee_standard = true, bool treat_warnings_as_errors = true, bool enable_validation = true,
         bool enable_debug_information = false, bool enable_16bit_types = false);
 
     /*! Returns 'true' if the compilation was successful, returns 'false' if compilation has not been done yet or if it has failed (and the
@@ -51,6 +53,26 @@ public:
     // Executed the task manually. THROWS if compilation fails.
     bool execute(uint8_t worker_id);
 
+private:
+    struct ShaderCacheKey final
+    {
+        char source_path[2048U];
+        uint64_t hash_value;
+
+        static size_t const serialized_size = 2048U + sizeof(uint64_t);
+
+
+        std::string toString() const;
+
+        void serialize(void* p_serialization_blob) const;
+        void deserialize(void* p_serialization_blob);
+
+        ShaderCacheKey(std::string const& hlsl_source_path, uint64_t hash_value);
+        ShaderCacheKey() = default;
+
+        bool operator<(ShaderCacheKey const& other) const;
+        bool operator==(ShaderCacheKey const& other) const;
+    };
 
 private:
     bool do_task(uint8_t worker_id, uint16_t frame_index) override;    //! performs actual compilation of the shader
@@ -69,15 +91,23 @@ private:
     std::list<dxcompilation::HLSLMacroDefinition> m_preprocessor_macro_definitions;
     dxcompilation::HLSLCompilationOptimizationLevel m_optimization_level;
     bool m_is_strict_mode_enabled;
+    bool m_is_all_resources_binding_forced;
     bool m_is_ieee_forced;
     bool m_are_warnings_treated_as_errors;
+    bool m_is_validation_enabled;
     bool m_should_enable_debug_information;
     bool m_should_enable_16bit_types;
 
     bool m_was_compilation_successful;
     std::string m_compilation_log;
 
-    //dxcompilation::DXCompilerProxy m_dxc_proxy;
+    dxcompilation::DXCompilerProxy m_dxc_proxy;
+
+    static constexpr size_t m_shader_cache_cluster_size = 8 * 1024;
+    using shader_cache_type = StreamedCache<ShaderCacheKey, m_shader_cache_cluster_size>;
+
+    std::unique_ptr<std::fstream> m_shader_cache_file_stream;
+    std::unique_ptr<shader_cache_type> m_shader_cache;
 };
 
 }}}}}

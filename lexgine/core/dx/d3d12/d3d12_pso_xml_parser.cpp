@@ -8,11 +8,13 @@
 #include "../../concurrency/task_graph.h"
 #include "../../concurrency/task_sink.h"
 #include "../../exception.h"
+#include "../dxcompilation/common.h"
 
 #include "pugixml.hpp"
 
 
 using namespace lexgine::core::dx::d3d12;
+using namespace lexgine::core::dx::dxcompilation;
 
 
 namespace {
@@ -706,7 +708,7 @@ public:
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
 
         m_parent.m_hlsl_compilation_task_cache.addTask(*m_parent.m_globals.get<GlobalSettings>(), shader_source_location, compute_pso_descritptor_cache_entry.cache_name + "_"
-            + shader_source_location + "_CS" , tasks::ShaderModel::model_50, tasks::ShaderType::compute, shader_entry_point_name,
+            + shader_source_location + "_CS" , ShaderModel::model_50, ShaderType::compute, shader_entry_point_name,
             lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &compute_pso_descritptor_cache_entry.descriptor, 1);
 
         return true;
@@ -729,38 +731,38 @@ public:
 
         pugi::char_t const* shader_source_location = shader_node.child_value();
 
-        tasks::ShaderType shader_type;
+        ShaderType shader_type;
         char* compilation_task_suffix = "";
         if (strcmp(p_stage_name, "VertexShader") == 0)
         {
-            shader_type = tasks::ShaderType::vertex;
+            shader_type = ShaderType::vertex;
             compilation_task_suffix = "VS";
         }
         else if (strcmp(p_stage_name, "HullShader") == 0)
         {
-            shader_type = tasks::ShaderType::hull;
+            shader_type = ShaderType::hull;
             compilation_task_suffix = "HS";
         }
         else if (strcmp(p_stage_name, "DomainShader") == 0)
         {
-            shader_type = tasks::ShaderType::domain;
+            shader_type = ShaderType::domain;
             compilation_task_suffix = "DS";
         }
         else if (strcmp(p_stage_name, "GeometryShader") == 0)
         {
-            shader_type = tasks::ShaderType::geometry;
+            shader_type = ShaderType::geometry;
             compilation_task_suffix = "GS";
         }
         else if (strcmp(p_stage_name, "PixelShader") == 0)
         {
-            shader_type = tasks::ShaderType::pixel;
+            shader_type = ShaderType::pixel;
             compilation_task_suffix = "PS";
         }
 
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
 
         m_parent.m_hlsl_compilation_task_cache.addTask(*m_parent.m_globals.get<GlobalSettings>(), shader_source_location, graphics_pso_descriptor_cache_entry.cache_name + "_"
-            + shader_source_location + "_" + compilation_task_suffix, tasks::ShaderModel::model_50, shader_type, shader_entry_point_name,
+            + shader_source_location + "_" + compilation_task_suffix, ShaderModel::model_50, shader_type, shader_entry_point_name,
             lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &graphics_pso_descriptor_cache_entry.descriptor, 1);
 
         return true;

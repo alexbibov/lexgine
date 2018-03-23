@@ -15,7 +15,8 @@ namespace
 
 std::vector<wchar_t const*> convertParametersIntoCommandLineArgs(
     HLSLCompilationOptimizationLevel optimization_level,
-    bool strict_mode, bool force_ieee_standard, bool treat_warnings_as_errors,
+    bool strict_mode, bool force_all_resources_be_bound,
+    bool force_ieee_standard, bool treat_warnings_as_errors, bool enable_validation,
     bool enable_debug_inforamtion, bool enable_16bit_types)
 {
     std::vector<wchar_t const*> rv{}; rv.reserve(10);
@@ -47,10 +48,15 @@ std::vector<wchar_t const*> convertParametersIntoCommandLineArgs(
     }
 
     if (strict_mode) rv.push_back(L"-Ges");
+    if (force_all_resources_be_bound) rv.push_back(L"-all_resources_bound");
     if (force_ieee_standard) rv.push_back(L"-Gis");
     if (treat_warnings_as_errors) rv.push_back(L"-WX");
+    if (!enable_validation) rv.push_back(L"-Vd");
     if (enable_debug_inforamtion) rv.push_back(L"-Zi");
     if (enable_16bit_types) rv.push_back(L"-enable-16bit-types");
+
+    rv.push_back(L"-Gfa");    // avoid flow control constructs in DXIL
+    rv.push_back(L"-HV 2018");    // force HLSL version 2018 for consistency
 
     return rv;
 }
@@ -82,7 +88,8 @@ bool DXCompilerProxy::compile(std::string const& hlsl_source_code,
     std::string const& target_profile_name,
     std::list<HLSLMacroDefinition> const& macro_definitions,
     HLSLCompilationOptimizationLevel optimization_level, 
-    bool strict_mode, bool force_ieee_standard, bool treat_warnings_as_errors, 
+    bool strict_mode, bool force_all_resources_be_bound,
+    bool force_ieee_standard, bool treat_warnings_as_errors, bool enable_validation,
     bool enable_debug_inforamtion, bool enable_16bit_types)
 {
     m_last_compile_attempt_source_name = source_name;
@@ -103,16 +110,12 @@ bool DXCompilerProxy::compile(std::string const& hlsl_source_code,
         );
 
         if (hres != S_OK && hres != S_FALSE)
-        {
-            misc::Log::retrieve()->out("Unable to compile source \"" + source_name + "\". Failed conversion of the source into "
-                "dxc blob with encoding", misc::LogMessageType::error);
             return false;
-        }
     }
 
 
-    std::vector<wchar_t const*> args = convertParametersIntoCommandLineArgs(optimization_level, strict_mode, force_ieee_standard, 
-        treat_warnings_as_errors, enable_debug_inforamtion, enable_16bit_types);
+    std::vector<wchar_t const*> args = convertParametersIntoCommandLineArgs(optimization_level, strict_mode, force_all_resources_be_bound,
+        force_ieee_standard, treat_warnings_as_errors, enable_validation, enable_debug_inforamtion, enable_16bit_types);
 
     std::vector<std::pair<std::wstring, std::wstring>> hlsl_define_name_and_value_pairs{};
     std::vector<DxcDefine> dxc_defines{};
@@ -149,10 +152,7 @@ bool DXCompilerProxy::compile(std::string const& hlsl_source_code,
         );
 
         if (hres != S_OK && hres != S_FALSE)
-        {
-            misc::Log::retrieve()->out("Unable to compile HLSL source \"" + source_name + "\": unknown error", misc::LogMessageType::error);
             return false;
-        }
     }
 
     return true;
@@ -164,12 +164,7 @@ misc::Optional<D3DDataBlob> DXCompilerProxy::result() const
     {
         Microsoft::WRL::ComPtr<ID3DBlob> blob{ nullptr };
         HRESULT hres = m_dxc_op_result->GetResult(reinterpret_cast<IDxcBlob**>(blob.GetAddressOf()));
-        if (hres != S_OK && hres != S_FALSE)
-        {
-            misc::Log::retrieve()->out("Unable to retrieve compiled shader blob for source \""
-                + m_last_compile_attempt_source_name + "\": compilation may failed or finished with errors", misc::LogMessageType::error);
-            return misc::Optional<D3DDataBlob>{};
-        }
+        if (hres != S_OK && hres != S_FALSE) return misc::Optional<D3DDataBlob>{};
 
         return misc::Optional<D3DDataBlob>{blob};
     }
@@ -184,12 +179,7 @@ std::string DXCompilerProxy::errors() const
         Microsoft::WRL::ComPtr<IDxcBlobEncoding> error_blob_with_encoding{ nullptr };
         m_dxc_op_result->GetErrorBuffer(error_blob_with_encoding.GetAddressOf());
 
-        if (!error_blob_with_encoding)
-        {
-            misc::Log::retrieve()->out("Unable to retrieve compilation error blob for the last attempted to compile HLSL source \"" 
-                + m_last_compile_attempt_source_name + "\": the compilation routine might have failed prematurely", misc::LogMessageType::error);
-            return std::string{};
-        }
+        if (!error_blob_with_encoding) return std::string{"unknown error"};
 
         return misc::wstringToAsciiString(static_cast<wchar_t*>(error_blob_with_encoding->GetBufferPointer()));
     }

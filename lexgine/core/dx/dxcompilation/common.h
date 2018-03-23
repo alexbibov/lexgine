@@ -11,12 +11,12 @@ enum class ShaderType
     tessellation_control = 1, tesselation_evaluation = 2, fragment = 4    // OpenGL/Vulkan terminology for convenience
 };
 
-enum class ShaderModel : unsigned
+enum class ShaderModel : unsigned short
 {
-    model_50 = 5,
-    model_60 = 6,
-    model_61 = (1 << 4) + 6,
-    model_62 = (2 << 4) + 6
+    model_50 = 5 << 4,
+    model_60 = 6 << 4,
+    model_61 = (6 << 4) | 1,
+    model_62 = (6 << 4) | 2
 };
 
 enum class HLSLCompilationOptimizationLevel : unsigned char

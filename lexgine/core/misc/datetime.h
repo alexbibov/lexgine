@@ -31,19 +31,19 @@ public:
 
 public:
     //! Initializes the date-time object to January 1, 1970 UTC.
-    //! @param time_zone determines the time shift in hours from the UTC time calculated as the winter time (i.e. without taking the daylight saving into account).
-    //! When @param daylight_saving_time is 'true' an extra hour is added to the time shift from UTC
+    //! time_zone determines the time shift in hours from the UTC time calculated as the winter time (i.e. without taking the daylight saving into account).
+    //! When daylight_saving_time is 'true' an extra hour is added to the time shift from UTC
     DateTime(int8_t time_zone = 0, bool daylight_saving_time = false);
 
     //! Initializes the date-time object to the given moment in time. The time moment supplied to constructor must be UTC time.
-    //! Here @param year is the year represented by the date-time object
-    //! @param month is the month of the @param year encapsulated by the date-time object. The value is clamped to 12 during initialization to enforce validity of the date.
-    //! @param day is the current day of the @param month. The value is clamped to the last day of @param month in order to enforce validity of the date.
-    //! @param hour is the current hour of the @param day. The value is clamped to 23 to enforce validity of the date.
-    //! @param minute is the current minute of the @param hour. The value is clamped to 59 to enforce validity of the date.
-    //! @param second is the current second of @param minute. The value is clamped to 59.999999999 to enforce validity of the date.
-    //! @param time_zone determines the time shift in hours from the UTC time calculated as the winter time (i.e. without taking the daylight saving into account).
-    //! When @param daylight_saving_time is 'true' an extra hour is added to the time shift from UTC
+    //! Here year is the year represented by the date-time object
+    //! month is the month of the year encapsulated by the date-time object. The value is clamped to 12 during initialization to enforce validity of the date.
+    //! day is the current day of the month. The value is clamped to the last day of month in order to enforce validity of the date.
+    //! hour is the current hour of the day. The value is clamped to 23 to enforce validity of the date.
+    //! minute is the current minute of the hour. The value is clamped to 59 to enforce validity of the date.
+    //! second is the current second of minute. The value is clamped to 59.999999999 to enforce validity of the date.
+    //! time_zone determines the time shift in hours from the UTC time calculated as the winter time (i.e. without taking the daylight saving into account).
+    //! When daylight_saving_time is 'true' an extra hour is added to the time shift from UTC
     DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, double second, int8_t time_zone = 0, bool daylight_saving_time = false);
 
     DateTime(DateTime const& other) = default; //! default copy constructor
@@ -51,23 +51,25 @@ public:
     //! Constructs date-time object using @param nanoseconds passed since January 1, 1970, 00:00:00
     DateTime(unsigned long long nanoseconds);
 
-    DateTime& operator= (DateTime const& other) = default;   //! assigns @param other date to this date
+    DateTime& operator= (DateTime const& other) = default;   //! assigns other date to this date
 
-    //! Calculates date that is later than this date by the time span determined by @param span.
+    //! Calculates date that is later than this date by the time span determined by span.
     //! Note that opposite to that of the time span, the date time object cannot store values that are larger than 255 in its
     //! month, day, hour, and minute fields, and all of them (including the year second fields) must be non-negative. If the time span added
     //! to the date is such that this requirement is violated the results are undefined
     DateTime operator+ (TimeSpan const& span) const;
 
-    //! Calculates date that is earlier than this date by the time span determined by @param span.
+    //! Calculates date that is earlier than this date by the time span determined by span.
     //! Note that opposite to that of the time span, the date time object cannot store values that are larger than 255 in its
     //! month, day, hour, and minute fields, and all of them (including the year and second fields) must be non-negative. If the time span subtracted from
     //! the date is such that this requirement is violated the results are undefined
     DateTime operator- (TimeSpan const& span) const;
 
-    bool operator>=(DateTime const& other) const;    //! returns 'true' if this date is later or same than the @param other date
+    bool operator>(DateTime const& other) const;    //! returns 'true' if this date is later than the other date
+    bool operator>=(DateTime const& other) const;    //! returns 'true' if this date is later or same than the other date
     bool operator<=(DateTime const& other) const;    //! returns 'true' if this date is earlier or same than the other date
-
+    bool operator<(DateTime const& other) const;    //! returns 'true' if this date is earlier than the other date
+    bool operator==(DateTime const& other) const;    //! returns 'true' if this and other dates refer to the same points in time
 
     uint16_t year() const;
     uint8_t month() const;

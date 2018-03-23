@@ -4,6 +4,8 @@
 #include <sstream>
 #include <limits>
 
+#include <windows.h>
+
 
 namespace lexgine{namespace core {namespace misc{
 
@@ -94,6 +96,24 @@ bool writeBinaryDataToFile(std::string const& file_path, void* source_memory_add
     if (p_write_buffer->sputn(static_cast<char*>(source_memory_address), static_cast<std::streamsize>(data_size)) != data_size)
         return false;
     return true;
+}
+
+Optional<DateTime> getFileLastUpdatedTimeStamp(std::string const& file_path)
+{
+    HANDLE hfile = CreateFile(asciiStringToWstring(file_path).c_str(),
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hfile == INVALID_HANDLE_VALUE) return Optional<DateTime>{};
+
+    FILETIME last_updated_time{};
+    if (!GetFileTime(hfile, NULL, NULL, &last_updated_time)) return Optional<DateTime>{};
+
+    // Convert file time to UTC time
+    SYSTEMTIME systime{};
+    if (!FileTimeToSystemTime(&last_updated_time, &systime)) return Optional<DateTime>{};
+
+    return DateTime{ systime.wYear, static_cast<uint8_t>(systime.wMonth), static_cast<uint8_t>(systime.wDay), 
+        static_cast<uint8_t>(systime.wHour), static_cast<uint8_t>(systime.wMinute),
+        systime.wSecond + systime.wMilliseconds / 1000.0 };
 }
 
 }}}
