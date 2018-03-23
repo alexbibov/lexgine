@@ -50,8 +50,14 @@ std::string shaderModelAndTypeToTargetName(ShaderModel shader_model, ShaderType 
         break;
     }
 
-    rv += static_cast<char>('0' + shader_model_version.first) + "_";
-    rv += static_cast<char>('0' + shader_model_version.second);
+    char major_and_minor_symbols[] = {
+        static_cast<char>('0' + shader_model_version.first), 0,
+        static_cast<char>('0' + shader_model_version.second), 0
+    };
+
+    rv += std::string{ &major_and_minor_symbols[0] } +"_";
+    rv += std::string{ &major_and_minor_symbols[2] };
+
     return rv;
 }
 
@@ -243,7 +249,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
     }
     else
     {
-        should_recompile = false;
+        should_recompile = true;
     }
 
 
