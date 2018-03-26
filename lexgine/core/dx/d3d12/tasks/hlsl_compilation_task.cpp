@@ -267,7 +267,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
             std::string lib_full_path = m_global_settings.getCacheDirectory() + lib_name;
             if (lib_full_path != path_to_shader_cache_owned_by_current_thread)
             {
-                shader_cache_streams.emplace_back(lib_full_path.c_str(), std::fstream::in | std::fstream::out | std::fstream::binary);
+                shader_cache_streams.emplace_back(lib_full_path.c_str(), std::fstream::in | std::fstream::binary);
                 if (shader_cache_streams.back())
                 {
                     shader_cache_type cache{ shader_cache_streams.back(), true };

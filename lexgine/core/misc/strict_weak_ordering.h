@@ -3,7 +3,7 @@
 
 #define SWO_STEP(a, op, b) \
 if(a op b) return true; \
-if(b op a) return false
+else if(b op a) return false
 
 #define SWO_END(a, op, b) return a op b;
 
