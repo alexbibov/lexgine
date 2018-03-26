@@ -321,6 +321,15 @@
     <ClInclude Include="core\misc\strict_weak_ordering.h">
       <Filter>core\misc</Filter>
     </ClInclude>
+    <ClInclude Include="core\dx\d3d12\dx_resource_factory.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\lexgine_core_dx_d3d12_fwd.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\dxgi\lexgine_core_dx_dxgi_fwd.h">
+      <Filter>core\dx\dxgi</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
