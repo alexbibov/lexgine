@@ -36,7 +36,8 @@ namespace {
         data_format,
         render_target_format,
         string,
-        floating_point
+        floating_point,
+        shader_model
     };
 
     bool isNullAttribute(pugi::xml_attribute& attribute)
@@ -435,6 +436,48 @@ namespace {
         return attribute.as_float(std::numeric_limits<float>::quiet_NaN());
     }
 
+    bool isShaderModelAttribute(pugi::xml_attribute& attribute)
+    {
+        std::string rv = attribute.as_string("5.0");    // default shader model is 5.0
+
+        size_t begin_idx = rv.find_first_not_of(" \t");
+        size_t end_idx = rv.find_last_not_of(" \t");
+
+        if (rv[0] < '0' || rv[0] > '9'
+            || rv[1] != '.'
+            || rv[2] < '0' || rv[2] > '9') return false;
+
+        return true;
+    }
+
+    ShaderModel getShaderModelFromAttribute(pugi::xml_attribute& attribute)
+    {
+        std::string rv = attribute.as_string("5.0");
+        size_t begin_idx = rv.find_first_not_of(" \t");
+        size_t end_idx = rv.find_last_not_of(" \t");
+        rv = rv.substr(begin_idx, end_idx - begin_idx + 1);
+
+        uint8_t major_version = rv[0] - '0';
+        uint8_t minor_version = rv[2] - '0';
+        unsigned short packed_shader_model = (major_version << 4) | minor_version;
+
+        switch (packed_shader_model)
+        {
+        case static_cast<unsigned short>(ShaderModel::model_60):
+            return ShaderModel::model_60;
+
+        case static_cast<unsigned short>(ShaderModel::model_61):
+            return ShaderModel::model_61;
+
+        case static_cast<unsigned short>(ShaderModel::model_62):
+            return ShaderModel::model_62;
+
+        case static_cast<unsigned short>(ShaderModel::model_50):
+        default:
+            return ShaderModel::model_50;
+        }
+    }
+
 
     template<attribute_type _type>
     struct attribute_format_to_cpp_format;
@@ -575,6 +618,13 @@ namespace {
         static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getFloatingPointFromAttribute;
     };
 
+    template<>
+    struct attribute_format_to_cpp_format<attribute_type::shader_model>
+    {
+        using value_type = ShaderModel;
+        static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isShaderModelAttribute;
+        static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getShaderModelFromAttribute;
+    };
 
     template<attribute_type _type>
     typename attribute_format_to_cpp_format<_type>::value_type extractAttribute(pugi::xml_attribute& attribute,
@@ -760,9 +810,10 @@ public:
         }
 
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
+        ShaderModel sm = extractAttribute<attribute_type::shader_model>(shader_node.attribute("model"), ShaderModel::model_50);
 
         m_parent.m_hlsl_compilation_task_cache.addTask(*m_parent.m_globals.get<GlobalSettings>(), shader_source_location, graphics_pso_descriptor_cache_entry.cache_name + "_"
-            + shader_source_location + "_" + compilation_task_suffix, ShaderModel::model_50, shader_type, shader_entry_point_name,
+            + shader_source_location + "_" + compilation_task_suffix, sm, shader_type, shader_entry_point_name,
             lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &graphics_pso_descriptor_cache_entry.descriptor, 1);
 
         return true;

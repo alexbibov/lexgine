@@ -57,17 +57,24 @@ private:
     struct ShaderCacheKey final
     {
         char source_path[2048U];
+        uint16_t shader_model;
         uint64_t hash_value;
+        
 
-        static size_t const serialized_size = 2048U + sizeof(uint64_t);
+        static size_t const serialized_size = 
+            2048U 
+            + sizeof(uint16_t)
+            + sizeof(uint64_t);
 
 
         std::string toString() const;
 
         void serialize(void* p_serialization_blob) const;
-        void deserialize(void* p_serialization_blob);
+        void deserialize(void const* p_serialization_blob);
 
-        ShaderCacheKey(std::string const& hlsl_source_path, uint64_t hash_value);
+        ShaderCacheKey(std::string const& hlsl_source_path, 
+            uint16_t shader_model,
+            uint64_t hash_value);
         ShaderCacheKey() = default;
 
         bool operator<(ShaderCacheKey const& other) const;
@@ -102,12 +109,6 @@ private:
     std::string m_compilation_log;
 
     dxcompilation::DXCompilerProxy m_dxc_proxy;
-
-    static constexpr size_t m_shader_cache_cluster_size = 8 * 1024;
-    using shader_cache_type = StreamedCache<ShaderCacheKey, m_shader_cache_cluster_size>;
-
-    std::unique_ptr<std::fstream> m_shader_cache_file_stream;
-    std::unique_ptr<shader_cache_type> m_shader_cache;
 };
 
 }}}}}

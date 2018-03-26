@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include <cmath>
 #include <string>
+#include <list>
+#include <vector>
+
 #include <d3d12.h>
 
 #include "optional.h"
@@ -131,10 +134,14 @@ enum class DataFormat
     unknown
 };
 
+
 /*! Retrieves date and time of the last update applied to the given file. Returned time stamp is represented
- using UTC time format
+    using UTC time format
 */
 Optional<DateTime> getFileLastUpdatedTimeStamp(std::string const& file_path);
+
+//! Retrieves list of files from given directory that match provided pattern (can include wildcards and question signs)
+std::list<std::string> getFilesInDirectory(std::string const& directory_name, std::string const& name_pattern);
 
 
 }}}

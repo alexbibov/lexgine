@@ -38,6 +38,7 @@ private:
     Microsoft::WRL::ComPtr<IDxcCompiler2> m_dxc;
     Microsoft::WRL::ComPtr<IDxcLibrary> m_dxc_lib;
     Microsoft::WRL::ComPtr<IDxcOperationResult> m_dxc_op_result;
+    Microsoft::WRL::ComPtr<IDxcBlobEncoding> m_dxc_errors;
     bool m_is_successfully_initialized;
     std::string m_last_compile_attempt_source_name;
 };
