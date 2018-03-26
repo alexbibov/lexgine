@@ -8,13 +8,14 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Lib>
-      <AdditionalDependencies>d3dcompiler.lib;zlib.lib;lua.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>zlib.lib;lua.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <Link>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3dcompiler.lib;dxgi.lib;d3d12.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>XCOPY $(SolutionDir)3rd_party\dxcompiler\bin\dxcompiler.dll $(TargetDir) /F /Y</Command>
+      <Command>XCOPY $(SolutionDir)3rd_party\dxcompiler\bin\dxcompiler.dll $(TargetDir) /F /Y
+XCOPY $(SolutionDir)3rd_party\dxcompiler\bin\dxil.dll $(TargetDir) /F /Y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup />

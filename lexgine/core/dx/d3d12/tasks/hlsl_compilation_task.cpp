@@ -1,16 +1,24 @@
 #include "hlsl_compilation_task.h"
-#include "../../../data_blob.h"
-#include <d3dcompiler.h>
-#include "../../../global_settings.h"
-#include "../../../misc/hashed_string.h"
-#include "../../../exception.h"
-#include "../../../misc/strict_weak_ordering.h"
+#include "lexgine/core/data_blob.h"
 
+#include "lexgine/core/globals.h"
+#include "lexgine/core/global_settings.h"
+#include "lexgine/core/misc/hashed_string.h"
+#include "lexgine/core/exception.h"
+#include "lexgine/core/misc/strict_weak_ordering.h"
+
+#include "lexgine/core/dx/d3d12/dx_resource_factory.h"
+#include "lexgine/core/dx/d3d12/pipeline_state.h"
+
+
+#include <d3dcompiler.h>
 #include <fstream>
 
 
+using namespace lexgine;
 using namespace lexgine::core;
 using namespace lexgine::core::dx::dxcompilation;
+using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks;
 
 namespace {
@@ -63,7 +71,7 @@ std::string shaderModelAndTypeToTargetName(ShaderModel shader_model, ShaderType 
 }
 
 
-HLSLCompilationTask::HLSLCompilationTask(GlobalSettings const& global_settings, std::string const& source, std::string const& source_name,
+HLSLCompilationTask::HLSLCompilationTask(core::Globals const& globals, std::string const& source, std::string const& source_name,
     ShaderModel shader_model, ShaderType shader_type, std::string const& shader_entry_point,
     ShaderSourceCodePreprocessor::SourceType source_type,
     void* p_target_pso_descriptors, uint32_t num_descriptors,
@@ -72,7 +80,8 @@ HLSLCompilationTask::HLSLCompilationTask(GlobalSettings const& global_settings, 
     bool strict_mode/* = true*/, bool force_all_resources_be_bound/* = false*/,
     bool force_ieee_standard/* = true*/, bool treat_warnings_as_errors/* = true*/, bool enable_validation/* = true*/,
     bool enable_debug_information/* = false*/, bool enable_16bit_types/* = false*/) :
-    m_global_settings{ global_settings },
+    m_global_settings{ *globals.get<GlobalSettings>() },
+    m_dxc_proxy{ globals.get<DxResourceFactory>()->RetrieveSM6DxCompilerProxy() },
     m_source{ source },
     m_source_name{ source_name },
     m_shader_model{ shader_model },
@@ -443,18 +452,18 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         {
             // use LLVM-based compiler with SM6 support
 
-            if (!m_dxc_proxy.compile(processed_shader_source, m_source_name, m_shader_entry_point, target,
+            if (!m_dxc_proxy.compile(worker_id, processed_shader_source, m_source_name, m_shader_entry_point, target,
                 m_preprocessor_macro_definitions, m_optimization_level, m_is_strict_mode_enabled,
                 m_is_all_resources_binding_forced, m_is_ieee_forced, m_are_warnings_treated_as_errors,
                 m_is_validation_enabled, m_should_enable_debug_information, m_should_enable_16bit_types))
             {
                 LEXGINE_LOG_ERROR(this, "Compilation of HLSL source \"" + m_source_name 
-                    + "\" has failed (details: " + m_dxc_proxy.errors() + ")");
+                    + "\" has failed (details: " + m_dxc_proxy.errors(worker_id) + ")");
                 m_was_compilation_successful = false;
             }
             else
             {
-                auto compilation_result = m_dxc_proxy.result();
+                auto compilation_result = m_dxc_proxy.result(worker_id);
                 if (compilation_result.isValid())
                 {
                     shader_byte_code = static_cast<D3DDataBlob>(compilation_result);

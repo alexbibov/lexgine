@@ -1,11 +1,12 @@
 #include "global_settings.h"
-#include "../../3rd_party/json/json.hpp"
 #include "misc/misc.h"
 #include "misc/log.h"
 #include "misc/build_info.h"
 #include "initializer.h"
 
+#include "3rd_party/json/json.hpp"
 #include <fstream>
+
 
 using namespace lexgine::core;
 using json = nlohmann::json;

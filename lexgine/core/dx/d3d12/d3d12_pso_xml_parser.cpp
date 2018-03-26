@@ -4,11 +4,12 @@
 
 #include "d3d12_pso_xml_parser.h"
 #include "d3d12_tools.h"
-#include "../../misc/template_argument_iterator.h"
-#include "../../concurrency/task_graph.h"
-#include "../../concurrency/task_sink.h"
-#include "../../exception.h"
-#include "../dxcompilation/common.h"
+#include "lexgine/core/global_settings.h"
+#include "lexgine/core/misc/template_argument_iterator.h"
+#include "lexgine/core/concurrency/task_graph.h"
+#include "lexgine/core/concurrency/task_sink.h"
+#include "lexgine/core/exception.h"
+#include "lexgine/core/dx/dxcompilation/common.h"
 
 #include "pugixml.hpp"
 
@@ -757,7 +758,7 @@ public:
         pugi::char_t const* shader_source_location = shader_node.child_value();
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
 
-        m_parent.m_hlsl_compilation_task_cache.addTask(*m_parent.m_globals.get<GlobalSettings>(), shader_source_location, compute_pso_descritptor_cache_entry.cache_name + "_"
+        m_parent.m_hlsl_compilation_task_cache.addTask(m_parent.m_globals, shader_source_location, compute_pso_descritptor_cache_entry.cache_name + "_"
             + shader_source_location + "_CS" , ShaderModel::model_50, ShaderType::compute, shader_entry_point_name,
             lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &compute_pso_descritptor_cache_entry.descriptor, 1);
 
@@ -812,7 +813,7 @@ public:
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
         ShaderModel sm = extractAttribute<attribute_type::shader_model>(shader_node.attribute("model"), ShaderModel::model_50);
 
-        m_parent.m_hlsl_compilation_task_cache.addTask(*m_parent.m_globals.get<GlobalSettings>(), shader_source_location, graphics_pso_descriptor_cache_entry.cache_name + "_"
+        m_parent.m_hlsl_compilation_task_cache.addTask(m_parent.m_globals, shader_source_location, graphics_pso_descriptor_cache_entry.cache_name + "_"
             + shader_source_location + "_" + compilation_task_suffix, sm, shader_type, shader_entry_point_name,
             lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &graphics_pso_descriptor_cache_entry.descriptor, 1);
 

@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <utility>
 
-#include "misc/flags.h"
+#include "lexgine/core/misc/flags.h"
 
 namespace lexgine {namespace core {
 

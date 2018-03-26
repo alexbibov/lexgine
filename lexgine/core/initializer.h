@@ -3,7 +3,8 @@
 
 #include "globals.h"
 #include "global_settings.h"
-#include "misc/log.h"
+#include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
+#include "lexgine/core/misc/log.h"
 
 #include <fstream>
 #include <memory>
@@ -19,6 +20,7 @@ class Initializer
 public:
 
     Initializer() = delete;
+    ~Initializer();
 
     /*! Initializes environment of the engine (e.g. logging, global parameters and so on). Returns 'true' on success and 'false' on failure
     here global_look_up_prefix will be added to ALL look-up directories (settings look-up, shaders look-up, assets look-up and so on);
@@ -62,7 +64,8 @@ private:
     static std::vector<std::ofstream> m_logging_worker_file_streams;
     static std::vector<std::ostream*> m_logging_worker_generic_streams;
     static std::unique_ptr<GlobalSettings> m_global_settings;
-    static std::unique_ptr<Globals> m_globals;
+    static std::unique_ptr<core::Globals> m_globals;
+    static std::unique_ptr<dx::d3d12::DxResourceFactory> m_resource_factory;
 };
 
 }}

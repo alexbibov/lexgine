@@ -4,6 +4,7 @@
 #include "lexgine/core/global_settings.h"
 #include "lexgine/core/dx/d3d12/device.h"
 #include "lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
+#include "lexgine/core/dx/dxcompilation/dx_compiler_proxy.h"
 
 namespace lexgine { namespace core { namespace dx { namespace d3d12{
 
@@ -13,11 +14,13 @@ class DxResourceFactory
 public:
     DxResourceFactory(GlobalSettings const& global_settings);
 
-    dxgi::HwAdapterEnumerator& hardwareAdapterEnumerator() const;
+    dxgi::HwAdapterEnumerator const& hardwareAdapterEnumerator() const;
+    dxcompilation::DXCompilerProxy& RetrieveSM6DxCompilerProxy() const;
 
 private:
     GlobalSettings const& m_global_settings;
-    dxgi::HwAdapterEnumerator m_dw_adapter_enumerator;
+    dxgi::HwAdapterEnumerator m_hw_adapter_enumerator;
+    dxcompilation::DXCompilerProxy mutable m_dxc_proxy;
 };
 
 }}}}

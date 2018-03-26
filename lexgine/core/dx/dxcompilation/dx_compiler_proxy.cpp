@@ -1,6 +1,7 @@
 #include "dx_compiler_proxy.h"
-#include "../../misc/misc.h"
-#include "../../exception.h"
+#include "lexgine/core/misc/misc.h"
+#include "lexgine/core/exception.h"
+#include "lexgine/core/global_settings.h"
 
 #include <vector>
 
@@ -68,10 +69,11 @@ std::vector<wchar_t const*> convertParametersIntoCommandLineArgs(
 }
 
 
-DXCompilerProxy::DXCompilerProxy():
-    m_is_successfully_initialized{ true },
-    m_dxc_op_result{ nullptr },
-    m_dxc_errors{ nullptr }
+DXCompilerProxy::DXCompilerProxy(GlobalSettings const& global_settings):
+    m_is_successfully_initialized{ false },
+    m_dxc_op_result(global_settings.getNumberOfWorkers()),
+    m_dxc_errors(global_settings.getNumberOfWorkers(), "unknown error"),
+    m_last_comilation_attempt_source_name(global_settings.getNumberOfWorkers())
 {
     m_dxc_dll.Initialize();
 
@@ -88,8 +90,10 @@ DXCompilerProxy::DXCompilerProxy():
     }
 }
 
-bool DXCompilerProxy::compile(std::string const& hlsl_source_code,
-    std::string const& source_name, std::string const& entry_point_name, 
+bool DXCompilerProxy::compile(uint8_t worker_id, 
+    std::string const& hlsl_source_code,
+    std::string const& source_name, 
+    std::string const& entry_point_name, 
     std::string const& target_profile_name,
     std::list<HLSLMacroDefinition> const& macro_definitions,
     HLSLCompilationOptimizationLevel optimization_level, 
@@ -97,7 +101,7 @@ bool DXCompilerProxy::compile(std::string const& hlsl_source_code,
     bool force_ieee_standard, bool treat_warnings_as_errors, bool enable_validation,
     bool enable_debug_inforamtion, bool enable_16bit_types)
 {
-    m_last_compile_attempt_source_name = source_name;
+    m_last_comilation_attempt_source_name[worker_id] = source_name;
     
     Microsoft::WRL::ComPtr<IDxcBlobEncoding> hlsl_source_dxc_blob{ nullptr };
     DataChunk source_code_data_chunk{ hlsl_source_code.length() };
@@ -113,12 +117,12 @@ bool DXCompilerProxy::compile(std::string const& hlsl_source_code,
             hlsl_source_dxc_blob.GetAddressOf()
         );
 
-        if (hres != S_OK && hres != S_FALSE)
-            return false;
+        if (hres != S_OK && hres != S_FALSE) return false;
     }
 
 
-    std::vector<wchar_t const*> args = convertParametersIntoCommandLineArgs(optimization_level, strict_mode, force_all_resources_be_bound,
+    std::vector<wchar_t const*> args = 
+        convertParametersIntoCommandLineArgs(optimization_level, strict_mode, force_all_resources_be_bound,
         force_ieee_standard, treat_warnings_as_errors, enable_validation, enable_debug_inforamtion, enable_16bit_types);
 
     std::vector<std::pair<std::wstring, std::wstring>> hlsl_define_name_and_value_pairs{};
@@ -152,31 +156,34 @@ bool DXCompilerProxy::compile(std::string const& hlsl_source_code,
             dxc_defines.data(),
             static_cast<UINT32>(dxc_defines.size()),
             nullptr,
-            m_dxc_op_result.ReleaseAndGetAddressOf()
+            m_dxc_op_result[worker_id].ReleaseAndGetAddressOf()
         );
 
-        if (hres != S_OK && hres != S_FALSE)
-            return false;
+        if (hres != S_OK && hres != S_FALSE) return false;
 
-        m_dxc_op_result->GetErrorBuffer(m_dxc_errors.ReleaseAndGetAddressOf());
-
+        
         {
-            HRESULT hres;
-            HRESULT hres1 = m_dxc_op_result->GetStatus(&hres);
-            if (hres != S_OK && hres != S_FALSE || hres1 != S_OK)
-                return false;
+            Microsoft::WRL::ComPtr<IDxcBlobEncoding> dxc_errors_blob{ nullptr };
+            HRESULT hres = m_dxc_op_result[worker_id]->GetErrorBuffer(dxc_errors_blob.GetAddressOf());
+            if (hres != S_OK && hres != S_FALSE) return false;
+
+            m_dxc_errors[worker_id] = std::string{ static_cast<char*>(dxc_errors_blob->GetBufferPointer()), dxc_errors_blob->GetBufferSize() };
+
+            
+            HRESULT hres1 = m_dxc_op_result[worker_id]->GetStatus(&hres);
+            if (hres1 != S_OK && hres1 != S_FALSE || hres != S_OK) return false;
         }
     }
 
     return true;
 }
 
-misc::Optional<D3DDataBlob> DXCompilerProxy::result() const
+misc::Optional<D3DDataBlob> DXCompilerProxy::result(uint8_t worker_id) const
 {
-    if (m_dxc_op_result)
+    if (m_dxc_op_result[worker_id])
     {
         Microsoft::WRL::ComPtr<ID3DBlob> blob{ nullptr };
-        HRESULT hres = m_dxc_op_result->GetResult(reinterpret_cast<IDxcBlob**>(blob.GetAddressOf()));
+        HRESULT hres = m_dxc_op_result[worker_id]->GetResult(reinterpret_cast<IDxcBlob**>(blob.GetAddressOf()));
         if (hres != S_OK && hres != S_FALSE) return misc::Optional<D3DDataBlob>{};
 
         return misc::Optional<D3DDataBlob>{blob};
@@ -185,15 +192,7 @@ misc::Optional<D3DDataBlob> DXCompilerProxy::result() const
     return misc::Optional<D3DDataBlob>{};
 }
 
-std::string DXCompilerProxy::errors() const
+std::string DXCompilerProxy::errors(uint8_t worker_id) const
 {
-    if (m_dxc_errors)
-        return std::string{ static_cast<char*>(m_dxc_errors->GetBufferPointer()), m_dxc_errors->GetBufferSize() };
-    else
-        return std::string{};
-}
-
-DXCompilerProxy::operator bool() const
-{
-    return m_is_successfully_initialized && errors().length() == 0;
+    return m_dxc_errors[worker_id];
 }
