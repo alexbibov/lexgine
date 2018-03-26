@@ -156,6 +156,11 @@ bool HLSLCompilationTask::execute(uint8_t worker_id)
     return do_task(worker_id, 0);
 }
 
+std::pair<misc::HashedString, ShaderSourceCodePreprocessor::SourceType> HLSLCompilationTask::hash() const
+{
+    return std::make_pair(misc::HashedString{ m_source }, m_source_type);
+}
+
 std::string HLSLCompilationTask::ShaderCacheKey::toString() const
 {
     return std::string{ std::string{"path:{"} +source_path + "}__hash:{" + std::to_string(hash_value) + "}" };

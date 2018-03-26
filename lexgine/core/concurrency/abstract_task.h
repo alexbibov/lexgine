@@ -1,6 +1,6 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_ABSTRACT_TASK_H
-#include "../entity.h"
-#include "../class_names.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
 
 namespace lexgine { namespace core { namespace concurrency {
 
@@ -28,8 +28,13 @@ class AbstractTask : public NamedEntity<class_names::Task>
     friend class AbstractTaskAttorney<TaskGraph>;
 public:
     AbstractTask(std::string const& debug_name = "", bool expose_in_task_graph = true);
-    AbstractTask(AbstractTask const&) = delete;
-    AbstractTask(AbstractTask&&) = delete;
+    AbstractTask(AbstractTask const&) = delete;    // copying tasks doesn't make much sense and complicates things
+
+    // moving ownership of tasks is not allowed either since task graph nodes refer to their corresponding
+    // tasks using pointers. Therefore, if moving was allowed it would be possible for task ownership to
+    // get moved to new containing object, while the task graph node was still referring to the old object
+    AbstractTask(AbstractTask&&) = delete;    
+
     virtual ~AbstractTask() = default;
     AbstractTask& operator=(AbstractTask const&) = delete;
     AbstractTask& operator=(AbstractTask&&) = delete;
