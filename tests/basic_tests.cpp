@@ -524,14 +524,13 @@ public:
             using namespace lexgine::core::misc;
             using namespace lexgine::core;
 
-            Initializer::initializeEnvironment("../../", "settings/");
+            Initializer lexgine_init{ "../../", "settings/" };
 
             {
                 auto content = readAsciiTextFromSourceFile("../../scripts/d3d12_PSOs/example_serialized_pso.xml");
-                D3D12PSOXMLParser xml_parser{ Initializer::getGlobalParameterObjectPool(), content };
+                D3D12PSOXMLParser xml_parser{ lexgine_init.globals(), content };
             }
 
-            Initializer::shutdownEnvironment();
         }
 
 
@@ -540,7 +539,7 @@ public:
             using namespace lexgine::core;
             using namespace lexgine::core::misc;
 
-            Initializer::initializeEnvironment("../..", "settings/");
+            Initializer lexgine_init{ "../..", "settings/" };
 
             {
                 std::default_random_engine rand_eng{ static_cast<unsigned int>(
@@ -613,7 +612,6 @@ public:
                 delete[] random_value_buffer;
             }
 
-            Initializer::shutdownEnvironment();
         }
 
 
@@ -622,7 +620,7 @@ public:
             using namespace lexgine::core;
             using namespace lexgine::core::misc;
 
-            Initializer::initializeEnvironment("../..", "settings/");
+            Initializer lexgine_init{ "../..", "settings/" };
 
             {
                 size_t const test_cache_size{ 26214400U };    // 100 megabytes
@@ -766,7 +764,6 @@ public:
                 delete[] random_value_buffer;
             }
 
-            Initializer::shutdownEnvironment();
         }
 
     };
