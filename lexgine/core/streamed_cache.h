@@ -223,7 +223,7 @@ private:
 
 private:
 
-    size_t const m_key_size = Key::serialized_size;
+    static size_t const m_key_size = Key::serialized_size;
     std::vector<StreamedCacheIndexTreeEntry<Key>> m_index_tree;
     size_t m_current_index_redundant_growth_pressure = 0U;
     size_t mutable m_max_index_redundant_growth_pressure = 1000U;    //!< maximal allowed amount of unused entries in the index tree buffer, after which the buffer is rebuilt
@@ -256,7 +256,11 @@ public:
     StreamedCache(std::iostream& cache_io_stream, size_t capacity, 
        StreamedCacheCompressionLevel compression_level = StreamedCacheCompressionLevel::level0, bool are_overwrites_allowed = false);
 
-    StreamedCache(std::iostream& cache_io_stream);    //! loads existing cache from provided IO stream
+    StreamedCache(std::iostream& cache_io_stream, bool read_only = false);    //! loads existing cache from provided IO stream
+    
+    StreamedCache(StreamedCache const&) = delete;
+    StreamedCache(StreamedCache&& other);
+    
     virtual ~StreamedCache();
 
     bool addEntry(entry_type const& entry, bool force_overwrite = false);    //! adds entry into the cache and immediately attempts to write it into the cache stream
@@ -285,10 +289,14 @@ public:
 
     std::pair<uint16_t, uint16_t> getVersion() const;    //! returns major and minor versions of the cache (in this order) packed into std::pair
 
-    void writeCustomHeader(CustomHeader const& custom_header);    //! writes custom header data into the cache
+    bool writeCustomHeader(CustomHeader const& custom_header);    //! writes custom header data into the cache
     CustomHeader retrieveCustomHeader() const;    //! retrieves custom header data from the cache
 
     bool isCompressed() const;    //! returns 'true' if the cache stream is compressed, returns 'false' otherwise
+
+    bool isGood() const;    //! returns 'true' if the cache has been successfully initialized
+
+    operator bool() const;    //! same as isGood()
 
 private:
     void write_header_data();
@@ -319,6 +327,7 @@ private:
     void remove_oldest_entry_record();
 
 private:
+    static char constexpr m_magic_bytes[] = { 'L', 'X', 'G', 'C' };
     static uint32_t constexpr m_version = 0x10000;    //!< hi-word contains major version number; lo-word contains the minor version
     static uint8_t constexpr m_cluster_overhead = 8U;
     static uint8_t constexpr m_sequence_overhead = 8U;
@@ -328,7 +337,8 @@ private:
     static uint8_t constexpr m_eclt_entry_size = 8U;
 
     static uint32_t constexpr m_header_size =
-        4U    // cache version
+        4U      // magic bytes    
+        + 4U    // cache version
         + 4U    // endiannes: 0x1234 for Big-Endian, 0x4321 for Little-Endian
 
         + 8U    // maximal allowed size of the cache represented in bytes
@@ -354,6 +364,8 @@ private:
     bool m_endianness_conversion_required;
     bool m_is_finalized;
     std::unique_ptr<DataChunk> m_aux_compression_buffer;
+    bool m_is_read_only;
+    bool m_is_good;
 };
 
 
@@ -371,9 +383,9 @@ struct Int64Key final
         *(reinterpret_cast<uint64_t*>(p_serialization_blob)) = value;
     }
 
-    void deserialize(void* p_serialization_blob)
+    void deserialize(void const* p_serialization_blob)
     {
-        value = *(reinterpret_cast<uint64_t*>(p_serialization_blob));
+        value = *(reinterpret_cast<uint64_t const*>(p_serialization_blob));
     }
 
     Int64Key(uint64_t value) : value{ value } {}
@@ -1442,6 +1454,18 @@ inline bool StreamedCache<Key, cluster_size>::isCompressed() const
 }
 
 template<typename Key, size_t cluster_size>
+inline bool StreamedCache<Key, cluster_size>::isGood() const
+{
+    return m_is_good;
+}
+
+template<typename Key, size_t cluster_size>
+inline StreamedCache<Key, cluster_size>::operator bool() const
+{
+    return isGood();
+}
+
+template<typename Key, size_t cluster_size>
 inline void StreamedCache<Key, cluster_size>::pack_date_stamp(misc::DateTime const& date_stamp, unsigned char packed_date_stamp[13])
 {
     *reinterpret_cast<uint16_t*>(packed_date_stamp) = date_stamp.year();    // 16-bit storage for year
@@ -1635,9 +1659,11 @@ inline std::pair<size_t, bool> StreamedCache<Key, cluster_size>::serialize_entry
         m_cache_stream.write(reinterpret_cast<char*>(&uncompressed_entry_size), m_uncompressed_size_record);
 
         uint64_t current_cluster_base_address{ cache_allocation_desc.first + m_sequence_overhead + m_entry_record_overhead };
-        size_t num_bytes_to_write_into_current_cluster{ cluster_size - m_sequence_overhead - m_entry_record_overhead };
         size_t total_bytes_left_to_write = compressed_data_size;
         size_t total_bytes_written{ 0U };
+        size_t num_bytes_to_write_into_current_cluster{ 
+            (std::min)(total_bytes_left_to_write,
+            cluster_size - m_sequence_overhead - m_entry_record_overhead) };
         while (total_bytes_left_to_write)
         {
             m_cache_stream.seekp(current_cluster_base_address, std::ios::beg);
@@ -1687,6 +1713,7 @@ template<typename Key, size_t cluster_size>
 inline void StreamedCache<Key, cluster_size>::write_header_data()
 {
     m_cache_stream.seekp(0, std::ios::beg);
+    m_cache_stream.write(m_magic_bytes, sizeof(m_magic_bytes));
     m_cache_stream.write(reinterpret_cast<char*>(const_cast<uint32_t*>(&m_version)), 4U);
 
     union {
@@ -1747,6 +1774,19 @@ inline void StreamedCache<Key, cluster_size>::load_service_data()
     // retrieve the version of the streamed cache
     {
         m_cache_stream.seekg(0, std::ios::beg);
+
+        char magic_bytes[sizeof(m_magic_bytes)] = {};
+        m_cache_stream.read(magic_bytes, sizeof(m_magic_bytes));
+        if (memcmp(magic_bytes, m_magic_bytes, sizeof(m_magic_bytes)))
+        {
+            misc::Log::retrieve()->out("Streamed cache \"" + getStringName() + "\" "
+                "cannot be loaded as it has invalid format or has been corrupted",
+                misc::LogMessageType::error);
+            m_is_good = false;
+            return;
+        }
+
+
         uint32_t cache_version;
         m_cache_stream.read(reinterpret_cast<char*>(&cache_version), 4U);
 
@@ -1760,6 +1800,8 @@ inline void StreamedCache<Key, cluster_size>::load_service_data()
             misc::Log::retrieve()->out("Streamed cache \"" + getStringName() + "\" cannot be loaded as it's version is "
                 + std::to_string(loaded_major) + "." + std::to_string(loaded_minor) + " whereas the highest version supported by "
                 "the parser is " + std::to_string(assumed_major) + "." + std::to_string(assumed_minor), misc::LogMessageType::error);
+
+            m_is_good = false;
             return;
         }
     }
@@ -2014,11 +2056,14 @@ inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_s
     m_cache_body_size{ 0U },
     m_compression_level{ compression_level },
     m_are_overwrites_allowed{ are_overwrites_allowed },
-    m_is_finalized{ false }
+    m_is_finalized{ false },
+    m_is_read_only{ false },
+    m_is_good{ true }
 {
     if (!cache_io_stream)
     {
         misc::Log::retrieve()->out("Unable to open cache IO stream", misc::LogMessageType::error);
+        m_is_good = false;
         return;
     }
 }
@@ -2026,13 +2071,16 @@ inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_s
 
 
 template<typename Key, size_t cluster_size>
-inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_stream):
+inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_stream, bool read_only/* = false*/):
     m_cache_stream{ cache_io_stream },
-    m_is_finalized{ false }
+    m_is_finalized{ false },
+    m_is_read_only{ read_only },
+    m_is_good{ true }
 {
     if (!cache_io_stream)
     {
         misc::Log::retrieve()->out("Unable to open cache IO stream", misc::LogMessageType::error);
+        m_is_good = false;
         return;
     }
 
@@ -2040,15 +2088,33 @@ inline StreamedCache<Key, cluster_size>::StreamedCache(std::iostream& cache_io_s
 }
 
 template<typename Key, size_t cluster_size>
+inline StreamedCache<Key, cluster_size>::StreamedCache(StreamedCache&& other) :
+    m_cache_stream{ other.m_cache_stream },
+    m_max_cache_size{ other.m_max_cache_size },
+    m_cache_body_size{ other.m_cache_body_size },
+    m_index{ std::move(other.m_index) },
+    m_empty_cluster_table{ std::move(other.m_empty_cluster_table) },
+    m_compression_level{ std::move(other.m_compression_level) },
+    m_are_overwrites_allowed{ other.m_are_overwrites_allowed },
+    m_endianness_conversion_required{ other.m_endianness_conversion_required },
+    m_is_finalized{ other.m_is_finalized },
+    m_aux_compression_buffer{ std::move(other.m_aux_compression_buffer) },
+    m_is_read_only{ other.m_is_read_only },
+    m_is_good{ other.m_is_good }
+{
+    other.m_is_finalized = true;
+}
+
+template<typename Key, size_t cluster_size>
 inline StreamedCache<Key, cluster_size>::~StreamedCache()
 {
-    if (!m_is_finalized) finalize();
+    if (!m_is_finalized && m_is_good) finalize();
 }
 
 template<typename Key, size_t cluster_size>
 inline bool StreamedCache<Key, cluster_size>::addEntry(entry_type const &entry, bool force_overwrite /* = false*/)
 {
-    assert(!m_is_finalized);
+    if (m_is_finalized || m_is_read_only) return false;
 
     auto entry_base_offset = m_index.get_cache_entry_data_offset_from_key(entry.m_key);
     size_t overwrite_offset{ 0U };    // 0 means not to overwrite anything
@@ -2087,11 +2153,15 @@ inline void StreamedCache<Key, cluster_size>::finalize()
 {
     assert(!m_is_finalized);
 
-    write_header_data();
-    write_index_data();
-    write_eclt_data();
+    if(!m_is_read_only)
+    {
+        write_header_data();
+        write_index_data();
+        write_eclt_data();
+        m_cache_stream.flush();
+    }
+
     m_is_finalized = true;
-    m_cache_stream.flush();
 }
 
 template<typename Key, size_t cluster_size>
@@ -2253,7 +2323,7 @@ inline size_t StreamedCache<Key, cluster_size>::getEntrySize(Key const& entry_ke
 template<typename Key, size_t cluster_size>
 inline bool StreamedCache<Key, cluster_size>::removeEntry(Key const& entry_key)
 {
-    assert(!m_is_finalized);
+    if (m_is_read_only || m_is_finalized) return false;
 
     auto rv = m_index.get_cache_entry_data_offset_from_key(entry_key);
     if (!rv.isValid())
@@ -2289,12 +2359,14 @@ inline std::pair<uint16_t, uint16_t> StreamedCache<Key, cluster_size>::getVersio
 }
 
 template<typename Key, size_t cluster_size>
-inline void StreamedCache<Key, cluster_size>::writeCustomHeader(CustomHeader const& custom_header)
+inline bool StreamedCache<Key, cluster_size>::writeCustomHeader(CustomHeader const& custom_header)
 {
-    assert(!m_is_finalized);
+    if (m_is_read_only || m_is_finalized) return false;
 
     m_cache_stream.seekp(m_header_size - CustomHeader::size, std::ios::beg);
     m_cache_stream.write(custom_header.data, CustomHeader::size);
+
+    return true;
 }
 
 template<typename Key, size_t cluster_size>

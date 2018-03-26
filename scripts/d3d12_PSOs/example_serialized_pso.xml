@@ -34,11 +34,11 @@ will not generate the corresponding shader blobs for the PSO descriptor it produ
 of each type can be declared only once. Each shader declaration must have one obligatory attribute 'main', which
 identifies the entry point of the shader.
 -->
-<VertexShader entry="VS_main">sample.vs.hlsl</VertexShader>
-<HullShader entry="HS_main">sample.hs.hlsl</HullShader>
-<DomainShader entry="DS_main">sample.ds.hlsl</DomainShader>
-<GeometryShader entry="GS_main">sample.gs.hlsl</GeometryShader>
-<PixelShader entry="PS_main">sample.ps.hlsl</PixelShader>
+<VertexShader entry="VS_main" model="6.0">sample.vs.hlsl</VertexShader>
+<HullShader entry="HS_main" model="6.0">sample.hs.hlsl</HullShader>
+<DomainShader entry="DS_main" model="6.0">sample.ds.hlsl</DomainShader>
+<GeometryShader entry="GS_main" model="6.0">sample.gs.hlsl</GeometryShader>
+<PixelShader entry="PS_main" model="6.0">sample.ps.hlsl</PixelShader>
 
 <!-- StreamOutput defines stream output for the pipeline state object. This declaration is optional.
 Only one StreamOutput entry may appear per pipeline description.

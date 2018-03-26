@@ -98,6 +98,7 @@ bool writeBinaryDataToFile(std::string const& file_path, void* source_memory_add
     return true;
 }
 
+
 Optional<DateTime> getFileLastUpdatedTimeStamp(std::string const& file_path)
 {
     HANDLE hfile = CreateFile(asciiStringToWstring(file_path).c_str(),
@@ -114,6 +115,40 @@ Optional<DateTime> getFileLastUpdatedTimeStamp(std::string const& file_path)
     return DateTime{ systime.wYear, static_cast<uint8_t>(systime.wMonth), static_cast<uint8_t>(systime.wDay), 
         static_cast<uint8_t>(systime.wHour), static_cast<uint8_t>(systime.wMinute),
         systime.wSecond + systime.wMilliseconds / 1000.0 };
+}
+
+std::list<std::string> getFilesInDirectory(std::string const& directory_name, std::string const & name_pattern)
+{
+    {
+        DWORD file_attributes = GetFileAttributes(asciiStringToWstring(directory_name).c_str());
+        if (file_attributes == INVALID_FILE_ATTRIBUTES
+            || !(file_attributes & FILE_ATTRIBUTE_DIRECTORY))
+            return std::list<std::string>{};
+    }
+
+    WIN32_FIND_DATA data{};
+    HANDLE search_handle = FindFirstFile(asciiStringToWstring(directory_name + name_pattern).c_str(), &data);
+    if (search_handle == INVALID_HANDLE_VALUE)
+        return std::list<std::string>{};
+
+    std::list<std::string> rv{};
+    if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+    {
+        rv.push_back(wstringToAsciiString(data.cFileName));
+    }
+       
+
+    while (FindNextFile(search_handle, &data))
+    {
+        if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+        {
+            rv.push_back(wstringToAsciiString(data.cFileName));
+        }
+    }
+
+    FindClose(search_handle);
+
+    return rv;
 }
 
 }}}

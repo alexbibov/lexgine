@@ -4,6 +4,7 @@
 #include "../../../global_settings.h"
 #include "../../../misc/hashed_string.h"
 #include "../../../exception.h"
+#include "../../../misc/strict_weak_ordering.h"
 
 #include <fstream>
 
@@ -24,41 +25,37 @@ std::pair<uint8_t, uint8_t> unpackShaderModelVersion(ShaderModel shader_model)
 
 std::string shaderModelAndTypeToTargetName(ShaderModel shader_model, ShaderType shader_type)
 {
-    std::string rv{};
+    char target[7] = { 0 };
 
     std::pair<uint8_t, uint8_t> shader_model_version = unpackShaderModelVersion(shader_model);
 
     switch (shader_type)
     {
     case ShaderType::vertex:
-        rv += "vs_";
+        memcpy(target, "vs_", 3);
         break;
     case ShaderType::hull:
-        rv += "hs_";
+        memcpy(target, "hs_", 3);
         break;
     case ShaderType::domain:
-        rv += "ds_";
+        memcpy(target, "ds_", 3);
         break;
     case ShaderType::geometry:
-        rv += "gs_";
+        memcpy(target, "gs_", 3);
         break;
     case ShaderType::pixel:
-        rv += "ps_";
+        memcpy(target, "ps_", 3);
         break;
     case ShaderType::compute:
-        rv += "cs_";
+        memcpy(target, "cs_", 3);
         break;
     }
 
-    char major_and_minor_symbols[] = {
-        static_cast<char>('0' + shader_model_version.first), 0,
-        static_cast<char>('0' + shader_model_version.second), 0
-    };
+    target[3] = '0' + shader_model_version.first;
+    target[4] = '_';
+    target[5] = '0' + shader_model_version.second;
 
-    rv += std::string{ &major_and_minor_symbols[0] } +"_";
-    rv += std::string{ &major_and_minor_symbols[2] };
-
-    return rv;
+    return target;
 }
 
 
@@ -132,23 +129,6 @@ HLSLCompilationTask::HLSLCompilationTask(GlobalSettings const& global_settings, 
         m_optimization_level = HLSLCompilationOptimizationLevel::level_no;
         m_is_validation_enabled = true;
     }
-
-
-    {
-        // Initialize shader cache
-        std::string shader_cache_full_path = m_global_settings.getCacheDirectory() + m_global_settings.getShaderCacheName();
-        m_shader_cache_file_stream = std::make_unique<std::fstream>(shader_cache_full_path.c_str(), 
-            std::ios::in | std::ios::out | std::ios::trunc | std::ios::binary);
-        if (!m_shader_cache_file_stream->good())
-        {
-            LEXGINE_THROW_ERROR("Unable to initialize shader cache stream \"" + shader_cache_full_path + "\"");
-        }
-        
-        m_shader_cache = std::make_unique<shader_cache_type>(
-            *m_shader_cache_file_stream, 
-            static_cast<size_t>(-1), 
-            StreamedCacheCompressionLevel::level3, false);
-    }
 }
 
 
@@ -174,17 +154,26 @@ std::string HLSLCompilationTask::ShaderCacheKey::toString() const
 
 void HLSLCompilationTask::ShaderCacheKey::serialize(void* p_serialization_blob) const
 {
-    memcpy(p_serialization_blob, source_path, sizeof(source_path));
-    memcpy(static_cast<uint8_t*>(p_serialization_blob) + sizeof(source_path), &hash_value, sizeof(hash_value));
+    uint8_t* ptr{ static_cast<uint8_t*>(p_serialization_blob) };
+    
+    memcpy(ptr, source_path, sizeof(source_path)); ptr += sizeof(source_path);
+    memcpy(ptr, &shader_model, sizeof(shader_model)); ptr += sizeof(shader_model);
+    memcpy(ptr, &hash_value, sizeof(hash_value));
 }
 
-void HLSLCompilationTask::ShaderCacheKey::deserialize(void* p_serialization_blob)
+void HLSLCompilationTask::ShaderCacheKey::deserialize(void const* p_serialization_blob)
 {
-    memcpy(source_path, p_serialization_blob, sizeof(source_path));
-    memcpy(&hash_value, static_cast<uint8_t*>(p_serialization_blob) + sizeof(source_path), sizeof(hash_value));
+    uint8_t const* ptr{static_cast<uint8_t const*>(p_serialization_blob) };
+
+    memcpy(source_path, ptr, sizeof(source_path)); ptr += sizeof(source_path);
+    memcpy(&shader_model, ptr, sizeof(shader_model)); ptr += sizeof(shader_model);
+    memcpy(&hash_value, ptr, sizeof(hash_value));
 }
 
-HLSLCompilationTask::ShaderCacheKey::ShaderCacheKey(std::string const& hlsl_source_path, uint64_t hash_value) :
+HLSLCompilationTask::ShaderCacheKey::ShaderCacheKey(std::string const& hlsl_source_path, 
+    uint16_t shader_model,
+    uint64_t hash_value) :
+    shader_model{ shader_model },
     hash_value{ hash_value }
 {
     memset(source_path, 0, sizeof(source_path));
@@ -193,21 +182,99 @@ HLSLCompilationTask::ShaderCacheKey::ShaderCacheKey(std::string const& hlsl_sour
 
 bool HLSLCompilationTask::ShaderCacheKey::operator<(ShaderCacheKey const& other) const
 {
-    if (strcmp(source_path, other.source_path) < 0)
-        return true;
-    else if (strcmp(source_path, other.source_path) > 0)
-        return false;
-    else return hash_value < other.hash_value;
+    SWO_STEP(source_path, < , other.source_path);
+    SWO_STEP(shader_model, < , other.shader_model);
+    SWO_END(hash_value, < , other.hash_value);
 }
 
 bool HLSLCompilationTask::ShaderCacheKey::operator==(ShaderCacheKey const& other) const
 {
     return strcmp(source_path, other.source_path) == 0
+        && shader_model == other.shader_model
         && hash_value == other.hash_value;
 }
 
 bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 {
+    // Initialize shader caches
+
+    using shader_cache_type = StreamedCache<ShaderCacheKey, 256>;
+    std::list<std::fstream> shader_cache_streams{};
+    std::list<shader_cache_type> shader_caches{};
+
+    std::string path_to_shader_cache_owned_by_current_thread = 
+        m_global_settings.getCacheDirectory() + m_global_settings.getShaderCacheName() 
+        + ".thread" + std::to_string(worker_id);
+    bool cache_exists = misc::doesFileExist(path_to_shader_cache_owned_by_current_thread);
+    
+    {
+        // open stream to the shader cache owned by current thread
+
+        auto shader_cache_file_stream_flags = std::fstream::in | std::fstream::out | std::fstream::binary;
+        if (!cache_exists) shader_cache_file_stream_flags |= std::fstream::trunc;
+        shader_cache_streams.emplace_back(path_to_shader_cache_owned_by_current_thread, shader_cache_file_stream_flags);
+        if (!shader_cache_streams.front())
+        {
+            LEXGINE_THROW_ERROR("Unable to initialize shader cache stream \""
+                + path_to_shader_cache_owned_by_current_thread + "\"");
+        }
+    }
+
+    if (cache_exists)
+    {
+        shader_cache_type cache{ shader_cache_streams.front(), false };
+        if (!cache)
+        {
+            // if shader cache cannot be initialized, this is probably due to 
+            // cache corruption. Therefore, we have to erase the old cache and create new one
+            shader_cache_streams.front().close();
+            shader_cache_streams.front() = std::fstream{
+                path_to_shader_cache_owned_by_current_thread,
+                std::fstream::in | std::fstream::out | std::fstream::binary | std::fstream::trunc };
+            shader_caches.emplace_back(
+                shader_cache_streams.front(),
+                m_global_settings.getMaxShaderCacheSize(),
+                StreamedCacheCompressionLevel::level3,
+                false);
+        }
+        else shader_caches.emplace_back(std::move(cache));
+    }
+    else
+    {
+        shader_caches.emplace_back(shader_cache_type{
+            shader_cache_streams.front(),
+            m_global_settings.getMaxShaderCacheSize(),
+            StreamedCacheCompressionLevel::level3,
+            false });
+    }
+
+    {
+        // populate list of shader caches owned by other threads
+        std::list<std::string> cache_library_names =
+            misc::getFilesInDirectory(m_global_settings.getCacheDirectory(), "*.shaders.thread*");
+
+        for (auto& lib_name : cache_library_names)
+        {
+            std::string lib_full_path = m_global_settings.getCacheDirectory() + lib_name;
+            if (lib_full_path != path_to_shader_cache_owned_by_current_thread)
+            {
+                shader_cache_streams.emplace_back(lib_full_path.c_str(), std::fstream::in | std::fstream::out | std::fstream::binary);
+                if (shader_cache_streams.back())
+                {
+                    shader_cache_type cache{ shader_cache_streams.back(), true };
+                    if (cache) shader_caches.emplace_back(std::move(cache));
+                    else shader_cache_streams.pop_back();
+                }
+                else
+                {
+                    shader_cache_streams.pop_back();
+                }
+            }
+        }
+    }
+
+
+
     // find the full correct path to the shader
     std::string full_shader_path{ m_source };
     for(auto path_prefix : m_global_settings.getShaderLookupDirectories())
@@ -236,13 +303,21 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         uint64_t shader_hash_value = misc::HashedString{ shader_defines.c_str() }.hash();
 
 
-        shader_cache_key = ShaderCacheKey{ full_shader_path, shader_hash_value };
+        shader_cache_key = ShaderCacheKey{ full_shader_path, static_cast<uint16_t>(m_shader_model), shader_hash_value };
     }
     
     bool should_recompile{ false };
-    if (m_shader_cache->doesEntryExist(shader_cache_key))
+
+    auto p_shader_cache_containing_requested_shader = 
+        std::find_if(shader_caches.begin(), shader_caches.end(),
+            [&shader_cache_key](shader_cache_type& cache)
+            {
+                return cache.doesEntryExist(shader_cache_key);
+            });
+
+    if (p_shader_cache_containing_requested_shader != shader_caches.end())
     {
-        misc::DateTime cached_time_stamp = m_shader_cache->getEntryTimestamp(shader_cache_key);
+        misc::DateTime cached_time_stamp = p_shader_cache_containing_requested_shader->getEntryTimestamp(shader_cache_key);
         misc::Optional<misc::DateTime> current_time_stamp = misc::getFileLastUpdatedTimeStamp(full_shader_path);
         should_recompile = !current_time_stamp.isValid()
             || cached_time_stamp < static_cast<misc::DateTime>(current_time_stamp);
@@ -259,7 +334,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
     {
         // Attempt to use cached version of the shader
 
-        SharedDataChunk blob = m_shader_cache->retrieveEntry(shader_cache_key);
+        SharedDataChunk blob = p_shader_cache_containing_requested_shader->retrieveEntry(shader_cache_key);
         if (!blob.data())
         {
             LEXGINE_LOG_ERROR(this, "Unable to retrieve precompiled shader byte code for source \""
@@ -368,7 +443,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         {
             // use LLVM-based compiler with SM6 support
 
-            if (!m_dxc_proxy.compile(full_shader_path, m_source_name, m_shader_entry_point, target,
+            if (!m_dxc_proxy.compile(processed_shader_source, m_source_name, m_shader_entry_point, target,
                 m_preprocessor_macro_definitions, m_optimization_level, m_is_strict_mode_enabled,
                 m_is_all_resources_binding_forced, m_is_ieee_forced, m_are_warnings_treated_as_errors,
                 m_is_validation_enabled, m_should_enable_debug_information, m_should_enable_16bit_types))
@@ -398,7 +473,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         if (m_was_compilation_successful)
         {
             // if compilation was successful serialize compiled shader into the cache
-            m_shader_cache->addEntry(shader_cache_type::entry_type{ shader_cache_key, shader_byte_code });
+            shader_caches.front().addEntry(shader_cache_type::entry_type{ shader_cache_key, shader_byte_code });
         }
 
     }

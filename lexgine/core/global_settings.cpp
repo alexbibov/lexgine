@@ -115,6 +115,21 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
                 + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
                 + "__" + PROJECT_VERSION_STAGE + ".shaders";
         }
+
+        if ((p = document.find("maximal_shader_cache_size")) != document.end()
+            && p->is_number_unsigned())
+        {
+            m_max_shader_cache_size = p->get<uint64_t>();
+        }
+        else
+        {
+            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"maximal_shader_cache_size\" setting from settings file located at \""
+                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected unsigned integer). "
+                "Default maximal value of 4GBs will be used instead",
+                misc::LogMessageType::exclamation);
+
+            m_max_shader_cache_size = 1024ull * 1024 * 1024 * 4;    // defaults to 4Gbs
+        }
     }
     catch (...)
     {
@@ -166,12 +181,17 @@ std::string GlobalSettings::getCacheDirectory() const
     return m_cache_path;
 }
 
-std::string lexgine::core::GlobalSettings::getShaderCacheName() const
+std::string GlobalSettings::getShaderCacheName() const
 {
     return m_shader_cache_name;
 }
 
-bool lexgine::core::GlobalSettings::setNumberOfWorkers(uint8_t num_workers)
+uint64_t GlobalSettings::getMaxShaderCacheSize() const
+{
+    return m_max_shader_cache_size;
+}
+
+bool GlobalSettings::setNumberOfWorkers(uint8_t num_workers)
 {
     if (Initializer::isRendererInitialized())
         return false;

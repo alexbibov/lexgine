@@ -48,15 +48,19 @@ std::vector<wchar_t const*> convertParametersIntoCommandLineArgs(
     }
 
     if (strict_mode) rv.push_back(L"-Ges");
-    if (force_all_resources_be_bound) rv.push_back(L"-all_resources_bound");
+    if (force_all_resources_be_bound) 
+    {
+        rv.push_back(L"-all_resources_bound");
+        rv.push_back(L"-Gfa");    // avoid flow control constructs in DXIL
+    }
     if (force_ieee_standard) rv.push_back(L"-Gis");
     if (treat_warnings_as_errors) rv.push_back(L"-WX");
     if (!enable_validation) rv.push_back(L"-Vd");
     if (enable_debug_inforamtion) rv.push_back(L"-Zi");
     if (enable_16bit_types) rv.push_back(L"-enable-16bit-types");
 
-    rv.push_back(L"-Gfa");    // avoid flow control constructs in DXIL
-    rv.push_back(L"-HV 2018");    // force HLSL version 2018 for consistency
+    
+    // rv.push_back(L"-HV 2018");    // force HLSL version 2018 for consistency
 
     return rv;
 }
@@ -66,7 +70,8 @@ std::vector<wchar_t const*> convertParametersIntoCommandLineArgs(
 
 DXCompilerProxy::DXCompilerProxy():
     m_is_successfully_initialized{ true },
-    m_dxc_op_result{ nullptr }
+    m_dxc_op_result{ nullptr },
+    m_dxc_errors{ nullptr }
 {
     m_dxc_dll.Initialize();
 
@@ -95,10 +100,9 @@ bool DXCompilerProxy::compile(std::string const& hlsl_source_code,
     m_last_compile_attempt_source_name = source_name;
     
     Microsoft::WRL::ComPtr<IDxcBlobEncoding> hlsl_source_dxc_blob{ nullptr };
+    DataChunk source_code_data_chunk{ hlsl_source_code.length() };
     {
         // Convert source code into data blob with encoding
-
-        DataChunk source_code_data_chunk{ hlsl_source_code.length() };
         memcpy(source_code_data_chunk.data(), hlsl_source_code.c_str(), hlsl_source_code.length());
 
         // Convert source code into blob
@@ -153,6 +157,15 @@ bool DXCompilerProxy::compile(std::string const& hlsl_source_code,
 
         if (hres != S_OK && hres != S_FALSE)
             return false;
+
+        m_dxc_op_result->GetErrorBuffer(m_dxc_errors.ReleaseAndGetAddressOf());
+
+        {
+            HRESULT hres;
+            HRESULT hres1 = m_dxc_op_result->GetStatus(&hres);
+            if (hres != S_OK && hres != S_FALSE || hres1 != S_OK)
+                return false;
+        }
     }
 
     return true;
@@ -174,17 +187,10 @@ misc::Optional<D3DDataBlob> DXCompilerProxy::result() const
 
 std::string DXCompilerProxy::errors() const
 {
-    if (m_dxc_op_result)
-    {
-        Microsoft::WRL::ComPtr<IDxcBlobEncoding> error_blob_with_encoding{ nullptr };
-        m_dxc_op_result->GetErrorBuffer(error_blob_with_encoding.GetAddressOf());
-
-        if (!error_blob_with_encoding) return std::string{"unknown error"};
-
-        return misc::wstringToAsciiString(static_cast<wchar_t*>(error_blob_with_encoding->GetBufferPointer()));
-    }
-
-    return std::string{};
+    if (m_dxc_errors)
+        return std::string{ static_cast<char*>(m_dxc_errors->GetBufferPointer()), m_dxc_errors->GetBufferSize() };
+    else
+        return std::string{};
 }
 
 DXCompilerProxy::operator bool() const
