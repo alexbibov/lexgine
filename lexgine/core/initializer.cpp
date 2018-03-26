@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cwchar>
 
+using namespace lexgine;
 using namespace lexgine::core;
 
 
@@ -27,20 +28,9 @@ std::string correct_path(std::string const& original_path)
 
 }
 
-Initializer::~Initializer() = default;
 
 
-bool Initializer::m_is_environment_initialized{ false };
-bool Initializer::m_is_renderer_initialized{ false };
-std::ofstream Initializer::m_logging_file_stream{};
-std::vector<std::ofstream> Initializer::m_logging_worker_file_streams{};
-std::vector<std::ostream*> Initializer::m_logging_worker_generic_streams{};
-std::unique_ptr<GlobalSettings> Initializer::m_global_settings{ nullptr };
-std::unique_ptr<Globals> Initializer::m_globals{ nullptr };
-std::unique_ptr<dx::d3d12::DxResourceFactory> Initializer::m_resource_factory{ nullptr };
-
-
-bool Initializer::initializeEnvironment(
+Initializer::Initializer(
     std::string const& global_lookup_prefix, 
     std::string const& settings_lookup_path,
     std::string const& global_settings_json_file,
@@ -141,30 +131,23 @@ bool Initializer::initializeEnvironment(
     builder.registerDxResourceFactory(*m_resource_factory);
 
     *m_globals = builder.build();
-
-    return true;
 }
 
-void Initializer::shutdownEnvironment()
+Initializer::~Initializer()
 {
-    m_globals = nullptr;    // Globals must be destroyed before the logger has been shut down
+    m_globals = nullptr;
     m_global_settings = nullptr;
+    m_resource_factory = nullptr;
+   
+
+    // Logger must be shutdown the last since many objects may still log stuff on destruction
     misc::Log::shutdown();
     m_logging_file_stream.close();
     for (auto& s : m_logging_worker_file_streams) s.close();
 }
 
-bool Initializer::isEnvironmentInitialized()
-{
-    return m_is_environment_initialized;
-}
 
-bool Initializer::isRendererInitialized()
-{
-    return m_is_renderer_initialized;
-}
-
-Globals& Initializer::getGlobalParameterObjectPool()
+core::Globals& Initializer::globals()
 {
     return *m_globals;
 }

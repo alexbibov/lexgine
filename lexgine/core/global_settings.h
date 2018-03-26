@@ -39,11 +39,11 @@ public:
     
     // *** the following functions are used to alter the global settings during run time. All functions return 'true' in case of success and 'false' if the parameter's value cannot be changed ***
     
-    bool setNumberOfWorkers(uint8_t num_workers);
-    bool setIsDeferredShaderCompilationOn(bool is_enabled);
-    bool addShaderLookupDirectory(std::string const& path);
-    bool clearShaderLookupDirectories();
-    bool setCacheDirectory(std::string const& path);
+    void setNumberOfWorkers(uint8_t num_workers);
+    void setIsDeferredShaderCompilationOn(bool is_enabled);
+    void addShaderLookupDirectory(std::string const& path);
+    void clearShaderLookupDirectories();
+    void setCacheDirectory(std::string const& path);
 };
 
 }}

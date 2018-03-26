@@ -192,47 +192,27 @@ uint64_t GlobalSettings::getMaxShaderCacheSize() const
     return m_max_shader_cache_size;
 }
 
-bool GlobalSettings::setNumberOfWorkers(uint8_t num_workers)
+void GlobalSettings::setNumberOfWorkers(uint8_t num_workers)
 {
-    if (Initializer::isRendererInitialized())
-        return false;
-
     m_number_of_workers = num_workers;
-    return true;
 }
 
-bool GlobalSettings::setIsDeferredShaderCompilationOn(bool is_enabled)
+void GlobalSettings::setIsDeferredShaderCompilationOn(bool is_enabled)
 {
-    if (Initializer::isRendererInitialized())
-        return false;
-
     m_deferred_shader_compilation = is_enabled;
-    return true;
 }
 
-bool GlobalSettings::addShaderLookupDirectory(std::string const & path)
+void GlobalSettings::addShaderLookupDirectory(std::string const & path)
 {
-    if (Initializer::isRendererInitialized())
-        return false;
-
     m_shader_lookup_directories.push_back(path);
-    return true;
 }
 
-bool GlobalSettings::clearShaderLookupDirectories()
+void GlobalSettings::clearShaderLookupDirectories()
 {
-    if (Initializer::isRendererInitialized())
-        return false;
-
     m_shader_lookup_directories.clear();
-    return true;
 }
 
-bool GlobalSettings::setCacheDirectory(std::string const& path)
+void GlobalSettings::setCacheDirectory(std::string const& path)
 {
-    if (Initializer::isRendererInitialized())
-        return false;
-
     m_cache_path = path;
-    return true;
 }
