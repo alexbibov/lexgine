@@ -7,10 +7,9 @@
 #include <ostream>
 
 #include "misc/hashed_string.h"
-#include "global_settings.h"
 #include "entity.h"
 #include "class_names.h"
-
+#include "lexgine_core_fwd.h"
 
 namespace lexgine { namespace core {
 
@@ -88,6 +87,7 @@ public:
     void defineGlobalSettings(GlobalSettings& global_settings);
     void registerWorkerThreadLogs(std::vector<std::ostream*>& worker_threads_logging_output_streams);
     void registerMainLog(std::ostream& logging_output_stream);
+    void registerDxResourceFactory(d3d12::DxResourceFactory& dx_resource_factory);
 
     Globals build();
 };

@@ -3,9 +3,12 @@
 #include <wrl.h>
 #include <d3d12.h>
 
-#include "../../misc/flags.h"
-#include "../../entity.h"
-#include "../../class_names.h"
+#include "lexgine/core/misc/flags.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
+
+#include "lexgine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
+
 #include "root_signature.h"
 #include "fence.h"
 #include "descriptor_heap.h"
@@ -13,9 +16,6 @@
 
 using namespace Microsoft::WRL;
 
-namespace lexgine { namespace core { namespace dxgi {
-class HwAdapter;
-} } }
 
 namespace lexgine {namespace core {namespace dx {namespace d3d12 {
 

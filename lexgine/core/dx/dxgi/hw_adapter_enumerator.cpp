@@ -1,12 +1,11 @@
 #include "hw_adapter_enumerator.h"
-#include "../../misc/log.h"
-#include "../../exception.h"
+#include "lexgine/core/misc/log.h"
+#include "lexgine/core/exception.h"
 
 using namespace lexgine;
 using namespace lexgine::core;
 using namespace lexgine::core::dx::dxgi;
 using namespace lexgine::core::misc;
-
 
 
 HwAdapterEnumerator::HwAdapterEnumerator()

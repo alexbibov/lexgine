@@ -1,15 +1,16 @@
 #ifndef LEXGINE_CORE_DX_D3D12_TASKS_HLSL_COMPILATION_TASK_H
 #define LEXGINE_CORE_DX_D3D12_TASKS_HLSL_COMPILATION_TASK_H
 
-#include "../../../concurrency/schedulable_task.h"
-#include "../../../shader_source_code_preprocessor.h"
-#include "../../../data_blob.h"
-#include "../pipeline_state.h"
-#include "../../../lexgine_core_fwd.h"
+#include "lexgine/core/lexgine_core_fwd.h"
+#include "lexgine/core/concurrency/schedulable_task.h"
+#include "lexgine/core/shader_source_code_preprocessor.h"
+#include "lexgine/core/data_blob.h"
 
-#include "../../dxcompilation/common.h"
-#include "../../dxcompilation/dx_compiler_proxy.h"
-#include "../../../streamed_cache.h"
+#include "lexgine/core/dx/d3d12/pipeline_state.h"
+
+#include "lexgine/core/dx/dxcompilation/common.h"
+#include "lexgine/core/dx/dxcompilation/dx_compiler_proxy.h"
+#include "lexgine/core/streamed_cache.h"
 
 #include <list>
 
@@ -86,6 +87,8 @@ private:
     concurrency::TaskType get_task_type() const override;    //! returns type of this task (CPU)
 
     GlobalSettings const& m_global_settings;
+
+
     std::string m_source;
     std::string m_source_name;
     dxcompilation::ShaderModel m_shader_model;

@@ -16,6 +16,7 @@ class GlobalSettings;
 class Globals;
 class RasterizerDescriptor;
 class ShaderSourceCodePreprocessor;
+template<typename Key, size_t cluster_size> class StreamedCache;
 
 }}
 
