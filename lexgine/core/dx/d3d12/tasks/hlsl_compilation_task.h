@@ -11,6 +11,7 @@
 #include "lexgine/core/dx/dxcompilation/common.h"
 #include "lexgine/core/dx/dxcompilation/dx_compiler_proxy.h"
 #include "lexgine/core/streamed_cache.h"
+#include "lexgine/core/misc/hashed_string.h"
 
 #include <list>
 
@@ -51,8 +52,14 @@ public:
     std::string getCompilationLog() const;
 
 
-    // Executed the task manually. THROWS if compilation fails.
+    //! Executes the task manually. THROWS if compilation fails.
     bool execute(uint8_t worker_id);
+
+    /*! Returns pair containing hashed string of HLSL source and enumeration value that determines
+     whether returned source is path to the source code or the code itself
+    */
+    std::pair<misc::HashedString, ShaderSourceCodePreprocessor::SourceType> hash() const;
+
 
 private:
     struct ShaderCacheKey final
