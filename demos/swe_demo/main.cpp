@@ -2,10 +2,10 @@
 #include <iostream>
 #include <sstream>
 
-#include "../../lexgine/osinteraction/windows/window.h"
-#include "../../lexgine/osinteraction/windows/window_listeners.h"
-#include "../../lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
-#include "../../lexgine/core/dx/d3d12/debug_interface.h"
+#include "lexgine/osinteraction/windows/window.h"
+#include "lexgine/osinteraction/windows/window_listeners.h"
+#include "lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
+#include "lexgine/core/dx/d3d12/debug_interface.h"
 
 using namespace lexgine::osinteraction;
 using namespace lexgine::osinteraction::windows;

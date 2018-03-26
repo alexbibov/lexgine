@@ -10,6 +10,7 @@
 #include "entity.h"
 #include "class_names.h"
 #include "lexgine_core_fwd.h"
+#include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 
 namespace lexgine { namespace core {
 
@@ -46,7 +47,7 @@ public:
         
         rv = new T{};
         put(hashed_type_name, rv);
-        return rv;
+        return static_cast<T*>(rv);
     }
 
     template<typename T>
@@ -82,12 +83,13 @@ private:
     GlobalSettings* m_global_settings;
     std::ostream* m_main_log;
     std::vector<std::ostream*>* m_worker_logs;
+    dx::d3d12::DxResourceFactory* m_dx_resource_factory;
 
 public:
     void defineGlobalSettings(GlobalSettings& global_settings);
     void registerWorkerThreadLogs(std::vector<std::ostream*>& worker_threads_logging_output_streams);
     void registerMainLog(std::ostream& logging_output_stream);
-    void registerDxResourceFactory(d3d12::DxResourceFactory& dx_resource_factory);
+    void registerDxResourceFactory(dx::d3d12::DxResourceFactory& dx_resource_factory);
 
     Globals build();
 };

@@ -170,6 +170,7 @@
     <ClCompile Include="core\dx\d3d12\debug_interface.cpp" />
     <ClCompile Include="core\dx\d3d12\descriptor_heap.cpp" />
     <ClCompile Include="core\dx\d3d12\device.cpp" />
+    <ClCompile Include="core\dx\d3d12\dx_resource_factory.cpp" />
     <ClCompile Include="core\dx\d3d12\fence.cpp" />
     <ClCompile Include="core\dx\d3d12\heap.cpp" />
     <ClCompile Include="core\dx\d3d12\heap_data_uploader.cpp" />

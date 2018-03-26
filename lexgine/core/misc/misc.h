@@ -12,7 +12,7 @@
 
 #include "optional.h"
 
-#include "../../../3rd_party/half/half.h"
+#include "3rd_party/half/half.h"
 #include "datetime.h"
 
 namespace lexgine { namespace core { namespace misc {

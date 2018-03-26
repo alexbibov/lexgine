@@ -6,7 +6,7 @@
 #include "lexgine/core/shader_source_code_preprocessor.h"
 #include "lexgine/core/data_blob.h"
 
-#include "lexgine/core/dx/d3d12/pipeline_state.h"
+#include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 
 #include "lexgine/core/dx/dxcompilation/common.h"
 #include "lexgine/core/dx/dxcompilation/dx_compiler_proxy.h"
@@ -30,7 +30,7 @@ public:
      compiled shader blob. The exact type of PSO descriptor as well as its shader stage receiving the blob is determined based on
      provided value of parameter shader_type.
     */
-    HLSLCompilationTask(GlobalSettings const& global_settings, std::string const& source, std::string const& source_name,
+    HLSLCompilationTask(core::Globals const& globals, std::string const& source, std::string const& source_name,
         dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
         ShaderSourceCodePreprocessor::SourceType source_type,
         void* p_target_pso_descriptors, uint32_t num_descriptors,
@@ -87,6 +87,7 @@ private:
     concurrency::TaskType get_task_type() const override;    //! returns type of this task (CPU)
 
     GlobalSettings const& m_global_settings;
+    dxcompilation::DXCompilerProxy& m_dxc_proxy;
 
 
     std::string m_source;
@@ -110,8 +111,6 @@ private:
 
     bool m_was_compilation_successful;
     std::string m_compilation_log;
-
-    dxcompilation::DXCompilerProxy m_dxc_proxy;
 };
 
 }}}}}

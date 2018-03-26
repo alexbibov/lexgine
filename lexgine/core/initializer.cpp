@@ -1,7 +1,9 @@
 #include "initializer.h"
 #include "exception.h"
-#include "misc/build_info.h"
-#include "misc/misc.h"
+#include "lexgine/core/misc/build_info.h"
+#include "lexgine/core/misc/misc.h"
+#include "lexgine/core/global_settings.h"
+#include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 
 #include <windows.h>
 #include <algorithm>
@@ -25,6 +27,7 @@ std::string correct_path(std::string const& original_path)
 
 }
 
+Initializer::~Initializer() = default;
 
 
 bool Initializer::m_is_environment_initialized{ false };
@@ -34,6 +37,7 @@ std::vector<std::ofstream> Initializer::m_logging_worker_file_streams{};
 std::vector<std::ostream*> Initializer::m_logging_worker_generic_streams{};
 std::unique_ptr<GlobalSettings> Initializer::m_global_settings{ nullptr };
 std::unique_ptr<Globals> Initializer::m_globals{ nullptr };
+std::unique_ptr<dx::d3d12::DxResourceFactory> Initializer::m_resource_factory{ nullptr };
 
 
 bool Initializer::initializeEnvironment(
@@ -131,6 +135,10 @@ bool Initializer::initializeEnvironment(
             [](std::ofstream& e) -> std::ostream* { return &e; });
         builder.registerWorkerThreadLogs(m_logging_worker_generic_streams);
     }
+
+
+    m_resource_factory.reset(new dx::d3d12::DxResourceFactory{ *m_global_settings });
+    builder.registerDxResourceFactory(*m_resource_factory);
 
     *m_globals = builder.build();
 

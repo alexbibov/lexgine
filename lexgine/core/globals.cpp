@@ -1,4 +1,6 @@
 #include "globals.h"
+#include "global_settings.h"
+#include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 
 #include <cassert>
 
@@ -46,12 +48,18 @@ void MainGlobalsBuilder::registerMainLog(std::ostream& logging_output_stream)
     m_main_log = &logging_output_stream;
 }
 
+void MainGlobalsBuilder::registerDxResourceFactory(dx::d3d12::DxResourceFactory& dx_resource_factory)
+{
+    m_dx_resource_factory = &dx_resource_factory;
+}
+
 Globals MainGlobalsBuilder::build()
 {
     Globals rv;
     rv.put(m_global_settings);
     rv.put(m_worker_logs);
     rv.put(m_main_log);
+    rv.put(m_dx_resource_factory);
 
     return rv;
 }
