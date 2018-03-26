@@ -191,7 +191,8 @@ HLSLCompilationTask::ShaderCacheKey::ShaderCacheKey(std::string const& hlsl_sour
 
 bool HLSLCompilationTask::ShaderCacheKey::operator<(ShaderCacheKey const& other) const
 {
-    SWO_STEP(source_path, < , other.source_path);
+    int r = std::strcmp(source_path, other.source_path);
+    SWO_STEP(r, < , 0);
     SWO_STEP(shader_model, < , other.shader_model);
     SWO_END(hash_value, < , other.hash_value);
 }
