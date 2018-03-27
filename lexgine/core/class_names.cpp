@@ -30,6 +30,7 @@ extern char const D3D12PSOXMLParser[] = "lexgine::core::dx::d3d12::D3D12PSOXMLPa
 extern char const ShaderSourceCodePreprocessor[] = "lexgine::core::ShaderSourceCodePreprocessor";
 extern char const Globals[] = "lexgine::core::Globals";
 extern char const StreamedCache[] = "lexgine::core::StreamedCache<Key>";
+extern char const HLSLCompilationTaskCache[] = "lexgine::core::dx::d3d12::task_caches::HLSLCompilationTaskCache";
 extern char const Dummy[] = "lexgine::core::Dummy";
 
 }}}

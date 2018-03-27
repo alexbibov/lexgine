@@ -440,7 +440,7 @@ inline StaticVector<T, max_size>::StaticVectorIterator::StaticVectorIterator(cha
 
 template<typename T, size_t max_size>
 template<typename ...Args>
-inline void util::StaticVector<T, max_size>::emplace_back(Args ...args)
+inline void StaticVector<T, max_size>::emplace_back(Args ...args)
 {
     assert(m_size < max_size);
     new (m_p_end) T{ std::forward<Args>(args)... };

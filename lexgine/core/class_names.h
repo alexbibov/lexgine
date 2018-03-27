@@ -30,6 +30,7 @@ extern char const D3D12PSOXMLParser[];
 extern char const ShaderSourceCodePreprocessor[];
 extern char const Globals[];
 extern char const StreamedCache[];
+extern char const HLSLCompilationTaskCache[];
 extern char const Dummy[];
 }}}
 

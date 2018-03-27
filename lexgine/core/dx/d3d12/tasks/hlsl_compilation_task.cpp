@@ -5,7 +5,6 @@
 #include "lexgine/core/global_settings.h"
 #include "lexgine/core/misc/hashed_string.h"
 #include "lexgine/core/exception.h"
-#include "lexgine/core/misc/strict_weak_ordering.h"
 
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 #include "lexgine/core/dx/d3d12/pipeline_state.h"
@@ -71,22 +70,23 @@ std::string shaderModelAndTypeToTargetName(ShaderModel shader_model, ShaderType 
 }
 
 
-HLSLCompilationTask::HLSLCompilationTask(core::Globals& globals, std::string const& source, std::string const& source_name,
+HLSLCompilationTask::HLSLCompilationTask(task_caches::HLSLCompilationTaskCache::Key const& key, misc::DateTime const& time_stamp,
+    core::Globals& globals, std::string const& hlsl_source, std::string const& source_name,
     ShaderModel shader_model, ShaderType shader_type, std::string const& shader_entry_point,
-    ShaderSourceCodePreprocessor::SourceType source_type,
     std::list<HLSLMacroDefinition> const& macro_definitions/* = std::list<HLSLMacroDefinition>{}*/,
     HLSLCompilationOptimizationLevel optimization_level/* = HLSLCompilationOptimizationLevel::level3*/,
     bool strict_mode/* = true*/, bool force_all_resources_be_bound/* = false*/,
     bool force_ieee_standard/* = true*/, bool treat_warnings_as_errors/* = true*/, bool enable_validation/* = true*/,
     bool enable_debug_information/* = false*/, bool enable_16bit_types/* = false*/) :
+    m_key{ key },
+    m_time_stamp{ time_stamp },
     m_global_settings{ *globals.get<GlobalSettings>() },
     m_dxc_proxy{ globals.get<DxResourceFactory>()->RetrieveSM6DxCompilerProxy() },
-    m_source{ source },
+    m_hlsl_source{ hlsl_source },
     m_source_name{ source_name },
     m_shader_model{ shader_model },
-    m_type{ shader_type },
+    m_shader_type{ shader_type },
     m_shader_entry_point{ shader_entry_point },
-    m_source_type{ source_type },
     m_preprocessor_macro_definitions{ macro_definitions },
     m_optimization_level{ optimization_level },
     m_is_strict_mode_enabled{ strict_mode },
@@ -153,59 +153,6 @@ bool HLSLCompilationTask::execute(uint8_t worker_id)
     return do_task(worker_id, 0);
 }
 
-std::string HLSLCompilationTask::CacheKey::toString() const
-{
-    return std::string{ std::string{"path:{"} +source_path + "}__hash:{" + std::to_string(hash_value) + "}" };
-}
-
-void HLSLCompilationTask::CacheKey::serialize(void* p_serialization_blob) const
-{
-    uint8_t* ptr{ static_cast<uint8_t*>(p_serialization_blob) };
-    
-    memcpy(ptr, source_path, sizeof(source_path)); ptr += sizeof(source_path);
-    memcpy(ptr, &shader_model, sizeof(shader_model)); ptr += sizeof(shader_model);
-    memcpy(ptr, &hash_value, sizeof(hash_value));
-}
-
-void HLSLCompilationTask::CacheKey::deserialize(void const* p_serialization_blob)
-{
-    uint8_t const* ptr{static_cast<uint8_t const*>(p_serialization_blob) };
-
-    memcpy(source_path, ptr, sizeof(source_path)); ptr += sizeof(source_path);
-    memcpy(&shader_model, ptr, sizeof(shader_model)); ptr += sizeof(shader_model);
-    memcpy(&hash_value, ptr, sizeof(hash_value));
-}
-
-HLSLCompilationTask::CacheKey::CacheKey(std::string const& hlsl_source_path, 
-    uint16_t shader_model,
-    uint64_t hash_value) :
-    shader_model{ shader_model },
-    hash_value{ hash_value }
-{
-    memset(source_path, 0, max_string_section_length_in_bytes);
-    memcpy(source_path, hlsl_source_path.c_str(), max_string_section_length_in_bytes);
-}
-
-bool HLSLCompilationTask::CacheKey::operator<(CacheKey const& other) const
-{
-    int r = std::strcmp(source_path, other.source_path);
-    SWO_STEP(r, < , 0);
-    SWO_STEP(shader_model, < , other.shader_model);
-    SWO_END(hash_value, < , other.hash_value);
-}
-
-bool HLSLCompilationTask::CacheKey::operator==(CacheKey const& other) const
-{
-    return strcmp(source_path, other.source_path) == 0
-        && shader_model == other.shader_model
-        && hash_value == other.hash_value;
-}
-
-HLSLCompilationTask::CacheKey HLSLCompilationTask::cacheKey() const
-{
-    return CacheKey();
-}
-
 D3DDataBlob HLSLCompilationTask::getTaskData() const
 {
     return m_shader_byte_code;
@@ -215,7 +162,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 {
     // Initialize shader caches
 
-    using shader_cache_type = StreamedCache<CacheKey, 256>;
+    using shader_cache_type = StreamedCache<task_caches::HLSLCompilationTaskCache::Key, 256>;
     std::list<std::fstream> shader_cache_streams{};
     std::list<shader_cache_type> shader_caches{};
 
@@ -289,57 +236,23 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
             }
         }
     }
-
-
-
-    // find the full correct path to the shader
-    std::string full_shader_path_or_source_code{ m_source };
-    for(auto path_prefix : m_global_settings.getShaderLookupDirectories())
-    {
-        if (misc::doesFileExist(path_prefix + m_source))
-        {
-            full_shader_path_or_source_code = path_prefix + m_source;
-            break;
-        }
-    }
-    ShaderSourceCodePreprocessor shader_preprocessor{ full_shader_path_or_source_code, m_source_type };
-    std::string processed_shader_source{ shader_preprocessor.getPreprocessedSource() };
-    std::string target = shaderModelAndTypeToTargetName(m_shader_model, m_type);
-
-    CacheKey shader_cache_key{};
-    {
-        // Generate key for caching
-
-        // note that theoretically two separate sets of defines may end up having same
-        // hash value, which is not good, however probability of such occasion is essentially 0
-        // and even if such thing happens it can be debugged and resolved easily (just by, say, changing name or value
-        // of offending define)
-        std::string shader_defines{};
-        for (auto const& def : m_preprocessor_macro_definitions)
-            shader_defines += std::string{ "DEFINE { name = " } +def.name + ", value = " + def.value + " }\n";
-        uint64_t shader_hash_value = misc::HashedString{ full_shader_path_or_source_code + "__" + shader_defines.c_str() }.hash();
-
-
-        shader_cache_key = CacheKey{ full_shader_path_or_source_code, static_cast<uint16_t>(m_shader_model), shader_hash_value };
-    }
+    
+    
     
     bool should_recompile{ false };
 
     auto p_shader_cache_containing_requested_shader = 
         std::find_if(shader_caches.begin(), shader_caches.end(),
-            [&shader_cache_key](shader_cache_type& cache)
+            [this](shader_cache_type& cache)
             {
-                return cache.doesEntryExist(shader_cache_key);
+                return cache.doesEntryExist(m_key);
             });
 
     if (p_shader_cache_containing_requested_shader != shader_caches.end())
     {
-        misc::DateTime cached_time_stamp = p_shader_cache_containing_requested_shader->getEntryTimestamp(shader_cache_key);
-        misc::Optional<misc::DateTime> current_time_stamp = m_source_type == ShaderSourceCodePreprocessor::SourceType::file ?
-            misc::getFileLastUpdatedTimeStamp(full_shader_path_or_source_code)
-            : misc::DateTime::now();    // NOTE: HLSL sources supplied directly (i.e. not via source files) are always recompiled
-        should_recompile = !current_time_stamp.isValid()
-            || cached_time_stamp < static_cast<misc::DateTime>(current_time_stamp);
+        misc::DateTime cached_time_stamp = p_shader_cache_containing_requested_shader->getEntryTimestamp(m_key);
+        
+        should_recompile = cached_time_stamp < m_time_stamp;
     }
     else
     {
@@ -351,7 +264,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
     {
         // Attempt to use cached version of the shader
 
-        SharedDataChunk blob = p_shader_cache_containing_requested_shader->retrieveEntry(shader_cache_key);
+        SharedDataChunk blob = p_shader_cache_containing_requested_shader->retrieveEntry(m_key);
         if (!blob.data())
         {
             LEXGINE_LOG_ERROR(this, "Unable to retrieve precompiled shader byte code for source \""
@@ -375,10 +288,10 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
             }
         }
     }
-
-    if (should_recompile)
+    else
     {
         // Need to recompile the shader
+        std::string target = shaderModelAndTypeToTargetName(m_shader_model, m_shader_type);
 
         if (static_cast<unsigned short>(m_shader_model) < static_cast<unsigned short>(ShaderModel::model_60))
         {
@@ -436,7 +349,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 
             LEXGINE_LOG_ERROR_IF_FAILED(
                 this,
-                D3DCompile(processed_shader_source.c_str(), processed_shader_source.size(),
+                D3DCompile(m_hlsl_source.c_str(), m_hlsl_source.size(),
                     m_source_name.c_str(), macro_definitions.data(), NULL, m_shader_entry_point.c_str(), target.c_str(),
                     compilation_flags, NULL, p_shader_bytecode_blob.GetAddressOf(), p_compilation_errors_blob.GetAddressOf()),
                 S_OK);
@@ -444,7 +357,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
             if (p_compilation_errors_blob)
             {
                 m_compilation_log = std::string{ static_cast<char const*>(p_compilation_errors_blob->GetBufferPointer()) };
-                std::string output_log = "Unable to compile shader source located in \"" + full_shader_path_or_source_code + "\". "
+                std::string output_log = "Unable to compile shader source \"" + m_source_name + "\". "
                     "Detailed compiler log follows: <em>" + m_compilation_log + "</em>";
                 LEXGINE_LOG_ERROR(this, output_log);
                 m_was_compilation_successful = false;
@@ -460,13 +373,13 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         {
             // use LLVM-based compiler with SM6 support
 
-            if (!m_dxc_proxy.compile(worker_id, processed_shader_source, m_source_name, m_shader_entry_point, target,
+            if (!m_dxc_proxy.compile(worker_id, m_hlsl_source, m_source_name, m_shader_entry_point, target,
                 m_preprocessor_macro_definitions, m_optimization_level, m_is_strict_mode_enabled,
                 m_is_all_resources_binding_forced, m_is_ieee_forced, m_are_warnings_treated_as_errors,
                 m_is_validation_enabled, m_should_enable_debug_information, m_should_enable_16bit_types))
             {
                 LEXGINE_LOG_ERROR(this, "Compilation of HLSL source \"" + m_source_name 
-                    + "\" has failed (details: " + m_dxc_proxy.errors(worker_id) + ")");
+                    + "\" has failed (details: <em>" + m_dxc_proxy.errors(worker_id) + "</em>)");
                 m_was_compilation_successful = false;
             }
             else
@@ -490,12 +403,9 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         if (m_was_compilation_successful)
         {
             // if compilation was successful serialize compiled shader into the cache
-            shader_caches.front().addEntry(shader_cache_type::entry_type{ shader_cache_key, m_shader_byte_code });
+            shader_caches.front().addEntry(shader_cache_type::entry_type{ m_key, m_shader_byte_code });
         }
-
     }
-
-   
 
     /*if (m_type == ShaderType::compute)
     {
