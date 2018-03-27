@@ -15,12 +15,12 @@ public:
     DxResourceFactory(GlobalSettings const& global_settings);
 
     dxgi::HwAdapterEnumerator const& hardwareAdapterEnumerator() const;
-    dxcompilation::DXCompilerProxy& RetrieveSM6DxCompilerProxy() const;
+    dxcompilation::DXCompilerProxy& RetrieveSM6DxCompilerProxy();
 
 private:
     GlobalSettings const& m_global_settings;
     dxgi::HwAdapterEnumerator m_hw_adapter_enumerator;
-    dxcompilation::DXCompilerProxy mutable m_dxc_proxy;
+    dxcompilation::DXCompilerProxy m_dxc_proxy;
 };
 
 }}}}

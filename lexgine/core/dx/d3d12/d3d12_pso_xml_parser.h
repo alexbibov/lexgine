@@ -36,7 +36,7 @@ public:
      NOTE: parameter node_mask identifies, for which nodes to create PSO descriptors.
      For example if node_mask=0x3, all descriptors will be dubbed for the 0-th node and for the 1-st node
     */
-    D3D12PSOXMLParser(core::Globals const& globals, std::string const& xml_source, bool deferred_shader_compilation = true, uint32_t node_mask = 0x1);
+    D3D12PSOXMLParser(core::Globals& globals, std::string const& xml_source, bool deferred_shader_compilation = true, uint32_t node_mask = 0x1);
 
     ~D3D12PSOXMLParser() override;
 
@@ -56,13 +56,13 @@ public:
 private:
     class impl;
 
-    core::Globals const& m_globals;
+    core::Globals& m_globals;
+    task_caches::HLSLCompilationTaskCache& m_hlsl_compilation_task_cache;
     std::string const m_source_xml;
     uint32_t m_node_mask;
     std::unique_ptr<impl> m_impl;
     std::list<GraphicsPSODescriptorCacheEntry> m_graphics_pso_descriptor_cache;
     std::list<ComputePSODescriptorCacheEntry> m_compute_pso_descriptor_cache;
-    task_caches::HLSLCompilationTaskCache m_hlsl_compilation_task_cache;
 };
 
 }}}}

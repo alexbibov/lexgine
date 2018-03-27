@@ -12,7 +12,7 @@ HLSLCompilationTaskCache::HLSLCompilationTaskCache()
 {
 }
 
-void HLSLCompilationTaskCache::addTask(core::Globals const& globals, std::string const& source, std::string const& source_name, 
+void HLSLCompilationTaskCache::addTask(core::Globals& globals, std::string const& source, std::string const& source_name, 
     dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point, 
     ShaderSourceCodePreprocessor::SourceType source_type,
     std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions, 
@@ -56,10 +56,4 @@ HLSLCompilationTaskCache::const_iterator HLSLCompilationTaskCache::end() const
 size_t HLSLCompilationTaskCache::size() const
 {
     return m_tasks.size();
-}
-
-bool HLSLCompilationTaskCache::CacheKeyComparator::operator()(CacheKey const& a, CacheKey const& b) const
-{
-    SWO_STEP(a.hash(), < , b.hash());
-    SWO_END(a.string(), < , b.string());
 }
