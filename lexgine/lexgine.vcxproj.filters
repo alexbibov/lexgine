@@ -333,6 +333,9 @@
     <ClInclude Include="core\dx\d3d12\task_caches\lexgine_core_dx_d3d12_task_caches_fwd.h">
       <Filter>core\dx\d3d12\task_caches</Filter>
     </ClInclude>
+    <ClInclude Include="core\dx\d3d12\tasks\lexgine_core_dx_d3d12_tasks_fwd.h">
+      <Filter>core\dx\d3d12\tasks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">

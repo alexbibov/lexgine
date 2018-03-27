@@ -247,6 +247,7 @@
     <ClInclude Include="core\dx\d3d12\resource_barrier.h" />
     <ClInclude Include="core\dx\d3d12\root_signature.h" />
     <ClInclude Include="core\dx\d3d12\tasks\hlsl_compilation_task.h" />
+    <ClInclude Include="core\dx\d3d12\tasks\lexgine_core_dx_d3d12_tasks_fwd.h" />
     <ClInclude Include="core\dx\d3d12\tasks\pso_compilation_task.h" />
     <ClInclude Include="core\dx\d3d12\task_caches\hlsl_compilation_task_cache.h" />
     <ClInclude Include="core\dx\d3d12\task_caches\lexgine_core_dx_d3d12_task_caches_fwd.h" />

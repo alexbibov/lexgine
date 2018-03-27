@@ -2,16 +2,17 @@
 #define LEXGINE_CORE_DX_D3D12_TASKS_HLSL_COMPILATION_TASK_H
 
 #include "lexgine/core/lexgine_core_fwd.h"
-#include "lexgine/core/concurrency/schedulable_task.h"
-#include "lexgine/core/shader_source_code_preprocessor.h"
 #include "lexgine/core/data_blob.h"
+#include "lexgine/core/streamed_cache.h"
+
+#include "lexgine/core/concurrency/schedulable_task.h"
+#include "lexgine/core/misc/datetime.h"
 
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
-
+#include "lexgine/core/dx/d3d12/task_caches/hlsl_compilation_task_cache.h"
 #include "lexgine/core/dx/dxcompilation/common.h"
 #include "lexgine/core/dx/dxcompilation/dx_compiler_proxy.h"
-#include "lexgine/core/streamed_cache.h"
-#include "lexgine/core/misc/hashed_string.h"
+
 
 #include <list>
 
@@ -20,36 +21,6 @@ namespace lexgine {namespace core {namespace dx {namespace d3d12 {namespace task
 //! Implements compilation of provided HLSL source code
 class HLSLCompilationTask : public concurrency::SchedulableTask
 {
-public:
-    struct CacheKey final
-    {
-        static constexpr size_t max_string_section_length_in_bytes = 512U;
-
-        char source_path[max_string_section_length_in_bytes];
-        uint16_t shader_model;
-        uint64_t hash_value;
-
-
-        static size_t const serialized_size =
-            max_string_section_length_in_bytes
-            + sizeof(uint16_t)
-            + sizeof(uint64_t);
-
-
-        std::string toString() const;
-
-        void serialize(void* p_serialization_blob) const;
-        void deserialize(void const* p_serialization_blob);
-
-        CacheKey(std::string const& hlsl_source_path,
-            uint16_t shader_model,
-            uint64_t hash_value);
-        CacheKey() = default;
-
-        bool operator<(CacheKey const& other) const;
-        bool operator==(CacheKey const& other) const;
-    };
-
 public:
     
 
@@ -61,9 +32,9 @@ public:
      compiled shader blob. The exact type of PSO descriptor as well as its shader stage receiving the blob is determined based on
      provided value of parameter shader_type.
     */
-    HLSLCompilationTask(core::Globals& globals, std::string const& source, std::string const& source_name,
+    HLSLCompilationTask(task_caches::HLSLCompilationTaskCache::Key const& key, misc::DateTime const& time_stamp,
+        core::Globals& globals, std::string const& hlsl_source, std::string const& source_name,
         dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
-        ShaderSourceCodePreprocessor::SourceType source_type,
         std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions = std::list<dxcompilation::HLSLMacroDefinition>{},
         dxcompilation::HLSLCompilationOptimizationLevel optimization_level = dxcompilation::HLSLCompilationOptimizationLevel::level3,
         bool strict_mode = true, bool force_all_resources_be_bound = false,
@@ -85,10 +56,6 @@ public:
     bool execute(uint8_t worker_id);
 
 
-    //! Returns cache key used for unique identification of HLSL compilation task withing the corresponding cache
-    CacheKey cacheKey() const;
-
-
     //! Returns blob containing compiled shader byte code
     D3DDataBlob getTaskData() const;
 
@@ -96,16 +63,16 @@ private:
     bool do_task(uint8_t worker_id, uint16_t frame_index) override;    //! performs actual compilation of the shader
     concurrency::TaskType get_task_type() const override;    //! returns type of this task (CPU)
 
+    task_caches::HLSLCompilationTaskCache::Key const m_key;
+    misc::DateTime const m_time_stamp;
     GlobalSettings const& m_global_settings;
     dxcompilation::DXCompilerProxy& m_dxc_proxy;
 
-
-    std::string m_source;
+    std::string m_hlsl_source;
     std::string m_source_name;
     dxcompilation::ShaderModel m_shader_model;
-    dxcompilation::ShaderType m_type;
+    dxcompilation::ShaderType m_shader_type;
     std::string m_shader_entry_point;
-    ShaderSourceCodePreprocessor::SourceType m_source_type;
     
     std::list<dxcompilation::HLSLMacroDefinition> m_preprocessor_macro_definitions;
     dxcompilation::HLSLCompilationOptimizationLevel m_optimization_level;
