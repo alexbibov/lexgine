@@ -74,7 +74,6 @@ std::string shaderModelAndTypeToTargetName(ShaderModel shader_model, ShaderType 
 HLSLCompilationTask::HLSLCompilationTask(core::Globals const& globals, std::string const& source, std::string const& source_name,
     ShaderModel shader_model, ShaderType shader_type, std::string const& shader_entry_point,
     ShaderSourceCodePreprocessor::SourceType source_type,
-    void* p_target_pso_descriptors, uint32_t num_descriptors,
     std::list<HLSLMacroDefinition> const& macro_definitions/* = std::list<HLSLMacroDefinition>{}*/,
     HLSLCompilationOptimizationLevel optimization_level/* = HLSLCompilationOptimizationLevel::level3*/,
     bool strict_mode/* = true*/, bool force_all_resources_be_bound/* = false*/,
@@ -88,8 +87,6 @@ HLSLCompilationTask::HLSLCompilationTask(core::Globals const& globals, std::stri
     m_type{ shader_type },
     m_shader_entry_point{ shader_entry_point },
     m_source_type{ source_type },
-    m_p_target_pso_descriptors{ p_target_pso_descriptors },
-    m_num_target_descriptors{ num_descriptors },
     m_preprocessor_macro_definitions{ macro_definitions },
     m_optimization_level{ optimization_level },
     m_is_strict_mode_enabled{ strict_mode },
@@ -154,11 +151,6 @@ std::string HLSLCompilationTask::getCompilationLog() const
 bool HLSLCompilationTask::execute(uint8_t worker_id)
 {
     return do_task(worker_id, 0);
-}
-
-std::pair<misc::HashedString, ShaderSourceCodePreprocessor::SourceType> HLSLCompilationTask::hash() const
-{
-    return std::make_pair(misc::HashedString{ m_source }, m_source_type);
 }
 
 std::string HLSLCompilationTask::ShaderCacheKey::toString() const
@@ -495,39 +487,35 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 
    
 
-    if (m_type == ShaderType::compute)
+    /*if (m_type == ShaderType::compute)
     {
-        ComputePSODescriptor* p_compute_pso_descriptors = static_cast<ComputePSODescriptor*>(m_p_target_pso_descriptors);
-
-        for (uint32_t i = 0; i < m_num_target_descriptors; ++i)
-            p_compute_pso_descriptors[i].compute_shader = shader_byte_code;
+        for (size_t i = 0; i < m_pso_targets.size(); ++i)
+            static_cast<ComputePSODescriptor*>(m_pso_targets[i])->compute_shader = shader_byte_code;
     }
     else
     {
-        GraphicsPSODescriptor* p_graphics_pso_descriptors = static_cast<GraphicsPSODescriptor*>(m_p_target_pso_descriptors);
-
-        for (uint32_t i = 0; i < m_num_target_descriptors; ++i)
+        for (size_t i = 0; i < m_pso_targets.size(); ++i)
         {
             switch (m_type)
             {
             case ShaderType::vertex:
-                p_graphics_pso_descriptors[i].vertex_shader = shader_byte_code;
+                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->vertex_shader = shader_byte_code;
                 break;
             case ShaderType::hull:
-                p_graphics_pso_descriptors[i].hull_shader = shader_byte_code;
+                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->hull_shader = shader_byte_code;
                 break;
             case ShaderType::domain:
-                p_graphics_pso_descriptors[i].domain_shader = shader_byte_code;
+                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->domain_shader = shader_byte_code;
                 break;
             case ShaderType::geometry:
-                p_graphics_pso_descriptors[i].geometry_shader = shader_byte_code;
+                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->geometry_shader = shader_byte_code;
                 break;
             case ShaderType::pixel:
-                p_graphics_pso_descriptors[i].pixel_shader = shader_byte_code;
+                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->pixel_shader = shader_byte_code;
                 break;
             }
         }
-    }
+    }*/
 
     return true;
 }
