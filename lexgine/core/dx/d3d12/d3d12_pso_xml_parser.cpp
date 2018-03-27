@@ -1377,13 +1377,3 @@ D3D12PSOXMLParser::~D3D12PSOXMLParser() = default;
 //{
 //    while (!isCompleted());
 //}
-
-size_t D3D12PSOXMLParser::getNumberOfParsedGraphicsPSOs() const
-{
-    return m_graphics_pso_descriptor_cache.size();
-}
-
-size_t D3D12PSOXMLParser::getNumberOfParsedComputePSOs() const
-{
-    return m_compute_pso_descriptor_cache.size();
-}

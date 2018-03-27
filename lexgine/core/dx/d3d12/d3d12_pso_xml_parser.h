@@ -46,13 +46,6 @@ public:
     // blocks calling thread until compilation of all shaders is completed
     // void waitUntilShadersAreCompiled() const;
 
-
-    //! returns total amount of parsed graphics PSO descriptors
-    size_t getNumberOfParsedGraphicsPSOs() const;
-
-    //! returns total amount of parsed computed PSO descriptors
-    size_t getNumberOfParsedComputePSOs() const;
-
 private:
     class impl;
 
@@ -61,8 +54,6 @@ private:
     std::string const m_source_xml;
     uint32_t m_node_mask;
     std::unique_ptr<impl> m_impl;
-    std::list<GraphicsPSODescriptorCacheEntry> m_graphics_pso_descriptor_cache;
-    std::list<ComputePSODescriptorCacheEntry> m_compute_pso_descriptor_cache;
 };
 
 }}}}
