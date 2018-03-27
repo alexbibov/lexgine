@@ -31,10 +31,6 @@ public:
         std::string cache_name;
     };
 
-    using const_graphics_pso_descriptor_iterator = std::list<GraphicsPSODescriptorCacheEntry>::const_iterator;
-    using const_compute_pso_descriptor_iterator = std::list<ComputePSODescriptorCacheEntry>::const_iterator;
-
-
     /*! Constructs the parser and immediately parses provided sources
      constructing related PSO description structures. 
      NOTE: parameter node_mask identifies, for which nodes to create PSO descriptors.
@@ -45,23 +41,10 @@ public:
     ~D3D12PSOXMLParser() override;
 
     //! returns 'true' if PSO parsing and related shader compilation has been completed. Returns 'false' otherwise
-    bool isCompleted() const;
+    // bool isCompleted() const;
 
     // blocks calling thread until compilation of all shaders is completed
-    void waitUntilShadersAreCompiled() const;
-
-    //! returns iterator pointing at the first parsed graphics PSO description
-    const_graphics_pso_descriptor_iterator getFirstGraphicsPSOIterator() const;
-
-    //! returns iterator pointing at the last parsed graphics PSO description
-    const_graphics_pso_descriptor_iterator getLastGraphicsPSOIterator() const;
-
-
-    //! returns iterator pointing at the first parsed compute PSO description
-    const_compute_pso_descriptor_iterator getFirstComputePSOIterator() const;
-
-    //! returns iterator pointing at the last parsed computed PSO description
-    const_compute_pso_descriptor_iterator getLastComputePSOIterator() const;
+    // void waitUntilShadersAreCompiled() const;
 
 
     //! returns total amount of parsed graphics PSO descriptors

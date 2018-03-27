@@ -734,9 +734,9 @@ class lexgine::core::dx::d3d12::D3D12PSOXMLParser::impl
 {
 public:
     impl(D3D12PSOXMLParser& parent) :
-        m_parent{ parent },
-        m_deferred_compilation_exit_task_executed{ false },
-        m_deferred_shader_compilation_exit_task{ *this }
+        m_parent{ parent }
+        /*m_deferred_compilation_exit_task_executed{ false },
+        m_deferred_shader_compilation_exit_task{ *this }*/
     {
 
     }
@@ -760,7 +760,7 @@ public:
 
         m_parent.m_hlsl_compilation_task_cache.addTask(m_parent.m_globals, shader_source_location, compute_pso_descritptor_cache_entry.cache_name + "_"
             + shader_source_location + "_CS" , ShaderModel::model_50, ShaderType::compute, shader_entry_point_name,
-            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &compute_pso_descritptor_cache_entry.descriptor, 1);
+            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file/*, &compute_pso_descritptor_cache_entry.descriptor, 1*/);
 
         return true;
     }
@@ -815,7 +815,7 @@ public:
 
         m_parent.m_hlsl_compilation_task_cache.addTask(m_parent.m_globals, shader_source_location, graphics_pso_descriptor_cache_entry.cache_name + "_"
             + shader_source_location + "_" + compilation_task_suffix, sm, shader_type, shader_entry_point_name,
-            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file, &graphics_pso_descriptor_cache_entry.descriptor, 1);
+            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file/*, &graphics_pso_descriptor_cache_entry.descriptor, 1*/);
 
         return true;
     }
@@ -1183,67 +1183,67 @@ public:
 
 private:
     D3D12PSOXMLParser& m_parent;
-    bool m_deferred_compilation_exit_task_executed;
+    // bool m_deferred_compilation_exit_task_executed;
 
-private:
-
-    class DeferredShaderCompilationExitTask : public concurrency::SchedulableTask
-    {
-    public:
-
-        DeferredShaderCompilationExitTask(impl& parent) : 
-            SchedulableTask{ "deferred_shader_compilation_task_graph_exit_op" },
-            m_p_sink{ nullptr },
-            m_parent{ parent }
-        {
-
-        }
-
-        void setInput(concurrency::TaskSink* p_sink)
-        {
-            m_p_sink = p_sink;
-        }
-
-        bool execute_manually()
-        {
-            return do_task(0, 0);
-        }
-
-
-    private:
-
-        concurrency::TaskSink* m_p_sink;
-        impl& m_parent;
-
-
-    private:
-
-        bool do_task(uint8_t /* worker_id */, uint16_t /* frame_index */) override
-        {
-            if(m_p_sink) m_p_sink->dispatchExitSignal();
-            m_parent.m_deferred_compilation_exit_task_executed = true;
-            return true;
-        }
-
-        concurrency::TaskType get_task_type() const override
-        {
-            return concurrency::TaskType::cpu;
-        }
-
-    }m_deferred_shader_compilation_exit_task;
-
-
-public:
-
-    DeferredShaderCompilationExitTask* deferredShaderCompilationExitTask()
-    {
-        return &m_deferred_shader_compilation_exit_task;
-    }
-
-    bool isDeferredShaderCompilationExitTaskExecuted() const
-    {
-        return m_deferred_compilation_exit_task_executed;
-    }
+//private:
+//
+//    class DeferredShaderCompilationExitTask : public concurrency::SchedulableTask
+//    {
+//    public:
+//
+//        DeferredShaderCompilationExitTask(impl& parent) : 
+//            SchedulableTask{ "deferred_shader_compilation_task_graph_exit_op" },
+//            m_p_sink{ nullptr },
+//            m_parent{ parent }
+//        {
+//
+//        }
+//
+//        void setInput(concurrency::TaskSink* p_sink)
+//        {
+//            m_p_sink = p_sink;
+//        }
+//
+//        bool execute_manually()
+//        {
+//            return do_task(0, 0);
+//        }
+//
+//
+//    private:
+//
+//        concurrency::TaskSink* m_p_sink;
+//        impl& m_parent;
+//
+//
+//    private:
+//
+//        bool do_task(uint8_t /* worker_id */, uint16_t /* frame_index */) override
+//        {
+//            if(m_p_sink) m_p_sink->dispatchExitSignal();
+//            m_parent.m_deferred_compilation_exit_task_executed = true;
+//            return true;
+//        }
+//
+//        concurrency::TaskType get_task_type() const override
+//        {
+//            return concurrency::TaskType::cpu;
+//        }
+//
+//    }m_deferred_shader_compilation_exit_task;
+//
+//
+//public:
+//
+//    DeferredShaderCompilationExitTask* deferredShaderCompilationExitTask()
+//    {
+//        return &m_deferred_shader_compilation_exit_task;
+//    }
+//
+//    bool isDeferredShaderCompilationExitTaskExecuted() const
+//    {
+//        return m_deferred_compilation_exit_task_executed;
+//    }
 
 };
 
@@ -1308,7 +1308,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals con
 
 
 
-    core::GlobalSettings const& global_settings = *m_globals.get<core::GlobalSettings>();
+    /*core::GlobalSettings const& global_settings = *m_globals.get<core::GlobalSettings>();
     if (global_settings.isDeferredShaderCompilationOn())
     {
         std::list<concurrency::TaskGraphNode*> compilation_tasks{ m_hlsl_compilation_task_cache.size() };
@@ -1362,40 +1362,20 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals con
         }
 
         m_impl->deferredShaderCompilationExitTask()->execute_manually();
-    }
+    }*/
 }
 
 D3D12PSOXMLParser::~D3D12PSOXMLParser() = default;
 
-bool D3D12PSOXMLParser::isCompleted() const
-{
-    return m_impl->isDeferredShaderCompilationExitTaskExecuted();
-}
-
-void D3D12PSOXMLParser::waitUntilShadersAreCompiled() const
-{
-    while (!isCompleted());
-}
-
-D3D12PSOXMLParser::const_graphics_pso_descriptor_iterator D3D12PSOXMLParser::getFirstGraphicsPSOIterator() const
-{
-    return m_graphics_pso_descriptor_cache.begin();
-}
-
-D3D12PSOXMLParser::const_graphics_pso_descriptor_iterator D3D12PSOXMLParser::getLastGraphicsPSOIterator() const
-{
-    return m_graphics_pso_descriptor_cache.end();
-}
-
-D3D12PSOXMLParser::const_compute_pso_descriptor_iterator D3D12PSOXMLParser::getFirstComputePSOIterator() const
-{
-    return m_compute_pso_descriptor_cache.begin();
-}
-
-D3D12PSOXMLParser::const_compute_pso_descriptor_iterator D3D12PSOXMLParser::getLastComputePSOIterator() const
-{
-    return m_compute_pso_descriptor_cache.end();
-}
+//bool D3D12PSOXMLParser::isCompleted() const
+//{
+//    return m_impl->isDeferredShaderCompilationExitTaskExecuted();
+//}
+//
+//void D3D12PSOXMLParser::waitUntilShadersAreCompiled() const
+//{
+//    while (!isCompleted());
+//}
 
 size_t D3D12PSOXMLParser::getNumberOfParsedGraphicsPSOs() const
 {

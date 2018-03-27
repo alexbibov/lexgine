@@ -34,7 +34,6 @@ public:
     HLSLCompilationTask(core::Globals const& globals, std::string const& source, std::string const& source_name,
         dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
         ShaderSourceCodePreprocessor::SourceType source_type,
-        void* p_target_pso_descriptors, uint32_t num_descriptors,
         std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions = std::list<dxcompilation::HLSLMacroDefinition>{},
         dxcompilation::HLSLCompilationOptimizationLevel optimization_level = dxcompilation::HLSLCompilationOptimizationLevel::level3,
         bool strict_mode = true, bool force_all_resources_be_bound = false,
@@ -54,11 +53,6 @@ public:
 
     //! Executes the task manually. THROWS if compilation fails.
     bool execute(uint8_t worker_id);
-
-    /*! Returns pair containing hashed string of HLSL source and enumeration value that determines
-     whether returned source is path to the source code or the code itself
-    */
-    std::pair<misc::HashedString, ShaderSourceCodePreprocessor::SourceType> hash() const;
 
 
 private:
@@ -103,8 +97,6 @@ private:
     dxcompilation::ShaderType m_type;
     std::string m_shader_entry_point;
     ShaderSourceCodePreprocessor::SourceType m_source_type;
-    void* m_p_target_pso_descriptors;
-    uint32_t m_num_target_descriptors;
     
     std::list<dxcompilation::HLSLMacroDefinition> m_preprocessor_macro_definitions;
     dxcompilation::HLSLCompilationOptimizationLevel m_optimization_level;
