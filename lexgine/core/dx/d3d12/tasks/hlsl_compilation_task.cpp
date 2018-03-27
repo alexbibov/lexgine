@@ -153,12 +153,12 @@ bool HLSLCompilationTask::execute(uint8_t worker_id)
     return do_task(worker_id, 0);
 }
 
-std::string HLSLCompilationTask::ShaderCacheKey::toString() const
+std::string HLSLCompilationTask::CacheKey::toString() const
 {
     return std::string{ std::string{"path:{"} +source_path + "}__hash:{" + std::to_string(hash_value) + "}" };
 }
 
-void HLSLCompilationTask::ShaderCacheKey::serialize(void* p_serialization_blob) const
+void HLSLCompilationTask::CacheKey::serialize(void* p_serialization_blob) const
 {
     uint8_t* ptr{ static_cast<uint8_t*>(p_serialization_blob) };
     
@@ -167,7 +167,7 @@ void HLSLCompilationTask::ShaderCacheKey::serialize(void* p_serialization_blob) 
     memcpy(ptr, &hash_value, sizeof(hash_value));
 }
 
-void HLSLCompilationTask::ShaderCacheKey::deserialize(void const* p_serialization_blob)
+void HLSLCompilationTask::CacheKey::deserialize(void const* p_serialization_blob)
 {
     uint8_t const* ptr{static_cast<uint8_t const*>(p_serialization_blob) };
 
@@ -176,17 +176,17 @@ void HLSLCompilationTask::ShaderCacheKey::deserialize(void const* p_serializatio
     memcpy(&hash_value, ptr, sizeof(hash_value));
 }
 
-HLSLCompilationTask::ShaderCacheKey::ShaderCacheKey(std::string const& hlsl_source_path, 
+HLSLCompilationTask::CacheKey::CacheKey(std::string const& hlsl_source_path, 
     uint16_t shader_model,
     uint64_t hash_value) :
     shader_model{ shader_model },
     hash_value{ hash_value }
 {
-    memset(source_path, 0, sizeof(source_path));
-    memcpy(source_path, hlsl_source_path.c_str(), hlsl_source_path.length());
+    memset(source_path, 0, max_string_section_length_in_bytes);
+    memcpy(source_path, hlsl_source_path.c_str(), max_string_section_length_in_bytes);
 }
 
-bool HLSLCompilationTask::ShaderCacheKey::operator<(ShaderCacheKey const& other) const
+bool HLSLCompilationTask::CacheKey::operator<(CacheKey const& other) const
 {
     int r = std::strcmp(source_path, other.source_path);
     SWO_STEP(r, < , 0);
@@ -194,18 +194,28 @@ bool HLSLCompilationTask::ShaderCacheKey::operator<(ShaderCacheKey const& other)
     SWO_END(hash_value, < , other.hash_value);
 }
 
-bool HLSLCompilationTask::ShaderCacheKey::operator==(ShaderCacheKey const& other) const
+bool HLSLCompilationTask::CacheKey::operator==(CacheKey const& other) const
 {
     return strcmp(source_path, other.source_path) == 0
         && shader_model == other.shader_model
         && hash_value == other.hash_value;
 }
 
+HLSLCompilationTask::CacheKey HLSLCompilationTask::cacheKey() const
+{
+    return CacheKey();
+}
+
+D3DDataBlob HLSLCompilationTask::getTaskData() const
+{
+    return m_shader_byte_code;
+}
+
 bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 {
     // Initialize shader caches
 
-    using shader_cache_type = StreamedCache<ShaderCacheKey, 256>;
+    using shader_cache_type = StreamedCache<CacheKey, 256>;
     std::list<std::fstream> shader_cache_streams{};
     std::list<shader_cache_type> shader_caches{};
 
@@ -283,20 +293,20 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 
 
     // find the full correct path to the shader
-    std::string full_shader_path{ m_source };
+    std::string full_shader_path_or_source_code{ m_source };
     for(auto path_prefix : m_global_settings.getShaderLookupDirectories())
     {
         if (misc::doesFileExist(path_prefix + m_source))
         {
-            full_shader_path = path_prefix + m_source;
+            full_shader_path_or_source_code = path_prefix + m_source;
             break;
         }
     }
-    ShaderSourceCodePreprocessor shader_preprocessor{ full_shader_path, m_source_type };
+    ShaderSourceCodePreprocessor shader_preprocessor{ full_shader_path_or_source_code, m_source_type };
     std::string processed_shader_source{ shader_preprocessor.getPreprocessedSource() };
     std::string target = shaderModelAndTypeToTargetName(m_shader_model, m_type);
 
-    ShaderCacheKey shader_cache_key{};
+    CacheKey shader_cache_key{};
     {
         // Generate key for caching
 
@@ -307,10 +317,10 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         std::string shader_defines{};
         for (auto const& def : m_preprocessor_macro_definitions)
             shader_defines += std::string{ "DEFINE { name = " } +def.name + ", value = " + def.value + " }\n";
-        uint64_t shader_hash_value = misc::HashedString{ shader_defines.c_str() }.hash();
+        uint64_t shader_hash_value = misc::HashedString{ full_shader_path_or_source_code + "__" + shader_defines.c_str() }.hash();
 
 
-        shader_cache_key = ShaderCacheKey{ full_shader_path, static_cast<uint16_t>(m_shader_model), shader_hash_value };
+        shader_cache_key = CacheKey{ full_shader_path_or_source_code, static_cast<uint16_t>(m_shader_model), shader_hash_value };
     }
     
     bool should_recompile{ false };
@@ -325,7 +335,9 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
     if (p_shader_cache_containing_requested_shader != shader_caches.end())
     {
         misc::DateTime cached_time_stamp = p_shader_cache_containing_requested_shader->getEntryTimestamp(shader_cache_key);
-        misc::Optional<misc::DateTime> current_time_stamp = misc::getFileLastUpdatedTimeStamp(full_shader_path);
+        misc::Optional<misc::DateTime> current_time_stamp = m_source_type == ShaderSourceCodePreprocessor::SourceType::file ?
+            misc::getFileLastUpdatedTimeStamp(full_shader_path_or_source_code)
+            : misc::DateTime::now();    // NOTE: HLSL sources supplied directly (i.e. not via source files) are always recompiled
         should_recompile = !current_time_stamp.isValid()
             || cached_time_stamp < static_cast<misc::DateTime>(current_time_stamp);
     }
@@ -334,8 +346,6 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         should_recompile = true;
     }
 
-
-    D3DDataBlob shader_byte_code{};
 
     if(!should_recompile)
     {
@@ -361,7 +371,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
             else
             {
                 memcpy(d3d_blob->GetBufferPointer(), blob.data(), blob.size());
-                shader_byte_code = D3DDataBlob{ d3d_blob };
+                m_shader_byte_code = D3DDataBlob{ d3d_blob };
             }
         }
     }
@@ -434,14 +444,14 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
             if (p_compilation_errors_blob)
             {
                 m_compilation_log = std::string{ static_cast<char const*>(p_compilation_errors_blob->GetBufferPointer()) };
-                std::string output_log = "Unable to compile shader source located in \"" + full_shader_path + "\". "
+                std::string output_log = "Unable to compile shader source located in \"" + full_shader_path_or_source_code + "\". "
                     "Detailed compiler log follows: <em>" + m_compilation_log + "</em>";
                 LEXGINE_LOG_ERROR(this, output_log);
                 m_was_compilation_successful = false;
             }
             else
             {
-                shader_byte_code = D3DDataBlob{ p_shader_bytecode_blob };
+                m_shader_byte_code = D3DDataBlob{ p_shader_bytecode_blob };
                 m_was_compilation_successful = true;
             }
 
@@ -464,7 +474,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
                 auto compilation_result = m_dxc_proxy.result(worker_id);
                 if (compilation_result.isValid())
                 {
-                    shader_byte_code = static_cast<D3DDataBlob>(compilation_result);
+                    m_shader_byte_code = static_cast<D3DDataBlob>(compilation_result);
                     m_was_compilation_successful = true;
                 }
                 else
@@ -480,7 +490,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         if (m_was_compilation_successful)
         {
             // if compilation was successful serialize compiled shader into the cache
-            shader_caches.front().addEntry(shader_cache_type::entry_type{ shader_cache_key, shader_byte_code });
+            shader_caches.front().addEntry(shader_cache_type::entry_type{ shader_cache_key, m_shader_byte_code });
         }
 
     }
@@ -490,7 +500,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
     /*if (m_type == ShaderType::compute)
     {
         for (size_t i = 0; i < m_pso_targets.size(); ++i)
-            static_cast<ComputePSODescriptor*>(m_pso_targets[i])->compute_shader = shader_byte_code;
+            static_cast<ComputePSODescriptor*>(m_pso_targets[i])->compute_shader = m_shader_byte_code;
     }
     else
     {
@@ -499,19 +509,19 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
             switch (m_type)
             {
             case ShaderType::vertex:
-                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->vertex_shader = shader_byte_code;
+                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->vertex_shader = m_shader_byte_code;
                 break;
             case ShaderType::hull:
-                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->hull_shader = shader_byte_code;
+                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->hull_shader = m_shader_byte_code;
                 break;
             case ShaderType::domain:
-                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->domain_shader = shader_byte_code;
+                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->domain_shader = m_shader_byte_code;
                 break;
             case ShaderType::geometry:
-                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->geometry_shader = shader_byte_code;
+                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->geometry_shader = m_shader_byte_code;
                 break;
             case ShaderType::pixel:
-                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->pixel_shader = shader_byte_code;
+                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->pixel_shader = m_shader_byte_code;
                 break;
             }
         }

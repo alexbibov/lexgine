@@ -21,6 +21,36 @@ namespace lexgine {namespace core {namespace dx {namespace d3d12 {namespace task
 class HLSLCompilationTask : public concurrency::SchedulableTask
 {
 public:
+    struct CacheKey final
+    {
+        static constexpr size_t max_string_section_length_in_bytes = 512U;
+
+        char source_path[max_string_section_length_in_bytes];
+        uint16_t shader_model;
+        uint64_t hash_value;
+
+
+        static size_t const serialized_size =
+            max_string_section_length_in_bytes
+            + sizeof(uint16_t)
+            + sizeof(uint64_t);
+
+
+        std::string toString() const;
+
+        void serialize(void* p_serialization_blob) const;
+        void deserialize(void const* p_serialization_blob);
+
+        CacheKey(std::string const& hlsl_source_path,
+            uint16_t shader_model,
+            uint64_t hash_value);
+        CacheKey() = default;
+
+        bool operator<(CacheKey const& other) const;
+        bool operator==(CacheKey const& other) const;
+    };
+
+public:
     
 
     /*! Establishes a new shader compilation task. The type of source is determined from parameters source and source_type.
@@ -55,33 +85,12 @@ public:
     bool execute(uint8_t worker_id);
 
 
-private:
-    struct ShaderCacheKey final
-    {
-        char source_path[2048U];
-        uint16_t shader_model;
-        uint64_t hash_value;
-        
-
-        static size_t const serialized_size = 
-            2048U 
-            + sizeof(uint16_t)
-            + sizeof(uint64_t);
+    //! Returns cache key used for unique identification of HLSL compilation task withing the corresponding cache
+    CacheKey cacheKey() const;
 
 
-        std::string toString() const;
-
-        void serialize(void* p_serialization_blob) const;
-        void deserialize(void const* p_serialization_blob);
-
-        ShaderCacheKey(std::string const& hlsl_source_path, 
-            uint16_t shader_model,
-            uint64_t hash_value);
-        ShaderCacheKey() = default;
-
-        bool operator<(ShaderCacheKey const& other) const;
-        bool operator==(ShaderCacheKey const& other) const;
-    };
+    //! Returns blob containing compiled shader byte code
+    D3DDataBlob getTaskData() const;
 
 private:
     bool do_task(uint8_t worker_id, uint16_t frame_index) override;    //! performs actual compilation of the shader
@@ -110,6 +119,8 @@ private:
 
     bool m_was_compilation_successful;
     std::string m_compilation_log;
+
+    D3DDataBlob m_shader_byte_code;
 };
 
 }}}}}
