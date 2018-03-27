@@ -53,6 +53,11 @@ void MainGlobalsBuilder::registerDxResourceFactory(dx::d3d12::DxResourceFactory&
     m_dx_resource_factory = &dx_resource_factory;
 }
 
+void MainGlobalsBuilder::registerHLSLCompilationTaskCache(dx::d3d12::task_caches::HLSLCompilationTaskCache& shader_cache)
+{
+    m_shader_cache = &shader_cache;
+}
+
 Globals MainGlobalsBuilder::build()
 {
     Globals rv;

@@ -1,4 +1,5 @@
 #include "hashed_string.h"
+#include "strict_weak_ordering.h"
 
 using namespace lexgine::core::misc;
 
@@ -27,10 +28,8 @@ HashedString::HashedString(std::string const& str):
 
 bool HashedString::operator<(HashedString const& other) const
 {
-    if (m_hash == other.m_hash)
-        return m_string < other.m_string;
-
-    return m_hash < other.m_hash;
+    SWO_STEP(m_hash, < , other.m_hash);
+    SWO_END(m_string, < , other.m_string);
 }
 
 bool HashedString::operator==(HashedString const& other) const

@@ -18,7 +18,7 @@ public:
 
     HLSLCompilationTaskCache();
 
-    void addTask(core::Globals const& globals, std::string const& source, std::string const& source_name,
+    void addTask(core::Globals& globals, std::string const& source, std::string const& source_name,
         dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
         ShaderSourceCodePreprocessor::SourceType source_type,
         std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions = std::list<dxcompilation::HLSLMacroDefinition>{},
@@ -36,16 +36,8 @@ public:
     size_t size() const;
 
 private:
-    using CacheKey = misc::HashedString;
-
-    class CacheKeyComparator
-    {
-    public:
-        bool operator()(CacheKey const& a, CacheKey const& b) const;
-    };
-
     std::list<tasks::HLSLCompilationTask> m_tasks;
-    std::set<CacheKey, CacheKeyComparator> m_tasks_cache_keys;
+    std::set<misc::HashedString> m_tasks_cache_keys;
 };
 
 

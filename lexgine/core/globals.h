@@ -5,12 +5,14 @@
 #include <memory>
 #include <vector>
 #include <ostream>
+#include <type_traits>
 
 #include "misc/hashed_string.h"
 #include "entity.h"
 #include "class_names.h"
 #include "lexgine_core_fwd.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
+#include "lexgine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h"
 
 namespace lexgine { namespace core {
 
@@ -36,7 +38,10 @@ private:
 
 public:
 
-    template<typename T>
+    template<typename T,
+    typename = typename std::enable_if<
+        std::is_trivially_constructible<T>::value 
+        || std::is_default_constructible<T>::value>::type>
     T* get()
     {
         misc::HashedString hashed_type_name{ typeid(T).name() };
@@ -48,6 +53,16 @@ public:
         rv = new T{};
         put(hashed_type_name, rv);
         return static_cast<T*>(rv);
+    }
+
+    template<typename T,
+        typename = typename std::enable_if<
+        !std::is_trivially_constructible<T>::value
+        && !std::is_default_constructible<T>::value>::type,
+        typename = void>
+    T* get()
+    {
+        return static_cast<T*>(find(misc::HashedString{ typeid(T).name() }));
     }
 
     template<typename T>
@@ -80,17 +95,20 @@ public:
 class MainGlobalsBuilder
 {
 private:
-    GlobalSettings* m_global_settings;
+    GlobalSettings * m_global_settings;
     std::ostream* m_main_log;
     std::vector<std::ostream*>* m_worker_logs;
     dx::d3d12::DxResourceFactory* m_dx_resource_factory;
+    dx::d3d12::task_caches::HLSLCompilationTaskCache* m_shader_cache;
 
 public:
     void defineGlobalSettings(GlobalSettings& global_settings);
     void registerWorkerThreadLogs(std::vector<std::ostream*>& worker_threads_logging_output_streams);
     void registerMainLog(std::ostream& logging_output_stream);
     void registerDxResourceFactory(dx::d3d12::DxResourceFactory& dx_resource_factory);
+    void registerHLSLCompilationTaskCache(dx::d3d12::task_caches::HLSLCompilationTaskCache& shader_cache);
 
+    
     Globals build();
 };
 

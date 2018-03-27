@@ -71,7 +71,7 @@ std::string shaderModelAndTypeToTargetName(ShaderModel shader_model, ShaderType 
 }
 
 
-HLSLCompilationTask::HLSLCompilationTask(core::Globals const& globals, std::string const& source, std::string const& source_name,
+HLSLCompilationTask::HLSLCompilationTask(core::Globals& globals, std::string const& source, std::string const& source_name,
     ShaderModel shader_model, ShaderType shader_type, std::string const& shader_entry_point,
     ShaderSourceCodePreprocessor::SourceType source_type,
     std::list<HLSLMacroDefinition> const& macro_definitions/* = std::list<HLSLMacroDefinition>{}*/,

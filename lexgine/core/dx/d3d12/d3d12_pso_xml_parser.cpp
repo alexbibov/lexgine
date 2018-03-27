@@ -1248,8 +1248,9 @@ private:
 };
 
 
-lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals const& globals, std::string const& xml_source, bool deferred_shader_compilation, uint32_t node_mask) :
+lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& globals, std::string const& xml_source, bool deferred_shader_compilation, uint32_t node_mask) :
     m_globals{ globals },
+    m_hlsl_compilation_task_cache{ *globals.get<task_caches::HLSLCompilationTaskCache>() },
     m_source_xml{ xml_source },
     m_impl{ new impl{*this} }
 {
