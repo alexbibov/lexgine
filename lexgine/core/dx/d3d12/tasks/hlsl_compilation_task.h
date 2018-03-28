@@ -87,6 +87,7 @@ private:
     bool m_was_compilation_successful;
     std::string m_compilation_log;
 
+    bool m_should_recompile;
     D3DDataBlob m_shader_byte_code;
 };
 
