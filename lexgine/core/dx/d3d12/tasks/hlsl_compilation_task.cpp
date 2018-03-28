@@ -97,7 +97,8 @@ HLSLCompilationTask::HLSLCompilationTask(task_caches::HLSLCompilationTaskCache::
     m_should_enable_debug_information{ enable_debug_information },
     m_should_enable_16bit_types{ enable_16bit_types },
     m_was_compilation_successful{ false },
-    m_compilation_log{ "" }
+    m_compilation_log{ "" },
+    m_should_recompile{ true }
 {
     Entity::setStringName(source_name);
 
@@ -140,7 +141,7 @@ HLSLCompilationTask::HLSLCompilationTask(task_caches::HLSLCompilationTaskCache::
 
 bool HLSLCompilationTask::wasSuccessful() const
 {
-    return m_was_compilation_successful;
+    return m_was_compilation_successful || !m_should_recompile;
 }
 
 std::string HLSLCompilationTask::getCompilationLog() const
@@ -236,10 +237,6 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
             }
         }
     }
-    
-    
-    
-    bool should_recompile{ false };
 
     auto p_shader_cache_containing_requested_shader = 
         std::find_if(shader_caches.begin(), shader_caches.end(),
@@ -252,15 +249,11 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
     {
         misc::DateTime cached_time_stamp = p_shader_cache_containing_requested_shader->getEntryTimestamp(m_key);
         
-        should_recompile = cached_time_stamp < m_time_stamp;
-    }
-    else
-    {
-        should_recompile = true;
+        m_should_recompile = cached_time_stamp < m_time_stamp;
     }
 
 
-    if(!should_recompile)
+    if(!m_should_recompile)
     {
         // Attempt to use cached version of the shader
 
@@ -269,7 +262,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         {
             LEXGINE_LOG_ERROR(this, "Unable to retrieve precompiled shader byte code for source \""
                 + m_source_name + "\"");
-            should_recompile = true;
+            m_should_recompile = true;
         }
         else
         {
@@ -279,7 +272,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
             {
                 LEXGINE_LOG_ERROR(this, "Unable to create D3D blob to store precompiled shader code for source \""
                     + m_source_name + "\"");
-                should_recompile = true;
+                m_should_recompile = true;
             }
             else
             {
@@ -288,7 +281,9 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
             }
         }
     }
-    else
+
+    
+    if(m_should_recompile)
     {
         // Need to recompile the shader
         std::string target = shaderModelAndTypeToTargetName(m_shader_model, m_shader_type);

@@ -723,7 +723,12 @@ namespace {
         LoopBodyCommonPart::name = name;
         LoopBodyCommonPart::name_index = name_index;
         LoopBodyCommonPart::instancing_data_rate = instancing_data_rate;
-        lexgine::core::misc::TemplateArgumentIterator<LoopBody, LoopBodyCommonPart::arg_pack0, LoopBodyCommonPart::value_arg_pack0, LoopBodyCommonPart::value_arg_pack1, LoopBodyCommonPart::value_arg_pack2>::loop();
+        lexgine::core::misc::TemplateArgumentIterator<
+            LoopBody, 
+            LoopBodyCommonPart::arg_pack0, 
+            LoopBodyCommonPart::value_arg_pack0, 
+            LoopBodyCommonPart::value_arg_pack1, 
+            LoopBodyCommonPart::value_arg_pack2>::loop();
 
         return LoopBodyCommonPart::getVASpecification();
     }
@@ -757,9 +762,10 @@ public:
 
         pugi::char_t const* shader_source_location = shader_node.child_value();
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
+        ShaderModel sm = extractAttribute<attribute_type::shader_model>(shader_node.attribute("model"), ShaderModel::model_50);
 
         m_parent.m_hlsl_compilation_task_cache.addTask(m_parent.m_globals, shader_source_location, compute_pso_descritptor_cache_entry.cache_name + "_"
-            + shader_source_location + "_CS" , ShaderModel::model_50, ShaderType::compute, shader_entry_point_name,
+            + shader_source_location + "_CS" , sm, ShaderType::compute, shader_entry_point_name,
             lexgine::core::ShaderSourceCodePreprocessor::SourceType::file/*, &compute_pso_descritptor_cache_entry.descriptor, 1*/);
 
         return true;

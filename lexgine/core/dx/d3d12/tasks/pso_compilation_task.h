@@ -38,8 +38,11 @@ public:
     };
 
 public:
-    PSOCompilationTask(GraphicsPSODescriptor const& graphics_pso_desc, std::string const& pso_cache_name, uint64_t uid);
-    PSOCompilationTask(ComputePSODescriptor const& compute_pso_desc, std::string const& pso_cache_name, uint64_t uid);
+    PSOCompilationTask(GraphicsPSODescriptor const& graphics_pso_desc, 
+        std::string const& pso_cache_name, uint64_t uid);
+
+    PSOCompilationTask(ComputePSODescriptor const& compute_pso_desc, 
+        std::string const& pso_cache_name, uint64_t uid);
 
     D3DDataBlob getTaskData() const;
 
