@@ -20,8 +20,6 @@ class HLSLCompilationTaskCache : public NamedEntity<class_names::HLSLCompilation
 public:
 
     using cache_storage = std::list<tasks::HLSLCompilationTask>;
-    using iterator = cache_storage::iterator;
-    using const_iterator = cache_storage::const_iterator;
 
     struct Key final
     {
@@ -52,7 +50,7 @@ public:
         bool operator==(Key const& other) const;
     };
 
-    using cache_mapping = std::map<Key, iterator>;
+    using cache_mapping = std::map<Key, cache_storage::iterator>;
 
 public:
 
@@ -67,13 +65,13 @@ public:
         bool force_ieee_standard = true, bool treat_warnings_as_errors = true, bool enable_validation = true,
         bool enable_debug_information = false, bool enable_16bit_types = false);
 
-    iterator begin();
-    iterator end();
+    
+    //! Returns reference to internal cache storage containing HLSL compilation tasks
+    cache_storage& storage();
 
-    const_iterator begin() const;
-    const_iterator end() const;
+    //! Returns constant reference to internal cache storage containing HLSL compilation tasks
+    cache_storage const& storage() const;
 
-    size_t size() const;
 
     /*! attempts to locate HLSL compilation task with provided key within the cache.
      If the search was not successful returns nullptr

@@ -17,7 +17,7 @@ using namespace Microsoft::WRL;
 
 namespace lexgine {namespace core {namespace dx {namespace d3d12 {
 
-enum class PSOType
+enum class PSOType : unsigned char
 {
     graphics,
     compute
