@@ -41,10 +41,11 @@ public:
         bool force_ieee_standard = true, bool treat_warnings_as_errors = true, bool enable_validation = true,
         bool enable_debug_information = false, bool enable_16bit_types = false);
 
-    /*! Returns 'true' if the compilation was successful, returns 'false' if compilation has not been done yet or if it has failed (and the
-     associated exception has been "eaten"). During execution of the task the return value is undefined.
-    */
+    //! Returns 'true' if the task has completed successfully
     bool wasSuccessful() const;
+
+    //! Returns 'true' if shader DXIL code was loaded from cache and not actually compiled
+    bool isPrecached() const;
 
     /*! Returns compilation log string. If the compilation was successful or the task has not yet been executed returns empty string.
      During execution of the task the return value is undefined.
@@ -52,7 +53,7 @@ public:
     std::string getCompilationLog() const;
 
 
-    //! Executes the task manually. THROWS if compilation fails.
+    //! Executes the task manually and returns 'true' on success
     bool execute(uint8_t worker_id);
 
 

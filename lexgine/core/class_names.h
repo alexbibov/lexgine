@@ -31,6 +31,7 @@ extern char const ShaderSourceCodePreprocessor[];
 extern char const Globals[];
 extern char const StreamedCache[];
 extern char const HLSLCompilationTaskCache[];
+extern char const PSOCompilationTaskCache[];
 extern char const Dummy[];
 }}}
 

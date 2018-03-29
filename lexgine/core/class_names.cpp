@@ -31,6 +31,7 @@ extern char const ShaderSourceCodePreprocessor[] = "lexgine::core::ShaderSourceC
 extern char const Globals[] = "lexgine::core::Globals";
 extern char const StreamedCache[] = "lexgine::core::StreamedCache<Key>";
 extern char const HLSLCompilationTaskCache[] = "lexgine::core::dx::d3d12::task_caches::HLSLCompilationTaskCache";
+extern char const PSOCompilationTaskCache[] = "lexgine::core::dx::d3d12::task_caches::PSOCompilationTaskCache";
 extern char const Dummy[] = "lexgine::core::Dummy";
 
 }}}

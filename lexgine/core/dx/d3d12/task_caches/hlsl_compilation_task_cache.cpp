@@ -22,7 +22,7 @@ using namespace lexgine::core::dx::d3d12::tasks;
 
 std::string HLSLCompilationTaskCache::Key::toString() const
 {
-    return std::string{ std::string{ "path:{" } +source_path + "}__hash:{" + std::to_string(hash_value) + "}" };
+    return std::string{ std::string{ "source:{" } +source_path + "}__hash:{" + std::to_string(hash_value) + "}" };
 }
 
 void HLSLCompilationTaskCache::Key::serialize(void* p_serialization_blob) const
@@ -151,30 +151,17 @@ void HLSLCompilationTaskCache::addTask(core::Globals& globals, std::string const
     }
 }
 
-HLSLCompilationTaskCache::iterator HLSLCompilationTaskCache::begin()
+HLSLCompilationTaskCache::cache_storage& task_caches::HLSLCompilationTaskCache::storage()
 {
-    return m_tasks.begin();
+    return m_tasks;
 }
 
-HLSLCompilationTaskCache::iterator HLSLCompilationTaskCache::end()
+HLSLCompilationTaskCache::cache_storage const& task_caches::HLSLCompilationTaskCache::storage() const
 {
-    return m_tasks.end();
+    return m_tasks;
 }
 
-HLSLCompilationTaskCache::const_iterator HLSLCompilationTaskCache::begin() const
-{
-    return m_tasks.begin();
-}
 
-HLSLCompilationTaskCache::const_iterator HLSLCompilationTaskCache::end() const
-{
-    return m_tasks.end();
-}
-
-size_t HLSLCompilationTaskCache::size() const
-{
-    return m_tasks.size();
-}
 
 tasks::HLSLCompilationTask* task_caches::HLSLCompilationTaskCache::find(Key const& key)
 {

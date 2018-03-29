@@ -4,6 +4,7 @@
 namespace lexgine { namespace core { namespace dx { namespace d3d12 { namespace task_caches {
 
 class HLSLCompilationTaskCache;
+class PSOCompilationTaskCache;
 
 
 }}}}}

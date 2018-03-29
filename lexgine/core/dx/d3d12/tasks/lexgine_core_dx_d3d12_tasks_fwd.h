@@ -5,6 +5,8 @@ namespace lexgine { namespace core { namespace dx { namespace d3d12 { namespace 
 
 class HLSLCompilationTask;
 class PSOCompilationTask;
+class GraphicsPSOCompilationTask;
+class ComputePSOCompilationTask;
 
 }}}}}
 

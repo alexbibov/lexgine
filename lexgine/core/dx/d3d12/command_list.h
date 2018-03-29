@@ -3,8 +3,8 @@
 #include <wrl.h>
 #include <d3d12.h>
 
-#include "../../entity.h"
-#include "../../class_names.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
 #include "pipeline_state.h"
 
 using namespace Microsoft::WRL;

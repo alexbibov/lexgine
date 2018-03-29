@@ -144,6 +144,11 @@ bool HLSLCompilationTask::wasSuccessful() const
     return m_was_compilation_successful || !m_should_recompile;
 }
 
+bool HLSLCompilationTask::isPrecached() const
+{
+    return m_was_compilation_successful;
+}
+
 std::string HLSLCompilationTask::getCompilationLog() const
 {
     return m_compilation_log;
@@ -432,7 +437,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         }
     }*/
 
-    return true;
+    return true;    // the task is not reschedulable, so do_task() returns 'true' regardless of compilation outcome
 }
 
 lexgine::core::concurrency::TaskType HLSLCompilationTask::get_task_type() const
