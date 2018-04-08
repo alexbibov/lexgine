@@ -36,7 +36,7 @@ public:
     misc::Optional<D3DDataBlob> result(uint8_t worker_id) const;
 
     //! given worker id retrieves user readable description from outcome of the last compilation attempt
-    std::string errors(uint8_t worker_id) const; 
+    std::string errors(uint8_t worker_id) const;
 
 private:
     dxc::DxcDllSupport m_dxc_dll;
@@ -48,6 +48,7 @@ private:
     std::vector<std::string> m_dxc_errors;
     std::vector<std::string> m_last_comilation_attempt_source_name;
 };
+
 
 }}}}
 

@@ -65,8 +65,8 @@ bool TaskGraphNode::isReadyToLaunch() const
     return true;
 }
 
-void TaskGraphNode::addDependent(TaskGraphNode& task)
+bool TaskGraphNode::addDependent(TaskGraphNode& task)
 {
-    m_dependents.push_back(&task);
-    task.m_dependencies.push_back(this);
+    m_dependents.insert(&task);
+    return task.m_dependencies.insert(this).second;
 }

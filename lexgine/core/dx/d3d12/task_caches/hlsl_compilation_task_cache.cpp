@@ -8,6 +8,7 @@
 #include "lexgine/core/misc/misc.h"
 #include "lexgine/core/misc/strict_weak_ordering.h"
 #include "lexgine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
+#include "combined_cache_key.h"
 
 
 using namespace lexgine;
@@ -18,18 +19,16 @@ using namespace lexgine::core::dx::d3d12::task_caches;
 using namespace lexgine::core::dx::d3d12::tasks;
 
 
-
-
 std::string HLSLCompilationTaskCache::Key::toString() const
 {
-    return std::string{ std::string{ "source:{" } +source_path + "}__hash:{" + std::to_string(hash_value) + "}" };
+    return std::string{ std::string{ "{SOURCE=" } +source_path + " HASH=" + std::to_string(hash_value) + "}" };
 }
 
 void HLSLCompilationTaskCache::Key::serialize(void* p_serialization_blob) const
 {
     uint8_t* ptr{ static_cast<uint8_t*>(p_serialization_blob) };
 
-    memcpy(ptr, source_path, sizeof(source_path)); ptr += sizeof(source_path);
+    strcpy_s(reinterpret_cast<char*>(ptr), max_string_section_length_in_bytes, source_path); ptr += max_string_section_length_in_bytes;
     memcpy(ptr, &shader_model, sizeof(shader_model)); ptr += sizeof(shader_model);
     memcpy(ptr, &hash_value, sizeof(hash_value));
 }
@@ -38,7 +37,7 @@ void HLSLCompilationTaskCache::Key::deserialize(void const* p_serialization_blob
 {
     uint8_t const* ptr{ static_cast<uint8_t const*>(p_serialization_blob) };
 
-    memcpy(source_path, ptr, sizeof(source_path)); ptr += sizeof(source_path);
+    strcpy_s(source_path, max_string_section_length_in_bytes, reinterpret_cast<char const*>(ptr)); ptr += max_string_section_length_in_bytes;
     memcpy(&shader_model, ptr, sizeof(shader_model)); ptr += sizeof(shader_model);
     memcpy(&hash_value, ptr, sizeof(hash_value));
 }
@@ -69,11 +68,7 @@ bool HLSLCompilationTaskCache::Key::operator==(Key const& other) const
 }
 
 
-HLSLCompilationTaskCache::HLSLCompilationTaskCache()
-{
-}
-
-void HLSLCompilationTaskCache::addTask(core::Globals& globals, std::string const& source, std::string const& source_name, 
+tasks::HLSLCompilationTask* HLSLCompilationTaskCache::addTask(core::Globals& globals, std::string const& source, std::string const& source_name, 
     dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point, 
     ShaderSourceCodePreprocessor::SourceType source_type,
     std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions, 
@@ -102,7 +97,7 @@ void HLSLCompilationTaskCache::addTask(core::Globals& globals, std::string const
         std::string path_to_shader{};
         {
             bool shader_found{ false };
-            for (auto path_prefix : global_settings.getShaderLookupDirectories())
+            for (auto const& path_prefix : global_settings.getShaderLookupDirectories())
             {
                 path_to_shader = path_prefix + source;
                 if (misc::doesFileExist(path_to_shader))
@@ -131,24 +126,42 @@ void HLSLCompilationTaskCache::addTask(core::Globals& globals, std::string const
     {
         hlsl_source_code = source;
         timestamp = misc::DateTime::now();    // NOTE: HLSL sources supplied directly (i.e. not via source files) are always recompiled
-        key = Key{ hlsl_source_code,
-        static_cast<unsigned short>(shader_model),
-        misc::HashedString{hlsl_source_code + "__" + stringified_defines}.hash() };
+        key = Key{ source_name,
+            static_cast<unsigned short>(shader_model),
+            misc::HashedString{ stringified_defines }.hash() };
     }
+    CombinedCacheKey combined_key{ key };
 
+    
+    HLSLCompilationTask* inserted_task_ptr{ nullptr };
 
-    if (m_tasks_cache_keys.find(key) == m_tasks_cache_keys.end())
+    if (m_tasks_cache_keys.find(combined_key) == m_tasks_cache_keys.end())
     {
+        auto cache_map_insertion_position = 
+            m_tasks_cache_keys.insert(std::make_pair(combined_key, cache_storage::iterator{})).first;
+
         m_tasks.emplace_back(
-            key, timestamp.isValid() ? static_cast<misc::DateTime>(timestamp) : misc::DateTime::now(),
+            cache_map_insertion_position->first,
+            timestamp.isValid() ? static_cast<misc::DateTime>(timestamp) : misc::DateTime::now(),
             globals, hlsl_source_code, source_name, shader_model, shader_type, shader_entry_point,
             macro_definitions, optimization_level,
             strict_mode, force_all_resources_be_bound,
             force_ieee_standard, treat_warnings_as_errors,
             enable_validation, enable_debug_information, enable_16bit_types);
 
-        m_tasks_cache_keys.insert(std::make_pair(key, --m_tasks.end()));
+        cache_storage::iterator p = --m_tasks.end();
+        cache_map_insertion_position->second = p;
+        HLSLCompilationTask& new_hlsl_compilation_task_ref = *p;
+        inserted_task_ptr = &new_hlsl_compilation_task_ref;
     }
+    else if (source_type == ShaderSourceCodePreprocessor::SourceType::string)
+    {
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "HLSL source code with key \"" + key.toString() + "\" already exists in the cache. "
+            "In order to circumvent this issue make sure that all HLSL sources that are directly (i.e. not via files) supplied for "
+            "compilation are having unique source names");
+    }
+
+    return inserted_task_ptr;
 }
 
 HLSLCompilationTaskCache::cache_storage& task_caches::HLSLCompilationTaskCache::storage()
@@ -160,33 +173,3 @@ HLSLCompilationTaskCache::cache_storage const& task_caches::HLSLCompilationTaskC
 {
     return m_tasks;
 }
-
-
-
-tasks::HLSLCompilationTask* task_caches::HLSLCompilationTaskCache::find(Key const& key)
-{
-    HLSLCompilationTask* rv{ nullptr };
-    cache_mapping::iterator p;
-    if ((p = m_tasks_cache_keys.find(key)) != m_tasks_cache_keys.end())
-    {
-        HLSLCompilationTask& temp = (*p->second);
-        rv = &temp;
-    }
-
-    return rv;
-}
-
-tasks::HLSLCompilationTask const* task_caches::HLSLCompilationTaskCache::find(Key const& key) const
-{
-    HLSLCompilationTask const* rv{ nullptr };
-    cache_mapping::const_iterator p;
-    if ((p = m_tasks_cache_keys.find(key)) != m_tasks_cache_keys.end())
-    {
-        HLSLCompilationTask const& temp = (*p->second);
-        rv = &temp;
-    }
-
-    return rv;
-}
-
-

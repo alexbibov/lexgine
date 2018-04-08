@@ -4,7 +4,7 @@
 #include "../misc/optional.h"
 #include "ring_buffer_task_queue.h"
 
-#include <list>
+#include <set>
 #include <algorithm>
 #include <atomic>
 
@@ -22,6 +22,9 @@ class TaskGraphNode
 {
     friend class TaskGraphNodeAttorney<TaskGraph>;
     friend class TaskGraphNodeAttorney<TaskSink>;
+
+public:
+    using set_of_nodes_type = std::set<TaskGraphNode*>;
 
 public:
     TaskGraphNode(AbstractTask& task);    //! creates task graph node encapsulating given task
@@ -46,7 +49,11 @@ public:
 
     bool isReadyToLaunch() const;    //! returns 'true' if all of this task's dependencies have been executed and the task is ready to launch
 
-    void addDependent(TaskGraphNode& task);    //! adds a task that depends on this task, i.e. provided task can only begin execution when this task is completed
+    /*! adds a task that depends on this task, i.e. provided task can only begin execution when this task is completed.
+     Returns 'true' if specified dependency has been added successfully; returns 'false' if this dependency has already been
+     declared for the node
+    */
+    bool addDependent(TaskGraphNode& task);    
 
 private:
     uint32_t m_id;    //!< identifier of the node
@@ -56,8 +63,8 @@ private:
     uint32_t m_visit_flag;    //!< determines how many time the node has been visited during task graph traversal (0:not visited; 1:visited once, 2:visited more than once)
     uint16_t m_frame_index;   //!< index of the frame, to which the task container belongs
 
-    std::list<TaskGraphNode*> m_dependencies;    //!< dependencies of this task. This task cannot run before all of its dependencies are executed
-    std::list<TaskGraphNode*> m_dependents;    //!< dependencies of this task. This task cannot be executed before the dependent tasks are completed
+    set_of_nodes_type m_dependencies;    //!< dependencies of this task. This task cannot run before all of its dependencies are executed
+    set_of_nodes_type m_dependents;    //!< dependencies of this task. This task cannot be executed before the dependent tasks are completed
 };
 
 template<> class TaskGraphNodeAttorney<TaskGraph>
@@ -85,7 +92,7 @@ private:
         parent_task_graph_node.m_frame_index = frame_index_value;
     }
 
-    static inline std::list<TaskGraphNode*> const& getDependentNodes(TaskGraphNode const& parent_task_graph_node)
+    static inline std::set<TaskGraphNode*> const& getDependentNodes(TaskGraphNode const& parent_task_graph_node)
     {
         return parent_task_graph_node.m_dependents;
     }

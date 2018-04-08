@@ -6,6 +6,7 @@
 #include <vector>
 #include <ostream>
 #include <type_traits>
+#include <cassert>
 
 #include "misc/hashed_string.h"
 #include "entity.h"
@@ -100,6 +101,8 @@ private:
     std::vector<std::ostream*>* m_worker_logs;
     dx::d3d12::DxResourceFactory* m_dx_resource_factory;
     dx::d3d12::task_caches::HLSLCompilationTaskCache* m_shader_cache;
+    dx::d3d12::task_caches::PSOCompilationTaskCache* m_pso_cache;
+    dx::d3d12::task_caches::RootSignatureCompilationTaskCache* m_rs_cache;
 
 public:
     void defineGlobalSettings(GlobalSettings& global_settings);
@@ -107,8 +110,9 @@ public:
     void registerMainLog(std::ostream& logging_output_stream);
     void registerDxResourceFactory(dx::d3d12::DxResourceFactory& dx_resource_factory);
     void registerHLSLCompilationTaskCache(dx::d3d12::task_caches::HLSLCompilationTaskCache& shader_cache);
+    void registerPSOCompilationTaskCache(dx::d3d12::task_caches::PSOCompilationTaskCache& pso_cache);
+    void registerRootSignatureCompilationTaskCache(dx::d3d12::task_caches::RootSignatureCompilationTaskCache& rs_cache);
 
-    
     Globals build();
 };
 

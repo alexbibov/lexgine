@@ -180,7 +180,12 @@
     <ClCompile Include="core\dx\d3d12\root_signature.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\hlsl_compilation_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\pso_compilation_task.cpp" />
+    <ClCompile Include="core\dx\d3d12\tasks\root_signature_compilation_task.cpp" />
+    <ClCompile Include="core\dx\d3d12\task_caches\cache_utilities.cpp" />
+    <ClCompile Include="core\dx\d3d12\task_caches\combined_cache_key.cpp" />
     <ClCompile Include="core\dx\d3d12\task_caches\hlsl_compilation_task_cache.cpp" />
+    <ClCompile Include="core\dx\d3d12\task_caches\pso_compilation_task_cache.cpp" />
+    <ClCompile Include="core\dx\d3d12\task_caches\root_signature_compilation_task_cache.cpp" />
     <ClCompile Include="core\dx\dxcompilation\dx_compiler_proxy.cpp" />
     <ClCompile Include="core\dx\dxgi\hw_adapter_enumerator.cpp" />
     <ClCompile Include="core\dx\dxgi\hw_output_enumerator.cpp" />
@@ -214,6 +219,7 @@
     <ClInclude Include="..\3rd_party\SpookyHash\SpookyV2.h" />
     <ClInclude Include="core\allocator.h" />
     <ClInclude Include="core\blend_descriptor.h" />
+    <ClInclude Include="core\build_info.h" />
     <ClInclude Include="core\class_names.h" />
     <ClInclude Include="core\concurrency\abstract_task.h" />
     <ClInclude Include="core\concurrency\hazard_pointer_pool.h" />
@@ -249,9 +255,13 @@
     <ClInclude Include="core\dx\d3d12\tasks\hlsl_compilation_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\lexgine_core_dx_d3d12_tasks_fwd.h" />
     <ClInclude Include="core\dx\d3d12\tasks\pso_compilation_task.h" />
+    <ClInclude Include="core\dx\d3d12\tasks\root_signature_compilation_task.h" />
+    <ClInclude Include="core\dx\d3d12\task_caches\cache_utilities.h" />
+    <ClInclude Include="core\dx\d3d12\task_caches\combined_cache_key.h" />
     <ClInclude Include="core\dx\d3d12\task_caches\hlsl_compilation_task_cache.h" />
     <ClInclude Include="core\dx\d3d12\task_caches\lexgine_core_dx_d3d12_task_caches_fwd.h" />
     <ClInclude Include="core\dx\d3d12\task_caches\pso_compilation_task_cache.h" />
+    <ClInclude Include="core\dx\d3d12\task_caches\root_signature_compilation_task_cache.h" />
     <ClInclude Include="core\dx\dxcompilation\common.h" />
     <ClInclude Include="core\dx\dxcompilation\dx_compiler_proxy.h" />
     <ClInclude Include="core\dx\dxgi\common.h" />
@@ -264,6 +274,7 @@
     <ClInclude Include="core\exception.h" />
     <ClInclude Include="core\filter.h" />
     <ClInclude Include="core\globals.h" />
+    <ClInclude Include="core\global_constants.h" />
     <ClInclude Include="core\global_settings.h" />
     <ClInclude Include="core\initializer.h" />
     <ClInclude Include="core\lexgine_core_fwd.h" />
@@ -271,7 +282,6 @@
     <ClInclude Include="core\math\rectangle.h" />
     <ClInclude Include="core\math\vector_types.h" />
     <ClInclude Include="core\metal\metal_tools.h" />
-    <ClInclude Include="core\misc\build_info.h" />
     <ClInclude Include="core\misc\constant_converter.h" />
     <ClInclude Include="core\misc\datetime.h" />
     <ClInclude Include="core\misc\flags.h" />

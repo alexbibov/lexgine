@@ -5,6 +5,8 @@ namespace lexgine { namespace core { namespace dx { namespace d3d12 { namespace 
 
 class HLSLCompilationTaskCache;
 class PSOCompilationTaskCache;
+class RootSignatureCompilationTaskCache;
+class CombinedCacheKey;
 
 
 }}}}}

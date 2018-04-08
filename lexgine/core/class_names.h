@@ -32,6 +32,7 @@ extern char const Globals[];
 extern char const StreamedCache[];
 extern char const HLSLCompilationTaskCache[];
 extern char const PSOCompilationTaskCache[];
+extern char const RootSignatureCompilationTaskCache[];
 extern char const Dummy[];
 }}}
 
