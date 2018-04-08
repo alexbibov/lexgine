@@ -354,6 +354,7 @@
     <ClInclude Include="core\global_constants.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="core\deferred_pso_compilation_agent.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -531,6 +532,7 @@
       <Filter>core\dx\d3d12\task_caches</Filter>
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\task_caches\cache_utilities.cpp" />
+    <ClCompile Include="core\deferred_pso_compilation_agent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="core\dx\d3d12\constant_buffer_impl.inl">
