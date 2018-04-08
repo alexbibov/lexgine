@@ -12,7 +12,8 @@ TaskGraph::TaskGraph(uint8_t num_workers, std::string const& name):
     setStringName(name);
 }
 
-TaskGraph::TaskGraph(std::list<TaskGraphNode*> const& root_tasks, uint8_t num_workers, std::string const& name):
+TaskGraph::TaskGraph(TaskGraphNode::set_of_nodes_type const& root_tasks, 
+    uint8_t num_workers, std::string const& name):
     m_root_nodes{ root_tasks },
     m_num_workers{ num_workers }
 {
@@ -20,7 +21,7 @@ TaskGraph::TaskGraph(std::list<TaskGraphNode*> const& root_tasks, uint8_t num_wo
     parse();
 }
 
-void TaskGraph::setRootNodes(std::list<TaskGraphNode*> const& root_tasks)
+void TaskGraph::setRootNodes(TaskGraphNode::set_of_nodes_type const& root_tasks)
 {
     m_task_list.clear();
     m_root_nodes = root_tasks;
@@ -123,8 +124,9 @@ TaskGraph::const_iterator TaskGraph::end() const
 
 void TaskGraph::parse()
 {
-    using iterator_type = std::list<TaskGraphNode*>::const_iterator;
+    using iterator_type = TaskGraphNode::set_of_nodes_type::const_iterator;
     std::list<std::pair<iterator_type, iterator_type>> traversal_stack;
+
     traversal_stack.push_back(std::make_pair(m_root_nodes.begin(), m_root_nodes.end()));
 
     std::list<TaskGraphNode*> source_node_list{};

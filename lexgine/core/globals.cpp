@@ -1,6 +1,9 @@
 #include "globals.h"
 #include "global_settings.h"
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
+#include "lexgine/core/dx/d3d12/task_caches/hlsl_compilation_task_cache.h"
+#include "lexgine/core/dx/d3d12/task_caches/pso_compilation_task_cache.h"
+#include "lexgine/core/dx/d3d12/task_caches/root_signature_compilation_task_cache.h"
 
 #include <cassert>
 
@@ -58,6 +61,16 @@ void MainGlobalsBuilder::registerHLSLCompilationTaskCache(dx::d3d12::task_caches
     m_shader_cache = &shader_cache;
 }
 
+void MainGlobalsBuilder::registerPSOCompilationTaskCache(dx::d3d12::task_caches::PSOCompilationTaskCache& pso_cache)
+{
+    m_pso_cache = &pso_cache;
+}
+
+void MainGlobalsBuilder::registerRootSignatureCompilationTaskCache(dx::d3d12::task_caches::RootSignatureCompilationTaskCache& rs_cache)
+{
+    m_rs_cache = &rs_cache;
+}
+
 Globals MainGlobalsBuilder::build()
 {
     Globals rv;
@@ -65,6 +78,9 @@ Globals MainGlobalsBuilder::build()
     rv.put(m_worker_logs);
     rv.put(m_main_log);
     rv.put(m_dx_resource_factory);
+    rv.put(m_shader_cache);
+    rv.put(m_pso_cache);
+    rv.put(m_rs_cache);
 
     return rv;
 }

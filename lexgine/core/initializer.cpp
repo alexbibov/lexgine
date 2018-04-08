@@ -1,10 +1,18 @@
 #include "initializer.h"
 #include "exception.h"
-#include "lexgine/core/misc/build_info.h"
+#include "lexgine/core/build_info.h"
 #include "lexgine/core/misc/misc.h"
 #include "lexgine/core/global_settings.h"
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
+
 #include "lexgine/core/dx/d3d12/task_caches/hlsl_compilation_task_cache.h"
+#include "lexgine/core/dx/d3d12/task_caches/pso_compilation_task_cache.h"
+#include "lexgine/core/dx/d3d12/task_caches/root_signature_compilation_task_cache.h"
+#include "lexgine/core/dx/d3d12/task_caches/combined_cache_key.h"
+
+#include "lexgine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
+#include "lexgine/core/dx/d3d12/tasks/pso_compilation_task.h"
+#include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 
 #include <windows.h>
 #include <algorithm>
@@ -128,11 +136,22 @@ Initializer::Initializer(
     }
 
 
+    // Initialize resource factory
+
     m_resource_factory.reset(new dx::d3d12::DxResourceFactory{ *m_global_settings });
     builder.registerDxResourceFactory(*m_resource_factory);
 
-    m_shader_cache.reset(new dx::d3d12::task_caches::HLSLCompilationTaskCache{});
-    builder.registerHLSLCompilationTaskCache(*m_shader_cache);
+    // Initialize caches
+    {
+        m_shader_cache.reset(new dx::d3d12::task_caches::HLSLCompilationTaskCache{});
+        builder.registerHLSLCompilationTaskCache(*m_shader_cache);
+
+        m_pso_cache.reset(new dx::d3d12::task_caches::PSOCompilationTaskCache{});
+        builder.registerPSOCompilationTaskCache(*m_pso_cache);
+
+        m_rs_cache.reset(new dx::d3d12::task_caches::RootSignatureCompilationTaskCache{});
+        builder.registerRootSignatureCompilationTaskCache(*m_rs_cache);
+    }
 
     *m_globals = builder.build();
 }
@@ -143,6 +162,7 @@ Initializer::~Initializer()
     m_global_settings = nullptr;
     m_resource_factory = nullptr;
     m_shader_cache = nullptr;
+    m_pso_cache = nullptr;
    
 
     // Logger must be shutdown the last since many objects may still log stuff on destruction

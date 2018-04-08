@@ -43,14 +43,14 @@ public:
     using const_iterator = iterator const;
     
     TaskGraph(uint8_t num_workers = 8U, std::string const& name = "");
-    TaskGraph(std::list<TaskGraphNode*> const& root_tasks, uint8_t num_workers = 8U, std::string const& name = "");
+    TaskGraph(TaskGraphNode::set_of_nodes_type const& root_tasks, uint8_t num_workers = 8U, std::string const& name = "");
     TaskGraph(TaskGraph const& other) = delete;
     TaskGraph(TaskGraph&& other) = default;
     ~TaskGraph() = default;
     TaskGraph& operator=(TaskGraph const& other) = delete;
     TaskGraph& operator=(TaskGraph&& other) = default;
 
-    void setRootNodes(std::list<TaskGraphNode*> const& root_tasks);    //! re-defines the task graph given a list of root nodes
+    void setRootNodes(TaskGraphNode::set_of_nodes_type const& root_tasks);    //! re-defines the task graph given a list of root nodes
 
     uint8_t getNumberOfWorkerThreads() const;    //! returns number of worker threads assigned to the task graph
 
@@ -70,7 +70,7 @@ private:
     void reset_completion_status();    //! resets completion status of all the nodes of the task graph
 
     uint8_t m_num_workers;    //!< number of worker threads assigned to the task graph
-    std::list<TaskGraphNode*> m_root_nodes;    //!< list of pointers to nodes used to construct the task graph
+    TaskGraphNode::set_of_nodes_type m_root_nodes;    //!< set of pointers to nodes used to construct the task graph
     std::list<std::unique_ptr<TaskGraphNode>> m_task_list;    //!< list of graph nodes (without repetitions)
 };
 
@@ -90,7 +90,7 @@ private:
         parent_task_graph.reset_completion_status();
     }
 
-    static inline std::list<TaskGraphNode*> const& getTaskGraphRootNodeList(TaskGraph const& parent_task_graph)
+    static inline TaskGraphNode::set_of_nodes_type const& getTaskGraphRootNodeList(TaskGraph const& parent_task_graph)
     {
         return parent_task_graph.m_root_nodes;
     }

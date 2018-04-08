@@ -5,39 +5,45 @@
 #include "lexgine/core/data_blob.h"
 #include "lexgine/core/misc/static_vector.h"
 
+#include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
-#include "lexgine/core/dx/d3d12/task_caches/pso_compilation_task_cache.h"
+#include "lexgine/core/dx/d3d12/task_caches/combined_cache_key.h"
 
 #include <list>
 
 namespace lexgine { namespace core { namespace dx { namespace d3d12 { namespace tasks {
 
-//! Abstraction for different kind of PSO compilation tasks
-class PSOCompilationTask : public concurrency::SchedulableTask
-{
-public:
-    virtual D3DDataBlob getTaskData() const = 0;    //! returns blob containing compiled PSO
-    virtual bool wasSuccessful() const = 0;    //! returns 'true' if the task has completed successfully
-    virtual bool execute(uint64_t worker_id) = 0;    //! manual execution of the task; returns 'true' on success
-};
-
-
 //! Performs compilation and caching of graphics PSOs
-class GraphicsPSOCompilationTask final : public PSOCompilationTask
+class GraphicsPSOCompilationTask final : public concurrency::SchedulableTask
 {
 public:
-    GraphicsPSOCompilationTask(GraphicsPSODescriptor const& descriptor, 
-        task_caches::PSOCompilationTaskCache::Key const& key);
+    GraphicsPSOCompilationTask(task_caches::CombinedCacheKey const& key,
+        GlobalSettings const& global_settings,
+        Device& device,
+        GraphicsPSODescriptor const& descriptor);
 
-    D3DDataBlob getTaskData() const override;    //! returns blob containing compiled PSO
-    bool wasSuccessful() const override;    //! returns 'true' if the task has completed successfully
-    bool execute(uint64_t worker_id) override;    //! executes the task manually and returns 'true' on success
+    PipelineState const& getTaskData() const;    //! returns blob containing compiled PSO
+    bool wasSuccessful() const;    //! returns 'true' if the task has completed successfully
+    bool execute(uint8_t worker_id);    //! executes the task manually and returns 'true' if the task does not require rescheduling
 
-    void setVertexShaderCompilationTask(HLSLCompilationTask* vs_compilation_task);    //! sets vertex shader compilation task associated with the PSO
-    void setHullShaderCompilationTask(HLSLCompilationTask* hs_compilation_task);    //! sets hull shader compilation task associated with the PSO
-    void setDomainShaderCompilationTask(HLSLCompilationTask* ds_compilation_task);    //! sets domain shader compilation task associated with the PSO
-    void setGeometryShaderCompilationTask(HLSLCompilationTask* gs_compilation_task);    //! sets geometry shader compilation task associated with the PSO
-    void setPixelShaderCompilationTask(HLSLCompilationTask* ps_compilation_task);    //! sets pixel shader compilation task associated with the PSO
+    void setVertexShaderCompilationTask(HLSLCompilationTask* vs_compilation_task);  
+    HLSLCompilationTask* getVertexShaderCompilationTask() const;    
+    
+    void setHullShaderCompilationTask(HLSLCompilationTask* hs_compilation_task);   
+    HLSLCompilationTask* getHullShaderCompilationTask() const;
+
+    void setDomainShaderCompilationTask(HLSLCompilationTask* ds_compilation_task);  
+    HLSLCompilationTask* getDomainShaderCompilationTask() const;
+
+    void setGeometryShaderCompilationTask(HLSLCompilationTask* gs_compilation_task); 
+    HLSLCompilationTask* getGeometryShaderCompilationTask() const;
+
+    void setPixelShaderCompilationTask(HLSLCompilationTask* ps_compilation_task);
+    HLSLCompilationTask* getPixelShaderCompilationTask() const;
+    
+    void setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task);
+    RootSignatureCompilationTask* getRootSignatureCompilationTask() const;
+    
 
 private:
     // required by SchedulableTask
@@ -46,24 +52,33 @@ private:
     concurrency::TaskType get_task_type() const override;
 
 private:
+    task_caches::CombinedCacheKey const& m_key;
+    GlobalSettings const& m_global_settings;
+    Device& m_device;
     GraphicsPSODescriptor m_descriptor;
-    task_caches::PSOCompilationTaskCache::Key m_key;
     misc::StaticVector<HLSLCompilationTask*, 5> m_associated_shader_compilation_tasks;
+    RootSignatureCompilationTask* m_associated_root_signature;
+    bool m_was_successful; 
+    std::unique_ptr<PipelineState> m_resulting_pipeline_state;
 };
 
 
 //! Performs compilation and caching of compute PSOs
-class ComputePSOCompilationTask final : PSOCompilationTask
+class ComputePSOCompilationTask final : public concurrency::SchedulableTask
 {
 public:
-    ComputePSOCompilationTask(ComputePSODescriptor const& descriptor,
-        task_caches::PSOCompilationTaskCache::Key const& key);
+    ComputePSOCompilationTask(task_caches::CombinedCacheKey const& key,
+        GlobalSettings const& global_settings,
+        Device& device,
+        ComputePSODescriptor const& descriptor);
 
-    D3DDataBlob getTaskData() const override;    //! returns blob containing compiled PSO data
-    bool wasSuccessful() const override;    //! returns 'true' if the task has completed successfully
-    bool execute(uint64_t worker_id) override;    //! execute the task manually and returns 'true' on success
+    PipelineState const& getTaskData() const;    //! returns blob containing compiled PSO data
+    bool wasSuccessful() const;    //! returns 'true' if the task has completed successfully
+    bool execute(uint8_t worker_id);    //! execute the task manually and returns 'true' on success
 
     void setComputeShaderCompilationTask(HLSLCompilationTask* cs_compilation_task);    //! sets compute shader compilation task associated with the PSO
+
+    void setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task);    //! associates root signature compilation task with the PSO
 
 private:
     // required by SchedulableTask
@@ -72,9 +87,14 @@ private:
     concurrency::TaskType get_task_type() const override;
 
 private:
+    task_caches::CombinedCacheKey const& m_key;
+    GlobalSettings const& m_global_settings;
+    Device& m_device;
     ComputePSODescriptor m_descriptor;
-    task_caches::PSOCompilationTaskCache::Key m_key;
     HLSLCompilationTask* m_associated_compute_shader;
+    RootSignatureCompilationTask* m_associated_root_signature;
+    bool m_was_successful;
+    std::unique_ptr<PipelineState> m_resulting_pipeline_state;
 };
 
 

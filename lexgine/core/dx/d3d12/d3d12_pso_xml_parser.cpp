@@ -4,12 +4,15 @@
 
 #include "d3d12_pso_xml_parser.h"
 #include "d3d12_tools.h"
+
 #include "lexgine/core/global_settings.h"
-#include "lexgine/core/misc/template_argument_iterator.h"
-#include "lexgine/core/concurrency/task_graph.h"
-#include "lexgine/core/concurrency/task_sink.h"
 #include "lexgine/core/exception.h"
+
+#include "lexgine/core/misc/template_argument_iterator.h"
+
 #include "lexgine/core/dx/dxcompilation/common.h"
+#include "lexgine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
+#include "lexgine/core/dx/d3d12/tasks/pso_compilation_task.h"
 
 #include "pugixml.hpp"
 
@@ -732,6 +735,19 @@ namespace {
 
         return LoopBodyCommonPart::getVASpecification();
     }
+
+    std::string nodeMaskToString(uint32_t node_mask)
+    {
+        unsigned long node_index{ 0U };
+        std::string rv{"("};
+        for (unsigned node_count = 0; _BitScanForward(&node_index, node_mask); node_mask <<= node_index + 1, node_index += node_index + 1, ++node_count)
+        {
+            if (!node_count) rv += std::to_string(node_index);
+            else rv += "&" + std::to_string(node_index);
+        }
+        rv += ")";
+        return rv;
+    }
 }
 
 
@@ -746,7 +762,7 @@ public:
 
     }
 
-    bool parseAndAddToCompilationCacheShader(pugi::xml_node& node, ComputePSODescriptorCacheEntry& compute_pso_descritptor_cache_entry)
+    tasks::HLSLCompilationTask* parseAndAddToCompilationCacheShader(pugi::xml_node& node, std::string const& pso_cache_name)
     {
         auto shader_node = node.find_child([](pugi::xml_node& n) -> bool
         {
@@ -755,23 +771,22 @@ public:
 
         if (shader_node.empty())
         {
-            m_parent.raiseError(R"*(Error while parsing D3D12 PSO XML description from source ")*"
-                + m_parent.m_source_xml + R"*(": obligatory attribute ComputeShader is not found)*");
-            return false;
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "Error while parsing D3D12 PSO XML description from source \""
+                + m_parent.m_source_xml + "\": obligatory attribute \"ComputeShader\" is not found");
         }
 
         pugi::char_t const* shader_source_location = shader_node.child_value();
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
         ShaderModel sm = extractAttribute<attribute_type::shader_model>(shader_node.attribute("model"), ShaderModel::model_50);
 
-        m_parent.m_hlsl_compilation_task_cache.addTask(m_parent.m_globals, shader_source_location, compute_pso_descritptor_cache_entry.cache_name + "_"
-            + shader_source_location + "_CS" , sm, ShaderType::compute, shader_entry_point_name,
-            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file/*, &compute_pso_descritptor_cache_entry.descriptor, 1*/);
-
-        return true;
+        return m_parent.m_hlsl_compilation_task_cache.addTask(m_parent.m_globals, shader_source_location, 
+            pso_cache_name + "(" + shader_source_location + ")__CS" , sm, ShaderType::compute, shader_entry_point_name,
+            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file);
     }
 
-    bool parseAndAddToCompilationCacheShader(pugi::xml_node& node, char const* p_stage_name, bool is_obligatory_shader_stage, GraphicsPSODescriptorCacheEntry& graphics_pso_descriptor_cache_entry)
+    tasks::HLSLCompilationTask* parseAndAddToCompilationCacheShader(pugi::xml_node& node, 
+        char const* p_stage_name, bool is_obligatory_shader_stage, 
+        std::string const& pso_cache_name)
     {
         // parse and attempt to compile vertex shader
         auto shader_node = node.find_child([p_stage_name](pugi::xml_node& n) -> bool
@@ -779,11 +794,14 @@ public:
             return strcmp(n.name(), p_stage_name) == 0;
         });
 
-        if (is_obligatory_shader_stage && shader_node.empty())
+        if (shader_node.empty())
         {
-            m_parent.raiseError(R"*(Error while parsing D3D12 PSO XML description from source ")*"
-                + m_parent.m_source_xml + R"*(": obligatory attribute )*" + p_stage_name + " is not found");
-            return false;
+            if(is_obligatory_shader_stage)
+            {
+                LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "Error while parsing D3D12 PSO XML description from source \""
+                    + m_parent.m_source_xml + "\": obligatory attribute " + p_stage_name + " was not found");
+            }
+            return nullptr;
         }
 
         pugi::char_t const* shader_source_location = shader_node.child_value();
@@ -819,34 +837,32 @@ public:
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
         ShaderModel sm = extractAttribute<attribute_type::shader_model>(shader_node.attribute("model"), ShaderModel::model_50);
 
-        m_parent.m_hlsl_compilation_task_cache.addTask(m_parent.m_globals, shader_source_location, graphics_pso_descriptor_cache_entry.cache_name + "_"
-            + shader_source_location + "_" + compilation_task_suffix, sm, shader_type, shader_entry_point_name,
-            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file/*, &graphics_pso_descriptor_cache_entry.descriptor, 1*/);
-
-        return true;
+        return m_parent.m_hlsl_compilation_task_cache.addTask(m_parent.m_globals, shader_source_location, 
+            pso_cache_name + "(" + shader_source_location + ")__" + compilation_task_suffix, sm, shader_type, shader_entry_point_name,
+            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file);
     }
 
-    GraphicsPSODescriptorCacheEntry parseGraphicsPSO(pugi::xml_node& node)
-    {
-        m_parent.m_graphics_pso_descriptor_cache.emplace_back();
-        GraphicsPSODescriptorCacheEntry& currently_assembled_pso_descriptor = m_parent.m_graphics_pso_descriptor_cache.back();
+    tasks::GraphicsPSOCompilationTask* parseGraphicsPSO(pugi::xml_node& node, uint32_t node_mask)
+    { 
+        GraphicsPSODescriptor currently_assembled_pso_descriptor{};
 
         // Get attributes of the graphics PSO
-        currently_assembled_pso_descriptor.cache_name = node.attribute("name").as_string(("GraphicsPSO_" + m_parent.getId().toString()).c_str());
-        currently_assembled_pso_descriptor.descriptor.primitive_restart = extractAttribute<attribute_type::boolean>(node.attribute("primitive_restart"), false);
-        currently_assembled_pso_descriptor.descriptor.primitive_topology = extractAttribute<attribute_type::primitive_topology>(node.attribute("primitive_topology"), lexgine::core::PrimitiveTopology::triangle);
-        currently_assembled_pso_descriptor.descriptor.sample_mask = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_mask"), 0xFFFFFFFF);
-        currently_assembled_pso_descriptor.descriptor.multi_sampling_format.count = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_count"), 1);
-        currently_assembled_pso_descriptor.descriptor.multi_sampling_format.quality = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_quality"), 1);
+        std::string pso_cache_name = node.attribute("name").as_string(("GraphicsPSO_" + m_parent.getId().toString()).c_str()) + ("_nodes" + nodeMaskToString(node_mask));
+        
+        currently_assembled_pso_descriptor.node_mask = node_mask;
 
+        currently_assembled_pso_descriptor.primitive_restart = extractAttribute<attribute_type::boolean>(node.attribute("primitive_restart"), false);
+        currently_assembled_pso_descriptor.primitive_topology = extractAttribute<attribute_type::primitive_topology>(node.attribute("primitive_topology"), lexgine::core::PrimitiveTopology::triangle);
+        currently_assembled_pso_descriptor.sample_mask = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_mask"), 0xFFFFFFFF);
+        currently_assembled_pso_descriptor.multi_sampling_format.count = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_count"), 1);
+        currently_assembled_pso_descriptor.multi_sampling_format.quality = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_quality"), 1);
 
         // Retrieve shader stages
-        if (!parseAndAddToCompilationCacheShader(node, "VertexShader", true, currently_assembled_pso_descriptor)) return currently_assembled_pso_descriptor;
-        if (!parseAndAddToCompilationCacheShader(node, "HullShader", false, currently_assembled_pso_descriptor)) return currently_assembled_pso_descriptor;
-        if (!parseAndAddToCompilationCacheShader(node, "DomainShader", false, currently_assembled_pso_descriptor)) return currently_assembled_pso_descriptor;
-        if (!parseAndAddToCompilationCacheShader(node, "GeometryShader", false, currently_assembled_pso_descriptor)) return currently_assembled_pso_descriptor;
-        if (!parseAndAddToCompilationCacheShader(node, "PixelShader", true, currently_assembled_pso_descriptor)) return currently_assembled_pso_descriptor;
-
+        tasks::HLSLCompilationTask* p_vs_compilation_task = parseAndAddToCompilationCacheShader(node, "VertexShader", true, pso_cache_name);
+        tasks::HLSLCompilationTask* p_hs_compilation_task = parseAndAddToCompilationCacheShader(node, "HullShader", false, pso_cache_name);
+        tasks::HLSLCompilationTask* p_ds_compilation_task = parseAndAddToCompilationCacheShader(node, "DomainShader", false, pso_cache_name);
+        tasks::HLSLCompilationTask* p_gs_compilation_task = parseAndAddToCompilationCacheShader(node, "GeometryShader", false, pso_cache_name);
+        tasks::HLSLCompilationTask* p_ps_compilation_task = parseAndAddToCompilationCacheShader(node, "PixelShader", true, pso_cache_name);
 
         // Read stream output descriptor if present
         {
@@ -866,8 +882,8 @@ public:
                     std::list<uint32_t>{}, &is_attribute_present);
                 if (!is_attribute_present)
                 {
-                    m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": stream output descriptor must define attribute \"strides\"");
-                    return currently_assembled_pso_descriptor;
+                    LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                        + ": stream output descriptor must define attribute \"strides\"");
                 }
 
                 std::list<lexgine::core::StreamOutputDeclarationEntry> so_entry_descs;
@@ -876,38 +892,43 @@ public:
                     if (std::strcmp(node.name(), "DeclarationEntry") == 0)
                     {
                         uint32_t stream = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("stream"), 0);
+                        
                         std::string name = extractAttribute<attribute_type::string>(node.attribute("name"), "OUTPUT_STREAM", &is_attribute_present);
                         if (!is_attribute_present)
                         {
-                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": attribute \"name\" must be defined by \"DeclarationEntry\"");
-                            return currently_assembled_pso_descriptor;
+                            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                                + ": attribute \"name\" must be defined by \"DeclarationEntry\"");
                         }
+
                         char const* processed_name = name == "NULL" ? nullptr : name.c_str();
                         uint32_t name_index = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("name_index"), 0);
+                        
                         uint32_t start_component = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("start_component"), 0, &is_attribute_present);
                         if (!is_attribute_present)
                         {
-                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": attribute \"start_component\" must be defined by \"DeclaraionEntry\"");
-                            return std::move(currently_assembled_pso_descriptor);
+                            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                                + ": attribute \"start_component\" must be defined by \"DeclaraionEntry\"");
+                        
                         }
                         uint32_t component_count = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("component_count"), 4, &is_attribute_present);
                         if (!is_attribute_present)
                         {
-                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": attribute \"component_count\" must be defined by \"DeclaraionEntry\"");
-                            return currently_assembled_pso_descriptor;
+                            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                                + ": attribute \"component_count\" must be defined by \"DeclaraionEntry\"");
                         }
+                        
                         uint32_t slot = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("slot"), 0, &is_attribute_present);
                         if (!is_attribute_present)
                         {
-                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": attribute \"start_component\" must be defined by \"DeclaraionEntry\"");
-                            return currently_assembled_pso_descriptor;
+                            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                                + ": attribute \"start_component\" must be defined by \"DeclaraionEntry\"");
                         }
 
                         so_entry_descs.emplace_back(stream, name.c_str(), name_index, start_component, component_count, slot);
                     }
                 }
 
-                currently_assembled_pso_descriptor.descriptor.stream_output = lexgine::core::StreamOutput{ so_entry_descs, buffer_strides, rasterized_stream };
+                currently_assembled_pso_descriptor.stream_output = lexgine::core::StreamOutput{ so_entry_descs, buffer_strides, rasterized_stream };
             }
         }
 
@@ -924,7 +945,7 @@ public:
                 bool alpha_to_coverage = extractAttribute<attribute_type::boolean>(blend_state_node.attribute("alpha_to_coverage"), false);
                 bool independent_blending = extractAttribute<attribute_type::boolean>(blend_state_node.attribute("independent_blending"), false);
 
-                currently_assembled_pso_descriptor.descriptor.blend_state = lexgine::core::BlendState{ alpha_to_coverage, independent_blending };
+                currently_assembled_pso_descriptor.blend_state = lexgine::core::BlendState{ alpha_to_coverage, independent_blending };
                 
                 for (auto& blend_desc_node : blend_state_node)
                 {
@@ -936,11 +957,11 @@ public:
                             static_cast<uint8_t>(extractAttribute<attribute_type::unsigned_numeric>(blend_desc_node.attribute("render_target"), 0, &is_attribute_present));
                         if (!is_attribute_present)
                         {
-                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": BlendDescriptor must have attribute \"render_target\"");
-                            return currently_assembled_pso_descriptor;
+                            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                                + ": BlendDescriptor must have attribute \"render_target\"");
                         }
 
-                        bool enable_blending = extractAttribute<attribute_type::boolean>(blend_desc_node.attribute("enable_blending"), true);
+                        bool enable_blending = extractAttribute<attribute_type::boolean>(blend_desc_node.attribute("enable_blending"), false);
                         bool enable_logic_operation = extractAttribute<attribute_type::boolean>(blend_desc_node.attribute("enable_logic_operation"), false);
 
                         lexgine::core::BlendFactor source_blend_factor =
@@ -963,7 +984,7 @@ public:
                         uint8_t color_mask =
                             static_cast<uint8_t>(extractAttribute<attribute_type::unsigned_numeric>(blend_desc_node.attribute("color_mask"), 0xF));
 
-                        currently_assembled_pso_descriptor.descriptor.blend_state.render_target_blend_descriptor[render_target] = lexgine::core::BlendDescriptor{
+                        currently_assembled_pso_descriptor.blend_state.render_target_blend_descriptor[render_target] = lexgine::core::BlendDescriptor{
                             source_blend_factor, source_alpha_blend_factor, destination_blend_factor, destination_alpha_blend_factor,
                             blend_op, alpha_blend_op, enable_logic_operation, blend_logical_op, color_mask };
                     }
@@ -995,7 +1016,7 @@ public:
                 bool multi_sampling = extractAttribute<attribute_type::boolean>(rasterization_desc_node.attribute("multi_sampling"), false);
                 bool concervative_rasterization = extractAttribute<attribute_type::boolean>(rasterization_desc_node.attribute("concervative_rasterization"), false);
 
-                currently_assembled_pso_descriptor.descriptor.rasterization_descriptor =
+                currently_assembled_pso_descriptor.rasterization_descriptor =
                     lexgine::core::RasterizerDescriptor{ fill_mode, cull_mode, front_face_winding, depth_bias, depth_bias_clamp, slope_scaled_depth_bias, depth_clip,
                     multi_sampling, line_anti_aliasing, concervative_rasterization ? lexgine::core::ConservativeRasterizationMode::on : lexgine::core::ConservativeRasterizationMode::off };
             }
@@ -1028,9 +1049,8 @@ public:
                         auto front_face = extractAttribute<attribute_type::face>(stencil_test_behavior_node.attribute("face"), lexgine::core::CullMode::front, &was_successful);
                         if (!was_successful)
                         {
-                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + 
-                                ": StencilTestBehavior node must define attribute \"face\"");
-                            return currently_assembled_pso_descriptor;
+                            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                                + ": StencilTestBehavior node must define attribute \"face\"");
                         }
 
                         auto comparison_function = 
@@ -1041,13 +1061,13 @@ public:
                             extractAttribute<attribute_type::stencil_operation>(stencil_test_behavior_node.attribute("operation_st_pass_dt_fail"), lexgine::core::StencilOperation::keep);
                         auto operation_st_pass_dt_pass = 
                             extractAttribute<attribute_type::stencil_operation>(stencil_test_behavior_node.attribute("operation_st_pass_dt_pass"), lexgine::core::StencilOperation::keep);
+                        
                         DXGI_FORMAT dsv_target_format =
                             extractAttribute<attribute_type::depth_stencil_format>(stencil_test_behavior_node.attribute("dsv_target_format"), DXGI_FORMAT_D32_FLOAT_S8X24_UINT, &was_successful);
                         if (!was_successful)
                         {
-                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + 
-                                ": StencilTestBehavior node must define attribute \"dsv_target_format\"");
-                            return currently_assembled_pso_descriptor;
+                            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name
+                                + ": StencilTestBehavior node must define attribute \"dsv_target_format\"");
                         }
 
                         stencil_test_beavior[front_face == lexgine::core::CullMode::front ? 0 : 1] =
@@ -1055,7 +1075,7 @@ public:
                     }
                 }
 
-                currently_assembled_pso_descriptor.descriptor.depth_stencil_descriptor = lexgine::core::DepthStencilDescriptor{ enable_depth_test, allow_depth_writes,
+                currently_assembled_pso_descriptor.depth_stencil_descriptor = lexgine::core::DepthStencilDescriptor{ enable_depth_test, allow_depth_writes,
                 depth_test_comparison_function, enable_stencil_test, stencil_test_beavior[0], stencil_test_beavior[1] };
             }
 
@@ -1080,36 +1100,36 @@ public:
                     std::string name = extractAttribute<attribute_type::string>(va.attribute("name"), "", &was_successful);
                     if (!was_successful)
                     {
-                        m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": VertexAttribute node must define attribute \"name\"");
-                        return currently_assembled_pso_descriptor;
+                        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                            + ": VertexAttribute node must define attribute \"name\"");
                     }
 
                     uint32_t index = extractAttribute<attribute_type::unsigned_numeric>(va.attribute("index"), 0, &was_successful);
                     if (!was_successful)
                     {
-                        m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": VertexAttribute node must define attribute \"index\"");
-                        return currently_assembled_pso_descriptor;
+                        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                            + ": VertexAttribute node must define attribute \"index\"");
                     }
 
 
                     uint32_t size = extractAttribute<attribute_type::unsigned_numeric>(va.attribute("size"), 0, &was_successful);
                     if (!was_successful)
                     {
-                        m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": VertexAttribute node must define attribute \"size\"");
-                        return currently_assembled_pso_descriptor;
+                        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                            + ": VertexAttribute node must define attribute \"size\"");
                     }
 
                     lexgine::core::misc::DataFormat type = extractAttribute<attribute_type::data_format>(va.attribute("type"), lexgine::core::misc::DataFormat::float32, &was_successful);
                     if (!was_successful)
                     {
-                        m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": VertexAttribute node must define attribute \"type\"");
-                        return currently_assembled_pso_descriptor;
+                        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                            + ": VertexAttribute node must define attribute \"type\"");
                     }
 
                     bool normalized = extractAttribute<attribute_type::boolean>(va.attribute("normalized"), false);
                     uint32_t instancing_rate = extractAttribute<attribute_type::unsigned_numeric>(va.attribute("instancing_rate"), 0);
 
-                    currently_assembled_pso_descriptor.descriptor.vertex_attributes.push_back(createVertexAttributeSpecification(type, size, normalized, slot, name.c_str(), index, instancing_rate));
+                    currently_assembled_pso_descriptor.vertex_attributes.push_back(createVertexAttributeSpecification(type, size, normalized, slot, name.c_str(), index, instancing_rate));
                 }
             }
         }
@@ -1126,16 +1146,16 @@ public:
                     uint32_t slot = extractAttribute<attribute_type::unsigned_numeric>(child_node.attribute("slot"), 0, &was_successful);
                     if (!was_successful)
                     {
-                        m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": RenderTarget node must define attribute \"slot\"");
-                        return currently_assembled_pso_descriptor;
+                        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                            + ": RenderTarget node must define attribute \"slot\"");
                     }
 
                     for (uint8_t i = 0; i < num_rt; ++i)
                     {
                         if (rt_occupied_slots[i] == slot)
                         {
-                            m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": render target slot \"" + std::to_string(slot) + "\" is already occupied");
-                            return currently_assembled_pso_descriptor;
+                            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                                + ": render target slot \"" + std::to_string(slot) + "\" is already occupied");
                         }
                     }
 
@@ -1145,13 +1165,13 @@ public:
                     DXGI_FORMAT format = extractAttribute<attribute_type::render_target_format>(child_node.attribute("format"), DXGI_FORMAT_R32G32B32A32_FLOAT, &was_successful);
                     if (!was_successful)
                     {
-                        m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name + ": RenderTarget node must define attribute \"format\"");
-                        return currently_assembled_pso_descriptor;
+                        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                            + ": RenderTarget node must define attribute \"format\"");
                     }
 
-                    currently_assembled_pso_descriptor.descriptor.rtv_formats[slot] = format;
+                    currently_assembled_pso_descriptor.rtv_formats[slot] = format;
                 }
-                currently_assembled_pso_descriptor.descriptor.num_render_targets = num_rt;
+                currently_assembled_pso_descriptor.num_render_targets = num_rt;
 
                 std::sort(rt_occupied_slots, rt_occupied_slots + 8);
                 bool is_slot_usage_range_valid = true;
@@ -1165,25 +1185,55 @@ public:
                 }
                 if (!is_slot_usage_range_valid)
                 {
-                    m_parent.raiseError("error parsing XML PSO source of graphics PSO " + currently_assembled_pso_descriptor.cache_name +
-                        ": invalid render target slot usage range, the slot range in use should be contiguous and start at 0");
-                    return currently_assembled_pso_descriptor;
+                    LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
+                        + ": invalid render target slot usage range, the slot range in use should be contiguous and start at 0");
                 }
             }
         }
 
-        return currently_assembled_pso_descriptor;
+        // Define new PSO compilation task
+        tasks::GraphicsPSOCompilationTask* new_graphics_pso_compitlation_task{ nullptr };
+        {
+            uint64_t uid = misc::HashedString{ pso_cache_name }.hash();
+            new_graphics_pso_compitlation_task = m_parent.m_pso_compilation_task_cache.addTask(
+                m_parent.m_globals,
+                currently_assembled_pso_descriptor, 
+                pso_cache_name, 
+                uid);
+            
+            new_graphics_pso_compitlation_task->setVertexShaderCompilationTask(p_vs_compilation_task);
+            if (p_hs_compilation_task) new_graphics_pso_compitlation_task->setHullShaderCompilationTask(p_hs_compilation_task);
+            if (p_ds_compilation_task) new_graphics_pso_compitlation_task->setDomainShaderCompilationTask(p_ds_compilation_task);
+            if (p_gs_compilation_task) new_graphics_pso_compitlation_task->setGeometryShaderCompilationTask(p_gs_compilation_task);
+            new_graphics_pso_compitlation_task->setPixelShaderCompilationTask(p_ps_compilation_task);
+        }
+
+        return new_graphics_pso_compitlation_task;
     }
 
-    ComputePSODescriptorCacheEntry parseComputePSO(pugi::xml_node& node)
+    tasks::ComputePSOCompilationTask* parseComputePSO(pugi::xml_node& node, uint32_t node_mask)
     {
-        m_parent.m_compute_pso_descriptor_cache.emplace_back();
-        ComputePSODescriptorCacheEntry& currently_assembled_pso_descriptor = m_parent.m_compute_pso_descriptor_cache.back();
-        currently_assembled_pso_descriptor.cache_name = node.attribute("name").as_string(("GraphicsPSO_" + m_parent.getId().toString()).c_str());
+        ComputePSODescriptor currently_assembled_pso_descriptor{};
+        
+        std::string pso_cache_name = node.attribute("name").as_string(("ComputePSO_" + m_parent.getId().toString()).c_str()) + ("_node" + nodeMaskToString(node_mask));
 
-        parseAndAddToCompilationCacheShader(node, currently_assembled_pso_descriptor);
+        currently_assembled_pso_descriptor.node_mask = node_mask;
 
-        return currently_assembled_pso_descriptor;
+        tasks::HLSLCompilationTask* p_cs_compilation_task = parseAndAddToCompilationCacheShader(node, pso_cache_name);
+        
+        tasks::ComputePSOCompilationTask* new_pso_compilation_task{ nullptr };
+        {
+            uint64_t uid = misc::HashedString{ pso_cache_name }.hash();
+
+            new_pso_compilation_task = m_parent.m_pso_compilation_task_cache.addTask(
+                m_parent.m_globals,
+                currently_assembled_pso_descriptor, 
+                pso_cache_name, 
+                uid);
+            new_pso_compilation_task->setComputeShaderCompilationTask(p_cs_compilation_task);
+        }
+
+        return new_pso_compilation_task;
     }
 
 
@@ -1257,6 +1307,7 @@ private:
 lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& globals, std::string const& xml_source, bool deferred_shader_compilation, uint32_t node_mask) :
     m_globals{ globals },
     m_hlsl_compilation_task_cache{ *globals.get<task_caches::HLSLCompilationTaskCache>() },
+    m_pso_compilation_task_cache{ *globals.get<task_caches::PSOCompilationTaskCache>() },
     m_source_xml{ xml_source },
     m_impl{ new impl{*this} }
 {
@@ -1265,51 +1316,33 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
 
     if (parse_result)
     {
+        if (!node_mask) node_mask = 0x1;
+
         for (pugi::xml_node_iterator it : xml_doc)
         {
             if (std::strcmp(it->name(), "GraphicsPSO") == 0)
             {
-                GraphicsPSODescriptorCacheEntry entry = m_impl->parseGraphicsPSO(*it);
-                unsigned long index;
-                unsigned long node_index{ 0 };
-                for (unsigned long mask = node_mask; _BitScanForward(&index, mask); mask >>= index + 1, node_index += index + 1)
-                {
-                    GraphicsPSODescriptorCacheEntry dubbed_entry{ entry };
-                    dubbed_entry.cache_name += "_node" + std::to_string(node_index);
-                    dubbed_entry.descriptor.node_mask = 0x1 << node_index;
-
-                    m_graphics_pso_descriptor_cache.push_back(dubbed_entry);
-                }
+                m_parsed_graphics_pso_compilation_tasks.push_back(m_impl->parseGraphicsPSO(*it, node_mask));
             }
-                
             else if (std::strcmp(it->name(), "ComputePSO") == 0)
             {
-                ComputePSODescriptorCacheEntry entry = m_impl->parseComputePSO(*it);
-                unsigned long index;
-                unsigned long node_index{ 0 };
-                for (unsigned long mask = node_mask; _BitScanForward(&index, mask); mask >>= index + 1, node_index += index + 1)
-                {
-                    ComputePSODescriptorCacheEntry dubbed_entry{ entry };
-                    dubbed_entry.cache_name += "_node" + std::to_string(node_index);
-                    dubbed_entry.descriptor.node_mask = 0x1 << node_index;
-
-                    m_compute_pso_descriptor_cache.push_back(dubbed_entry);
-                }
+                m_parsed_compute_pso_compilation_tasks.push_back(m_impl->parseComputePSO(*it, node_mask));
             }
             else
             {
-                ErrorBehavioral::raiseError(std::string{ R"*(Unknown attribute ")*" }
-                +it->name() + R"*(" while parsing D3D12 PSO XML description from file ")*" + xml_source + R"*(")*");
-                return;
+                LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, std::string{ "Unknown attribute \"" }
+                    +it->name() + "\" encountered while parsing D3D12 PSO XML description from file \""
+                    + xml_source + "\"");
             }
         }
     }
     else
     {
-        ErrorBehavioral::raiseError(
-            std::string{ "Unable to parse XML source\n"
-            "Reason: " } + parse_result.description() + "\n"
-            "Location: " + std::string{ xml_source.c_str() + parse_result.offset, std::min<size_t>(xml_source.size() - parse_result.offset, 80) - 1 }
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
+            std::string{ "Unable to parse XML source\n" }
+            + "Reason: " + parse_result.description() + "\n"
+            + "Location: " + std::string(xml_source.c_str() + parse_result.offset,
+                std::min<size_t>(xml_source.size() - parse_result.offset, 80ull))
         );
     }
 
@@ -1374,12 +1407,12 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
 
 D3D12PSOXMLParser::~D3D12PSOXMLParser() = default;
 
-//bool D3D12PSOXMLParser::isCompleted() const
-//{
-//    return m_impl->isDeferredShaderCompilationExitTaskExecuted();
-//}
-//
-//void D3D12PSOXMLParser::waitUntilShadersAreCompiled() const
-//{
-//    while (!isCompleted());
-//}
+std::vector<tasks::GraphicsPSOCompilationTask*> const& D3D12PSOXMLParser::graphicsPSOCompilationTasks() const
+{
+    return m_parsed_graphics_pso_compilation_tasks;
+}
+
+std::vector<tasks::ComputePSOCompilationTask*> const& D3D12PSOXMLParser::computePSOCompilationTasks() const
+{
+    return m_parsed_compute_pso_compilation_tasks;
+}

@@ -85,15 +85,15 @@ error_string_stream << "Named entity <" << lexgine::core::misc::dereference<cont
 << "> has thrown an exception in function <" << __FUNCTION__ \
 << "> of module <" << __FILE__ << "> at line " << __LINE__ << ": " << (description); \
 lexgine::core::misc::dereference<context_type>::resolve(context).raiseError(error_string_stream.str()); \
-throw Exception{ misc::dereference<context_type>::resolve(context), description, __FILE__, __FUNCTION__, __LINE__ }; \
+throw Exception{ misc::dereference<context_type>::resolve(context), (description), __FILE__, __FUNCTION__, __LINE__ }; \
 }
 
 
 //! Throws exception using provided description text and "dummy" named entity as the throwing context
 #define LEXGINE_THROW_ERROR(description) \
 { \
-misc::Log::retrieve()->out(description, misc::LogMessageType::error); \
-throw Exception{ lexgine::core::Dummy{}, description, __FILE__, __FUNCTION__, __LINE__ }; \
+misc::Log::retrieve()->out((description), misc::LogMessageType::error); \
+throw Exception{ lexgine::core::Dummy{}, (description), __FILE__, __FUNCTION__, __LINE__ }; \
 }
 
 

@@ -17,10 +17,14 @@ namespace lexgine {namespace core {namespace dx {namespace d3d12 {namespace task
 //! Dictionary of HLSL compilation tasks
 class HLSLCompilationTaskCache : public NamedEntity<class_names::HLSLCompilationTaskCache>
 {
+    friend class tasks::HLSLCompilationTask;
+    friend class CombinedCacheKey;
+
 public:
 
     using cache_storage = std::list<tasks::HLSLCompilationTask>;
 
+private:
     struct Key final
     {
         static constexpr size_t max_string_section_length_in_bytes = 512U;
@@ -30,7 +34,7 @@ public:
         uint64_t hash_value;
 
 
-        static size_t const serialized_size =
+        static constexpr size_t const serialized_size =
             max_string_section_length_in_bytes
             + sizeof(uint16_t)
             + sizeof(uint64_t);
@@ -50,13 +54,11 @@ public:
         bool operator==(Key const& other) const;
     };
 
-    using cache_mapping = std::map<Key, cache_storage::iterator>;
+    using cache_mapping = std::map<CombinedCacheKey, cache_storage::iterator>;
 
 public:
 
-    HLSLCompilationTaskCache();
-
-    void addTask(core::Globals& globals, std::string const& source, std::string const& source_name,
+    tasks::HLSLCompilationTask* addTask(core::Globals& globals, std::string const& source, std::string const& source_name,
         dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
         ShaderSourceCodePreprocessor::SourceType source_type,
         std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions = std::list<dxcompilation::HLSLMacroDefinition>{},
@@ -71,17 +73,6 @@ public:
 
     //! Returns constant reference to internal cache storage containing HLSL compilation tasks
     cache_storage const& storage() const;
-
-
-    /*! attempts to locate HLSL compilation task with provided key within the cache.
-     If the search was not successful returns nullptr
-    */
-    tasks::HLSLCompilationTask* find(Key const& key);    
-
-    /*! attempts to locate HLSL compilation task with provided key within the cache.
-    If the search was not successful returns nullptr
-    */
-    tasks::HLSLCompilationTask const* find(Key const& key) const;
 
 private:
     cache_storage m_tasks;

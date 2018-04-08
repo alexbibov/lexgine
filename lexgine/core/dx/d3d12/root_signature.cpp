@@ -1,5 +1,6 @@
 #include "root_signature.h"
 #include "d3d12_tools.h"
+#include "lexgine/core/exception.h"
 
 #include <algorithm>
 #include <functional>
@@ -77,47 +78,35 @@ D3DDataBlob RootSignature::compile(RootSignatureFlags const& flags) const
         if (m_root_parameters.find(i) == m_root_parameters.end())
         {
             std::string err_msg{ "Root signature " + getStringName() + " has undefined slots" };
-            logger().out(err_msg, LogMessageType::error);
-            raiseError(err_msg);
-            throw;
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, err_msg);
         }
 
     D3D12_ROOT_SIGNATURE_DESC root_desc;
     root_desc.NumParameters = static_cast<UINT>(m_root_parameters.size());
     root_desc.NumStaticSamplers = static_cast<UINT>(m_static_samplers.size());
 
-    D3D12_ROOT_PARAMETER* p_params = new D3D12_ROOT_PARAMETER[root_desc.NumParameters];
-    D3D12_STATIC_SAMPLER_DESC* p_static_sampler_descs = new D3D12_STATIC_SAMPLER_DESC[root_desc.NumStaticSamplers];
+    std::vector<D3D12_ROOT_PARAMETER> rs_parameters(root_desc.NumParameters);
+    std::vector<D3D12_STATIC_SAMPLER_DESC> rs_static_samplers(root_desc.NumStaticSamplers);
 
-    for (uint32_t i = 0; i < root_desc.NumParameters; ++i) p_params[i] = m_root_parameters.at(i);
+    for (uint32_t i = 0; i < root_desc.NumParameters; ++i) rs_parameters[i] = m_root_parameters.at(i);
 
     uint32_t sampler_idx = 0;
-    for (auto p = m_static_samplers.begin(); p != m_static_samplers.end(); ++p, ++sampler_idx) p_static_sampler_descs[sampler_idx] = *p;
+    for (auto p = m_static_samplers.begin(); p != m_static_samplers.end(); ++p, ++sampler_idx) rs_static_samplers[sampler_idx] = *p;
 
 
-    root_desc.pParameters = p_params;
-    root_desc.pStaticSamplers = p_static_sampler_descs;
+    root_desc.pParameters = rs_parameters.data();
+    root_desc.pStaticSamplers = rs_static_samplers.data();
     root_desc.Flags = static_cast<D3D12_ROOT_SIGNATURE_FLAGS>(flags.getValue());
 
 
     ID3DBlob* serialized_rs, *error;
     if (D3D12SerializeRootSignature(&root_desc, D3D_ROOT_SIGNATURE_VERSION_1, &serialized_rs, &error) != S_OK)
     {
-        char* serialization_error = new char[error->GetBufferSize() + 1];
-        memcpy(serialization_error, error->GetBufferPointer(), error->GetBufferSize());
-        serialization_error[error->GetBufferSize()] = 0;
-        std::string err_msg = std::string{ "Unable to serialize root signature: " } +serialization_error;
-        delete[] serialization_error;
-        delete[] p_params;
-        delete[] p_static_sampler_descs;
+        std::string serialization_error{ static_cast<char*>(error->GetBufferPointer()), error->GetBufferSize() };
+        std::string err_msg = "Unable to serialize root signature: " + serialization_error;
 
-        logger().out(err_msg, LogMessageType::error);
-        raiseError(err_msg);
-        throw;    // this error is critical
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, err_msg);
     }
-
-    delete[] p_params;
-    delete[] p_static_sampler_descs;
 
     D3DDataBlob rv{serialized_rs};
     serialized_rs->Release();

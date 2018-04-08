@@ -339,7 +339,7 @@ public:
                 Head.addDependent(F);
 
 
-                TaskGraph testGraph{ std::list<TaskGraphNode*>{&Head, &F, &A} };
+                TaskGraph testGraph{ std::set<TaskGraphNode*>{&Head, &F, &A} };
                 if (testGraph.getErrorState())
                 {
                     Assert::Fail(lexgine::core::misc::asciiStringToWstring(testGraph.getErrorString()).c_str());
@@ -489,7 +489,7 @@ public:
 
                 op11.addDependent(exit);
 
-                TaskGraph taskGraph(std::list<TaskGraphNode*>{&op1, &op2, &op3, &op4});
+                TaskGraph taskGraph(std::set<TaskGraphNode*>{&op1, &op2, &op3, &op4});
                 taskGraph.createDotRepresentation("task_graph.gv");
 
                 TaskSink taskSink{ taskGraph, worker_thread_logs, 1 };

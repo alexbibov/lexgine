@@ -19,38 +19,27 @@ namespace lexgine { namespace core { namespace dx { namespace d3d12 {
 class D3D12PSOXMLParser : public NamedEntity<class_names::D3D12PSOXMLParser>
 {
 public:
-    struct GraphicsPSODescriptorCacheEntry
-    {
-        GraphicsPSODescriptor descriptor;
-        std::string cache_name;
-    };
-
-    struct ComputePSODescriptorCacheEntry
-    {
-        ComputePSODescriptor descriptor;
-        std::string cache_name;
-    };
 
     /*! Constructs the parser and immediately parses provided sources
-     constructing related PSO description structures. 
-     NOTE: parameter node_mask identifies, for which nodes to create PSO descriptors.
-     For example if node_mask=0x3, all descriptors will be dubbed for the 0-th node and for the 1-st node
+     constructing related PSO description structures.
     */
     D3D12PSOXMLParser(core::Globals& globals, std::string const& xml_source, bool deferred_shader_compilation = true, uint32_t node_mask = 0x1);
 
     ~D3D12PSOXMLParser() override;
 
-    //! returns 'true' if PSO parsing and related shader compilation has been completed. Returns 'false' otherwise
-    // bool isCompleted() const;
-
-    // blocks calling thread until compilation of all shaders is completed
-    // void waitUntilShadersAreCompiled() const;
+    std::vector<tasks::GraphicsPSOCompilationTask*> const& graphicsPSOCompilationTasks() const;
+    std::vector<tasks::ComputePSOCompilationTask*> const& computePSOCompilationTasks() const;
 
 private:
     class impl;
 
     core::Globals& m_globals;
     task_caches::HLSLCompilationTaskCache& m_hlsl_compilation_task_cache;
+    task_caches::PSOCompilationTaskCache& m_pso_compilation_task_cache;
+
+    std::vector<tasks::GraphicsPSOCompilationTask*> m_parsed_graphics_pso_compilation_tasks;
+    std::vector<tasks::ComputePSOCompilationTask*> m_parsed_compute_pso_compilation_tasks;
+
     std::string const m_source_xml;
     uint32_t m_node_mask;
     std::unique_ptr<impl> m_impl;

@@ -9,7 +9,7 @@
 #include "lexgine/core/misc/datetime.h"
 
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
-#include "lexgine/core/dx/d3d12/task_caches/hlsl_compilation_task_cache.h"
+#include "lexgine/core/dx/d3d12/task_caches/combined_cache_key.h"
 #include "lexgine/core/dx/dxcompilation/common.h"
 #include "lexgine/core/dx/dxcompilation/dx_compiler_proxy.h"
 
@@ -22,9 +22,7 @@ namespace lexgine {namespace core {namespace dx {namespace d3d12 {namespace task
 class HLSLCompilationTask : public concurrency::SchedulableTask
 {
 public:
-    
-
-    /*! Establishes a new shader compilation task. The type of source is determined from parameters source and source_type.
+    /*! Deploys new shader compilation task. The type of source is determined from parameters source and source_type.
      when source_type = file then source is interpreted as path to a file containing HLSL code to compile. If source_type = string then
      source is interpreted as a string containing HLSL source code.
      
@@ -32,7 +30,7 @@ public:
      compiled shader blob. The exact type of PSO descriptor as well as its shader stage receiving the blob is determined based on
      provided value of parameter shader_type.
     */
-    HLSLCompilationTask(task_caches::HLSLCompilationTaskCache::Key const& key, misc::DateTime const& time_stamp,
+    HLSLCompilationTask(task_caches::CombinedCacheKey const& key, misc::DateTime const& time_stamp,
         core::Globals& globals, std::string const& hlsl_source, std::string const& source_name,
         dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
         std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions = std::list<dxcompilation::HLSLMacroDefinition>{},
@@ -64,7 +62,7 @@ private:
     bool do_task(uint8_t worker_id, uint16_t frame_index) override;    //! performs actual compilation of the shader
     concurrency::TaskType get_task_type() const override;    //! returns type of this task (CPU)
 
-    task_caches::HLSLCompilationTaskCache::Key const m_key;
+    task_caches::CombinedCacheKey const& m_key;
     misc::DateTime const m_time_stamp;
     GlobalSettings const& m_global_settings;
     dxcompilation::DXCompilerProxy& m_dxc_proxy;

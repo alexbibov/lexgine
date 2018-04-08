@@ -8,7 +8,7 @@
 
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 #include "lexgine/core/dx/d3d12/pipeline_state.h"
-
+#include "lexgine/core/dx/d3d12/task_caches/cache_utilities.h"
 
 #include <d3dcompiler.h>
 #include <fstream>
@@ -70,7 +70,7 @@ std::string shaderModelAndTypeToTargetName(ShaderModel shader_model, ShaderType 
 }
 
 
-HLSLCompilationTask::HLSLCompilationTask(task_caches::HLSLCompilationTaskCache::Key const& key, misc::DateTime const& time_stamp,
+HLSLCompilationTask::HLSLCompilationTask(task_caches::CombinedCacheKey const& key, misc::DateTime const& time_stamp,
     core::Globals& globals, std::string const& hlsl_source, std::string const& source_name,
     ShaderModel shader_model, ShaderType shader_type, std::string const& shader_entry_point,
     std::list<HLSLMacroDefinition> const& macro_definitions/* = std::list<HLSLMacroDefinition>{}*/,
@@ -146,7 +146,7 @@ bool HLSLCompilationTask::wasSuccessful() const
 
 bool HLSLCompilationTask::isPrecached() const
 {
-    return m_was_compilation_successful;
+    return !m_should_recompile;
 }
 
 std::string HLSLCompilationTask::getCompilationLog() const
@@ -166,276 +166,183 @@ D3DDataBlob HLSLCompilationTask::getTaskData() const
 
 bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 {
-    // Initialize shader caches
-
-    using shader_cache_type = StreamedCache<task_caches::HLSLCompilationTaskCache::Key, 256>;
-    std::list<std::fstream> shader_cache_streams{};
-    std::list<shader_cache_type> shader_caches{};
-
-    std::string path_to_shader_cache_owned_by_current_thread = 
-        m_global_settings.getCacheDirectory() + m_global_settings.getShaderCacheName() 
-        + ".thread" + std::to_string(worker_id);
-    bool cache_exists = misc::doesFileExist(path_to_shader_cache_owned_by_current_thread);
-    
+    try
     {
-        // open stream to the shader cache owned by current thread
+        auto shader_cache_containing_requested_shader =
+            task_caches::findCombinedCacheContainingKey(m_key, m_global_settings);
 
-        auto shader_cache_file_stream_flags = std::fstream::in | std::fstream::out | std::fstream::binary;
-        if (!cache_exists) shader_cache_file_stream_flags |= std::fstream::trunc;
-        shader_cache_streams.emplace_back(path_to_shader_cache_owned_by_current_thread, shader_cache_file_stream_flags);
-        if (!shader_cache_streams.front())
+        if (shader_cache_containing_requested_shader.isValid())
         {
-            LEXGINE_THROW_ERROR("Unable to initialize shader cache stream \""
-                + path_to_shader_cache_owned_by_current_thread + "\"");
+            misc::DateTime cached_time_stamp =
+                static_cast<task_caches::StreamedCacheConnection&>(shader_cache_containing_requested_shader).cache.getEntryTimestamp(m_key);
+
+            m_should_recompile = cached_time_stamp < m_time_stamp;
         }
-    }
 
-    if (cache_exists)
-    {
-        shader_cache_type cache{ shader_cache_streams.front(), false };
-        if (!cache)
+
+        if (!m_should_recompile)
         {
-            // if shader cache cannot be initialized, this is probably due to 
-            // cache corruption. Therefore, we have to erase the old cache and create new one
-            shader_cache_streams.front().close();
-            shader_cache_streams.front() = std::fstream{
-                path_to_shader_cache_owned_by_current_thread,
-                std::fstream::in | std::fstream::out | std::fstream::binary | std::fstream::trunc };
-            shader_caches.emplace_back(
-                shader_cache_streams.front(),
-                m_global_settings.getMaxShaderCacheSize(),
-                StreamedCacheCompressionLevel::level3,
-                false);
-        }
-        else shader_caches.emplace_back(std::move(cache));
-    }
-    else
-    {
-        shader_caches.emplace_back(shader_cache_type{
-            shader_cache_streams.front(),
-            m_global_settings.getMaxShaderCacheSize(),
-            StreamedCacheCompressionLevel::level3,
-            false });
-    }
+            // Attempt to use cached version of the shader
 
-    {
-        // populate list of shader caches owned by other threads
-        std::list<std::string> cache_library_names =
-            misc::getFilesInDirectory(m_global_settings.getCacheDirectory(), "*.shaders.thread*");
-
-        for (auto& lib_name : cache_library_names)
-        {
-            std::string lib_full_path = m_global_settings.getCacheDirectory() + lib_name;
-            if (lib_full_path != path_to_shader_cache_owned_by_current_thread)
+            SharedDataChunk blob =
+                static_cast<task_caches::StreamedCacheConnection&>(shader_cache_containing_requested_shader).cache.retrieveEntry(m_key);
+            if (!blob.data())
             {
-                shader_cache_streams.emplace_back(lib_full_path.c_str(), std::fstream::in | std::fstream::binary);
-                if (shader_cache_streams.back())
-                {
-                    shader_cache_type cache{ shader_cache_streams.back(), true };
-                    if (cache) shader_caches.emplace_back(std::move(cache));
-                    else shader_cache_streams.pop_back();
-                }
-                else
-                {
-                    shader_cache_streams.pop_back();
-                }
-            }
-        }
-    }
-
-    auto p_shader_cache_containing_requested_shader = 
-        std::find_if(shader_caches.begin(), shader_caches.end(),
-            [this](shader_cache_type& cache)
-            {
-                return cache.doesEntryExist(m_key);
-            });
-
-    if (p_shader_cache_containing_requested_shader != shader_caches.end())
-    {
-        misc::DateTime cached_time_stamp = p_shader_cache_containing_requested_shader->getEntryTimestamp(m_key);
-        
-        m_should_recompile = cached_time_stamp < m_time_stamp;
-    }
-
-
-    if(!m_should_recompile)
-    {
-        // Attempt to use cached version of the shader
-
-        SharedDataChunk blob = p_shader_cache_containing_requested_shader->retrieveEntry(m_key);
-        if (!blob.data())
-        {
-            LEXGINE_LOG_ERROR(this, "Unable to retrieve precompiled shader byte code for source \""
-                + m_source_name + "\"");
-            m_should_recompile = true;
-        }
-        else
-        {
-            Microsoft::WRL::ComPtr<ID3DBlob> d3d_blob{ nullptr };
-            HRESULT hres = D3DCreateBlob(blob.size(), d3d_blob.GetAddressOf());
-            if (hres != S_OK && hres != S_FALSE)
-            {
-                LEXGINE_LOG_ERROR(this, "Unable to create D3D blob to store precompiled shader code for source \""
+                LEXGINE_LOG_ERROR(this, "Unable to retrieve precompiled shader byte code for source \""
                     + m_source_name + "\"");
                 m_should_recompile = true;
             }
             else
             {
-                memcpy(d3d_blob->GetBufferPointer(), blob.data(), blob.size());
-                m_shader_byte_code = D3DDataBlob{ d3d_blob };
-            }
-        }
-    }
-
-    
-    if(m_should_recompile)
-    {
-        // Need to recompile the shader
-        std::string target = shaderModelAndTypeToTargetName(m_shader_model, m_shader_type);
-
-        if (static_cast<unsigned short>(m_shader_model) < static_cast<unsigned short>(ShaderModel::model_60))
-        {
-            // use legacy compiler
-
-            // blobs that will receive compilation errors and DXIL byte code
-            Microsoft::WRL::ComPtr<ID3DBlob> p_shader_bytecode_blob{ nullptr };
-            Microsoft::WRL::ComPtr<ID3DBlob> p_compilation_errors_blob{ nullptr };
-
-            std::vector<D3D_SHADER_MACRO> macro_definitions{};
-            macro_definitions.resize(m_preprocessor_macro_definitions.size() + 1);
-            macro_definitions[m_preprocessor_macro_definitions.size()] = D3D_SHADER_MACRO{ NULL, NULL };
-            {
-                uint32_t i;
-                std::list<HLSLMacroDefinition>::iterator p;
-                for (p = m_preprocessor_macro_definitions.begin(), i = 0; p != m_preprocessor_macro_definitions.end(); ++p, ++i)
+                Microsoft::WRL::ComPtr<ID3DBlob> d3d_blob{ nullptr };
+                HRESULT hres = D3DCreateBlob(blob.size(), d3d_blob.GetAddressOf());
+                if (hres != S_OK && hres != S_FALSE)
                 {
-                    macro_definitions[i].Name = p->name.c_str();
-                    macro_definitions[i].Definition = p->value.c_str();
-                }
-            }
-
-
-            UINT compilation_flags =
-                D3DCOMPILE_AVOID_FLOW_CONTROL
-                | (target[0] == 'c' ? D3DCOMPILE_RESOURCES_MAY_ALIAS : 0U)    // UAV and SRV resources may alias for cs_5_0
-                | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES
-                | (m_is_strict_mode_enabled ? D3DCOMPILE_ENABLE_STRICTNESS : 0U)
-                | (m_is_all_resources_binding_forced ? D3DCOMPILE_ALL_RESOURCES_BOUND : 0U)
-                | (m_is_ieee_forced ? D3DCOMPILE_IEEE_STRICTNESS : 0U)
-                | (m_are_warnings_treated_as_errors ? D3DCOMPILE_WARNINGS_ARE_ERRORS : 0U)
-                | (m_is_validation_enabled ? 0U : D3DCOMPILE_SKIP_VALIDATION)
-                | (m_should_enable_debug_information ? D3DCOMPILE_DEBUG : 0U);
-
-
-            switch (m_optimization_level)
-            {
-            case HLSLCompilationOptimizationLevel::level_no:
-                compilation_flags |= D3DCOMPILE_SKIP_OPTIMIZATION;
-                break;
-            case HLSLCompilationOptimizationLevel::level0:
-                compilation_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
-                break;
-            case HLSLCompilationOptimizationLevel::level1:
-                compilation_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL1;
-                break;
-            case HLSLCompilationOptimizationLevel::level2:
-                compilation_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL2;
-                break;
-            case HLSLCompilationOptimizationLevel::level3:
-                compilation_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
-                break;
-            }
-
-
-            LEXGINE_LOG_ERROR_IF_FAILED(
-                this,
-                D3DCompile(m_hlsl_source.c_str(), m_hlsl_source.size(),
-                    m_source_name.c_str(), macro_definitions.data(), NULL, m_shader_entry_point.c_str(), target.c_str(),
-                    compilation_flags, NULL, p_shader_bytecode_blob.GetAddressOf(), p_compilation_errors_blob.GetAddressOf()),
-                S_OK);
-
-            if (p_compilation_errors_blob)
-            {
-                m_compilation_log = std::string{ static_cast<char const*>(p_compilation_errors_blob->GetBufferPointer()) };
-                std::string output_log = "Unable to compile shader source \"" + m_source_name + "\". "
-                    "Detailed compiler log follows: <em>" + m_compilation_log + "</em>";
-                LEXGINE_LOG_ERROR(this, output_log);
-                m_was_compilation_successful = false;
-            }
-            else
-            {
-                m_shader_byte_code = D3DDataBlob{ p_shader_bytecode_blob };
-                m_was_compilation_successful = true;
-            }
-
-        }
-        else
-        {
-            // use LLVM-based compiler with SM6 support
-
-            if (!m_dxc_proxy.compile(worker_id, m_hlsl_source, m_source_name, m_shader_entry_point, target,
-                m_preprocessor_macro_definitions, m_optimization_level, m_is_strict_mode_enabled,
-                m_is_all_resources_binding_forced, m_is_ieee_forced, m_are_warnings_treated_as_errors,
-                m_is_validation_enabled, m_should_enable_debug_information, m_should_enable_16bit_types))
-            {
-                LEXGINE_LOG_ERROR(this, "Compilation of HLSL source \"" + m_source_name 
-                    + "\" has failed (details: <em>" + m_dxc_proxy.errors(worker_id) + "</em>)");
-                m_was_compilation_successful = false;
-            }
-            else
-            {
-                auto compilation_result = m_dxc_proxy.result(worker_id);
-                if (compilation_result.isValid())
-                {
-                    m_shader_byte_code = static_cast<D3DDataBlob>(compilation_result);
-                    m_was_compilation_successful = true;
+                    LEXGINE_LOG_ERROR(this, "Unable to create D3D blob to store precompiled shader code for source \""
+                        + m_source_name + "\"");
+                    m_should_recompile = true;
                 }
                 else
                 {
-                    LEXGINE_LOG_ERROR(this, "Unable to retrieve DXIL byte code for shader source \"" + m_source_name + "\"");
+                    memcpy(d3d_blob->GetBufferPointer(), blob.data(), blob.size());
+                    m_shader_byte_code = D3DDataBlob{ d3d_blob };
+                }
+            }
+        }
+
+
+        if (m_should_recompile)
+        {
+            // Need to recompile the shader
+            std::string target = shaderModelAndTypeToTargetName(m_shader_model, m_shader_type);
+
+            if (static_cast<unsigned short>(m_shader_model) < static_cast<unsigned short>(ShaderModel::model_60))
+            {
+                // use legacy compiler
+
+                // blobs that will receive compilation errors and DXIL byte code
+                Microsoft::WRL::ComPtr<ID3DBlob> p_shader_bytecode_blob{ nullptr };
+                Microsoft::WRL::ComPtr<ID3DBlob> p_compilation_errors_blob{ nullptr };
+
+                std::vector<D3D_SHADER_MACRO> macro_definitions{};
+                macro_definitions.resize(m_preprocessor_macro_definitions.size() + 1);
+                macro_definitions[m_preprocessor_macro_definitions.size()] = D3D_SHADER_MACRO{ NULL, NULL };
+                {
+                    uint32_t i;
+                    std::list<HLSLMacroDefinition>::iterator p;
+                    for (p = m_preprocessor_macro_definitions.begin(), i = 0; p != m_preprocessor_macro_definitions.end(); ++p, ++i)
+                    {
+                        macro_definitions[i].Name = p->name.c_str();
+                        macro_definitions[i].Definition = p->value.c_str();
+                    }
+                }
+
+
+                UINT compilation_flags =
+                    D3DCOMPILE_AVOID_FLOW_CONTROL
+                    | (target[0] == 'c' ? D3DCOMPILE_RESOURCES_MAY_ALIAS : 0U)    // UAV and SRV resources may alias for cs_5_0
+                    | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES
+                    | (m_is_strict_mode_enabled ? D3DCOMPILE_ENABLE_STRICTNESS : 0U)
+                    | (m_is_all_resources_binding_forced ? D3DCOMPILE_ALL_RESOURCES_BOUND : 0U)
+                    | (m_is_ieee_forced ? D3DCOMPILE_IEEE_STRICTNESS : 0U)
+                    | (m_are_warnings_treated_as_errors ? D3DCOMPILE_WARNINGS_ARE_ERRORS : 0U)
+                    | (m_is_validation_enabled ? 0U : D3DCOMPILE_SKIP_VALIDATION)
+                    | (m_should_enable_debug_information ? D3DCOMPILE_DEBUG : 0U);
+
+
+                switch (m_optimization_level)
+                {
+                case HLSLCompilationOptimizationLevel::level_no:
+                    compilation_flags |= D3DCOMPILE_SKIP_OPTIMIZATION;
+                    break;
+                case HLSLCompilationOptimizationLevel::level0:
+                    compilation_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
+                    break;
+                case HLSLCompilationOptimizationLevel::level1:
+                    compilation_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL1;
+                    break;
+                case HLSLCompilationOptimizationLevel::level2:
+                    compilation_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL2;
+                    break;
+                case HLSLCompilationOptimizationLevel::level3:
+                    compilation_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
+                    break;
+                }
+
+
+                LEXGINE_LOG_ERROR_IF_FAILED(
+                    this,
+                    D3DCompile(m_hlsl_source.c_str(), m_hlsl_source.size(),
+                        m_source_name.c_str(), macro_definitions.data(), NULL, m_shader_entry_point.c_str(), target.c_str(),
+                        compilation_flags, NULL, p_shader_bytecode_blob.GetAddressOf(), p_compilation_errors_blob.GetAddressOf()),
+                    S_OK);
+
+                if (p_compilation_errors_blob)
+                {
+                    m_compilation_log = std::string{ static_cast<char const*>(p_compilation_errors_blob->GetBufferPointer()) };
+                    std::string output_log = "Unable to compile shader source \"" + m_source_name + "\". "
+                        "Detailed compiler log follows: <em>" + m_compilation_log + "</em>";
+                    LEXGINE_LOG_ERROR(this, output_log);
                     m_was_compilation_successful = false;
                 }
-                
+                else
+                {
+                    m_shader_byte_code = D3DDataBlob{ p_shader_bytecode_blob };
+                    m_was_compilation_successful = true;
+                }
+
             }
-
-        }
-
-        if (m_was_compilation_successful)
-        {
-            // if compilation was successful serialize compiled shader into the cache
-            shader_caches.front().addEntry(shader_cache_type::entry_type{ m_key, m_shader_byte_code });
-        }
-    }
-
-    /*if (m_type == ShaderType::compute)
-    {
-        for (size_t i = 0; i < m_pso_targets.size(); ++i)
-            static_cast<ComputePSODescriptor*>(m_pso_targets[i])->compute_shader = m_shader_byte_code;
-    }
-    else
-    {
-        for (size_t i = 0; i < m_pso_targets.size(); ++i)
-        {
-            switch (m_type)
+            else
             {
-            case ShaderType::vertex:
-                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->vertex_shader = m_shader_byte_code;
-                break;
-            case ShaderType::hull:
-                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->hull_shader = m_shader_byte_code;
-                break;
-            case ShaderType::domain:
-                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->domain_shader = m_shader_byte_code;
-                break;
-            case ShaderType::geometry:
-                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->geometry_shader = m_shader_byte_code;
-                break;
-            case ShaderType::pixel:
-                static_cast<GraphicsPSODescriptor*>(m_pso_targets[i])->pixel_shader = m_shader_byte_code;
-                break;
+                // use LLVM-based compiler with SM6 support
+
+                if (!m_dxc_proxy.compile(worker_id, m_hlsl_source, m_source_name, m_shader_entry_point, target,
+                    m_preprocessor_macro_definitions, m_optimization_level, m_is_strict_mode_enabled,
+                    m_is_all_resources_binding_forced, m_is_ieee_forced, m_are_warnings_treated_as_errors,
+                    m_is_validation_enabled, m_should_enable_debug_information, m_should_enable_16bit_types))
+                {
+                    LEXGINE_LOG_ERROR(this, "Compilation of HLSL source \"" + m_source_name
+                        + "\" has failed (details: <em>" + m_dxc_proxy.errors(worker_id) + "</em>)");
+                    m_was_compilation_successful = false;
+                }
+                else
+                {
+                    auto compilation_result = m_dxc_proxy.result(worker_id);
+                    if (compilation_result.isValid())
+                    {
+                        m_shader_byte_code = static_cast<D3DDataBlob>(compilation_result);
+                        m_was_compilation_successful = true;
+                    }
+                    else
+                    {
+                        LEXGINE_LOG_ERROR(this, "Unable to retrieve DXIL byte code for shader source \"" + m_source_name + "\"");
+                        m_was_compilation_successful = false;
+                    }
+
+                }
+
+            }
+
+            if (m_was_compilation_successful)
+            {
+                // if compilation was successful serialize compiled shader into the cache
+                auto my_shader_cache =
+                    task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
+
+                static_cast<task_caches::StreamedCacheConnection&>(my_shader_cache).cache.addEntry(
+                    task_caches::CombinedCache::entry_type{ m_key, m_shader_byte_code }
+                );
             }
         }
-    }*/
+    }
+    catch (Exception const& e)
+    {
+        LEXGINE_LOG_ERROR(this, std::string{ "Lexgine has thrown exception: " } +e.what());
+    }
+    catch (...)
+    {
+        LEXGINE_LOG_ERROR(this, "unknown exception");
+    }
 
     return true;    // the task is not reschedulable, so do_task() returns 'true' regardless of compilation outcome
 }
