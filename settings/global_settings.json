@@ -1,5 +1,8 @@
 {
     "number_of_workers" : 8,
     "deferred_shader_compilation" : true,
-	"shader_lookup_directories" : ["scripts/d3d12_PSOs/"]
+	"deferred_pso_compilation" : true,
+	"deferred_root_signature_compilation" : true,
+	"shader_lookup_directories" : ["scripts/d3d12_PSOs/"],
+	"maximal_combined_cache_size" : 268435456
 }

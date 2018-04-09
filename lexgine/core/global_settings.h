@@ -15,6 +15,8 @@ private:
 
     uint8_t m_number_of_workers;
     bool m_deferred_shader_compilation;
+    bool m_deferred_pso_compilation;
+    bool m_deferred_root_signature_compilation;
     std::vector<std::string> m_shader_lookup_directories;
     std::string m_cache_path;
     std::string m_combined_cache_name;
@@ -31,6 +33,8 @@ public:
 
     uint8_t getNumberOfWorkers() const;
     bool isDeferredShaderCompilationOn() const;
+    bool isDeferredPSOCompilationOn() const;
+    bool isDeferredRootSignatureCompilationOn() const;
     std::vector<std::string> const& getShaderLookupDirectories() const;
     std::string getCacheDirectory() const;
     std::string getCombinedCacheName() const;

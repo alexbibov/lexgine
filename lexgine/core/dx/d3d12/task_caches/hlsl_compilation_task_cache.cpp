@@ -161,6 +161,11 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::addTask(core::Globals& glo
             "compilation are having unique source names");
     }
 
+    if (!globals.get<GlobalSettings>()->isDeferredShaderCompilationOn())
+    {
+        inserted_task_ptr->execute(0);
+    }
+
     return inserted_task_ptr;
 }
 
