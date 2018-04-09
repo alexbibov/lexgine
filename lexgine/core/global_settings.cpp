@@ -46,19 +46,52 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             m_number_of_workers = 8U;
         }
 
-        if ((p = document.find("deferred_shader_compilation")) != document.end()
-            && p->is_boolean())
-        {
-            m_deferred_shader_compilation = *p;
-        }
-        else
-        {
-            misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_shader_compilation\" from settings file located at \""
-                + json_settings_source_path + "\". The system will fall back to default value \"deferred_shader_compilation = true\"",
-                misc::LogMessageType::exclamation);
 
-            m_deferred_shader_compilation = true;
+        // Deferred pipeline compilation routine settings
+        {
+            if ((p = document.find("deferred_shader_compilation")) != document.end()
+                && p->is_boolean())
+            {
+                m_deferred_shader_compilation = *p;
+            }
+            else
+            {
+                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_shader_compilation\" from settings file located at \""
+                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_shader_compilation = true\"",
+                    misc::LogMessageType::exclamation);
+
+                m_deferred_shader_compilation = true;
+            }
+
+            if ((p = document.find("deferred_pso_compilation")) != document.end()
+                && p->is_boolean())
+            {
+                m_deferred_pso_compilation = *p;
+            }
+            else
+            {
+                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_pso_compilation\" from settings file located at \""
+                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_pso_compilation = true\"",
+                    misc::LogMessageType::exclamation);
+
+                m_deferred_pso_compilation = true;
+            }
+
+            if ((p = document.find("deferred_root_signature_compilation")) != document.end()
+                && p->is_boolean())
+            {
+                m_deferred_root_signature_compilation = *p;
+            }
+            else
+            {
+                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_root_signature_compilation\" from settings file located at \""
+                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_root_signature_compilation = true\"",
+                    misc::LogMessageType::exclamation);
+
+                m_deferred_root_signature_compilation = true;
+            }
         }
+
         
         if ((p = document.find("shader_lookup_directories")) != document.end())
         {
@@ -152,9 +185,13 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
     }
 
     json j = {
-        {"number_of_workers", m_number_of_workers},
-        {"deferred_shader_compilation", m_deferred_shader_compilation},
-        {"cache_path", m_cache_path}
+        { "number_of_workers", m_number_of_workers},
+        { "deferred_shader_compilation", m_deferred_shader_compilation},
+        { "deferred_pso_compilation", m_deferred_pso_compilation },
+        { "deferred_root_signature_compilation", m_deferred_root_signature_compilation },
+        { "cache_path", m_cache_path },
+        { "combined_cache_name", m_combined_cache_name },
+        { "maximal_combined_cache_size", m_max_combined_cache_size }
     };
     if (m_shader_lookup_directories.size())
         j["shader_lookup_directories"] = m_shader_lookup_directories;
@@ -172,6 +209,16 @@ uint8_t GlobalSettings::getNumberOfWorkers() const
 bool GlobalSettings::isDeferredShaderCompilationOn() const
 {
     return m_deferred_shader_compilation;
+}
+
+bool GlobalSettings::isDeferredPSOCompilationOn() const
+{
+    return m_deferred_pso_compilation;
+}
+
+bool GlobalSettings::isDeferredRootSignatureCompilationOn() const
+{
+    return m_deferred_root_signature_compilation;
 }
 
 std::vector<std::string> const& GlobalSettings::getShaderLookupDirectories() const
