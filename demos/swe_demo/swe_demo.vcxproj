@@ -25,7 +25,7 @@
     <ProjectGuid>{B8B8490D-8614-4D11-9985-FAD365069DBC}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>swe_demo</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
     <SccProjectName>SAK</SccProjectName>
     <SccAuxPath>SAK</SccAuxPath>
     <SccLocalPath>SAK</SccLocalPath>
