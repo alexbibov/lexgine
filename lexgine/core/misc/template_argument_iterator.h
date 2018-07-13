@@ -193,21 +193,21 @@ namespace lexgine { namespace core { namespace misc {
         static const size_t number_of_tuples = get_number_of_tuples<HeadArgPack, TailArgPacks...>::size;
 
         template<size_t index>
-        static void loop_iteration()
+        static void loop_iteration(void* user_data)
         {
-            if (LoopBodyType<tuple_list_type<index>>::iterate())
+            if (LoopBodyType<tuple_list_type<index>>::iterate(user_data))
             {
-                return loop_iteration<index + 1>();
+                return loop_iteration<index + 1>(user_data);
             }
         }
 
         template<>
-        static void loop_iteration<number_of_tuples - 1>() {}
+        static void loop_iteration<number_of_tuples - 1>(void* user_data) {}
 
     public:
-        static void loop()
+        static void loop(void* user_data = nullptr)
         {
-            loop_iteration<0>();
+            loop_iteration<0>(user_data);
         }
     };
 

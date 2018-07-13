@@ -652,98 +652,88 @@ namespace {
     }
 
 
-    class LoopBodyCommonPart
+    struct VATargetSpecification
     {
-    protected:
-        static std::shared_ptr<lexgine::core::AbstractVertexAttributeSpecification> m_va_specification;
-
-    public:
-        static lexgine::core::misc::DataFormat type;
-        static unsigned char size;
-        static bool is_normalized;
-        static unsigned char primitive_assembler_input_slot;
-        static char const* name;
-        static uint32_t name_index;
-        static uint32_t instancing_data_rate;
-
-    public:
-        using arg_pack0 = lexgine::core::misc::arg_pack<float, int16_t, int32_t, uint16_t, uint32_t>;
+        using arg_pack0 = lexgine::core::misc::arg_pack<half, float, int16_t, int32_t, uint16_t, uint32_t>;
         using value_arg_pack0 = lexgine::core::misc::value_arg_pack<unsigned char, 1U, 2U, 3U, 4U>;
         using value_arg_pack1 = lexgine::core::misc::value_arg_pack<bool, false, true>;
-        using value_arg_pack2 = lexgine::core::misc::value_arg_pack<bool, false, true>;
-        
-        static std::shared_ptr<lexgine::core::AbstractVertexAttributeSpecification> getVASpecification() { return m_va_specification; }
+
+        lexgine::core::misc::DataFormat va_target_data_format;
+        unsigned char va_target_data_format_element_size;
+        bool va_is_target_format_normalized;
+
+        unsigned char ia_slot;
+        char const* name;
+        uint32_t name_index;
+        uint32_t instancing_rate;
+
+        std::shared_ptr<lexgine::core::AbstractVertexAttributeSpecification> instance;
     };
-    std::shared_ptr<lexgine::core::AbstractVertexAttributeSpecification> LoopBodyCommonPart::m_va_specification{ nullptr };
-    lexgine::core::misc::DataFormat LoopBodyCommonPart::type{ lexgine::core::misc::DataFormat::unknown };
-    unsigned char LoopBodyCommonPart::size{ 0U };
-    bool LoopBodyCommonPart::is_normalized{ false };
-    unsigned char LoopBodyCommonPart::primitive_assembler_input_slot{ 0U };
-    char const* LoopBodyCommonPart::name{ nullptr };
-    uint32_t LoopBodyCommonPart::name_index{ 0U };
-    uint32_t LoopBodyCommonPart::instancing_data_rate{ 0U };
 
 
 
     template<typename TupleListType>
-    class LoopBody : public LoopBodyCommonPart
+    class LoopBody
     {
     public:
-        static bool iterate()
+        static bool iterate(void* user_data)
         {
             using arg0 = typename lexgine::core::misc::get_tuple_element<TupleListType, 0>::value_type;
             constexpr auto arg1 = lexgine::core::misc::get_tuple_element<TupleListType, 1>::value;
             constexpr auto arg2 = lexgine::core::misc::get_tuple_element<TupleListType, 2>::value;
-            constexpr auto arg3 = lexgine::core::misc::get_tuple_element<TupleListType, 3>::value;
 
-            if ((type == lexgine::core::dx::d3d12::StaticTypeToDataFormat<arg0>::data_format ||
-                lexgine::core::dx::d3d12::StaticTypeToDataFormat<arg0>::data_format == lexgine::core::misc::DataFormat::float32 &&
-                type == lexgine::core::misc::DataFormat::float16 && arg3 == true) &&
-                size == arg1 && is_normalized == arg2)
+            VATargetSpecification& va_target_spec = *(reinterpret_cast<VATargetSpecification*>(user_data));
+
+            if (va_target_spec.va_target_data_format == lexgine::core::dx::d3d12::StaticTypeToDataFormat<arg0>::data_format 
+                && va_target_spec.va_target_data_format_element_size == arg1 
+                && va_target_spec.va_is_target_format_normalized == arg2)
             {
-                m_va_specification.reset(
+                va_target_spec.instance.reset(
                     new lexgine::core::VertexAttributeSpecification<
                         arg0,
                         arg1,
-                        arg2,
-                        arg3>{ primitive_assembler_input_slot, name, name_index, instancing_data_rate });
+                        arg2>{ va_target_spec.ia_slot, va_target_spec.name, va_target_spec.name_index, va_target_spec.instancing_rate });
                 return false;
             }
 
             return true;
         }
-        
-        static std::unique_ptr<lexgine::core::AbstractVertexAttributeSpecification> getVASpecification() { return m_va_specification; }
     };
 
     std::shared_ptr<lexgine::core::AbstractVertexAttributeSpecification> createVertexAttributeSpecification(lexgine::core::misc::DataFormat type, uint32_t size, bool is_normalized,
         unsigned char primitive_assembler_input_slot, char const* name, uint32_t name_index, uint32_t instancing_data_rate)
     {
-        LoopBodyCommonPart::type = type;
-        LoopBodyCommonPart::size = size;
-        LoopBodyCommonPart::is_normalized = is_normalized;
-        LoopBodyCommonPart::primitive_assembler_input_slot = primitive_assembler_input_slot;
-        LoopBodyCommonPart::name = name;
-        LoopBodyCommonPart::name_index = name_index;
-        LoopBodyCommonPart::instancing_data_rate = instancing_data_rate;
-        lexgine::core::misc::TemplateArgumentIterator<
-            LoopBody, 
-            LoopBodyCommonPart::arg_pack0, 
-            LoopBodyCommonPart::value_arg_pack0, 
-            LoopBodyCommonPart::value_arg_pack1, 
-            LoopBodyCommonPart::value_arg_pack2>::loop();
+        VATargetSpecification target_spec;
 
-        return LoopBodyCommonPart::getVASpecification();
+        target_spec.va_target_data_format = type;
+        target_spec.va_target_data_format_element_size = size;
+        target_spec.va_is_target_format_normalized = is_normalized;
+
+        target_spec.ia_slot = primitive_assembler_input_slot;
+        target_spec.name = name;
+        target_spec.name_index = name_index;
+        target_spec.instancing_rate = instancing_data_rate;
+
+        target_spec.instance = nullptr;
+
+        lexgine::core::misc::TemplateArgumentIterator<
+            LoopBody,
+            VATargetSpecification::arg_pack0,
+            VATargetSpecification::value_arg_pack0,
+            VATargetSpecification::value_arg_pack1>::loop(&target_spec);
+
+        return target_spec.instance;
     }
 
     std::string nodeMaskToString(uint32_t node_mask)
     {
         unsigned long node_index{ 0U };
+        unsigned long accumulated_node_index{ 0U };
         std::string rv{"("};
-        for (unsigned node_count = 0; _BitScanForward(&node_index, node_mask); node_mask <<= node_index + 1, node_index += node_index + 1, ++node_count)
+        for (unsigned node_count = 0; _BitScanForward(&node_index, node_mask); node_mask >>= node_index + 1, accumulated_node_index += node_index + 1, ++node_count)
         {
-            if (!node_count) rv += std::to_string(node_index);
-            else rv += "&" + std::to_string(node_index);
+            if (!node_count) rv += std::to_string(accumulated_node_index);
+            else rv += "&" + std::to_string(accumulated_node_index);
         }
         rv += ")";
         return rv;
