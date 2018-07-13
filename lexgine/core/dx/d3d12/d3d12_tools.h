@@ -395,6 +395,8 @@ inline D3D12_STATIC_BORDER_COLOR d3d12Convert(BorderColor border_color)
 
 }}}}
 
+
+#include "half.h"
 #include "d3d12_min_mag_filter_converter.inl"
 #include "d3d12_type_traits.inl"
 

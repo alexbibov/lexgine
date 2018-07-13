@@ -114,7 +114,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::addTask(core::Globals& glo
         }
 
         // Retrieve shader source code and time stamp
-        hlsl_source_code = ShaderSourceCodePreprocessor{ source, source_type }.getPreprocessedSource();
+        hlsl_source_code = ShaderSourceCodePreprocessor{ path_to_shader, source_type }.getPreprocessedSource();
         timestamp = misc::getFileLastUpdatedTimeStamp(path_to_shader);
 
         // Generate hash value

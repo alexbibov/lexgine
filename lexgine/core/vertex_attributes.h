@@ -71,9 +71,8 @@ private:
  vertex_attribute_format is data type of the vertex attribute (i.e. float, int and so on). The actual choices for this parameter may depend on the underlying graphics API
  vertex_attribute_size is the number of values (1-4) actually stored in the vertex attribute
  normalized defines whether vertex attribute data resides in normalized format
- special_vertex_attribute_format may be used to represent some special data types not directly supported by the language (i.e. half-float or fixed). The exact use of this parameter depends on the API
  */
-template<typename vertex_attribute_format, unsigned char vertex_attribute_size, bool normalized = true, bool special_vertex_attribute_format = false>
+template<typename vertex_attribute_format, unsigned char vertex_attribute_size, bool normalized = true>
 class VertexAttributeSpecification final : public AbstractVertexAttributeSpecification
 {
 public:
@@ -95,13 +94,13 @@ public:
     unsigned char size() const override { return vertex_attribute_size; }
     unsigned char capacity() const override 
     { 
-        return lexgine::core::dx::d3d12::d3d12_type_traits<vertex_attribute_format, vertex_attribute_size, special_vertex_attribute_format, normalized>::total_size_in_bytes;
+        return lexgine::core::dx::d3d12::d3d12_type_traits<vertex_attribute_format, vertex_attribute_size, normalized>::total_size_in_bytes;
     }
 
 private:
     DXGI_FORMAT d3d12VertexFormat() const override
     {
-        return lexgine::core::dx::d3d12::d3d12_type_traits<vertex_attribute_format, vertex_attribute_size, special_vertex_attribute_format, normalized>::dxgi_format;
+        return lexgine::core::dx::d3d12::d3d12_type_traits<vertex_attribute_format, vertex_attribute_size, normalized>::dxgi_format;
     }
 };
 
