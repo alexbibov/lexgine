@@ -15,7 +15,7 @@ using namespace lexgine::core::dx::d3d12::task_caches;
 
 std::string RootSignatureCompilationTaskCache::Key::toString() const
 {
-    return std::string{ "{NAME=" } +rs_cache_name + " UID=" + std::to_string(uid) + "}";
+    return std::string{ rs_cache_name + std::to_string(uid) + "__ROOTSIGNATURE" };
 }
 
 void RootSignatureCompilationTaskCache::Key::serialize(void* p_serialization_blob) const
@@ -83,4 +83,14 @@ tasks::RootSignatureCompilationTask* RootSignatureCompilationTaskCache::addTask(
     }
 
     return new_rs_compilation_task;
+}
+
+RootSignatureCompilationTaskCache::cache_storage& RootSignatureCompilationTaskCache::storage()
+{
+    return m_rs_compilation_tasks;
+}
+
+RootSignatureCompilationTaskCache::cache_storage const& RootSignatureCompilationTaskCache::storage() const
+{
+    return m_rs_compilation_tasks;
 }

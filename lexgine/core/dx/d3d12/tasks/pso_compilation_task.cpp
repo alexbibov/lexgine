@@ -143,6 +143,11 @@ RootSignatureCompilationTask* GraphicsPSOCompilationTask::getRootSignatureCompil
     return m_associated_root_signature;
 }
 
+std::string GraphicsPSOCompilationTask::getCacheName() const
+{
+    return m_key.toString();
+}
+
 bool GraphicsPSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 {
     try
@@ -220,6 +225,11 @@ void ComputePSOCompilationTask::setComputeShaderCompilationTask(HLSLCompilationT
 void ComputePSOCompilationTask::setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task)
 {
     this->addDependent(*root_signature_compilation_task);
+}
+
+std::string ComputePSOCompilationTask::getCacheName() const
+{
+    return m_key.toString();
 }
 
 bool ComputePSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)

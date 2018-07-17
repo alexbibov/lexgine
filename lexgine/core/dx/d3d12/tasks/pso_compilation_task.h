@@ -45,6 +45,17 @@ public:
     RootSignatureCompilationTask* getRootSignatureCompilationTask() const;
     
 
+    /*!
+        Returns string name as appears in PSO compilation task cache. The names for graphics PSOs
+        always abide by the following naming convention (note the '__GRAPHICSPSO' suffix in the end):
+        
+            <user_defined_string_name><user_defined_numeric_id>__GRAPHICSPSO
+        
+        For example, "deferred_gbuffer_rendering_plastic15__GRAPHICSPSO"
+    */
+    std::string getCacheName() const;
+
+
 private:
     // required by SchedulableTask
 
@@ -79,6 +90,16 @@ public:
     void setComputeShaderCompilationTask(HLSLCompilationTask* cs_compilation_task);    //! sets compute shader compilation task associated with the PSO
 
     void setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task);    //! associates root signature compilation task with the PSO
+
+    /*!
+        Returns string name as appears in PSO compilation task cache. The names for compute PSOs
+        always abide by the following naming convention (note the '__COMPUTEPSO' suffix in the end):
+        
+            <user_defined_string_name><user_defined_numeric_id>__COMPUTEPSO
+        
+        For example, "deferred_tiled_illumination_pass00__COMPUTEPSO"
+    */
+    std::string getCacheName() const;
 
 private:
     // required by SchedulableTask

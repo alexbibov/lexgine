@@ -38,6 +38,11 @@ bool RootSignatureCompilationTask::execute(uint8_t worker_id)
     return do_task(worker_id, 0);
 }
 
+std::string RootSignatureCompilationTask::getCacheName() const
+{
+    return m_key.toString();
+}
+
 bool RootSignatureCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 {
     try

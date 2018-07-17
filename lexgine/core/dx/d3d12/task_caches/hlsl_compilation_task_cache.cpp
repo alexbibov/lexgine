@@ -21,7 +21,13 @@ using namespace lexgine::core::dx::d3d12::tasks;
 
 std::string HLSLCompilationTaskCache::Key::toString() const
 {
-    return std::string{ std::string{ "{SOURCE=" } +source_path + " HASH=" + std::to_string(hash_value) + "}" };
+    // Note: do not change, the returned string is conventional
+
+    return "{" + std::string{ source_path } +"}__{"
+        + std::to_string(hash_value) + "__{"
+        + HLSLCompilationTask::shaderModelAndTypeToTargetName(
+            static_cast<dxcompilation::ShaderModel>(shader_model),
+            static_cast<dxcompilation::ShaderType>(shader_type));
 }
 
 void HLSLCompilationTaskCache::Key::serialize(void* p_serialization_blob) const
@@ -29,6 +35,8 @@ void HLSLCompilationTaskCache::Key::serialize(void* p_serialization_blob) const
     uint8_t* ptr{ static_cast<uint8_t*>(p_serialization_blob) };
 
     strcpy_s(reinterpret_cast<char*>(ptr), max_string_section_length_in_bytes, source_path); ptr += max_string_section_length_in_bytes;
+    
+    memcpy(ptr, &shader_type, sizeof(shader_type)); ptr += sizeof(shader_type);
     memcpy(ptr, &shader_model, sizeof(shader_model)); ptr += sizeof(shader_model);
     memcpy(ptr, &hash_value, sizeof(hash_value));
 }
@@ -38,13 +46,17 @@ void HLSLCompilationTaskCache::Key::deserialize(void const* p_serialization_blob
     uint8_t const* ptr{ static_cast<uint8_t const*>(p_serialization_blob) };
 
     strcpy_s(source_path, max_string_section_length_in_bytes, reinterpret_cast<char const*>(ptr)); ptr += max_string_section_length_in_bytes;
+    
+    memcpy(&shader_type, ptr, sizeof(shader_type)); ptr += sizeof(shader_type);
     memcpy(&shader_model, ptr, sizeof(shader_model)); ptr += sizeof(shader_model);
     memcpy(&hash_value, ptr, sizeof(hash_value));
 }
 
 HLSLCompilationTaskCache::Key::Key(std::string const& hlsl_source_path,
+    uint16_t shader_type,
     uint16_t shader_model,
     uint64_t hash_value) :
+    shader_type{ shader_type },
     shader_model{ shader_model },
     hash_value{ hash_value }
 {
@@ -119,6 +131,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::addTask(core::Globals& glo
 
         // Generate hash value
         key = Key{ path_to_shader, 
+            static_cast<unsigned short>(shader_type),
             static_cast<unsigned short>(shader_model), 
             misc::HashedString{ stringified_defines }.hash() };
     }
@@ -127,6 +140,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::addTask(core::Globals& glo
         hlsl_source_code = source;
         timestamp = misc::DateTime::now();    // NOTE: HLSL sources supplied directly (i.e. not via source files) are always recompiled
         key = Key{ source_name,
+            static_cast<unsigned short>(shader_type),
             static_cast<unsigned short>(shader_model),
             misc::HashedString{ stringified_defines }.hash() };
     }

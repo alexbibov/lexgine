@@ -51,6 +51,10 @@ public:
         Globals const& globals,
         RootSignature&& root_signature, RootSignatureFlags const& flags,
         std::string const& root_signature_cache_name, uint64_t uid);
+    
+    cache_storage& storage();
+
+    cache_storage const& storage() const;
 
 private:
     cache_storage m_rs_compilation_tasks;

@@ -30,12 +30,14 @@ private:
         static constexpr size_t max_string_section_length_in_bytes = 512U;
 
         char source_path[max_string_section_length_in_bytes];
+        uint16_t shader_type;
         uint16_t shader_model;
         uint64_t hash_value;
 
 
         static constexpr size_t const serialized_size =
             max_string_section_length_in_bytes
+            + sizeof(uint16_t)
             + sizeof(uint16_t)
             + sizeof(uint64_t);
 
@@ -46,6 +48,7 @@ private:
         void deserialize(void const* p_serialization_blob);
 
         Key(std::string const& hlsl_source_path,
+            uint16_t shader_type,
             uint16_t shader_model,
             uint64_t hash_value);
         Key() = default;
