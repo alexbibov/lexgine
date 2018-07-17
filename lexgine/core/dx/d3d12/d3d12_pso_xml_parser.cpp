@@ -15,6 +15,8 @@
 #include "lexgine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 
+#include "lexgine/core/concurrency/task_sink.h"
+
 #include "pugixml.hpp"
 
 
@@ -746,9 +748,9 @@ class lexgine::core::dx::d3d12::D3D12PSOXMLParser::impl
 {
 public:
     impl(D3D12PSOXMLParser& parent) :
-        m_parent{ parent }
-        /*m_deferred_compilation_exit_task_executed{ false },
-        m_deferred_shader_compilation_exit_task{ *this }*/
+        m_parent{ parent },
+        m_deferred_compilation_exit_task_executed{ false },
+        m_deferred_shader_compilation_exit_task{ *this }
     {
 
     }
@@ -1253,67 +1255,68 @@ public:
 
 private:
     D3D12PSOXMLParser& m_parent;
-    // bool m_deferred_compilation_exit_task_executed;
+    bool m_deferred_compilation_exit_task_executed;
 
-//private:
-//
-//    class DeferredShaderCompilationExitTask : public concurrency::SchedulableTask
-//    {
-//    public:
-//
-//        DeferredShaderCompilationExitTask(impl& parent) : 
-//            SchedulableTask{ "deferred_shader_compilation_task_graph_exit_op" },
-//            m_p_sink{ nullptr },
-//            m_parent{ parent }
-//        {
-//
-//        }
-//
-//        void setInput(concurrency::TaskSink* p_sink)
-//        {
-//            m_p_sink = p_sink;
-//        }
-//
-//        bool execute_manually()
-//        {
-//            return do_task(0, 0);
-//        }
-//
-//
-//    private:
-//
-//        concurrency::TaskSink* m_p_sink;
-//        impl& m_parent;
-//
-//
-//    private:
-//
-//        bool do_task(uint8_t /* worker_id */, uint16_t /* frame_index */) override
-//        {
-//            if(m_p_sink) m_p_sink->dispatchExitSignal();
-//            m_parent.m_deferred_compilation_exit_task_executed = true;
-//            return true;
-//        }
-//
-//        concurrency::TaskType get_task_type() const override
-//        {
-//            return concurrency::TaskType::cpu;
-//        }
-//
-//    }m_deferred_shader_compilation_exit_task;
-//
-//
-//public:
-//
-//    DeferredShaderCompilationExitTask* deferredShaderCompilationExitTask()
-//    {
-//        return &m_deferred_shader_compilation_exit_task;
-//    }
-//
-//    bool isDeferredShaderCompilationExitTaskExecuted() const
-//    {
-//        return m_deferred_compilation_exit_task_executed;
-//    }
+private:
+
+    class DeferredPSOCompilationExitTask : public concurrency::SchedulableTask
+    {
+    public:
+
+        DeferredPSOCompilationExitTask(impl& parent) :
+            SchedulableTask{ "deferred_pso_compilation_task_graph_exit_op" },
+            m_p_sink{ nullptr },
+            m_parent{ parent }
+        {
+
+        }
+
+        void setInput(concurrency::TaskSink* p_sink)
+        {
+            m_p_sink = p_sink;
+        }
+
+        bool execute_manually()
+        {
+            return do_task(0, 0);
+        }
+
+
+    private:
+
+        concurrency::TaskSink* m_p_sink;
+        impl& m_parent;
+        
+        
+    private:
+        
+        bool do_task(uint8_t /* worker_id */, uint16_t /* frame_index */) override
+        {
+            if(m_p_sink) m_p_sink->dispatchExitSignal();
+            m_parent.m_deferred_compilation_exit_task_executed = true;
+            return true;
+        }
+        
+        concurrency::TaskType get_task_type() const override
+        {
+            return concurrency::TaskType::cpu;
+        }
+        
+    }m_deferred_shader_compilation_exit_task;
+        
+        
+    public:
+
+        DeferredPSOCompilationExitTask* deferredShaderCompilationExitTask()
+        {
+            return &m_deferred_shader_compilation_exit_task;
+        }
+
+        bool isDeferredShaderCompilationExitTaskExecuted() const
+        {
+            return m_deferred_compilation_exit_task_executed;
+        }
+
 
 };
 
@@ -1363,8 +1366,68 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
 
 
 
-    /*core::GlobalSettings const& global_settings = *m_globals.get<core::GlobalSettings>();
-    if (global_settings.isDeferredShaderCompilationOn())
+    core::GlobalSettings const& global_settings = *m_globals.get<core::GlobalSettings>();
+    if (global_settings.isDeferredPSOCompilationOn())
+    {
+        std::set<concurrency::TaskGraphNode*> compilation_tasks{};
+
+        {
+            for (tasks::GraphicsPSOCompilationTask* t : m_parsed_graphics_pso_compilation_tasks)
+                compilation_tasks.insert(t);
+
+            for (tasks::ComputePSOCompilationTask* t : m_parsed_compute_pso_compilation_tasks)
+                compilation_tasks.insert(t);
+        }
+
+        concurrency::TaskGraph pso_compilation_task_graph{ compilation_tasks, global_settings.getNumberOfWorkers(), "deferred_pso_compilation_task_graph" };
+        #ifdef LEXGINE_D3D12DEBUG
+        pso_compilation_task_graph.createDotRepresentation("deferred_pso_compilation_task_graph__" + getId().toString() + ".gv");
+        #endif
+
+        std::vector<std::ostream*> worker_log_streams = *m_globals.get<std::vector<std::ostream*>>();
+        concurrency::TaskSink task_sink{ pso_compilation_task_graph, worker_log_streams, 1, "pso_compilation_task_sink_" + getId().toString() };
+        m_impl->deferredShaderCompilationExitTask()->setInput(&task_sink);
+
+        try
+        {
+            task_sink.run();
+        }
+        catch (core::Exception& e)
+        {
+            std::string error_message = std::string{ "Unable to compile PSO blobs from XML description (" } +e.what() + "). See logs for further details";
+            misc::Log::retrieve()->out(error_message, misc::LogMessageType::error);
+            throw core::Exception{ *this, error_message };
+        }
+    }
+    else
+    {
+        for (auto t : m_parsed_graphics_pso_compilation_tasks)
+        {
+            t->execute(0);
+            if (t->getErrorState())
+            {
+                std::string error_message = std::string{ "Unable to compile graphics PSO blob for task \"" } + t->getCacheName() + "\" (" 
+                    + t->getErrorString() + "). See logs for further details.";
+                misc::Log::retrieve()->out(error_message, misc::LogMessageType::error);
+                throw core::Exception{ *this, error_message };
+            }
+        }
+
+        for (auto t : m_parsed_compute_pso_compilation_tasks)
+        {
+            t->execute(0);
+            if (t->getErrorState())
+            {
+                std::string error_message = std::string{ "Unable to compile compute PSO blob for task \"" } + t->getCacheName() + "\" (" 
+                    + t->getErrorString() + "). See logs for further details.";
+                misc::Log::retrieve()->out(error_message, misc::LogMessageType::error);
+                throw core::Exception{ *this, error_message };
+            }
+        }
+
+        m_impl->deferredShaderCompilationExitTask()->execute_manually();
+    }
+    /*if (global_settings.isDeferredShaderCompilationOn())
     {
         std::list<concurrency::TaskGraphNode*> compilation_tasks{ m_hlsl_compilation_task_cache.size() };
         std::transform(m_hlsl_compilation_task_cache.begin(), m_hlsl_compilation_task_cache.end(), compilation_tasks.begin(),
