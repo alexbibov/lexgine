@@ -13,6 +13,7 @@
 #include "lexgine/core/dx/dxcompilation/common.h"
 #include "lexgine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/pso_compilation_task.h"
+#include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 
 #include "pugixml.hpp"
 
@@ -832,6 +833,26 @@ public:
             lexgine::core::ShaderSourceCodePreprocessor::SourceType::file);
     }
 
+    tasks::RootSignatureCompilationTask* retrieveRootSignatureCompilationTask(pugi::xml_node& node)
+    {
+        std::string root_signature_name = node.attribute("root_signature_name").as_string("");
+        if (root_signature_name.length())
+        {
+            auto& rs_cache = m_parent.m_root_signature_compilation_task_cache.storage();
+            tasks::RootSignatureCompilationTask& target_task_ref =
+                *std::find_if(rs_cache.begin(), rs_cache.end(),
+                    [&root_signature_name](auto const& e) {return root_signature_name + "__ROOTSIGNATURE" == e.getCacheName(); });
+            return &target_task_ref;
+        }
+        else
+        {
+            // NOTE: in future, if root signature reference is not defined, create custom root signature compilation task
+            // based on shader reflexion. But currently, just throw exception
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "Pipeline state does not define root signature "
+                "reference. Root signature definition based on reflexion of shaders is currently not implemented");
+        }
+    }
+
     tasks::GraphicsPSOCompilationTask* parseGraphicsPSO(pugi::xml_node& node, uint32_t node_mask)
     { 
         GraphicsPSODescriptor currently_assembled_pso_descriptor{};
@@ -1182,23 +1203,25 @@ public:
         }
 
         // Define new PSO compilation task
-        tasks::GraphicsPSOCompilationTask* new_graphics_pso_compitlation_task{ nullptr };
+        tasks::GraphicsPSOCompilationTask* new_graphics_pso_compilation_task{ nullptr };
         {
             uint64_t uid = misc::HashedString{ pso_cache_name }.hash();
-            new_graphics_pso_compitlation_task = m_parent.m_pso_compilation_task_cache.addTask(
+            new_graphics_pso_compilation_task = m_parent.m_pso_compilation_task_cache.addTask(
                 m_parent.m_globals,
                 currently_assembled_pso_descriptor, 
                 pso_cache_name, 
                 uid);
             
-            new_graphics_pso_compitlation_task->setVertexShaderCompilationTask(p_vs_compilation_task);
-            if (p_hs_compilation_task) new_graphics_pso_compitlation_task->setHullShaderCompilationTask(p_hs_compilation_task);
-            if (p_ds_compilation_task) new_graphics_pso_compitlation_task->setDomainShaderCompilationTask(p_ds_compilation_task);
-            if (p_gs_compilation_task) new_graphics_pso_compitlation_task->setGeometryShaderCompilationTask(p_gs_compilation_task);
-            new_graphics_pso_compitlation_task->setPixelShaderCompilationTask(p_ps_compilation_task);
+            new_graphics_pso_compilation_task->setVertexShaderCompilationTask(p_vs_compilation_task);
+            if (p_hs_compilation_task) new_graphics_pso_compilation_task->setHullShaderCompilationTask(p_hs_compilation_task);
+            if (p_ds_compilation_task) new_graphics_pso_compilation_task->setDomainShaderCompilationTask(p_ds_compilation_task);
+            if (p_gs_compilation_task) new_graphics_pso_compilation_task->setGeometryShaderCompilationTask(p_gs_compilation_task);
+            new_graphics_pso_compilation_task->setPixelShaderCompilationTask(p_ps_compilation_task);
+
+            new_graphics_pso_compilation_task->setRootSignatureCompilationTask(retrieveRootSignatureCompilationTask(node));
         }
 
-        return new_graphics_pso_compitlation_task;
+        return new_graphics_pso_compilation_task;
     }
 
     tasks::ComputePSOCompilationTask* parseComputePSO(pugi::xml_node& node, uint32_t node_mask)
@@ -1221,6 +1244,7 @@ public:
                 pso_cache_name, 
                 uid);
             new_pso_compilation_task->setComputeShaderCompilationTask(p_cs_compilation_task);
+            new_pso_compilation_task->setRootSignatureCompilationTask(retrieveRootSignatureCompilationTask(node));
         }
 
         return new_pso_compilation_task;
@@ -1296,6 +1320,7 @@ private:
 
 lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& globals, std::string const& xml_source, bool deferred_shader_compilation, uint32_t node_mask) :
     m_globals{ globals },
+    m_root_signature_compilation_task_cache{ *globals.get<task_caches::RootSignatureCompilationTaskCache>() },
     m_hlsl_compilation_task_cache{ *globals.get<task_caches::HLSLCompilationTaskCache>() },
     m_pso_compilation_task_cache{ *globals.get<task_caches::PSOCompilationTaskCache>() },
     m_source_xml{ xml_source },

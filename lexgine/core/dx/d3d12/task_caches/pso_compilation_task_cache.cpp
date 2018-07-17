@@ -18,8 +18,10 @@ using namespace lexgine::core::dx::d3d12::task_caches;
 
 std::string PSOCompilationTaskCache::Key::toString() const
 {
-    return std::string{ "{NAME=" } +pso_cache_name + " UID=" + std::to_string(uid)
-        + " TYPE=" + (pso_type == PSOType::graphics ? "GRAPHICS}" : "COMPUTE}");
+    // Note: do not change, the naming is conventional
+
+    return std::string{ pso_cache_name + std::to_string(uid)
+        + (pso_type == PSOType::graphics ? "__GRAPHICSPSO" : "__COMPUTEPSO") };
 }
 
 void PSOCompilationTaskCache::Key::serialize(void* p_serialization_blob) const

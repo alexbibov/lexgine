@@ -20,9 +20,13 @@ using namespace lexgine::core::dx::dxcompilation;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks;
 
-namespace {
 
-std::pair<uint8_t, uint8_t> unpackShaderModelVersion(ShaderModel shader_model)
+std::string HLSLCompilationTask::getCacheName() const
+{
+    return m_key.toString();
+}
+
+std::pair<uint8_t, uint8_t> lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::unpackShaderModelVersion(ShaderModel shader_model)
 {
     uint8_t version_major = static_cast<uint8_t>((static_cast<unsigned short>(shader_model) >> 4) & 0xF);
     uint8_t version_minor = static_cast<uint8_t>(static_cast<unsigned short>(shader_model) & 0xF);
@@ -30,7 +34,7 @@ std::pair<uint8_t, uint8_t> unpackShaderModelVersion(ShaderModel shader_model)
     return std::make_pair(version_major, version_minor);
 }
 
-std::string shaderModelAndTypeToTargetName(ShaderModel shader_model, ShaderType shader_type)
+std::string lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::shaderModelAndTypeToTargetName(ShaderModel shader_model, ShaderType shader_type)
 {
     char target[7] = { 0 };
 
@@ -65,9 +69,6 @@ std::string shaderModelAndTypeToTargetName(ShaderModel shader_model, ShaderType 
     return target;
 }
 
-
-
-}
 
 
 HLSLCompilationTask::HLSLCompilationTask(task_caches::CombinedCacheKey const& key, misc::DateTime const& time_stamp,

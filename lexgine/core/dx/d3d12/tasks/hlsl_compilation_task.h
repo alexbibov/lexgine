@@ -58,6 +58,24 @@ public:
     //! Returns blob containing compiled shader byte code
     D3DDataBlob getTaskData() const;
 
+
+    /*!
+      Returns string name associated with HLSL compilation task in the shader cache.
+      The name follows convention provided below:
+            {<source_shader_path>}__{<hash_value>}__{<shader_type_and_shading_model>}
+      Note that naming for shader compilation task is different from PSO and root signature
+      compilation tasks and is not completely "predictable" since the hash value is generated
+      automatically when the compilation task is inserted into the cache. Therefore, this
+      function may only be used for reference or debugging purposes and the user should never
+      make any assumptions regarding how the final cache name for the shader compilation task will look.
+    */
+    std::string getCacheName() const;
+
+private:
+public:
+    static std::pair<uint8_t, uint8_t> unpackShaderModelVersion(dxcompilation::ShaderModel shader_model);
+    static std::string shaderModelAndTypeToTargetName(dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type);
+
 private:
     bool do_task(uint8_t worker_id, uint16_t frame_index) override;    //! performs actual compilation of the shader
     concurrency::TaskType get_task_type() const override;    //! returns type of this task (CPU)

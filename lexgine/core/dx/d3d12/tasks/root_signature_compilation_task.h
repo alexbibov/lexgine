@@ -19,6 +19,15 @@ public:
     D3DDataBlob const& getTaskData() const;    //! returns D3D data blob containing compiled root signature
     bool wasSuccessful() const;    //! returns 'true' if the task has completed successfully
     bool execute(uint8_t worker_id);    //! executes the task manually and returns 'true' if the task does not require rescheduling
+    
+    /*! returns string name associated with the root signature in root signature compilation task cache
+        The names are requried to follow special convention (note the '__ROOTSIGNATURE' suffix):
+
+            <user_defined_string_name><user_defined_numeric_id>__ROOTSIGNATURE
+
+        For example: forward_illumination_unshadowed_pass00__ROOTSIGNATURE
+    */
+    std::string getCacheName() const;    
 
 public:
     // required by SchedulableTask interface

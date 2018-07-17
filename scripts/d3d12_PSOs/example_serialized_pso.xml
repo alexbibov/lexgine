@@ -27,7 +27,8 @@ primitive_restart="FALSE"
 primitive_topology="TRIANGLE" 
 sample_mask="0xFFFFFFFF" 
 sample_count="1" 
-sample_quality="0"> 
+sample_quality="0"
+root_signature_name="SampleRootSignature"> 
 
 <!-- all shader declarations except vertex and pixel are optional. If not provided the PSO-from-XAML loader
 will not generate the corresponding shader blobs for the PSO descriptor it produces. Each shader entry
