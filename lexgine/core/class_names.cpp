@@ -34,5 +34,6 @@ extern char const HLSLCompilationTaskCache[] = "lexgine::core::dx::d3d12::task_c
 extern char const PSOCompilationTaskCache[] = "lexgine::core::dx::d3d12::task_caches::PSOCompilationTaskCache";
 extern char const RootSignatureCompilationTaskCache[] = "lexgine::core::dx::d3d12::task_caches::RootSignatureCompilationTaskCache";
 extern char const Dummy[] = "lexgine::core::Dummy";
+extern char const RootSignatureCache[] = "lexgine::core::dx::d3d12::RootSignatureCache";
 
 }}}

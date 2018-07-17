@@ -55,6 +55,10 @@ public:
     */
     bool addDependent(TaskGraphNode& task);    
 
+
+protected:
+    void forceUndone();    //! forces the task to appear as incompleted
+
 private:
     uint32_t m_id;    //!< identifier of the node
     AbstractTask* m_contained_task;    //!< task contained by the node

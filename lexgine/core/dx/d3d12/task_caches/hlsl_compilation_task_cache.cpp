@@ -19,6 +19,24 @@ using namespace lexgine::core::dx::d3d12::task_caches;
 using namespace lexgine::core::dx::d3d12::tasks;
 
 
+namespace {
+
+uint64_t hashStringifiedDefines(std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions)
+{
+    std::string rv{};
+    {
+        rv += "DEFINES={";
+        for (auto const& def : macro_definitions)
+            rv += "{NAME=" + def.name + ", VALUE=" + def.value + "}, ";
+        rv += "}";
+    }
+
+    return misc::HashedString{ rv }.hash();
+}
+
+}
+
+
 std::string HLSLCompilationTaskCache::Key::toString() const
 {
     // Note: do not change, the returned string is conventional
@@ -89,13 +107,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::addTask(core::Globals& glo
     bool force_ieee_standard, bool treat_warnings_as_errors, bool enable_validation,
     bool enable_debug_information, bool enable_16bit_types)
 {
-    std::string stringified_defines{};
-    {
-        stringified_defines += "DEFINES={";
-        for (auto const& def : macro_definitions)
-            stringified_defines += "{NAME=" + def.name + ", VALUE=" + def.value + "}, ";
-        stringified_defines += "}";
-    }
+    uint64_t hash_value = hashStringifiedDefines(macro_definitions);
 
     std::string hlsl_source_code{};
     misc::Optional<misc::DateTime> timestamp{};
@@ -133,7 +145,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::addTask(core::Globals& glo
         key = Key{ path_to_shader, 
             static_cast<unsigned short>(shader_type),
             static_cast<unsigned short>(shader_model), 
-            misc::HashedString{ stringified_defines }.hash() };
+            hash_value };
     }
     else
     {
@@ -142,7 +154,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::addTask(core::Globals& glo
         key = Key{ source_name,
             static_cast<unsigned short>(shader_type),
             static_cast<unsigned short>(shader_model),
-            misc::HashedString{ stringified_defines }.hash() };
+            hash_value };
     }
     CombinedCacheKey combined_key{ key };
 

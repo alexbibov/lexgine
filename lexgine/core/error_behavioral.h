@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_ERROR_BEHAVIORAL_H
+#define LEXGINE_CORE_ERROR_BEHAVIORAL_H
 
 #include <string>
 #include <sstream>
@@ -64,6 +65,4 @@ protected:
 
 }}
 
-
-#define LEXGINE_CORE_ERROR_BEHAVIORAL_H
 #endif

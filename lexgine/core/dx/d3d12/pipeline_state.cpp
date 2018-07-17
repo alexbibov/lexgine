@@ -26,15 +26,11 @@ D3DDataBlob PipelineState::getCache() const
     return D3DDataBlob{ p_blob };
 }
 
-PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_signature, GraphicsPSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso):
+PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
+    GraphicsPSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso):
     m_device{ device }
 {
-    ComPtr<ID3D12RootSignature> root_signature = device.createRootSignature(serialized_root_signature, pso_descriptor.node_mask);
-
-    #ifdef D3D12DEBUG
-    root_signature->SetName(misc::asciiStringToWstring(getStringName() + "_root_signature").c_str());
-    #endif
-
+    ComPtr<ID3D12RootSignature> root_signature = device.createRootSignature(serialized_root_signature, root_signature_friendly_name, pso_descriptor.node_mask);
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC desc;
 
@@ -185,7 +181,7 @@ PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_
     if (cached_pso)
         desc.CachedPSO = D3D12_CACHED_PIPELINE_STATE{ cached_pso.data(), cached_pso.size() };
 
-    #ifdef D3D12DEBUG
+    #ifdef LEXGINE_D3D12DEBUG
     desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG;
     #else
     desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
@@ -202,30 +198,21 @@ PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_
     // delete[] p_input_element_descs;
 }
 
-PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_signature, ComputePSODescriptor const & pso_descriptor, D3DDataBlob const& cached_pso):
+PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
+    ComputePSODescriptor const & pso_descriptor, D3DDataBlob const& cached_pso):
     m_device{ device }
 {
-    ID3D12RootSignature* p_root_signature;
-    LEXGINE_LOG_ERROR_IF_FAILED(
-        this,
-        m_device.native()->CreateRootSignature(pso_descriptor.node_mask, serialized_root_signature.data(), serialized_root_signature.size(), __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(&p_root_signature)),
-        S_OK
-    );
-
-    #ifdef D3D12DEBUG
-    p_root_signature->SetName(misc::asciiStringToWstring(getStringName()+"_root_signature").c_str());
-    #endif
-
+    ComPtr<ID3D12RootSignature> root_signature = device.createRootSignature(serialized_root_signature, root_signature_friendly_name, pso_descriptor.node_mask);
 
     D3D12_COMPUTE_PIPELINE_STATE_DESC desc;
-    desc.pRootSignature = p_root_signature;
+    desc.pRootSignature = root_signature.Get();
     desc.CS = D3D12_SHADER_BYTECODE{ pso_descriptor.compute_shader.data(), pso_descriptor.compute_shader.size() };
     desc.NodeMask = pso_descriptor.node_mask;
 
     if (cached_pso)
         desc.CachedPSO = D3D12_CACHED_PIPELINE_STATE{ cached_pso.data(), cached_pso.size() };
 
-    #ifdef D3D12DEBUG
+    #ifdef LEXGINE_D3D12DEBUG
     desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG;
     #else
     desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
@@ -236,11 +223,9 @@ PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_
         m_device.native()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&m_pipeline_state)), 
         S_OK
     );
-
-    p_root_signature->Release();
 }
 
-void PipelineState::setStringName(std::string const & entity_string_name)
+void PipelineState::setStringName(std::string const& entity_string_name)
 {
     Entity::setStringName(entity_string_name);
     m_pipeline_state->SetName(misc::asciiStringToWstring(entity_string_name).c_str());

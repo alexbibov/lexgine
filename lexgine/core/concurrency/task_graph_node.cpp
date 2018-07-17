@@ -70,3 +70,8 @@ bool TaskGraphNode::addDependent(TaskGraphNode& task)
     m_dependents.insert(&task);
     return task.m_dependencies.insert(this).second;
 }
+
+void TaskGraphNode::forceUndone()
+{
+    m_is_completed.store(false, std::memory_order_release);
+}
