@@ -157,6 +157,7 @@ bool GraphicsPSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index
         m_resulting_pipeline_state.reset(new PipelineState{
             m_device,
             m_associated_root_signature->getTaskData(),
+            getCacheName(),
             m_descriptor, precached_pso_blob });
 
         if (!precached_pso_blob)
@@ -241,6 +242,7 @@ bool ComputePSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         m_resulting_pipeline_state.reset(new PipelineState{
             m_device,
             m_associated_root_signature->getTaskData(),
+            getCacheName(),
             m_descriptor, precached_pso_blob });
 
         if (!precached_pso_blob)

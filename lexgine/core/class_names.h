@@ -34,6 +34,7 @@ extern char const HLSLCompilationTaskCache[];
 extern char const PSOCompilationTaskCache[];
 extern char const RootSignatureCompilationTaskCache[];
 extern char const Dummy[];
+extern char const RootSignatureCache[];
 }}}
 
 #define LEXGINE_CORE_CLASS_NAMES_CLASS_NAMES_H

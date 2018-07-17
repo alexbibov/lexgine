@@ -5,7 +5,8 @@ using namespace lexgine::core::dx::d3d12;
 
 
 Device::Device(ComPtr<ID3D12Device> const& device) :
-    m_device{ device }
+    m_device{ device },
+    m_rs_cache{ *this }
 {
 
 }
@@ -128,20 +129,9 @@ void Device::setStringName(std::string const & entity_string_name)
     );
 }
 
-ComPtr<ID3D12RootSignature> Device::createRootSignature(lexgine::core::D3DDataBlob const& serialized_root_signature, uint32_t node_mask) const
+ComPtr<ID3D12RootSignature> Device::createRootSignature(lexgine::core::D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name, uint32_t node_mask)
 {
-    ComPtr<ID3D12RootSignature> rs{};
-    LEXGINE_THROW_ERROR_IF_FAILED(
-        this,
-        m_device->CreateRootSignature(node_mask, serialized_root_signature.data(), serialized_root_signature.size(), IID_PPV_ARGS(&rs)),
-        S_OK
-    );
-    LEXGINE_THROW_ERROR_IF_FAILED(
-        this,
-        rs->SetName(misc::asciiStringToWstring("device_" + getStringName() + "_root_signature").c_str()),
-        S_OK
-    );
-    return rs;
+    return m_rs_cache.findOrCreate(root_signature_friendly_name, node_mask, serialized_root_signature);
 }
 
 Fence Device::createFence(bool is_shared)

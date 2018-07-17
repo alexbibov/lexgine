@@ -13,8 +13,8 @@ namespace lexgine {namespace core {namespace dx {namespace d3d12 {
 //! Implements debug features for Direct3D 12. The proper usage assumes that application should have only
 //! one instance of this class maintained in the application's main thread.
 //! In addition, every API provided by this class has to perform nothing when the code is compiled with
-//! D3D12DEBUG switch off. DebugInterface::retrieve() on the other hand DOES instantiate the object even
-//! when D3D12DEBUG is off, but all the APIs provided on the instance level do nothing
+//! LEXGINE_D3D12DEBUG switch off. DebugInterface::retrieve() on the other hand DOES instantiate the object even
+//! when LEXGINE_D3D12DEBUG is off, but all the APIs provided on the instance level do nothing
 class DebugInterface final : public NamedEntity<class_names::D3D12DebugInterface>
 {
 public:

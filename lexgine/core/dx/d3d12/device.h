@@ -13,6 +13,7 @@
 #include "fence.h"
 #include "descriptor_heap.h"
 #include "heap.h"
+#include "root_signature_cache.h"
 
 using namespace Microsoft::WRL;
 
@@ -161,7 +162,7 @@ public:
 
     void setStringName(std::string const& entity_string_name);	//! sets new user-friendly string name for the Direct3D 12 device
 
-    ComPtr<ID3D12RootSignature> createRootSignature(D3DDataBlob const& serialized_root_signature, uint32_t node_mask = 0) const;    //! creates native Direct3D 12 root signature interface based on serialized root signature data. THROWS
+    ComPtr<ID3D12RootSignature> createRootSignature(D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name, uint32_t node_mask = 0);    //! creates native Direct3D 12 root signature interface based on serialized root signature data. THROWS
 
     Fence createFence(bool is_shared = false);    //! creates synchronization fence
 
@@ -184,8 +185,10 @@ public:
 private:
     Device(ComPtr<ID3D12Device> const& device);
 
-
+private:
     ComPtr<ID3D12Device> m_device;    //!< encapsulated pointer to Direct3D12 device interface
+    RootSignatureCache m_rs_cache;    //!< cached root signatures
+
 };
 
 }}}}

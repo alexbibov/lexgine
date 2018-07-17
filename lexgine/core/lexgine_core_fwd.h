@@ -7,6 +7,7 @@ class AbstractVertexAttributeSpecification;
 class BlendDescriptor;
 class DataBlob;
 class DataChunk;
+class D3DDataBlob;
 class DepthStencilDescriptor;
 class Entity;
 class ErrorBehavioral;

@@ -180,7 +180,6 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
             m_should_recompile = cached_time_stamp < m_time_stamp;
         }
 
-
         if (!m_should_recompile)
         {
             // Attempt to use cached version of the shader

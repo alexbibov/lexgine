@@ -94,8 +94,11 @@ public:
     Device& device() const;    //! returns device interface used to create this PSO object
     D3DDataBlob getCache() const;    //! returns cached PSO packed into data blob
 
-    PipelineState(Device& device, D3DDataBlob const& serialized_root_signature, GraphicsPSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso = nullptr);    //! initializes graphics PSO
-    PipelineState(Device& device, D3DDataBlob const& serialized_root_signature, ComputePSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso = nullptr);    //! initializes compute PSO
+    PipelineState(Device& device, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
+        GraphicsPSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso = nullptr);    //! initializes graphics PSO
+
+    PipelineState(Device& device, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
+        ComputePSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso = nullptr);    //! initializes compute PSO
 
     PipelineState(PipelineState const&) = delete;
     PipelineState(PipelineState&&) = default;
