@@ -396,7 +396,7 @@ lower-level Direct3D rendering backend.
 Each compute PSO has only single string attribute that defines user-friendly name of the PSO. Even this attribute is optional and if
 not provided the system will supply automatically generated value.
 -->
-<ComputePSO name="SampleComputePSO">
+<ComputePSO name="SampleComputePSO" root_signature_name="SampleRootSignature0">
 
 <!--
 Compute PSOs must contain single ComputeShader declaration identifying compute routine assosiated with the PSO. If several declarations

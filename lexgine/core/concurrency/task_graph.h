@@ -1,7 +1,7 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_TASK_GRAPH
 
 #include "task_graph_node.h"
-#include "../class_names.h"
+#include "lexgine/core/class_names.h"
 
 #include <iterator>
 
