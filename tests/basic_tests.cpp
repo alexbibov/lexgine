@@ -483,12 +483,13 @@ public:
                 op2.addDependent(op5);
                 op5.addDependent(op7);
                 op7.addDependent(op9);
-                op9.addDependent(op11);
 
                 op3.addDependent(op6);
                 op4.addDependent(op6);
                 op6.addDependent(op8);
                 op8.addDependent(op10);
+
+                op9.addDependent(op11);
                 op10.addDependent(op11);
 
                 op11.addDependent(exit);

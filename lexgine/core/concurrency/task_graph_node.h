@@ -1,7 +1,7 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_TASK_GRAPH_NODE_H
 
-#include "../entity.h"
-#include "../misc/optional.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/misc/optional.h"
 #include "ring_buffer_task_queue.h"
 
 #include <set>
