@@ -1,5 +1,5 @@
 {
-    "number_of_workers" : 8,
+    "number_of_workers" : 1,
     "deferred_shader_compilation" : true,
 	"deferred_pso_compilation" : true,
 	"deferred_root_signature_compilation" : true,

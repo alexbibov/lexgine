@@ -158,6 +158,7 @@ using RootSignatureFlags = misc::Flags<__tag::tagRootSignatureFlags>;
 class RootSignature final : public NamedEntity<class_names::D3D12RootSignature>
 {
 public:
+    RootSignature() = default;
     RootSignature(RootSignature const&) = delete;
     RootSignature(RootSignature&&) = default;
     RootSignature& operator=(RootSignature const&) = delete;
