@@ -12,6 +12,10 @@
 #include "../lexgine/core/dx/d3d12/d3d12_pso_xml_parser.h"
 #include "../lexgine/core/streamed_cache.h"
 
+#include "lexgine/core/dx/d3d12/task_caches/combined_cache_key.h"
+#include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
+#include "lexgine/core/dx/d3d12/task_caches/root_signature_compilation_task_cache.h"
+
 #pragma warning(push)
 #pragma warning(disable : 4307)    // this is needed to suppress the warning caused by the static hash function
 
@@ -528,7 +532,23 @@ public:
 
             {
                 auto content = readAsciiTextFromSourceFile("../../scripts/d3d12_PSOs/example_serialized_pso.xml");
-                D3D12PSOXMLParser xml_parser{ lexgine_init.globals(), content };
+                
+
+                auto& globals = lexgine_init.globals();
+                {
+                    RootEntryDescriptorTable table0{};
+                    table0.addRange(RootEntryDescriptorTable::RangeType::cbv, 1, 0, 0, 0);
+
+                    RootSignature rs{};
+                    rs.addParameter(0, table0, ShaderVisibility::all);
+
+                    auto& rs_compilation_tasks_cache = *globals.get<task_caches::RootSignatureCompilationTaskCache>();
+                    rs_compilation_tasks_cache.addTask(globals, std::move(rs),
+                        RootSignatureFlags::enum_type::none, "SampleRootSignature", 0);
+                }
+                
+                
+                D3D12PSOXMLParser xml_parser{ globals, content };
             }
 
         }
