@@ -125,6 +125,11 @@ TaskGraph::const_iterator TaskGraph::end() const
 void TaskGraph::parse()
 {
     using iterator_type = TaskGraphNode::set_of_nodes_type::const_iterator;
+    
+
+
+#ifdef 0
+    using iterator_type = TaskGraphNode::set_of_nodes_type::const_iterator;
     std::list<std::pair<iterator_type, iterator_type>> traversal_stack;
 
     traversal_stack.push_back(std::make_pair(m_root_nodes.begin(), m_root_nodes.end()));
@@ -218,6 +223,7 @@ void TaskGraph::parse()
     // reset visit flag of the source nodes
     for (auto p_node : source_node_list)
         TaskGraphNodeAttorney<TaskGraph>::resetNodeVisitFlag(*p_node);
+#endif
 }
 
 void TaskGraph::set_frame_index(uint16_t frame_index)

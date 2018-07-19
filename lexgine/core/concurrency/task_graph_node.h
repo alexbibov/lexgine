@@ -28,7 +28,7 @@ public:
 
 public:
     TaskGraphNode(AbstractTask& task);    //! creates task graph node encapsulating given task
-    TaskGraphNode(AbstractTask&task, uint32_t id);    //! creates task graph node, which encapsulates the given task and has provided identifier
+
     TaskGraphNode(TaskGraphNode const& other) = delete;
     TaskGraphNode(TaskGraphNode&&) = default;
 
@@ -36,6 +36,8 @@ public:
     TaskGraphNode& operator=(TaskGraphNode&&) = default;
 
     virtual ~TaskGraphNode() = default;
+
+    virtual bool operator==(TaskGraphNode const& other) const;
 
     /*! executes the task assigned to this node. This function returns 'true' if execution of the task has been 
      completed and the task is allowed to be removed from the execution queue. If the task has been rescheduled for
@@ -50,21 +52,29 @@ public:
     bool isReadyToLaunch() const;    //! returns 'true' if all of this task's dependencies have been executed and the task is ready to launch
 
     /*! adds a task that depends on this task, i.e. provided task can only begin execution when this task is completed.
-     Returns 'true' if specified dependency has been added successfully; returns 'false' if this dependency has already been
-     declared for the node
+     Returns 'true' if the specified dependent task has been added successfully; returns 'false' if this dependent task has already been added to this node
     */
     bool addDependent(TaskGraphNode& task);    
 
+    /*! adds dependency for this task graph node, i.e. the dependency is a task that must be completed BEFORE this task is run.
+     Returns 'true' if provided dependency has been added for this node; returns 'false' if the dependency already exists.
+    */
+    bool addDependency(TaskGraphNode& task);
+
+    //! retrieves index of the frame, to which this node belongs
+    uint16_t frameIndex() const;
 
 protected:
-    void forceUndone();    //! forces the task to appear as incompleted
+    void forceUndone();    //! forces the task to appear as uncompleted
 
 private:
-    uint32_t m_id;    //!< identifier of the node
+    TaskGraphNode(AbstractTask& task, uint64_t id);
+
+private:
+    uint64_t m_id;    //!< identifier of the node
     AbstractTask* m_contained_task;    //!< task contained by the node
     std::atomic_bool m_is_completed;    //!< equals 'true' if the task was completed. Equals 'false' otherwise
     bool m_is_scheduled;    //!< equals true if the node has already been scheduled, equals 'false' otherwise
-    uint32_t m_visit_flag;    //!< determines how many time the node has been visited during task graph traversal (0:not visited; 1:visited once, 2:visited more than once)
     uint16_t m_frame_index;   //!< index of the frame, to which the task container belongs
 
     set_of_nodes_type m_dependencies;    //!< dependencies of this task. This task cannot run before all of its dependencies are executed
@@ -75,30 +85,19 @@ template<> class TaskGraphNodeAttorney<TaskGraph>
 {
     friend class TaskGraph;
 
-private:
-    static inline unsigned char getNodeVisitFlag(TaskGraphNode const& parent_task_graph_node)
+    static inline TaskGraphNode cloneNode(uint16_t frame_index)
     {
-        return parent_task_graph_node.m_visit_flag;
+        // CONTINUE FROM HERE
     }
 
-    static inline void incrementNodeVisitFlag(TaskGraphNode& parent_task_graph_node)
-    {
-        ++parent_task_graph_node.m_visit_flag;
-    }
-
-    static inline void resetNodeVisitFlag(TaskGraphNode& parent_task_graph_node)
-    {
-        parent_task_graph_node.m_visit_flag = false;
-    }
-
-    static inline void setNodeFrameIndex(TaskGraphNode& parent_task_graph_node, uint16_t frame_index_value)
-    {
-        parent_task_graph_node.m_frame_index = frame_index_value;
-    }
-
-    static inline std::set<TaskGraphNode*> const& getDependentNodes(TaskGraphNode const& parent_task_graph_node)
+    static inline std::set<TaskGraphNode*> const& getDependents(TaskGraphNode const& parent_task_graph_node)
     {
         return parent_task_graph_node.m_dependents;
+    }
+
+    static inline std::set<TaskGraphNode*> const& getDependencies(TaskGraphNode const& parent_task_graph_node)
+    {
+        return parent_task_graph_node.m_dependencies;
     }
 
     static inline AbstractTask* getContainedTask(TaskGraphNode const& parent_task_graph_node)
@@ -106,20 +105,9 @@ private:
         return parent_task_graph_node.m_contained_task;
     }
 
-    static inline uint32_t getNodeId(TaskGraphNode const& parent_task_graph_node)
-    {
-        return parent_task_graph_node.m_id;
-    }
-
-    static inline bool areNodesEqual(TaskGraphNode const& node1, TaskGraphNode const& node2)
-    {
-        return node1.m_id == node2.m_id;
-    }
-
     static inline void resetNodeCompletionStatus(TaskGraphNode& parent_task_graph_node)
     {
-        parent_task_graph_node.m_is_completed = false;
-        parent_task_graph_node.m_is_scheduled = false;
+        parent_task_graph_node.forceUndone();
     }
 };
 

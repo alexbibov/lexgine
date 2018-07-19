@@ -7,30 +7,28 @@ using namespace lexgine::core::concurrency;
 
 
 namespace {
-static uint32_t id_counter = 0U;
+static uint64_t id_counter = 0U;
 }
 
-
-TaskGraphNode::TaskGraphNode(AbstractTask& task) :
-    m_id{ ++id_counter },
-    m_contained_task{ &task },
-    m_is_completed{ false },
-    m_is_scheduled{ false },
-    m_visit_flag{ 0U },
-    m_frame_index{ 0U }
-{
-
-}
-
-TaskGraphNode::TaskGraphNode(AbstractTask& task, uint32_t id):
+TaskGraphNode::TaskGraphNode(AbstractTask& task, uint64_t id) :
     m_id{ id },
     m_contained_task{ &task },
     m_is_completed{ false },
     m_is_scheduled{ false },
-    m_visit_flag{ 0U },
     m_frame_index{ 0U }
 {
 
+}
+
+TaskGraphNode::TaskGraphNode(AbstractTask& task) :
+    TaskGraphNode{ task, ++id_counter }
+{
+
+}
+
+bool lexgine::core::concurrency::TaskGraphNode::operator==(TaskGraphNode const& other) const
+{
+    return m_id == other.m_id;
 }
 
 bool TaskGraphNode::execute(uint8_t worker_id)
@@ -71,7 +69,19 @@ bool TaskGraphNode::addDependent(TaskGraphNode& task)
     return task.m_dependencies.insert(this).second;
 }
 
+bool TaskGraphNode::addDependency(TaskGraphNode& task)
+{
+    m_dependencies.insert(&task);
+    return task.m_dependents.insert(this).second;
+}
+
+uint16_t TaskGraphNode::frameIndex() const
+{
+    return m_frame_index;
+}
+
 void TaskGraphNode::forceUndone()
 {
     m_is_completed.store(false, std::memory_order_release);
+    m_is_scheduled = false;
 }
