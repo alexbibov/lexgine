@@ -53,7 +53,7 @@ void HLSLCompilationTaskCache::Key::serialize(void* p_serialization_blob) const
     uint8_t* ptr{ static_cast<uint8_t*>(p_serialization_blob) };
 
     strcpy_s(reinterpret_cast<char*>(ptr), max_string_section_length_in_bytes, source_path); ptr += max_string_section_length_in_bytes;
-    
+
     memcpy(ptr, &shader_type, sizeof(shader_type)); ptr += sizeof(shader_type);
     memcpy(ptr, &shader_model, sizeof(shader_model)); ptr += sizeof(shader_model);
     memcpy(ptr, &hash_value, sizeof(hash_value));
@@ -64,7 +64,7 @@ void HLSLCompilationTaskCache::Key::deserialize(void const* p_serialization_blob
     uint8_t const* ptr{ static_cast<uint8_t const*>(p_serialization_blob) };
 
     strcpy_s(source_path, max_string_section_length_in_bytes, reinterpret_cast<char const*>(ptr)); ptr += max_string_section_length_in_bytes;
-    
+
     memcpy(&shader_type, ptr, sizeof(shader_type)); ptr += sizeof(shader_type);
     memcpy(&shader_model, ptr, sizeof(shader_model)); ptr += sizeof(shader_model);
     memcpy(&hash_value, ptr, sizeof(hash_value));

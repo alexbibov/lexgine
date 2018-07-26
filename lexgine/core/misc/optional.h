@@ -79,7 +79,9 @@ public:
 
         if (m_is_valid && other.m_is_valid)
         {
-            *reinterpret_cast<T*>(m_value) = std::move(*reinterpret_cast<T*>(other.m_value));
+            T& this_ptr = *reinterpret_cast<T*>(m_value);
+            T& other_ptr = *reinterpret_cast<T*>(other.m_value);
+            this_ptr = std::move(other_ptr);
         }
         else if (!other.m_is_valid)
         {
