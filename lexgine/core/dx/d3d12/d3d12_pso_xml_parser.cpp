@@ -1369,17 +1369,37 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
     core::GlobalSettings const& global_settings = *m_globals.get<core::GlobalSettings>();
     if (global_settings.isDeferredPSOCompilationOn())
     {
-        std::set<concurrency::TaskGraphNode*> compilation_tasks{};
+        std::set<concurrency::TaskGraphRootNode const*> root_tasks{};
 
         {
             for (tasks::GraphicsPSOCompilationTask* t : m_parsed_graphics_pso_compilation_tasks)
-                compilation_tasks.insert(t);
+            {
+                concurrency::TaskGraphRootNode* vs_task_ptr = ROOT_NODE_CAST(t->getVertexShaderCompilationTask());
+                concurrency::TaskGraphRootNode* hs_task_ptr = ROOT_NODE_CAST(t->getHullShaderCompilationTask());
+                concurrency::TaskGraphRootNode* ds_task_ptr = ROOT_NODE_CAST(t->getDomainShaderCompilationTask());
+                concurrency::TaskGraphRootNode* gs_task_ptr = ROOT_NODE_CAST(t->getGeometryShaderCompilationTask());
+                concurrency::TaskGraphRootNode* ps_task_ptr = ROOT_NODE_CAST(t->getPixelShaderCompilationTask());
+                concurrency::TaskGraphRootNode* root_signature_task_ptr = ROOT_NODE_CAST(t->getRootSignatureCompilationTask());
+
+                if (vs_task_ptr) root_tasks.insert(vs_task_ptr);
+                if (hs_task_ptr) root_tasks.insert(hs_task_ptr);
+                if (ds_task_ptr) root_tasks.insert(ds_task_ptr);
+                if (gs_task_ptr) root_tasks.insert(gs_task_ptr);
+                if (ps_task_ptr) root_tasks.insert(ps_task_ptr);
+                if (root_signature_task_ptr) root_tasks.insert(root_signature_task_ptr);
+            }
 
             for (tasks::ComputePSOCompilationTask* t : m_parsed_compute_pso_compilation_tasks)
-                compilation_tasks.insert(t);
+            {
+                concurrency::TaskGraphRootNode* cs_task_ptr = ROOT_NODE_CAST(t->getComputeShaderCompilationTask());
+                concurrency::TaskGraphRootNode* root_signature_task_ptr = ROOT_NODE_CAST(t->getRootSignatureCompilationTask());
+
+                if (cs_task_ptr) root_tasks.insert(cs_task_ptr);
+                if (root_signature_task_ptr) root_tasks.insert(root_signature_task_ptr);
+            }
         }
 
-        concurrency::TaskGraph pso_compilation_task_graph{ compilation_tasks, global_settings.getNumberOfWorkers(), "deferred_pso_compilation_task_graph" };
+        concurrency::TaskGraph pso_compilation_task_graph{ root_tasks, global_settings.getNumberOfWorkers(), "deferred_pso_compilation_task_graph" };
         #ifdef LEXGINE_D3D12DEBUG
         pso_compilation_task_graph.createDotRepresentation("deferred_pso_compilation_task_graph__" + getId().toString() + ".gv");
         #endif

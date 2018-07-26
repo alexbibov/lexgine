@@ -37,8 +37,8 @@ private:
 
 
 
-TaskSink::TaskSink(TaskGraph const& source_task_graph, std::vector<std::ostream*> const& worker_thread_logging_streams, uint16_t max_frames_to_queue, std::string const& debug_name):
-    m_task_graphs(max_frames_to_queue),
+TaskSink::TaskSink(TaskGraph const& source_task_graph, std::vector<std::ostream*> const& worker_thread_logging_streams, 
+    uint16_t max_frames_to_queue, std::string const& debug_name):
     m_task_graph_execution_busy_vector(max_frames_to_queue),
     m_exit_signal{ false },
     m_exit_level{ 0U },
@@ -48,17 +48,16 @@ TaskSink::TaskSink(TaskGraph const& source_task_graph, std::vector<std::ostream*
 {
     setStringName(debug_name);
 
+    for (uint16_t i = 0; i < max_frames_to_queue; ++i)
+    {
+        m_task_graphs.push_back(TaskGraphAttorney<TaskSink>::cloneTaskGraphForFrame(source_task_graph, i));
+        m_task_graphs.back().injectDependentNode(*m_task_graph_end_execution_guarding_task);
+        std::atomic_init(&m_task_graph_execution_busy_vector[i], false);
+    }
+
     for (uint8_t i = 0; i < source_task_graph.getNumberOfWorkerThreads(); ++i)
     {
         m_workers_list.push_back(std::make_pair(std::thread{}, i < worker_thread_logging_streams.size() ? worker_thread_logging_streams[i] : nullptr));
-    }
-
-    for (uint16_t i = 0; i < max_frames_to_queue; ++i)
-    {
-        m_task_graphs[i].setRootNodes(TaskGraphAttorney<TaskSink>::getTaskGraphRootNodeList(source_task_graph));
-        TaskGraphAttorney<TaskSink>::setTaskGraphFrameIndex(m_task_graphs[i], i);
-        m_task_graphs[i].injectDependentTask(*m_task_graph_end_execution_guarding_task);
-        std::atomic_init(&m_task_graph_execution_busy_vector[i], false);
     }
 }
 
@@ -84,7 +83,7 @@ void TaskSink::run()
         for (uint16_t i = 0; i < m_task_graph_execution_busy_vector.size(); ++i)
         {
             // if exit signal was not dispatched try to start new concurrent frame 
-            register bool false_val = false;
+            bool false_val = false;
             if (!exit_signal && m_task_graph_execution_busy_vector[i].compare_exchange_strong(false_val, true, std::memory_order_acq_rel))
             {
                 TaskGraphAttorney<TaskSink>::resetTaskGraphCompletionStatus(m_task_graphs[i]);
@@ -92,10 +91,10 @@ void TaskSink::run()
             }
 
             // try to put more tasks into the task queue
-            for (auto task : m_task_graphs[i])
+            for (auto& task : m_task_graphs[i])
             {
-                if (!task->isCompleted() && task->isReadyToLaunch())
-                    task->schedule(m_task_queue);
+                if (!task.isCompleted() && task.isReadyToLaunch())
+                    task.schedule(m_task_queue);
             }
         }
     }

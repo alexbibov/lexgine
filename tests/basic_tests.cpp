@@ -343,7 +343,10 @@ public:
                 Head.addDependent(F);
 
 
-                TaskGraph testGraph{ std::set<TaskGraphNode*>{&Head, &F, &A} };
+                TaskGraph testGraph{ std::set<TaskGraphRootNode const*>{
+                    ROOT_NODE_CAST(&Head),
+                    ROOT_NODE_CAST(&F),
+                    ROOT_NODE_CAST(&A) } };
                 if (testGraph.getErrorState())
                 {
                     Assert::Fail(lexgine::core::misc::asciiStringToWstring(testGraph.getErrorString()).c_str());
@@ -494,7 +497,10 @@ public:
 
                 op11.addDependent(exit);
 
-                TaskGraph taskGraph(std::set<TaskGraphNode*>{&op1, &op2, &op3, &op4});
+                
+                TaskGraph taskGraph(std::set<TaskGraphRootNode const*>{
+                    ROOT_NODE_CAST(&op1), ROOT_NODE_CAST(&op2), 
+                        ROOT_NODE_CAST(&op3), ROOT_NODE_CAST(&op4) });
                 taskGraph.createDotRepresentation("task_graph.gv");
 
                 TaskSink taskSink{ taskGraph, worker_thread_logs, 1 };
@@ -703,7 +709,13 @@ public:
                             keys.push_back(e.cache_entry_key.value);
 
                         std::vector<uint64_t> deletion_keys(num_deletions_per_iter);
-                        std::random_shuffle(keys.begin(), keys.end());
+
+                        {
+                            std::random_device rng{};
+                            std::mt19937 urng{ rng() };
+                            std::shuffle(keys.begin(), keys.end(), urng);
+                        }
+
                         std::copy(keys.begin(), keys.begin() + deletion_keys.size(), deletion_keys.begin());
 
                         std::uniform_int_distribution<uint64_t> w_distribution{ 0, num_chunks + initial_cache_redundancy - 1 };

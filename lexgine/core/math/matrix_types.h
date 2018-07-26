@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_MATH_MATRIX_TYPES_H
+#define LEXGINE_CORE_MATH_MATRIX_TYPES_H
 
 #include "vector_types.h"
 
@@ -16,8 +17,8 @@ class abstract_matrix
 {
     template<typename P, uint32_t, uint32_t> friend class abstract_matrix;
 public:
-    typedef std::array<T, nrows*ncolumns> data_storage_type;
-    typedef T value_type;
+    using data_storage_type = std::array<T, nrows*ncolumns>;
+    using value_type = T;
     static const uint32_t num_rows = nrows;
     static const uint32_t num_columns = ncolumns;
 
@@ -395,11 +396,11 @@ public:
 
 //Specialization used by square matrices
 template<typename T, uint32_t dim>
-class concrete_matrix<T, dim, dim> :public abstract_matrix<T, dim, dim>
+class concrete_matrix<T, dim, dim> : public abstract_matrix<T, dim, dim>
 {
 public:
     concrete_matrix() : abstract_matrix() {}
-    explicit concrete_matrix(data_storage_type data) : abstract_matrix(data) {}
+    explicit concrete_matrix(typename abstract_matrix::data_storage_type data) : abstract_matrix(data) {}
     concrete_matrix(T val) : abstract_matrix(val) {}
 
     //computes determinant of the matrix
@@ -497,7 +498,7 @@ class shader_matrix_type<T, 4, 4> : public concrete_matrix<T, 4, 4>
 public:
     shader_matrix_type() : concrete_matrix() {}
 
-    explicit shader_matrix_type(data_storage_type data) : concrete_matrix(data) {}
+    explicit shader_matrix_type(typename abstract_matrix::data_storage_type data) : concrete_matrix(data) {}
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
@@ -540,7 +541,7 @@ class shader_matrix_type<T, 3, 3> : public concrete_matrix<T, 3, 3>
 public:
     shader_matrix_type() : concrete_matrix() {}
 
-    explicit shader_matrix_type(data_storage_type data) : concrete_matrix(data) {}
+    explicit shader_matrix_type(typename abstract_matrix::data_storage_type data) : concrete_matrix(data) {}
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
@@ -578,7 +579,7 @@ class shader_matrix_type<T, 2, 2> : public concrete_matrix<T, 2, 2>
 public:
     shader_matrix_type() : concrete_matrix() {}
 
-    explicit shader_matrix_type(data_storage_type data) : concrete_matrix(data) {}
+    explicit shader_matrix_type(typename abstract_matrix::data_storage_type data) : concrete_matrix(data) {}
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
@@ -615,7 +616,7 @@ class shader_matrix_type<T, 4, 3> : public concrete_matrix<T, 4, 3>
 public:
     shader_matrix_type() : concrete_matrix() {}
 
-    explicit shader_matrix_type(data_storage_type data) : concrete_matrix(data) {}
+    explicit shader_matrix_type(typename abstract_matrix::data_storage_type data) : concrete_matrix(data) {}
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
@@ -655,7 +656,7 @@ class shader_matrix_type<T, 3, 4> : public concrete_matrix<T, 3, 4>
 public:
     shader_matrix_type() : concrete_matrix() {}
 
-    explicit shader_matrix_type(data_storage_type data) : concrete_matrix(data) {}
+    explicit shader_matrix_type(typename abstract_matrix::data_storage_type data) : concrete_matrix(data) {}
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
@@ -695,7 +696,7 @@ class shader_matrix_type<T, 4, 2> : public concrete_matrix<T, 4, 2>
 public:
     shader_matrix_type() : concrete_matrix() {}
 
-    explicit shader_matrix_type(data_storage_type data) : concrete_matrix(data) {}
+    explicit shader_matrix_type(typename abstract_matrix::data_storage_type data) : concrete_matrix(data) {}
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
@@ -733,7 +734,7 @@ class shader_matrix_type<T, 2, 4> : public concrete_matrix<T, 2, 4>
 public:
     shader_matrix_type() : concrete_matrix() {}
 
-    explicit shader_matrix_type(data_storage_type data) : concrete_matrix(data) {}
+    explicit shader_matrix_type(typename abstract_matrix::data_storage_type data) : concrete_matrix(data) {}
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
@@ -773,7 +774,7 @@ class shader_matrix_type<T, 3, 2> : public concrete_matrix<T, 3, 2>
 public:
     shader_matrix_type() : concrete_matrix() {}
 
-    explicit shader_matrix_type(data_storage_type data) : concrete_matrix(data) {}
+    explicit shader_matrix_type(typename abstract_matrix::data_storage_type data) : concrete_matrix(data) {}
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
@@ -811,7 +812,7 @@ class shader_matrix_type<T, 2, 3> : public concrete_matrix<T, 2, 3>
 public:
     shader_matrix_type() : concrete_matrix() {}
 
-    explicit shader_matrix_type(data_storage_type data) : concrete_matrix(data) {}
+    explicit shader_matrix_type(typename abstract_matrix::data_storage_type data) : concrete_matrix(data) {}
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
@@ -870,5 +871,4 @@ typedef shader_matrix_type<double, 2, 3> matrix2x3d;
 
 }}}
 
-#define LEXGINE_CORE_MATH_MATRIX_TYPES_H
 #endif

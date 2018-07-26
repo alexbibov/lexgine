@@ -1,7 +1,7 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_TASK_SINK_H
 
 #include "task_graph.h"
-#include "../class_names.h"
+#include "lexgine/core/class_names.h"
 
 #include <vector>
 

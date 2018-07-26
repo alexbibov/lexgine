@@ -39,6 +39,9 @@ private:
 bool checkConcurrentExecutionAbility(AbstractTask const& task);
 
 
+#define ROOT_NODE_CAST(node_ptr) (reinterpret_cast<lexgine::core::concurrency::TaskGraphRootNode*>(static_cast<lexgine::core::concurrency::TaskGraphNode*>(node_ptr)))
+
+
 }}}
 
 

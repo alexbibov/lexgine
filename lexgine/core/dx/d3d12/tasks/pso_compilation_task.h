@@ -68,7 +68,7 @@ private:
     Device& m_device;
     GraphicsPSODescriptor m_descriptor;
     misc::StaticVector<HLSLCompilationTask*, 5> m_associated_shader_compilation_tasks;
-    RootSignatureCompilationTask* m_associated_root_signature;
+    RootSignatureCompilationTask* m_associated_root_signature_compilation_task;;
     bool m_was_successful; 
     std::unique_ptr<PipelineState> m_resulting_pipeline_state;
 };
@@ -88,8 +88,11 @@ public:
     bool execute(uint8_t worker_id);    //! execute the task manually and returns 'true' on success
 
     void setComputeShaderCompilationTask(HLSLCompilationTask* cs_compilation_task);    //! sets compute shader compilation task associated with the PSO
+    HLSLCompilationTask* getComputeShaderCompilationTask() const;
 
     void setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task);    //! associates root signature compilation task with the PSO
+    RootSignatureCompilationTask* getRootSignatureCompilationTask() const;
+
 
     /*!
         Returns string name as appears in PSO compilation task cache. The names for compute PSOs
@@ -112,8 +115,8 @@ private:
     GlobalSettings const& m_global_settings;
     Device& m_device;
     ComputePSODescriptor m_descriptor;
-    HLSLCompilationTask* m_associated_compute_shader;
-    RootSignatureCompilationTask* m_associated_root_signature;
+    HLSLCompilationTask* m_associated_compute_shader_compilation_task;
+    RootSignatureCompilationTask* m_associated_root_signature_compilation_task;
     bool m_was_successful;
     std::unique_ptr<PipelineState> m_resulting_pipeline_state;
 };

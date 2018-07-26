@@ -56,7 +56,7 @@ GraphicsPSOCompilationTask::GraphicsPSOCompilationTask(
     m_global_settings{ global_settings },
     m_descriptor{ descriptor },
     m_associated_shader_compilation_tasks(5, nullptr),
-    m_associated_root_signature{ nullptr },
+    m_associated_root_signature_compilation_task{ nullptr },
     m_was_successful{ false },
     m_resulting_pipeline_state{ nullptr }
 {
@@ -79,7 +79,7 @@ bool GraphicsPSOCompilationTask::execute(uint8_t worker_id)
 
 void GraphicsPSOCompilationTask::setVertexShaderCompilationTask(HLSLCompilationTask* vs_compilation_task)
 {
-    this->addDependent(*vs_compilation_task);
+    this->addDependency(*vs_compilation_task);
     m_associated_shader_compilation_tasks[0] = vs_compilation_task;
 }
 
@@ -90,7 +90,7 @@ HLSLCompilationTask* GraphicsPSOCompilationTask::getVertexShaderCompilationTask(
 
 void GraphicsPSOCompilationTask::setHullShaderCompilationTask(HLSLCompilationTask* hs_compilation_task)
 {
-    this->addDependent(*hs_compilation_task);
+    this->addDependency(*hs_compilation_task);
     m_associated_shader_compilation_tasks[1] = hs_compilation_task;
 }
 
@@ -101,7 +101,7 @@ HLSLCompilationTask* GraphicsPSOCompilationTask::getHullShaderCompilationTask() 
 
 void GraphicsPSOCompilationTask::setDomainShaderCompilationTask(HLSLCompilationTask* ds_compilation_task)
 {
-    this->addDependent(*ds_compilation_task);
+    this->addDependency(*ds_compilation_task);
     m_associated_shader_compilation_tasks[2] = ds_compilation_task;
 }
 
@@ -112,7 +112,7 @@ HLSLCompilationTask* GraphicsPSOCompilationTask::getDomainShaderCompilationTask(
 
 void GraphicsPSOCompilationTask::setGeometryShaderCompilationTask(HLSLCompilationTask* gs_compilation_task)
 {
-    this->addDependent(*gs_compilation_task);
+    this->addDependency(*gs_compilation_task);
     m_associated_shader_compilation_tasks[3] = gs_compilation_task;
 }
 
@@ -123,7 +123,7 @@ HLSLCompilationTask* GraphicsPSOCompilationTask::getGeometryShaderCompilationTas
 
 void GraphicsPSOCompilationTask::setPixelShaderCompilationTask(HLSLCompilationTask* ps_compilation_task)
 {
-    this->addDependent(*ps_compilation_task);
+    this->addDependency(*ps_compilation_task);
     m_associated_shader_compilation_tasks[4] = ps_compilation_task;
 }
 
@@ -134,13 +134,13 @@ HLSLCompilationTask* GraphicsPSOCompilationTask::getPixelShaderCompilationTask()
 
 void GraphicsPSOCompilationTask::setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task)
 {
-    this->addDependent(*root_signature_compilation_task);
-    m_associated_root_signature = root_signature_compilation_task;
+    this->addDependency(*root_signature_compilation_task);
+    m_associated_root_signature_compilation_task = root_signature_compilation_task;
 }
 
 RootSignatureCompilationTask* GraphicsPSOCompilationTask::getRootSignatureCompilationTask() const
 {
-    return m_associated_root_signature;
+    return m_associated_root_signature_compilation_task;
 }
 
 std::string GraphicsPSOCompilationTask::getCacheName() const
@@ -156,7 +156,7 @@ bool GraphicsPSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index
 
         m_resulting_pipeline_state.reset(new PipelineState{
             m_device,
-            m_associated_root_signature->getTaskData(),
+            m_associated_root_signature_compilation_task->getTaskData(),
             getCacheName(),
             m_descriptor, precached_pso_blob });
 
@@ -198,7 +198,11 @@ ComputePSOCompilationTask::ComputePSOCompilationTask(
     m_key{ key },
     m_global_settings{ global_settings },
     m_device{ device },
-    m_descriptor{ descriptor }
+    m_descriptor{ descriptor },
+    m_associated_compute_shader_compilation_task{ nullptr },
+    m_associated_root_signature_compilation_task{ nullptr },
+    m_was_successful{ false },
+    m_resulting_pipeline_state{ nullptr }
 {
 
 }
@@ -220,12 +224,24 @@ bool ComputePSOCompilationTask::execute(uint8_t worker_id)
 
 void ComputePSOCompilationTask::setComputeShaderCompilationTask(HLSLCompilationTask* cs_compilation_task)
 {
-    this->addDependent(*cs_compilation_task);
+    this->addDependency(*cs_compilation_task);
+    m_associated_compute_shader_compilation_task = cs_compilation_task;
+}
+
+HLSLCompilationTask* ComputePSOCompilationTask::getComputeShaderCompilationTask() const
+{
+    return m_associated_compute_shader_compilation_task;
 }
 
 void ComputePSOCompilationTask::setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task)
 {
-    this->addDependent(*root_signature_compilation_task);
+    this->addDependency(*root_signature_compilation_task);
+    m_associated_root_signature_compilation_task = root_signature_compilation_task;
+}
+
+RootSignatureCompilationTask* ComputePSOCompilationTask::getRootSignatureCompilationTask() const
+{
+    return m_associated_root_signature_compilation_task;
 }
 
 std::string ComputePSOCompilationTask::getCacheName() const
@@ -241,7 +257,7 @@ bool ComputePSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 
         m_resulting_pipeline_state.reset(new PipelineState{
             m_device,
-            m_associated_root_signature->getTaskData(),
+            m_associated_root_signature_compilation_task->getTaskData(),
             getCacheName(),
             m_descriptor, precached_pso_blob });
 

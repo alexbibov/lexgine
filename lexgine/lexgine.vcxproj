@@ -225,6 +225,7 @@
     <ClInclude Include="core\class_names.h" />
     <ClInclude Include="core\concurrency\abstract_task.h" />
     <ClInclude Include="core\concurrency\hazard_pointer_pool.h" />
+    <ClInclude Include="core\concurrency\lexgine_core_concurrency_fwd.h" />
     <ClInclude Include="core\concurrency\lock_free_queue.h" />
     <ClInclude Include="core\concurrency\ring_buffer_task_queue.h" />
     <ClInclude Include="core\concurrency\schedulable_task.h" />
