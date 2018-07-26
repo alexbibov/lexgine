@@ -163,6 +163,7 @@ Initializer::~Initializer()
     m_resource_factory = nullptr;
     m_shader_cache = nullptr;
     m_pso_cache = nullptr;
+    m_rs_cache = nullptr;
    
 
     // Logger must be shutdown the last since many objects may still log stuff on destruction

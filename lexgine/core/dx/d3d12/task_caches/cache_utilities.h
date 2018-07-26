@@ -13,21 +13,34 @@ namespace lexgine { namespace core { namespace dx { namespace d3d12 { namespace 
 
 using CombinedCache = StreamedCache<CombinedCacheKey, global_constants::combined_cache_cluster_size>;
 
-struct StreamedCacheConnection
+class StreamedCacheConnection
 {
-    CombinedCache cache;
-    std::fstream stream;
+public:
+    StreamedCacheConnection(GlobalSettings const& global_settings, std::string const& path_to_cache, 
+        bool is_read_only, bool allow_overwrites = true);
+    StreamedCacheConnection(StreamedCacheConnection&& other);
+    ~StreamedCacheConnection();
+
+    StreamedCacheConnection& operator=(StreamedCacheConnection&& other);
+
+    operator bool() const;
+
+    CombinedCache& cache();
+
+private:
+    misc::Optional<std::fstream> m_stream;
+    misc::Optional<CombinedCache> m_cache;
 };
 
 /*! establishes connection with combined cache associated with the given worker id.
  In case if it is not possible to establish connection with requested cache returns invalid Optional<> object
 */
-misc::Optional<StreamedCacheConnection> establishConnectionWithCombinedCache(GlobalSettings const& global_settings, uint8_t worker_id, bool readonly_mode, bool allow_overwrites = true);
+StreamedCacheConnection establishConnectionWithCombinedCache(GlobalSettings const& global_settings, uint8_t worker_id, bool readonly_mode, bool allow_overwrites = true);
 
 /*! Establishes connection with combined cache located at the given path.
  In case if connection cannot be made, the return value will be an invalid Optional<> object
 */
-misc::Optional<StreamedCacheConnection> establishConnectionWithCombinedCache(GlobalSettings const& global_settings, std::string const& path_to_combined_cache, bool readonly_mode, bool allow_overwrites = true);
+StreamedCacheConnection establishConnectionWithCombinedCache(GlobalSettings const& global_settings, std::string const& path_to_combined_cache, bool readonly_mode, bool allow_overwrites = true);
 
 /*! locates combined cache containing requested key and establishes connection with it.
  Returns invalid Optional<> object in case if connection cannot be established (the most common reason is 
