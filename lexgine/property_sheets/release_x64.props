@@ -17,6 +17,9 @@
       <Command>XCOPY $(SolutionDir)3rd_party\dxcompiler\bin\dxcompiler.dll $(TargetDir) /F /Y
 XCOPY $(SolutionDir)3rd_party\dxcompiler\bin\dxil.dll $(TargetDir) /F /Y</Command>
     </PostBuildEvent>
+    <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup />
 </Project>

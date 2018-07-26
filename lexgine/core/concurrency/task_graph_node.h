@@ -27,10 +27,9 @@ public:
     using set_of_nodes_type = std::set<TaskGraphNode*>;
 
 public:
-    TaskGraphNode(AbstractTask& task);    //! creates task graph node encapsulating given task
+    explicit TaskGraphNode(AbstractTask& task);    //! creates task graph node encapsulating given task
 
-    TaskGraphNode(TaskGraphNode const& other) = delete;
-    TaskGraphNode(TaskGraphNode&&) = default;
+    TaskGraphNode(TaskGraphNode&& other);
 
     TaskGraphNode& operator=(TaskGraphNode const&) = delete;
     TaskGraphNode& operator=(TaskGraphNode&&) = default;
@@ -68,7 +67,7 @@ protected:
     void forceUndone();    //! forces the task to appear as uncompleted
 
 private:
-    TaskGraphNode(AbstractTask& task, uint64_t id);
+    TaskGraphNode(TaskGraphNode const& other);    //! NOTE: copies only identifier and the pointer to contained task but not completion status or dependency sets (see implementation)
 
 private:
     uint64_t m_id;    //!< identifier of the node
@@ -85,17 +84,24 @@ template<> class TaskGraphNodeAttorney<TaskGraph>
 {
     friend class TaskGraph;
 
-    static inline TaskGraphNode cloneNode(uint16_t frame_index)
+    static uint64_t getNodeId(TaskGraphNode const& parent_task_graph_node)
     {
-        // CONTINUE FROM HERE
+        return parent_task_graph_node.m_id;
     }
 
-    static inline std::set<TaskGraphNode*> const& getDependents(TaskGraphNode const& parent_task_graph_node)
+    static inline TaskGraphNode cloneNodeForFrame(TaskGraphNode const& source_node, uint16_t frame_index)
+    {
+        TaskGraphNode rv{ source_node };
+        rv.m_frame_index = frame_index;
+        return rv;
+    }
+
+    static inline TaskGraphNode::set_of_nodes_type const& getDependents(TaskGraphNode const& parent_task_graph_node)
     {
         return parent_task_graph_node.m_dependents;
     }
 
-    static inline std::set<TaskGraphNode*> const& getDependencies(TaskGraphNode const& parent_task_graph_node)
+    static inline TaskGraphNode::set_of_nodes_type const& getDependencies(TaskGraphNode const& parent_task_graph_node)
     {
         return parent_task_graph_node.m_dependencies;
     }
@@ -125,6 +131,20 @@ private:
     {
         parent_task_graph_node.m_is_scheduled = false;
     }
+};
+
+
+
+class TaskGraphRootNode : public TaskGraphNode
+{
+public:
+    explicit TaskGraphRootNode(AbstractTask& task);    //! creates root node wrapping provided task
+
+    /*! Dummy implementation, always returns 'false' and causes assertion failure in debug mode.
+     Root task graph nodes cannot have dependencies, therefore this function is provided in order to shadow
+     the normal behavior of TaskGraphNode::addDependency(...)
+    */
+    bool addDependency(TaskGraphNode& task);    
 };
 
 }}}

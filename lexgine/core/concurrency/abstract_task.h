@@ -1,6 +1,7 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_ABSTRACT_TASK_H
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
+#include "lexgine/core/concurrency/lexgine_core_concurrency_fwd.h"
 
 namespace lexgine { namespace core { namespace concurrency {
 
@@ -20,8 +21,8 @@ enum class TaskType
     other
 };
 
+
 template<typename> class AbstractTaskAttorney;
-class TaskGraph;
 
 class AbstractTask : public NamedEntity<class_names::Task>
 {

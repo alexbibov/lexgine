@@ -360,6 +360,9 @@
     <ClInclude Include="core\dx\d3d12\root_signature_cache.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
+    <ClInclude Include="core\concurrency\lexgine_core_concurrency_fwd.h">
+      <Filter>core\concurrency</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">

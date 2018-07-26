@@ -10,8 +10,8 @@ namespace {
 static uint64_t id_counter = 0U;
 }
 
-TaskGraphNode::TaskGraphNode(AbstractTask& task, uint64_t id) :
-    m_id{ id },
+TaskGraphNode::TaskGraphNode(AbstractTask& task) :
+    m_id{ ++id_counter },
     m_contained_task{ &task },
     m_is_completed{ false },
     m_is_scheduled{ false },
@@ -20,8 +20,23 @@ TaskGraphNode::TaskGraphNode(AbstractTask& task, uint64_t id) :
 
 }
 
-TaskGraphNode::TaskGraphNode(AbstractTask& task) :
-    TaskGraphNode{ task, ++id_counter }
+TaskGraphNode::TaskGraphNode(TaskGraphNode const& other) :
+    m_id{ other.m_id },
+    m_contained_task{ other.m_contained_task },
+    m_is_completed{ false },
+    m_frame_index{ 0U }
+{
+
+}
+
+TaskGraphNode::TaskGraphNode(TaskGraphNode&& other) :
+    m_id{ other.m_id },
+    m_contained_task{ other.m_contained_task },
+    m_is_completed{ other.m_is_completed.load(std::memory_order_acquire) },
+    m_is_scheduled{ other.m_is_scheduled },
+    m_frame_index{ other.m_frame_index },
+    m_dependencies{ std::move(other.m_dependencies) },
+    m_dependents{ std::move(other.m_dependents) }
 {
 
 }
@@ -84,4 +99,15 @@ void TaskGraphNode::forceUndone()
 {
     m_is_completed.store(false, std::memory_order_release);
     m_is_scheduled = false;
+}
+
+TaskGraphRootNode::TaskGraphRootNode(AbstractTask& task) :
+    TaskGraphNode{ task }
+{
+}
+
+bool TaskGraphRootNode::addDependency(TaskGraphNode& task)
+{
+    assert(false);
+    return false;
 }
