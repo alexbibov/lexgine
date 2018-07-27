@@ -42,13 +42,6 @@ public:
             new(m_value) T{ *reinterpret_cast<T const*>(other.m_value) };
     }
 
-    Optional(Optional&& other) :
-        m_is_valid{ other.m_is_valid }
-    {
-        new(m_value) T{ std::move(*reinterpret_cast<T const*>(other.m_value)) };
-        other.invalidate();
-    }
-
     ~Optional()
     {
         invalidate();
@@ -73,30 +66,6 @@ public:
         return *this;
     }
 
-    Optional& operator=(Optional&& other)
-    {
-        if (this == &other) return *this;
-
-        if (m_is_valid && other.m_is_valid)
-        {
-            T& this_ptr = *reinterpret_cast<T*>(m_value);
-            T& other_ptr = *reinterpret_cast<T*>(other.m_value);
-            this_ptr = std::move(other_ptr);
-        }
-        else if (!other.m_is_valid)
-        {
-            invalidate();
-        }
-        else
-        {
-            new(m_value) T{ std::move(*reinterpret_cast<T*>(other.m_value)) };
-            m_is_valid = true;
-        }
-
-        other.invalidate();
-
-        return *this;
-    }
 
     //! Assigns new value to the wrapper
     Optional& operator=(T const& value)
