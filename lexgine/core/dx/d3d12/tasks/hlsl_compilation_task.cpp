@@ -175,17 +175,18 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
         if (shader_cache_containing_requested_shader.isValid())
         {
             misc::DateTime cached_time_stamp =
-                static_cast<task_caches::StreamedCacheConnection&>(shader_cache_containing_requested_shader).cache.getEntryTimestamp(m_key);
+                static_cast<task_caches::StreamedCacheConnection&>(shader_cache_containing_requested_shader).cache().getEntryTimestamp(m_key);
 
             m_should_recompile = cached_time_stamp < m_time_stamp;
         }
+        else m_should_recompile = true;
 
         if (!m_should_recompile)
         {
             // Attempt to use cached version of the shader
 
             SharedDataChunk blob =
-                static_cast<task_caches::StreamedCacheConnection&>(shader_cache_containing_requested_shader).cache.retrieveEntry(m_key);
+                static_cast<task_caches::StreamedCacheConnection&>(shader_cache_containing_requested_shader).cache().retrieveEntry(m_key);
             if (!blob.data())
             {
                 LEXGINE_LOG_ERROR(this, "Unable to retrieve precompiled shader byte code for source \""
@@ -329,9 +330,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
                 auto my_shader_cache =
                     task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
 
-                static_cast<task_caches::StreamedCacheConnection&>(my_shader_cache).cache.addEntry(
-                    task_caches::CombinedCache::entry_type{ m_key, m_shader_byte_code }
-                );
+                my_shader_cache.cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_shader_byte_code });
             }
         }
     }

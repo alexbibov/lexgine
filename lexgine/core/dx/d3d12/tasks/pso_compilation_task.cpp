@@ -26,7 +26,7 @@ D3DDataBlob loadPrecachedPSOBlob(GlobalSettings const& global_settings, task_cac
     if (pso_cache_containinig_requested_pso.isValid())
     {
         SharedDataChunk blob =
-            static_cast<task_caches::StreamedCacheConnection&>(pso_cache_containinig_requested_pso).cache.retrieveEntry(key);
+            static_cast<task_caches::StreamedCacheConnection&>(pso_cache_containinig_requested_pso).cache().retrieveEntry(key);
 
         if (blob.size() && blob.data())
         {
@@ -165,9 +165,7 @@ bool GraphicsPSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index
             auto my_pso_cache =
                 task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
 
-            static_cast<task_caches::StreamedCacheConnection&>(my_pso_cache).cache.addEntry(
-                task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() }
-            );
+            my_pso_cache.cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
         }
     }
     catch (Exception const& e)
@@ -266,9 +264,7 @@ bool ComputePSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
             auto my_pso_cache =
                 task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
 
-            static_cast<task_caches::StreamedCacheConnection&>(my_pso_cache).cache.addEntry(
-                task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() }
-            );
+            my_pso_cache.cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
         }
     }
     catch (Exception const& e)
