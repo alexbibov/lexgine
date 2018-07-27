@@ -168,7 +168,7 @@ public:
 
     DescriptorHeap createDescriptorHeap(DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask = 0);    //! creates descriptor heap
 
-    //! creates heap of one of the abstract types. Here @param node_mask identifies the node where the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
+    //! creates heap of one of the abstract types. Here parameter node_mask identifies the node where the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
     //! and @param node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
     Heap createHeap(AbstractHeapType type, uint64_t size, HeapCreationFlags flags = HeapCreationFlags{ HeapCreationFlags::enum_type::allow_all },
         bool is_msaa_supported = false, uint32_t node_mask = 0, uint32_t node_exposure_mask = 0);

@@ -29,12 +29,13 @@ StreamedCacheConnection lexgine::core::dx::d3d12::task_caches::establishConnecti
 
 misc::Optional<StreamedCacheConnection> lexgine::core::dx::d3d12::task_caches::findCombinedCacheContainingKey(CombinedCacheKey const& key, GlobalSettings const& global_settings)
 {
-    auto combined_caches = getFilesInDirectory(global_settings.getCacheDirectory(),
+    auto& cache_directory = global_settings.getCacheDirectory();
+    auto combined_caches = getFilesInDirectory(cache_directory,
         global_settings.getCombinedCacheName() + "." + global_constants::combined_cache_extra_extension + "*");
 
-    for (auto const& path_to_cache : combined_caches)
+    for (auto const& cache_name : combined_caches)
     {
-        auto cache_connection = establishConnectionWithCombinedCache(global_settings, path_to_cache, true);
+        auto cache_connection = establishConnectionWithCombinedCache(global_settings, cache_directory + cache_name, true);
         if (cache_connection)
         {
             if (cache_connection.cache().doesEntryExist(key))
@@ -62,13 +63,13 @@ StreamedCacheConnection::StreamedCacheConnection(GlobalSettings const& global_se
         {
             if (is_read_only) return;
             cache_stream_mode |= std::ios_base::trunc;
-
-            m_stream.reset(new std::fstream{ path_to_cache, cache_stream_mode });
         }
+
+        m_stream.reset(new std::fstream{ path_to_cache, cache_stream_mode });
     }
 
     // create cache instance
-    if (*m_stream)
+    if (m_stream && *m_stream)
     {
         m_cache.reset(new CombinedCache{ *m_stream, is_read_only });
         if (!(*m_cache))

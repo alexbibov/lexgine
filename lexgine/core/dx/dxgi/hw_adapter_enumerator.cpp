@@ -13,19 +13,9 @@ HwAdapterEnumerator::HwAdapterEnumerator()
     refresh();
 }
 
-HwAdapter& HwAdapterEnumerator::operator*()
-{
-    return *m_adapter_iterator;
-}
-
 HwAdapter const& HwAdapterEnumerator::operator*() const
 {
     return *m_adapter_iterator;
-}
-
-HwAdapterEnumerator::iterator& HwAdapterEnumerator::operator->()
-{
-    return m_adapter_iterator;
 }
 
 HwAdapter const* HwAdapterEnumerator::operator->() const
@@ -82,12 +72,12 @@ HwAdapterEnumerator HwAdapterEnumerator::operator--(int)
     return temp;
 }
 
-HwAdapterEnumerator::iterator HwAdapterEnumerator::begin()
+HwAdapterEnumerator::const_iterator HwAdapterEnumerator::begin() const
 {
     return m_adapter_list.begin();
 }
 
-HwAdapterEnumerator::iterator HwAdapterEnumerator::end()
+HwAdapterEnumerator::const_iterator HwAdapterEnumerator::end() const
 {
     return m_adapter_list.end();
 }
@@ -195,7 +185,7 @@ bool HwAdapterEnumerator::isRefreshNeeded() const
     return !m_dxgi_factory4->IsCurrent();
 }
 
-HwAdapter HwAdapterEnumerator::getWARPAdapter() const { return m_adapter_list.back(); }
+HwAdapter const& HwAdapterEnumerator::getWARPAdapter() const { return m_adapter_list.back(); }
 
 
 
@@ -229,7 +219,7 @@ HwAdapter::details::details() :
 
 HwAdapter::details::details(HwAdapter* p_outer):
     m_p_outer{ p_outer },
-    m_node_count{ m_p_outer->m_d3d12_device->GetNodeCount() },
+    m_node_count{ m_p_outer->m_device->native()->GetNodeCount() },
     m_local_memory_desc{ new MemoryDesc[m_node_count] },
     m_non_local_memory_desc{ new MemoryDesc[m_node_count] }
 {
@@ -257,7 +247,7 @@ HwAdapter::MemoryDesc const* HwAdapter::details::getNonLocalMemoryDescription() 
 
 void HwAdapter::details::refreshMemoryStatistics()
 {
-    for (uint32_t i = 0; i < m_p_outer->m_d3d12_device->GetNodeCount(); ++i)
+    for (uint32_t i = 0; i < m_p_outer->m_device->native()->GetNodeCount(); ++i)
     {
         DXGI_QUERY_VIDEO_MEMORY_INFO vm_info_desc;
 
@@ -309,18 +299,18 @@ HwAdapter::HwAdapter(ComPtr<IDXGIFactory4> const& adapter_factory, ComPtr<IDXGIA
 
     // attempt to create D3D12 device in order to determine feature level of the hardware and receive information regarding the memory budgets
 
-    bool is_device_created = false;
+    ComPtr<ID3D12Device> d3d12_device{ nullptr };
     for (auto feature_level : { std::make_pair(D3D12FeatureLevel::_12_1, "12.1"), std::make_pair(D3D12FeatureLevel::_12_0, "12.0"),
         std::make_pair(D3D12FeatureLevel::_11_1, "11.1"), std::make_pair(D3D12FeatureLevel::_11_0, "11.0") })
     {
         if (D3D12CreateDevice(m_dxgi_adapter.Get(), static_cast<D3D_FEATURE_LEVEL>(static_cast<int>(feature_level.first)),
-            IID_PPV_ARGS(&m_d3d12_device)) == S_OK)
+            IID_PPV_ARGS(&d3d12_device)) == S_OK)
         {
             logger().out("Device " + std::string{ m_properties.details.name.begin(), m_properties.details.name.end() } +
                 ": feature level " + feature_level.second + " detected", LogMessageType::information);
             m_p_details = std::shared_ptr<details>{ new details{ this } };
             m_properties.d3d12_feature_level = feature_level.first;
-            m_properties.num_nodes = m_d3d12_device->GetNodeCount();
+            m_properties.num_nodes = d3d12_device->GetNodeCount();
             m_properties.local = m_p_details->getLocalMemoryDescription();
             m_properties.non_local = m_p_details->getNonLocalMemoryDescription();
 
@@ -329,16 +319,18 @@ HwAdapter::HwAdapter(ComPtr<IDXGIFactory4> const& adapter_factory, ComPtr<IDXGIA
                 + "_Revision:" + std::to_string(m_properties.details.revision) + "_LUID:" + std::to_string(m_properties.details.luid.HighPart)
                 + std::to_string(m_properties.details.luid.LowPart));
 
-            is_device_created = true;
-
             break;
         }
     }
 
 
-    if (!is_device_created)
+    if (d3d12_device)
     {
-        raiseError("no device compatible with Direct3D 12 found");
+        m_device.reset(new d3d12::Device{ d3d12_device });
+    }
+    else
+    {
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "no device compatible with Direct3D 12 found");
         return;
     }
 }
@@ -366,5 +358,5 @@ HwOutputEnumerator HwAdapter::getOutputEnumerator() const
 
 SwapChain HwAdapter::createSwapChain(osinteraction::windows::Window const& window, SwapChainDescriptor const& desc) const
 {
-    return SwapChain{ m_dxgi_adapter_factory, d3d12::Device{m_d3d12_device}, window, desc };
+    return SwapChain{ m_dxgi_adapter_factory, *m_device, window, desc };
 }

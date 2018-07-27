@@ -15,7 +15,8 @@ public:
     DxResourceFactory(GlobalSettings const& global_settings);
 
     dxgi::HwAdapterEnumerator const& hardwareAdapterEnumerator() const;
-    dxcompilation::DXCompilerProxy& RetrieveSM6DxCompilerProxy();
+    dxcompilation::DXCompilerProxy& shaderModel6xDxCompilerProxy();
+    
 
 private:
     GlobalSettings const& m_global_settings;

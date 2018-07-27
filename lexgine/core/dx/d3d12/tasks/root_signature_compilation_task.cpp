@@ -72,7 +72,7 @@ bool RootSignatureCompilationTask::do_task(uint8_t worker_id, uint16_t frame_ind
         if (!rs_blob)
         {
             m_compiled_rs_blob = m_rs.compile(m_rs_flags);
-            m_was_successful = m_rs.getErrorState();
+            m_was_successful = !m_rs.getErrorState();
 
             if (m_was_successful)
             {

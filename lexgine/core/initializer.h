@@ -36,14 +36,8 @@ public:
     //! Shuts down the environment
     ~Initializer();
 
-
-    //! Initializes the renderer. Returns 'true' on success and 'false' on failure
-    bool initializeRenderer();
-
-    //! Shuts down the renderer
-    void shutdownRenderer();
-
     core::Globals& globals();    //! returns the global parameter object pool. This function must not be exposed to the client and will be removed in the future.
+
 
 
 private:
