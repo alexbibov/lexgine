@@ -55,7 +55,7 @@ bool RootSignatureCompilationTask::do_task(uint8_t worker_id, uint16_t frame_ind
         if (rs_cache_with_requested_root_signature.isValid())
         {
             SharedDataChunk blob =
-                static_cast<task_caches::StreamedCacheConnection&>(rs_cache_with_requested_root_signature).cache.retrieveEntry(m_key);
+                static_cast<task_caches::StreamedCacheConnection&>(rs_cache_with_requested_root_signature).cache().retrieveEntry(m_key);
 
             if (blob.size() && blob.data())
             {
@@ -79,9 +79,7 @@ bool RootSignatureCompilationTask::do_task(uint8_t worker_id, uint16_t frame_ind
                 auto my_rs_cache =
                     task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
 
-                static_cast<task_caches::StreamedCacheConnection&>(my_rs_cache).cache.addEntry(
-                    task_caches::CombinedCache::entry_type{ m_key, m_compiled_rs_blob }
-                );
+                my_rs_cache.cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_compiled_rs_blob });
             }
 
         }

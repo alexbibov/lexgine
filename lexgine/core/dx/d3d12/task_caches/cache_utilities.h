@@ -28,8 +28,8 @@ public:
     CombinedCache& cache();
 
 private:
-    misc::Optional<std::fstream> m_stream;
-    misc::Optional<CombinedCache> m_cache;
+    std::unique_ptr<std::fstream> m_stream;
+    std::unique_ptr<CombinedCache> m_cache;
 };
 
 /*! establishes connection with combined cache associated with the given worker id.
