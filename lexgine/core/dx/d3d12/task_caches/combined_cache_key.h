@@ -15,7 +15,7 @@ public:
 
     static constexpr size_t serialized_size =
         (std::max)(RootSignatureCompilationTaskCache::Key::serialized_size,
-        (std::max)(PSOCompilationTaskCache::Key::serialized_size,
+        (std::max)(HLSLCompilationTaskCache::Key::serialized_size,
             PSOCompilationTaskCache::Key::serialized_size));
 
     CombinedCacheKey(RootSignatureCompilationTaskCache::Key const& key);

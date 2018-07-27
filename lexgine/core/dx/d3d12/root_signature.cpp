@@ -99,7 +99,7 @@ D3DDataBlob RootSignature::compile(RootSignatureFlags const& flags) const
     root_desc.Flags = static_cast<D3D12_ROOT_SIGNATURE_FLAGS>(flags.getValue());
 
 
-    ID3DBlob* serialized_rs, *error;
+    ID3DBlob* serialized_rs = nullptr, *error = nullptr;
     if (D3D12SerializeRootSignature(&root_desc, D3D_ROOT_SIGNATURE_VERSION_1, &serialized_rs, &error) != S_OK)
     {
         std::string serialization_error{ static_cast<char*>(error->GetBufferPointer()), error->GetBufferSize() };
@@ -110,7 +110,7 @@ D3DDataBlob RootSignature::compile(RootSignatureFlags const& flags) const
 
     D3DDataBlob rv{serialized_rs};
     serialized_rs->Release();
-    error->Release();
+    if(error) error->Release();
 
     return rv;
 }

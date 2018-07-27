@@ -86,10 +86,11 @@ private:
     ComPtr<IDXGIFactory4> m_dxgi_adapter_factory;    //!< DXGI factory, which has been used in order to create this adapter
     HwOutputEnumerator m_output_enumerator; //!< bi-directional iterator enumerating output devices attached to this adapter
     Properties m_properties;    //!< describes properties of the adapter
-    ComPtr<ID3D12Device> m_d3d12_device;    //!< Direct3D 12 device associated with the hardware adapter
 
     class details;     //!< class encapsulating adapter details
     std::shared_ptr<details> m_p_details;    //!< pointer to adapter details buffer
+
+    std::unique_ptr<d3d12::Device> m_device;    //!< d3d device associated with the adapter
 };
 
 
@@ -98,13 +99,9 @@ class HwAdapterEnumerator final : public std::iterator<std::bidirectional_iterat
     public NamedEntity<class_names::HwAdapterEnumerator>
 {
 public:
-    using iterator = std::list<HwAdapter>::iterator;
     using const_iterator = std::list<HwAdapter>::const_iterator;
 
-    HwAdapter& operator*();
     HwAdapter const& operator*() const;
-
-    iterator& operator->();
     HwAdapter const* operator->() const;
 
     HwAdapterEnumerator& operator++();
@@ -122,8 +119,8 @@ public:
     HwAdapterEnumerator operator--(int);
 
 
-    iterator begin();
-    iterator end();
+    const_iterator begin() const;
+    const_iterator end() const;
 
     const_iterator cbegin() const;
     const_iterator cend() const;
@@ -131,13 +128,13 @@ public:
 
     void refresh();	//! refreshes the list of available hardware adapters with support of D3D12. THROWS.
     bool isRefreshNeeded() const;	//! returns true if the list of adapters has to be refreshed
-    HwAdapter getWARPAdapter() const;   //! retrieves the WARP adapter
+    HwAdapter const& getWARPAdapter() const;   //! retrieves the WARP adapter
 
 
 private:
     ComPtr<IDXGIFactory4> m_dxgi_factory4;
     std::list<HwAdapter> m_adapter_list;
-    iterator m_adapter_iterator;
+    const_iterator m_adapter_iterator;
     uint32_t m_iterated_index;  //!< zero-based index of the currently iterated item
 };
 

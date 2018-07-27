@@ -17,7 +17,7 @@ dxgi::HwAdapterEnumerator const& DxResourceFactory::hardwareAdapterEnumerator() 
     return m_hw_adapter_enumerator;
 }
 
-dxcompilation::DXCompilerProxy& DxResourceFactory::RetrieveSM6DxCompilerProxy()
+dxcompilation::DXCompilerProxy& DxResourceFactory::shaderModel6xDxCompilerProxy()
 {
     return m_dxc_proxy;
 }
