@@ -1053,7 +1053,8 @@ public:
                 uint32_t stencil_write_mask = extractAttribute<attribute_type::unsigned_numeric>(depth_stencil_desc_node.attribute("stencil_write_mask"), 0xFF);
 
 
-                lexgine::core::StencilBehavior stencil_test_beavior[2];
+                lexgine::core::StencilBehavior stencil_test_behavior[2];
+                memset(stencil_test_behavior, 0, sizeof(stencil_test_behavior));
                 for (auto& stencil_test_behavior_node : depth_stencil_desc_node)
                 {
                     if (std::strcmp(stencil_test_behavior_node.name(), "StencilTestBehavior") == 0)
@@ -1083,13 +1084,13 @@ public:
                                 + ": StencilTestBehavior node must define attribute \"dsv_target_format\"");
                         }
 
-                        stencil_test_beavior[front_face == lexgine::core::CullMode::front ? 0 : 1] =
+                        stencil_test_behavior[front_face == lexgine::core::CullMode::front ? 0 : 1] =
                             lexgine::core::StencilBehavior{ operation_st_fail, operation_st_pass_dt_fail, operation_st_pass_dt_pass, comparison_function };
                     }
                 }
 
                 currently_assembled_pso_descriptor.depth_stencil_descriptor = lexgine::core::DepthStencilDescriptor{ enable_depth_test, allow_depth_writes,
-                depth_test_comparison_function, enable_stencil_test, stencil_test_beavior[0], stencil_test_beavior[1] };
+                depth_test_comparison_function, enable_stencil_test, stencil_test_behavior[0], stencil_test_behavior[1] };
             }
 
             
