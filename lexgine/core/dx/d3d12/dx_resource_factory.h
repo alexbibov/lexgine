@@ -22,9 +22,10 @@ public:
 
 private:
     GlobalSettings const& m_global_settings;
+    dx::d3d12::DebugInterface const* m_debug_interface;
     dxgi::HwAdapterEnumerator m_hw_adapter_enumerator;
     dxcompilation::DXCompilerProxy m_dxc_proxy;
-    dx::d3d12::DebugInterface const* m_debug_interface;
+    
 };
 
 }}}}

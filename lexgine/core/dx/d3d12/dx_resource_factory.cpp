@@ -10,9 +10,9 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
     bool enable_debug_mode,
     dxgi::HwAdapterEnumerator::DxgiGpuPreference enumeration_preference) :
     m_global_settings{ global_settings },
+    m_debug_interface{ enable_debug_mode ? DebugInterface::retrieve() : nullptr },
     m_hw_adapter_enumerator{enable_debug_mode, enumeration_preference},
-    m_dxc_proxy(m_global_settings),
-    m_debug_interface{ enable_debug_mode ? DebugInterface::retrieve() : nullptr }
+    m_dxc_proxy(m_global_settings)
 {
 }
 
