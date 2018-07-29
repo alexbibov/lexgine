@@ -1,6 +1,6 @@
 #include "heap.h"
 #include "device.h"
-#include "../../exception.h"
+#include "lexgine/core/exception.h"
 
 using namespace lexgine::core::dx::d3d12;
 

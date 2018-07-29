@@ -6,11 +6,27 @@
 #include "lexgine/core/misc/log.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h"
+#include "lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
 
 #include <fstream>
 #include <memory>
 
 namespace lexgine { namespace core {
+
+
+struct EngineSettings
+{
+    bool debug_mode;
+    dx::dxgi::HwAdapterEnumerator::DxgiGpuPreference adapter_enumeration_preference;
+    std::string global_lookup_prefix;
+    std::string settings_lookup_path;
+    std::string global_settings_json_file;
+    std::string logging_output_path;
+    std::string log_name;
+
+    EngineSettings();
+};
+
 
 /*! This class implements initialization protocol of the engine
  IMPORTANT NOTE: currently the Initializer class depends on windows API functions to retrieve
@@ -25,19 +41,15 @@ public:
     logging_output_path is the path where to output the logging information. Note that this is not a look-up directory, so it is NOT prefixed
     with global_lookup_prefix
     */
-    Initializer(
-        std::string const& global_lookup_prefix = "",
-        std::string const& settings_lookup_path = "",
-        std::string const& global_settings_json_file = "global_settings.json",
-        std::string const& logging_output_path = "",
-        std::string const& log_name = "lexgine_log"
-    );
+    Initializer(EngineSettings const& settings);
 
     //! Shuts down the environment
     ~Initializer();
 
     core::Globals& globals();    //! returns the global parameter object pool. This function must not be exposed to the client and will be removed in the future.
 
+    bool setCurrentDevice(uint32_t adapter_id);    //! assigns device that will be used for graphics and compute tasks. Returns 'true' on success.
+    dx::d3d12::Device& getCurrentDevice() const;    //! returns current device
 
 
 private:

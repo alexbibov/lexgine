@@ -1,11 +1,12 @@
 #ifndef LEXGINE_CORE_DX_D3D12_HEAP_H
+#define LEXGINE_CORE_DX_D3D12_HEAP_H
 
 #include <d3d12.h>
 #include <wrl.h>
 
-#include "../../entity.h"
-#include "../../class_names.h"
-#include "../../misc/flags.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
+#include "lexgine/core/misc/flags.h"
 
 
 using namespace Microsoft::WRL;
@@ -95,5 +96,4 @@ private:
 
 }}}}
 
-#define LEXGINE_CORE_DX_D3D12_HEAP_H
 #endif

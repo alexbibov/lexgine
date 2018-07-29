@@ -18,8 +18,7 @@ class GraphicsPSOCompilationTask final : public concurrency::SchedulableTask
 {
 public:
     GraphicsPSOCompilationTask(task_caches::CombinedCacheKey const& key,
-        GlobalSettings const& global_settings,
-        Device& device,
+        Globals& globals,
         GraphicsPSODescriptor const& descriptor);
 
     PipelineState const& getTaskData() const;    //! returns blob containing compiled PSO
@@ -64,8 +63,7 @@ private:
 
 private:
     task_caches::CombinedCacheKey const& m_key;
-    GlobalSettings const& m_global_settings;
-    Device& m_device;
+    Globals& m_globals;
     GraphicsPSODescriptor m_descriptor;
     misc::StaticVector<HLSLCompilationTask*, 5> m_associated_shader_compilation_tasks;
     RootSignatureCompilationTask* m_associated_root_signature_compilation_task;;
@@ -79,8 +77,7 @@ class ComputePSOCompilationTask final : public concurrency::SchedulableTask
 {
 public:
     ComputePSOCompilationTask(task_caches::CombinedCacheKey const& key,
-        GlobalSettings const& global_settings,
-        Device& device,
+        Globals& globals,
         ComputePSODescriptor const& descriptor);
 
     PipelineState const& getTaskData() const;    //! returns blob containing compiled PSO data
@@ -112,8 +109,7 @@ private:
 
 private:
     task_caches::CombinedCacheKey const& m_key;
-    GlobalSettings const& m_global_settings;
-    Device& m_device;
+    Globals& m_globals;
     ComputePSODescriptor m_descriptor;
     HLSLCompilationTask* m_associated_compute_shader_compilation_task;
     RootSignatureCompilationTask* m_associated_root_signature_compilation_task;

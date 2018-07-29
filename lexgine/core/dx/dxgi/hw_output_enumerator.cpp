@@ -1,116 +1,43 @@
 #include "hw_output_enumerator.h"
-#include "../../exception.h"
+#include "lexgine/core/exception.h"
+#include "lexgine/core/misc/misc.h"
 
 using namespace lexgine::core::dx::dxgi;
 
 
-
-HwOutputEnumerator::HwOutputEnumerator() :
-    m_adapter{ nullptr },
-    m_iterated_index{ -1 }
-{
-
-}
-
-HwOutputEnumerator::HwOutputEnumerator(ComPtr<IDXGIAdapter3> const& adapter, LUID adapter_luid) :
+HwOutputEnumerator::HwOutputEnumerator(ComPtr<IDXGIAdapter4> const& adapter, LUID adapter_luid) :
     m_adapter{ adapter },
     m_adapter_luid{ adapter_luid.LowPart, adapter_luid.HighPart }
 {
     HRESULT rv = S_OK;
     UINT id = 0;
-    IDXGIOutput* p_dxgi_output;
-    while ((rv = m_adapter->EnumOutputs(id, &p_dxgi_output)) != DXGI_ERROR_NOT_FOUND)
+    ComPtr<IDXGIOutput> dxgi_output;
+    while ((rv = m_adapter->EnumOutputs(id, dxgi_output.GetAddressOf())) != DXGI_ERROR_NOT_FOUND)
     {
         if (rv != S_OK)
         {
-            DXGI_ADAPTER_DESC2 desc2;
-            m_adapter->GetDesc2(&desc2);
+            DXGI_ADAPTER_DESC3 desc;
+            m_adapter->GetDesc3(&desc);
 
-            char* adapter_name = new char[wcslen(desc2.Description)];
-            for (size_t i = 0; i < wcslen(desc2.Description); ++i)
-                adapter_name[i] = static_cast<char>(desc2.Description[i]);
-            std::string err_msg = "unable to enumerate output devices for adapter \"" + std::string{ adapter_name } +"\"";
-            delete[] adapter_name;
-            logger().out(err_msg, misc::LogMessageType::error);
-            raiseError(err_msg);
+            std::string output_description = misc::wstringToAsciiString(desc.Description);
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
+                "unable to enumerate output devices for adapter \"" + output_description + "\"");
         }
-        IDXGIOutput5* p_dxgi_output5;
-        p_dxgi_output->QueryInterface(__uuidof(IDXGIOutput5), reinterpret_cast<void**>(&p_dxgi_output5));
-        m_outputs.emplace_back(HwOutput{ p_dxgi_output5 });
-        p_dxgi_output5->Release();
-        p_dxgi_output->Release();
+
+        ComPtr<IDXGIOutput6> dxgi_output6;
+        dxgi_output->QueryInterface(IID_PPV_ARGS(&dxgi_output6));
+        m_outputs.emplace_back(HwOutput{ dxgi_output6 });
 
         ++id;
     }
-
-    m_outputs_iterator = m_outputs.begin();
-    m_iterated_index = 0;
 }
 
-HwOutput& HwOutputEnumerator::operator*()
-{
-    return *m_outputs_iterator;
-}
-
-HwOutput const& HwOutputEnumerator::operator*() const
-{
-    return *m_outputs_iterator;
-}
-
-HwOutputEnumerator::iterator& HwOutputEnumerator::operator->()
-{
-    return m_outputs_iterator;
-}
-
-HwOutput const* HwOutputEnumerator::operator->() const
-{
-    return &(*m_outputs_iterator);
-}
-
-HwOutputEnumerator& HwOutputEnumerator::operator++()
-{
-    ++m_outputs_iterator;
-    return *this;
-}
-
-HwOutputEnumerator HwOutputEnumerator::operator++(int)
-{
-    HwOutputEnumerator aux{ *this };
-    ++m_outputs_iterator;
-    return aux;
-}
-
-HwOutputEnumerator& HwOutputEnumerator::operator--()
-{
-    --m_outputs_iterator;
-    return *this;
-}
-
-HwOutputEnumerator HwOutputEnumerator::operator--(int)
-{
-    HwOutputEnumerator aux{ *this };
-    --m_outputs_iterator;
-    return aux;
-}
-
-bool HwOutputEnumerator::operator==(HwOutputEnumerator const& other) const
-{
-    return m_adapter_luid.LowPart == other.m_adapter_luid.LowPart
-        && m_adapter_luid.HighPart == other.m_adapter_luid.HighPart
-        && m_iterated_index == other.m_iterated_index;
-}
-
-bool HwOutputEnumerator::operator!=(HwOutputEnumerator const& other) const
-{
-    return !(*this == other);
-}
-
-HwOutputEnumerator::iterator HwOutputEnumerator::begin()
+HwOutputEnumerator::const_iterator HwOutputEnumerator::begin() const
 {
     return m_outputs.begin();
 }
 
-HwOutputEnumerator::iterator HwOutputEnumerator::end()
+HwOutputEnumerator::const_iterator HwOutputEnumerator::end() const
 {
     return m_outputs.end();
 }
@@ -128,22 +55,50 @@ HwOutputEnumerator::const_iterator HwOutputEnumerator::cend() const
 
 
 
-HwOutput::HwOutput(ComPtr<IDXGIOutput5> const& output) : m_output{ output }
+HwOutput::HwOutput(ComPtr<IDXGIOutput6> const& output): 
+    m_output{ output }
 {
 
 }
 
 HwOutput::Description HwOutput::getDescription() const
 {
-    DXGI_OUTPUT_DESC desc;
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    DXGI_OUTPUT_DESC1 desc;
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        m_output->GetDesc(&desc),
+        m_output->GetDesc1(&desc),
         S_OK
     );
 
-    return Description{ desc.DeviceName, math::Rectangle{math::vector2f{static_cast<float>(desc.DesktopCoordinates.left), static_cast<float>(desc.DesktopCoordinates.top)},
-        static_cast<float>(desc.DesktopCoordinates.right - desc.DesktopCoordinates.left), static_cast<float>(desc.DesktopCoordinates.top - desc.DesktopCoordinates.bottom)} };
+    Description rv;
+    rv.name = desc.DeviceName;
+
+    {
+        math::Rectangle desktop_coordinates_rect{};
+        desktop_coordinates_rect.setUpperLeft(math::vector2f{
+            static_cast<float>(desc.DesktopCoordinates.left),
+            static_cast<float>(desc.DesktopCoordinates.top) });
+        desktop_coordinates_rect.setSize(
+            static_cast<float>(desc.DesktopCoordinates.right - desc.DesktopCoordinates.left),
+            static_cast<float>(desc.DesktopCoordinates.top - desc.DesktopCoordinates.bottom));
+
+        rv.desktop_coordinates = desktop_coordinates_rect;
+    }
+
+    rv.is_attached_to_desktop = desc.AttachedToDesktop;;
+    rv.rotation = static_cast<DxgiRotation>(desc.Rotation);
+    rv.monitor = desc.Monitor;
+    rv.bits_per_color = desc.BitsPerColor;
+    rv.color_space_type = static_cast<DxgiColorSpaceType>(desc.ColorSpace);
+    rv.red_primary = math::vector2f{ desc.RedPrimary[0], desc.RedPrimary[1] };
+    rv.green_primary = math::vector2f{ desc.GreenPrimary[0], desc.GreenPrimary[1] };
+    rv.blue_primary = math::vector2f{ desc.BluePrimary[0], desc.BluePrimary[1] };
+    rv.white_point = math::vector2f{ desc.WhitePoint[0], desc.WhitePoint[1] };
+    rv.minimal_luminance = desc.MinLuminance;
+    rv.maximal_luminance = desc.MaxLuminance;
+    rv.maximal_full_frame_luminance = desc.MaxFullFrameLuminance;
+
+    return rv;
 }
 
 std::vector<HwOutput::DisplayMode> HwOutput::getDisplayModes(DXGI_FORMAT format, HwOutput::DisplayModeEnumerationOptions const& options) const
@@ -169,8 +124,8 @@ std::vector<HwOutput::DisplayMode> HwOutput::getDisplayModes(DXGI_FORMAT format,
         rv[i].height = p_descs[i].Height;
         rv[i].refresh_rate = p_descs[i].RefreshRate;
         rv[i].format = p_descs[i].Format;
-        rv[i].scanline_order = p_descs[i].ScanlineOrdering;
-        rv[i].scaling = p_descs[i].Scaling;
+        rv[i].scanline_order = static_cast<DxgiModeScanlineOrder>(p_descs[i].ScanlineOrdering);
+        rv[i].scaling = static_cast<DxgiModeScaling>(p_descs[i].Scaling);
         rv[i].is_stereo = p_descs[i].Stereo == TRUE;
     }
 
@@ -182,7 +137,8 @@ std::vector<HwOutput::DisplayMode> HwOutput::getDisplayModes(DXGI_FORMAT format,
 HwOutput::DisplayMode HwOutput::findMatchingDisplayMode(DisplayMode const& mode_to_match) const
 {
     DXGI_MODE_DESC1 mode_to_seek{ mode_to_match.width, mode_to_match.height, mode_to_match.refresh_rate,
-        mode_to_match.format, mode_to_match.scanline_order, mode_to_match.scaling, mode_to_match.is_stereo };
+        mode_to_match.format, static_cast<DXGI_MODE_SCANLINE_ORDER>(mode_to_match.scanline_order), 
+        static_cast<DXGI_MODE_SCALING>(mode_to_match.scaling), mode_to_match.is_stereo };
 
     DXGI_MODE_DESC1 found_mode_desc;
     LEXGINE_THROW_ERROR_IF_FAILED(
@@ -192,7 +148,8 @@ HwOutput::DisplayMode HwOutput::findMatchingDisplayMode(DisplayMode const& mode_
     );
 
     return DisplayMode{ found_mode_desc.Width, found_mode_desc.Height, found_mode_desc.RefreshRate,
-    found_mode_desc.Format, found_mode_desc.ScanlineOrdering, found_mode_desc.Scaling, found_mode_desc.Stereo == TRUE };
+    found_mode_desc.Format, static_cast<DxgiModeScanlineOrder>(found_mode_desc.ScanlineOrdering), 
+        static_cast<DxgiModeScaling>(found_mode_desc.Scaling), found_mode_desc.Stereo == TRUE };
 }
 
 void HwOutput::waitForVBI() const

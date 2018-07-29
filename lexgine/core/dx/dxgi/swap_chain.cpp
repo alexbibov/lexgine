@@ -1,5 +1,5 @@
 #include "swap_chain.h"
-#include "../../exception.h"
+#include "lexgine/core/exception.h"
 
 using namespace lexgine;
 using namespace lexgine::core;
@@ -31,7 +31,7 @@ math::vector2u SwapChain::getDimensions() const
     return math::vector2u{ swap_chain_desc1.Width, swap_chain_desc1.Height };
 }
 
-SwapChain::SwapChain(ComPtr<IDXGIFactory4> const& dxgi_factory,
+SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     Device& device,
     osinteraction::windows::Window const& window,
     SwapChainDescriptor const& desc):

@@ -1,14 +1,14 @@
 #include "device.h"
-#include "../../exception.h"
+#include "lexgine/core/exception.h"
+#include "lexgine/core/dx/d3d12/debug_interface.h"
+
 
 using namespace lexgine::core::dx::d3d12;
-
 
 Device::Device(ComPtr<ID3D12Device> const& device) :
     m_device{ device },
     m_rs_cache{ *this }
 {
-
 }
 
 FeatureD3D12Options Device::queryFeatureD3D12Options() const
@@ -112,6 +112,11 @@ FeatureGPUVirtualAddressSupport Device::queryFeatureGPUVirtualAddressSupport() c
     rv.maxGPUVirtualAddressBitsPerProcess = feature_desc.MaxGPUVirtualAddressBitsPerProcess;
 
     return rv;
+}
+
+uint32_t Device::getNodeCount() const
+{
+    return static_cast<UINT>(m_device->GetNodeCount());
 }
 
 ComPtr<ID3D12Device> Device::native() const
