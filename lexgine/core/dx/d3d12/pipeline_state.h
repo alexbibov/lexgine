@@ -1,17 +1,18 @@
 #ifndef LEXGINE_CORE_DX_D3D12_PIPELINE_STATE_H
+#define LEXGINE_CORE_DX_D3D12_PIPELINE_STATE_H
 
 #include <d3d12.h>
 #include <wrl.h>
 
-#include "../../entity.h"
-#include "../../class_names.h"
-#include "../../data_blob.h"
-#include "../../misc/constant_converter.h"
-#include "../../vertex_attributes.h"
-#include "../../stream_output.h"
-#include "../../multisampling.h"
-#include "root_signature.h"
-#include "device.h"
+#include "lexgine/core/lexgine_core_fwd.h"
+#include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
+#include "lexgine/core/data_blob.h"
+#include "lexgine/core/misc/constant_converter.h"
+#include "lexgine/core/vertex_attributes.h"
+#include "lexgine/core/stream_output.h"
+#include "lexgine/core/multisampling.h"
 
 using namespace Microsoft::WRL;
 
@@ -94,10 +95,10 @@ public:
     Device& device() const;    //! returns device interface used to create this PSO object
     D3DDataBlob getCache() const;    //! returns cached PSO packed into data blob
 
-    PipelineState(Device& device, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
+    PipelineState(Globals& globals, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
         GraphicsPSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso = nullptr);    //! initializes graphics PSO
 
-    PipelineState(Device& device, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
+    PipelineState(Globals& globals, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
         ComputePSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso = nullptr);    //! initializes compute PSO
 
     PipelineState(PipelineState const&) = delete;
@@ -113,5 +114,4 @@ private:
 
 }}}}
 
-#define LEXGINE_CORE_DX_D3D12_PIPELINE_STATE_H
 #endif

@@ -54,11 +54,12 @@ StreamedCacheConnection::StreamedCacheConnection(GlobalSettings const& global_se
     m_cache{ nullptr }
 {
     // create stream for the cache
+    bool does_cache_exist{ false };
     {
         auto cache_stream_mode = std::ios_base::in | std::ios_base::binary;
         if (!is_read_only) cache_stream_mode |= std::ios_base::out;
 
-        bool does_cache_exist = doesFileExist(path_to_cache);
+        does_cache_exist = doesFileExist(path_to_cache);
         if (!does_cache_exist)
         {
             if (is_read_only) return;
@@ -71,17 +72,26 @@ StreamedCacheConnection::StreamedCacheConnection(GlobalSettings const& global_se
     // create cache instance
     if (m_stream && *m_stream)
     {
-        m_cache.reset(new CombinedCache{ *m_stream, is_read_only });
-        if (!(*m_cache))
+        if (does_cache_exist)
         {
-            // existing cache cannot be opened, probably due to data corruption
-            // try to create new cache storage, if requested opening mode is not read-only
-            if (is_read_only) { m_stream.release(); return; }
-            m_stream->close();
-            m_stream->open(path_to_cache, std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc);
-            if (!(*m_stream)) { m_stream.release(); return; }
+            m_cache.reset(new CombinedCache{ *m_stream, is_read_only });
 
-            m_cache.reset(new CombinedCache{ *m_stream, global_settings.getMaxCombinedCacheSize(), 
+            if (!(*m_cache))
+            {
+                // existing cache cannot be opened, probably due to data corruption
+                // try to create new cache storage, if requested opening mode is not read-only
+                if (is_read_only) { m_stream.release(); return; }
+                m_stream->close();
+                m_stream->open(path_to_cache, std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc);
+                if (!(*m_stream)) { m_stream.release(); return; }
+
+                m_cache.reset(new CombinedCache{ *m_stream, global_settings.getMaxCombinedCacheSize(),
+                    global_constants::combined_cache_compression_level, allow_overwrites });
+            }
+        }
+        else
+        {
+            m_cache.reset(new CombinedCache{ *m_stream, global_settings.getMaxCombinedCacheSize(),
                 global_constants::combined_cache_compression_level, allow_overwrites });
         }
     }

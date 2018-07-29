@@ -1,5 +1,11 @@
+#include "lexgine/core/exception.h"
+#include "lexgine/core/globals.h"
+
 #include "pipeline_state.h"
 #include "d3d12_tools.h"
+#include "device.h"
+#include "dx_resource_factory.h"
+
 
 using namespace lexgine::core;
 using namespace lexgine::core::misc;
@@ -26,11 +32,11 @@ D3DDataBlob PipelineState::getCache() const
     return D3DDataBlob{ p_blob };
 }
 
-PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
+PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
     GraphicsPSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso):
-    m_device{ device }
+    m_device{ *globals.get<Device>() }
 {
-    ComPtr<ID3D12RootSignature> root_signature = device.createRootSignature(serialized_root_signature, root_signature_friendly_name, pso_descriptor.node_mask);
+    ComPtr<ID3D12RootSignature> root_signature = m_device.createRootSignature(serialized_root_signature, root_signature_friendly_name, pso_descriptor.node_mask);
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC desc;
 
@@ -81,7 +87,7 @@ PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_
     D3D12_BLEND_DESC blend_desc;
     blend_desc.AlphaToCoverageEnable = pso_descriptor.blend_state.alphaToCoverageEnable;
     blend_desc.IndependentBlendEnable = pso_descriptor.blend_state.independentBlendEnable;
-    for (uint8_t i = 0U; i < sizeof(blend_desc.RenderTarget) / sizeof(D3D12_RENDER_TARGET_BLEND_DESC); ++i)
+    for (uint8_t i = 0U; i < pso_descriptor.num_render_targets; ++i)
     {
         blend_desc.RenderTarget[i].BlendEnable = pso_descriptor.blend_state.render_target_blend_descriptor[i].isEnabled();
         blend_desc.RenderTarget[i].LogicOpEnable = pso_descriptor.blend_state.render_target_blend_descriptor[i].isLogicalOperationEnabled();
@@ -181,11 +187,9 @@ PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_
     if (cached_pso)
         desc.CachedPSO = D3D12_CACHED_PIPELINE_STATE{ cached_pso.data(), cached_pso.size() };
 
-    #ifdef LEXGINE_D3D12DEBUG
-    desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG;
-    #else
-    desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-    #endif
+    desc.Flags = globals.get<DxResourceFactory>()->debugInterface() ?
+        D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG
+        : D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
 
     LEXGINE_LOG_ERROR_IF_FAILED(
         this, 
@@ -198,11 +202,11 @@ PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_
     // delete[] p_input_element_descs;
 }
 
-PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
+PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
     ComputePSODescriptor const & pso_descriptor, D3DDataBlob const& cached_pso):
-    m_device{ device }
+    m_device{ *globals.get<Device>() }
 {
-    ComPtr<ID3D12RootSignature> root_signature = device.createRootSignature(serialized_root_signature, root_signature_friendly_name, pso_descriptor.node_mask);
+    ComPtr<ID3D12RootSignature> root_signature = m_device.createRootSignature(serialized_root_signature, root_signature_friendly_name, pso_descriptor.node_mask);
 
     D3D12_COMPUTE_PIPELINE_STATE_DESC desc;
     desc.pRootSignature = root_signature.Get();
@@ -212,13 +216,11 @@ PipelineState::PipelineState(Device& device, D3DDataBlob const& serialized_root_
     if (cached_pso)
         desc.CachedPSO = D3D12_CACHED_PIPELINE_STATE{ cached_pso.data(), cached_pso.size() };
 
-    #ifdef LEXGINE_D3D12DEBUG
-    desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG;
-    #else
-    desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-    #endif
+    desc.Flags = globals.get<DxResourceFactory>()->debugInterface() ?
+        D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG
+        : D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
 
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this, 
         m_device.native()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&m_pipeline_state)), 
         S_OK

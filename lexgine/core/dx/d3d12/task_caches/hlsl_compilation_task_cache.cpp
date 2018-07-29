@@ -21,7 +21,7 @@ using namespace lexgine::core::dx::d3d12::tasks;
 
 namespace {
 
-uint64_t hashStringifiedDefines(std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions)
+std::string getStringifiedDefines(std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions)
 {
     std::string rv{};
     {
@@ -31,7 +31,7 @@ uint64_t hashStringifiedDefines(std::list<dxcompilation::HLSLMacroDefinition> co
         rv += "}";
     }
 
-    return misc::HashedString{ rv }.hash();
+    return rv;
 }
 
 }
@@ -54,9 +54,9 @@ void HLSLCompilationTaskCache::Key::serialize(void* p_serialization_blob) const
 
     strcpy_s(reinterpret_cast<char*>(ptr), max_string_section_length_in_bytes, source_path); ptr += max_string_section_length_in_bytes;
 
-    memcpy(ptr, &shader_type, sizeof(shader_type)); ptr += sizeof(shader_type);
-    memcpy(ptr, &shader_model, sizeof(shader_model)); ptr += sizeof(shader_model);
-    memcpy(ptr, &hash_value, sizeof(hash_value));
+    memcpy(ptr, &shader_type, sizeof(uint16_t)); ptr += sizeof(uint16_t);
+    memcpy(ptr, &shader_model, sizeof(uint16_t)); ptr += sizeof(uint16_t);
+    memcpy(ptr, &hash_value, sizeof(uint64_t));
 }
 
 void HLSLCompilationTaskCache::Key::deserialize(void const* p_serialization_blob)
@@ -65,9 +65,9 @@ void HLSLCompilationTaskCache::Key::deserialize(void const* p_serialization_blob
 
     strcpy_s(source_path, max_string_section_length_in_bytes, reinterpret_cast<char const*>(ptr)); ptr += max_string_section_length_in_bytes;
 
-    memcpy(&shader_type, ptr, sizeof(shader_type)); ptr += sizeof(shader_type);
-    memcpy(&shader_model, ptr, sizeof(shader_model)); ptr += sizeof(shader_model);
-    memcpy(&hash_value, ptr, sizeof(hash_value));
+    memcpy(&shader_type, ptr, sizeof(uint16_t)); ptr += sizeof(uint16_t);
+    memcpy(&shader_model, ptr, sizeof(uint16_t)); ptr += sizeof(uint16_t);
+    memcpy(&hash_value, ptr, sizeof(uint64_t));
 }
 
 HLSLCompilationTaskCache::Key::Key(std::string const& hlsl_source_path,
@@ -107,7 +107,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::addTask(core::Globals& glo
     bool force_ieee_standard, bool treat_warnings_as_errors, bool enable_validation,
     bool enable_debug_information, bool enable_16bit_types)
 {
-    uint64_t hash_value = hashStringifiedDefines(macro_definitions);
+    std::string stringified_defines = getStringifiedDefines(macro_definitions);
 
     std::string hlsl_source_code{};
     misc::Optional<misc::DateTime> timestamp{};
@@ -140,6 +140,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::addTask(core::Globals& glo
         // Retrieve shader source code and time stamp
         hlsl_source_code = ShaderSourceCodePreprocessor{ path_to_shader, source_type }.getPreprocessedSource();
         timestamp = misc::getFileLastUpdatedTimeStamp(path_to_shader);
+        uint64_t hash_value = misc::HashedString{ stringified_defines + hlsl_source_code }.hash();
 
         // Generate hash value
         key = Key{ path_to_shader, 
@@ -151,6 +152,8 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::addTask(core::Globals& glo
     {
         hlsl_source_code = source;
         timestamp = misc::DateTime::now();    // NOTE: HLSL sources supplied directly (i.e. not via source files) are always recompiled
+        uint64_t hash_value = misc::HashedString{ stringified_defines + hlsl_source_code }.hash();
+
         key = Key{ source_name,
             static_cast<unsigned short>(shader_type),
             static_cast<unsigned short>(shader_model),

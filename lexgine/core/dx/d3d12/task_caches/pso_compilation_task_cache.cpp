@@ -28,16 +28,16 @@ void PSOCompilationTaskCache::Key::serialize(void* p_serialization_blob) const
 {
     uint8_t* ptr = static_cast<uint8_t*>(p_serialization_blob);
     strcpy_s(reinterpret_cast<char*>(ptr), max_pso_cache_name_length, pso_cache_name); ptr += max_pso_cache_name_length;
-    memcpy(ptr, &uid, sizeof(uid)); ptr += sizeof(uid);
-    memcpy(ptr, &pso_type, sizeof(pso_type));
+    memcpy(ptr, &uid, sizeof(uint64_t)); ptr += sizeof(uint64_t);
+    memcpy(ptr, &pso_type, sizeof(PSOType));
 }
 
 void PSOCompilationTaskCache::Key::deserialize(void const* p_serialization_blob)
 {
     uint8_t const* ptr = static_cast<uint8_t const*>(p_serialization_blob);
     strcpy_s(pso_cache_name, max_pso_cache_name_length, reinterpret_cast<char const*>(ptr)); ptr += max_pso_cache_name_length;
-    memcpy(&uid, ptr, sizeof(uid)); ptr += sizeof(uid);
-    memcpy(&pso_type, ptr, sizeof(pso_type));
+    memcpy(&uid, ptr, sizeof(uid)); ptr += sizeof(uint64_t);
+    memcpy(&pso_type, ptr, sizeof(PSOType));
 }
 
 PSOCompilationTaskCache::Key::Key(
@@ -83,8 +83,7 @@ tasks::GraphicsPSOCompilationTask* PSOCompilationTaskCache::addTask(
 
         m_graphics_pso_compilation_tasks.emplace_back(
             psos_cache_keys_insertion_position->first,
-            *globals.get<GlobalSettings>(),
-            *globals.get<Device>(),
+            globals,
             descriptor
         );
 
@@ -122,8 +121,7 @@ tasks::ComputePSOCompilationTask* PSOCompilationTaskCache::addTask(
 
         m_compute_pso_compilation_tasks.emplace_back(
             psos_cache_keys_insertion_position->first,
-            *globals.get<GlobalSettings>(),
-            *globals.get<Device>(),
+            globals,
             descriptor
         );
 

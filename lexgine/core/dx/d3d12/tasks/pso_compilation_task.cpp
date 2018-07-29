@@ -48,12 +48,10 @@ D3DDataBlob loadPrecachedPSOBlob(GlobalSettings const& global_settings, task_cac
 
 GraphicsPSOCompilationTask::GraphicsPSOCompilationTask(
     task_caches::CombinedCacheKey const& key, 
-    GlobalSettings const& global_settings,
-    Device& device,
+    Globals& globals,
     GraphicsPSODescriptor const& descriptor):
     m_key{ key },
-    m_device{ device },
-    m_global_settings{ global_settings },
+    m_globals{ globals },
     m_descriptor{ descriptor },
     m_associated_shader_compilation_tasks(5, nullptr),
     m_associated_root_signature_compilation_task{ nullptr },
@@ -152,10 +150,10 @@ bool GraphicsPSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index
 {
     try
     {
-        auto precached_pso_blob = loadPrecachedPSOBlob(m_global_settings, m_key);
+        auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key);
 
         m_resulting_pipeline_state.reset(new PipelineState{
-            m_device,
+            m_globals,
             m_associated_root_signature_compilation_task->getTaskData(),
             getCacheName(),
             m_descriptor, precached_pso_blob });
@@ -163,7 +161,7 @@ bool GraphicsPSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index
         if (!precached_pso_blob)
         {
             auto my_pso_cache =
-                task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
+                task_caches::establishConnectionWithCombinedCache(*m_globals.get<GlobalSettings>(), worker_id, false);
 
             my_pso_cache.cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
         }
@@ -190,12 +188,10 @@ concurrency::TaskType GraphicsPSOCompilationTask::get_task_type() const
 
 ComputePSOCompilationTask::ComputePSOCompilationTask(
     task_caches::CombinedCacheKey const& key,
-    GlobalSettings const& global_settings,
-    Device& device,
+    Globals& globals,
     ComputePSODescriptor const& descriptor):
     m_key{ key },
-    m_global_settings{ global_settings },
-    m_device{ device },
+    m_globals{ globals },
     m_descriptor{ descriptor },
     m_associated_compute_shader_compilation_task{ nullptr },
     m_associated_root_signature_compilation_task{ nullptr },
@@ -251,18 +247,18 @@ bool ComputePSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
 {
     try
     {
-        auto precached_pso_blob = loadPrecachedPSOBlob(m_global_settings, m_key);
+        auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key);
 
         m_resulting_pipeline_state.reset(new PipelineState{
-            m_device,
+            m_globals,
             m_associated_root_signature_compilation_task->getTaskData(),
-            getCacheName(),
+            m_associated_root_signature_compilation_task->getCacheName(),
             m_descriptor, precached_pso_blob });
 
         if (!precached_pso_blob)
         {
             auto my_pso_cache =
-                task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
+                task_caches::establishConnectionWithCombinedCache(*m_globals.get<GlobalSettings>(), worker_id, false);
 
             my_pso_cache.cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
         }

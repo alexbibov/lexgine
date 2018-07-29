@@ -1,15 +1,16 @@
 #ifndef LEXGINE_CORE_DX_DXGI_SWAP_CHAIN_H
+#define LEXGINE_CORE_DX_DXGI_SWAP_CHAIN_H
 
-#include <dxgi1_5.h>
+#include <dxgi1_6.h>
 #include <wrl.h>
 
 #include <cstdint>
 
-#include "../d3d12/command_queue.h"
-#include "../../../osinteraction/windows/window.h"
 #include "common.h"
-#include "../../math/vector_types.h"
-#include "../../multisampling.h"
+#include "lexgine/core/dx/d3d12/command_queue.h"
+#include "lexgine/osinteraction/windows/window.h"
+#include "lexgine/core/math/vector_types.h"
+#include "lexgine/core/multisampling.h"
 
 using namespace Microsoft::WRL;
 
@@ -58,9 +59,9 @@ public:
 
 private:
     //! This constructor THROWS
-    SwapChain(ComPtr<IDXGIFactory4> const& dxgi_factory, d3d12::Device& device, osinteraction::windows::Window const& window, SwapChainDescriptor const& desc);
+    SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory, d3d12::Device& device, osinteraction::windows::Window const& window, SwapChainDescriptor const& desc);
 
-    ComPtr<IDXGIFactory4> m_dxgi_factory;   //!< DXGI factory used to create the swap chain
+    ComPtr<IDXGIFactory6> m_dxgi_factory;   //!< DXGI factory used to create the swap chain
     d3d12::Device& m_device;    //!< Direct3D12 device interface
     osinteraction::windows::Window const& m_window;    //!< window, which holds the swap chain
     d3d12::CommandQueue m_default_command_queue;    //!< default command queue associated with the swap chain
@@ -72,5 +73,4 @@ private:
 
 }}}}
 
-#define LEXGINE_CORE_DX_DXGI_SWAP_CHAIN_H
 #endif

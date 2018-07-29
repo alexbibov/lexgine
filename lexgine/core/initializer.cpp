@@ -38,21 +38,25 @@ std::string correct_path(std::string const& original_path)
 }
 
 
-
-Initializer::Initializer(
-    std::string const& global_lookup_prefix, 
-    std::string const& settings_lookup_path,
-    std::string const& global_settings_json_file,
-    std::string const& logging_output_path,
-    std::string const& log_name)
+EngineSettings::EngineSettings() :
+    debug_mode{ false },
+    adapter_enumeration_preference{ dx::dxgi::HwAdapterEnumerator::DxgiGpuPreference::high_performance },
+    global_settings_json_file{ "global_settings.json" },
+    log_name{ "lexgine.log" }
 {
-    std::string corrected_logging_output_path = correct_path(logging_output_path);
-    std::string corrected_global_lookup_prefix = correct_path(global_lookup_prefix);
-    std::string corrected_settings_lookup_path = correct_path(settings_lookup_path);
+
+}
+
+
+Initializer::Initializer(EngineSettings const& settings)
+{
+    std::string corrected_logging_output_path = correct_path(settings.logging_output_path);
+    std::string corrected_global_lookup_prefix = correct_path(settings.global_lookup_prefix);
+    std::string corrected_settings_lookup_path = correct_path(settings.settings_lookup_path);
 
     // Initialize logging
     {
-        m_logging_file_stream.open(corrected_logging_output_path + log_name + ".html", std::ios::out);
+        m_logging_file_stream.open(corrected_logging_output_path + settings.log_name + ".html", std::ios::out);
         if (!m_logging_file_stream)
         {
             throw std::runtime_error{ "unable to initialize main logging stream" };
@@ -72,7 +76,7 @@ Initializer::Initializer(
         + std::to_string(PROJECT_VERSION_MINOR) + " rev." + std::to_string(PROJECT_VERSION_REVISION)
         + "(" + PROJECT_VERSION_STAGE + ")" + " (" + misc::wstringToAsciiString(host_computer_name) + ")" };
 
-        misc::Log::create(m_logging_file_stream, log_name, time_zone_bias, dts);
+        misc::Log::create(m_logging_file_stream, settings.log_name, time_zone_bias, dts);
     }
 
 
@@ -82,7 +86,7 @@ Initializer::Initializer(
 
     builder.registerMainLog(m_logging_file_stream);
 
-    m_global_settings.reset(new GlobalSettings{ corrected_global_lookup_prefix + corrected_settings_lookup_path + global_settings_json_file });
+    m_global_settings.reset(new GlobalSettings{ corrected_global_lookup_prefix + corrected_settings_lookup_path + settings.global_settings_json_file });
     
     // Correct shader lookup directories
     {
@@ -120,7 +124,7 @@ Initializer::Initializer(
         m_logging_worker_file_streams.resize(num_workers);
         for (uint8_t i = 0; i < num_workers; ++i)
         {
-            m_logging_worker_file_streams[i].open(corrected_logging_output_path + log_name + "_worker" + std::to_string(i) + ".html", std::ios::out);
+            m_logging_worker_file_streams[i].open(corrected_logging_output_path + settings.log_name + "_worker" + std::to_string(i) + ".html", std::ios::out);
             if (!m_logging_worker_file_streams[i])
             {
                 LEXGINE_THROW_ERROR("ERROR: unable to initialize logging stream for worker thread " + std::to_string(i));
@@ -138,7 +142,7 @@ Initializer::Initializer(
 
     // Initialize resource factory
 
-    m_resource_factory.reset(new dx::d3d12::DxResourceFactory{ *m_global_settings });
+    m_resource_factory.reset(new dx::d3d12::DxResourceFactory{ *m_global_settings, settings.debug_mode, settings.adapter_enumeration_preference });
     builder.registerDxResourceFactory(*m_resource_factory);
 
     // Initialize caches
@@ -154,6 +158,8 @@ Initializer::Initializer(
     }
 
     *m_globals = builder.build();
+
+    setCurrentDevice(0);
 }
 
 Initializer::~Initializer()
@@ -176,4 +182,26 @@ Initializer::~Initializer()
 core::Globals& Initializer::globals()
 {
     return *m_globals;
+}
+
+bool Initializer::setCurrentDevice(uint32_t adapter_id)
+{
+    auto p = m_resource_factory->hardwareAdapterEnumerator().begin();
+    auto e = m_resource_factory->hardwareAdapterEnumerator().end();
+
+    for (uint32_t i = 0; i < adapter_id && p != e; ++i, ++p);
+
+    if (p == e) return false;
+    else
+    {
+        dx::d3d12::Device& device_ref = p->device();
+        m_globals->put(&device_ref);
+    }
+
+    return true;
+}
+
+dx::d3d12::Device& Initializer::getCurrentDevice() const
+{
+    return *m_globals->get<dx::d3d12::Device>();
 }

@@ -21,7 +21,7 @@ struct GraphicsPSODescriptor;
 struct ComputePSODescriptor;
 class PipelineState;
 class Resource;
-class ResourceBarrier;
+template<size_t> class ResourceBarrier;
 class RootSignature;
 
 }}}}

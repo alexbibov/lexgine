@@ -22,14 +22,14 @@ void RootSignatureCompilationTaskCache::Key::serialize(void* p_serialization_blo
 {
     uint8_t* ptr = static_cast<uint8_t*>(p_serialization_blob);
     strcpy_s(reinterpret_cast<char*>(ptr), max_rs_cache_name_length, rs_cache_name); ptr += max_rs_cache_name_length;
-    memcpy(ptr, &uid, sizeof(uid));
+    memcpy(ptr, &uid, sizeof(uint64_t));
 }
 
 void RootSignatureCompilationTaskCache::Key::deserialize(void const* p_serialization_blob)
 {
     uint8_t const* ptr = static_cast<uint8_t const*>(p_serialization_blob);
     strcpy_s(rs_cache_name, max_rs_cache_name_length, reinterpret_cast<char const*>(ptr)); ptr += max_rs_cache_name_length;
-    memcpy(&uid, ptr, sizeof(uid));
+    memcpy(&uid, ptr, sizeof(uint64_t));
 }
 
 RootSignatureCompilationTaskCache::Key::Key(std::string const& root_signature_cache_name, uint64_t uid) :

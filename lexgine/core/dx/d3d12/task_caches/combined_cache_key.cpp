@@ -198,7 +198,7 @@ std::string CombinedCacheKey::toString() const
 void CombinedCacheKey::serialize(void* p_serialization_blob) const
 {
     uint8_t* ptr = static_cast<uint8_t*>(p_serialization_blob);
-    memcpy(ptr, &m_entry_type, sizeof(m_entry_type)); ptr += sizeof(m_entry_type);
+    memcpy(ptr, &m_entry_type, sizeof(m_entry_type)); ptr += sizeof(cache_entry_type);
 
     switch (m_entry_type)
     {

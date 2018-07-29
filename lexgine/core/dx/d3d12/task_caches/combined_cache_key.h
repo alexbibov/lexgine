@@ -11,9 +11,14 @@ namespace lexgine { namespace core { namespace dx { namespace d3d12 { namespace 
 
 class CombinedCacheKey
 {
-public:
+private:
+    enum class cache_entry_type : unsigned char
+    {
+        shader, pipeline_state_object, root_signature
+    };
 
-    static constexpr size_t serialized_size =
+public:
+    static constexpr size_t serialized_size = sizeof(cache_entry_type) +
         (std::max)(RootSignatureCompilationTaskCache::Key::serialized_size,
         (std::max)(HLSLCompilationTaskCache::Key::serialized_size,
             PSOCompilationTaskCache::Key::serialized_size));
@@ -44,10 +49,7 @@ public:
     operator HLSLCompilationTaskCache::Key const&() const;
 
 private:
-    enum class cache_entry_type : unsigned char
-    {
-        shader, pipeline_state_object, root_signature
-    } m_entry_type;
+    cache_entry_type m_entry_type;
 
     union maintained_key{
         RootSignatureCompilationTaskCache::Key rs;

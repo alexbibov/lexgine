@@ -10,7 +10,7 @@
 #include <list>
 
 #include "hw_output_enumerator.h"
-#include "../../../osinteraction/windows/window.h"
+#include "lexgine/osinteraction/windows/window.h"
 #include "swap_chain.h"
 
 namespace lexgine { namespace core { namespace dx { namespace dxgi {
@@ -31,8 +31,25 @@ enum class D3D12FeatureLevel : int
 //! Tiny wrapper over DXGI adapter interface
 class HwAdapter final : public NamedEntity<class_names::HwAdapter>
 {
-    friend class HwAdapterEnumerator;   // friendship is not good design in general, but here it is just fine, since adapters must only be created by their enumerators
 public:
+    enum class DxgiGraphicsPreemptionGranularity
+    {
+        dma_buffer = DXGI_GRAPHICS_PREEMPTION_DMA_BUFFER_BOUNDARY,
+        primitive = DXGI_GRAPHICS_PREEMPTION_PRIMITIVE_BOUNDARY,
+        triangle = DXGI_GRAPHICS_PREEMPTION_TRIANGLE_BOUNDARY,
+        pixel = DXGI_GRAPHICS_PREEMPTION_PIXEL_BOUNDARY,
+        instruction = DXGI_GRAPHICS_PREEMPTION_INSTRUCTION_BOUNDARY
+    };
+
+    enum class DxgiComputePreemptionGranularity
+    {
+        dma_buffer = DXGI_COMPUTE_PREEMPTION_DMA_BUFFER_BOUNDARY, 
+        dispatch = DXGI_COMPUTE_PREEMPTION_DISPATCH_BOUNDARY,
+        thread_group = DXGI_COMPUTE_PREEMPTION_THREAD_GROUP_BOUNDARY,
+        thread = DXGI_COMPUTE_PREEMPTION_THREAD_BOUNDARY,
+        instruction = DXGI_COMPUTE_PREEMPTION_INSTRUCTION_BOUNDARY
+    };
+
     struct MemoryDesc   //! Description of adapter's memory budget (in bytes)
     {
         uint64_t total; //!< OS-provided total amount of video memory available to the adapter
@@ -48,15 +65,20 @@ public:
         uint32_t device_id;    //!< The PCI ID of hardware device
         uint32_t sub_system_id;    //!< The PCI ID of the sub system
         uint32_t revision;    //!< The PCI ID of the revision number of the adapter
+        size_t dedicated_video_memory;    //!< amount of dedicated video memory represented in bytes
+        size_t dedicated_system_memory;    //!< amount of dedicated system memory, in bytes, that is not shared with CPU
+        size_t shared_system_memory;    //!< maximum amount of system memory, in bytes, that can be consumed by the adapter during operation
         LUID luid;    //!< Local unique identifier of the adapter
+        DxgiGraphicsPreemptionGranularity graphics_preemption_granularity;    //!< describes granularity, at which the graphics adapter can be preempted from its current graphics task
+        DxgiComputePreemptionGranularity compute_preemption_granularity;    //!< describes granularity, at which the graphics adapter can be preempted from its current compute task
     };
 
     struct Properties   //! Properties of DXGI adapter
     {
         D3D12FeatureLevel d3d12_feature_level;  //!< maximal feature level offered by Direct3D 12 and supported by the adapter
         uint32_t num_nodes;    //!< number of physical video adapters in the adapter link represented by this HwAdapter object
-        MemoryDesc const* local;   //!< the fastest memory budget available to each physical adapter in the hardware link (i.e. the physical video memory on non-UMA devices)
-        MemoryDesc const* non_local;   //!< non-local memory budget of each physical adapter in the hardware link (might be slower than the local budget and is the only one available to UMA devices)
+        std::vector<MemoryDesc> local;   //!< the fastest memory budget available to each physical adapter in the hardware link (i.e. the physical video memory on non-UMA devices)
+        std::vector<MemoryDesc> non_local;   //!< non-local memory budget of each physical adapter in the hardware link (might be slower than the local budget and is the only one available to UMA devices)
         Description details;    //!< detailed description of the adapter
     };
 
@@ -66,58 +88,62 @@ public:
         non_local = DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL
     };
 
-    //! Sends the OS notification requesting to reserve given @param amount_in_bytes from the video memory for the rendering application. THROWS.
+public:
+    //! Constructs wrapper around DXGI adapter. This is normally done only by HwAdapterEnumerator
+    HwAdapter(ComPtr<IDXGIFactory6> const& adapter_factory, ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode);
+    ~HwAdapter();
+
+public:
+
+    //! Sends the OS notification requesting to reserve given amount_in_bytes from the video memory for the rendering application.
     void reserveVideoMemory(uint32_t node_index, MemoryBudget budget_type, uint64_t amount_in_bytes) const;
 
     //! Returns properties structure describing this adapter
     Properties getProperties() const;
 
     //! Returns enumerator object that allows to iterate through hardware outputs of the adapter
-    HwOutputEnumerator getOutputEnumerator() const;
+    HwOutputEnumerator const& getOutputEnumerator() const;
 
     //! Creates swap chain for this adapter (or adapter link) and associates it with the given window
     SwapChain createSwapChain(osinteraction::windows::Window const& window, SwapChainDescriptor const& desc) const;
 
-    //! Constructs wrapper around DXGI adapter. This is normally done only by HwAdapterEnumerator
-    HwAdapter(ComPtr<IDXGIFactory4> const& adapter_factory, ComPtr<IDXGIAdapter3> const& adapter);
+    d3d12::Device& device() const;
+
 
 private:
-    ComPtr<IDXGIAdapter3> m_dxgi_adapter;	//!< DXGI adapter
-    ComPtr<IDXGIFactory4> m_dxgi_adapter_factory;    //!< DXGI factory, which has been used in order to create this adapter
-    HwOutputEnumerator m_output_enumerator; //!< bi-directional iterator enumerating output devices attached to this adapter
+    ComPtr<IDXGIAdapter4> m_dxgi_adapter;	//!< DXGI adapter
+    ComPtr<IDXGIFactory6> m_dxgi_adapter_factory;    //!< DXGI factory, which has been used in order to create this adapter
+
     Properties m_properties;    //!< describes properties of the adapter
 
-    class details;     //!< class encapsulating adapter details
-    std::shared_ptr<details> m_p_details;    //!< pointer to adapter details buffer
-
-    std::unique_ptr<d3d12::Device> m_device;    //!< d3d device associated with the adapter
+    class impl;
+    std::unique_ptr<impl> m_impl;    //!< various properties of the adapter encapsulated in the details class
+    
+    std::unique_ptr<d3d12::Device> m_device;    //!< d3d12 device associated with the adapter
 };
 
 
 //! Implements enumeration of hardware adapters supporting D3D12
-class HwAdapterEnumerator final : public std::iterator<std::bidirectional_iterator_tag, HwAdapter>,
-    public NamedEntity<class_names::HwAdapterEnumerator>
+class HwAdapterEnumerator final : public NamedEntity<class_names::HwAdapterEnumerator>
 {
 public:
-    using const_iterator = std::list<HwAdapter>::const_iterator;
+    using adapter_list_type = std::list<HwAdapter>;
+    using iterator = adapter_list_type::iterator;
+    using const_iterator = adapter_list_type::const_iterator;
 
-    HwAdapter const& operator*() const;
-    HwAdapter const* operator->() const;
+    enum class DxgiGpuPreference
+    {
+        unspecified = DXGI_GPU_PREFERENCE_UNSPECIFIED,
+        minimum_powert = DXGI_GPU_PREFERENCE_MINIMUM_POWER,
+        high_performance = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE
+    };
 
-    HwAdapterEnumerator& operator++();
-    HwAdapterEnumerator operator++(int);
+public:
+    HwAdapterEnumerator(bool enable_debug_mode = false, 
+        DxgiGpuPreference enumeration_preference = DxgiGpuPreference::high_performance);
 
-    bool operator==(HwAdapterEnumerator const& other) const;
-    bool operator!=(HwAdapterEnumerator const& other) const;
-
-    HwAdapterEnumerator();
-    HwAdapterEnumerator(HwAdapterEnumerator const& other) = default;
-
-    HwAdapterEnumerator& operator = (HwAdapterEnumerator const& other) = default;
-
-    HwAdapterEnumerator& operator--();
-    HwAdapterEnumerator operator--(int);
-
+    iterator begin();
+    iterator end();
 
     const_iterator begin() const;
     const_iterator end() const;
@@ -126,16 +152,16 @@ public:
     const_iterator cend() const;
 
 
-    void refresh();	//! refreshes the list of available hardware adapters with support of D3D12. THROWS.
+    void refresh(DxgiGpuPreference enumeration_preference = DxgiGpuPreference::high_performance);	//! refreshes the list of available hardware adapters with support of D3D12. THROWS.
     bool isRefreshNeeded() const;	//! returns true if the list of adapters has to be refreshed
-    HwAdapter const& getWARPAdapter() const;   //! retrieves the WARP adapter
+    HwAdapter& getWARPAdapter();   //! retrieves the WARP adapter
+    HwAdapter const& getWARPAdapter() const;    //! retrieves the WARP adapter
 
 
 private:
-    ComPtr<IDXGIFactory4> m_dxgi_factory4;
-    std::list<HwAdapter> m_adapter_list;
-    const_iterator m_adapter_iterator;
-    uint32_t m_iterated_index;  //!< zero-based index of the currently iterated item
+    bool m_enable_debug_mode;
+    ComPtr<IDXGIFactory6> m_dxgi_factory6;
+    adapter_list_type m_adapter_list;
 };
 
 }}}}

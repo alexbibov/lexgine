@@ -403,7 +403,7 @@ inline D3D12_STATIC_BORDER_COLOR d3d12Convert(BorderColor border_color)
 
 // HLSL vector types
 
-#include "../../math/vector_types.h"
+#include "lexgine/core/math/vector_types.h"
 namespace lexgine {namespace core {namespace math {
 
 typedef vector4i int4;
@@ -429,7 +429,7 @@ typedef vector2b bool2;
 
 
 // HlSL matrix types
-#include "../../math/matrix_types.h"
+#include "lexgine/core/math/matrix_types.h"
 namespace lexgine {namespace core {namespace math {
 
 typedef shader_matrix_type<float, 4, 4> float4x4;

@@ -82,7 +82,7 @@ HLSLCompilationTask::HLSLCompilationTask(task_caches::CombinedCacheKey const& ke
     m_key{ key },
     m_time_stamp{ time_stamp },
     m_global_settings{ *globals.get<GlobalSettings>() },
-    m_dxc_proxy{ globals.get<DxResourceFactory>()->RetrieveSM6DxCompilerProxy() },
+    m_dxc_proxy{ globals.get<DxResourceFactory>()->shaderModel6xDxCompilerProxy() },
     m_hlsl_source{ hlsl_source },
     m_source_name{ source_name },
     m_shader_model{ shader_model },

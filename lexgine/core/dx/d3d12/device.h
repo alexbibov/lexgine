@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_DX_D3D12_DEVICE_H
+#define LEXGINE_CORE_DX_D3D12_DEVICE_H
 
 #include <wrl.h>
 #include <d3d12.h>
@@ -9,11 +10,14 @@
 
 #include "lexgine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
 
+#include "lexgine_core_dx_d3d12_fwd.h"
 #include "root_signature.h"
-#include "fence.h"
-#include "descriptor_heap.h"
-#include "heap.h"
 #include "root_signature_cache.h"
+#include "heap.h"
+#include "descriptor_heap.h"
+#include "fence.h"
+
+
 
 using namespace Microsoft::WRL;
 
@@ -158,6 +162,8 @@ public:
 
     FeatureGPUVirtualAddressSupport queryFeatureGPUVirtualAddressSupport() const;    //! queries details on the adapter's GPU virtual address space limitations, including maximum address bits per resource and per process
 
+    uint32_t getNodeCount() const;
+    
     ComPtr<ID3D12Device> native() const;    //! returns native IDirect3D12 interface for the device
 
     void setStringName(std::string const& entity_string_name);	//! sets new user-friendly string name for the Direct3D 12 device
@@ -169,13 +175,13 @@ public:
     DescriptorHeap createDescriptorHeap(DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask = 0);    //! creates descriptor heap
 
     //! creates heap of one of the abstract types. Here parameter node_mask identifies the node where the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
-    //! and @param node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
+    //! and node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
     Heap createHeap(AbstractHeapType type, uint64_t size, HeapCreationFlags flags = HeapCreationFlags{ HeapCreationFlags::enum_type::allow_all },
         bool is_msaa_supported = false, uint32_t node_mask = 0, uint32_t node_exposure_mask = 0);
 
     //! creates custom heap with requested CPU memory page properties and allocated from the given GPU memory pool. Here @param node_mask identifies the node where
     //! the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
-    //! and @param node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
+    //! and node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
     Heap createHeap(CPUPageProperty cpu_page_property, GPUMemoryPool gpu_memory_pool, uint64_t size, HeapCreationFlags flags = HeapCreationFlags{ HeapCreationFlags::enum_type::allow_all },
         bool is_msaa_supported = false, uint32_t node_mask = 0, uint32_t node_exposure_mask = 0);
 
@@ -188,10 +194,9 @@ private:
 private:
     ComPtr<ID3D12Device> m_device;    //!< encapsulated pointer to Direct3D12 device interface
     RootSignatureCache m_rs_cache;    //!< cached root signatures
-
 };
 
 }}}}
 
-#define LEXGINE_CORE_DX_D3D12_DEVICE_H
+
 #endif
