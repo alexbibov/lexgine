@@ -555,8 +555,11 @@ public:
                     rs.addParameter(0, table0, ShaderVisibility::all);
 
                     auto& rs_compilation_tasks_cache = *globals.get<task_caches::RootSignatureCompilationTaskCache>();
+                    
+                    RootSignatureFlags flags{ RootSignatureFlags::enum_type::allow_input_assembler };
+                    flags |= RootSignatureFlags::enum_type::allow_stream_output;
                     rs_compilation_tasks_cache.addTask(globals, std::move(rs),
-                        RootSignatureFlags::enum_type::none, "SampleRootSignature", 0);
+                        flags, "SampleRootSignature", 0);
                 }
                 
                 

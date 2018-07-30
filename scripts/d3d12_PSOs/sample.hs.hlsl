@@ -5,8 +5,8 @@ struct VS_OUTPUT_HS_INPUT
 
 struct HS_CONSTANT_DATA
 {
-    float outTessFactor[4] : SV_TessFactor;
-    float inTessFactor[2] : SV_InsideTessFactor;
+    float outTessFactor[3] : SV_TessFactor;
+    float inTessFactor : SV_InsideTessFactor;
 };
 
 struct HS_CONTROL_POINT_DATA_OUTPUT
@@ -35,12 +35,12 @@ HS_CONSTANT_DATA dummy()
     return output;
 }
 
-[domain("quad")]
+[domain("triangle")]
 [partitioning("fractional_odd")]
 [outputtopology("triangle_ccw")]
-[outputcontrolpoints(4)]
+[outputcontrolpoints(3)]
 [patchconstantfunc("dummy")]
-HS_CONTROL_POINT_DATA_OUTPUT HS_main(InputPatch<VS_OUTPUT_HS_INPUT, 4> input,
+HS_CONTROL_POINT_DATA_OUTPUT HS_main(InputPatch<VS_OUTPUT_HS_INPUT, 3> input,
 uint controlPointID : SV_OutputControlPointID)
 {
     HS_CONTROL_POINT_DATA_OUTPUT output;
