@@ -107,7 +107,7 @@ namespace {
         int i = 0;
         while (i < source_string.length())
         {
-            while (i < source_string.length() && source_string[i] < '0' && source_string[i] > '9') ++i;
+            while (i < source_string.length() && (source_string[i] < '0' || source_string[i] > '9')) ++i;
 
             std::string numeric_value;
             while (i < source_string.length() && source_string[i] >= '0' && source_string[i] <= '9')
@@ -120,6 +120,8 @@ namespace {
                 rv.push_back(static_cast<uint32_t>(std::stoul(numeric_value)));
                 source_string = source_string.substr(i);
             }
+
+            i = 0;
         }
 
         return rv;

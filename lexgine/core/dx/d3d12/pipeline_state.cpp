@@ -39,6 +39,7 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
     ComPtr<ID3D12RootSignature> root_signature = m_device.createRootSignature(serialized_root_signature, root_signature_friendly_name, pso_descriptor.node_mask);
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC desc;
+    memset(&desc, 0, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 
     // Define basic parts of the PSO
     desc.pRootSignature = root_signature.Get();
@@ -50,44 +51,48 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
 
 
     // Define stream output
+    D3D12_STREAM_OUTPUT_DESC so_desc;
+    so_desc.NumEntries = static_cast<UINT>(pso_descriptor.stream_output.so_declarations.size());
+
+    //D3D12_SO_DECLARATION_ENTRY *p_so_declaration_entries = new D3D12_SO_DECLARATION_ENTRY[so_desc.NumEntries];
+    std::vector<D3D12_SO_DECLARATION_ENTRY> so_declaration_entries(so_desc.NumEntries);
+
+    uint32_t so_declaration_entry_idx = 0;
+    for (auto p = pso_descriptor.stream_output.so_declarations.begin(); p != pso_descriptor.stream_output.so_declarations.end(); ++p, ++so_declaration_entry_idx)
     {
-        D3D12_STREAM_OUTPUT_DESC so_desc;
-        so_desc.NumEntries = static_cast<UINT>(pso_descriptor.stream_output.so_declarations.size());
+        std::pair<LPCSTR, UINT> semantic_name_and_index = p->name() == "NULL" ?
+            std::make_pair<LPCSTR, UINT>(NULL, 0U)
+            : std::make_pair<LPCSTR, UINT>(p->name().c_str(), p->nameIndex());
 
-        //D3D12_SO_DECLARATION_ENTRY *p_so_declaration_entries = new D3D12_SO_DECLARATION_ENTRY[so_desc.NumEntries];
-        std::vector<D3D12_SO_DECLARATION_ENTRY> so_declaration_entries(so_desc.NumEntries);
-
-        uint32_t so_declaration_entry_idx = 0;
-        for (auto p = pso_descriptor.stream_output.so_declarations.begin(); p != pso_descriptor.stream_output.so_declarations.end(); ++p, ++so_declaration_entry_idx)
-        {
-            so_declaration_entries[so_declaration_entry_idx].Stream = p->stream();
-            so_declaration_entries[so_declaration_entry_idx].SemanticName = p->name().c_str();
-            so_declaration_entries[so_declaration_entry_idx].SemanticIndex = p->nameIndex();
-            auto element_components = p->outputComponents();
-            so_declaration_entries[so_declaration_entry_idx].StartComponent = element_components.first;
-            so_declaration_entries[so_declaration_entry_idx].ComponentCount = element_components.second;
-            so_declaration_entries[so_declaration_entry_idx].OutputSlot = p->slot();
-        }
-        so_desc.pSODeclaration = so_declaration_entries.data();
-
-        so_desc.NumStrides = static_cast<UINT>(pso_descriptor.stream_output.buffer_strides.size());
-
-        //UINT *p_buffer_strides = new UINT[so_desc.NumStrides];
-        std::vector<UINT> buffer_strides(so_desc.NumStrides);
-        uint32_t buffer_stride_idx = 0;
-        for (auto p = pso_descriptor.stream_output.buffer_strides.begin(); p != pso_descriptor.stream_output.buffer_strides.end(); ++p, ++buffer_stride_idx)
-            buffer_strides[buffer_stride_idx] = *p;
-        so_desc.pBufferStrides = buffer_strides.data();
-
-        so_desc.RasterizedStream = pso_descriptor.stream_output.rasterized_stream;
-
-        desc.StreamOutput = so_desc;
+        so_declaration_entries[so_declaration_entry_idx].Stream = p->stream();
+        so_declaration_entries[so_declaration_entry_idx].SemanticName = semantic_name_and_index.first;
+        so_declaration_entries[so_declaration_entry_idx].SemanticIndex = semantic_name_and_index.second;
+        auto element_components = p->outputComponents();
+        so_declaration_entries[so_declaration_entry_idx].StartComponent = element_components.first;
+        so_declaration_entries[so_declaration_entry_idx].ComponentCount = element_components.second;
+        so_declaration_entries[so_declaration_entry_idx].OutputSlot = p->slot();
     }
+    so_desc.pSODeclaration = so_declaration_entries.data();
+
+    so_desc.NumStrides = static_cast<UINT>(pso_descriptor.stream_output.buffer_strides.size());
+
+    //UINT *p_buffer_strides = new UINT[so_desc.NumStrides];
+    std::vector<UINT> buffer_strides(so_desc.NumStrides);
+    uint32_t buffer_stride_idx = 0;
+    for (auto p = pso_descriptor.stream_output.buffer_strides.begin(); p != pso_descriptor.stream_output.buffer_strides.end(); ++p, ++buffer_stride_idx)
+        buffer_strides[buffer_stride_idx] = *p;
+    so_desc.pBufferStrides = buffer_strides.data();
+
+    so_desc.RasterizedStream = pso_descriptor.stream_output.rasterized_stream;
+
+    desc.StreamOutput = so_desc;
 
 
     // Define blend state
     {
         D3D12_BLEND_DESC blend_desc;
+        memset(&blend_desc, 0, sizeof(D3D12_BLEND_DESC));
+
         blend_desc.AlphaToCoverageEnable = pso_descriptor.blend_state.alphaToCoverageEnable;
         blend_desc.IndependentBlendEnable = pso_descriptor.blend_state.independentBlendEnable;
         for (uint8_t i = 0U; i < pso_descriptor.num_render_targets; ++i)
@@ -156,28 +161,26 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
 
 
     // Vertex attributes input layout specification
+    D3D12_INPUT_LAYOUT_DESC input_layout_desc;
+    input_layout_desc.NumElements = static_cast<UINT>(pso_descriptor.vertex_attributes.size());
+    //D3D12_INPUT_ELEMENT_DESC* p_input_element_descs = new D3D12_INPUT_ELEMENT_DESC[input_layout_desc.NumElements];
+    std::vector<D3D12_INPUT_ELEMENT_DESC> input_element_descs(input_layout_desc.NumElements);
+    input_layout_desc.pInputElementDescs = input_element_descs.data();
+
+    size_t input_element_desc_idx = 0;
+    for (auto p = pso_descriptor.vertex_attributes.begin(); p != pso_descriptor.vertex_attributes.end(); ++p, ++input_element_desc_idx)
     {
-        D3D12_INPUT_LAYOUT_DESC input_layout_desc;
-        input_layout_desc.NumElements = static_cast<UINT>(pso_descriptor.vertex_attributes.size());
-        //D3D12_INPUT_ELEMENT_DESC* p_input_element_descs = new D3D12_INPUT_ELEMENT_DESC[input_layout_desc.NumElements];
-        std::vector<D3D12_INPUT_ELEMENT_DESC> input_element_descs(input_layout_desc.NumElements);
-        input_layout_desc.pInputElementDescs = input_element_descs.data();
-
-        size_t input_element_desc_idx = 0;
-        for (auto p = pso_descriptor.vertex_attributes.begin(); p != pso_descriptor.vertex_attributes.end(); ++p, ++input_element_desc_idx)
-        {
-            input_element_descs[input_element_desc_idx].SemanticName = (**p).name().c_str();
-            input_element_descs[input_element_desc_idx].SemanticIndex = (**p).name_index();
-            input_element_descs[input_element_desc_idx].Format = (**p).format<EngineAPI::Direct3D12>();
-            input_element_descs[input_element_desc_idx].InputSlot = (**p).input_slot();
-            input_element_descs[input_element_desc_idx].AlignedByteOffset = (**p).capacity();
-            input_element_descs[input_element_desc_idx].InputSlotClass = (**p).type() == AbstractVertexAttributeSpecification::specification_type::per_instance ?
-                D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-            input_element_descs[input_element_desc_idx].InstanceDataStepRate = (**p).instancingRate();
-        }
-
-        desc.InputLayout = input_layout_desc;
+        input_element_descs[input_element_desc_idx].SemanticName = (**p).name().c_str();
+        input_element_descs[input_element_desc_idx].SemanticIndex = (**p).name_index();
+        input_element_descs[input_element_desc_idx].Format = (**p).format<EngineAPI::Direct3D12>();
+        input_element_descs[input_element_desc_idx].InputSlot = (**p).input_slot();
+        input_element_descs[input_element_desc_idx].AlignedByteOffset = (**p).capacity();
+        input_element_descs[input_element_desc_idx].InputSlotClass = (**p).type() == AbstractVertexAttributeSpecification::specification_type::per_instance ?
+            D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+        input_element_descs[input_element_desc_idx].InstanceDataStepRate = (**p).instancingRate();
     }
+
+    desc.InputLayout = input_layout_desc;
 
 
     // Primitive restart configuration
@@ -190,7 +193,7 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
 
     // Miscellaneous
     desc.NumRenderTargets = pso_descriptor.num_render_targets;
-    for (uint8_t i = 0; i < 8; ++i) desc.RTVFormats[i] = pso_descriptor.rtv_formats[i];
+    for (uint8_t i = 0; i < pso_descriptor.num_render_targets; ++i) desc.RTVFormats[i] = pso_descriptor.rtv_formats[i];
     desc.DSVFormat = pso_descriptor.dsv_format;
     desc.SampleDesc.Count = pso_descriptor.multi_sampling_format.count;
     desc.SampleDesc.Quality = pso_descriptor.multi_sampling_format.quality;

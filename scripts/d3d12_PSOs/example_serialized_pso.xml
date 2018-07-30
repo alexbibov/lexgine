@@ -69,11 +69,10 @@ attribute "component_count" number of components to be written into the stream (
 attribute "slot" determines the slot, to which the buffer receiving the output data should be bound
 
 -->
-<StreamOutput rasterized_stream="FALSE" strides="16, 112, 16">
-<DeclarationEntry stream="0" name="SemanticsOutputStream" name_index="0" start_component="0" component_count="4" slot="0" />
-<DeclarationEntry stream="1" name="AnotherElementToTheSameStream" name_index="0" start_component="0" component_count="3" slot="1" />
-<DeclarationEntry stream="1" name="NULL" start_component="0" component_count="100" slot="1" />
-<DeclarationEntry stream="2" name="AnotherOutputStream" start_component="0" component_count="4" slot="2" />
+<StreamOutput rasterized_stream="FALSE" strides="16, 92">
+<DeclarationEntry stream="0" name="TESS_POSITION" name_index="0" start_component="0" component_count="3" slot="0" />
+<DeclarationEntry stream="1" name="NULL" start_component="0" component_count="20" slot="1" />
+<DeclarationEntry stream="1" name="TESS_NORMAL" start_component="0" component_count="3" slot="1" />
 </StreamOutput>
 
 <!-- The following entry defines blending state of the pipeline state object. This entry is optional and if not provided the blending stage will be disabled.
