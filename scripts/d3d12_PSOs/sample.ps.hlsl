@@ -1,6 +1,6 @@
 struct GS_INPUT
 {
-    float4 position : RasterizedPosition;
+    float4 position : SV_Position;
 };
 
 struct PS_OUTPUT

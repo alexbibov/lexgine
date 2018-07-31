@@ -9,7 +9,7 @@ struct View
 	float4x4 WorldToModel;
 };
 
-ConstantBuffer<View> ViewConstants(b0, space0);
+ConstantBuffer<View> ViewConstants : register(b0, space0);
 
 struct VS_INPUT
 {
@@ -32,7 +32,7 @@ VS_OUTPUT VS_main(VS_INPUT input)
 	float4x4 MVP = mul(ViewConstants.ViewToTarget, ModelToView);
 	
     output.position = mul(MVP, input.position);
-	output.normal = mul(float3x3(ModelToView), input.normal);
+	output.normal = mul((float3x3)ModelToView, input.normal);
 
     return output;
 }

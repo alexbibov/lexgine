@@ -1,6 +1,7 @@
 struct DS_TESSELLATED_POINT_DATA_OUTPUT
 {
-    float4 position : TessellatedPointPosition;
+    float4 position : TESS_POSITION;
+	float3 normal : TESS_NORMAL;
 };
 
 struct HS_CONSTANT_DATA
@@ -11,7 +12,8 @@ struct HS_CONSTANT_DATA
 
 struct HS_CONTROL_POINT_DATA
 {
-    float4 position : ControlPointPosition;
+    float4 position : TESS_CP_POSITION;
+	float3 normal : TESS_CP_NORMAL;
 };
 
 [domain("quad")]
@@ -24,5 +26,7 @@ DS_TESSELLATED_POINT_DATA_OUTPUT DS_main(HS_CONSTANT_DATA PerPatchData,
     float4 intermediatePosition2 = lerp(input[2].position, input[3].position, domainLocation.x);
 
     output.position = lerp(intermediatePosition1, intermediatePosition2, domainLocation.y);
+	output.normal = normalize(input[0].normal + input[1].normal + 
+	    input[2].normal + input[3].normal);
     return output;
 }
