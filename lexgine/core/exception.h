@@ -60,10 +60,10 @@ if (!lexgine::core::misc::equalsAny(__lexgine_error_throw_if_failed_rv__, __VA_A
 { \
 using context_type = std::remove_reference<std::remove_pointer<decltype(context)>::type>::type; \
 std::stringstream error_description_string_stream; \
-error_description_string_stream << "Named entity <" << lexgine::core::misc::dereference<context_type>::resolve(context).getMetaName() \
-<< "> with ID=<" << lexgine::core::misc::dereference<context_type>::resolve(context).getId().toString() \
-<< "> has thrown an exception while executing expression \"" << #expr << "\" in function <" << __FUNCTION__ \
-<< "> of module <" << __FILE__ << "> at line " << __LINE__ << ". The expression has returned error code 0x" \
+error_description_string_stream << "Named entity \"" << lexgine::core::misc::dereference<context_type>::resolve(context).getMetaName() \
+<< "\" with ID=\"" << lexgine::core::misc::dereference<context_type>::resolve(context).getId().toString() \
+<< "\" has thrown an exception while executing expression \"" << #expr << "\" in function \"" << __FUNCTION__ \
+<< "\" of module \"" << __FILE__ << "\" at line " << __LINE__ << ". The expression has returned error code 0x" \
 << std::uppercase << std::hex << __lexgine_error_throw_if_failed_rv__; \
 std::stringstream short_error_description_string_stream; \
 short_error_description_string_stream << "Error while execution expression \"" << #expr \
@@ -80,10 +80,10 @@ Sets the context into erroneous state and throws exception using provided descri
 { \
 using context_type = std::remove_reference<std::remove_pointer<decltype(context)>::type>::type; \
 std::stringstream error_string_stream; \
-error_string_stream << "Named entity <" << lexgine::core::misc::dereference<context_type>::resolve(context).getMetaName() \
-<< "> with ID=<" << lexgine::core::misc::dereference<context_type>::resolve(context).getId().toString() \
-<< "> has thrown an exception in function <" << __FUNCTION__ \
-<< "> of module <" << __FILE__ << "> at line " << __LINE__ << ": " << (description); \
+error_string_stream << "Named entity \"" << lexgine::core::misc::dereference<context_type>::resolve(context).getMetaName() \
+<< "\" with ID=\"" << lexgine::core::misc::dereference<context_type>::resolve(context).getId().toString() \
+<< "\" has thrown an exception in function \"" << __FUNCTION__ \
+<< "\" of module \"" << __FILE__ << "\" at line " << __LINE__ << ": " << (description); \
 lexgine::core::misc::dereference<context_type>::resolve(context).raiseError(error_string_stream.str()); \
 throw Exception{ misc::dereference<context_type>::resolve(context), (description), __FILE__, __FUNCTION__, __LINE__ }; \
 }

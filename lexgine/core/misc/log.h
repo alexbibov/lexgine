@@ -81,7 +81,7 @@ if (!lexgine::core::misc::equalsAny(__lexgine_error_log_rv__, __VA_ARGS__)) \
 { \
 std::stringstream out_message; \
 out_message << "Error while executing expression \"" << #expr \
-<< "\" in function <" << __FUNCTION__ << "> of module <" << __FILE__ << "> at line " << __LINE__ << ". Error code = 0x" \
+<< "\" in function \"" << __FUNCTION__ << "\" of module \"" << __FILE__ << "\" at line " << __LINE__ << ". Error code = 0x" \
 << std::uppercase << std::hex << __lexgine_error_log_rv__; \
 using context_type = std::remove_reference<std::remove_pointer<decltype(context)>::type>::type; \
 lexgine::core::misc::dereference<context_type>::resolve(context).raiseError(out_message.str()); \
@@ -94,7 +94,7 @@ Unconditionally outputs provided error message to the logger and sets the contex
 #define LEXGINE_LOG_ERROR(context, message) \
 { \
 std::stringstream out_message; \
-out_message << "Error occurred in function <" << __FUNCTION__ << "> of module <" << __FILE__ << "> at line " << __LINE__ \
+out_message << "Error occurred in function \"" << __FUNCTION__ << "\" of module \"" << __FILE__ << "\" at line " << __LINE__ \
 << ": " << (message); \
 using context_type = std::remove_reference<std::remove_pointer<decltype(context)>::type>::type; \
 lexgine::core::misc::dereference<context_type>::resolve(context).raiseError(out_message.str()); \

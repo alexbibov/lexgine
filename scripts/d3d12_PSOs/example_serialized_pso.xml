@@ -24,7 +24,7 @@ Each graphics PSO may define a number of attributes, all of which are optional.
 <GraphicsPSO
 name="SampleGraphicsPSO"
 primitive_restart="FALSE" 
-primitive_topology="TRIANGLE" 
+primitive_topology="PATCH" 
 sample_mask="0xFFFFFFFF" 
 sample_count="1" 
 sample_quality="0"
@@ -225,7 +225,7 @@ this forces the attibute "line_anti_aliasing" to FALSE.
 attribute to TRUE on hardware that does not support concervative rasterization may cause failures. The default is FALSE. -->
 
 <RasterizerDescriptor fill_mode="SOLID" cull_mode="BACK" front_face_winding="COUNTERCLOCKWISE" multi_sampling="TRUE" 
-concervative_rasterization="TRUE"/>
+concervative_rasterization="FALSE"/>
 
 <!-- Depth-stencil descriptor is used to define functionality of the depth and stencil tests. There could be only one depth stencil
 descriptor per pipeline definition. Depth-stencil descriptors support the following attributes:
@@ -339,6 +339,7 @@ before advancing one element in the buffer. Wher instancing_rate is 0, the data 
 means that no instancing is applied by default.
 -->
 <VertexAttribute name="SV_Position" index="0" size="4" type="FLOAT32" normalized="TRUE" instancing_rate="0" />
+<VertexAttribute name="NORMAL" index="0" size="3" type="FLOAT32" normalized="TRUE" instancing_rate="0" />
 </VertexAttributeSpecification>
 
 <!--
