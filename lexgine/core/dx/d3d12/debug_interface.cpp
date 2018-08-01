@@ -1,7 +1,5 @@
 #include "debug_interface.h"
-#ifdef LEXGINE_D3D12DEBUG
-#include "../../exception.h"
-#endif
+#include "lexgine/core/exception.h"
 
 using namespace lexgine::core::dx::d3d12;
 

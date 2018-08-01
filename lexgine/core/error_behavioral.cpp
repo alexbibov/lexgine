@@ -39,10 +39,9 @@ char const* ErrorBehavioral::getErrorString() const
 ErrorBehavioral::ErrorBehavioral() :
     m_error_state{ false },
     m_error_string{ "" },
-    m_error_callback{ [](std::string const&) {} },
-    m_p_logger{ misc::Log::retrieve() }
+    m_error_callback{ [](std::string const&) {} }
 {
-    assert(m_p_logger);
+    
 }
 
 ErrorBehavioral::~ErrorBehavioral()
@@ -56,7 +55,13 @@ void ErrorBehavioral::raiseError(std::string const& error_message) const
     m_error_string = error_message;
     m_error_callback(m_error_string);
 
-    m_p_logger->out(error_message, lexgine::core::misc::LogMessageType::error);
+    logger().out(error_message, lexgine::core::misc::LogMessageType::error);
 }
 
-misc::Log const& ErrorBehavioral::logger() const { return *m_p_logger; }
+misc::Log const& ErrorBehavioral::logger() const 
+{ 
+    misc::Log const* p_logger = misc::Log::retrieve();
+    assert(p_logger);
+
+    return *p_logger;
+}

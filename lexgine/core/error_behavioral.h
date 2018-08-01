@@ -44,9 +44,6 @@ private:
     //!< Callback function that is called when the object enters an erroneous state
     std::function<void(std::string const& err_msg)> m_error_callback;
 
-    //!< Logging system
-    misc::Log const* m_p_logger;
-
 
 protected:
     //! Puts object into erroneous state setting error description provided via @param error_message and making sure that

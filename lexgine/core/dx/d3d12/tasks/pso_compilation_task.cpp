@@ -141,12 +141,6 @@ RootSignatureCompilationTask* GraphicsPSOCompilationTask::getRootSignatureCompil
     return m_associated_root_signature_compilation_task;
 }
 
-GraphicsPSOCompilationTask::~GraphicsPSOCompilationTask()
-{
-    __debugbreak();
-    m_resulting_pipeline_state.reset();
-}
-
 std::string GraphicsPSOCompilationTask::getCacheName() const
 {
     return m_key.toString();
