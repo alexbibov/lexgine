@@ -1085,6 +1085,7 @@ public:
                             LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name
                                 + ": StencilTestBehavior node must define attribute \"dsv_target_format\"");
                         }
+                        currently_assembled_pso_descriptor.dsv_format = dsv_target_format;
 
                         stencil_test_behavior[front_face == lexgine::core::CullMode::front ? 0 : 1] =
                             lexgine::core::StencilBehavior{ operation_st_fail, operation_st_pass_dt_fail, operation_st_pass_dt_pass, comparison_function };
@@ -1403,6 +1404,8 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
         }
 
         concurrency::TaskGraph pso_compilation_task_graph{ root_tasks, global_settings.getNumberOfWorkers(), "deferred_pso_compilation_task_graph" };
+        pso_compilation_task_graph.injectDependentNode(*m_impl->deferredShaderCompilationExitTask());
+
         #ifdef LEXGINE_D3D12DEBUG
         pso_compilation_task_graph.createDotRepresentation("deferred_pso_compilation_task_graph__" + getId().toString() + ".gv");
         #endif

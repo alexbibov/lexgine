@@ -16,6 +16,11 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
 {
 }
 
+DxResourceFactory::~DxResourceFactory()
+{
+    if (m_debug_interface) m_debug_interface->shutdown();
+}
+
 dxgi::HwAdapterEnumerator const& DxResourceFactory::hardwareAdapterEnumerator() const
 {
     return m_hw_adapter_enumerator;

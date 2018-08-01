@@ -9,12 +9,14 @@
 namespace lexgine { namespace core { namespace dx { namespace d3d12{
 
 //! Used to create and encapsulate reused Direct3D resources
-class DxResourceFactory
+class DxResourceFactory final
 {
 public:
     DxResourceFactory(GlobalSettings const& global_settings,
         bool enable_debug_mode,
         dxgi::HwAdapterEnumerator::DxgiGpuPreference enumeration_preference);
+
+    ~DxResourceFactory();
 
     dxgi::HwAdapterEnumerator const& hardwareAdapterEnumerator() const;
     dxcompilation::DXCompilerProxy& shaderModel6xDxCompilerProxy();

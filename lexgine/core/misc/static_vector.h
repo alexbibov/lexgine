@@ -115,6 +115,10 @@ private:
     char m_data[m_capacity];
     char* m_p_end;
     size_t m_size;
+
+#ifdef _DEBUG
+    T* m_elements;
+#endif
 };
 
 template<typename T, size_t max_size>
@@ -123,6 +127,9 @@ inline StaticVector<T, max_size>::StaticVector() :
     m_p_end{ m_data },
     m_size{ 0U }
 {
+#ifdef _DEBUG
+    m_elements = reinterpret_cast<T*>(m_data);
+#endif
 
 }
 
@@ -132,6 +139,10 @@ inline StaticVector<T, max_size>::StaticVector(size_t num_elements, T const& val
     m_p_end{ m_data },
     m_size{ 0U }
 {
+#ifdef _DEBUG
+    m_elements = reinterpret_cast<T*>(m_data);
+#endif
+
     while (m_size < num_elements) push_back(val);
 }
 
@@ -141,6 +152,10 @@ inline StaticVector<T, max_size>::StaticVector(size_t num_elements) :
     m_p_end{ m_data },
     m_size{ 0U }
 {
+#ifdef _DEBUG
+    m_elements = reinterpret_cast<T*>(m_data);
+#endif
+
     while (m_size < num_elements) push_back(T{});
 }
 
@@ -150,6 +165,10 @@ inline StaticVector<T, max_size>::StaticVector(std::initializer_list<T> elements
     m_p_end{ m_data },
     m_size{ 0U }
 {
+#ifdef _DEBUG
+    m_elements = reinterpret_cast<T*>(m_data);
+#endif
+
     for (auto const& e : elements)
     {
         if (m_size < max_size) push_back(e);
@@ -163,6 +182,10 @@ inline StaticVector<T, max_size>::StaticVector(StaticVector const& other):
     m_p_end{ m_data },
     m_size{ 0U }
 {
+#ifdef _DEBUG
+    m_elements = reinterpret_cast<T*>(m_data);
+#endif
+
     for (auto& e : other)
     {
         push_back(e);
@@ -175,6 +198,10 @@ inline StaticVector<T, max_size>::StaticVector(StaticVector&& other):
     m_p_end{ m_data },
     m_size{ 0U }
 {
+#ifdef _DEBUG
+    m_elements = reinterpret_cast<T*>(m_data);
+#endif
+
     for (auto& e : other)
     {
         emplace_back(std::move(e));
