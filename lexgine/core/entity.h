@@ -2,6 +2,7 @@
 
 #include <thread>
 #include <string>
+#include <atomic>
 
 #include "error_behavioral.h"
 #include "class_names.h"
@@ -51,7 +52,7 @@ public:
     std::string getStringName() const;	//! returns user-friendly string name of the entity
     void setStringName(std::string const& entity_string_name);	//! sets new user-friendly string name for the entity
 
-    static uint64_t aliveEntities();    //! returns number of alive entities owned by the calling thread
+    static int64_t aliveEntities();    //! returns number of alive entities owned by the calling thread
 
 
     Entity();
@@ -65,7 +66,7 @@ public:
 private:
     EntityID m_id;    //!< unique identifier of the entity
     std::string m_string_name;	//!< user-friendly string name of the entity
-    static thread_local uint64_t m_alive_entities;    //!< number of alive entities owned by the calling thread
+    static std::atomic<int64_t> m_alive_entities;    //!< number of alive entities owned by the calling thread
 };
 
 

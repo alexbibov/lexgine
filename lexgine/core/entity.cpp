@@ -59,7 +59,7 @@ std::string EntityID::toString() const
 
 
 
-thread_local uint64_t Entity::m_alive_entities = 0;
+std::atomic<int64_t> Entity::m_alive_entities{ 0 };
 
 EntityID Entity::getId() const
 {
@@ -76,29 +76,29 @@ void Entity::setStringName(std::string const& entity_string_name)
     m_string_name = entity_string_name;
 }
 
-uint64_t lexgine::core::Entity::aliveEntities()
+int64_t lexgine::core::Entity::aliveEntities()
 {
-    return m_alive_entities;
+    return m_alive_entities.load(std::memory_order_acquire);
 }
 
 Entity::Entity() :
     m_string_name{ "unnamed(id=" + m_id.toString() + ")" }
 {
-    ++m_alive_entities;
+    m_alive_entities.fetch_add(1LL, std::memory_order_acq_rel);
 }
 
 Entity::Entity(Entity const& other):
     m_id{},
     m_string_name{ other.m_string_name }
 {
-    ++m_alive_entities;
+    m_alive_entities.fetch_add(1LL, std::memory_order_acq_rel);
 }
 
 Entity::Entity(Entity&& other) : 
     m_id{ std::move(other.m_id) },
     m_string_name{ std::move(other.m_string_name) }
 {
-    ++m_alive_entities;
+    m_alive_entities.fetch_add(1LL, std::memory_order_acq_rel);
 }
 
 Entity& Entity::operator=(Entity const & other)
@@ -121,5 +121,5 @@ Entity & lexgine::core::Entity::operator=(Entity&& other)
 
 Entity::~Entity()
 {
-    --m_alive_entities;
+    m_alive_entities.fetch_add(-1LL, std::memory_order_acq_rel);
 }
