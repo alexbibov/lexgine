@@ -43,6 +43,7 @@ public:
     void setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task);
     RootSignatureCompilationTask* getRootSignatureCompilationTask() const;
     
+    ~GraphicsPSOCompilationTask();
 
     /*!
         Returns string name as appears in PSO compilation task cache. The names for graphics PSOs

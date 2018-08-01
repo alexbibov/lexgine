@@ -164,13 +164,14 @@ Initializer::Initializer(EngineSettings const& settings)
 
 Initializer::~Initializer()
 {
-    m_globals = nullptr;
-    m_global_settings = nullptr;
-    m_resource_factory = nullptr;
-    m_shader_cache = nullptr;
-    m_pso_cache = nullptr;
-    m_rs_cache = nullptr;
+    m_shader_cache.reset();
+    m_rs_cache.reset();
+    m_pso_cache.reset();
+    m_resource_factory.reset();
+    m_globals.reset();
+    m_global_settings.reset();
    
+    misc::Log::retrieve()->out("Alive engine objects: " + std::to_string(Entity::aliveEntities()), misc::LogMessageType::information);
 
     // Logger must be shutdown the last since many objects may still log stuff on destruction
     misc::Log::shutdown();

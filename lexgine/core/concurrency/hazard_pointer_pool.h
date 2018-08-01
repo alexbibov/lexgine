@@ -325,7 +325,8 @@ private:
                 __addEntryToLocalGCList(m_plist_tail, p_hp_list_entry);
         }
 
-        // for each pointer marked for deletion check if this pointer is in the list of pointers in "hazardous" state. If so, deallocate the corresponding memory block
+        // for each pointer marked for deletion check if this pointer is NOT in the list of pointers in "hazardous" state. 
+        // If it's OK to do so, deallocate the corresponding memory block
         uint32_t num_freed_successfully{ 0U };
         for (GCListEntry* p_dlist_entry = m_dlist_head->p_next; p_dlist_entry != nullptr; p_dlist_entry = p_dlist_entry->p_next)
         {
