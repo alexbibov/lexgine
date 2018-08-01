@@ -219,6 +219,7 @@
     <ClInclude Include="..\3rd_party\pugixml\src\pugiconfig.hpp" />
     <ClInclude Include="..\3rd_party\pugixml\src\pugixml.hpp" />
     <ClInclude Include="..\3rd_party\SpookyHash\SpookyV2.h" />
+    <ClInclude Include="afr_node.h" />
     <ClInclude Include="core\allocator.h" />
     <ClInclude Include="core\blend_descriptor.h" />
     <ClInclude Include="core\build_info.h" />

@@ -5,6 +5,7 @@
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
 #include "lexgine/core/dx/dxcompilation/dx_compiler_proxy.h"
+#include "lexgine/core/dx/d3d12/descriptor_heap.h"
 
 namespace lexgine { namespace core { namespace dx { namespace d3d12{
 
@@ -21,13 +22,17 @@ public:
     dxgi::HwAdapterEnumerator const& hardwareAdapterEnumerator() const;
     dxcompilation::DXCompilerProxy& shaderModel6xDxCompilerProxy();
     DebugInterface const* debugInterface() const;
+    
+
+private:
+    using descriptor_heap_dictionary = std::array<DescriptorHeap, 4U>;
 
 private:
     GlobalSettings const& m_global_settings;
     dx::d3d12::DebugInterface const* m_debug_interface;
     dxgi::HwAdapterEnumerator m_hw_adapter_enumerator;
     dxcompilation::DXCompilerProxy m_dxc_proxy;
-    
+    std::map<Device const*, descriptor_heap_dictionary> m_descriptor_heaps;
 };
 
 }}}}
