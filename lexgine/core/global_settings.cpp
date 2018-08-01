@@ -16,7 +16,25 @@ using json = nlohmann::json;
 
 GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
 {
+    // initialize default values for the settings
+    {
+        m_number_of_workers = 8U;
+        m_deferred_shader_compilation = true;
+        m_deferred_pso_compilation = true;
+        m_deferred_root_signature_compilation = true;
+        m_cache_path = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
+            + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
+            + "__" + PROJECT_VERSION_STAGE + "__cache/";
+        m_combined_cache_name = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
+            + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
+            + "__" + PROJECT_VERSION_STAGE + ".combined_cache";
+        m_max_combined_cache_size = 1024ull * 1024 * 1024 * 4;    // defaults to 4Gbs
+        m_descriptor_heaps_capacity = 512U;
+    }
+
+
     misc::Optional<std::string> source_json = misc::readAsciiTextFromSourceFile(json_settings_source_path);
+    
     if (!source_json.isValid())
     {
         misc::Log::retrieve()->out("WARNING: unable to parse global settings JSON file located at \"" 
@@ -39,11 +57,9 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to get value for \"number_of_workers\" from settings file located at \""
-                + json_settings_source_path + "\". The system will fall back to default value \"number_of_workers = 8\"",
+            misc::Log::retrieve()->out("WARNING: unable to get value for \"number_of_workers\" from the settings file located at \""
+                + json_settings_source_path + "\". The system will fall back to default value \"number_of_workers = " + std::to_string(m_number_of_workers) + "\"",
                 misc::LogMessageType::exclamation);
-
-            m_number_of_workers = 8U;
         }
 
 
@@ -56,11 +72,9 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             }
             else
             {
-                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_shader_compilation\" from settings file located at \""
-                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_shader_compilation = true\"",
+                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_shader_compilation\" from the settings file located at \""
+                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_shader_compilation = " + std::to_string(m_deferred_shader_compilation) + "\"",
                     misc::LogMessageType::exclamation);
-
-                m_deferred_shader_compilation = true;
             }
 
             if ((p = document.find("deferred_pso_compilation")) != document.end()
@@ -70,11 +84,9 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             }
             else
             {
-                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_pso_compilation\" from settings file located at \""
-                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_pso_compilation = true\"",
+                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_pso_compilation\" from the settings file located at \""
+                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_pso_compilation = " + std::to_string(m_deferred_pso_compilation) + "\"",
                     misc::LogMessageType::exclamation);
-
-                m_deferred_pso_compilation = true;
             }
 
             if ((p = document.find("deferred_root_signature_compilation")) != document.end()
@@ -84,11 +96,9 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             }
             else
             {
-                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_root_signature_compilation\" from settings file located at \""
-                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_root_signature_compilation = true\"",
+                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_root_signature_compilation\" from the settings file located at \""
+                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_root_signature_compilation = " + std::to_string(m_deferred_root_signature_compilation) + "\"",
                     misc::LogMessageType::exclamation);
-
-                m_deferred_root_signature_compilation = true;
             }
         }
 
@@ -105,7 +115,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
                     }
                     else
                     {
-                        misc::Log::retrieve()->out("WARNING: unable retrieve value from JSON array \"shader_lookup_directories\" in settings file located at \""
+                        misc::Log::retrieve()->out("WARNING: unable retrieve value from JSON array \"shader_lookup_directories\" in the settings file located at \""
                             + json_settings_source_path + "\"; \"shader_lookup_directories\" is expected to be an array of strings but some of its elements appear to have non-string format.",
                             misc::LogMessageType::exclamation);
                     }
@@ -113,7 +123,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             }
             else
             {
-                misc::Log::retrieve()->out("WARNING: unable to get value for \"shader_lookup_directories\" from settings file located at \""
+                misc::Log::retrieve()->out("WARNING: unable to get value for \"shader_lookup_directories\" from the settings file located at \""
                     + json_settings_source_path + "\"; \"shader_lookup_directories\" is expected to be an array of strings but turned out to have different format."
                     " The system will search for shaders in the current working directory",
                     misc::LogMessageType::exclamation);
@@ -127,13 +137,9 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to get value for \"cache_path\" from settings file located at \""
-                + json_settings_source_path + "\"; \"cache_path\" must have string value. The system will fall back to default cache path setting.", 
-                misc::LogMessageType::exclamation);
-
-            m_cache_path = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
-                + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
-                + "__" + PROJECT_VERSION_STAGE + "__cache/";
+            misc::Log::retrieve()->out("WARNING: unable to get value for \"cache_path\" from the settings file located at \""
+                + json_settings_source_path + "\"; \"cache_path\" must have string value. The system will fall back to default cache path setting (\""
+                + m_cache_path + "/\")", misc::LogMessageType::exclamation);
         }
 
         if ((p = document.find("combined_cache_name")) != document.end()
@@ -143,13 +149,10 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"combined_cache_name\" from settings file located at \""
-                + json_settings_source_path + "\"; \"combined_cache_name\" either has wrong value (must be string) or was not specified in the settings source file.",
+            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"combined_cache_name\" from the settings file located at \""
+                + json_settings_source_path + "\"; \"combined_cache_name\" either has wrong value (must be string) or was not specified in the settings source file. "
+                "The system will revert to use of the default value (\"" + m_combined_cache_name + "\")",
                 misc::LogMessageType::exclamation);
-
-            m_combined_cache_name = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
-                + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
-                + "__" + PROJECT_VERSION_STAGE + ".combined_cache";
         }
 
         if ((p = document.find("maximal_combined_cache_size")) != document.end()
@@ -159,12 +162,23 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"maximal_combined_cache_size\" setting from settings file located at \""
+            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"maximal_combined_cache_size\" from the settings file located at \""
                 + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected unsigned integer). "
-                "Default maximal value of 4GBs will be used instead",
+                "The default maximal value of " + std::to_string(m_max_combined_cache_size / 1024 / 1024 / 1024) + "GBs will be used instead",
                 misc::LogMessageType::exclamation);
+        }
 
-            m_max_combined_cache_size = 1024ull * 1024 * 1024 * 4;    // defaults to 4Gbs
+        if ((p = document.find("descriptor_heaps_capacity")) != document.end()
+            && p->is_number_unsigned())
+        {
+            m_descriptor_heaps_capacity = p->get<uint32_t>();
+        }
+        else
+        {
+            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"descriptor_heaps_capacity\" from the settings file located at \""
+                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected unsigned integer). "
+                "The default maximal value of " + std::to_string(m_descriptor_heaps_capacity) + " descriptors per descriptor heap will be used.",
+                misc::LogMessageType::exclamation);
         }
     }
     catch (...)
@@ -191,7 +205,8 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
         { "deferred_root_signature_compilation", m_deferred_root_signature_compilation },
         { "cache_path", m_cache_path },
         { "combined_cache_name", m_combined_cache_name },
-        { "maximal_combined_cache_size", m_max_combined_cache_size }
+        { "maximal_combined_cache_size", m_max_combined_cache_size },
+        { "descriptor_heaps_capacity", m_descriptor_heaps_capacity }
     };
     if (m_shader_lookup_directories.size())
         j["shader_lookup_directories"] = m_shader_lookup_directories;
@@ -241,6 +256,11 @@ uint64_t GlobalSettings::getMaxCombinedCacheSize() const
     return m_max_combined_cache_size;
 }
 
+uint32_t GlobalSettings::getDescriptorHeapsCapacity() const
+{
+    return m_descriptor_heaps_capacity;
+}
+
 void GlobalSettings::setNumberOfWorkers(uint8_t num_workers)
 {
     m_number_of_workers = num_workers;
@@ -249,6 +269,16 @@ void GlobalSettings::setNumberOfWorkers(uint8_t num_workers)
 void GlobalSettings::setIsDeferredShaderCompilationOn(bool is_enabled)
 {
     m_deferred_shader_compilation = is_enabled;
+}
+
+void GlobalSettings::setIsDeferredPSOCompilationOn(bool is_enabled)
+{
+    m_deferred_pso_compilation = is_enabled;
+}
+
+void GlobalSettings::setIsDeferredRootSignatureCompilationOn(bool is_enabled)
+{
+    m_deferred_root_signature_compilation = is_enabled;
 }
 
 void GlobalSettings::addShaderLookupDirectory(std::string const & path)
@@ -264,4 +294,9 @@ void GlobalSettings::clearShaderLookupDirectories()
 void GlobalSettings::setCacheDirectory(std::string const& path)
 {
     m_cache_path = path;
+}
+
+void GlobalSettings::setCacheName(std::string const& name)
+{
+    m_combined_cache_name = name;
 }

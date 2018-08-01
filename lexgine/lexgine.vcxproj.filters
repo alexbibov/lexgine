@@ -363,6 +363,9 @@
     <ClInclude Include="core\concurrency\lexgine_core_concurrency_fwd.h">
       <Filter>core\concurrency</Filter>
     </ClInclude>
+    <ClInclude Include="afr_node.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
