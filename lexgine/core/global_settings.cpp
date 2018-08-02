@@ -20,8 +20,8 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
     {
         m_number_of_workers = 8U;
         m_deferred_shader_compilation = true;
-        m_deferred_pso_compilation = true;
-        m_deferred_root_signature_compilation = true;
+        // m_deferred_pso_compilation = true;
+        // m_deferred_root_signature_compilation = true;
         m_cache_path = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
             + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
             + "__" + PROJECT_VERSION_STAGE + "__cache/";
@@ -65,18 +65,6 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
 
         // Deferred pipeline compilation routine settings
         {
-            if ((p = document.find("deferred_shader_compilation")) != document.end()
-                && p->is_boolean())
-            {
-                m_deferred_shader_compilation = *p;
-            }
-            else
-            {
-                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_shader_compilation\" from the settings file located at \""
-                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_shader_compilation = " + std::to_string(m_deferred_shader_compilation) + "\"",
-                    misc::LogMessageType::exclamation);
-            }
-
             if ((p = document.find("deferred_pso_compilation")) != document.end()
                 && p->is_boolean())
             {
@@ -89,6 +77,20 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
                     misc::LogMessageType::exclamation);
             }
 
+            if ((p = document.find("deferred_shader_compilation")) != document.end()
+                && p->is_boolean())
+            {
+                m_deferred_shader_compilation = *p;
+            }
+            else
+            {
+                m_deferred_shader_compilation = m_deferred_pso_compilation;
+
+                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_shader_compilation\" from the settings file located at \""
+                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_shader_compilation = " + std::to_string(m_deferred_shader_compilation) + "\"",
+                    misc::LogMessageType::exclamation);
+            }
+
             if ((p = document.find("deferred_root_signature_compilation")) != document.end()
                 && p->is_boolean())
             {
@@ -96,6 +98,8 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             }
             else
             {
+                m_deferred_root_signature_compilation = m_deferred_pso_compilation;
+
                 misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_root_signature_compilation\" from the settings file located at \""
                     + json_settings_source_path + "\". The system will fall back to default value \"deferred_root_signature_compilation = " + std::to_string(m_deferred_root_signature_compilation) + "\"",
                     misc::LogMessageType::exclamation);
@@ -185,6 +189,28 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
     {
         misc::Log::retrieve()->out("WARNING: JSON file located at \"" + json_settings_source_path + "\" has invalid format. The system will fall back to default settings",
             misc::LogMessageType::exclamation);
+    }
+
+
+
+    if (!m_deferred_pso_compilation)
+    {
+        // if deferred pso compilation is disabled then deferred shader and deferred root signature 
+        // compilation tasks should also be compiled in immediate mode
+
+        if (m_deferred_shader_compilation)
+        {
+            misc::Log::retrieve()->out("WARNING: deferred PSO compilation is disabled but deferred shader compilation that PSO compilation relies upon is switched on. "
+                "Deferred shader compilation will therefore be forced disabled", misc::LogMessageType::exclamation);
+            m_deferred_shader_compilation = false;
+        }
+
+        if (m_deferred_root_signature_compilation)
+        {
+            misc::Log::retrieve()->out("WARNING: deferred PSO compilation is disabled but deferred root signature compilation that PSO compilation relies upon is switched on. "
+                "Deferred root signature compilation will therefore be forced disabled", misc::LogMessageType::exclamation);
+            m_deferred_root_signature_compilation = false;
+        }
     }
 }
 
