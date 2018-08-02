@@ -39,6 +39,11 @@ uint32_t DescriptorHeap::getDescriptorSize() const
     return m_device.native()->GetDescriptorHandleIncrementSize(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(m_type));
 }
 
+uint32_t DescriptorHeap::capacity() const
+{
+    return m_num_descriptors;
+}
+
 DescriptorHeap::DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask) :
     m_device{ device },
     m_type{ type },

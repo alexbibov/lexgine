@@ -51,6 +51,10 @@ public:
     bool setCurrentDevice(uint32_t adapter_id);    //! assigns device that will be used for graphics and compute tasks. Returns 'true' on success.
     dx::d3d12::Device& getCurrentDevice() const;    //! returns current device
 
+    void setWARPAdapterAsCurrent() const;    //! sets the WARP adapter as the one to be used by the engine
+
+    uint32_t getAdapterCount() const;    //! returns total number of adapters installed in the host system including the virtual WARP adapter
+
 
 private:
 

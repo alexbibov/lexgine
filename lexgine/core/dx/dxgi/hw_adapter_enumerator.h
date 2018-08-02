@@ -157,6 +157,8 @@ public:
     HwAdapter& getWARPAdapter();   //! retrieves the WARP adapter
     HwAdapter const& getWARPAdapter() const;    //! retrieves the WARP adapter
 
+    uint32_t getAdapterCount() const;    //! retrieves total number of adapters installed in the host system including the WARP adapter
+
 
 private:
     bool m_enable_debug_mode;

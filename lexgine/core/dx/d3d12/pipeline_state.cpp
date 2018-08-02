@@ -11,6 +11,25 @@ using namespace lexgine::core;
 using namespace lexgine::core::misc;
 using namespace lexgine::core::dx::d3d12;
 
+namespace {
+
+bool isWARPAdapterCurrentlySelected(Globals const& globals)
+{
+    DxResourceFactory const& dx_resource_factory_ref = *globals.get<DxResourceFactory>();
+    Device const& current_device_ref = *globals.get<Device>();
+    Device const& warp_device_ref = dx_resource_factory_ref.hardwareAdapterEnumerator().getWARPAdapter().device();
+
+    return &current_device_ref == &warp_device_ref;
+}
+
+bool isDebugModeEnabled(Globals const& globals)
+{
+    DxResourceFactory const& dx_resource_factory_ref = *globals.get<DxResourceFactory>();
+    return dx_resource_factory_ref.debugInterface() != nullptr;
+}
+
+}
+
 ComPtr<ID3D12PipelineState> PipelineState::native() const
 {
     return m_pipeline_state;
@@ -204,14 +223,9 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
     else
         desc.CachedPSO = D3D12_CACHED_PIPELINE_STATE{ NULL, 0U };
 
-    desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-
-    // NOTE: check if current device is WARP here
-#if 0
-    desc.Flags = globals.get<DxResourceFactory>()->debugInterface() ?
+    desc.Flags = isWARPAdapterCurrentlySelected(globals) && isDebugModeEnabled(globals) ? 
         D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG
         : D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-#endif
 
     LEXGINE_LOG_ERROR_IF_FAILED(
         this, 
@@ -240,14 +254,9 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
     else
         desc.CachedPSO = D3D12_CACHED_PIPELINE_STATE{ NULL, 0U };
 
-    desc.Flags = D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-
-    // NOTE: check if current device is WARP here
-#if 0
-    desc.Flags = globals.get<DxResourceFactory>()->debugInterface() ?
+    desc.Flags = isWARPAdapterCurrentlySelected(globals) && isDebugModeEnabled(globals) ?
         D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG
         : D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
-#endif
 
     LEXGINE_THROW_ERROR_IF_FAILED(
         this, 

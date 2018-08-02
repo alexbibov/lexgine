@@ -35,6 +35,8 @@ public:
     DescriptorHeap(DescriptorHeap const&) = delete;
     DescriptorHeap(DescriptorHeap&&) = default;
 
+    uint32_t capacity() const;
+
 private:
     DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask);
 
