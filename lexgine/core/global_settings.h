@@ -14,8 +14,8 @@ class GlobalSettings
 private:
 
     uint8_t m_number_of_workers;
-    bool m_deferred_shader_compilation;
     bool m_deferred_pso_compilation;
+    bool m_deferred_shader_compilation;
     bool m_deferred_root_signature_compilation;
     std::vector<std::string> m_shader_lookup_directories;
     std::string m_cache_path;

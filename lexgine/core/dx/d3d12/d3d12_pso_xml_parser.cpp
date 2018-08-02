@@ -1391,6 +1391,20 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
                 if (gs_task_ptr) root_tasks.insert(gs_task_ptr);
                 if (ps_task_ptr) root_tasks.insert(ps_task_ptr);
                 if (root_signature_task_ptr) root_tasks.insert(root_signature_task_ptr);
+
+                if (!global_settings.isDeferredShaderCompilationOn())
+                {
+                    vs_task_ptr->execute(0);
+                    hs_task_ptr->execute(0);
+                    ds_task_ptr->execute(0);
+                    gs_task_ptr->execute(0);
+                    ps_task_ptr->execute(0);
+                }
+
+                if (!global_settings.isDeferredRootSignatureCompilationOn())
+                {
+                    root_signature_task_ptr->execute(0);
+                }
             }
 
             for (tasks::ComputePSOCompilationTask* t : m_parsed_compute_pso_compilation_tasks)
@@ -1400,6 +1414,12 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
 
                 if (cs_task_ptr) root_tasks.insert(cs_task_ptr);
                 if (root_signature_task_ptr) root_tasks.insert(root_signature_task_ptr);
+
+                if (!global_settings.isDeferredShaderCompilationOn())
+                    cs_task_ptr->execute(0);
+
+                if (!global_settings.isDeferredRootSignatureCompilationOn())
+                    root_signature_task_ptr->execute(0);
             }
         }
 
@@ -1427,9 +1447,25 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
     }
     else
     {
+        // since PSO compilation is dependent on root signature and shader compilation
+        // immediate compilation of the PSOs requires the related shaders as well as the 
+        // root signatures to be also compiled in immediate mode
+
         for (auto t : m_parsed_graphics_pso_compilation_tasks)
         {
+            // compile the shaders
+            t->getVertexShaderCompilationTask()->execute(0);
+            t->getHullShaderCompilationTask()->execute(0);
+            t->getDomainShaderCompilationTask()->execute(0);
+            t->getGeometryShaderCompilationTask()->execute(0);
+            t->getPixelShaderCompilationTask()->execute(0);
+
+            // compile to root signature
+            t->getRootSignatureCompilationTask()->execute(0);
+
+            // compile the PSO itself
             t->execute(0);
+
             if (t->getErrorState())
             {
                 std::string error_message = std::string{ "Unable to compile graphics PSO blob for task \"" } + t->getCacheName() + "\" (" 
@@ -1441,7 +1477,10 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
 
         for (auto t : m_parsed_compute_pso_compilation_tasks)
         {
+            t->getComputeShaderCompilationTask()->execute(0);
+            t->getRootSignatureCompilationTask()->execute(0);
             t->execute(0);
+
             if (t->getErrorState())
             {
                 std::string error_message = std::string{ "Unable to compile compute PSO blob for task \"" } + t->getCacheName() + "\" (" 
@@ -1453,60 +1492,6 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
 
         m_impl->deferredShaderCompilationExitTask()->execute_manually();
     }
-    /*if (global_settings.isDeferredShaderCompilationOn())
-    {
-        std::list<concurrency::TaskGraphNode*> compilation_tasks{ m_hlsl_compilation_task_cache.size() };
-        std::transform(m_hlsl_compilation_task_cache.begin(), m_hlsl_compilation_task_cache.end(), compilation_tasks.begin(),
-            [](tasks::HLSLCompilationTask& t) -> concurrency::TaskGraphNode*
-        {
-            return &t;
-        });
-
-
-        for (auto node : compilation_tasks)
-        {
-            node->addDependent(*m_impl->deferredShaderCompilationExitTask());
-        }
-
-
-        concurrency::TaskGraph shader_compilation_graph { compilation_tasks, global_settings.getNumberOfWorkers(), "deferred_shader_compilation_task_graph" };
-        
-        #ifdef _DEBUG
-        shader_compilation_graph.createDotRepresentation("deferred_shader_compilation_task_graph__" + getId().toString() + ".gv");
-        #endif
-
-        
-        std::vector<std::ostream*> worker_log_streams = *m_globals.get<std::vector<std::ostream*>>();
-
-        concurrency::TaskSink task_sink{ shader_compilation_graph, worker_log_streams, 1, "shader_compilation_task_sink_" + getId().toString() };
-        m_impl->deferredShaderCompilationExitTask()->setInput(&task_sink);
-
-        try
-        {
-            task_sink.run();
-        }
-        catch (core::Exception& e)
-        {
-            std::string error_message = std::string{ "Unable to create PSO descriptors from XML source due to shader compilation error(s) (" } + e.what() + "). See logs for further details";
-            misc::Log::retrieve()->out(error_message, misc::LogMessageType::error);
-            throw core::Exception{ *this, error_message };
-        } 
-    }
-    else
-    {
-        for (auto& hlsl_compilation_task : m_hlsl_compilation_task_cache)
-        {
-            hlsl_compilation_task.execute(0);
-            if (hlsl_compilation_task.getErrorState())
-            {
-                std::string error_message = std::string{ "Unable to create PSO descriptors from XML source due to shader compilation error (" } + hlsl_compilation_task.getErrorString() + ") See logs for further details.";
-                misc::Log::retrieve()->out(error_message, misc::LogMessageType::error);
-                throw core::Exception{ *this, error_message };
-            }
-        }
-
-        m_impl->deferredShaderCompilationExitTask()->execute_manually();
-    }*/
 }
 
 D3D12PSOXMLParser::~D3D12PSOXMLParser() = default;
