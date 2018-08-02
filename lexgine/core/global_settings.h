@@ -23,6 +23,9 @@ private:
     uint64_t m_max_combined_cache_size;
     uint32_t m_descriptor_heaps_capacity;
 
+    static uint32_t constexpr m_max_descriptors_per_page = 2048U;
+
+
 public:
     GlobalSettings() = default;
     GlobalSettings(std::string const& json_settings_source_path);
@@ -40,7 +43,9 @@ public:
     std::string getCacheDirectory() const;
     std::string getCombinedCacheName() const;
     uint64_t getMaxCombinedCacheSize() const;
-    uint32_t getDescriptorHeapsCapacity() const;
+
+    uint32_t getDescriptorPageCapacity(uint32_t page_id) const;
+    uint32_t getDescriptorPageCount() const;
 
     
     // *** the following functions are used to alter the global settings during run time. All functions return 'true' in case of success and 'false' if the parameter's value cannot be changed ***

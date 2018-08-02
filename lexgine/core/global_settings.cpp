@@ -282,9 +282,21 @@ uint64_t GlobalSettings::getMaxCombinedCacheSize() const
     return m_max_combined_cache_size;
 }
 
-uint32_t GlobalSettings::getDescriptorHeapsCapacity() const
+uint32_t GlobalSettings::getDescriptorPageCapacity(uint32_t page_id) const
 {
-    return m_descriptor_heaps_capacity;
+    auto res = std::div(static_cast<int>(m_descriptor_heaps_capacity), 
+        static_cast<int>(m_max_descriptors_per_page));
+
+    if (page_id < static_cast<uint32_t>(res.quot)) return m_max_descriptors_per_page;
+    else return static_cast<uint32_t>(res.rem);
+}
+
+uint32_t GlobalSettings::getDescriptorPageCount() const
+{
+    auto res = std::div(static_cast<int>(m_descriptor_heaps_capacity),
+        static_cast<int>(m_max_descriptors_per_page));
+
+    return static_cast<uint32_t>(res.quot) + (res.rem != 0 ? 1 : 0);
 }
 
 void GlobalSettings::setNumberOfWorkers(uint8_t num_workers)

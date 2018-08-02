@@ -206,3 +206,14 @@ dx::d3d12::Device& Initializer::getCurrentDevice() const
 {
     return *m_globals->get<dx::d3d12::Device>();
 }
+
+void Initializer::setWARPAdapterAsCurrent() const
+{
+    dx::d3d12::Device& warp_device_ref = m_resource_factory->hardwareAdapterEnumerator().getWARPAdapter().device();
+    m_globals->put(&warp_device_ref);
+}
+
+uint32_t Initializer::getAdapterCount() const
+{
+    return m_resource_factory->hardwareAdapterEnumerator().getAdapterCount();
+}

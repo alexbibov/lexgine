@@ -137,6 +137,11 @@ bool HwAdapterEnumerator::isRefreshNeeded() const
 HwAdapter& HwAdapterEnumerator::getWARPAdapter() { return m_adapter_list.back(); }
 HwAdapter const& HwAdapterEnumerator::getWARPAdapter() const { return m_adapter_list.back(); }
 
+uint32_t HwAdapterEnumerator::getAdapterCount() const
+{
+    return static_cast<uint32_t>(m_adapter_list.size());
+}
+
 
 
 
