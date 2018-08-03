@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <regex>
 #include <limits>
+#include <unordered_set>
 
 #include "d3d12_pso_xml_parser.h"
 #include "d3d12_tools.h"
@@ -1107,8 +1108,7 @@ public:
                 return std::strcmp(n.name(), "VertexAttributeSpecification") == 0;
             });
 
-            
-            unsigned char slot{ 0U };
+            std::unordered_set<uint32_t> slots{};
             for (auto& va : va_specification_node)
             {
                 if (std::strcmp(va.name(), "VertexAttribute") == 0)
@@ -1141,6 +1141,19 @@ public:
                     {
                         LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
                             + ": VertexAttribute node must define attribute \"type\"");
+                    }
+
+                    uint32_t slot = extractAttribute<attribute_type::unsigned_numeric>(va.attribute("slot"), 0, &was_successful);
+                    if(!was_successful)
+                    {
+                        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name
+                            + ": VertexAttribute node must define attribute \"slot\"");
+                    }
+
+                    if (!slots.insert(slot).second)
+                    {
+                        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name
+                            + ": slot \"" + std::to_string(slot) + "\" is already used by another vertex attribute");
                     }
 
                     bool normalized = extractAttribute<attribute_type::boolean>(va.attribute("normalized"), false);
