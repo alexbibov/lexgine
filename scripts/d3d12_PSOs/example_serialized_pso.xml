@@ -334,12 +334,12 @@ define the size (i.e. the number of components) of the attribute, its type and w
 supported values are 1, 2, 3, or 4. Type can get on the following predefined values: FLOAT16 (half-precision floats), FLOAT32, INT16, INT32, UINT16, or UINT32.
 The "normalized" attribute is optional and defaults to FALSE. 
 
-Finally, optional attribute "instancing_rate" identifies whether the data in the corresponding vertex buffer should be instances and how many draw calls are made
+Finally, optional attribute "instancing_rate" identifies whether the data in the corresponding vertex buffer should be instanced and how many draw calls are made
 before advancing one element in the buffer. Wher instancing_rate is 0, the data in the buffer is not instanced. The default value for this attribute is 0, which
 means that no instancing is applied by default.
 -->
-<VertexAttribute name="SV_Position" index="0" size="4" type="FLOAT32" normalized="TRUE" instancing_rate="0" />
-<VertexAttribute name="NORMAL" index="0" size="3" type="FLOAT32" normalized="TRUE" instancing_rate="0" />
+<VertexAttribute name="SV_Position" index="0" size="4" type="FLOAT32" normalized="TRUE" instancing_rate="0" slot="0"/>
+<VertexAttribute name="NORMAL" index="0" size="3" type="FLOAT32" normalized="TRUE" instancing_rate="0" slot="1"/>
 </VertexAttributeSpecification>
 
 <!--
