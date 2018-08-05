@@ -45,8 +45,7 @@ private:
     long const m_line_number;    //!< line number, at which this exception was thrown (unknown_line_number constant stays for unknown)
 };
 
-}
-}
+}}
 
 
 /*! Checks if expression 'expr' was executed successfully using the list of "success codes" provided
@@ -69,7 +68,7 @@ std::stringstream short_error_description_string_stream; \
 short_error_description_string_stream << "Error while execution expression \"" << #expr \
 << "\": the expression has been executed with error code 0x" << std::uppercase << std::hex << __lexgine_error_throw_if_failed_rv__; \
 lexgine::core::misc::dereference<context_type>::resolve(context).raiseError(error_description_string_stream.str()); \
-throw Exception{ misc::dereference<context_type>::resolve(context), short_error_description_string_stream.str(), __FILE__, __FUNCTION__, __LINE__ }; \
+throw lexgine::core::Exception{ lexgine::core::misc::dereference<context_type>::resolve(context), short_error_description_string_stream.str(), __FILE__, __FUNCTION__, __LINE__ }; \
 } \
 }
 
@@ -78,14 +77,14 @@ Sets the context into erroneous state and throws exception using provided descri
 */
 #define LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(context, description) \
 { \
-using context_type = std::remove_reference<std::remove_pointer<decltype(context)>::type>::type; \
+using context_type = std::remove_reference<typename std::remove_pointer<typename decltype(context)>::type>::type; \
 std::stringstream error_string_stream; \
 error_string_stream << "Named entity \"" << lexgine::core::misc::dereference<context_type>::resolve(context).getMetaName() \
 << "\" with ID=\"" << lexgine::core::misc::dereference<context_type>::resolve(context).getId().toString() \
 << "\" has thrown an exception in function \"" << __FUNCTION__ \
 << "\" of module \"" << __FILE__ << "\" at line " << __LINE__ << ": " << (description); \
 lexgine::core::misc::dereference<context_type>::resolve(context).raiseError(error_string_stream.str()); \
-throw Exception{ misc::dereference<context_type>::resolve(context), (description), __FILE__, __FUNCTION__, __LINE__ }; \
+throw lexgine::core::Exception{ lexgine::core::misc::dereference<context_type>::resolve(context), (description), __FILE__, __FUNCTION__, __LINE__ }; \
 }
 
 
@@ -93,7 +92,7 @@ throw Exception{ misc::dereference<context_type>::resolve(context), (description
 #define LEXGINE_THROW_ERROR(description) \
 { \
 misc::Log::retrieve()->out((description), misc::LogMessageType::error); \
-throw Exception{ lexgine::core::Dummy{}, (description), __FILE__, __FUNCTION__, __LINE__ }; \
+throw lexgine::core::Exception{ lexgine::core::Dummy{}, (description), __FILE__, __FUNCTION__, __LINE__ }; \
 }
 
 

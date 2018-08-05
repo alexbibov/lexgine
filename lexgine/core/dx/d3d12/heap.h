@@ -61,7 +61,7 @@ class Heap : public NamedEntity<class_names::D3D12Heap>
 public:
 
     Device& device() const;    //! returns device used to create this heap
-    size_t size() const;    //! returns size of the heap in bytes
+    size_t capacity() const;    //! returns capacity of the heap in bytes
     ComPtr<ID3D12Heap> native() const;    //! returns native heap
     bool isMSAASupported() const;    //! returns 'true' if the heap is capable of storing MSAA resources
     CPUPageProperty getCPUPage() const;    //! returns CPU page property determining CPU access rights for the heap

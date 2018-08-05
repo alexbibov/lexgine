@@ -9,7 +9,7 @@ Device& Heap::device() const
     return m_device;
 }
 
-size_t Heap::size() const
+size_t Heap::capacity() const
 {
     return static_cast<size_t>(m_size);
 }

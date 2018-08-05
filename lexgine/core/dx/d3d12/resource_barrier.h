@@ -46,7 +46,7 @@ public:
         D3D12_RESOURCE_TRANSITION_BARRIER transition_desc;
         transition_desc.pResource = p_resource->native();
         transition_desc.Subresource = resource_desc.MipLevels*array_layer + mipmap_level;
-        transition_desc.StateBefore = static_cast<D3D12_RESOURCE_STATES>(p_resource->m_state.getValue());
+        transition_desc.StateBefore = static_cast<D3D12_RESOURCE_STATES>(p_resource->getCurrentState().getValue());
         transition_desc.StateAfter = static_cast<D3D12_RESOURCE_STATES>(new_state.getValue());
 
         m_barriers[m_num_barriers].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -64,7 +64,7 @@ public:
         D3D12_RESOURCE_TRANSITION_BARRIER transition_desc;
         transition_desc.pResource = p_resource->native().Get();
         transition_desc.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        transition_desc.StateBefore = static_cast<D3D12_RESOURCE_STATES>(p_resource->m_state.getValue());
+        transition_desc.StateBefore = static_cast<D3D12_RESOURCE_STATES>(p_resource->getCurrentState().getValue());
         transition_desc.StateAfter = static_cast<D3D12_RESOURCE_STATES>(new_state.getValue());
 
         m_barriers[m_num_barriers].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;

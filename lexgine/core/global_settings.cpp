@@ -30,6 +30,9 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             + "__" + PROJECT_VERSION_STAGE + ".combined_cache";
         m_max_combined_cache_size = 1024ull * 1024 * 1024 * 4;    // defaults to 4Gbs
         m_descriptor_heaps_capacity = 512U;
+        m_upload_heap_capacity = 1024 * 1024 * 256;    // 256MBs by default
+        m_enable_async_compute = true;
+        m_enable_async_copy = true;
     }
 
 
@@ -38,7 +41,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
     if (!source_json.isValid())
     {
         misc::Log::retrieve()->out("WARNING: unable to parse global settings JSON file located at \"" 
-            + json_settings_source_path + "\". The system will fall back to default settings",
+            + json_settings_source_path + "\". The system will fall back to the default settings",
             misc::LogMessageType::exclamation);
         return;
     }
@@ -58,7 +61,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         else
         {
             misc::Log::retrieve()->out("WARNING: unable to get value for \"number_of_workers\" from the settings file located at \""
-                + json_settings_source_path + "\". The system will fall back to default value \"number_of_workers = " + std::to_string(m_number_of_workers) + "\"",
+                + json_settings_source_path + "\". The system will fall back to the default value \"number_of_workers = " + std::to_string(m_number_of_workers) + "\"",
                 misc::LogMessageType::exclamation);
         }
 
@@ -73,7 +76,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             else
             {
                 misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_pso_compilation\" from the settings file located at \""
-                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_pso_compilation = " + std::to_string(m_deferred_pso_compilation) + "\"",
+                    + json_settings_source_path + "\". The system will fall back to the default value \"deferred_pso_compilation = " + std::to_string(m_deferred_pso_compilation) + "\"",
                     misc::LogMessageType::exclamation);
             }
 
@@ -87,7 +90,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
                 m_deferred_shader_compilation = m_deferred_pso_compilation;
 
                 misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_shader_compilation\" from the settings file located at \""
-                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_shader_compilation = " + std::to_string(m_deferred_shader_compilation) + "\"",
+                    + json_settings_source_path + "\". The system will fall back to the default value \"deferred_shader_compilation = " + std::to_string(m_deferred_shader_compilation) + "\"",
                     misc::LogMessageType::exclamation);
             }
 
@@ -101,7 +104,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
                 m_deferred_root_signature_compilation = m_deferred_pso_compilation;
 
                 misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_root_signature_compilation\" from the settings file located at \""
-                    + json_settings_source_path + "\". The system will fall back to default value \"deferred_root_signature_compilation = " + std::to_string(m_deferred_root_signature_compilation) + "\"",
+                    + json_settings_source_path + "\". The system will fall back to the default value \"deferred_root_signature_compilation = " + std::to_string(m_deferred_root_signature_compilation) + "\"",
                     misc::LogMessageType::exclamation);
             }
         }
@@ -181,7 +184,46 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         {
             misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"descriptor_heaps_capacity\" from the settings file located at \""
                 + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected unsigned integer). "
-                "The default maximal value of " + std::to_string(m_descriptor_heaps_capacity) + " descriptors per descriptor heap will be used.",
+                "The default value of " + std::to_string(m_descriptor_heaps_capacity) + " total descriptor count will be used.",
+                misc::LogMessageType::exclamation);
+        }
+
+        if ((p = document.find("upload_heap_capacity")) != document.end()
+            && p->is_number_unsigned())
+        {
+            m_upload_heap_capacity = p->get<uint32_t>();
+        }
+        else
+        {
+            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"upload_heap_capacity\" from the settings file located at \""
+                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected unsigned integer). "
+                "The upload heap will be having the default capacity of " + std::to_string(m_upload_heap_capacity / 1024 / 1024) + "MB.",
+                misc::LogMessageType::exclamation);
+        }
+
+        if ((p = document.find("enable_async_compute")) != document.end()
+            && p->is_boolean())
+        {
+            m_enable_async_compute = p->get<bool>();
+        }
+        else
+        {
+            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"enable_async_compute\" from the settings file located at \""
+                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected boolean). "
+                "The system will revert to the default setting \"enable_async_compute = " + std::to_string(m_enable_async_compute) + "\"",
+                misc::LogMessageType::exclamation);
+        }
+
+        if ((p = document.find("enable_async_copy")) != document.end()
+            && p->is_boolean())
+        {
+            m_enable_async_copy = p->get<bool>();
+        }
+        else
+        {
+            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"enable_async_copy\" from the settings file located at \""
+                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected boolean). "
+                "The system will revert to the default setting \"enable_async_copy = " + std::to_string(m_enable_async_copy) + "\"",
                 misc::LogMessageType::exclamation);
         }
     }
@@ -232,7 +274,10 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
         { "cache_path", m_cache_path },
         { "combined_cache_name", m_combined_cache_name },
         { "maximal_combined_cache_size", m_max_combined_cache_size },
-        { "descriptor_heaps_capacity", m_descriptor_heaps_capacity }
+        { "descriptor_heaps_capacity", m_descriptor_heaps_capacity },
+        { "upload_heap_capacity", m_upload_heap_capacity },
+        { "enable_async_compute", m_enable_async_compute },
+        { "enable_async_copy", m_enable_async_copy }
     };
     if (m_shader_lookup_directories.size())
         j["shader_lookup_directories"] = m_shader_lookup_directories;
@@ -299,6 +344,21 @@ uint32_t GlobalSettings::getDescriptorPageCount() const
     return static_cast<uint32_t>(res.quot) + (res.rem != 0 ? 1 : 0);
 }
 
+uint32_t GlobalSettings::getUploadHeapCapacity() const
+{
+    return m_upload_heap_capacity;
+}
+
+bool GlobalSettings::isAsyncComputeEnabled() const
+{
+    return m_enable_async_compute;
+}
+
+bool GlobalSettings::isAsyncCopyEnabled() const
+{
+    return m_enable_async_copy;
+}
+
 void GlobalSettings::setNumberOfWorkers(uint8_t num_workers)
 {
     m_number_of_workers = num_workers;
@@ -306,7 +366,14 @@ void GlobalSettings::setNumberOfWorkers(uint8_t num_workers)
 
 void GlobalSettings::setIsDeferredShaderCompilationOn(bool is_enabled)
 {
-    m_deferred_shader_compilation = is_enabled;
+    if (is_enabled && !m_deferred_pso_compilation)
+    {
+        misc::Log::retrieve()->out("WARNING: cannot enable deferred shader compilation while "
+            "deferred PSO compilation is disabled", misc::LogMessageType::exclamation);
+        m_deferred_shader_compilation = false;
+    }
+    else 
+        m_deferred_shader_compilation = is_enabled;
 }
 
 void GlobalSettings::setIsDeferredPSOCompilationOn(bool is_enabled)
@@ -316,6 +383,12 @@ void GlobalSettings::setIsDeferredPSOCompilationOn(bool is_enabled)
 
 void GlobalSettings::setIsDeferredRootSignatureCompilationOn(bool is_enabled)
 {
+    if (is_enabled && !m_deferred_pso_compilation)
+    {
+        misc::Log::retrieve()->out("WARNING: cannot enable deferred root signature compilation while "
+            "deferred PSO compilation is disabled", misc::LogMessageType::exclamation);
+        m_deferred_root_signature_compilation = false;
+    }
     m_deferred_root_signature_compilation = is_enabled;
 }
 
@@ -337,4 +410,14 @@ void GlobalSettings::setCacheDirectory(std::string const& path)
 void GlobalSettings::setCacheName(std::string const& name)
 {
     m_combined_cache_name = name;
+}
+
+void GlobalSettings::setIsAsyncComputeEnabled(bool is_enabled)
+{
+    m_enable_async_compute = is_enabled;
+}
+
+void GlobalSettings::setIsAsyncCopyEnabled(bool is_enabled)
+{
+    m_enable_async_copy = is_enabled;
 }

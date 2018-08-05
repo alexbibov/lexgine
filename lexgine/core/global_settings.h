@@ -22,6 +22,9 @@ private:
     std::string m_combined_cache_name;
     uint64_t m_max_combined_cache_size;
     uint32_t m_descriptor_heaps_capacity;
+    uint32_t m_upload_heap_capacity;
+    bool m_enable_async_compute;
+    bool m_enable_async_copy;
 
     static uint32_t constexpr m_max_descriptors_per_page = 2048U;
 
@@ -46,6 +49,10 @@ public:
 
     uint32_t getDescriptorPageCapacity(uint32_t page_id) const;
     uint32_t getDescriptorPageCount() const;
+    uint32_t getUploadHeapCapacity() const;
+
+    bool isAsyncComputeEnabled() const;
+    bool isAsyncCopyEnabled() const;
 
     
     // *** the following functions are used to alter the global settings during run time. All functions return 'true' in case of success and 'false' if the parameter's value cannot be changed ***
@@ -58,6 +65,8 @@ public:
     void clearShaderLookupDirectories();
     void setCacheDirectory(std::string const& path);
     void setCacheName(std::string const& name);
+    void setIsAsyncComputeEnabled(bool is_enabled);
+    void setIsAsyncCopyEnabled(bool is_enabled);
 };
 
 }}

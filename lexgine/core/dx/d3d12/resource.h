@@ -126,7 +126,7 @@ using ResourceState = misc::Flags<__tag::tagResourceState>;
 //! Wrapper over placed resource context
 class Resource final : public NamedEntity<class_names::D3D12Resource>
 {
-    template<size_t> friend class ResourceBarrier;    // resource state transitions are allowed to change the current resource state, which is otherwise hidden
+    // template<size_t> friend class ResourceBarrier;    // resource state transitions are allowed to change the current resource state, which is otherwise hidden
 
 public:
     /*! Creates placed resource in provided @param heap at the given @param offset. Note that @param initial_state and @param optimized_clear_value
