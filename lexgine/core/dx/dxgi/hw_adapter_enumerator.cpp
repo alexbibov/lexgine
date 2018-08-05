@@ -98,7 +98,8 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
             std::string adapter_name = wstringToAsciiString(desc.Description);
 
             LEXGINE_LOG_ERROR(this, 
-                "unable to create Direct3D12 device for adapter \"" + adapter_name + "\"");
+                "unable to create Direct3D12 device for adapter \"" + adapter_name + "\". "
+                "The possible reason is that the adapter does not support Direct3D 12");
         }
 
         ++id;
@@ -271,6 +272,8 @@ HwAdapter::HwAdapter(ComPtr<IDXGIFactory6> const& adapter_factory, ComPtr<IDXGIA
     if (d3d12_device)
     {
         m_device.reset(new d3d12::Device{ d3d12_device });
+        m_device->setStringName("\"" + misc::wstringToAsciiString(m_properties.details.name)
+            + "\"__D3D12_device");
     }
     else
     {

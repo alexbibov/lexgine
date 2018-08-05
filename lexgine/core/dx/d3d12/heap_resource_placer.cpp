@@ -16,7 +16,7 @@ HeapResourcePlacer::HeapResourcePlacer(Heap& heap) :
 Resource HeapResourcePlacer::addResource(ResourceState const& initial_state, D3D12_CLEAR_VALUE const& optimized_clear_value, ResourceDescriptor const& descriptor)
 {
     uint64_t resource_size = descriptor.getAllocationSize(m_heap.device(), m_heap.getExposureMask());
-    assert(resource_size <= m_heap.size() - m_current_offset);
+    assert(resource_size <= m_heap.capacity() - m_current_offset);
 
     Resource rv{ m_heap, m_current_offset, initial_state, optimized_clear_value, descriptor };
     m_current_offset += resource_size;

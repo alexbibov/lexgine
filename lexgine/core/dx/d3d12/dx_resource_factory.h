@@ -26,6 +26,10 @@ public:
     DebugInterface const* debugInterface() const;
     
     DescriptorHeap& retrieveDescriptorHeap(Device const& device, uint32_t page_id, DescriptorHeapType descriptor_heap_type);
+    Heap& retrieveUploadHeap(Device const& device);
+    CommandQueue& retrieveGraphicsCommandQueue(Device const& device);
+    CommandQueue& retrieveComputeCommandQueue(Device const& device);
+    CommandQueue& retrieveCopyCommandQueue(Device const& device);
 
 private:
     using descriptor_heap_page_pool = std::deque<std::array<DescriptorHeap, 4U>>;
@@ -36,6 +40,10 @@ private:
     dxgi::HwAdapterEnumerator m_hw_adapter_enumerator;
     dxcompilation::DXCompilerProxy m_dxc_proxy;
     std::map<Device const*, descriptor_heap_page_pool> m_descriptor_heaps;
+    std::map<Device const*, Heap> m_upload_heaps;
+    std::map<Device const*, CommandQueue> m_graphics_queues;
+    std::map<Device const*, CommandQueue> m_compute_queues;
+    std::map<Device const*, CommandQueue> m_copy_queues;
 };
 
 }}}}

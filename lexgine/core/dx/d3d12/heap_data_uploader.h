@@ -49,7 +49,7 @@ public:
 
 
 
-    HeapDataUploader(Heap& upload_heap, uint64_t offset, uint64_t size);    //! attaches data uploader to an upload heap at the given offset with the given upload buffer size
+    HeapDataUploader(Heap& upload_heap, uint64_t offset, uint64_t capacity);    //! attaches data uploader to an upload heap at the given offset with the given upload buffer size
     HeapDataUploader(HeapDataUploader const&) = delete;
     HeapDataUploader(HeapDataUploader&&) = delete;
 
@@ -69,7 +69,9 @@ public:
     void upload(CommandList& upload_worker_list);
 
 
-    uint64_t getTransactionSize() const;    //! returns the total size of the upload transaction (sum of sizes of all individual upload tasks)
+    uint64_t transactionSize() const;    //! returns the total size of the upload transaction (sum of sizes of all individual upload tasks)
+    uint64_t capacity() const;    //! returns capacity of the upload section
+    uint64_t freeSpace() const;    //! returns free space left in the upload section (equals to capacity() - transactionSize())
 
 
 private:
@@ -84,7 +86,7 @@ private:
 
     Heap& m_heap;    //!< upload heap used by the data uploader
     uint64_t m_offset;    //!< offset in the upload heap, at which the data uploader is registered
-    uint64_t m_size;    //!< size of upload buffer used by the data uploader
+    uint64_t m_capacity;    //!< size of upload buffer used by the data uploader
     uint64_t m_transaction_size;    //!< size of all upload tasks assigned to the uploader
 
     Resource m_upload_buffer;    //!< native reference to the upload buffer

@@ -1,5 +1,5 @@
 #include "fence_event.h"
-#include "../../core/exception.h"
+#include "lexgine/core/exception.h"
 
 using namespace lexgine::osinteraction::windows;
 
@@ -10,10 +10,7 @@ FenceEvent::FenceEvent(bool is_reset_manually /* = true */) :
 {
     if (!m_event_handle)
     {
-        std::string err_msg = "unable to create WinAPI event handle";
-        logger().out(err_msg, lexgine::core::misc::LogMessageType::error);
-        raiseError(err_msg);
-        throw lexgine::core::Exception{ *this, err_msg };    //! these kind of errors are fatal
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "unable to create WinAPI event handle");
     }
 }
 
@@ -32,10 +29,7 @@ void FenceEvent::wait() const
     DWORD result;
     if ((result = WaitForSingleObject(m_event_handle, INFINITE)) == WAIT_FAILED)
     {
-        std::string err_msg = "waiting on WinAPI event has failed";
-        logger().out(err_msg, lexgine::core::misc::LogMessageType::error);
-        raiseError(err_msg);
-        throw lexgine::core::Exception{ *this, err_msg };    // this is a fatal error
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "waiting on WinAPI event has failed");
     }
 }
 
@@ -44,10 +38,7 @@ bool FenceEvent::wait(uint32_t milliseconds) const
     DWORD result;
     if ((result = WaitForSingleObject(m_event_handle, milliseconds)) == WAIT_FAILED)
     {
-        std::string err_msg = "waiting on WinAPI event has failed";
-        logger().out(err_msg, lexgine::core::misc::LogMessageType::error);
-        raiseError(err_msg);
-        throw lexgine::core::Exception{ *this, err_msg };    // this is a fatal error
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "waiting on WinAPI event has failed");
     }
 
     return result != WAIT_TIMEOUT;

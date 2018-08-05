@@ -2,8 +2,8 @@
 
 #include <windows.h>
 
-#include "../../core/entity.h"
-#include "../../core/class_names.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
 
 namespace lexgine {namespace osinteraction {namespace windows {
 
