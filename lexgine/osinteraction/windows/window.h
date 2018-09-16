@@ -12,12 +12,13 @@
 #include <vector>
 
 
-#include "../../core/math/vector_types.h"
-#include "../../core/math/rectangle.h"
-#include "../../core/misc/flags.h"
-#include "../listener.h"
-#include "../../core/entity.h"
-#include "../../core/class_names.h"
+#include "lexgine/core/math/vector_types.h"
+#include "lexgine/core/math/rectangle.h"
+#include "lexgine/core/misc/flags.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
+
+#include "lexgine/osinteraction/listener.h"
 
 
 

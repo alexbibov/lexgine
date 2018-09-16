@@ -2,19 +2,26 @@
 #include <iostream>
 #include <sstream>
 
+#include "lexgine/core/initializer.h"
 #include "lexgine/osinteraction/windows/window.h"
 #include "lexgine/osinteraction/windows/window_listeners.h"
-#include "lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
-#include "lexgine/core/dx/d3d12/debug_interface.h"
 
+using namespace lexgine;
 using namespace lexgine::osinteraction;
 using namespace lexgine::osinteraction::windows;
+
 using namespace lexgine::core;
 using namespace lexgine::core::dx::dxgi;
 using namespace lexgine::core::dx::d3d12;
-using namespace lexgine::core::misc;
 
-class WindowEventListener : public Listeners<KeyInputListener, MouseButtonListener, MouseMoveListener, WindowSizeChangeListener, ClientAreaUpdateListener>
+class WindowEventListener : 
+    public Listeners<
+    KeyInputListener, 
+    MouseButtonListener, 
+    MouseMoveListener, 
+    WindowSizeChangeListener, 
+    ClientAreaUpdateListener
+    >
 {
 public:
     bool keyDown(SystemKey key) const override
@@ -129,6 +136,7 @@ public:
 
 int main(int argc, char* argv[])
 {
+#if 0
     lexgine::core::misc::Log::create(std::cout, "Test");
     {
         HwAdapterEnumerator adapter_enumerator{};
@@ -169,6 +177,51 @@ int main(int argc, char* argv[])
         lexgine::core::misc::LogMessageType::information);
     lexgine::core::misc::Log::shutdown();
 
+
+#endif
+
+    EngineSettings engine_settings{};
+    engine_settings.debug_mode = true;
+    engine_settings.adapter_enumeration_preference = HwAdapterEnumerator::DxgiGpuPreference::high_performance;
+    engine_settings.global_lookup_prefix = "";
+    engine_settings.settings_lookup_path = "../../settings/";
+    engine_settings.global_settings_json_file = "global_settings.json";
+    engine_settings.logging_output_path = "";
+    engine_settings.log_name = "swe_demo.log";
+
+
+    Initializer engine_initializer{ engine_settings };
+
+    Window rendering_window{};
+    rendering_window.setDimensions(lexgine::core::math::vector2u{ 1280, 720 });
+    WindowEventListener event_listener;
+    rendering_window.addListener(&event_listener);
+    rendering_window.setVisibility(true);
+
+    SwapChainDescriptor swap_chain_desc{};
+    swap_chain_desc.bufferCount = 2;
+    swap_chain_desc.bufferUsage = ResourceUsage::enum_type::render_target;
+    swap_chain_desc.format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    swap_chain_desc.refreshRate = 60;
+    swap_chain_desc.scaling = SwapChainScaling::stretch;
+    swap_chain_desc.stereo = false;
+    swap_chain_desc.windowed = true;
+    
+    engine_initializer.createSwapChainForCurrentDevice(rendering_window, swap_chain_desc);
+    
+    Device& dev_ref = engine_initializer.getCurrentDevice();
+
+    while (!rendering_window.shouldClose())
+    {
+        MSG msg;
+        BOOL res = GetMessage(&msg, NULL, NULL, NULL);
+        if (res)
+        {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        else break;
+    }
 
     return 0;
 }

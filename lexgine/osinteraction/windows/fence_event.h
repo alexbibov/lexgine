@@ -20,9 +20,11 @@ public:
     void wait() const;    //! blocks the calling process until the event is fired
 
     /*! blocks the calling process until the specified amount of milliseconds has passed or until the event has been fired.
-      Returns 'true' if the event was fired during the specified amount of time. Returns 'false' otherwise.
+      Returns 'true' if the event has been fired during the specified amount of time. Returns 'false' otherwise.
     */
     bool wait(uint32_t milliseconds) const;
+
+    void reset() const;
 
 private:
     HANDLE m_event_handle;    //! event handle maintained by Windows

@@ -1,22 +1,22 @@
 #ifndef LEXGINE_CORE_DX_DXGI_SWAP_CHAIN_H
 #define LEXGINE_CORE_DX_DXGI_SWAP_CHAIN_H
 
-#include <dxgi1_6.h>
-#include <wrl.h>
 
 #include <cstdint>
 
 #include "common.h"
-#include "lexgine/core/dx/d3d12/command_queue.h"
-#include "lexgine/osinteraction/windows/window.h"
+#include "lexgine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
+#include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/math/vector_types.h"
 #include "lexgine/core/multisampling.h"
+#include "lexgine/osinteraction/windows/window.h"
 
 using namespace Microsoft::WRL;
 
 
 namespace lexgine {namespace core {namespace dx {namespace dxgi {
 
+template<typename T> class SwapChainAttorney;
 
 //! Describes swap chain scaling modes
 enum class SwapChainScaling
@@ -42,14 +42,19 @@ struct SwapChainDescriptor
 
 class SwapChain final : public NamedEntity<class_names::SwapChain>
 {
-    friend class HwAdapter;    //!< only HwAdapters are having this vicious capability of creating swap chains
+    friend class SwapChainAttorney<HwAdapter>;
+
+public:
+    SwapChain(SwapChain const&) = delete;
+    SwapChain(SwapChain&&) = default;
+
 public:
 
     //! Retrieves Direct3D12 device associated with the swap chain
-    dx::d3d12::Device& device();
+    dx::d3d12::Device& device() const;
 
-    //! Retrieves default command queue associated with the swap chain
-    d3d12::CommandQueue& defaultCommandQueue();
+    //! Retrieves graphics command queue associated with the swap chain
+    d3d12::CommandQueue const& defaultCommandQueue() const;
 
     //! Retrieves Window object to which the swap chain is attached
     osinteraction::windows::Window const& window() const;
@@ -58,17 +63,38 @@ public:
     math::vector2u getDimensions() const;
 
 private:
-    //! This constructor THROWS
-    SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory, d3d12::Device& device, osinteraction::windows::Window const& window, SwapChainDescriptor const& desc);
+    SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory, 
+        d3d12::Device& device, 
+        d3d12::CommandQueue const& default_command_queue,
+        osinteraction::windows::Window const& window, 
+        SwapChainDescriptor const& desc);
 
+private:
     ComPtr<IDXGIFactory6> m_dxgi_factory;   //!< DXGI factory used to create the swap chain
     d3d12::Device& m_device;    //!< Direct3D12 device interface
     osinteraction::windows::Window const& m_window;    //!< window, which holds the swap chain
-    d3d12::CommandQueue m_default_command_queue;    //!< default command queue associated with the swap chain
+    d3d12::CommandQueue const& m_default_command_queue;    //!< graphics command queue associated with the swap chain
 
     ComPtr<IDXGISwapChain3> m_dxgi_swap_chain;   //!< DXGI interface representing the swap chain
 
 };
+
+
+template<> class SwapChainAttorney<HwAdapter>
+{
+    friend class HwAdapter;
+
+private:
+    static SwapChain makeSwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
+        d3d12::Device& device,
+        d3d12::CommandQueue const& default_command_queue,
+        osinteraction::windows::Window const& window,
+        SwapChainDescriptor const& desc)
+    {
+        return SwapChain{ dxgi_factory, device, default_command_queue, window, desc };
+    }
+};
+
 
 
 }}}}

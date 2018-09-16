@@ -1,7 +1,9 @@
 #ifndef LEXGINE_CORE_DX_DXGI_COMMON_H
+#define LEXGINE_CORE_DX_DXGI_COMMON_H
 
-#include <dxgi1_5.h>
-#include "../../misc/flags.h"
+#include <dxgi1_6.h>
+#include <wrl.h>
+#include "lexgine/core/misc/flags.h"
 
 namespace lexgine {namespace core {namespace dx {namespace dxgi {
 
@@ -25,5 +27,4 @@ using ResourceUsage = misc::Flags<__tag::tagDXGIUsage, DXGI_USAGE>;
 
 }}}}
 
-#define LEXGINE_CORE_DX_DXGI_COMMON_H
 #endif

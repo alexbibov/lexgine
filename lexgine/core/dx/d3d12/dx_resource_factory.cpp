@@ -1,6 +1,8 @@
 #include "dx_resource_factory.h"
 #include "debug_interface.h"
 
+#include "lexgine/core/dx/d3d12/device.h"
+
 using namespace lexgine::core;
 using namespace lexgine::core::dx;
 using namespace lexgine::core::dx::d3d12;
@@ -11,7 +13,7 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
     dxgi::HwAdapterEnumerator::DxgiGpuPreference enumeration_preference) :
     m_global_settings{ global_settings },
     m_debug_interface{ enable_debug_mode ? DebugInterface::retrieve() : nullptr },
-    m_hw_adapter_enumerator{enable_debug_mode, enumeration_preference},
+    m_hw_adapter_enumerator{global_settings, enable_debug_mode, enumeration_preference},
     m_dxc_proxy(m_global_settings)
 {
     m_hw_adapter_enumerator.setStringName("Hardware adapter enumerator");
@@ -52,30 +54,12 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
         // initialize upload heaps
         {
             Heap upload_heap = dev_ref.createHeap(AbstractHeapType::upload, global_settings.getUploadHeapCapacity(),
-                HeapCreationFlags::enum_type::deny_rt_ds);
+                HeapCreationFlags::enum_type::allow_only_buffers);
             upload_heap.setStringName(dev_ref.getStringName() + "__upload_heap");
 
             m_upload_heaps.emplace(&dev_ref, std::move(upload_heap));
         }
 
-        // initialize command queues
-        {
-            CommandQueue graphics_queue{ dev_ref, CommandQueueType::direct, node_mask,
-                CommandQueuePriority::normal, CommandQueueFlags::enum_type::none };
-            graphics_queue.setStringName(dev_ref.getStringName() + "__direct_cmd_queue");
-
-            CommandQueue compute_queue{ dev_ref, CommandQueueType::compute, node_mask,
-                CommandQueuePriority::normal, CommandQueueFlags::enum_type::none };
-            compute_queue.setStringName(dev_ref.getStringName() + "__compute_cmd_queue");
-
-            CommandQueue copy_queue{ dev_ref, CommandQueueType::copy, node_mask,
-                CommandQueuePriority::normal, CommandQueueFlags::enum_type::none };
-            copy_queue.setStringName(dev_ref.getStringName() + "__copy_cmd_queue");
-
-            m_graphics_queues.emplace(&dev_ref, std::move(graphics_queue));
-            m_compute_queues.emplace(&dev_ref, std::move(compute_queue));
-            m_compute_queues.emplace(&dev_ref, std::move(copy_queue));
-        }
     }
 }
 
@@ -109,17 +93,21 @@ Heap& DxResourceFactory::retrieveUploadHeap(Device const& device)
     return m_upload_heaps.at(&device);
 }
 
-CommandQueue& DxResourceFactory::retrieveGraphicsCommandQueue(Device const& device)
+dxgi::HwAdapter const* DxResourceFactory::retrieveHwAdapterOwningDevicePtr(Device const& device) const
 {
-    return m_graphics_queues.at(&device);
-}
+    auto target_adapter = std::find_if(m_hw_adapter_enumerator.begin(), m_hw_adapter_enumerator.end(),
+        [&device](auto& adapter)
+        {
+            Device& dev_ref = adapter.device();
+            return &dev_ref == &device;
+        }
+    );
 
-CommandQueue& DxResourceFactory::retrieveComputeCommandQueue(Device const& device)
-{
-    return m_compute_queues.at(&device);
-}
-
-CommandQueue& DxResourceFactory::retrieveCopyCommandQueue(Device const& device)
-{
-    return m_copy_queues.at(&device);
+    if (target_adapter != m_hw_adapter_enumerator.end())
+    {
+        dxgi::HwAdapter const& adapter_ref = *target_adapter;
+        return &adapter_ref;
+    }
+    else
+        return nullptr;
 }

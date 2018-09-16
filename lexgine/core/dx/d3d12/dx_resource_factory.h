@@ -8,6 +8,8 @@
 #include "lexgine/core/dx/d3d12/descriptor_heap.h"
 
 #include <deque>
+#include <map>
+#include <array>
 
 namespace lexgine { namespace core { namespace dx { namespace d3d12{
 
@@ -27,9 +29,8 @@ public:
     
     DescriptorHeap& retrieveDescriptorHeap(Device const& device, uint32_t page_id, DescriptorHeapType descriptor_heap_type);
     Heap& retrieveUploadHeap(Device const& device);
-    CommandQueue& retrieveGraphicsCommandQueue(Device const& device);
-    CommandQueue& retrieveComputeCommandQueue(Device const& device);
-    CommandQueue& retrieveCopyCommandQueue(Device const& device);
+
+    dxgi::HwAdapter const* retrieveHwAdapterOwningDevicePtr(Device const& device) const;
 
 private:
     using descriptor_heap_page_pool = std::deque<std::array<DescriptorHeap, 4U>>;
@@ -41,9 +42,6 @@ private:
     dxcompilation::DXCompilerProxy m_dxc_proxy;
     std::map<Device const*, descriptor_heap_page_pool> m_descriptor_heaps;
     std::map<Device const*, Heap> m_upload_heaps;
-    std::map<Device const*, CommandQueue> m_graphics_queues;
-    std::map<Device const*, CommandQueue> m_compute_queues;
-    std::map<Device const*, CommandQueue> m_copy_queues;
 };
 
 }}}}

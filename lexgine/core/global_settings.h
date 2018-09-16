@@ -25,6 +25,7 @@ private:
     uint32_t m_upload_heap_capacity;
     bool m_enable_async_compute;
     bool m_enable_async_copy;
+    uint16_t m_max_frames_in_flight;
 
     static uint32_t constexpr m_max_descriptors_per_page = 2048U;
 
@@ -53,6 +54,8 @@ public:
 
     bool isAsyncComputeEnabled() const;
     bool isAsyncCopyEnabled() const;
+
+    uint16_t getMaxFramesInFlight() const;
 
     
     // *** the following functions are used to alter the global settings during run time. All functions return 'true' in case of success and 'false' if the parameter's value cannot be changed ***

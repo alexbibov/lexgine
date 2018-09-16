@@ -1,14 +1,19 @@
 #include "device.h"
 #include "lexgine/core/exception.h"
+#include "lexgine/core/global_settings.h"
 #include "lexgine/core/dx/d3d12/debug_interface.h"
 
 
 using namespace lexgine::core::dx::d3d12;
 
-Device::Device(ComPtr<ID3D12Device> const& device) :
+Device::Device(ComPtr<ID3D12Device> const& device, lexgine::core::GlobalSettings const& global_settings):
     m_device{ device },
-    m_rs_cache{ *this }
+    m_max_frames_in_flight{ global_settings.getMaxFramesInFlight() },
+    m_default_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::enum_type::none) },
+    m_async_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, global_settings.isAsyncComputeEnabled() ? WorkloadType::compute : WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::enum_type::none) },
+    m_copy_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, global_settings.isAsyncCopyEnabled() ? WorkloadType::copy : WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::enum_type::none) }
 {
+    
 }
 
 FeatureD3D12Options Device::queryFeatureD3D12Options() const
@@ -124,7 +129,7 @@ ComPtr<ID3D12Device> Device::native() const
     return m_device;
 }
 
-void Device::setStringName(std::string const & entity_string_name)
+void Device::setStringName(std::string const& entity_string_name)
 {
     Entity::setStringName(entity_string_name);
     LEXGINE_THROW_ERROR_IF_FAILED(
@@ -132,16 +137,20 @@ void Device::setStringName(std::string const & entity_string_name)
         m_device->SetName(misc::asciiStringToWstring(entity_string_name).c_str()),
         S_OK
     );
+
+    m_default_command_queue.setStringName(entity_string_name + "__direct_cmd_queue");
+    m_async_command_queue.setStringName(entity_string_name + "__compute_cmd_queue");
+    m_copy_command_queue.setStringName(entity_string_name + "__copy_cmd_queue");
 }
 
 ComPtr<ID3D12RootSignature> Device::createRootSignature(lexgine::core::D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name, uint32_t node_mask)
 {
-    return m_rs_cache.findOrCreate(root_signature_friendly_name, node_mask, serialized_root_signature);
+    return m_rs_cache.findOrCreate(*this, root_signature_friendly_name, node_mask, serialized_root_signature);
 }
 
-Fence Device::createFence(bool is_shared)
+Fence Device::createFence(FenceSharing sharing/* = FenceSharing::none*/)
 {
-    return Fence{ *this, is_shared };
+    return FenceAttorney<Device>::makeFence(*this, sharing);
 }
 
 DescriptorHeap Device::createDescriptorHeap(DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask)
@@ -159,6 +168,25 @@ Heap Device::createHeap(CPUPageProperty cpu_page_property, GPUMemoryPool gpu_mem
     return Heap{ *this, cpu_page_property, gpu_memory_pool, size, flags, is_msaa_supported, node_mask, node_exposure_mask };
 }
 
+uint32_t Device::maxFramesInFlight() const
+{
+    return m_max_frames_in_flight;
+}
+
+CommandQueue const& Device::defaultCommandQueue() const
+{
+    return m_default_command_queue;
+}
+
+CommandQueue const& Device::asyncCommandQueue() const
+{
+    return m_async_command_queue;
+}
+
+CommandQueue const& Device::copyCommandQueue() const
+{
+    return m_copy_command_queue;
+}
 
 
 

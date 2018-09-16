@@ -1,5 +1,6 @@
 #include "swap_chain.h"
 #include "lexgine/core/exception.h"
+#include "lexgine/core/dx/d3d12/command_queue.h"
 
 using namespace lexgine;
 using namespace lexgine::core;
@@ -7,13 +8,12 @@ using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::dxgi;
 
 
-
-Device& lexgine::core::dx::dxgi::SwapChain::device()
+Device& lexgine::core::dx::dxgi::SwapChain::device() const
 {
     return m_device;
 }
 
-CommandQueue& SwapChain::defaultCommandQueue()
+CommandQueue const& SwapChain::defaultCommandQueue() const
 {
     return m_default_command_queue;
 }
@@ -33,12 +33,13 @@ math::vector2u SwapChain::getDimensions() const
 
 SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     Device& device,
+    CommandQueue const& default_command_queue,
     osinteraction::windows::Window const& window,
     SwapChainDescriptor const& desc):
     m_dxgi_factory{ dxgi_factory },
     m_device{ device },
     m_window{ window },
-    m_default_command_queue{ m_device }
+    m_default_command_queue{ default_command_queue }
 {
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc1{};
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC swap_chain_fs_desc{};
@@ -64,7 +65,8 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     IDXGISwapChain1* p_swap_chain1 = nullptr;
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        m_dxgi_factory->CreateSwapChainForHwnd(m_default_command_queue.native().Get(), m_window.native(), &swap_chain_desc1, &swap_chain_fs_desc, NULL, &p_swap_chain1),
+        m_dxgi_factory->CreateSwapChainForHwnd(m_default_command_queue.native().Get(), 
+            m_window.native(), &swap_chain_desc1, &swap_chain_fs_desc, NULL, &p_swap_chain1),
         S_OK
     );
 

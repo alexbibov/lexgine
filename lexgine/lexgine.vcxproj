@@ -163,7 +163,7 @@
     <ClCompile Include="core\data_blob.cpp" />
     <ClCompile Include="core\deferred_pso_compilation_agent.cpp" />
     <ClCompile Include="core\depth_stencil_descriptor.cpp" />
-    <ClCompile Include="core\dx\d3d12\command_allocator.cpp" />
+    <ClCompile Include="core\dx\d3d12\command_allocator_ring.cpp" />
     <ClCompile Include="core\dx\d3d12\command_list.cpp" />
     <ClCompile Include="core\dx\d3d12\command_queue.cpp" />
     <ClCompile Include="core\dx\d3d12\constant_buffer.cpp" />
@@ -238,7 +238,7 @@
     <ClInclude Include="core\deferred_pso_compilation_agent.h" />
     <ClInclude Include="core\depth_stencil_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\root_signature_cache.h" />
-    <ClInclude Include="core\dx\d3d12\command_allocator.h" />
+    <ClInclude Include="core\dx\d3d12\command_allocator_ring.h" />
     <ClInclude Include="core\dx\d3d12\command_list.h" />
     <ClInclude Include="core\dx\d3d12\command_queue.h" />
     <ClInclude Include="core\dx\d3d12\constant_buffer.h" />
@@ -310,8 +310,10 @@
     <ClInclude Include="core\vertex_attributes.h" />
     <ClInclude Include="core\vulkan\vulkan_tools.h" />
     <ClInclude Include="osinteraction\keyboard.h" />
+    <ClInclude Include="osinteraction\lexgine_osinteraction_fwd.h" />
     <ClInclude Include="osinteraction\listener.h" />
     <ClInclude Include="osinteraction\windows\fence_event.h" />
+    <ClInclude Include="osinteraction\windows\lexgine_osinteraction_windows_fwd.h" />
     <ClInclude Include="osinteraction\windows\window.h" />
     <ClInclude Include="osinteraction\windows\window_listeners.h" />
   </ItemGroup>

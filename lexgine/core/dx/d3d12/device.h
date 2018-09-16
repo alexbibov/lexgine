@@ -4,6 +4,7 @@
 #include <wrl.h>
 #include <d3d12.h>
 
+#include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/misc/flags.h"
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
@@ -16,6 +17,7 @@
 #include "heap.h"
 #include "descriptor_heap.h"
 #include "fence.h"
+#include "command_queue.h"
 
 
 
@@ -24,6 +26,7 @@ using namespace Microsoft::WRL;
 
 namespace lexgine {namespace core {namespace dx {namespace d3d12 {
 
+template<typename T> class DeviceAttorney;
 
 namespace __tag {
 enum class tagShaderPrecisionMode {
@@ -141,13 +144,14 @@ struct FeatureGPUVirtualAddressSupport final
 
 
 
-//! Thin wrapper over ID3D12Device interface.
-//! Note that this class is subject for continuous changing: new functionality may be added at any time
-//! in order to provide convenience APIs for the basic Direc3D12 functionality. All features provided by this
-//! class can be emulated by calling native() and then using the basic APIs of ID3D12Device
+/*! Thin wrapper over ID3D12Device interface.
+ Note that this class is subject for continuous changing: new functionality may be added at any time
+ in order to provide convenience APIs for the basic Direc3D12 functionality. All features provided by this
+ class can be emulated by calling native() and then using the basic APIs of ID3D12Device
+ */
 class Device final : public NamedEntity<class_names::D3D12Device>
 {
-    friend class dxgi::HwAdapter;   // hardware adapters should be allowed to create Direct3D devices
+    friend class DeviceAttorney<dxgi::HwAdapter>;
 
 public:
     FeatureD3D12Options queryFeatureD3D12Options() const;    //! queries Direc3D12 feature options in the current graphics driver
@@ -166,35 +170,61 @@ public:
     
     ComPtr<ID3D12Device> native() const;    //! returns native IDirect3D12 interface for the device
 
-    void setStringName(std::string const& entity_string_name);	//! sets new user-friendly string name for the Direct3D 12 device
+    void setStringName(std::string const& entity_string_name) override;	//! sets new user-friendly string name for the Direct3D 12 device
 
     ComPtr<ID3D12RootSignature> createRootSignature(D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name, uint32_t node_mask = 0);    //! creates native Direct3D 12 root signature interface based on serialized root signature data. THROWS
 
-    Fence createFence(bool is_shared = false);    //! creates synchronization fence
+    Fence createFence(FenceSharing sharing = FenceSharing::none);    //! creates synchronization fence
 
     DescriptorHeap createDescriptorHeap(DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask = 0);    //! creates descriptor heap
 
-    //! creates heap of one of the abstract types. Here parameter node_mask identifies the node where the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
-    //! and node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
+    /*! creates heap of one of the abstract types. Here parameter node_mask identifies the node where the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
+     and node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
+     */
     Heap createHeap(AbstractHeapType type, uint64_t size, HeapCreationFlags flags = HeapCreationFlags{ HeapCreationFlags::enum_type::allow_all },
         bool is_msaa_supported = false, uint32_t node_mask = 0, uint32_t node_exposure_mask = 0);
 
-    //! creates custom heap with requested CPU memory page properties and allocated from the given GPU memory pool. Here @param node_mask identifies the node where
-    //! the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
-    //! and node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
+    /*! creates custom heap with requested CPU memory page properties and allocated from the given GPU memory pool. Here @param node_mask identifies the node where
+     the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
+     and node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
+     */
     Heap createHeap(CPUPageProperty cpu_page_property, GPUMemoryPool gpu_memory_pool, uint64_t size, HeapCreationFlags flags = HeapCreationFlags{ HeapCreationFlags::enum_type::allow_all },
         bool is_msaa_supported = false, uint32_t node_mask = 0, uint32_t node_exposure_mask = 0);
 
+    uint32_t maxFramesInFlight() const;    //! maximal number of frames allowed to be simultaneously rendered on this device
+
+    CommandQueue const& defaultCommandQueue() const;    //! graphics command queue associated with this device
+    CommandQueue const& asyncCommandQueue() const;    //! asynchronous compute command queue associated with this device (may coincide with default command queue depending on the hardware and settings)
+    CommandQueue const& copyCommandQueue() const;    //! copy command queue associated with this device
+
     Device(Device const&) = delete;
-    Device(Device&&) = default;
+    Device(Device&&) = delete;
 
 private:
-    Device(ComPtr<ID3D12Device> const& device);
+    Device(ComPtr<ID3D12Device> const& native_device, lexgine::core::GlobalSettings const& global_settings);
 
 private:
     ComPtr<ID3D12Device> m_device;    //!< encapsulated pointer to Direct3D12 device interface
     RootSignatureCache m_rs_cache;    //!< cached root signatures
+    uint32_t m_max_frames_in_flight;
+    CommandQueue m_default_command_queue;
+    CommandQueue m_async_command_queue;
+    CommandQueue m_copy_command_queue;
 };
+
+
+template<> class DeviceAttorney<dxgi::HwAdapter>
+{
+    friend class dxgi::HwAdapter;
+
+private:
+
+    static std::unique_ptr<Device> makeDevice(ComPtr<ID3D12Device> const& native_device_interface, lexgine::core::GlobalSettings const& global_settings)
+    {
+        return std::unique_ptr<Device>{new Device{ native_device_interface, global_settings }};
+    }
+};
+
 
 }}}}
 

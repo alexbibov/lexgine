@@ -27,7 +27,7 @@ bool FenceEvent::isResetManually() const
 void FenceEvent::wait() const
 {
     DWORD result;
-    if ((result = WaitForSingleObject(m_event_handle, INFINITE)) == WAIT_FAILED)
+    if ((result = WaitForSingleObject(m_event_handle, INFINITE)) != WAIT_OBJECT_0)
     {
         LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "waiting on WinAPI event has failed");
     }
@@ -35,11 +35,21 @@ void FenceEvent::wait() const
 
 bool FenceEvent::wait(uint32_t milliseconds) const
 {
-    DWORD result;
-    if ((result = WaitForSingleObject(m_event_handle, milliseconds)) == WAIT_FAILED)
+    DWORD result = WaitForSingleObject(m_event_handle, milliseconds);
+    if (result != WAIT_OBJECT_0 && result != WAIT_TIMEOUT)
     {
         LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "waiting on WinAPI event has failed");
     }
 
-    return result != WAIT_TIMEOUT;
+    return result == WAIT_OBJECT_0;
+}
+
+void FenceEvent::reset() const
+{
+    if (!m_is_reset_manually) return;
+
+    if (ResetEvent(m_event_handle) == 0)
+    {
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "reseting WinAPI event has failed");
+    }
 }

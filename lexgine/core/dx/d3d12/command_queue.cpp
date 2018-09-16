@@ -1,12 +1,15 @@
 #include "command_queue.h"
-#include "../../exception.h"
+#include "device.h"
+#include "command_list.h"
+
+#include "lexgine/core/exception.h"
 
 #include <functional>
 
 using namespace lexgine::core::dx::d3d12;
 
 
-CommandQueue::CommandQueue(Device& device, CommandQueueType type, uint32_t node_mask, CommandQueuePriority priority, CommandQueueFlags flags):
+CommandQueue::CommandQueue(Device& device, WorkloadType type, uint32_t node_mask, CommandQueuePriority priority, CommandQueueFlags flags):
     m_type{ type },
     m_priority{ priority },
     m_flags{ flags },
@@ -26,16 +29,22 @@ CommandQueue::CommandQueue(Device& device, CommandQueueType type, uint32_t node_
     );
 }
 
-void CommandQueue::executeCommandLists(std::vector<CommandList> const & command_lists) const
+void CommandQueue::executeCommandLists(std::vector<CommandList*> const& command_lists) const
 {
-    ID3D12CommandList** p_cmd_lists = new ID3D12CommandList*[command_lists.size()];
+    auto last_cmd_list = command_lists.back();    // only the last command list in the batch signals job completion to avoid redundancy
 
-    for (size_t i = 0; i < command_lists.size(); ++i)
-        p_cmd_lists[i] = command_lists[i].native().Get();
+    std::vector<ID3D12CommandList*> native_command_lists(command_lists.size());
+    for (size_t i = 0U; i < command_lists.size(); ++i)
+    {
+        CommandListAttorney<CommandQueue>::defineSignalingCommandListForTargetCommandList(*command_lists[i], *last_cmd_list);
+        native_command_lists[i] = command_lists[i]->native().Get();
+    }
 
-    m_command_queue->ExecuteCommandLists(static_cast<UINT>(command_lists.size()), p_cmd_lists);
 
-    delete[] p_cmd_lists;
+    m_command_queue->ExecuteCommandLists(static_cast<UINT>(native_command_lists.size()), native_command_lists.data());
+    
+    Signal const* job_completion_signal_ptr = CommandListAttorney<CommandQueue>::getJobCompletionSignalPtrForCommandList(*last_cmd_list);
+    signal(job_completion_signal_ptr->fence);    // signal job completion
 }
 
 Device& CommandQueue::device() const
@@ -48,7 +57,7 @@ ComPtr<ID3D12CommandQueue> CommandQueue::native() const
     return m_command_queue;
 }
 
-void CommandQueue::setStringName(std::string const & entity_string_name)
+void CommandQueue::setStringName(std::string const& entity_string_name)
 {
     Entity::setStringName(entity_string_name);
     LEXGINE_THROW_ERROR_IF_FAILED(
@@ -58,13 +67,9 @@ void CommandQueue::setStringName(std::string const & entity_string_name)
     );
 }
 
-void CommandQueue::signal(Fence const & fence)
+void CommandQueue::signal(Fence const& fence) const
 {
-    LEXGINE_LOG_ERROR_IF_FAILED(
-        this,
-        m_command_queue->Signal(fence.native().Get(), fence.m_target_value++), 
-        S_OK
-    );
+    FenceAttorney<CommandQueue>::signalFenceFromGPU(fence, *this);
 }
 
 void CommandQueue::wait(Fence const & fence, uint64_t num_crosses) const

@@ -50,7 +50,7 @@ public:
     EntityID getId() const;    //! returns unique identifier of the entity
 
     std::string getStringName() const;	//! returns user-friendly string name of the entity
-    void setStringName(std::string const& entity_string_name);	//! sets new user-friendly string name for the entity
+    virtual void setStringName(std::string const& entity_string_name);	//! sets new user-friendly string name for the entity
 
     static int64_t aliveEntities();    //! returns number of alive entities owned by the calling thread
 

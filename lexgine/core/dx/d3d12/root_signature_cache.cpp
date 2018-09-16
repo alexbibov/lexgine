@@ -5,13 +5,9 @@
 
 using namespace lexgine::core::dx::d3d12;
 
-RootSignatureCache::RootSignatureCache(Device const& device):
-    m_device{ device }
-{
-
-}
-
-Microsoft::WRL::ComPtr<ID3D12RootSignature> lexgine::core::dx::d3d12::RootSignatureCache::findOrCreate(std::string const& root_signature_friendly_name, uint32_t node_mask,
+Microsoft::WRL::ComPtr<ID3D12RootSignature> lexgine::core::dx::d3d12::RootSignatureCache::findOrCreate(
+    Device const& device,
+    std::string const& root_signature_friendly_name, uint32_t node_mask,
     lexgine::core::D3DDataBlob const& serialized_root_signature)
 {
     std::lock_guard<std::mutex> sentry{ m_lock };
@@ -24,7 +20,7 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> lexgine::core::dx::d3d12::RootSignat
     Microsoft::WRL::ComPtr<ID3D12RootSignature> rs{};
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        m_device.native()->CreateRootSignature(node_mask, serialized_root_signature.data(), serialized_root_signature.size(), IID_PPV_ARGS(&rs)),
+        device.native()->CreateRootSignature(node_mask, serialized_root_signature.data(), serialized_root_signature.size(), IID_PPV_ARGS(&rs)),
         S_OK
     );
     LEXGINE_THROW_ERROR_IF_FAILED(

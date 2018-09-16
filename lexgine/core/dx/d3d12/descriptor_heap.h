@@ -1,7 +1,8 @@
 #ifndef LEXGINE_CORE_DX_D3D12_DESCRIPTOR_HEAP_H
+#define LEXGINE_CORE_DX_D3D12_DESCRIPTOR_HEAP_H
 
-#include "../../entity.h"
-#include "../../class_names.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
 
 #include <d3d12.h>
 #include <wrl.h>
@@ -51,5 +52,4 @@ private:
 
 }}}}
 
-#define LEXGINE_CORE_DX_D3D12_DESCRIPTOR_HEAP_H
 #endif

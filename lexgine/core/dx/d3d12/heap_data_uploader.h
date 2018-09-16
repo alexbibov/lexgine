@@ -1,10 +1,13 @@
 #ifndef LEXGINE_CORE_DX_D3D12_HEAP_DATA_UPLOADER_H
+#define LEXGINE_CORE_DX_D3D12_HEAP_DATA_UPLOADER_H
 
 #include <list>
 
 #include "resource.h"
-#include "../../entity.h"
 #include "command_list.h"
+
+#include "lexgine/core/entity.h"
+#include "lexgine/core/data_blob.h"
 
 
 namespace lexgine {namespace core {namespace dx {namespace d3d12 {
@@ -96,5 +99,4 @@ private:
 
 }}}}
 
-#define LEXGINE_CORE_DX_D3D12_HEAP_DATA_UPLOADER_H
 #endif
