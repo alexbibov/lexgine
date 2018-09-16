@@ -1,13 +1,16 @@
 // Listeners tailored to window object as implemented in Windows operating system
 
 #ifndef LEXGINE_OSINTERACTION_WINDOWS_WINDOW_LISTENERS_H
+#define LEXGINE_OSINTERACTION_WINDOWS_WINDOW_LISTENERS_H
 
 #include <windows.h>
 
-#include "../listener.h"
-#include "../keyboard.h"
-#include "../../core/misc/flags.h"
-#include "../../core/math/rectangle.h"
+#include "lexgine/core/misc/flags.h"
+#include "lexgine/core/math/rectangle.h"
+
+#include "lexgine/osinteraction/listener.h"
+#include "lexgine/osinteraction/keyboard.h"
+
 #include "window.h"
 
 namespace lexgine {namespace osinteraction {namespace windows {
@@ -126,5 +129,4 @@ protected:
 
 }}}
 
-#define LEXGINE_OSINTERACTION_WINDOWS_WINDOW_LISTENERS_H
 #endif

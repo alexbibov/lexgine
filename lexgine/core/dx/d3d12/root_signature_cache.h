@@ -19,8 +19,14 @@ class RootSignatureCache : public NamedEntity<class_names::RootSignatureCache>
     friend class Device;    // only device classes are allowed to create root signature low-level cache
 
 private:
-    RootSignatureCache(Device const& device);
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> findOrCreate(std::string const& root_signature_friendly_name, uint32_t node_mask, 
+    RootSignatureCache() = default;
+    RootSignatureCache(RootSignatureCache const&) = delete;
+    RootSignatureCache(RootSignatureCache&&) = delete;
+
+private:
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> findOrCreate(
+        Device const& device,
+        std::string const& root_signature_friendly_name, uint32_t node_mask, 
         lexgine::core::D3DDataBlob const& serialized_root_signature);
 
 private:
@@ -47,7 +53,6 @@ private:
     using rs_cache_map = std::unordered_map<key_type, Microsoft::WRL::ComPtr<ID3D12RootSignature>, key_type_hasher_and_comparator, key_type_hasher_and_comparator>;
 
 private:
-    Device const& m_device;
     rs_cache_map m_cached_root_signatures;
     std::mutex m_lock;
 };

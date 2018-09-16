@@ -207,9 +207,6 @@
     <ClInclude Include="core\dx\dxgi\swap_chain.h">
       <Filter>core\dx\dxgi</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\command_allocator.h">
-      <Filter>core\dx\d3d12</Filter>
-    </ClInclude>
     <ClInclude Include="core\dx\d3d12\command_list.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
@@ -366,6 +363,15 @@
     <ClInclude Include="core\dx\d3d12\tasks\data_uploading_task.h">
       <Filter>core\dx\d3d12\tasks</Filter>
     </ClInclude>
+    <ClInclude Include="core\dx\d3d12\command_allocator_ring.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="osinteraction\windows\lexgine_osinteraction_windows_fwd.h">
+      <Filter>osinteraction\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="osinteraction\lexgine_osinteraction_fwd.h">
+      <Filter>osinteraction</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -448,9 +454,6 @@
     </ClCompile>
     <ClCompile Include="core\dx\dxgi\swap_chain.cpp">
       <Filter>core\dx\dxgi</Filter>
-    </ClCompile>
-    <ClCompile Include="core\dx\d3d12\command_allocator.cpp">
-      <Filter>core\dx\d3d12</Filter>
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\command_list.cpp">
       <Filter>core\dx\d3d12</Filter>
@@ -553,6 +556,9 @@
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\tasks\data_uploading_task.cpp">
       <Filter>core\dx\d3d12\tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\command_allocator_ring.cpp">
+      <Filter>core\dx\d3d12</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

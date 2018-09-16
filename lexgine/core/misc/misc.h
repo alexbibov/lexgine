@@ -1,12 +1,14 @@
 //This header contains miscelleneous functionality employed by various parts of Lexgine
 
 #ifndef LEXGINE_CORE_MISC_MISC_H
+#define LEXGINE_CORE_MISC_MISC_H
 
 #include <stdint.h>
 #include <cmath>
 #include <string>
 #include <list>
 #include <vector>
+#include <type_traits>
 
 #include <d3d12.h>
 
@@ -144,7 +146,12 @@ Optional<DateTime> getFileLastUpdatedTimeStamp(std::string const& file_path);
 std::list<std::string> getFilesInDirectory(std::string const& directory_name, std::string const& name_pattern);
 
 
+template<typename T> std::unique_ptr<T> stackToUnique(T& val)
+{
+    return std::unique_ptr<T>{new T{ std::move(val) }};
+}
+
+
 }}}
 
-#define LEXGINE_CORE_MISC_MISC_H
 #endif

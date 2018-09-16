@@ -1,7 +1,9 @@
 #include "hw_adapter_enumerator.h"
-#include "lexgine/core/misc/log.h"
+#include "lexgine/core/global_settings.h"
 #include "lexgine/core/exception.h"
+#include "lexgine/core/misc/log.h"
 #include "lexgine/core/misc/misc.h"
+#include "lexgine/core/dx/d3d12/device.h"
 
 using namespace lexgine;
 using namespace lexgine::core;
@@ -9,7 +11,9 @@ using namespace lexgine::core::dx::dxgi;
 using namespace lexgine::core::misc;
 
 
-HwAdapterEnumerator::HwAdapterEnumerator(bool enable_debug_mode, DxgiGpuPreference enumeration_preference):
+HwAdapterEnumerator::HwAdapterEnumerator(GlobalSettings const& global_settings,
+    bool enable_debug_mode, DxgiGpuPreference enumeration_preference):
+    m_global_settings{ global_settings },
     m_enable_debug_mode{ enable_debug_mode }
 {
     ComPtr<IDXGIFactory2> dxgi_factory2;
@@ -90,7 +94,7 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 
         HRESULT res;
         if ((res = D3D12CreateDevice(dxgi_adapter4.Get(), static_cast<D3D_FEATURE_LEVEL>(D3D12FeatureLevel::_11_0), __uuidof(ID3D12Device), nullptr)) == S_OK || res == S_FALSE)
-            m_adapter_list.emplace_back(m_dxgi_factory6, dxgi_adapter4, m_enable_debug_mode);
+            m_adapter_list.emplace_back(m_global_settings, m_dxgi_factory6, dxgi_adapter4, m_enable_debug_mode);
         else
         {
             DXGI_ADAPTER_DESC3 desc;
@@ -212,7 +216,10 @@ private:
 
 
 
-HwAdapter::HwAdapter(ComPtr<IDXGIFactory6> const& adapter_factory, ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode):
+HwAdapter::HwAdapter(GlobalSettings const& global_settings, 
+    ComPtr<IDXGIFactory6> const& adapter_factory, 
+    ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode):
+    m_global_settings{ global_settings },
     m_dxgi_adapter{ adapter },
     m_dxgi_adapter_factory{ adapter_factory },
     m_impl{ nullptr }
@@ -271,7 +278,7 @@ HwAdapter::HwAdapter(ComPtr<IDXGIFactory6> const& adapter_factory, ComPtr<IDXGIA
 
     if (d3d12_device)
     {
-        m_device.reset(new d3d12::Device{ d3d12_device });
+        m_device = d3d12::DeviceAttorney<HwAdapter>::makeDevice(d3d12_device, m_global_settings);
         m_device->setStringName("\"" + misc::wstringToAsciiString(m_properties.details.name)
             + "\"__D3D12_device");
     }
@@ -305,7 +312,7 @@ HwOutputEnumerator const& HwAdapter::getOutputEnumerator() const
 
 SwapChain HwAdapter::createSwapChain(osinteraction::windows::Window const& window, SwapChainDescriptor const& desc) const
 {
-    return SwapChain{ m_dxgi_adapter_factory, *m_device, window, desc };
+    return SwapChainAttorney<HwAdapter>::makeSwapChain(m_dxgi_adapter_factory, *m_device, m_device->defaultCommandQueue(), window, desc);
 }
 
 dx::d3d12::Device& HwAdapter::device() const

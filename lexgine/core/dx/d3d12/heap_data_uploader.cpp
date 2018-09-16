@@ -2,7 +2,7 @@
 
 #include "heap_data_uploader.h"
 #include "device.h"
-#include "../../exception.h"
+#include "lexgine/core/exception.h"
 #include "resource_barrier.h"
 
 using namespace lexgine::core::dx::d3d12;
@@ -152,16 +152,16 @@ void HeapDataUploader::upload(CommandList& upload_worker_list)
 {
     // Apply resource transition barrier to the upload buffer
     ResourceState upload_buffer_target_state, destination_resource_target_state;
-    switch (upload_worker_list.type())
+    switch (upload_worker_list.commandType())
     {
-    case CommandListType::direct:
-    case CommandListType::compute:
-    case CommandListType::bundle:
+    case CommandType::direct:
+    case CommandType::compute:
+    case CommandType::bundle:
         upload_buffer_target_state = ResourceState::enum_type::copy_source;
         destination_resource_target_state = ResourceState::enum_type::copy_destination;
         break;
 
-    case CommandListType::copy:
+    case CommandType::copy:
         upload_buffer_target_state = destination_resource_target_state = ResourceState::enum_type::common;
         break;
     }

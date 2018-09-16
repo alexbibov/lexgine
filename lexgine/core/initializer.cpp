@@ -4,6 +4,7 @@
 #include "lexgine/core/misc/misc.h"
 #include "lexgine/core/global_settings.h"
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
+#include "lexgine/core/dx/d3d12/device.h"
 
 #include "lexgine/core/dx/d3d12/task_caches/hlsl_compilation_task_cache.h"
 #include "lexgine/core/dx/d3d12/task_caches/pso_compilation_task_cache.h"
@@ -207,6 +208,11 @@ dx::d3d12::Device& Initializer::getCurrentDevice() const
     return *m_globals->get<dx::d3d12::Device>();
 }
 
+dx::dxgi::HwAdapter const& Initializer::getCurrentDeviceHwAdapter() const
+{
+    return *m_globals->get<dx::d3d12::DxResourceFactory>()->retrieveHwAdapterOwningDevicePtr(getCurrentDevice());
+}
+
 void Initializer::setWARPAdapterAsCurrent() const
 {
     dx::d3d12::Device& warp_device_ref = m_resource_factory->hardwareAdapterEnumerator().getWARPAdapter().device();
@@ -216,4 +222,9 @@ void Initializer::setWARPAdapterAsCurrent() const
 uint32_t Initializer::getAdapterCount() const
 {
     return m_resource_factory->hardwareAdapterEnumerator().getAdapterCount();
+}
+
+dx::dxgi::SwapChain Initializer::createSwapChainForCurrentDevice(osinteraction::windows::Window const& window, dx::dxgi::SwapChainDescriptor const& desc) const
+{
+    return getCurrentDeviceHwAdapter().createSwapChain(window, desc);
 }

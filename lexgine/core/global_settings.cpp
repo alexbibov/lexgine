@@ -33,6 +33,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         m_upload_heap_capacity = 1024 * 1024 * 256;    // 256MBs by default
         m_enable_async_compute = true;
         m_enable_async_copy = true;
+        m_max_frames_in_flight = 6;
     }
 
 
@@ -226,6 +227,18 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
                 "The system will revert to the default setting \"enable_async_copy = " + std::to_string(m_enable_async_copy) + "\"",
                 misc::LogMessageType::exclamation);
         }
+
+        if ((p = document.find("max_frames_in_flight")) != document.end())
+        {
+            m_max_frames_in_flight = p->get<uint16_t>();
+        }
+        else
+        {
+            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"max_frames_in_flight\" from the settings file located at \""
+                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected short integer). "
+                "The system will revert to the default setting \"max_frames_in_flight = " + std::to_string(m_max_frames_in_flight) + "\"",
+                misc::LogMessageType::exclamation);
+        }
     }
     catch (...)
     {
@@ -277,7 +290,8 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
         { "descriptor_heaps_capacity", m_descriptor_heaps_capacity },
         { "upload_heap_capacity", m_upload_heap_capacity },
         { "enable_async_compute", m_enable_async_compute },
-        { "enable_async_copy", m_enable_async_copy }
+        { "enable_async_copy", m_enable_async_copy },
+        { "max_frames_in_flight", m_max_frames_in_flight }
     };
     if (m_shader_lookup_directories.size())
         j["shader_lookup_directories"] = m_shader_lookup_directories;
@@ -357,6 +371,11 @@ bool GlobalSettings::isAsyncComputeEnabled() const
 bool GlobalSettings::isAsyncCopyEnabled() const
 {
     return m_enable_async_copy;
+}
+
+uint16_t GlobalSettings::getMaxFramesInFlight() const
+{
+    return m_max_frames_in_flight;
 }
 
 void GlobalSettings::setNumberOfWorkers(uint8_t num_workers)

@@ -13,7 +13,7 @@ extern char const D3D12Device[];
 extern char const D3D12CommandQueue[];
 extern char const D3D12CommandList[];
 extern char const D3D12DebugInterface[];
-extern char const D3D12CommandAllocator[];
+extern char const D3D12CommandAllocatorRing[];
 extern char const D3D12PipelineState[];
 extern char const D3D12RootSignature[];
 extern char const D3D12Fence[];

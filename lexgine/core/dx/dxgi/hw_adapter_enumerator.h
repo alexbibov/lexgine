@@ -1,7 +1,6 @@
 #ifndef LEXGINE_CORE_DX_DXGI_HW_ADAPTER_ENUMERATOR_H
+#define LEXGINE_CORE_DX_DXGI_HW_ADAPTER_ENUMERATOR_H
 
-#include <dxgi1_5.h>
-#include <wrl.h>
 #include <d3d12.h>
 
 #include <memory>
@@ -9,8 +8,13 @@
 #include <vector>
 #include <list>
 
-#include "hw_output_enumerator.h"
+#include "common.h"
+
+#include "lexgine/core/lexgine_core_fwd.h"
+#include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/osinteraction/windows/window.h"
+
+#include "hw_output_enumerator.h"
 #include "swap_chain.h"
 
 namespace lexgine { namespace core { namespace dx { namespace dxgi {
@@ -90,7 +94,13 @@ public:
 
 public:
     //! Constructs wrapper around DXGI adapter. This is normally done only by HwAdapterEnumerator
-    HwAdapter(ComPtr<IDXGIFactory6> const& adapter_factory, ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode);
+    HwAdapter(GlobalSettings const& global_settings,
+        ComPtr<IDXGIFactory6> const& adapter_factory, 
+        ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode);
+
+    HwAdapter(HwAdapter const&) = delete;
+    HwAdapter(HwAdapter&&) = delete;
+
     ~HwAdapter();
 
 public:
@@ -111,6 +121,7 @@ public:
 
 
 private:
+    GlobalSettings const& m_global_settings;
     ComPtr<IDXGIAdapter4> m_dxgi_adapter;	//!< DXGI adapter
     ComPtr<IDXGIFactory6> m_dxgi_adapter_factory;    //!< DXGI factory, which has been used in order to create this adapter
 
@@ -139,9 +150,14 @@ public:
     };
 
 public:
-    HwAdapterEnumerator(bool enable_debug_mode = false, 
+    HwAdapterEnumerator(GlobalSettings const& global_settings,
+        bool enable_debug_mode = false, 
         DxgiGpuPreference enumeration_preference = DxgiGpuPreference::high_performance);
 
+    HwAdapterEnumerator(HwAdapterEnumerator const&) = delete;
+    HwAdapterEnumerator(HwAdapterEnumerator&&) = delete;
+
+public:
     iterator begin();
     iterator end();
 
@@ -161,6 +177,7 @@ public:
 
 
 private:
+    GlobalSettings const& m_global_settings;
     bool m_enable_debug_mode;
     ComPtr<IDXGIFactory6> m_dxgi_factory6;
     adapter_list_type m_adapter_list;
@@ -168,5 +185,4 @@ private:
 
 }}}}
 
-#define LEXGINE_CORE_DX_DXGI_HW_ADAPTER_ENUMERATOR_H
 #endif

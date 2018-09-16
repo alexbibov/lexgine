@@ -3,7 +3,7 @@
 
 namespace lexgine { namespace core { namespace dx { namespace d3d12 {
 
-class CommandAllocator;
+class CommandAllocatorRing;
 class CommandList;
 class CommandQueue;
 class ConstantBuffer;
@@ -23,6 +23,7 @@ class PipelineState;
 class Resource;
 template<size_t> class ResourceBarrier;
 class RootSignature;
+struct Signal;
 
 }}}}
 

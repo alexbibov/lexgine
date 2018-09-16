@@ -7,6 +7,7 @@
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h"
 #include "lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
+#include "lexgine/core/dx/dxgi/swap_chain.h"
 
 #include <fstream>
 #include <memory>
@@ -50,11 +51,14 @@ public:
 
     bool setCurrentDevice(uint32_t adapter_id);    //! assigns device that will be used for graphics and compute tasks. Returns 'true' on success.
     dx::d3d12::Device& getCurrentDevice() const;    //! returns current device
+    dx::dxgi::HwAdapter const& getCurrentDeviceHwAdapter() const;    //! returns reference for hardware adapter that owns the current device
 
     void setWARPAdapterAsCurrent() const;    //! sets the WARP adapter as the one to be used by the engine
 
     uint32_t getAdapterCount() const;    //! returns total number of adapters installed in the host system including the virtual WARP adapter
 
+    //! helper function, which simplifies creation of a swap chain for the current device
+    dx::dxgi::SwapChain createSwapChainForCurrentDevice(osinteraction::windows::Window const& window, dx::dxgi::SwapChainDescriptor const& desc) const;
 
 private:
 
