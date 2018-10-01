@@ -136,50 +136,6 @@ public:
 
 int main(int argc, char* argv[])
 {
-#if 0
-    lexgine::core::misc::Log::create(std::cout, "Test");
-    {
-        HwAdapterEnumerator adapter_enumerator{};
-        HwAdapter const& default_adapter = *(adapter_enumerator.begin());
-
-        Window window{};
-
-        SwapChainDescriptor desc;
-        desc.bufferCount = 2;
-        desc.bufferUsage = ResourceUsage{ ResourceUsage::enum_type::render_target };
-        desc.format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        desc.refreshRate = 60;
-        desc.scaling = SwapChainScaling::stretch;
-        desc.stereo = false;
-        desc.windowed = true;
-        SwapChain sc = default_adapter.createSwapChain(window, desc);
-
-        window.setDimensions(lexgine::core::math::vector2u{ 1280, 720 });
-        WindowEventListener main_class;
-        window.addListener(&main_class);
-        window.setVisibility(true);
-
-        while (!window.shouldClose())
-        {
-            MSG msg;
-            BOOL res = GetMessage(&msg, NULL, NULL, NULL);
-            if (res)
-            {
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
-            }
-            else break;
-        }
-    }
-
-    lexgine::core::dx::d3d12::DebugInterface::shutdown();
-    lexgine::core::misc::Log::retrieve()->out("alive entities: " + std::to_string(lexgine::core::Entity::aliveEntities()),
-        lexgine::core::misc::LogMessageType::information);
-    lexgine::core::misc::Log::shutdown();
-
-
-#endif
-
     EngineSettings engine_settings{};
     engine_settings.debug_mode = true;
     engine_settings.adapter_enumeration_preference = HwAdapterEnumerator::DxgiGpuPreference::high_performance;

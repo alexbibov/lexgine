@@ -231,6 +231,11 @@ uint64_t lexgine::core::dx::d3d12::HeapDataUploader::transactionSize() const
     return m_transaction_size;
 }
 
+uint64_t HeapDataUploader::offset() const
+{
+    return m_offset;
+}
+
 uint64_t HeapDataUploader::capacity() const
 {
     return m_capacity;
@@ -239,4 +244,12 @@ uint64_t HeapDataUploader::capacity() const
 uint64_t HeapDataUploader::freeSpace() const
 {
     return m_capacity - m_transaction_size;
+}
+
+void HeapDataUploader::reset(uint64_t offset, uint64_t capacity)
+{
+    m_offset = offset;
+    m_capacity = capacity;
+    m_transaction_size = 0U;
+    m_upload_tasks.clear();
 }
