@@ -94,7 +94,7 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 
         HRESULT res;
         if ((res = D3D12CreateDevice(dxgi_adapter4.Get(), static_cast<D3D_FEATURE_LEVEL>(D3D12FeatureLevel::_11_0), __uuidof(ID3D12Device), nullptr)) == S_OK || res == S_FALSE)
-            m_adapter_list.emplace_back(m_global_settings, m_dxgi_factory6, dxgi_adapter4, m_enable_debug_mode);
+            m_adapter_list.emplace_back(HwAdapterAttorney<HwAdapterEnumerator>::makeHwAdapter(m_global_settings, m_dxgi_factory6, dxgi_adapter4, m_enable_debug_mode));
         else
         {
             DXGI_ADAPTER_DESC3 desc;
@@ -108,30 +108,6 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 
         ++id;
     }
-
-    // WARP adapter is now enumerated by EnumAdapterByGpuPreference(...)
-#if 0
-    // Add WARP adapter to the end of the list (i.e. the WARP adapter is always enumerated and it is always the last adapter in the list)
-    {
-        dxgi_adapter = nullptr;
-        ComPtr<IDXGIAdapter4> dxgi_adapter4{ nullptr };
-        LEXGINE_THROW_ERROR_IF_FAILED(
-            this,
-            m_dxgi_factory6->EnumWarpAdapter(IID_PPV_ARGS(&dxgi_adapter)),
-            S_OK
-        );
-
-        if (dxgi_adapter)
-        {
-            LEXGINE_LOG_ERROR_IF_FAILED(
-                this,
-                dxgi_adapter->QueryInterface(IID_PPV_ARGS(&dxgi_adapter4)),
-                S_OK
-            );
-            m_adapter_list.emplace_back(m_dxgi_factory6, dxgi_adapter4, m_enable_debug_mode);
-        }
-    }
-#endif
 }
 
 bool HwAdapterEnumerator::isRefreshNeeded() const

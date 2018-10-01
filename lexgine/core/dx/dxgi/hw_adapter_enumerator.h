@@ -19,7 +19,6 @@
 
 namespace lexgine { namespace core { namespace dx { namespace dxgi {
 
-
 using namespace Microsoft::WRL;
 
 //Direct3D 12 feature levels
@@ -31,10 +30,15 @@ enum class D3D12FeatureLevel : int
     _12_1 = D3D_FEATURE_LEVEL_12_1
 };
 
+template<typename T> class HwAdapterAttorney;
+
+class HwAdapterEnumerator;
 
 //! Tiny wrapper over DXGI adapter interface
 class HwAdapter final : public NamedEntity<class_names::HwAdapter>
 {
+    friend class HwAdapterAttorney<HwAdapterEnumerator>;
+
 public:
     enum class DxgiGraphicsPreemptionGranularity
     {
@@ -93,18 +97,12 @@ public:
     };
 
 public:
-    //! Constructs wrapper around DXGI adapter. This is normally done only by HwAdapterEnumerator
-    HwAdapter(GlobalSettings const& global_settings,
-        ComPtr<IDXGIFactory6> const& adapter_factory, 
-        ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode);
-
     HwAdapter(HwAdapter const&) = delete;
-    HwAdapter(HwAdapter&&) = delete;
+    HwAdapter(HwAdapter&&) = default;
 
     ~HwAdapter();
 
 public:
-
     //! Sends the OS notification requesting to reserve given amount_in_bytes from the video memory for the rendering application.
     void reserveVideoMemory(uint32_t node_index, MemoryBudget budget_type, uint64_t amount_in_bytes) const;
 
@@ -119,6 +117,11 @@ public:
 
     d3d12::Device& device() const;
 
+private:
+    //! Constructs wrapper around DXGI adapter. This is normally done only by HwAdapterEnumerator
+    HwAdapter(GlobalSettings const& global_settings,
+        ComPtr<IDXGIFactory6> const& adapter_factory,
+        ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode);
 
 private:
     GlobalSettings const& m_global_settings;
@@ -131,6 +134,19 @@ private:
     std::unique_ptr<impl> m_impl;    //!< various properties of the adapter encapsulated in the details class
     
     std::unique_ptr<d3d12::Device> m_device;    //!< d3d12 device associated with the adapter
+};
+
+template<> class HwAdapterAttorney<HwAdapterEnumerator>
+{
+    friend class HwAdapterEnumerator;
+
+private:
+    static HwAdapter makeHwAdapter(GlobalSettings const& global_settings,
+        ComPtr<IDXGIFactory6> const& adapter_factory,
+        ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode)
+    {
+        return HwAdapter{ global_settings, adapter_factory, adapter, enable_debug_mode };
+    }
 };
 
 

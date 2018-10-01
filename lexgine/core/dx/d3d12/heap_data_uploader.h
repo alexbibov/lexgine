@@ -73,8 +73,10 @@ public:
 
 
     uint64_t transactionSize() const;    //! returns the total size of the upload transaction (sum of sizes of all individual upload tasks)
+    uint64_t offset() const;    //! returns offset from the beginning of the buffer as used by the data uploader
     uint64_t capacity() const;    //! returns capacity of the upload section
     uint64_t freeSpace() const;    //! returns free space left in the upload section (equals to capacity() - transactionSize())
+    void reset(uint64_t offset, uint64_t capacity);    //! reset state of the upload heap tracing structure. This function should not be called while uploads are still in progress
 
 
 private:
