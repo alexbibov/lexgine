@@ -171,13 +171,13 @@ void Window::setDimensions(uint32_t width, uint32_t height)
 }
 
 
-void Window::setDimensions(core::math::vector2u const& dimensions)
+void Window::setDimensions(core::math::Vector2u const& dimensions)
 {
     setDimensions(dimensions.x, dimensions.y);
 }
 
 
-lexgine::core::math::vector2u Window::getDimensions() const{ return core::math::vector2u{ m_width, m_height }; }
+lexgine::core::math::Vector2u Window::getDimensions() const{ return core::math::Vector2u{ m_width, m_height }; }
 
 
 void Window::setLocation(uint32_t x, uint32_t y)
@@ -189,13 +189,13 @@ void Window::setLocation(uint32_t x, uint32_t y)
 }
 
 
-void Window::setLocation(core::math::vector2u const& location)
+void Window::setLocation(core::math::Vector2u const& location)
 {
     setLocation(location.x, location.y);
 }
 
 
-lexgine::core::math::vector2u Window::getLocation() const { return core::math::vector2u{ m_pos_x, m_pos_y }; }
+lexgine::core::math::Vector2u Window::getLocation() const { return core::math::Vector2u{ m_pos_x, m_pos_y }; }
 
 
 void Window::setVisibility(bool visibility_flag)

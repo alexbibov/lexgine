@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
     Initializer engine_initializer{ engine_settings };
 
     Window rendering_window{};
-    rendering_window.setDimensions(lexgine::core::math::vector2u{ 1280, 720 });
+    rendering_window.setDimensions(lexgine::core::math::Vector2u{ 1280, 720 });
     WindowEventListener event_listener;
     rendering_window.addListener(&event_listener);
     rendering_window.setVisibility(true);

@@ -29,22 +29,32 @@ CommandQueue::CommandQueue(Device& device, WorkloadType type, uint32_t node_mask
     );
 }
 
-void CommandQueue::executeCommandLists(std::vector<CommandList*> const& command_lists) const
+void CommandQueue::executeCommandLists(CommandList* command_list_array, size_t num_command_lists) const
 {
-    auto last_cmd_list = command_lists.back();    // only the last command list in the batch signals job completion to avoid redundancy
+    auto& last_cmd_list = command_list_array[num_command_lists - 1];    // only the last command list in the batch signals job completion to avoid redundancy
 
-    std::vector<ID3D12CommandList*> native_command_lists(command_lists.size());
-    for (size_t i = 0U; i < command_lists.size(); ++i)
+    std::vector<ID3D12CommandList*> native_command_lists(num_command_lists);
+    for (size_t i = 0U; i < num_command_lists; ++i)
     {
-        CommandListAttorney<CommandQueue>::defineSignalingCommandListForTargetCommandList(*command_lists[i], *last_cmd_list);
-        native_command_lists[i] = command_lists[i]->native().Get();
+        CommandListAttorney<CommandQueue>::defineSignalingCommandListForTargetCommandList(command_list_array[i], last_cmd_list);
+        native_command_lists[i] = command_list_array[i].native().Get();
     }
 
-
-    m_command_queue->ExecuteCommandLists(static_cast<UINT>(native_command_lists.size()), native_command_lists.data());
+    m_command_queue->ExecuteCommandLists(static_cast<UINT>(num_command_lists), native_command_lists.data());
     
-    Signal const* job_completion_signal_ptr = CommandListAttorney<CommandQueue>::getJobCompletionSignalPtrForCommandList(*last_cmd_list);
-    signal(job_completion_signal_ptr->fence);    // signal job completion
+    Signal const* job_completion_signal_ptr = CommandListAttorney<CommandQueue>::getJobCompletionSignalPtrForCommandList(last_cmd_list);
+    job_completion_signal_ptr->signalFromGPU(*this);    // signal job completion
+}
+
+void CommandQueue::executeCommandList(CommandList& command_list) const
+{
+    CommandListAttorney<CommandQueue>::defineSignalingCommandListForTargetCommandList(command_list, command_list);
+
+    ID3D12CommandList* native_command_list = command_list.native().Get();
+    m_command_queue->ExecuteCommandLists(1U, &native_command_list);
+
+    Signal const* job_completion_signal_ptr = CommandListAttorney<CommandQueue>::getJobCompletionSignalPtrForCommandList(command_list);
+    job_completion_signal_ptr->signalFromGPU(*this);    // signal job completion
 }
 
 Device& CommandQueue::device() const

@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_MISC_FLAGS_H
+#define LEXGINE_CORE_MISC_FLAGS_H
 
 #include <utility>
 #include <string>
@@ -97,5 +98,4 @@ private:
 
 }}}
 
-#define LEXGINE_CORE_MISC_FLAGS_H
 #endif

@@ -3,6 +3,8 @@
 #include "lexgine/core/global_settings.h"
 #include "lexgine/core/dx/d3d12/debug_interface.h"
 
+#include "command_list.h"
+
 
 using namespace lexgine::core::dx::d3d12;
 
@@ -148,6 +150,11 @@ ComPtr<ID3D12RootSignature> Device::createRootSignature(lexgine::core::D3DDataBl
     return m_rs_cache.findOrCreate(*this, root_signature_friendly_name, node_mask, serialized_root_signature);
 }
 
+ComPtr<ID3D12RootSignature> Device::retrieveRootSignature(std::string const& root_signature_friendly_name, uint32_t node_mask)
+{
+    return m_rs_cache.find(root_signature_friendly_name, node_mask);
+}
+
 Fence Device::createFence(FenceSharing sharing/* = FenceSharing::none*/)
 {
     return FenceAttorney<Device>::makeFence(*this, sharing);
@@ -186,6 +193,14 @@ CommandQueue const& Device::asyncCommandQueue() const
 CommandQueue const& Device::copyCommandQueue() const
 {
     return m_copy_command_queue;
+}
+
+CommandList Device::createCommandList(CommandType command_list_workload_type, uint32_t node_mask, 
+    FenceSharing command_list_sync_mode/* = FenceSharing::none */, 
+    PipelineState const* initial_pipeline_state/* = nullptr */)
+{
+    return CommandListAttorney<Device>::makeCommandList(*this, command_list_workload_type,
+        node_mask, command_list_sync_mode, initial_pipeline_state);
 }
 
 

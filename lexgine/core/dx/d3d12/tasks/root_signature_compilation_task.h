@@ -7,7 +7,7 @@
 #include "lexgine/core/dx/d3d12/root_signature.h"
 #include "lexgine/core/dx/d3d12/task_caches/combined_cache_key.h"
 
-namespace lexgine { namespace core { namespace dx { namespace d3d12 { namespace tasks {
+namespace lexgine::core::dx::d3d12::tasks {
 
 class RootSignatureCompilationTask : public concurrency::SchedulableTask
 {
@@ -21,7 +21,7 @@ public:
     bool execute(uint8_t worker_id);    //! executes the task manually and returns 'true' if the task does not require rescheduling
     
     /*! returns string name associated with the root signature in root signature compilation task cache
-        The names are requried to follow special convention (note the '__ROOTSIGNATURE' suffix):
+        The names are required to follow special convention (note the '__ROOTSIGNATURE' suffix):
 
             <user_defined_string_name><user_defined_numeric_id>__ROOTSIGNATURE
 
@@ -44,6 +44,6 @@ private:
     D3DDataBlob m_compiled_rs_blob;
 };
 
-}}}}}
+}
 
 #endif

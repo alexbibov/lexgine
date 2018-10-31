@@ -75,7 +75,7 @@ HwOutput::Description HwOutput::getDescription() const
 
     {
         math::Rectangle desktop_coordinates_rect{};
-        desktop_coordinates_rect.setUpperLeft(math::vector2f{
+        desktop_coordinates_rect.setUpperLeft(math::Vector2f{
             static_cast<float>(desc.DesktopCoordinates.left),
             static_cast<float>(desc.DesktopCoordinates.top) });
         desktop_coordinates_rect.setSize(
@@ -90,10 +90,10 @@ HwOutput::Description HwOutput::getDescription() const
     rv.monitor = desc.Monitor;
     rv.bits_per_color = desc.BitsPerColor;
     rv.color_space_type = static_cast<DxgiColorSpaceType>(desc.ColorSpace);
-    rv.red_primary = math::vector2f{ desc.RedPrimary[0], desc.RedPrimary[1] };
-    rv.green_primary = math::vector2f{ desc.GreenPrimary[0], desc.GreenPrimary[1] };
-    rv.blue_primary = math::vector2f{ desc.BluePrimary[0], desc.BluePrimary[1] };
-    rv.white_point = math::vector2f{ desc.WhitePoint[0], desc.WhitePoint[1] };
+    rv.red_primary = math::Vector2f{ desc.RedPrimary[0], desc.RedPrimary[1] };
+    rv.green_primary = math::Vector2f{ desc.GreenPrimary[0], desc.GreenPrimary[1] };
+    rv.blue_primary = math::Vector2f{ desc.BluePrimary[0], desc.BluePrimary[1] };
+    rv.white_point = math::Vector2f{ desc.WhitePoint[0], desc.WhitePoint[1] };
     rv.minimal_luminance = desc.MinLuminance;
     rv.maximal_luminance = desc.MaxLuminance;
     rv.maximal_full_frame_luminance = desc.MaxFullFrameLuminance;

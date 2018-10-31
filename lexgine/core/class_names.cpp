@@ -35,5 +35,6 @@ extern char const PSOCompilationTaskCache[] = "lexgine::core::dx::d3d12::task_ca
 extern char const RootSignatureCompilationTaskCache[] = "lexgine::core::dx::d3d12::task_caches::RootSignatureCompilationTaskCache";
 extern char const Dummy[] = "lexgine::core::Dummy";
 extern char const RootSignatureCache[] = "lexgine::core::dx::d3d12::RootSignatureCache";
+extern char const UploadBufferAllocator[] = "lexgine::core::dx::d3d12::UploadBufferAllocator";
 
 }}}

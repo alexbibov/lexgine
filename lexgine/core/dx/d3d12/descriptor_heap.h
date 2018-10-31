@@ -9,7 +9,7 @@
 
 using namespace Microsoft::WRL;
 
-namespace lexgine {namespace core {namespace dx {namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 //! Descriptor heap type as dictated by Direct3D 12 specs
 enum class DescriptorHeapType {
@@ -50,6 +50,16 @@ private:
     uint32_t m_node_mask;    //!< mask determining adapter, to which the heap is assigned
 };
 
-}}}}
+struct GPUDescriptorHandle final
+{
+    uint64_t address;
+};
+
+struct CPUDescriptorHandle final
+{
+    size_t address;
+};
+
+}
 
 #endif

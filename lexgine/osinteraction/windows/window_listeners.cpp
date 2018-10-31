@@ -353,14 +353,14 @@ int64_t MouseMoveListener::process_message(uint64_t message, uint64_t p_window, 
 int64_t ClientAreaUpdateListener::process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
     uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) const
 {
-    core::math::Rectangle rect{ core::math::vector2f{0}, 0, 0 };
+    core::math::Rectangle rect{ core::math::Vector2f{0}, 0, 0 };
     HWND hWnd = reinterpret_cast<Window*>(static_cast<pointer_sized_int<sizeof(Window*)>::type>(p_window))->native();
     RECT windows_rect;
     bool success = false;    // 'true' if the message processing succeeds
 
     if (GetUpdateRect(hWnd, &windows_rect, FALSE))
     {
-        rect.setUpperLeft(core::math::vector2f{ static_cast<float>(windows_rect.left), static_cast<float>(windows_rect.top) });
+        rect.setUpperLeft(core::math::Vector2f{ static_cast<float>(windows_rect.left), static_cast<float>(windows_rect.top) });
         rect.setSize(static_cast<float>(windows_rect.right - windows_rect.left), static_cast<float>(windows_rect.top - windows_rect.bottom));
 
         PAINTSTRUCT ps;

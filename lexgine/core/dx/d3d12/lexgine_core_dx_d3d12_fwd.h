@@ -1,7 +1,7 @@
 #ifndef LEXGINE_CORE_DX_D3D12_LEXGINE_CORE_DX_D3D12_FWD_H
 #define LEXGINE_CORE_DX_D3D12_LEXGINE_CORE_DX_D3D12_FWD_H
 
-namespace lexgine { namespace core { namespace dx { namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 class CommandAllocatorRing;
 class CommandList;
@@ -23,8 +23,10 @@ class PipelineState;
 class Resource;
 template<size_t> class ResourceBarrier;
 class RootSignature;
-struct Signal;
+class Signal;
+struct GPUDescriptorHandle;
+struct CPUDescriptorHandle;
 
-}}}}
+}
 
 #endif

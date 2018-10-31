@@ -1,15 +1,16 @@
 #ifndef LEXGINE_CORE_MISC_CONSTANT_CONVERTER_H
+#define LEXGINE_CORE_MISC_CONSTANT_CONVERTER_H
 
 #include <d3d12.h>
 
 #include "misc.h"
-#include "../blend_descriptor.h"
-#include "../rasterizer_descriptor.h"
-#include "../depth_stencil_descriptor.h"
-#include "../primitive_topology.h"
-#include "../filter.h"
+#include "lexgine/core/blend_descriptor.h"
+#include "lexgine/core/rasterizer_descriptor.h"
+#include "lexgine/core/depth_stencil_descriptor.h"
+#include "lexgine/core/primitive_topology.h"
+#include "lexgine/core/filter.h"
 
-namespace lexgine {namespace core { namespace misc {
+namespace lexgine::core::misc {
 
 //! Converts blending state constant from API agnostic values to the values prescribed by certain graphics APIs
 template<EngineAPI API, BlendFactor blend_factor> struct BlendFactorConverter;
@@ -53,7 +54,6 @@ template<EngineAPI API, WrapMode wrap_mode> struct WrapModeConverter;
 //! Converts API-agnostic constant determining border color used for sampling boundary resolution to the corresponding API-specific value
 template<EngineAPI API, BorderColor border_color> struct BorderColorConverter;
 
-}}}
+}
 
-#define LEXGINE_CORE_MISC_CONSTANT_CONVERTER_H
 #endif

@@ -13,7 +13,7 @@
 #include <set>
 
 
-namespace lexgine { namespace core { namespace dx { namespace d3d12 { namespace task_caches {
+namespace lexgine::core::dx::d3d12::task_caches {
 
 class PSOCompilationTaskCache : public NamedEntity<class_names::PSOCompilationTaskCache>
 {
@@ -82,6 +82,6 @@ private:
     cache_mapping m_psos_cache_keys;
 };
 
-}}}}}
+}
 
 #endif

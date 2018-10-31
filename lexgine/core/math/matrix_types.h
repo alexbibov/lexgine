@@ -8,7 +8,8 @@
 #include <utility>
 #include <cmath>
 
-namespace lexgine {namespace core {namespace math {
+namespace lexgine::core::math {
+
 //Forward declaration of the template needed to represent GLSL matrix types
 template<typename T, uint32_t nrows, uint32_t ncolumns> class shader_matrix_type;
 
@@ -502,7 +503,7 @@ public:
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
-    shader_matrix_type(const tag_vec4<T>& col1, const tag_vec4<T>& col2, const tag_vec4<T>& col3, const tag_vec4<T>& col4) :
+    shader_matrix_type(const tagVector4<T>& col1, const tagVector4<T>& col2, const tagVector4<T>& col3, const tagVector4<T>& col4) :
         concrete_matrix(data_storage_type{ col1.x, col1.y, col1.z, col1.w,
         col2.x, col2.y, col2.z, col2.w,
         col3.x, col3.y, col3.z, col3.w,
@@ -517,7 +518,7 @@ public:
 
     //matrix-vector multiplication
     template<typename P>
-    auto operator *(const tag_vec4<P>& vector) const->tag_vec4 < decltype(T{}*P{}) >
+    auto operator *(const tagVector4<P>& vector) const->tagVector4 < decltype(T{}*P{}) >
     {
         typedef decltype(T{}*P{}) return_type;
         return_type res_data[4];
@@ -528,7 +529,7 @@ public:
                 res_data[i] += data[k*num_rows + i] * vector[k];
         }
 
-        return tag_vec4<return_type>(res_data[0], res_data[1], res_data[2], res_data[3]);
+        return tagVector4<return_type>(res_data[0], res_data[1], res_data[2], res_data[3]);
     }
 
     using abstract_matrix<T, 4, 4>::operator*;	//inherited multiplication must be overloaded, not shadowed!
@@ -545,7 +546,7 @@ public:
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
-    shader_matrix_type(const tag_vec3<T>& col1, const tag_vec3<T>& col2, const tag_vec3<T>& col3) :
+    shader_matrix_type(const tagVector3<T>& col1, const tagVector3<T>& col2, const tagVector3<T>& col3) :
         concrete_matrix(data_storage_type{ col1.x, col1.y, col1.z,
         col2.x, col2.y, col2.z,
         col3.x, col3.y, col3.z }) {}
@@ -555,7 +556,7 @@ public:
 
     //matrix-vector multiplication
     template<typename P>
-    auto operator *(const tag_vec3<P>& vector) const->tag_vec3 < decltype(T{}*P{}) >
+    auto operator *(const tagVector3<P>& vector) const->tagVector3 < decltype(T{}*P{}) >
     {
         typedef decltype(T{}*P{}) return_type;
         return_type res_data[3];
@@ -566,7 +567,7 @@ public:
                 res_data[i] += data[k*num_rows + i] * vector[k];
         }
 
-        return tag_vec3<return_type>(res_data[0], res_data[1], res_data[2]);
+        return tagVector3<return_type>(res_data[0], res_data[1], res_data[2]);
     }
 
     using abstract_matrix<T, 3, 3>::operator*;		//multiplication operator should be inherited and overridden, not shadowed
@@ -583,7 +584,7 @@ public:
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
-    shader_matrix_type(const tag_vec2<T>& col1, const tag_vec2<T>& col2) :
+    shader_matrix_type(const tagVector2<T>& col1, const tagVector2<T>& col2) :
         concrete_matrix(data_storage_type{ col1.x, col1.y, col2.x, col2.y }) {}
 
     shader_matrix_type(T m11, T m21, T m12, T m22) :
@@ -591,7 +592,7 @@ public:
 
     //matrix-vector multiplication
     template<typename P>
-    auto operator *(const tag_vec2<P>& vector) const->tag_vec2 < decltype(T{}*P{}) >
+    auto operator *(const tagVector2<P>& vector) const->tagVector2 < decltype(T{}*P{}) >
     {
         typedef decltype(T{}*P{}) return_type;
         return_type res_data[2];
@@ -603,7 +604,7 @@ public:
                 res_data[i] += data[k*num_rows + i] * vector[k];
         }
 
-        return tag_vec2<return_type>(res_data[0], res_data[1]);
+        return tagVector2<return_type>(res_data[0], res_data[1]);
     }
 
     using abstract_matrix<T, 2, 2>::operator*;		//multiplication operator should be inherited and overridden, not shadowed
@@ -620,7 +621,7 @@ public:
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
-    shader_matrix_type(const tag_vec4<T>& col1, const tag_vec4<T>& col2, const tag_vec4<T>& col3) :
+    shader_matrix_type(const tagVector4<T>& col1, const tagVector4<T>& col2, const tagVector4<T>& col3) :
         concrete_matrix(data_storage_type{ col1.x, col1.y, col1.z, col1.w,
         col2.x, col2.y, col2.z, col2.w,
         col3.x, col3.y, col3.z, col3.w }) {}
@@ -631,7 +632,7 @@ public:
 
     //matrix-vector multiplication
     template<typename P>
-    auto operator *(const tag_vec3<P>& vector) const->tag_vec4 < decltype(T{}*P{}) >
+    auto operator *(const tagVector3<P>& vector) const->tagVector4 < decltype(T{}*P{}) >
     {
         typedef decltype(T{}*P{}) return_type;
         return_type res_data[4];
@@ -643,7 +644,7 @@ public:
                 res_data[i] += data[k*num_rows + i] * vector[k];
         }
 
-        return tag_vec4<return_type>(res_data[0], res_data[1], res_data[2], res_data[3]);
+        return tagVector4<return_type>(res_data[0], res_data[1], res_data[2], res_data[3]);
     }
 
     using abstract_matrix<T, 4, 3>::operator*;		//multiplication operator should be inherited and overridden, not shadowed
@@ -660,7 +661,7 @@ public:
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
-    shader_matrix_type(const tag_vec3<T>& col1, const tag_vec3<T>& col2, const tag_vec3<T>& col3, const tag_vec3<T>& col4) :
+    shader_matrix_type(const tagVector3<T>& col1, const tagVector3<T>& col2, const tagVector3<T>& col3, const tagVector3<T>& col4) :
         concrete_matrix(data_storage_type{ col1.x, col1.y, col1.z,
         col2.x, col2.y, col2.z,
         col3.x, col3.y, col3.z,
@@ -671,7 +672,7 @@ public:
 
     //matrix-vector multiplication
     template<typename P>
-    auto operator *(const tag_vec4<P>& vector) const->tag_vec3 < decltype(T{}*P{}) >
+    auto operator *(const tagVector4<P>& vector) const->tagVector3 < decltype(T{}*P{}) >
     {
         typedef decltype(T{}*P{}) return_type;
         return_type res_data[3];
@@ -683,7 +684,7 @@ public:
                 res_data[i] += data[k*num_rows + i] * vector[k];
         }
 
-        return tag_vec3<return_type>(res_data[0], res_data[1], res_data[2]);
+        return tagVector3<return_type>(res_data[0], res_data[1], res_data[2]);
     }
 
     using abstract_matrix<T, 3, 4>::operator*;		//multiplication operator should be inherited and overridden, not shadowed
@@ -700,7 +701,7 @@ public:
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
-    shader_matrix_type(const tag_vec4<T>& col1, const tag_vec4<T>& col2) :
+    shader_matrix_type(const tagVector4<T>& col1, const tagVector4<T>& col2) :
         concrete_matrix(data_storage_type{ col1.x, col1.y, col1.z, col1.w,
         col2.x, col2.y, col2.z, col2.w }) {}
 
@@ -709,7 +710,7 @@ public:
 
     //matrix-vector multiplication
     template<typename P>
-    auto operator *(const tag_vec2<P>& vector) const->tag_vec4 < decltype(T{}*P{}) >
+    auto operator *(const tagVector2<P>& vector) const->tagVector4 < decltype(T{}*P{}) >
     {
         typedef decltype(T{}*P{}) return_type;
         return_type res_data[4];
@@ -721,7 +722,7 @@ public:
                 res_data[i] += data[k*num_rows + i] * vector[k];
         }
 
-        return tag_vec4<return_type>(res_data[0], res_data[1], res_data[2], res_data[3]);
+        return tagVector4<return_type>(res_data[0], res_data[1], res_data[2], res_data[3]);
     }
 
     using abstract_matrix<T, 4, 2>::operator*;		//multiplication operator should be inherited and overridden, not shadowed
@@ -738,7 +739,7 @@ public:
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
-    shader_matrix_type(const tag_vec2<T>& col1, const tag_vec2<T>& col2, const tag_vec2<T>& col3, const tag_vec2<T>& col4) :
+    shader_matrix_type(const tagVector2<T>& col1, const tagVector2<T>& col2, const tagVector2<T>& col3, const tagVector2<T>& col4) :
         concrete_matrix(data_storage_type{ col1.x, col1.y,
         col2.x, col2.y,
         col3.x, col3.y,
@@ -749,7 +750,7 @@ public:
 
     //matrix-vector multiplication
     template<typename P>
-    auto operator *(const tag_vec4<P>& vector) const->tag_vec2 < decltype(T{}*P{}) >
+    auto operator *(const tagVector4<P>& vector) const->tagVector2 < decltype(T{}*P{}) >
     {
         typedef decltype(T{}*P{}) return_type;
         return_type res_data[2];
@@ -761,7 +762,7 @@ public:
                 res_data[i] += data[k*num_rows + i] * vector[k];
         }
 
-        return tag_vec2<return_type>(res_data[0], res_data[1]);
+        return tagVector2<return_type>(res_data[0], res_data[1]);
     }
 
     using abstract_matrix<T, 2, 4>::operator*;		//multiplication operator should be inherited and overridden, not shadowed
@@ -778,7 +779,7 @@ public:
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
-    shader_matrix_type(const tag_vec3<T>& col1, const tag_vec3<T>& col2) :
+    shader_matrix_type(const tagVector3<T>& col1, const tagVector3<T>& col2) :
         concrete_matrix(data_storage_type{ col1.x, col1.y, col1.z,
         col2.x, col2.y, col2.z }) {}
 
@@ -787,7 +788,7 @@ public:
 
     //matrix-vector multiplication
     template<typename P>
-    auto operator *(const tag_vec2<P>& vector) const->tag_vec3 < decltype(T{}*P{}) >
+    auto operator *(const tagVector2<P>& vector) const->tagVector3 < decltype(T{}*P{}) >
     {
         typedef decltype(T{}*P{}) return_type;
         return_type res_data[3];
@@ -799,7 +800,7 @@ public:
                 res_data[i] += data[k*num_rows + i] * vector[k];
         }
 
-        return tag_vec3<return_type>(res_data[0], res_data[1], res_data[2]);
+        return tagVector3<return_type>(res_data[0], res_data[1], res_data[2]);
     }
 
     using abstract_matrix<T, 3, 2>::operator*;		//multiplication operator should be inherited and overridden, not shadowed
@@ -816,7 +817,7 @@ public:
 
     shader_matrix_type(T val) : concrete_matrix(val) {}
 
-    shader_matrix_type(const tag_vec2<T>& col1, const tag_vec2<T>& col2, const tag_vec2<T>& col3) :
+    shader_matrix_type(const tagVector2<T>& col1, const tagVector2<T>& col2, const tagVector2<T>& col3) :
         concrete_matrix(data_storage_type{ col1.x, col1.y,
         col2.x, col2.y,
         col3.x, col3.y }) {}
@@ -826,7 +827,7 @@ public:
 
     //matrix-vector multiplication
     template<typename P>
-    auto operator *(const tag_vec3<P>& vector) const->tag_vec2 < decltype(T{}*P{}) >
+    auto operator *(const tagVector3<P>& vector) const->tagVector2 < decltype(T{}*P{}) >
     {
         typedef decltype(T{}*P{}) return_type;
         return_type res_data[2];
@@ -838,37 +839,35 @@ public:
                 res_data[i] += data[k*num_rows + i] * vector[k];
         }
 
-        return tag_vec2<return_type>(res_data[0], res_data[1]);
+        return tagVector2<return_type>(res_data[0], res_data[1]);
     }
 
     using abstract_matrix<T, 2, 3>::operator*;	//multiplication operator should be inherited and overridden, not shadowed
 };
 
+#ifndef GENERALIST_MATRIX_TYPES
+#define GENERALIST_MATRIX_TYPES
+using matrix4f = shader_matrix_type<float, 4, 4>;
+using matrix3f = shader_matrix_type<float, 3, 3>;
+using matrix2f = shader_matrix_type<float, 2, 2>;
+using matrix4x3f = shader_matrix_type<float, 4, 3>;
+using matrix4x2f = shader_matrix_type<float, 4, 2>;
+using matrix3x4f = shader_matrix_type<float, 3, 4>;
+using matrix2x4f = shader_matrix_type<float, 2, 4>;
+using matrix3x2f = shader_matrix_type<float, 3, 2>;
+using matrix2x3f = shader_matrix_type<float, 2, 3>;
 
+using matrix4d = shader_matrix_type<double, 4, 4>;
+using matrix3d = shader_matrix_type<double, 3, 3>;
+using matrix2d = shader_matrix_type<double, 2, 2>;
+using matrix4x3d = shader_matrix_type<double, 4, 3>;
+using matrix4x2d = shader_matrix_type<double, 4, 2>;
+using matrix3x4d = shader_matrix_type<double, 3, 4>;
+using matrix2x4d = shader_matrix_type<double, 2, 4>;
+using matrix3x2d = shader_matrix_type<double, 3, 2>;
+using matrix2x3d = shader_matrix_type<double, 2, 3>;
+#endif
 
-// Generalist matrix types
-
-typedef shader_matrix_type<float, 4, 4> matrix4f;
-typedef shader_matrix_type<float, 3, 3> matrix3f;
-typedef shader_matrix_type<float, 2, 2> matrix2f;
-typedef shader_matrix_type<float, 4, 3> matrix4x3f;
-typedef shader_matrix_type<float, 4, 2> matrix4x2f;
-typedef shader_matrix_type<float, 3, 4> matrix3x4f;
-typedef shader_matrix_type<float, 2, 4> matrix2x4f;
-typedef shader_matrix_type<float, 3, 2> matrix3x2f;
-typedef shader_matrix_type<float, 2, 3> matrix2x3f;
-
-typedef shader_matrix_type<double, 4, 4> matrix4d;
-typedef shader_matrix_type<double, 3, 3> matrix3d;
-typedef shader_matrix_type<double, 2, 2> matrix2d;
-typedef shader_matrix_type<double, 4, 3> matrix4x3d;
-typedef shader_matrix_type<double, 4, 2> matrix4x2d;
-typedef shader_matrix_type<double, 3, 4> matrix3x4d;
-typedef shader_matrix_type<double, 2, 4> matrix2x4d;
-typedef shader_matrix_type<double, 3, 2> matrix3x2d;
-typedef shader_matrix_type<double, 2, 3> matrix2x3d;
-
-
-}}}
+}
 
 #endif

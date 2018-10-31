@@ -1,8 +1,9 @@
 #ifndef LEXGINE_CORE_DX_D3D12_D3D12_TOOLS_H
+#define LEXGINE_CORE_DX_D3D12_D3D12_TOOLS_H
 
-#include "../../misc/constant_converter.h"
+#include "lexgine/core/misc/constant_converter.h"
 
-namespace lexgine { namespace core {namespace misc {
+namespace lexgine::core::misc {
 
 template<BlendFactor blend_factor>
 struct BlendFactorConverter<EngineAPI::Direct3D12, blend_factor>
@@ -123,11 +124,11 @@ struct BorderColorConverter<EngineAPI::Direct3D12, border_color>
     static uint8_t constexpr value() { return static_cast<uint8_t>(border_color); }
 };
 
-}}}
+}
 
 
 
-namespace lexgine { namespace core { namespace dx { namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 //! Helper: converts API agnostic blend factor constant defined at runtime to Direct3D 12 specific value
 inline D3D12_BLEND d3d12Convert(BlendFactor blend_factor)
@@ -393,7 +394,7 @@ inline D3D12_STATIC_BORDER_COLOR d3d12Convert(BorderColor border_color)
     }
 }
 
-}}}}
+}
 
 
 #include "half.h"
@@ -404,33 +405,33 @@ inline D3D12_STATIC_BORDER_COLOR d3d12Convert(BorderColor border_color)
 // HLSL vector types
 
 #include "lexgine/core/math/vector_types.h"
-namespace lexgine {namespace core {namespace math {
+namespace lexgine::core::math {
 
-typedef vector4i int4;
-typedef vector4u uint4;
-typedef vector4f float4;
-typedef vector4d double4;
-typedef vector4b bool4;
+typedef Vector4i int4;
+typedef Vector4u uint4;
+typedef Vector4f float4;
+typedef Vector4d double4;
+typedef Vector4b bool4;
 
-typedef vector3i int3;
-typedef vector3u uint3;
-typedef vector3f float3;
-typedef vector3d double3;
-typedef vector3b bool3;
+typedef Vector3i int3;
+typedef Vector3u uint3;
+typedef Vector3f float3;
+typedef Vector3d double3;
+typedef Vector3b bool3;
 
-typedef vector2i int2;
-typedef vector2u uint2;
-typedef vector2f float2;
-typedef vector2d double2;
-typedef vector2b bool2;
+typedef Vector2i int2;
+typedef Vector2u uint2;
+typedef Vector2f float2;
+typedef Vector2d double2;
+typedef Vector2b bool2;
 
-} } }
+}
 
 
 
 // HlSL matrix types
 #include "lexgine/core/math/matrix_types.h"
-namespace lexgine {namespace core {namespace math {
+namespace lexgine::core::math {
 
 typedef shader_matrix_type<float, 4, 4> float4x4;
 typedef shader_matrix_type<float, 3, 3> float3x3;
@@ -452,9 +453,7 @@ typedef shader_matrix_type<double, 2, 4> double2x4;
 typedef shader_matrix_type<double, 3, 2> double3x2;
 typedef shader_matrix_type<double, 2, 3> double2x3;
 
-}}}
+}
 
 
-
-#define LEXGINE_CORE_DX_D3D12_D3D12_TOOLS_H
 #endif

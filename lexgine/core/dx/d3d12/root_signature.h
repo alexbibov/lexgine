@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_DX_D3D12_ROOT_SIGNATURE_H
+#define LEXGINE_CORE_DX_D3D12_ROOT_SIGNATURE_H
 
 #include <map>
 #include <list>
@@ -7,16 +8,16 @@
 #include <d3d12.h>
 #include <wrl.h>
 
-#include "../../data_blob.h"
-#include "../../entity.h"
-#include "../../class_names.h"
-#include "../../filter.h"
-#include "../../misc/flags.h"
+#include "lexgine/core/data_blob.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
+#include "lexgine/core/filter.h"
+#include "lexgine/core/misc/flags.h"
 
 
 using namespace Microsoft::WRL;
 
-namespace lexgine {namespace core {namespace dx {namespace d3d12{
+namespace lexgine::core::dx::d3d12{
 
 //! Root constant buffer view descriptor
 class RootEntryCBVDescriptor final
@@ -194,7 +195,6 @@ private:
     std::list<D3D12_STATIC_SAMPLER_DESC> m_static_samplers;    //!< list of static samplers attached to the root signature
 };
 
-}}}}
+}
 
-#define LEXGINE_CORE_DX_D3D12_ROOT_SIGNATURE_H
 #endif

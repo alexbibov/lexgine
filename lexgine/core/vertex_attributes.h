@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_VERTEX_ATTRIBUTES_H
+#define LEXGINE_CORE_VERTEX_ATTRIBUTES_H
 
 #include <string>
 #include <list>
@@ -9,7 +10,7 @@
 #include "misc/misc.h"
 #include "dx/d3d12/d3d12_tools.h"
 
-namespace lexgine { namespace core {
+namespace lexgine::core {
 
 
 //! Abstract specification of vertex attribute
@@ -109,7 +110,6 @@ private:
 using VertexAttributeSpecificationList = std::list<std::shared_ptr<AbstractVertexAttributeSpecification>>;
 
 
-}}
+}
 
-#define LEXGINE_CORE_VERTEX_ATTRIBUTES_H
 #endif
