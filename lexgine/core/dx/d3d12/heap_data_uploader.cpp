@@ -16,14 +16,19 @@ using namespace lexgine::core::dx::d3d12;
 HeapDataUploader::HeapDataUploader(Globals& globals, uint64_t offset, uint64_t capacity) :
     m_device{ *globals.get<Device>() },
     m_upload_buffer_allocator{ globals, offset, capacity },
-    m_upload_commands_list{ m_device.createCommandList(CommandType::copy, 0x1) }
+    m_upload_commands_list{ m_device.createCommandList(CommandType::copy, 0x1) },
+    m_upload_command_list_needs_reset{ true }
 {
     
 }
 
-bool HeapDataUploader::addResourceForUpload(DestinationDescriptor const& destination_descriptor, SourceDescriptor const& source_descriptor)
+void HeapDataUploader::addResourceForUpload(DestinationDescriptor const& destination_descriptor, SourceDescriptor const& source_descriptor)
 {
-    if (!canScheduleMoreUploads()) return false;
+    if (m_upload_command_list_needs_reset)
+    {
+        m_upload_commands_list.reset();
+        m_upload_command_list_needs_reset = false;
+    }
 
     {
         ResourceBarrier<1> barriers{ m_upload_commands_list };
@@ -111,20 +116,22 @@ bool HeapDataUploader::addResourceForUpload(DestinationDescriptor const& destina
             ResourceState::enum_type::common, destination_descriptor.destination_resource_state);
         barriers.applyBarriers();
     }
-
-    return true;
 }
 
 
 void HeapDataUploader::upload()
 {
-    m_device.copyCommandQueue().executeCommandList(m_upload_commands_list);
-    m_upload_buffer_allocator.signalAllocator(m_device.copyCommandQueue());
+    if(!m_upload_command_list_needs_reset) 
+    {
+        m_upload_commands_list.close(); m_upload_command_list_needs_reset = true;
+        m_device.copyCommandQueue().executeCommandList(m_upload_commands_list);
+        m_upload_buffer_allocator.signalAllocator(m_device.copyCommandQueue());
+    }
 }
 
-bool HeapDataUploader::canScheduleMoreUploads() const
+void HeapDataUploader::waitUntilUploadIsFinished() const
 {
-    return m_upload_buffer_allocator.scheduledWork() - m_upload_buffer_allocator.completedWork() < m_upload_commands_list.getMaximalReusedCommandListsInFlight();
+    while (!isUploadFinished());
 }
 
 bool HeapDataUploader::isUploadFinished() const

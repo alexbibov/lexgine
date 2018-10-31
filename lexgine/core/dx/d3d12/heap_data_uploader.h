@@ -63,22 +63,23 @@ public:
     /*! adds new upload task to the list of scheduled tasks and puts the related source data into intermediate upload buffer. This essentially means that after invoking this
      function the buffer containing the original source data can be deallocated as the data have already bean transfered to the upload heap owned by the data uploader.
      This however does not mean that the data have actually been transfered to the destination resources as the actual transaction begins only after invocation of function upload().
-     Returns 'true' on success and 'false' in case of failure. If this function returns 'false' it is necessary to wait until some of the previous data uploads is completed.
     */
-    bool addResourceForUpload(DestinationDescriptor const& destination_descriptor, SourceDescriptor const& source_descriptor);
+    void addResourceForUpload(DestinationDescriptor const& destination_descriptor, SourceDescriptor const& source_descriptor);
 
     /*! executes all previously schedules upload tasks. This function returns immediately
      without making sure that the data has actually finished uploading
     */
     void upload(); 
 
-    bool canScheduleMoreUploads() const;    //! returns 'true' if it is possible to schedule uploads at the moment of this function's invocation; returns 'false' otherwise
+    void waitUntilUploadIsFinished() const;    //! blocks calling thread until all upload tasks are finished
     bool isUploadFinished() const;    //! returns 'true' if all uploads have been finished and 'false' otherwise
 
 private:
     Device& m_device;    //!< device object corresponding to the uploader
     UploadBufferAllocator m_upload_buffer_allocator;    //!< upload buffer allocation manager
     CommandList m_upload_commands_list;    //!< command list intended to contain upload commands
+    bool m_upload_command_list_needs_reset;
+
 };
 
 }
