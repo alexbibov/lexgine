@@ -15,7 +15,7 @@ class Device;
 class DxResourceFactory;
 class Fence;
 class Heap;
-class HeapDataUploader;
+class ResourceDataUploader;
 class HeapResourcePlacer;
 struct GraphicsPSODescriptor;
 struct ComputePSODescriptor;

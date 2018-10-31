@@ -21,7 +21,7 @@ private:
 
 private:
     Globals const& m_globals;
-    std::unique_ptr<HeapDataUploader> m_data_uploader;
+    std::unique_ptr<ResourceDataUploader> m_data_uploader;
 };
 
 
