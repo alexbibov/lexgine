@@ -180,6 +180,7 @@
     <ClCompile Include="core\dx\d3d12\resource.cpp" />
     <ClCompile Include="core\dx\d3d12\root_signature.cpp" />
     <ClCompile Include="core\dx\d3d12\root_signature_cache.cpp" />
+    <ClCompile Include="core\dx\d3d12\signal.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\data_uploading_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\hlsl_compilation_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\pso_compilation_task.cpp" />
@@ -189,6 +190,7 @@
     <ClCompile Include="core\dx\d3d12\task_caches\hlsl_compilation_task_cache.cpp" />
     <ClCompile Include="core\dx\d3d12\task_caches\pso_compilation_task_cache.cpp" />
     <ClCompile Include="core\dx\d3d12\task_caches\root_signature_compilation_task_cache.cpp" />
+    <ClCompile Include="core\dx\d3d12\upload_buffer_allocator.cpp" />
     <ClCompile Include="core\dx\dxcompilation\dx_compiler_proxy.cpp" />
     <ClCompile Include="core\dx\dxgi\hw_adapter_enumerator.cpp" />
     <ClCompile Include="core\dx\dxgi\hw_output_enumerator.cpp" />
@@ -200,6 +202,7 @@
     <ClCompile Include="core\globals.cpp" />
     <ClCompile Include="core\global_settings.cpp" />
     <ClCompile Include="core\initializer.cpp" />
+    <ClCompile Include="core\math\box.cpp" />
     <ClCompile Include="core\math\rectangle.cpp" />
     <ClCompile Include="core\misc\datetime.cpp" />
     <ClCompile Include="core\misc\hashed_string.cpp" />
@@ -209,6 +212,7 @@
     <ClCompile Include="core\rasterizer_descriptor.cpp" />
     <ClCompile Include="core\shader_source_code_preprocessor.cpp" />
     <ClCompile Include="core\stream_output.cpp" />
+    <ClCompile Include="core\viewport.cpp" />
     <ClCompile Include="osinteraction\listener.cpp" />
     <ClCompile Include="osinteraction\windows\fence_event.cpp" />
     <ClCompile Include="osinteraction\windows\window.cpp" />
@@ -246,7 +250,6 @@
     <ClInclude Include="core\dx\d3d12\d3d12_tools.h" />
     <ClInclude Include="core\dx\d3d12\debug_interface.h" />
     <ClInclude Include="core\dx\d3d12\descriptor_heap.h" />
-    <ClInclude Include="core\dx\d3d12\descriptor_table.h" />
     <ClInclude Include="core\dx\d3d12\device.h" />
     <ClInclude Include="core\dx\d3d12\dx_resource_factory.h" />
     <ClInclude Include="core\dx\d3d12\fence.h" />
@@ -258,6 +261,7 @@
     <ClInclude Include="core\dx\d3d12\resource.h" />
     <ClInclude Include="core\dx\d3d12\resource_barrier.h" />
     <ClInclude Include="core\dx\d3d12\root_signature.h" />
+    <ClInclude Include="core\dx\d3d12\signal.h" />
     <ClInclude Include="core\dx\d3d12\tasks\data_uploading_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\hlsl_compilation_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\lexgine_core_dx_d3d12_tasks_fwd.h" />
@@ -269,6 +273,7 @@
     <ClInclude Include="core\dx\d3d12\task_caches\lexgine_core_dx_d3d12_task_caches_fwd.h" />
     <ClInclude Include="core\dx\d3d12\task_caches\pso_compilation_task_cache.h" />
     <ClInclude Include="core\dx\d3d12\task_caches\root_signature_compilation_task_cache.h" />
+    <ClInclude Include="core\dx\d3d12\upload_buffer_allocator.h" />
     <ClInclude Include="core\dx\dxcompilation\common.h" />
     <ClInclude Include="core\dx\dxcompilation\dx_compiler_proxy.h" />
     <ClInclude Include="core\dx\dxgi\common.h" />
@@ -285,6 +290,8 @@
     <ClInclude Include="core\global_settings.h" />
     <ClInclude Include="core\initializer.h" />
     <ClInclude Include="core\lexgine_core_fwd.h" />
+    <ClInclude Include="core\math\box.h" />
+    <ClInclude Include="core\math\lexgine_core_math_fwd.h" />
     <ClInclude Include="core\math\matrix_types.h" />
     <ClInclude Include="core\math\rectangle.h" />
     <ClInclude Include="core\math\vector_types.h" />
@@ -308,6 +315,7 @@
     <ClInclude Include="core\shader_source_code_preprocessor.h" />
     <ClInclude Include="core\stream_output.h" />
     <ClInclude Include="core\vertex_attributes.h" />
+    <ClInclude Include="core\viewport.h" />
     <ClInclude Include="core\vulkan\vulkan_tools.h" />
     <ClInclude Include="osinteraction\keyboard.h" />
     <ClInclude Include="osinteraction\lexgine_osinteraction_fwd.h" />

@@ -1,4 +1,7 @@
 #ifndef LEXGINE_CORE_ALLOCATOR_H
+#define LEXGINE_CORE_ALLOCATOR_H
+
+#include <utility>
 
 namespace lexgine {namespace core {
 
@@ -6,11 +9,19 @@ namespace lexgine {namespace core {
 template<typename T>
 class Allocator
 {
-protected:
+private:
     //! Base class for pointers returned by allocators
     template<typename T>
     class MemoryBlock
     {
+    public:
+        template<typename ... Args>
+        inline MemoryBlock(Args&&... args) :
+            obj{ std::forward<Args>(args)... }
+        {
+
+        }
+
     public:
         inline T* operator->() { return &obj; }
         inline T const* operator->() const { return &obj; }
@@ -57,10 +68,10 @@ public:
     };
 
     using value_type = T;
+    using memory_block_type = MemoryBlock<T>;
     using address_type = MemoryBlockAddr<T>;
 
     virtual ~Allocator() = default;
-
 
 protected:
     //! Allows to cast MemoryBlockAddr<T> objects to MemoryBlock<T> object pointers, which is a useful operation when implementing allocators
@@ -73,5 +84,4 @@ protected:
 
 }}
 
-#define LEXGINE_CORE_ALLOCATOR_H
 #endif

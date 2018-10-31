@@ -12,7 +12,7 @@
 #include "lexgine/core/entity.h"
 
 
-namespace lexgine { namespace core { namespace dx { namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 class RootSignatureCache : public NamedEntity<class_names::RootSignatureCache>
 {
@@ -28,6 +28,9 @@ private:
         Device const& device,
         std::string const& root_signature_friendly_name, uint32_t node_mask, 
         lexgine::core::D3DDataBlob const& serialized_root_signature);
+
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> find(
+        std::string const& root_signature_friendly_name, uint32_t node_mask) const;
 
 private:
     using key_type = std::pair<std::string, uint32_t>;
@@ -57,6 +60,6 @@ private:
     std::mutex m_lock;
 };
 
-}}}}
+}
 
 #endif

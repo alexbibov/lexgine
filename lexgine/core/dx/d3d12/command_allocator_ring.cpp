@@ -3,9 +3,8 @@
 #include "lexgine/core/exception.h"
 
 #include "device.h"
-#include "fence.h"
 #include "command_list.h"
-
+#include "signal.h"
 
 
 using namespace lexgine::core::dx::d3d12;
@@ -37,15 +36,16 @@ ComPtr<ID3D12CommandAllocator> CommandAllocatorRing::spin()
     auto& signal_desc = m_signaling_allocators[m_current_index];
     Signal const* p_signal = signal_desc.signal_ptr;
     if (p_signal
-        && p_signal->fence.lastValueSignaled() < signal_desc.signal_value
+        && p_signal->lastValueSignaled() < signal_desc.signal_value
         || !signal_desc.signal_value)
-        p_signal->event.wait();
+    {
+        p_signal->waitUntilValue(signal_desc.signal_value);
+    }
+        
 
     LEXGINE_THROW_ERROR_IF_FAILED(this,
         signal_desc.command_allocator->Reset(),
         S_OK);
-
-    p_signal->event.reset();
 
     return signal_desc.command_allocator;
 }
@@ -54,7 +54,7 @@ void CommandAllocatorRing::attachSignal(Signal const& signal)
 {
     auto& signal_desc = m_signaling_allocators[m_current_index];
     signal_desc.signal_ptr = &signal;
-    signal_desc.signal_value = signal.fence.nextValueOfSignal();
+    signal_desc.signal_value = signal.nextValueOfSignal();
 }
 
 ComPtr<ID3D12CommandAllocator> CommandAllocatorRing::allocator() const

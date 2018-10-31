@@ -16,7 +16,7 @@
 
 using namespace Microsoft::WRL;
 
-namespace lexgine {namespace core {namespace dx {namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 enum class PSOType : unsigned char
 {
@@ -112,6 +112,6 @@ private:
     ComPtr<ID3D12PipelineState> m_pipeline_state;    //! pointer to the native ID3D12PipelineState interface encapsulated by the wrapper
 };
 
-}}}}
+}
 
 #endif

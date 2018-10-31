@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_DX_D3D12_TYPE_TRAITS_INL
+#define LEXGINE_CORE_DX_D3D12_TYPE_TRAITS_INL
 
 
 namespace lexgine { namespace core { namespace dx { namespace d3d12 {
@@ -401,5 +402,5 @@ struct StaticTypeToDataFormat<uint16_t>
 
 }}}}
 
-#define LEXGINE_CORE_DX_D3D12_TYPE_TRAITS_INL
+
 #endif

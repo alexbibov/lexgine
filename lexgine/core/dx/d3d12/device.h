@@ -18,13 +18,14 @@
 #include "descriptor_heap.h"
 #include "fence.h"
 #include "command_queue.h"
+#include "command_allocator_ring.h"
 
 
 
 using namespace Microsoft::WRL;
 
 
-namespace lexgine {namespace core {namespace dx {namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 template<typename T> class DeviceAttorney;
 
@@ -172,8 +173,9 @@ public:
 
     void setStringName(std::string const& entity_string_name) override;	//! sets new user-friendly string name for the Direct3D 12 device
 
-    ComPtr<ID3D12RootSignature> createRootSignature(D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name, uint32_t node_mask = 0);    //! creates native Direct3D 12 root signature interface based on serialized root signature data. THROWS
-
+    ComPtr<ID3D12RootSignature> createRootSignature(D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name, uint32_t node_mask = 1);    //! creates native Direct3D 12 root signature interface based on serialized root signature data
+    ComPtr<ID3D12RootSignature> retrieveRootSignature(std::string const& root_signature_friendly_name, uint32_t node_mask = 1);
+    
     Fence createFence(FenceSharing sharing = FenceSharing::none);    //! creates synchronization fence
 
     DescriptorHeap createDescriptorHeap(DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask = 0);    //! creates descriptor heap
@@ -196,6 +198,10 @@ public:
     CommandQueue const& defaultCommandQueue() const;    //! graphics command queue associated with this device
     CommandQueue const& asyncCommandQueue() const;    //! asynchronous compute command queue associated with this device (may coincide with default command queue depending on the hardware and settings)
     CommandQueue const& copyCommandQueue() const;    //! copy command queue associated with this device
+
+    //! Creates new command list, which is closed immediately after creation. Therefore, it has to be reset before usage
+    CommandList createCommandList(CommandType command_list_workload_type, uint32_t node_mask,
+        FenceSharing command_list_sync_mode = FenceSharing::none, PipelineState const* initial_pipeline_state = nullptr);
 
     Device(Device const&) = delete;
     Device(Device&&) = delete;
@@ -226,7 +232,7 @@ private:
 };
 
 
-}}}}
+}
 
 
 #endif

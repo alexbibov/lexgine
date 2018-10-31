@@ -60,7 +60,7 @@ public:
     osinteraction::windows::Window const& window() const;
 
     //! Retrieves current width and height of the swap chain packed into a 2D vector
-    math::vector2u getDimensions() const;
+    math::Vector2u getDimensions() const;
 
 private:
     SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory, 

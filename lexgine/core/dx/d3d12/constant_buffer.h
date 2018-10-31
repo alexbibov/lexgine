@@ -116,37 +116,37 @@ public:
     // Vector entries
 
     template<typename T>
-    constant_buffer_entry<math::tag_vec2<T>> addVector(std::string const& name, math::tag_vec2<T> const& vector2)
+    constant_buffer_entry<math::tagVector2<T>> addVector(std::string const& name, math::tagVector2<T> const& vector2)
     {
         return add_vector(name, vector2);
     }
 
     template<typename T>
-    constant_buffer_entry<math::tag_vec3<T>> addVector(std::string const& name, math::tag_vec3<T> const& vector3)
+    constant_buffer_entry<math::tagVector3<T>> addVector(std::string const& name, math::tagVector3<T> const& vector3)
     {
         return add_vector(name, vector3);
     }
 
     template<typename T>
-    constant_buffer_entry<math::tag_vec4<T>> addVector(std::string const& name, math::tag_vec4<T> const& vector4)
+    constant_buffer_entry<math::tagVector4<T>> addVector(std::string const& name, math::tagVector4<T> const& vector4)
     {
         return add_vector(name, vector4);
     }
 
     template<typename T>
-    constant_buffer_entry<std::vector<math::tag_vec2<T>>> addVectorArray(std::string const& name, std::vector<math::tag_vec2<T>> const& vector2_array)
+    constant_buffer_entry<std::vector<math::tagVector2<T>>> addVectorArray(std::string const& name, std::vector<math::tagVector2<T>> const& vector2_array)
     {
         return add_vector_array(name, vector2_array);
     }
 
     template<typename T>
-    constant_buffer_entry<std::vector<math::tag_vec3<T>>> addVectorArray(std::string const& name, std::vector<math::tag_vec3<T>> const& vector3_array)
+    constant_buffer_entry<std::vector<math::tagVector3<T>>> addVectorArray(std::string const& name, std::vector<math::tagVector3<T>> const& vector3_array)
     {
         return add_vector_array(name, vector3_array);
     }
 
     template<typename T>
-    constant_buffer_entry<std::vector<math::tag_vec4<T>>> addVectorArray(std::string const& name, std::vector<math::tag_vec4<T>> const& vector4_array)
+    constant_buffer_entry<std::vector<math::tagVector4<T>>> addVectorArray(std::string const& name, std::vector<math::tagVector4<T>> const& vector4_array)
     {
         return add_vector_array(name, vector4_array);
     }

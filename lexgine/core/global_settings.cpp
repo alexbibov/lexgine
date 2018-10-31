@@ -34,6 +34,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         m_enable_async_compute = true;
         m_enable_async_copy = true;
         m_max_frames_in_flight = 6;
+        m_max_non_blocking_upload_buffer_allocation_timeout = 1000U;
     }
 
 
@@ -228,7 +229,8 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
                 misc::LogMessageType::exclamation);
         }
 
-        if ((p = document.find("max_frames_in_flight")) != document.end())
+        if ((p = document.find("max_frames_in_flight")) != document.end()
+            && p->is_number_unsigned())
         {
             m_max_frames_in_flight = p->get<uint16_t>();
         }
@@ -237,6 +239,20 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"max_frames_in_flight\" from the settings file located at \""
                 + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected short integer). "
                 "The system will revert to the default setting \"max_frames_in_flight = " + std::to_string(m_max_frames_in_flight) + "\"",
+                misc::LogMessageType::exclamation);
+        }
+
+        if ((p = document.find("max_non_blocking_upload_buffer_allocation_timeout")) != document.end()
+            && p->is_number_unsigned())
+        {
+            m_max_non_blocking_upload_buffer_allocation_timeout = p->get<uint32_t>();
+        }
+        else
+        {
+            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"max_non_blocking_upload_buffer_allocation_timeout\" from the settings file located at \""
+                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected unsigned integer). "
+                "The system will revert to the default setting \"max_non_blocking_upload_buffer_allocation_timeout = " 
+                + std::to_string(m_max_non_blocking_upload_buffer_allocation_timeout) + "\"",
                 misc::LogMessageType::exclamation);
         }
     }
@@ -291,7 +307,8 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
         { "upload_heap_capacity", m_upload_heap_capacity },
         { "enable_async_compute", m_enable_async_compute },
         { "enable_async_copy", m_enable_async_copy },
-        { "max_frames_in_flight", m_max_frames_in_flight }
+        { "max_frames_in_flight", m_max_frames_in_flight },
+        { "max_non_blocking_upload_buffer_allocation_timeout", m_max_non_blocking_upload_buffer_allocation_timeout }
     };
     if (m_shader_lookup_directories.size())
         j["shader_lookup_directories"] = m_shader_lookup_directories;
@@ -376,6 +393,11 @@ bool GlobalSettings::isAsyncCopyEnabled() const
 uint16_t GlobalSettings::getMaxFramesInFlight() const
 {
     return m_max_frames_in_flight;
+}
+
+uint32_t GlobalSettings::getMaxNonBlockingUploadBufferAllocationTimeout() const
+{
+    return m_max_non_blocking_upload_buffer_allocation_timeout;
 }
 
 void GlobalSettings::setNumberOfWorkers(uint8_t num_workers)

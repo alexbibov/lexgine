@@ -5,7 +5,7 @@
 
 using namespace lexgine::core::dx::d3d12;
 
-Microsoft::WRL::ComPtr<ID3D12RootSignature> lexgine::core::dx::d3d12::RootSignatureCache::findOrCreate(
+Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureCache::findOrCreate(
     Device const& device,
     std::string const& root_signature_friendly_name, uint32_t node_mask,
     lexgine::core::D3DDataBlob const& serialized_root_signature)
@@ -32,4 +32,11 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> lexgine::core::dx::d3d12::RootSignat
     m_cached_root_signatures.insert(std::make_pair(key, rs));
 
     return rs;
+}
+
+Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureCache::find(
+    std::string const& root_signature_friendly_name, uint32_t node_mask) const
+{
+    auto p = m_cached_root_signatures.find(key_type{ root_signature_friendly_name, node_mask });
+    return p != m_cached_root_signatures.end() ? p->second : nullptr;
 }

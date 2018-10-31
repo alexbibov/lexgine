@@ -15,7 +15,7 @@ public:
 
     //! constructs wrapped type "in-place" without copy overhead
     template<typename... Args>
-    explicit Optional(Args... args):
+    explicit Optional(Args&&... args):
         m_is_valid{ true }
     {
         new(m_value) T{ std::forward<Args>(args)... };
@@ -163,6 +163,18 @@ private:
     char m_value[sizeof(T)];  //!< wrapped value buffer
     bool m_is_valid;    //!< 'true' if the wrapped value is valid, 'false' otherwise
 };
+
+template<typename T> 
+Optional<T> makeEmptyOptional()
+{
+    return Optional<T>{};
+}
+
+template<typename T, typename... Args> 
+Optional<T> makeOptional(Args&&... args)
+{
+    return Optional<T>{std::forward<Args>(args)...};
+}
 
 }}}
 

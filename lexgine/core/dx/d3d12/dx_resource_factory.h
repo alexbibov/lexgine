@@ -11,7 +11,7 @@
 #include <map>
 #include <array>
 
-namespace lexgine { namespace core { namespace dx { namespace d3d12{
+namespace lexgine::core::dx::d3d12{
 
 //! Used to create and encapsulate reused Direct3D resources
 class DxResourceFactory final
@@ -44,7 +44,7 @@ private:
     std::map<Device const*, Heap> m_upload_heaps;
 };
 
-}}}}
+}
 
 
 #endif

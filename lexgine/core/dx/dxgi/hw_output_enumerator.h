@@ -106,10 +106,10 @@ public:
         HMONITOR monitor;   //!< Windows monitor handle
         uint32_t bits_per_color;    //!< The number of bits per color channel for the active wire format of the display attached to this output
         DxgiColorSpaceType color_space_type;    //!< Color space used by the display attached to the given output
-        math::vector2f red_primary;    //!< red primary chromaticity value of the display attached to the given output
-        math::vector2f green_primary;    //!< green primary chromaticity value of the display attached to the given output
-        math::vector2f blue_primary;    //!< blue primary chromaticity value of the display attached to the given output
-        math::vector2f white_point;    //!< chromaticity coordinates of the white point of the display attached to the given output
+        math::Vector2f red_primary;    //!< red primary chromaticity value of the display attached to the given output
+        math::Vector2f green_primary;    //!< green primary chromaticity value of the display attached to the given output
+        math::Vector2f blue_primary;    //!< blue primary chromaticity value of the display attached to the given output
+        math::Vector2f white_point;    //!< chromaticity coordinates of the white point of the display attached to the given output
         float minimal_luminance;    //!< minimal luminance, in nits, that the display attached to the given output is capable of rendering
         float maximal_luminance;    //!< maximal luminance, in nits, that the display attached to the given output is capable of rendering
         float maximal_full_frame_luminance;    //!< maximal luminance, in nits, that the display attached to the given output is capable of rendering, when the color fills the entire area of the panel

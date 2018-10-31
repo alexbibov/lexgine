@@ -13,7 +13,7 @@
 #include "common.h"
 
 
-namespace lexgine { namespace core { namespace dx { namespace dxcompilation {
+namespace lexgine::core::dx::dxcompilation {
 
 //! Proxy class that handles compilation of HLSL sources using LLVM-based Microsoft shader compiler
 //! The class is designed to work in multi-threaded environment and is supposed to be thread-safe 
@@ -50,6 +50,6 @@ private:
 };
 
 
-}}}}
+}
 
 #endif

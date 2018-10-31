@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_MISC_OPENGL45_OPENGL45_TOOLS_H
+#define  LEXGINE_CORE_MISC_OPENGL45_OPENGL45_TOOLS_H
 
 #include <GL/glew.h>
 #include "constant_converter.h"
@@ -144,23 +145,23 @@ struct PrimitiveTopologyConverter<EngineAPI::OpenGL45, primitive_topology>;    /
 
 namespace lexgine {namespace core {namespace math {
 
-typedef tag_vec4<misc::opengl45::ogl_type_mapper<int>::ogl_type> ivec4;
-typedef tag_vec4<misc::opengl45::ogl_type_mapper<float>::ogl_type> vec4;
-typedef tag_vec4<misc::opengl45::ogl_type_mapper<double>::ogl_type> dvec4;
-typedef tag_vec4<misc::opengl45::ogl_type_mapper<unsigned int>::ogl_type> uvec4;
-typedef tag_vec4<misc::opengl45::ogl_type_mapper<bool>::ogl_type> bvec4;
+typedef tagVector4<misc::opengl45::ogl_type_mapper<int>::ogl_type> ivec4;
+typedef tagVector4<misc::opengl45::ogl_type_mapper<float>::ogl_type> vec4;
+typedef tagVector4<misc::opengl45::ogl_type_mapper<double>::ogl_type> dvec4;
+typedef tagVector4<misc::opengl45::ogl_type_mapper<unsigned int>::ogl_type> uvec4;
+typedef tagVector4<misc::opengl45::ogl_type_mapper<bool>::ogl_type> bvec4;
 
-typedef tag_vec3<misc::opengl45::ogl_type_mapper<int>::ogl_type> ivec3;
-typedef tag_vec3<misc::opengl45::ogl_type_mapper<float>::ogl_type> vec3;
-typedef tag_vec3<misc::opengl45::ogl_type_mapper<double>::ogl_type> dvec3;
-typedef tag_vec3<misc::opengl45::ogl_type_mapper<unsigned int>::ogl_type> uvec3;
-typedef tag_vec3<misc::opengl45::ogl_type_mapper<bool>::ogl_type> bvec3;
+typedef tagVector3<misc::opengl45::ogl_type_mapper<int>::ogl_type> ivec3;
+typedef tagVector3<misc::opengl45::ogl_type_mapper<float>::ogl_type> vec3;
+typedef tagVector3<misc::opengl45::ogl_type_mapper<double>::ogl_type> dvec3;
+typedef tagVector3<misc::opengl45::ogl_type_mapper<unsigned int>::ogl_type> uvec3;
+typedef tagVector3<misc::opengl45::ogl_type_mapper<bool>::ogl_type> bvec3;
 
-typedef tag_vec2<misc::opengl45::ogl_type_mapper<int>::ogl_type> ivec2;
-typedef tag_vec2<misc::opengl45::ogl_type_mapper<float>::ogl_type> vec2;
-typedef tag_vec2<misc::opengl45::ogl_type_mapper<double>::ogl_type> dvec2;
-typedef tag_vec2<misc::opengl45::ogl_type_mapper<unsigned int>::ogl_type> uvec2;
-typedef tag_vec2<misc::opengl45::ogl_type_mapper<bool>::ogl_type> bvec2;
+typedef tagVector2<misc::opengl45::ogl_type_mapper<int>::ogl_type> ivec2;
+typedef tagVector2<misc::opengl45::ogl_type_mapper<float>::ogl_type> vec2;
+typedef tagVector2<misc::opengl45::ogl_type_mapper<double>::ogl_type> dvec2;
+typedef tagVector2<misc::opengl45::ogl_type_mapper<unsigned int>::ogl_type> uvec2;
+typedef tagVector2<misc::opengl45::ogl_type_mapper<bool>::ogl_type> bvec2;
 
 }}}
 
@@ -199,5 +200,4 @@ typedef shader_matrix_type<misc::opengl45::ogl_type_mapper<double>::ogl_type, 2,
 
 
 
-#define  LEXGINE_CORE_MISC_OPENGL45_OPENGL45_TOOLS_H
 #endif

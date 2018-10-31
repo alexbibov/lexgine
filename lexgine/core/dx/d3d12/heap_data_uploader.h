@@ -5,12 +5,14 @@
 
 #include "resource.h"
 #include "command_list.h"
+#include "upload_buffer_allocator.h"
 
+#include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/entity.h"
 #include "lexgine/core/data_blob.h"
 
 
-namespace lexgine {namespace core {namespace dx {namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 //! Helper: implements uploading of placed subresources to the GPU-side
 class HeapDataUploader : public NamedEntity<class_names::D3D12HeapDataUploader>
@@ -37,6 +39,7 @@ public:
         enum DestinationDescriptorSegmentType { texture, buffer };
 
         Resource const* p_destination_resource;    //!< destination resource receiving the data being uploaded
+        ResourceState destination_resource_state;    //!< state, in which the destination resource is expected to reside at the moment when the data upload happens
         DestinationDescriptorSegment segment;    //!< segment of the destination resource that will receive the source data
         DestinationDescriptorSegmentType segment_type;    //!< type of memory segment of the target resource
     };
@@ -52,53 +55,32 @@ public:
 
 
 
-    HeapDataUploader(Heap& upload_heap, uint64_t offset, uint64_t capacity);    //! attaches data uploader to an upload heap at the given offset with the given upload buffer size
+    HeapDataUploader(Globals& globals, uint64_t offset, uint64_t capacity);    //! attaches data uploader to an upload heap at the given offset with the given upload buffer size
     HeapDataUploader(HeapDataUploader const&) = delete;
     HeapDataUploader(HeapDataUploader&&) = delete;
 
 
     /*! adds new upload task to the list of scheduled tasks and puts the related source data into intermediate upload buffer. This essentially means that after invoking this
      function the buffer containing the original source data can be deallocated as the data have already bean transfered to the upload heap owned by the data uploader.
-     This however does not mean that the data have actually been transfered to the destination resources as the actual transaction happens only during invocation of function upload().
+     This however does not mean that the data have actually been transfered to the destination resources as the actual transaction begins only after invocation of function upload().
+     Returns 'true' on success and 'false' in case of failure. If this function returns 'false' it is necessary to wait until some of the previous data uploads is completed.
     */
-    void addResourceForUpload(DestinationDescriptor const& destination_descriptor, SourceDescriptor const& source_descriptor);
+    bool addResourceForUpload(DestinationDescriptor const& destination_descriptor, SourceDescriptor const& source_descriptor);
 
-
-    /*! executes all previously scheduled upload tasks. This function performs actual data transfer from the upload buffer to the target GPU memory heaps. Note that the destination
-     resources must be alive by the time of invocation of this function. The original source data buffers are not required to be available when this function is called since their contents
-     have already been moved to intermediate upload buffer during registration of the related upload task. The command list referenced in the input to this function identifies, which hardware
-     command list will get responsibility to transfer the data from the CPU-side to the GPU-side
+    /*! executes all previously schedules upload tasks. This function returns immediately
+     without making sure that the data has actually finished uploading
     */
-    void upload(CommandList& upload_worker_list);
+    void upload(); 
 
-
-    uint64_t transactionSize() const;    //! returns the total size of the upload transaction (sum of sizes of all individual upload tasks)
-    uint64_t offset() const;    //! returns offset from the beginning of the buffer as used by the data uploader
-    uint64_t capacity() const;    //! returns capacity of the upload section
-    uint64_t freeSpace() const;    //! returns free space left in the upload section (equals to capacity() - transactionSize())
-    void reset(uint64_t offset, uint64_t capacity);    //! reset state of the upload heap tracing structure. This function should not be called while uploads are still in progress
-
+    bool canScheduleMoreUploads() const;    //! returns 'true' if it is possible to schedule uploads at the moment of this function's invocation; returns 'false' otherwise
+    bool isUploadFinished() const;    //! returns 'true' if all uploads have been finished and 'false' otherwise
 
 private:
-    //! describes single upload task for the uploader
-    struct upload_task
-    {
-        SourceDescriptor source_descriptor;
-        DestinationDescriptor destination_descriptor;
-        DataChunk subresource_footprints_buffer;
-    };
-
-
-    Heap& m_heap;    //!< upload heap used by the data uploader
-    uint64_t m_offset;    //!< offset in the upload heap, at which the data uploader is registered
-    uint64_t m_capacity;    //!< size of upload buffer used by the data uploader
-    uint64_t m_transaction_size;    //!< size of all upload tasks assigned to the uploader
-
-    Resource m_upload_buffer;    //!< native reference to the upload buffer
-
-    std::list<upload_task> m_upload_tasks;    //!< list of upload tasks
+    Device& m_device;    //!< device object corresponding to the uploader
+    UploadBufferAllocator m_upload_buffer_allocator;    //!< upload buffer allocation manager
+    CommandList m_upload_commands_list;    //!< command list intended to contain upload commands
 };
 
-}}}}
+}
 
 #endif

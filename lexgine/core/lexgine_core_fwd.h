@@ -1,7 +1,7 @@
 #ifndef LEXGINE_CORE_FWD_H
 #define LEXGINE_CORE_FWD_H
 
-namespace lexgine { namespace core {
+namespace lexgine::core {
 
 class AbstractVertexAttributeSpecification;
 class BlendDescriptor;
@@ -17,8 +17,9 @@ class GlobalSettings;
 class Globals;
 class RasterizerDescriptor;
 class ShaderSourceCodePreprocessor;
+class Viewport;
 template<typename Key, size_t cluster_size> class StreamedCache;
 
-}}
+}
 
 #endif

@@ -53,7 +53,9 @@ class CommandQueue final : public NamedEntity<class_names::D3D12CommandQueue>
 
 public:
 
-    void executeCommandLists(std::vector<CommandList*> const& command_lists) const;   //! sends set of command lists into the command queue for execution
+    void executeCommandLists(CommandList* command_list_array, size_t num_command_lists) const;   //! sends set of command lists into the command queue for execution
+
+    void executeCommandList(CommandList& command_list) const;    //! executes the command list on this command queue
 
     Device& device() const;    //! returns device that was used to create this command queue
 

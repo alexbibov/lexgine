@@ -225,9 +225,6 @@
     <ClInclude Include="core\dx\d3d12\descriptor_heap.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\descriptor_table.h">
-      <Filter>core\dx\d3d12</Filter>
-    </ClInclude>
     <ClInclude Include="core\dx\d3d12\device.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
@@ -371,6 +368,21 @@
     </ClInclude>
     <ClInclude Include="osinteraction\lexgine_osinteraction_fwd.h">
       <Filter>osinteraction</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\upload_buffer_allocator.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\signal.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\math\lexgine_core_math_fwd.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="core\math\box.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="core\viewport.h">
+      <Filter>core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -559,6 +571,18 @@
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\command_allocator_ring.cpp">
       <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\upload_buffer_allocator.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\math\box.cpp">
+      <Filter>core\math</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\signal.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\viewport.cpp">
+      <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

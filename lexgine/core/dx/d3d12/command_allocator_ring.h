@@ -9,7 +9,7 @@
 
 using namespace Microsoft::WRL;
 
-namespace lexgine {namespace core {namespace dx {namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 template<typename T> class CommandAllocatorRingAttorney;
 
@@ -90,9 +90,14 @@ private:
     {
         return parent_command_allocator_ring.m_signaling_allocators[parent_command_allocator_ring.m_current_index].signal_ptr;
     }
+
+    static uint32_t getCommandAllocatorRingCapacity(CommandAllocatorRing const& parent_command_allocator_ring)
+    {
+        return static_cast<uint32_t>(parent_command_allocator_ring.m_signaling_allocators.size());
+    }
 };
 
-}}}}
+}
 
 
 #endif

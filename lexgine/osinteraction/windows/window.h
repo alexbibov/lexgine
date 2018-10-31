@@ -79,12 +79,12 @@ public:
     std::wstring getTitle() const;    //! gets current title of the window
 
     void setDimensions(uint32_t width, uint32_t height);    //! sets new dimensions for the window
-    void setDimensions(core::math::vector2u const& dimensions);    //! sets new dimensions for the window. The new dimensions are packed into two-dimensional vector (width, height) in this order
-    core::math::vector2u getDimensions() const;    //! returns current dimensions of the window
+    void setDimensions(core::math::Vector2u const& dimensions);    //! sets new dimensions for the window. The new dimensions are packed into two-dimensional vector (width, height) in this order
+    core::math::Vector2u getDimensions() const;    //! returns current dimensions of the window
 
     void setLocation(uint32_t x, uint32_t y);    //! sets new location of the top-left corner of the window
-    void setLocation(core::math::vector2u const& location);    //! sets new location of the top-left corner of the window. The new location (x, y) in this order is packed into two-dimensional vector
-    core::math::vector2u getLocation() const;    //! returns current location of the top-left corner of the window represented in screen space coordinates
+    void setLocation(core::math::Vector2u const& location);    //! sets new location of the top-left corner of the window. The new location (x, y) in this order is packed into two-dimensional vector
+    core::math::Vector2u getLocation() const;    //! returns current location of the top-left corner of the window represented in screen space coordinates
 
     void setVisibility(bool visibility_flag);    //! sets visibility of the window
     bool getVisibility() const;    //! returns visibility flag of the window

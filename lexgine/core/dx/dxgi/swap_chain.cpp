@@ -23,12 +23,12 @@ osinteraction::windows::Window const& SwapChain::window() const
     return m_window;
 }
 
-math::vector2u SwapChain::getDimensions() const
+math::Vector2u SwapChain::getDimensions() const
 {
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc1;
     m_dxgi_swap_chain->GetDesc1(&swap_chain_desc1);
 
-    return math::vector2u{ swap_chain_desc1.Width, swap_chain_desc1.Height };
+    return math::Vector2u{ swap_chain_desc1.Width, swap_chain_desc1.Height };
 }
 
 SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
@@ -44,7 +44,7 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc1{};
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC swap_chain_fs_desc{};
 
-    math::vector2u output_window_dimensions = m_window.getDimensions();
+    math::Vector2u output_window_dimensions = m_window.getDimensions();
     swap_chain_desc1.Width = output_window_dimensions.x;
     swap_chain_desc1.Height = output_window_dimensions.y;
     swap_chain_desc1.Format = desc.format;
