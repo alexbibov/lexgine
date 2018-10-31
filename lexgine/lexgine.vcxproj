@@ -174,7 +174,7 @@
     <ClCompile Include="core\dx\d3d12\dx_resource_factory.cpp" />
     <ClCompile Include="core\dx\d3d12\fence.cpp" />
     <ClCompile Include="core\dx\d3d12\heap.cpp" />
-    <ClCompile Include="core\dx\d3d12\heap_data_uploader.cpp" />
+    <ClCompile Include="core\dx\d3d12\resource_data_uploader.cpp" />
     <ClCompile Include="core\dx\d3d12\heap_resource_placer.cpp" />
     <ClCompile Include="core\dx\d3d12\pipeline_state.cpp" />
     <ClCompile Include="core\dx\d3d12\resource.cpp" />
@@ -254,7 +254,7 @@
     <ClInclude Include="core\dx\d3d12\dx_resource_factory.h" />
     <ClInclude Include="core\dx\d3d12\fence.h" />
     <ClInclude Include="core\dx\d3d12\heap.h" />
-    <ClInclude Include="core\dx\d3d12\heap_data_uploader.h" />
+    <ClInclude Include="core\dx\d3d12\resource_data_uploader.h" />
     <ClInclude Include="core\dx\d3d12\heap_resource_placer.h" />
     <ClInclude Include="core\dx\d3d12\lexgine_core_dx_d3d12_fwd.h" />
     <ClInclude Include="core\dx\d3d12\pipeline_state.h" />

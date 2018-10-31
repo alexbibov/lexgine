@@ -1,5 +1,5 @@
 #include "data_uploading_task.h"
-#include "lexgine/core/dx/d3d12/heap_data_uploader.h"
+#include "lexgine/core/dx/d3d12/resource_data_uploader.h"
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12::tasks;
