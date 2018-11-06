@@ -82,7 +82,7 @@ struct ResourceDescriptor
     uint64_t getAllocationSize(Device const& device, uint32_t node_exposure_mask) const;
 
     D3D12_RESOURCE_DESC native() const;    // returns native D3D12 resource descriptor struct
-
+    
     static ResourceDescriptor CreateBuffer(uint64_t size, ResourceFlags flags = ResourceFlags{ ResourceFlags::enum_type::none });    //! fills out the fields of the structure as required for buffers
 
     static ResourceDescriptor CreateTexture1D(uint64_t width, uint16_t array_size, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags{ ResourceFlags::enum_type::none },
@@ -182,6 +182,8 @@ public:
         size_t offset = 0U, size_t mapping_range = static_cast<size_t>(-1)) const;
 
     void unmap(unsigned int subresource = 0U) const;    //! unmaps resource from the CPU memory
+
+    uint64_t getGPUVirtualAddress() const;
 
 private:
     Heap& m_heap;    //!< reference to the heap, in which the resource resides

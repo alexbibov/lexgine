@@ -4,8 +4,11 @@
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
 
+#include "lexgine_core_dx_d3d12_fwd.h"
+
 #include <d3d12.h>
 #include <wrl.h>
+#include <atomic>
 
 using namespace Microsoft::WRL;
 
@@ -25,12 +28,7 @@ class DescriptorHeap final : public NamedEntity<class_names::D3D12DescriptorHeap
 public:
     Device& device() const;    //! returns the device used to create this descriptor heap
     ComPtr<ID3D12DescriptorHeap> native() const;    //! returns encapsulated reference to the native Direct3D 12 interface representing the descriptor heap
-    D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle() const;   //! returns CPU pointer to the beginning of the heap
-    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle() const;    //! returns GPU pointer to the beginning of the heap
-
-    D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(uint32_t descriptor_id) const;   //! returns CPU pointer to the descriptor located in the heap, which corresponds to the zero-based index @param descriptor_id
-    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(uint32_t descriptor_id) const;    //! returns GPU pointer to the descriptor located in the heap, which corresponds to the zero-based index @param descriptor_id
-
+    
     uint32_t getDescriptorSize() const;    //! returns size occupied in GPU memory by single descriptor
 
     DescriptorHeap(DescriptorHeap const&) = delete;
@@ -38,26 +36,61 @@ public:
 
     uint32_t capacity() const;
 
+
+    /*! allocates multiple constant buffer view descriptors in the descriptor heap and
+     returns GPU virtual address of the first allocated descriptor. This GPU address can
+     afterwards be used to set the corresponding root descriptor table on the GPU side
+     This function will fail if called on a descriptor heap of any type other than cbv_srv_uav
+
+    */
+    uint64_t allocateConstantBufferViewDescriptors(std::vector<ConstantBufferViewDescriptor> const& cbv_descriptors);
+
+
+    /*! allocates multiple shader resource view descriptors in the descriptor heap and
+     returns GPU virtual address of the first allocated descriptor. This GPU address can
+     afterwards be used to set the corresponding root descriptor table on the GPU side
+     This function will fail if called on a descriptor heap of any type other than cbv_srv_uav
+
+    */
+    uint64_t allocateShaderResourceViewDescriptors(std::vector<ShaderResourceViewDescriptor> const& srv_descriptors);
+
+    /*! allocates multiple unordered access view descriptors in the descriptor heap and
+     returns GPU virtual address of the first allocated descriptor. This GPU address can
+     afterwards be used to set the corresponding root descriptor table on the GPU side
+     This function will fail if called on a descriptor heap of any type other than cbv_srv_uav
+
+    */
+    uint64_t allocateUnorderedAccessViewDescriptors(std::vector<UnorderedAccessViewDescriptor> const& uav_descriptors);
+    
+    /*! allocated multiple render target view descriptors in the descriptor heap and
+     returns GPU virtual address of the first allocated descriptor. This GPU address can
+     be afterwards used to set the corresponding root descriptor table on the GPU side.
+     This function will fail if called on a descriptor heap of any type other than rtv
+    */
+    uint64_t allocateRenderTargetViewDescriptors(std::vector<RenderTargetViewDescriptor> const& rtv_descriptors);
+
+    /*! allocated multiple depth stencil view descriptors in the descriptor heap and
+     returns GPU virtual address of the first allocated descriptor. This GPU address can
+     be afterwards used to set the corresponding root descriptor table on the GPU side.
+     This function will fail if called on a descriptor heap of any type other than dsv
+    */
+    uint64_t allocateDepthStencilViewDescriptors(std::vector<DepthStencilViewDescriptor> const& dsv_descriptors);
+
+
 private:
-    DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask);
+    std::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE> updateAllocation(uint32_t num_descriptors);
+
+private:
+    DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t descriptor_capacity, uint32_t node_mask);
 
 
     Device& m_device;    //!< device that has created this heap
     ComPtr<ID3D12DescriptorHeap> m_descriptor_heap;    //!< reference to the native Direct3D 12 descriptor heap interface
     DescriptorHeapType m_type;    //!< type of the descriptor heap
-    uint32_t m_descriptor_size;    //!< size of a single descriptor in the heap
-    uint32_t m_num_descriptors;    //!< number of descriptors that could be stored in the heap
+    uint32_t const m_descriptor_size;    //!< size of a single descriptor in the heap
+    uint32_t const m_descriptor_capacity;    //!< number of descriptors that could be stored in the heap
     uint32_t m_node_mask;    //!< mask determining adapter, to which the heap is assigned
-};
-
-struct GPUDescriptorHandle final
-{
-    uint64_t address;
-};
-
-struct CPUDescriptorHandle final
-{
-    size_t address;
+    std::atomic<uint32_t> m_num_descriptors_allocated;    //!< number of currently allocated descriptors
 };
 
 }

@@ -7,7 +7,7 @@
 #include <cassert>
 #include <iterator>
 
-namespace lexgine { namespace core { namespace misc {
+namespace lexgine::core::misc {
 
 template<typename T, size_t max_size>
 class StaticVector
@@ -477,6 +477,6 @@ inline void StaticVector<T, max_size>::emplace_back(Args ...args)
 }
 
 
-}}}
+}
 
 #endif

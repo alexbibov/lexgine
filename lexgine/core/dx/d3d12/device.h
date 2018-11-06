@@ -4,6 +4,8 @@
 #include <wrl.h>
 #include <d3d12.h>
 
+#include <memory>
+
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/misc/flags.h"
 #include "lexgine/core/entity.h"
@@ -178,7 +180,7 @@ public:
     
     Fence createFence(FenceSharing sharing = FenceSharing::none);    //! creates synchronization fence
 
-    DescriptorHeap createDescriptorHeap(DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask = 0);    //! creates descriptor heap
+    std::unique_ptr<DescriptorHeap> createDescriptorHeap(DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask = 0);    //! creates descriptor heap
 
     /*! creates heap of one of the abstract types. Here parameter node_mask identifies the node where the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
      and node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)

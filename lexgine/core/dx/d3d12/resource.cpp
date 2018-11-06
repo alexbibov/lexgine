@@ -167,6 +167,11 @@ void Resource::unmap(unsigned int subresource/* = 0U */) const
     m_resource->Unmap(static_cast<UINT>(subresource), nullptr);
 }
 
+uint64_t Resource::getGPUVirtualAddress() const
+{
+    return m_resource->GetGPUVirtualAddress();
+}
+
 DepthStencilValue::DepthStencilValue(float depth, uint8_t stencil):
     depth{ depth },
     stencil{ stencil }
