@@ -33,7 +33,7 @@ public:
     dxgi::HwAdapter const* retrieveHwAdapterOwningDevicePtr(Device const& device) const;
 
 private:
-    using descriptor_heap_page_pool = std::deque<std::array<DescriptorHeap, 4U>>;
+    using descriptor_heap_page_pool = std::deque<std::array<std::unique_ptr<DescriptorHeap>, 4U>>;
 
 private:
     GlobalSettings const& m_global_settings;

@@ -160,9 +160,9 @@ Fence Device::createFence(FenceSharing sharing/* = FenceSharing::none*/)
     return FenceAttorney<Device>::makeFence(*this, sharing);
 }
 
-DescriptorHeap Device::createDescriptorHeap(DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask)
+std::unique_ptr<DescriptorHeap> Device::createDescriptorHeap(DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask)
 {
-    return DescriptorHeap{ *this, type, num_descriptors, node_mask };
+    return std::unique_ptr<DescriptorHeap>{new DescriptorHeap{ *this, type, num_descriptors, node_mask }};
 }
 
 Heap Device::createHeap(AbstractHeapType type, uint64_t size, HeapCreationFlags flags, bool is_msaa_supported, uint32_t node_mask, uint32_t node_exposure_mask)

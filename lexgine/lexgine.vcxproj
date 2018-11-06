@@ -167,19 +167,23 @@
     <ClCompile Include="core\dx\d3d12\command_list.cpp" />
     <ClCompile Include="core\dx\d3d12\command_queue.cpp" />
     <ClCompile Include="core\dx\d3d12\constant_buffer.cpp" />
+    <ClCompile Include="core\dx\d3d12\constant_buffer_view_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\d3d12_pso_xml_parser.cpp" />
     <ClCompile Include="core\dx\d3d12\debug_interface.cpp" />
+    <ClCompile Include="core\dx\d3d12\depth_stencil_view_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\descriptor_heap.cpp" />
     <ClCompile Include="core\dx\d3d12\device.cpp" />
     <ClCompile Include="core\dx\d3d12\dx_resource_factory.cpp" />
     <ClCompile Include="core\dx\d3d12\fence.cpp" />
     <ClCompile Include="core\dx\d3d12\heap.cpp" />
+    <ClCompile Include="core\dx\d3d12\render_target_view_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\resource_data_uploader.cpp" />
     <ClCompile Include="core\dx\d3d12\heap_resource_placer.cpp" />
     <ClCompile Include="core\dx\d3d12\pipeline_state.cpp" />
     <ClCompile Include="core\dx\d3d12\resource.cpp" />
     <ClCompile Include="core\dx\d3d12\root_signature.cpp" />
     <ClCompile Include="core\dx\d3d12\root_signature_cache.cpp" />
+    <ClCompile Include="core\dx\d3d12\shader_resource_view_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\signal.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\data_uploading_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\hlsl_compilation_task.cpp" />
@@ -190,6 +194,7 @@
     <ClCompile Include="core\dx\d3d12\task_caches\hlsl_compilation_task_cache.cpp" />
     <ClCompile Include="core\dx\d3d12\task_caches\pso_compilation_task_cache.cpp" />
     <ClCompile Include="core\dx\d3d12\task_caches\root_signature_compilation_task_cache.cpp" />
+    <ClCompile Include="core\dx\d3d12\unordered_access_view_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\upload_buffer_allocator.cpp" />
     <ClCompile Include="core\dx\dxcompilation\dx_compiler_proxy.cpp" />
     <ClCompile Include="core\dx\dxgi\hw_adapter_enumerator.cpp" />
@@ -241,6 +246,9 @@
     <ClInclude Include="core\default_allocator.h" />
     <ClInclude Include="core\deferred_pso_compilation_agent.h" />
     <ClInclude Include="core\depth_stencil_descriptor.h" />
+    <ClInclude Include="core\dx\d3d12\constant_buffer_view_descriptor.h" />
+    <ClInclude Include="core\dx\d3d12\depth_stencil_view_descriptor.h" />
+    <ClInclude Include="core\dx\d3d12\render_target_view_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\root_signature_cache.h" />
     <ClInclude Include="core\dx\d3d12\command_allocator_ring.h" />
     <ClInclude Include="core\dx\d3d12\command_list.h" />
@@ -261,6 +269,7 @@
     <ClInclude Include="core\dx\d3d12\resource.h" />
     <ClInclude Include="core\dx\d3d12\resource_barrier.h" />
     <ClInclude Include="core\dx\d3d12\root_signature.h" />
+    <ClInclude Include="core\dx\d3d12\shader_resource_view_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\signal.h" />
     <ClInclude Include="core\dx\d3d12\tasks\data_uploading_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\hlsl_compilation_task.h" />
@@ -273,6 +282,7 @@
     <ClInclude Include="core\dx\d3d12\task_caches\lexgine_core_dx_d3d12_task_caches_fwd.h" />
     <ClInclude Include="core\dx\d3d12\task_caches\pso_compilation_task_cache.h" />
     <ClInclude Include="core\dx\d3d12\task_caches\root_signature_compilation_task_cache.h" />
+    <ClInclude Include="core\dx\d3d12\unordered_access_view_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\upload_buffer_allocator.h" />
     <ClInclude Include="core\dx\dxcompilation\common.h" />
     <ClInclude Include="core\dx\dxcompilation\dx_compiler_proxy.h" />
@@ -304,6 +314,7 @@
     <ClInclude Include="core\misc\misc.h" />
     <ClInclude Include="core\misc\optional.h" />
     <ClInclude Include="core\misc\static_hash_table.h" />
+    <ClInclude Include="core\misc\static_vector.h" />
     <ClInclude Include="core\misc\template_argument_iterator.h" />
     <ClInclude Include="core\misc\strict_weak_ordering.h" />
     <ClInclude Include="core\multisampling.h" />

@@ -24,8 +24,22 @@ class Resource;
 template<size_t> class ResourceBarrier;
 class RootSignature;
 class Signal;
-struct GPUDescriptorHandle;
-struct CPUDescriptorHandle;
+
+struct ShaderResourceViewBufferInfo;
+struct ShaderResourceViewTextureInfo;
+struct ShaderResourceViewTextureArrayInfo;
+class ShaderResourceViewDescriptor;
+
+class UnorderedAccessViewDescriptor;
+class ConstantBufferViewDescriptor;
+
+struct RenderTargetViewBufferInfo;
+struct RenderTargetViewTextureInfo;
+struct RenderTargetViewTextureArrayInfo;
+class RenderTargetViewDescriptor;
+
+class DepthStencilViewDescriptor;
+
 
 }
 

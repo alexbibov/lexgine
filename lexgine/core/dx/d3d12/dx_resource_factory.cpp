@@ -3,6 +3,8 @@
 
 #include "lexgine/core/dx/d3d12/device.h"
 
+#include <algorithm>
+
 using namespace lexgine::core;
 using namespace lexgine::core::dx;
 using namespace lexgine::core::dx::d3d12;
@@ -33,17 +35,17 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
             {
                 uint32_t num_descriptors = global_settings.getDescriptorPageCapacity(page_id);
 
-                std::array<DescriptorHeap, 4> descriptor_heaps = {
+                std::array<std::unique_ptr<DescriptorHeap>, 4> descriptor_heaps{
                     dev_ref.createDescriptorHeap(DescriptorHeapType::cbv_srv_uav, num_descriptors, node_mask),
                     dev_ref.createDescriptorHeap(DescriptorHeapType::sampler, num_descriptors, node_mask),
                     dev_ref.createDescriptorHeap(DescriptorHeapType::rtv, num_descriptors, node_mask),
                     dev_ref.createDescriptorHeap(DescriptorHeapType::dsv, num_descriptors, node_mask)
                 };
 
-                descriptor_heaps[0].setStringName(dev_ref.getStringName() + "__cbv_srv_uav_heap");
-                descriptor_heaps[1].setStringName(dev_ref.getStringName() + "__sampler_heap");
-                descriptor_heaps[2].setStringName(dev_ref.getStringName() + "__rtv_heap");
-                descriptor_heaps[3].setStringName(dev_ref.getStringName() + "__dsv_heap");
+                descriptor_heaps[0]->setStringName(dev_ref.getStringName() + "__cbv_srv_uav_heap");
+                descriptor_heaps[1]->setStringName(dev_ref.getStringName() + "__sampler_heap");
+                descriptor_heaps[2]->setStringName(dev_ref.getStringName() + "__rtv_heap");
+                descriptor_heaps[3]->setStringName(dev_ref.getStringName() + "__dsv_heap");
 
                 page_pool.push_back(std::move(descriptor_heaps));
             }
@@ -85,7 +87,7 @@ DebugInterface const* lexgine::core::dx::d3d12::DxResourceFactory::debugInterfac
 
 DescriptorHeap& DxResourceFactory::retrieveDescriptorHeap(Device const& device, uint32_t page_id, DescriptorHeapType descriptor_heap_type)
 {
-    return m_descriptor_heaps.at(&device)[page_id][static_cast<size_t>(descriptor_heap_type)];
+    return *m_descriptor_heaps.at(&device)[page_id][static_cast<size_t>(descriptor_heap_type)];
 }
 
 Heap& DxResourceFactory::retrieveUploadHeap(Device const& device)

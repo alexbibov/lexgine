@@ -384,6 +384,24 @@
     <ClInclude Include="core\dx\d3d12\resource_data_uploader.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
+    <ClInclude Include="core\dx\d3d12\shader_resource_view_descriptor.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\render_target_view_descriptor.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\constant_buffer_view_descriptor.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\unordered_access_view_descriptor.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\depth_stencil_view_descriptor.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\misc\static_vector.h">
+      <Filter>core\misc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -582,6 +600,21 @@
       <Filter>core</Filter>
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\resource_data_uploader.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\shader_resource_view_descriptor.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\render_target_view_descriptor.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\constant_buffer_view_descriptor.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\unordered_access_view_descriptor.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\depth_stencil_view_descriptor.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
   </ItemGroup>
