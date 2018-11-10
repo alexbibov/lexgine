@@ -1,5 +1,5 @@
-#ifndef LEXGINE_CORE_DX_D3D12_RENDER_TARGET_VIEW_DESCRIPTOR_H
-#define LEXGINE_CORE_DX_D3D12_RENDER_TARGET_VIEW_DESCRIPTOR_H
+#ifndef LEXGINE_CORE_DX_D3D12_RTV_DESCRIPTOR_H
+#define LEXGINE_CORE_DX_D3D12_RTV_DESCRIPTOR_H
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 
@@ -8,14 +8,14 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-struct RenderTargetViewBufferInfo final
+struct RTVBufferInfo final
 {
     uint64_t first_element = 0ULL;
     uint32_t num_elements;
 };
 
 
-struct RenderTargetViewTextureInfo final
+struct RTVTextureInfo final
 {
     uint32_t mip_level_slice = 0U;
 
@@ -24,7 +24,7 @@ struct RenderTargetViewTextureInfo final
 };
 
 
-struct RenderTargetViewTextureArrayInfo final
+struct RTVTextureArrayInfo final
 {
     uint32_t mip_level_slice = 0U;
     uint32_t first_array_element = 0U;
@@ -32,14 +32,14 @@ struct RenderTargetViewTextureArrayInfo final
 };
 
 
-class RenderTargetViewDescriptor final
+class RTVDescriptor final
 {
 public:
-    RenderTargetViewDescriptor(Resource const& resource, RenderTargetViewBufferInfo const& buffer_info);
+    RTVDescriptor(Resource const& resource, RTVBufferInfo const& buffer_info);
 
-    RenderTargetViewDescriptor(Resource const& resource, RenderTargetViewTextureInfo const& texture_info);
+    RTVDescriptor(Resource const& resource, RTVTextureInfo const& texture_info);
 
-    RenderTargetViewDescriptor(Resource const& resource, RenderTargetViewTextureArrayInfo const& texture_array_info);
+    RTVDescriptor(Resource const& resource, RTVTextureArrayInfo const& texture_array_info);
 
     /*! Normally, DXGI format for the SRV descriptor is fetched from resource descriptor.
      This function can be use if another setting for the format is preferable

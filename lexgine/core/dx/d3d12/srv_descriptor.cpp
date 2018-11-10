@@ -1,4 +1,4 @@
-#include "shader_resource_view_descriptor.h"
+#include "srv_descriptor.h"
 #include "resource.h"
 
 #include <cassert>
@@ -6,8 +6,8 @@
 using namespace lexgine::core::dx::d3d12;
 
 
-ShaderResourceViewDescriptor::ShaderResourceViewDescriptor(Resource const& resource,
-    ShaderResourceViewBufferInfo const& buffer_info):
+SRVDescriptor::SRVDescriptor(Resource const& resource,
+    SRVBufferInfo const& buffer_info):
     m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -24,8 +24,8 @@ ShaderResourceViewDescriptor::ShaderResourceViewDescriptor(Resource const& resou
     m_native.Buffer.Flags = static_cast<D3D12_BUFFER_SRV_FLAGS>(buffer_info.flags);
 }
 
-ShaderResourceViewDescriptor::ShaderResourceViewDescriptor(Resource const& resource,
-    ShaderResourceViewTextureInfo const& texture_info, bool is_cubemap):
+SRVDescriptor::SRVDescriptor(Resource const& resource,
+    SRVTextureInfo const& texture_info, bool is_cubemap):
     m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -78,8 +78,8 @@ ShaderResourceViewDescriptor::ShaderResourceViewDescriptor(Resource const& resou
     }
 }
 
-ShaderResourceViewDescriptor::ShaderResourceViewDescriptor(Resource const& resource,
-    ShaderResourceViewTextureArrayInfo const& texture_array_info, bool is_cubemap):
+SRVDescriptor::SRVDescriptor(Resource const& resource,
+    SRVTextureArrayInfo const& texture_array_info, bool is_cubemap):
     m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -152,17 +152,17 @@ ShaderResourceViewDescriptor::ShaderResourceViewDescriptor(Resource const& resou
     }
 }
 
-void ShaderResourceViewDescriptor::overrideFormat(DXGI_FORMAT format)
+void SRVDescriptor::overrideFormat(DXGI_FORMAT format)
 {
     m_native.Format = format;
 }
 
-D3D12_SHADER_RESOURCE_VIEW_DESC ShaderResourceViewDescriptor::nativeDescriptor() const
+D3D12_SHADER_RESOURCE_VIEW_DESC SRVDescriptor::nativeDescriptor() const
 {
     return m_native;
 }
 
-Resource const& ShaderResourceViewDescriptor::associatedResource() const
+Resource const& SRVDescriptor::associatedResource() const
 {
     return m_resource_ref;
 }

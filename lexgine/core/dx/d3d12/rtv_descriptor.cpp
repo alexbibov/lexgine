@@ -1,11 +1,11 @@
-#include "render_target_view_descriptor.h"
+#include "rtv_descriptor.h"
 #include "resource.h"
 
 #include <cassert>
 
 using namespace lexgine::core::dx::d3d12;
 
-RenderTargetViewDescriptor::RenderTargetViewDescriptor(Resource const& resource, RenderTargetViewBufferInfo const& buffer_info):
+RTVDescriptor::RTVDescriptor(Resource const& resource, RTVBufferInfo const& buffer_info):
     m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -18,7 +18,7 @@ RenderTargetViewDescriptor::RenderTargetViewDescriptor(Resource const& resource,
     m_native.Buffer.NumElements = static_cast<UINT>(buffer_info.num_elements);
 }
 
-RenderTargetViewDescriptor::RenderTargetViewDescriptor(Resource const& resource, RenderTargetViewTextureInfo const& texture_info):
+RTVDescriptor::RTVDescriptor(Resource const& resource, RTVTextureInfo const& texture_info):
     m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -54,7 +54,7 @@ RenderTargetViewDescriptor::RenderTargetViewDescriptor(Resource const& resource,
     }
 }
 
-RenderTargetViewDescriptor::RenderTargetViewDescriptor(Resource const& resource, RenderTargetViewTextureArrayInfo const& texture_array_info):
+RTVDescriptor::RTVDescriptor(Resource const& resource, RTVTextureArrayInfo const& texture_array_info):
     m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -97,17 +97,17 @@ RenderTargetViewDescriptor::RenderTargetViewDescriptor(Resource const& resource,
     }
 }
 
-void RenderTargetViewDescriptor::overrideFormat(DXGI_FORMAT format)
+void RTVDescriptor::overrideFormat(DXGI_FORMAT format)
 {
     m_native.Format = format;
 }
 
-D3D12_RENDER_TARGET_VIEW_DESC RenderTargetViewDescriptor::nativeDescriptor() const
+D3D12_RENDER_TARGET_VIEW_DESC RTVDescriptor::nativeDescriptor() const
 {
     return m_native;
 }
 
-Resource const& RenderTargetViewDescriptor::associatedResource() const
+Resource const& RTVDescriptor::associatedResource() const
 {
     return m_resource_ref;
 }
