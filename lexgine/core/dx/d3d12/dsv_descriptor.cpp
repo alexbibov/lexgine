@@ -1,4 +1,4 @@
-#include "depth_stencil_view_descriptor.h"
+#include "dsv_descriptor.h"
 #include "resource.h"
 
 #include <cassert>
@@ -6,8 +6,8 @@
 using namespace lexgine::core::dx::d3d12;
 
 
-DepthStencilViewDescriptor::DepthStencilViewDescriptor(Resource const& resource, 
-    DepthStencilViewTextureInfo const& texture_info, DepthStencilViewFlags flags):
+DSVDescriptor::DSVDescriptor(Resource const& resource, 
+    DSVTextureInfo const& texture_info, DSVFlags flags):
     m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -34,8 +34,8 @@ DepthStencilViewDescriptor::DepthStencilViewDescriptor(Resource const& resource,
     }
 }
 
-DepthStencilViewDescriptor::DepthStencilViewDescriptor(Resource const& resource, 
-    DepthStencilViewTextureArrayInfo const& texture_array_info, DepthStencilViewFlags flags):
+DSVDescriptor::DSVDescriptor(Resource const& resource, 
+    DSVTextureArrayInfo const& texture_array_info, DSVFlags flags):
     m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -73,17 +73,17 @@ DepthStencilViewDescriptor::DepthStencilViewDescriptor(Resource const& resource,
     }
 }
 
-void DepthStencilViewDescriptor::overrideFormat(DXGI_FORMAT format)
+void DSVDescriptor::overrideFormat(DXGI_FORMAT format)
 {
     m_native.Format = format;
 }
 
-D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilViewDescriptor::nativeDescriptor() const
+D3D12_DEPTH_STENCIL_VIEW_DESC DSVDescriptor::nativeDescriptor() const
 {
     return m_native;
 }
 
-Resource const& DepthStencilViewDescriptor::associatedResource() const
+Resource const& DSVDescriptor::associatedResource() const
 {
     return m_resource_ref;
 }

@@ -25,20 +25,26 @@ template<size_t> class ResourceBarrier;
 class RootSignature;
 class Signal;
 
-struct ShaderResourceViewBufferInfo;
-struct ShaderResourceViewTextureInfo;
-struct ShaderResourceViewTextureArrayInfo;
-class ShaderResourceViewDescriptor;
+struct SRVBufferInfo;
+struct SRVTextureInfo;
+struct SRVTextureArrayInfo;
+class SRVDescriptor;
 
-class UnorderedAccessViewDescriptor;
-class ConstantBufferViewDescriptor;
+struct UAVBufferInfo;
+struct UAVTextureInfo;
+struct UAVTextureArrayInfo;
+class UAVDescriptor;
 
-struct RenderTargetViewBufferInfo;
-struct RenderTargetViewTextureInfo;
-struct RenderTargetViewTextureArrayInfo;
-class RenderTargetViewDescriptor;
+class CBVDescriptor;
 
-class DepthStencilViewDescriptor;
+struct RTVBufferInfo;
+struct RTVTextureInfo;
+struct RTVTextureArrayInfo;
+class RTVDescriptor;
+
+struct DSVTextureInfo;
+struct DSVTextureArrayInfo;
+class DSVDescriptor;
 
 
 }

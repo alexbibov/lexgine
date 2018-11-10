@@ -1,12 +1,12 @@
-#include "unordered_access_view_descriptor.h"
+#include "uav_descriptor.h"
 #include "resource.h"
 
 #include <cassert>
 
 using namespace lexgine::core::dx::d3d12;
 
-UnorderedAccessViewDescriptor::UnorderedAccessViewDescriptor(Resource const& resource, 
-    UnorderedAccessViewBufferInfo const& buffer_info,
+UAVDescriptor::UAVDescriptor(Resource const& resource, 
+    UAVBufferInfo const& buffer_info,
     Resource const* p_counter_resource):
     m_resource_ref{ resource },
     m_counter_resource_ptr{ p_counter_resource }
@@ -24,8 +24,8 @@ UnorderedAccessViewDescriptor::UnorderedAccessViewDescriptor(Resource const& res
     m_native.Buffer.Flags = static_cast<D3D12_BUFFER_UAV_FLAGS>(buffer_info.flags);
 }
 
-UnorderedAccessViewDescriptor::UnorderedAccessViewDescriptor(Resource const& resource, 
-    UnorderedAccessViewTextureInfo const& texture_info,
+UAVDescriptor::UAVDescriptor(Resource const& resource, 
+    UAVTextureInfo const& texture_info,
     Resource const* p_counter_resource):
     m_resource_ref{ resource },
     m_counter_resource_ptr{ p_counter_resource }
@@ -61,8 +61,8 @@ UnorderedAccessViewDescriptor::UnorderedAccessViewDescriptor(Resource const& res
     }
 }
 
-UnorderedAccessViewDescriptor::UnorderedAccessViewDescriptor(Resource const& resource, 
-    UnorderedAccessViewTextureArrayInfo const& texture_array_info,
+UAVDescriptor::UAVDescriptor(Resource const& resource, 
+    UAVTextureArrayInfo const& texture_array_info,
     Resource const* p_counter_resource):
     m_resource_ref{ resource },
     m_counter_resource_ptr{ p_counter_resource }
@@ -96,22 +96,22 @@ UnorderedAccessViewDescriptor::UnorderedAccessViewDescriptor(Resource const& res
     }
 }
 
-void UnorderedAccessViewDescriptor::overrideFormat(DXGI_FORMAT format)
+void UAVDescriptor::overrideFormat(DXGI_FORMAT format)
 {
     m_native.Format = format;
 }
 
-D3D12_UNORDERED_ACCESS_VIEW_DESC UnorderedAccessViewDescriptor::nativeDescriptor() const
+D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDescriptor::nativeDescriptor() const
 {
     return m_native;
 }
 
-Resource const& UnorderedAccessViewDescriptor::associatedResource() const
+Resource const& UAVDescriptor::associatedResource() const
 {
     return m_resource_ref;
 }
 
-Resource const* UnorderedAccessViewDescriptor::associatedCounterResourcePtr() const
+Resource const* UAVDescriptor::associatedCounterResourcePtr() const
 {
     return m_counter_resource_ptr;
 }

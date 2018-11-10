@@ -1,5 +1,5 @@
-#ifndef LEXGINE_CORE_DX_D3D12_UNORDERED_ACCESS_VIEW_DESCRIPTOR_H
-#define LEXGINE_CORE_DX_D3D12_UNORDERED_ACCESS_VIEW_DESCRIPTOR_H
+#ifndef LEXGINE_CORE_DX_D3D12_UAV_DESCRIPTOR_H
+#define LEXGINE_CORE_DX_D3D12_UAV_DESCRIPTOR_H
 
 #include <d3d12.h>
 #include <cinttypes>
@@ -13,7 +13,7 @@ enum class UnorderedAccessViewBufferInfoFlags
     none, raw
 };
 
-struct UnorderedAccessViewBufferInfo final
+struct UAVBufferInfo final
 {
     uint64_t first_element = 0ULL;
     uint32_t num_elements;
@@ -23,7 +23,7 @@ struct UnorderedAccessViewBufferInfo final
 };
 
 
-struct UnorderedAccessViewTextureInfo final
+struct UAVTextureInfo final
 {
     uint32_t mip_level_slice = 0U;
 
@@ -32,7 +32,7 @@ struct UnorderedAccessViewTextureInfo final
 };
 
 
-struct UnorderedAccessViewTextureArrayInfo final
+struct UAVTextureArrayInfo final
 {
     uint32_t mip_level_slice = 0U;
     uint32_t first_array_element = 0U;
@@ -40,19 +40,19 @@ struct UnorderedAccessViewTextureArrayInfo final
 };
 
 
-class UnorderedAccessViewDescriptor final
+class UAVDescriptor final
 {
 public:
-    UnorderedAccessViewDescriptor(Resource const& resource,
-        UnorderedAccessViewBufferInfo const& buffer_info,
+    UAVDescriptor(Resource const& resource,
+        UAVBufferInfo const& buffer_info,
         Resource const* p_counter_resource = nullptr);
 
-    UnorderedAccessViewDescriptor(Resource const& resource,
-        UnorderedAccessViewTextureInfo const& texture_info,
+    UAVDescriptor(Resource const& resource,
+        UAVTextureInfo const& texture_info,
         Resource const* p_counter_resource = nullptr);
 
-    UnorderedAccessViewDescriptor(Resource const& resource,
-        UnorderedAccessViewTextureArrayInfo const& texture_array_info,
+    UAVDescriptor(Resource const& resource,
+        UAVTextureArrayInfo const& texture_array_info,
         Resource const* p_counter_resource = nullptr);
 
     /*! Normally, DXGI format for the SRV descriptor is fetched from resource descriptor.

@@ -1,5 +1,5 @@
-#ifndef LEXGINE_CORE_DX_D3D12_SHADER_RESOURCE_VIEW_DESCRIPTOR_H
-#define LEXGINE_CORE_DX_D3D12_SHADER_RESOURCE_VIEW_DESCRIPTOR_H
+#ifndef LEXGINE_CORE_DX_D3D12_SRV_DESCRIPTOR_H
+#define LEXGINE_CORE_DX_D3D12_SRV_DESCRIPTOR_H
 
 #include <d3d12.h>
 
@@ -11,21 +11,21 @@
 namespace lexgine::core::dx::d3d12 {
 
 
-enum class ShaderResourceViewBufferInfoFlags
+enum class SRVBufferInfoFlags
 {
     none, raw
 };
 
-struct ShaderResourceViewBufferInfo final
+struct SRVBufferInfo final
 {
     uint64_t first_element = 0ULL;
     uint32_t num_elements;
     uint32_t structure_byte_stride;
-    ShaderResourceViewBufferInfoFlags flags = ShaderResourceViewBufferInfoFlags::none;
+    SRVBufferInfoFlags flags = SRVBufferInfoFlags::none;
 };
 
 
-struct ShaderResourceViewTextureInfo final
+struct SRVTextureInfo final
 {
     uint32_t most_detailed_mipmap_level = 0U;
     uint32_t num_mipmap_levels = 0xFFFFFFFF;
@@ -33,7 +33,7 @@ struct ShaderResourceViewTextureInfo final
 };
 
 
-struct ShaderResourceViewTextureArrayInfo final
+struct SRVTextureArrayInfo final
 {
     uint32_t most_detailed_mipmap_level = 0U;
     uint32_t num_mipmap_levels = 0xFFFFFFFF;
@@ -43,18 +43,18 @@ struct ShaderResourceViewTextureArrayInfo final
 };
 
 
-class ShaderResourceViewDescriptor final
+class SRVDescriptor final
 {
 public:
-    ShaderResourceViewDescriptor(Resource const& resource, 
-        ShaderResourceViewBufferInfo const& buffer_info);
+    SRVDescriptor(Resource const& resource, 
+        SRVBufferInfo const& buffer_info);
     
-    ShaderResourceViewDescriptor(Resource const& resource,
-        ShaderResourceViewTextureInfo const& texture_info,
+    SRVDescriptor(Resource const& resource,
+        SRVTextureInfo const& texture_info,
         bool is_cubemap = false);
 
-    ShaderResourceViewDescriptor(Resource const& resource,
-        ShaderResourceViewTextureArrayInfo const& texture_array_info,
+    SRVDescriptor(Resource const& resource,
+        SRVTextureArrayInfo const& texture_array_info,
         bool is_cubemap = false);
 
     /*! Normally, DXGI format for the SRV descriptor is fetched from resource descriptor.

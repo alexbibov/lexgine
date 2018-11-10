@@ -3,11 +3,11 @@
 #include "lexgine/core/exception.h"
 
 #include "resource.h"
-#include "constant_buffer_view_descriptor.h"
-#include "shader_resource_view_descriptor.h"
-#include "unordered_access_view_descriptor.h"
-#include "render_target_view_descriptor.h"
-#include "depth_stencil_view_descriptor.h"
+#include "cbv_descriptor.h"
+#include "srv_descriptor.h"
+#include "uav_descriptor.h"
+#include "rtv_descriptor.h"
+#include "dsv_descriptor.h"
 
 
 #include <cassert>
@@ -34,7 +34,7 @@ uint32_t DescriptorHeap::capacity() const
     return m_descriptor_capacity;
 }
 
-uint64_t DescriptorHeap::allocateConstantBufferViewDescriptors(std::vector<ConstantBufferViewDescriptor> const& cbv_descriptors)
+uint64_t DescriptorHeap::allocateConstantBufferViewDescriptors(std::vector<CBVDescriptor> const& cbv_descriptors)
 {
     assert(m_type == DescriptorHeapType::cbv_srv_uav);
 
@@ -46,7 +46,7 @@ uint64_t DescriptorHeap::allocateConstantBufferViewDescriptors(std::vector<Const
     return ptrs.second.ptr;
 }
 
-uint64_t DescriptorHeap::allocateShaderResourceViewDescriptors(std::vector<ShaderResourceViewDescriptor> const& srv_descriptors)
+uint64_t DescriptorHeap::allocateShaderResourceViewDescriptors(std::vector<SRVDescriptor> const& srv_descriptors)
 {
     assert(m_type == DescriptorHeapType::cbv_srv_uav);
 
@@ -58,7 +58,7 @@ uint64_t DescriptorHeap::allocateShaderResourceViewDescriptors(std::vector<Shade
     return ptrs.second.ptr;
 }
 
-uint64_t DescriptorHeap::allocateUnorderedAccessViewDescriptors(std::vector<UnorderedAccessViewDescriptor> const& uav_descriptors)
+uint64_t DescriptorHeap::allocateUnorderedAccessViewDescriptors(std::vector<UAVDescriptor> const& uav_descriptors)
 {
     assert(m_type == DescriptorHeapType::cbv_srv_uav);
 
@@ -71,7 +71,7 @@ uint64_t DescriptorHeap::allocateUnorderedAccessViewDescriptors(std::vector<Unor
     return ptrs.second.ptr;
 }
 
-uint64_t DescriptorHeap::allocateRenderTargetViewDescriptors(std::vector<RenderTargetViewDescriptor> const& rtv_descriptors)
+uint64_t DescriptorHeap::allocateRenderTargetViewDescriptors(std::vector<RTVDescriptor> const& rtv_descriptors)
 {
     assert(m_type == DescriptorHeapType::rtv);
 
@@ -83,7 +83,7 @@ uint64_t DescriptorHeap::allocateRenderTargetViewDescriptors(std::vector<RenderT
     return ptrs.second.ptr;
 }
 
-uint64_t DescriptorHeap::allocateDepthStencilViewDescriptors(std::vector<DepthStencilViewDescriptor> const & dsv_descriptors)
+uint64_t DescriptorHeap::allocateDepthStencilViewDescriptors(std::vector<DSVDescriptor> const & dsv_descriptors)
 {
     assert(m_type == DescriptorHeapType::dsv);
 

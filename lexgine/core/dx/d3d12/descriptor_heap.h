@@ -43,7 +43,7 @@ public:
      This function will fail if called on a descriptor heap of any type other than cbv_srv_uav
 
     */
-    uint64_t allocateConstantBufferViewDescriptors(std::vector<ConstantBufferViewDescriptor> const& cbv_descriptors);
+    uint64_t allocateConstantBufferViewDescriptors(std::vector<CBVDescriptor> const& cbv_descriptors);
 
 
     /*! allocates multiple shader resource view descriptors in the descriptor heap and
@@ -52,7 +52,7 @@ public:
      This function will fail if called on a descriptor heap of any type other than cbv_srv_uav
 
     */
-    uint64_t allocateShaderResourceViewDescriptors(std::vector<ShaderResourceViewDescriptor> const& srv_descriptors);
+    uint64_t allocateShaderResourceViewDescriptors(std::vector<SRVDescriptor> const& srv_descriptors);
 
     /*! allocates multiple unordered access view descriptors in the descriptor heap and
      returns GPU virtual address of the first allocated descriptor. This GPU address can
@@ -60,21 +60,21 @@ public:
      This function will fail if called on a descriptor heap of any type other than cbv_srv_uav
 
     */
-    uint64_t allocateUnorderedAccessViewDescriptors(std::vector<UnorderedAccessViewDescriptor> const& uav_descriptors);
+    uint64_t allocateUnorderedAccessViewDescriptors(std::vector<UAVDescriptor> const& uav_descriptors);
     
     /*! allocated multiple render target view descriptors in the descriptor heap and
      returns GPU virtual address of the first allocated descriptor. This GPU address can
      be afterwards used to set the corresponding root descriptor table on the GPU side.
      This function will fail if called on a descriptor heap of any type other than rtv
     */
-    uint64_t allocateRenderTargetViewDescriptors(std::vector<RenderTargetViewDescriptor> const& rtv_descriptors);
+    uint64_t allocateRenderTargetViewDescriptors(std::vector<RTVDescriptor> const& rtv_descriptors);
 
     /*! allocated multiple depth stencil view descriptors in the descriptor heap and
      returns GPU virtual address of the first allocated descriptor. This GPU address can
      be afterwards used to set the corresponding root descriptor table on the GPU side.
      This function will fail if called on a descriptor heap of any type other than dsv
     */
-    uint64_t allocateDepthStencilViewDescriptors(std::vector<DepthStencilViewDescriptor> const& dsv_descriptors);
+    uint64_t allocateDepthStencilViewDescriptors(std::vector<DSVDescriptor> const& dsv_descriptors);
 
 
 private:

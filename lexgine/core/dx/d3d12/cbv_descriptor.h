@@ -1,5 +1,5 @@
-#ifndef LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_VIEW_DESCRIPTOR_H
-#define LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_VIEW_DESCRIPTOR_H
+#ifndef LEXGINE_CORE_DX_D3D12_CBV_DESCRIPTOR_H
+#define LEXGINE_CORE_DX_D3D12_CBV_DESCRIPTOR_H
 
 #include <d3d12.h>
 #include <cstdint>
@@ -8,10 +8,10 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-class ConstantBufferViewDescriptor final
+class CBVDescriptor final
 {
 public:
-    ConstantBufferViewDescriptor(Resource const& resource,
+    CBVDescriptor(Resource const& resource,
         uint32_t offset_from_start, uint32_t view_size_in_bytes);
 
     D3D12_CONSTANT_BUFFER_VIEW_DESC nativeDescriptor() const;
