@@ -6,6 +6,7 @@
 #include "cbv_descriptor.h"
 #include "srv_descriptor.h"
 #include "uav_descriptor.h"
+#include "sampler_descriptor.h"
 #include "rtv_descriptor.h"
 #include "dsv_descriptor.h"
 
@@ -34,78 +35,103 @@ uint32_t DescriptorHeap::capacity() const
     return m_descriptor_capacity;
 }
 
-uint64_t DescriptorHeap::allocateConstantBufferViewDescriptors(std::vector<CBVDescriptor> const& cbv_descriptors)
+uint32_t DescriptorHeap::descriptorsAllocated() const
+{
+    return m_num_descriptors_allocated.load(std::memory_order::memory_order_acquire);
+}
+
+uint32_t DescriptorHeap::reserveDescriptors(uint32_t count)
+{
+    return m_num_descriptors_allocated.fetch_add(count, std::memory_order::memory_order_acq_rel);
+}
+
+
+uint64_t DescriptorHeap::createConstantBufferViewDescriptors(size_t offset, std::vector<CBVDescriptor> const& cbv_descriptors)
 {
     assert(m_type == DescriptorHeapType::cbv_srv_uav);
 
-    auto ptrs = updateAllocation(static_cast<uint32_t>(cbv_descriptors.size()));
-
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ m_heap_start_cpu_address + offset };
     for (auto const& cbv_desc : cbv_descriptors)
-        m_device.native()->CreateConstantBufferView(&cbv_desc.nativeDescriptor(), ptrs.first);
+    {
+        m_device.native()->CreateConstantBufferView(&cbv_desc.nativeDescriptor(), cpu_handle);
+        cpu_handle.ptr += m_descriptor_size;
+    }
 
-    return ptrs.second.ptr;
+    return m_heap_start_gpu_address + offset;
 }
 
-uint64_t DescriptorHeap::allocateShaderResourceViewDescriptors(std::vector<SRVDescriptor> const& srv_descriptors)
+uint64_t DescriptorHeap::createShaderResourceViewDescriptors(size_t offset, std::vector<SRVDescriptor> const& srv_descriptors)
 {
     assert(m_type == DescriptorHeapType::cbv_srv_uav);
 
-    auto ptrs = updateAllocation(static_cast<uint32_t>(srv_descriptors.size()));
-    
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ m_heap_start_cpu_address + offset };
     for (auto const& srv_desc : srv_descriptors)
-        m_device.native()->CreateShaderResourceView(srv_desc.associatedResource().native().Get(), &srv_desc.nativeDescriptor(), ptrs.first);
+    {
+        m_device.native()->CreateShaderResourceView(srv_desc.associatedResource().native().Get(), &srv_desc.nativeDescriptor(), cpu_handle);
+        cpu_handle.ptr += m_descriptor_size;
+    }
 
-    return ptrs.second.ptr;
+    return m_heap_start_gpu_address + offset;
 }
 
-uint64_t DescriptorHeap::allocateUnorderedAccessViewDescriptors(std::vector<UAVDescriptor> const& uav_descriptors)
+uint64_t DescriptorHeap::createUnorderedAccessViewDescriptors(size_t offset, std::vector<UAVDescriptor> const& uav_descriptors)
 {
     assert(m_type == DescriptorHeapType::cbv_srv_uav);
 
-    auto ptrs = updateAllocation(static_cast<uint32_t>(uav_descriptors.size()));
-
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ m_heap_start_cpu_address + offset };
     for (auto const& uav_desc : uav_descriptors)
-        m_device.native()->CreateUnorderedAccessView(uav_desc.associatedResource().native().Get(),
-            uav_desc.associatedCounterResourcePtr()->native().Get(), &uav_desc.nativeDescriptor(), ptrs.first);
+    {
+        auto p_counter_resource = uav_desc.associatedCounterResourcePtr();
 
-    return ptrs.second.ptr;
+        m_device.native()->CreateUnorderedAccessView(uav_desc.associatedResource().native().Get(),
+            p_counter_resource ? p_counter_resource->native().Get() : nullptr,
+            &uav_desc.nativeDescriptor(), cpu_handle);
+        cpu_handle.ptr += m_descriptor_size;
+    }
+
+    return m_heap_start_gpu_address + offset;
 }
 
-uint64_t DescriptorHeap::allocateRenderTargetViewDescriptors(std::vector<RTVDescriptor> const& rtv_descriptors)
+uint64_t DescriptorHeap::createSamplerDescriptors(size_t offset, std::vector<SamplerDescriptor> const& sampler_descriptors)
+{
+    assert(m_type == DescriptorHeapType::sampler);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ m_heap_start_cpu_address + offset };
+    for (auto const& sampler_desc : sampler_descriptors)
+    {
+        m_device.native()->CreateSampler(&sampler_desc.nativeDescriptor(), cpu_handle);
+        cpu_handle.ptr += m_descriptor_size;
+    }
+
+    return m_heap_start_gpu_address + offset;
+}
+
+uint64_t DescriptorHeap::createRenderTargetViewDescriptors(size_t offset, std::vector<RTVDescriptor> const& rtv_descriptors)
 {
     assert(m_type == DescriptorHeapType::rtv);
 
-    auto ptrs = updateAllocation(static_cast<uint32_t>(rtv_descriptors.size()));
-
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ m_heap_start_cpu_address + offset };
     for (auto const& rtv_desc : rtv_descriptors)
-        m_device.native()->CreateRenderTargetView(rtv_desc.associatedResource().native().Get(), &rtv_desc.nativeDescriptor(), ptrs.first);
+    {
+        m_device.native()->CreateRenderTargetView(rtv_desc.associatedResource().native().Get(), &rtv_desc.nativeDescriptor(), cpu_handle);
+        cpu_handle.ptr += m_descriptor_size;
+    }
 
-    return ptrs.second.ptr;
+    return m_heap_start_gpu_address + offset;
 }
 
-uint64_t DescriptorHeap::allocateDepthStencilViewDescriptors(std::vector<DSVDescriptor> const & dsv_descriptors)
+uint64_t DescriptorHeap::createDepthStencilViewDescriptors(size_t offset, std::vector<DSVDescriptor> const& dsv_descriptors)
 {
     assert(m_type == DescriptorHeapType::dsv);
 
-    auto ptrs = updateAllocation(static_cast<uint32_t>(dsv_descriptors.size()));
-
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ m_heap_start_cpu_address + offset };
     for (auto const& dsv_desc : dsv_descriptors)
-        m_device.native()->CreateDepthStencilView(dsv_desc.associatedResource().native().Get(), &dsv_desc.nativeDescriptor(), ptrs.first);
+    {
+        m_device.native()->CreateDepthStencilView(dsv_desc.associatedResource().native().Get(), &dsv_desc.nativeDescriptor(), cpu_handle);
+        cpu_handle.ptr += m_descriptor_size;
+    }
 
-    return ptrs.second.ptr;
-}
-
-std::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE> DescriptorHeap::updateAllocation(uint32_t num_descriptors)
-{
-    uint32_t num_descriptors_allocated_old = m_num_descriptors_allocated.fetch_add(num_descriptors, std::memory_order_release);
-
-    D3D12_CPU_DESCRIPTOR_HANDLE cpu_descriptor_handle{ m_descriptor_heap->GetCPUDescriptorHandleForHeapStart() };
-    cpu_descriptor_handle.ptr += m_descriptor_size * num_descriptors_allocated_old;
-
-    D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handle{ m_descriptor_heap->GetGPUDescriptorHandleForHeapStart() };
-    gpu_descriptor_handle.ptr += m_descriptor_size * num_descriptors_allocated_old;
-
-    return std::make_pair(cpu_descriptor_handle, gpu_descriptor_handle);
+    return m_heap_start_gpu_address + offset;
 }
 
 DescriptorHeap::DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t descriptor_capacity, uint32_t node_mask) :
@@ -137,4 +163,9 @@ DescriptorHeap::DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t
         device.native()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_descriptor_heap)),
         S_OK
     );
+
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = m_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = m_descriptor_heap->GetGPUDescriptorHandleForHeapStart();
+    m_heap_start_cpu_address = cpu_handle.ptr;
+    m_heap_start_gpu_address = gpu_handle.ptr;
 }

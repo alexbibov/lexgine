@@ -36,49 +36,47 @@ public:
 
     uint32_t capacity() const;
 
-
-    /*! allocates multiple constant buffer view descriptors in the descriptor heap and
-     returns GPU virtual address of the first allocated descriptor. This GPU address can
-     afterwards be used to set the corresponding root descriptor table on the GPU side
-     This function will fail if called on a descriptor heap of any type other than cbv_srv_uav
-
-    */
-    uint64_t allocateConstantBufferViewDescriptors(std::vector<CBVDescriptor> const& cbv_descriptors);
-
-
-    /*! allocates multiple shader resource view descriptors in the descriptor heap and
-     returns GPU virtual address of the first allocated descriptor. This GPU address can
-     afterwards be used to set the corresponding root descriptor table on the GPU side
-     This function will fail if called on a descriptor heap of any type other than cbv_srv_uav
-
-    */
-    uint64_t allocateShaderResourceViewDescriptors(std::vector<SRVDescriptor> const& srv_descriptors);
-
-    /*! allocates multiple unordered access view descriptors in the descriptor heap and
-     returns GPU virtual address of the first allocated descriptor. This GPU address can
-     afterwards be used to set the corresponding root descriptor table on the GPU side
-     This function will fail if called on a descriptor heap of any type other than cbv_srv_uav
-
-    */
-    uint64_t allocateUnorderedAccessViewDescriptors(std::vector<UAVDescriptor> const& uav_descriptors);
     
-    /*! allocated multiple render target view descriptors in the descriptor heap and
-     returns GPU virtual address of the first allocated descriptor. This GPU address can
-     be afterwards used to set the corresponding root descriptor table on the GPU side.
-     This function will fail if called on a descriptor heap of any type other than rtv
+    uint32_t descriptorsAllocated() const;    //! descriptor count reserved in the descriptor heap by the moment this function was invoked
+
+    uint32_t reserveDescriptors(uint32_t count);    //! reserves "count" descriptors in the descriptor heap and returns offset of the first descriptor reserved
+
+    /*! creates CBV descriptors and places them into this descriptor heap beginning from position determined by
+     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     The return value of this function is GPU address of the first created descriptor.
     */
-    uint64_t allocateRenderTargetViewDescriptors(std::vector<RTVDescriptor> const& rtv_descriptors);
+    uint64_t createConstantBufferViewDescriptors(size_t offset, std::vector<CBVDescriptor> const& cbv_descriptors);
 
-    /*! allocated multiple depth stencil view descriptors in the descriptor heap and
-     returns GPU virtual address of the first allocated descriptor. This GPU address can
-     be afterwards used to set the corresponding root descriptor table on the GPU side.
-     This function will fail if called on a descriptor heap of any type other than dsv
+
+    /*! creates SRV descriptors and places them into this descriptor heap beginning from position determined by
+     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     The return value of this function is GPU address of the first created descriptor.
     */
-    uint64_t allocateDepthStencilViewDescriptors(std::vector<DSVDescriptor> const& dsv_descriptors);
+    uint64_t createShaderResourceViewDescriptors(size_t offset, std::vector<SRVDescriptor> const& srv_descriptors);
 
+    /*! creates UAV descriptors and places them into this descriptor heap beginning from position determined by
+     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     The return value of this function is GPU address of the first created descriptor.
+    */
+    uint64_t createUnorderedAccessViewDescriptors(size_t offset, std::vector<UAVDescriptor> const& uav_descriptors);
 
-private:
-    std::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE> updateAllocation(uint32_t num_descriptors);
+    /*! creates sampler descriptors and places them into this descriptor heap beginning from position determined by
+     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     The return value of this function is GPU address of the first created descriptor.
+    */
+    uint64_t createSamplerDescriptors(size_t offset, std::vector<SamplerDescriptor> const& sampler_descriptors);
+    
+    /*! creates RTV descriptors and places them into this descriptor heap beginning from position determined by
+     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     The return value of this function is GPU address of the first created descriptor.
+    */
+    uint64_t createRenderTargetViewDescriptors(size_t offset, std::vector<RTVDescriptor> const& rtv_descriptors);
+
+    /*! creates DSV descriptors and places them into this descriptor heap beginning from position determined by
+     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     The return value of this function is GPU address of the first created descriptor.
+    */
+    uint64_t createDepthStencilViewDescriptors(size_t offset, std::vector<DSVDescriptor> const& dsv_descriptors);
 
 private:
     DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t descriptor_capacity, uint32_t node_mask);
@@ -91,7 +89,12 @@ private:
     uint32_t const m_descriptor_capacity;    //!< number of descriptors that could be stored in the heap
     uint32_t m_node_mask;    //!< mask determining adapter, to which the heap is assigned
     std::atomic<uint32_t> m_num_descriptors_allocated;    //!< number of currently allocated descriptors
+
+    size_t m_heap_start_cpu_address;    //!< CPU address of the beginning of the heap
+    uint64_t m_heap_start_gpu_address;    //!< GPU address of the beginning of the heap
 };
+
+
 
 }
 

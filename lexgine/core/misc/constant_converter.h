@@ -52,7 +52,7 @@ template<EngineAPI API, MagnificationFilter min_filter, bool is_comparison = fal
 template<EngineAPI API, WrapMode wrap_mode> struct WrapModeConverter;
 
 //! Converts API-agnostic constant determining border color used for sampling boundary resolution to the corresponding API-specific value
-template<EngineAPI API, BorderColor border_color> struct BorderColorConverter;
+template<EngineAPI API, StaticBorderColor border_color> struct BorderColorConverter;
 
 }
 

@@ -46,6 +46,7 @@ struct DSVTextureInfo;
 struct DSVTextureArrayInfo;
 class DSVDescriptor;
 
+class SamplerDescriptor;
 
 }
 

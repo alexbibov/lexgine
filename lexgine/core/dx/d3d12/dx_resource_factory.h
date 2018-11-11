@@ -27,7 +27,7 @@ public:
     dxcompilation::DXCompilerProxy& shaderModel6xDxCompilerProxy();
     DebugInterface const* debugInterface() const;
     
-    DescriptorHeap& retrieveDescriptorHeap(Device const& device, uint32_t page_id, DescriptorHeapType descriptor_heap_type);
+    DescriptorHeap& retrieveDescriptorHeap(Device const& device, uint32_t page_id, DescriptorHeapType descriptor_heap_type) const;
     Heap& retrieveUploadHeap(Device const& device);
 
     dxgi::HwAdapter const* retrieveHwAdapterOwningDevicePtr(Device const& device) const;

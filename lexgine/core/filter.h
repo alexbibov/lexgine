@@ -72,7 +72,7 @@ enum class WrapMode : uint8_t
 
 
 //! Defines colors that can be used for boundary resolution in the border mode
-enum class BorderColor : uint8_t
+enum class StaticBorderColor : uint8_t
 {
     transparent_black,
     opaque_black,
@@ -84,27 +84,28 @@ enum class BorderColor : uint8_t
 class FilterPack final
 {
 public:
-    //! Initializes the filter pack. Note that if either @param min_filter or @param mag_filter is not "anisotropy" then @param anisotropy is ignored
-    //! if @param comparison is "true" the filter pack is intended for use in comparison mode
-    FilterPack(MinificationFilter min_filter, MagnificationFilter mag_filter, uint32_t anisotropy,
+    /*! Initializes the filter pack. Note that if either min_filter or mag_filter is not "anisotropy" then anisotropy is ignored
+     if "comparison" is "true" the filter pack is intended to be used in comparison mode
+     */
+    FilterPack(MinificationFilter min_filter, MagnificationFilter mag_filter, uint32_t max_anisotropy,
         WrapMode wrap_u, WrapMode wrap_v, WrapMode wrap_w,
-        BorderColor border_color = BorderColor::opaque_black,
+        StaticBorderColor static_border_color = StaticBorderColor::opaque_black,
         bool comparison = false, ComparisonFunction comparison_function = ComparisonFunction::always,
-        float lod_bias = 0.0f, float min_lod = 0.0f, float max_lod = FLT_MAX);
+        float mip_lod_bias = 0.0f, float min_lod = 0.0f, float max_lod = (std::numeric_limits<float>::max)());
 
     MinificationFilter MinFilter() const;    //! returns minification filter encapsulated by the pack
     MagnificationFilter MagFilter() const;    //! returns magnification filter encapsulated by the pack
 
-    uint32_t getAnisotropyLevel() const;    //! returns current anisotropy filter of the pack
+    uint32_t getMaximalAnisotropyLevel() const;    //! returns maximal anisotropy level filtering defined by the pack
 
     std::pair<WrapMode, WrapMode> getWrapModeUV() const;    //! returns boundary resolution modes along U- and V- texture axes packed into std::pair object in this order
     WrapMode getWrapModeW() const;    //! returns boundary resolution mode along W- texture axis
-    BorderColor getBorderColor() const;
+    StaticBorderColor getStaticBorderColor() const;
 
     bool isComparison() const;    //! returns "true" if this filter pack has to be used in comparison texture sampling mode
     ComparisonFunction getComparisonFunction() const;
 
-    float getLODBias() const;
+    float getMipLODBias() const;
     std::pair<float, float> getMinMaxLOD() const;    //! returns minimal and maximal LOD-levels permitted to sample from packed into an std::pair in this order
 
 private:
@@ -112,10 +113,10 @@ private:
     MagnificationFilter m_mag_filter;
     WrapMode m_u_wrapping, m_v_wrapping, m_w_wrapping;
     float m_mip_lod_bias;
-    uint32_t m_anisotropy_level;
+    uint32_t m_max_anisotropy_level;
     bool const m_comparison_mode;    //!< "true" if the pack is intended for use in comparison mode
     ComparisonFunction m_cmp_fun;
-    BorderColor m_border_color;
+    StaticBorderColor m_static_border_color;
     float m_min_lod, m_max_lod;
 };
 
