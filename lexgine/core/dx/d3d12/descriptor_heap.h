@@ -25,6 +25,7 @@ enum class DescriptorHeapType {
 class DescriptorHeap final : public NamedEntity<class_names::D3D12DescriptorHeap>
 {
     friend class Device;    // only devices are allowed to create the heaps
+
 public:
     Device& device() const;    //! returns the device used to create this descriptor heap
     ComPtr<ID3D12DescriptorHeap> native() const;    //! returns encapsulated reference to the native Direct3D 12 interface representing the descriptor heap

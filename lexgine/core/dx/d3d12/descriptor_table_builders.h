@@ -3,6 +3,7 @@
 
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine_core_dx_d3d12_fwd.h"
+#include "lexgine/core/misc/optional.h"
 
 #include <cstdint>
 #include <vector>
@@ -19,13 +20,13 @@ struct ResourceDescriptorTableReference
 class ResourceDescriptorTableBuilder final
 {
 public:
-    ResourceDescriptorTableBuilder(Globals& globals);
+    ResourceDescriptorTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page_id);
 
     void addDescriptor(CBVDescriptor const& descriptor);
     void addDescriptor(SRVDescriptor const& descriptor);
     void addDescriptor(UAVDescriptor const& descriptor);
     
-    ResourceDescriptorTableReference build() const;
+    misc::Optional<ResourceDescriptorTableReference> build() const;
 
 private:
     enum class descriptor_cache_type
@@ -47,9 +48,8 @@ private:
     using uav_descriptor_cache = std::vector<UAVDescriptor>;
 
 private:
-    Device const& m_current_device;
-    GlobalSettings const& m_global_settings;
-    DxResourceFactory const& m_dx_resource_factory;
+    Globals const& m_globals;
+    uint32_t m_target_descriptor_heap_page_id;
 
     descriptor_cache_type m_currently_assembled_range;
 
