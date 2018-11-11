@@ -10,10 +10,9 @@
 #include <numeric>
 
 using namespace lexgine::core;
-using namespace lexgine::core::misc;
 using namespace lexgine::core::dx::d3d12;
 
-ResourceDescriptorTableBuilder::ResourceDescriptorTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page_id):
+ResourceViewDescriptorTableBuilder::ResourceViewDescriptorTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page_id):
     m_globals{ globals },
     m_target_descriptor_heap_page_id{ target_descriptor_heap_page_id },
     m_currently_assembled_range{ descriptor_cache_type::none }
@@ -21,9 +20,9 @@ ResourceDescriptorTableBuilder::ResourceDescriptorTableBuilder(Globals const& gl
 
 }
 
-void ResourceDescriptorTableBuilder::addDescriptor(CBVDescriptor const& descriptor)
+void ResourceViewDescriptorTableBuilder::addDescriptor(CBVDescriptor const& descriptor)
 {
-    if (m_currently_assembled_range != ResourceDescriptorTableBuilder::descriptor_cache_type::cbv)
+    if (m_currently_assembled_range != descriptor_cache_type::cbv)
     {
         switch (m_currently_assembled_range)
         {
@@ -40,15 +39,15 @@ void ResourceDescriptorTableBuilder::addDescriptor(CBVDescriptor const& descript
         new_range.start = m_cbv_descriptors.size();
         m_descriptor_table_footprint.push_back(new_range);
 
-        m_currently_assembled_range = ResourceDescriptorTableBuilder::descriptor_cache_type::cbv;
+        m_currently_assembled_range = descriptor_cache_type::cbv;
     }
 
     m_cbv_descriptors.push_back(descriptor);
 }
 
-void ResourceDescriptorTableBuilder::addDescriptor(SRVDescriptor const& descriptor)
+void ResourceViewDescriptorTableBuilder::addDescriptor(SRVDescriptor const& descriptor)
 {
-    if (m_currently_assembled_range != ResourceDescriptorTableBuilder::descriptor_cache_type::srv)
+    if (m_currently_assembled_range != descriptor_cache_type::srv)
     {
         switch (m_currently_assembled_range)
         {
@@ -65,15 +64,15 @@ void ResourceDescriptorTableBuilder::addDescriptor(SRVDescriptor const& descript
         new_range.start = m_srv_descriptors.size();
         m_descriptor_table_footprint.push_back(new_range);
 
-        m_currently_assembled_range = ResourceDescriptorTableBuilder::descriptor_cache_type::srv;
+        m_currently_assembled_range = descriptor_cache_type::srv;
     }
 
     m_srv_descriptors.push_back(descriptor);
 }
 
-void ResourceDescriptorTableBuilder::addDescriptor(UAVDescriptor const& descriptor)
+void ResourceViewDescriptorTableBuilder::addDescriptor(UAVDescriptor const& descriptor)
 {
-    if (m_currently_assembled_range != ResourceDescriptorTableBuilder::descriptor_cache_type::uav)
+    if (m_currently_assembled_range != descriptor_cache_type::uav)
     {
         switch (m_currently_assembled_range)
         {
@@ -90,13 +89,13 @@ void ResourceDescriptorTableBuilder::addDescriptor(UAVDescriptor const& descript
         new_range.start = m_uav_descriptors.size();
         m_descriptor_table_footprint.push_back(new_range);
 
-        m_currently_assembled_range = ResourceDescriptorTableBuilder::descriptor_cache_type::uav;
+        m_currently_assembled_range = descriptor_cache_type::uav;
     }
 
     m_uav_descriptors.push_back(descriptor);
 }
 
-misc::Optional<ResourceDescriptorTableReference> ResourceDescriptorTableBuilder::build() const
+ResourceViewDescriptorTableReference ResourceViewDescriptorTableBuilder::build() const
 {
     uint32_t total_descriptor_count = std::accumulate(m_descriptor_table_footprint.begin(),
         m_descriptor_table_footprint.end(), 0UI32,
@@ -113,7 +112,7 @@ misc::Optional<ResourceDescriptorTableReference> ResourceDescriptorTableBuilder:
 
     
     uint32_t offset = target_descriptor_heap.reserveDescriptors(total_descriptor_count);
-    ResourceDescriptorTableReference rv{ m_target_descriptor_heap_page_id, offset, total_descriptor_count };
+    ResourceViewDescriptorTableReference rv{ m_target_descriptor_heap_page_id, offset, total_descriptor_count };
     for (auto& range : m_descriptor_table_footprint)
     {
         switch (range.cache_type)

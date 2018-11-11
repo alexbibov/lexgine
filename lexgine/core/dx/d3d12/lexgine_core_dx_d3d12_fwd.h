@@ -48,6 +48,12 @@ class DSVDescriptor;
 
 class SamplerDescriptor;
 
+template<typename T> struct TableReference;
+class ResourceViewDescriptorTableBuilder;
+class SamplerTableBuilder;
+class RenderTargetViewTableBuilder;
+class DepthStencilViewTableBuilder;
+
 }
 
 #endif
