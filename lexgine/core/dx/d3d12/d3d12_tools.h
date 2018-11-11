@@ -117,7 +117,7 @@ struct WrapModeConverter<EngineAPI::Direct3D12, wrap_mode>
 };
 
 
-template<BorderColor border_color>
+template<StaticBorderColor border_color>
 struct BorderColorConverter<EngineAPI::Direct3D12, border_color>
 {
     // See definition of BorderColor and D3D12_STATIC_BORDER_COLOR enumeration for very detailed details
@@ -380,16 +380,16 @@ inline D3D12_TEXTURE_ADDRESS_MODE d3d12Convert(WrapMode wrap_mode)
 
 
 //! Converts runtime value of the border color to Direct3D 12 specific constant
-inline D3D12_STATIC_BORDER_COLOR d3d12Convert(BorderColor border_color)
+inline D3D12_STATIC_BORDER_COLOR d3d12Convert(StaticBorderColor border_color)
 {
     switch (border_color)
     {
-    case BorderColor::transparent_black:
-        return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<misc::EngineAPI::Direct3D12, BorderColor::transparent_black>::value());
-    case BorderColor::opaque_black:
-        return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<misc::EngineAPI::Direct3D12, BorderColor::opaque_black>::value());
-    case BorderColor::opaque_white:
-        return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<misc::EngineAPI::Direct3D12, BorderColor::opaque_white>::value());
+    case StaticBorderColor::transparent_black:
+        return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<misc::EngineAPI::Direct3D12, StaticBorderColor::transparent_black>::value());
+    case StaticBorderColor::opaque_black:
+        return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<misc::EngineAPI::Direct3D12, StaticBorderColor::opaque_black>::value());
+    case StaticBorderColor::opaque_white:
+        return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<misc::EngineAPI::Direct3D12, StaticBorderColor::opaque_white>::value());
     default: throw;    // not supported
     }
 }

@@ -206,10 +206,10 @@ RootSignature& RootSignature::addParameter(uint32_t slot, RootStaticSampler cons
     desc.AddressU = d3d12Convert(uv_wrap_modes.first);
     desc.AddressV = d3d12Convert(uv_wrap_modes.second);
     desc.AddressW = d3d12Convert(root_static_sampler_declaration.m_filter_pack.getWrapModeW());
-    desc.MipLODBias = root_static_sampler_declaration.m_filter_pack.getLODBias();
-    desc.MaxAnisotropy = root_static_sampler_declaration.m_filter_pack.getAnisotropyLevel();
+    desc.MipLODBias = root_static_sampler_declaration.m_filter_pack.getMipLODBias();
+    desc.MaxAnisotropy = root_static_sampler_declaration.m_filter_pack.getMaximalAnisotropyLevel();
     desc.ComparisonFunc = d3d12Convert(root_static_sampler_declaration.m_filter_pack.getComparisonFunction());
-    desc.BorderColor = d3d12Convert(root_static_sampler_declaration.m_filter_pack.getBorderColor());
+    desc.BorderColor = d3d12Convert(root_static_sampler_declaration.m_filter_pack.getStaticBorderColor());
     auto min_max_log = root_static_sampler_declaration.m_filter_pack.getMinMaxLOD();
     desc.MinLOD = min_max_log.first;
     desc.MaxLOD = min_max_log.second;

@@ -170,6 +170,7 @@
     <ClCompile Include="core\dx\d3d12\cbv_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\d3d12_pso_xml_parser.cpp" />
     <ClCompile Include="core\dx\d3d12\debug_interface.cpp" />
+    <ClCompile Include="core\dx\d3d12\descriptor_table_builders.cpp" />
     <ClCompile Include="core\dx\d3d12\dsv_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\descriptor_heap.cpp" />
     <ClCompile Include="core\dx\d3d12\device.cpp" />
@@ -183,6 +184,7 @@
     <ClCompile Include="core\dx\d3d12\resource.cpp" />
     <ClCompile Include="core\dx\d3d12\root_signature.cpp" />
     <ClCompile Include="core\dx\d3d12\root_signature_cache.cpp" />
+    <ClCompile Include="core\dx\d3d12\sampler_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\srv_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\signal.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\data_uploading_task.cpp" />
@@ -270,6 +272,7 @@
     <ClInclude Include="core\dx\d3d12\resource.h" />
     <ClInclude Include="core\dx\d3d12\resource_barrier.h" />
     <ClInclude Include="core\dx\d3d12\root_signature.h" />
+    <ClInclude Include="core\dx\d3d12\sampler_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\srv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\signal.h" />
     <ClInclude Include="core\dx\d3d12\tasks\data_uploading_task.h" />
