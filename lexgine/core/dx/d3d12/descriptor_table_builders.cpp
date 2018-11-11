@@ -10,12 +10,12 @@
 #include <numeric>
 
 using namespace lexgine::core;
+using namespace lexgine::core::misc;
 using namespace lexgine::core::dx::d3d12;
 
-ResourceDescriptorTableBuilder::ResourceDescriptorTableBuilder(Globals& globals):
-    m_current_device{ *globals.get<Device>() },
-    m_global_settings{ *globals.get<GlobalSettings>() },
-    m_dx_resource_factory{ *globals.get<DxResourceFactory>() },
+ResourceDescriptorTableBuilder::ResourceDescriptorTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page_id):
+    m_globals{ globals },
+    m_target_descriptor_heap_page_id{ target_descriptor_heap_page_id },
     m_currently_assembled_range{ descriptor_cache_type::none }
 {
 
@@ -96,7 +96,7 @@ void ResourceDescriptorTableBuilder::addDescriptor(UAVDescriptor const& descript
     m_uav_descriptors.push_back(descriptor);
 }
 
-ResourceDescriptorTableReference ResourceDescriptorTableBuilder::build() const
+misc::Optional<ResourceDescriptorTableReference> ResourceDescriptorTableBuilder::build() const
 {
     uint32_t total_descriptor_count = std::accumulate(m_descriptor_table_footprint.begin(),
         m_descriptor_table_footprint.end(), 0UI32,
@@ -105,10 +105,41 @@ ResourceDescriptorTableReference ResourceDescriptorTableBuilder::build() const
             return a + static_cast<uint32_t>(range.end - range.start);
         }
     );
-
-    ResourceDescriptorTableReference rv{};
-
     
 
+    auto& target_descriptor_heap = 
+        m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(*m_globals.get<Device>(), 
+            m_target_descriptor_heap_page_id, DescriptorHeapType::cbv_srv_uav);
+
+    
+    uint32_t offset = target_descriptor_heap.reserveDescriptors(total_descriptor_count);
+    ResourceDescriptorTableReference rv{ m_target_descriptor_heap_page_id, offset, total_descriptor_count };
+    for (auto& range : m_descriptor_table_footprint)
+    {
+        switch (range.cache_type)
+        {
+        case descriptor_cache_type::cbv:
+            target_descriptor_heap.createConstantBufferViewDescriptors(offset,
+                std::vector<CBVDescriptor>{m_cbv_descriptors.begin() + range.start,
+                m_cbv_descriptors.begin() + range.end});
+            offset += static_cast<uint32_t>(range.end - range.start);
+            break;
+
+        case descriptor_cache_type::srv:
+            target_descriptor_heap.createShaderResourceViewDescriptors(offset,
+                std::vector<SRVDescriptor>{m_srv_descriptors.begin() + range.start,
+                m_srv_descriptors.begin() + range.end});
+            offset += static_cast<uint32_t>(range.end - range.start);
+            break;
+
+        case descriptor_cache_type::uav:
+            target_descriptor_heap.createUnorderedAccessViewDescriptors(offset,
+                std::vector<UAVDescriptor>{m_uav_descriptors.begin() + range.start,
+                m_uav_descriptors.begin() + range.end});
+            offset += static_cast<uint32_t>(range.end - range.start);
+            break;
+        }
+    }
+    
     return rv;
 }

@@ -10,8 +10,8 @@
 #include "rtv_descriptor.h"
 #include "dsv_descriptor.h"
 
-
 #include <cassert>
+#include <algorithm>
 
 using namespace lexgine::core::dx::d3d12;
 
@@ -37,12 +37,31 @@ uint32_t DescriptorHeap::capacity() const
 
 uint32_t DescriptorHeap::descriptorsAllocated() const
 {
-    return m_num_descriptors_allocated.load(std::memory_order::memory_order_acquire);
+    return (std::min)(m_num_descriptors_allocated.load(std::memory_order::memory_order_acquire), m_descriptor_capacity);
 }
 
 uint32_t DescriptorHeap::reserveDescriptors(uint32_t count)
 {
-    return m_num_descriptors_allocated.fetch_add(count, std::memory_order::memory_order_acq_rel);
+    uint32_t offset;
+    bool reservation_successful = count <= m_descriptor_capacity - descriptorsAllocated();
+
+    if(reservation_successful)
+        offset = m_num_descriptors_allocated.fetch_add(count, std::memory_order::memory_order_acq_rel);
+
+    if (offset >= m_descriptor_capacity)
+    {
+        m_num_descriptors_allocated.fetch_sub(count, std::memory_order::memory_order_acq_rel);
+        reservation_successful = false;
+    }
+
+    if (!reservation_successful)
+    {
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(*this,
+            "Unable to reserve " + std::to_string(count) + " descriptors from descriptor heap \""
+            + getStringName() + "\": the descriptor heap is exhausted");
+    }
+
+    return offset;
 }
 
 
