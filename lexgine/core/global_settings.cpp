@@ -14,27 +14,59 @@ using namespace lexgine::core;
 using json = nlohmann::json;
 
 
+namespace {
+
+template<typename T>
+std::string to_string(T const& value) { return std::to_string(value); }
+
+template<>
+std::string to_string<std::string>(std::string const& value) { return value; }
+
+}
+
+
 GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
 {
     // initialize default values for the settings
     {
         m_number_of_workers = 8U;
+
         m_deferred_shader_compilation = true;
-        // m_deferred_pso_compilation = true;
-        // m_deferred_root_signature_compilation = true;
+        m_deferred_pso_compilation = true;
+        m_deferred_root_signature_compilation = true;
+
         m_cache_path = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
             + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
             + "__" + PROJECT_VERSION_STAGE + "__cache/";
+
         m_combined_cache_name = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
             + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
             + "__" + PROJECT_VERSION_STAGE + ".combined_cache";
+
         m_max_combined_cache_size = 1024ull * 1024 * 1024 * 4;    // defaults to 4Gbs
-        m_descriptor_heaps_capacity = 512U;
+        
         m_upload_heap_capacity = 1024 * 1024 * 256;    // 256MBs by default
         m_enable_async_compute = true;
         m_enable_async_copy = true;
         m_max_frames_in_flight = 6;
         m_max_non_blocking_upload_buffer_allocation_timeout = 1000U;
+
+
+        {
+            // Descriptor heaps total and per-page capacity default settings
+
+            m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = 8192;
+            m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = 1;
+
+            m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::sampler)] = 256;
+            m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::sampler)] = 1;
+
+            m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::rtv)] = 512;
+            m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::rtv)] = 1;
+
+            m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::dsv)] = 512;
+            m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::dsv)] = 1;
+        }
     }
 
 
@@ -55,6 +87,14 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         json::iterator p;
 
 
+        auto yield_warning_log_message = [&json_settings_source_path](std::string const& setting_name, auto setting_default_value)
+        {
+            misc::Log::retrieve()->out("WARNING: unable to get value for \"" + setting_name + "\" from the settings file located at \""
+                + json_settings_source_path + "\". The system will fall back to the default value \""
+                + setting_name + " = " + to_string(setting_default_value) + "\"", misc::LogMessageType::exclamation);
+        };
+
+
         if ((p = document.find("number_of_workers")) != document.end()
             && p->is_number_unsigned())
         {
@@ -62,9 +102,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to get value for \"number_of_workers\" from the settings file located at \""
-                + json_settings_source_path + "\". The system will fall back to the default value \"number_of_workers = " + std::to_string(m_number_of_workers) + "\"",
-                misc::LogMessageType::exclamation);
+            yield_warning_log_message("number_of_workers", m_number_of_workers);
         }
 
 
@@ -77,9 +115,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             }
             else
             {
-                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_pso_compilation\" from the settings file located at \""
-                    + json_settings_source_path + "\". The system will fall back to the default value \"deferred_pso_compilation = " + std::to_string(m_deferred_pso_compilation) + "\"",
-                    misc::LogMessageType::exclamation);
+                yield_warning_log_message("deferred_pso_compilation", m_deferred_pso_compilation);
             }
 
             if ((p = document.find("deferred_shader_compilation")) != document.end()
@@ -90,10 +126,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             else
             {
                 m_deferred_shader_compilation = m_deferred_pso_compilation;
-
-                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_shader_compilation\" from the settings file located at \""
-                    + json_settings_source_path + "\". The system will fall back to the default value \"deferred_shader_compilation = " + std::to_string(m_deferred_shader_compilation) + "\"",
-                    misc::LogMessageType::exclamation);
+                yield_warning_log_message("deferred_shader_compilation", m_deferred_shader_compilation);
             }
 
             if ((p = document.find("deferred_root_signature_compilation")) != document.end()
@@ -104,10 +137,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             else
             {
                 m_deferred_root_signature_compilation = m_deferred_pso_compilation;
-
-                misc::Log::retrieve()->out("WARNING: unable to get value for \"deferred_root_signature_compilation\" from the settings file located at \""
-                    + json_settings_source_path + "\". The system will fall back to the default value \"deferred_root_signature_compilation = " + std::to_string(m_deferred_root_signature_compilation) + "\"",
-                    misc::LogMessageType::exclamation);
+                yield_warning_log_message("deferred_root_signature_compilation", m_deferred_root_signature_compilation);
             }
         }
 
@@ -124,9 +154,9 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
                     }
                     else
                     {
-                        misc::Log::retrieve()->out("WARNING: unable retrieve value from JSON array \"shader_lookup_directories\" in the settings file located at \""
-                            + json_settings_source_path + "\"; \"shader_lookup_directories\" is expected to be an array of strings but some of its elements appear to have non-string format.",
-                            misc::LogMessageType::exclamation);
+                        misc::Log::retrieve()->out("WARNING: unable retrieve a value from JSON array \"shader_lookup_directories\" in the settings file located at \""
+                            + json_settings_source_path + "\"; \"shader_lookup_directories\" is expected to be an array of strings but some of its elements appear to have non-string format. "
+                            "Non-string elements will be ignored", misc::LogMessageType::exclamation);
                     }
                 }
             }
@@ -146,9 +176,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to get value for \"cache_path\" from the settings file located at \""
-                + json_settings_source_path + "\"; \"cache_path\" must have string value. The system will fall back to default cache path setting (\""
-                + m_cache_path + "/\")", misc::LogMessageType::exclamation);
+            yield_warning_log_message("cache_path", m_cache_path);
         }
 
         if ((p = document.find("combined_cache_name")) != document.end()
@@ -158,10 +186,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"combined_cache_name\" from the settings file located at \""
-                + json_settings_source_path + "\"; \"combined_cache_name\" either has wrong value (must be string) or was not specified in the settings source file. "
-                "The system will revert to use of the default value (\"" + m_combined_cache_name + "\")",
-                misc::LogMessageType::exclamation);
+            yield_warning_log_message("combined_cache_name", m_combined_cache_name);
         }
 
         if ((p = document.find("maximal_combined_cache_size")) != document.end()
@@ -171,23 +196,8 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"maximal_combined_cache_size\" from the settings file located at \""
-                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected unsigned integer). "
-                "The default maximal value of " + std::to_string(m_max_combined_cache_size / 1024 / 1024 / 1024) + "GBs will be used instead",
-                misc::LogMessageType::exclamation);
-        }
-
-        if ((p = document.find("descriptor_heaps_capacity")) != document.end()
-            && p->is_number_unsigned())
-        {
-            m_descriptor_heaps_capacity = p->get<uint32_t>();
-        }
-        else
-        {
-            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"descriptor_heaps_capacity\" from the settings file located at \""
-                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected unsigned integer). "
-                "The default value of " + std::to_string(m_descriptor_heaps_capacity) + " total descriptor count will be used.",
-                misc::LogMessageType::exclamation);
+            yield_warning_log_message("maximal_combined_cache_size", 
+                std::to_string(m_max_combined_cache_size / 1024 / 1024 / 1024) + "GBs");
         }
 
         if ((p = document.find("upload_heap_capacity")) != document.end()
@@ -197,10 +207,8 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"upload_heap_capacity\" from the settings file located at \""
-                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected unsigned integer). "
-                "The upload heap will be having the default capacity of " + std::to_string(m_upload_heap_capacity / 1024 / 1024) + "MB.",
-                misc::LogMessageType::exclamation);
+            yield_warning_log_message("upload_heap_capacity", 
+                std::to_string(m_upload_heap_capacity / 1024 / 1024) + "MBs");
         }
 
         if ((p = document.find("enable_async_compute")) != document.end()
@@ -210,10 +218,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"enable_async_compute\" from the settings file located at \""
-                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected boolean). "
-                "The system will revert to the default setting \"enable_async_compute = " + std::to_string(m_enable_async_compute) + "\"",
-                misc::LogMessageType::exclamation);
+            yield_warning_log_message("enable_async_compute", m_enable_async_compute);
         }
 
         if ((p = document.find("enable_async_copy")) != document.end()
@@ -223,10 +228,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"enable_async_copy\" from the settings file located at \""
-                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected boolean). "
-                "The system will revert to the default setting \"enable_async_copy = " + std::to_string(m_enable_async_copy) + "\"",
-                misc::LogMessageType::exclamation);
+            yield_warning_log_message("enable_async_copy", m_enable_async_copy);
         }
 
         if ((p = document.find("max_frames_in_flight")) != document.end()
@@ -236,10 +238,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"max_frames_in_flight\" from the settings file located at \""
-                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected short integer). "
-                "The system will revert to the default setting \"max_frames_in_flight = " + std::to_string(m_max_frames_in_flight) + "\"",
-                misc::LogMessageType::exclamation);
+            yield_warning_log_message("max_frames_in_flight", m_max_frames_in_flight);
         }
 
         if ((p = document.find("max_non_blocking_upload_buffer_allocation_timeout")) != document.end()
@@ -249,12 +248,106 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         }
         else
         {
-            misc::Log::retrieve()->out("WARNING: unable to retrieve value for \"max_non_blocking_upload_buffer_allocation_timeout\" from the settings file located at \""
-                + json_settings_source_path + "\"; the setting either has not been defined or has invalid value (expected unsigned integer). "
-                "The system will revert to the default setting \"max_non_blocking_upload_buffer_allocation_timeout = " 
-                + std::to_string(m_max_non_blocking_upload_buffer_allocation_timeout) + "\"",
-                misc::LogMessageType::exclamation);
+            yield_warning_log_message("max_non_blocking_upload_buffer_allocation_timeout",
+                m_max_non_blocking_upload_buffer_allocation_timeout);
         }
+
+
+        {
+            // Descriptor heaps total and per-page capacity settings
+
+            if ((p = document.find("resource_view_descriptors_per_page")) != document.end()
+                && p->is_number_unsigned())
+            {
+                m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = p->get<uint32_t>();
+            }
+            else
+            {
+                yield_warning_log_message("resource_view_descriptors_per_page",
+                    m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)]);
+            }
+
+            if ((p = document.find("resource_view_descriptor_heap_page_count")) != document.end()
+                && p->is_number_unsigned())
+            {
+                m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = p->get<uint32_t>();
+            }
+            else
+            {
+                yield_warning_log_message("resource_view_descriptor_heap_page_count",
+                    m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)]);
+            }
+
+
+            if ((p = document.find("sampler_descriptors_per_page")) != document.end()
+                && p->is_number_unsigned())
+            {
+                m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::sampler)] = p->get<uint32_t>();
+            }
+            else
+            {
+                yield_warning_log_message("sampler_descriptors_per_page",
+                    m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::sampler)]);
+            }
+
+            if ((p = document.find("sampler_descriptor_heap_page_count")) != document.end()
+                && p->is_number_unsigned())
+            {
+                m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::sampler)] = p->get<uint32_t>();
+            }
+            else
+            {
+                yield_warning_log_message("sampler_descriptor_heap_page_count",
+                    m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::sampler)]);
+            }
+
+
+            if ((p = document.find("render_target_view_descriptors_per_page")) != document.end()
+                && p->is_number_unsigned())
+            {
+                m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::rtv)] = p->get<uint32_t>();
+            }
+            else
+            {
+                yield_warning_log_message("render_target_view_descriptors_per_page",
+                    m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::rtv)]);
+            }
+
+            if ((p = document.find("render_target_view_descriptor_heap_page_count")) != document.end()
+                && p->is_number_unsigned())
+            {
+                m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::rtv)] = p->get<uint32_t>();
+            }
+            else
+            {
+                yield_warning_log_message("render_target_view_descriptor_heap_page_count",
+                    m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::rtv)]);
+            }
+
+
+            if ((p = document.find("depth_stencil_view_descriptors_per_page")) != document.end()
+                && p->is_number_unsigned())
+            {
+                m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::dsv)] = p->get<uint32_t>();
+            }
+            else
+            {
+                yield_warning_log_message("depth_stencil_view_descriptors_per_page",
+                    m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::dsv)]);
+            }
+
+            if ((p = document.find("depth_stencil_view_descriptor_heap_page_count")) != document.end()
+                && p->is_number_unsigned())
+            {
+                m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::dsv)] = p->get<uint32_t>();
+            }
+            else
+            {
+                yield_warning_log_message("depth_stencil_view_descriptor_heap_page_count",
+                    m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::dsv)]);
+            }
+        }
+        
     }
     catch (...)
     {
@@ -272,14 +365,14 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         if (m_deferred_shader_compilation)
         {
             misc::Log::retrieve()->out("WARNING: deferred PSO compilation is disabled but deferred shader compilation that PSO compilation relies upon is switched on. "
-                "Deferred shader compilation will therefore be forced disabled", misc::LogMessageType::exclamation);
+                "Deferred shader compilation will therefore be force disabled", misc::LogMessageType::exclamation);
             m_deferred_shader_compilation = false;
         }
 
         if (m_deferred_root_signature_compilation)
         {
             misc::Log::retrieve()->out("WARNING: deferred PSO compilation is disabled but deferred root signature compilation that PSO compilation relies upon is switched on. "
-                "Deferred root signature compilation will therefore be forced disabled", misc::LogMessageType::exclamation);
+                "Deferred root signature compilation will therefore be force disabled", misc::LogMessageType::exclamation);
             m_deferred_root_signature_compilation = false;
         }
     }
@@ -303,13 +396,23 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
         { "cache_path", m_cache_path },
         { "combined_cache_name", m_combined_cache_name },
         { "maximal_combined_cache_size", m_max_combined_cache_size },
-        { "descriptor_heaps_capacity", m_descriptor_heaps_capacity },
         { "upload_heap_capacity", m_upload_heap_capacity },
         { "enable_async_compute", m_enable_async_compute },
         { "enable_async_copy", m_enable_async_copy },
         { "max_frames_in_flight", m_max_frames_in_flight },
-        { "max_non_blocking_upload_buffer_allocation_timeout", m_max_non_blocking_upload_buffer_allocation_timeout }
+        { "max_non_blocking_upload_buffer_allocation_timeout", m_max_non_blocking_upload_buffer_allocation_timeout },
+        
+        { "resource_view_descriptors_per_page", m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] },
+        { "resource_view_descriptor_heap_page_count", m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] },
+        { "sampler_descriptors_per_page", m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::sampler)] },
+        { "sampler_descriptor_heap_page_count", m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::sampler)] },
+        { "render_target_view_descriptors_per_page", m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::rtv)] },
+        { "render_target_view_descriptor_heap_page_count", m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::rtv)] },
+        { "depth_stencil_view_descriptors_per_page", m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::dsv)] },
+        { "depth_stencil_view_descriptor_heap_page_count", m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::dsv)] }
+
     };
+
     if (m_shader_lookup_directories.size())
         j["shader_lookup_directories"] = m_shader_lookup_directories;
 
@@ -358,21 +461,14 @@ uint64_t GlobalSettings::getMaxCombinedCacheSize() const
     return m_max_combined_cache_size;
 }
 
-uint32_t GlobalSettings::getDescriptorPageCapacity(uint32_t page_id) const
+uint32_t GlobalSettings::getDescriptorHeapPageCapacity(DescriptorHeapType descriptor_heap_type) const
 {
-    auto res = std::div(static_cast<int>(m_descriptor_heaps_capacity), 
-        static_cast<int>(m_max_descriptors_per_page));
-
-    if (page_id < static_cast<uint32_t>(res.quot)) return m_max_descriptors_per_page;
-    else return static_cast<uint32_t>(res.rem);
+    return m_descriptors_per_page[static_cast<size_t>(descriptor_heap_type)];
 }
 
-uint32_t GlobalSettings::getDescriptorPageCount() const
+uint32_t GlobalSettings::getDescriptorHeapPageCount(DescriptorHeapType descriptor_heap_type) const
 {
-    auto res = std::div(static_cast<int>(m_descriptor_heaps_capacity),
-        static_cast<int>(m_max_descriptors_per_page));
-
-    return static_cast<uint32_t>(res.quot) + (res.rem != 0 ? 1 : 0);
+    return m_descriptor_heap_page_count[static_cast<size_t>(descriptor_heap_type)];
 }
 
 uint32_t GlobalSettings::getUploadHeapCapacity() const

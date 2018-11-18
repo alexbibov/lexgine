@@ -248,6 +248,7 @@
     <ClInclude Include="core\default_allocator.h" />
     <ClInclude Include="core\deferred_pso_compilation_agent.h" />
     <ClInclude Include="core\depth_stencil_descriptor.h" />
+    <ClInclude Include="core\common_types.h" />
     <ClInclude Include="core\dx\d3d12\cbv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\dsv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\descriptor_table_builders.h" />

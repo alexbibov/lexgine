@@ -7,7 +7,7 @@
 #include "lexgine/core/dx/dxcompilation/dx_compiler_proxy.h"
 #include "lexgine/core/dx/d3d12/descriptor_heap.h"
 
-#include <deque>
+#include <vector>
 #include <map>
 #include <array>
 
@@ -33,7 +33,7 @@ public:
     dxgi::HwAdapter const* retrieveHwAdapterOwningDevicePtr(Device const& device) const;
 
 private:
-    using descriptor_heap_page_pool = std::deque<std::array<std::unique_ptr<DescriptorHeap>, 4U>>;
+    using descriptor_heap_page_pool = std::array<std::vector<std::unique_ptr<DescriptorHeap>>, 4U>;
 
 private:
     GlobalSettings const& m_global_settings;

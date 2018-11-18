@@ -394,6 +394,30 @@ inline D3D12_STATIC_BORDER_COLOR d3d12Convert(StaticBorderColor border_color)
     }
 }
 
+
+//! Converts API-agnostic descriptor heap type to enumeration value accepted by Direct3D 12
+inline D3D12_DESCRIPTOR_HEAP_TYPE d3d12Convert(DescriptorHeapType descriptor_heap_type)
+{
+    switch (descriptor_heap_type)
+    {
+    case DescriptorHeapType::cbv_srv_uav:
+        return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+    case DescriptorHeapType::sampler:
+        return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+
+    case DescriptorHeapType::rtv:
+        return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+
+    case DescriptorHeapType::dsv:
+        return D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+
+    default:
+        throw;
+    }
+}
+
+
 }
 
 

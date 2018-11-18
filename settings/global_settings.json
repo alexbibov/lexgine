@@ -1,9 +1,24 @@
 {
     "number_of_workers" : 8,
-	"deferred_pso_compilation" : false,
-	"shader_lookup_directories" : ["scripts/d3d12_PSOs/"],
-	"maximal_combined_cache_size" : 268435456,
+	"deferred_pso_compilation" : true,
+	"deferred_shader_compilation" : true,
+	"deferred_root_signature_compilation" : true,
 	"cache_path": "cache",
 	"combined_cache_name": "data",
-	"descriptor_heaps_capacity": 1024
+	"maximal_combined_cache_size" : 268435456,
+	"upload_heap_capacity" : 536870912,
+	"enable_async_compute" : false,
+	"enable_async_copy" : false,
+	"max_frames_in_flight" : 6,
+	"max_non_blocking_upload_buffer_allocation_timeout" : 30,
+	
+	"resource_view_descriptors_per_page" : 8192,
+	"resource_view_descriptor_heap_page_count" : 1,
+	"sampler_descriptors_per_page" : 256,
+	"sampler_descriptor_heap_page_count" : 1,
+	"render_target_view_descriptors_per_page" : 128,
+	"render_target_view_descriptor_heap_page_count" : 1,
+	"depth_stencil_view_descriptors_per_page" : 128,
+	"depth_stencil_view_descriptor_heap_page_count" : 1,
+	"shader_lookup_directories" : ["scripts/d3d12_PSOs/"]
 }
