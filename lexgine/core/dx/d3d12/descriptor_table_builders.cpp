@@ -6,6 +6,9 @@
 #include "cbv_descriptor.h"
 #include "srv_descriptor.h"
 #include "uav_descriptor.h"
+#include "sampler_descriptor.h"
+#include "rtv_descriptor.h"
+#include "dsv_descriptor.h"
 
 #include <numeric>
 
@@ -108,7 +111,7 @@ ResourceViewDescriptorTableReference ResourceViewDescriptorTableBuilder::build()
 
     auto& target_descriptor_heap = 
         m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(*m_globals.get<Device>(), 
-            m_target_descriptor_heap_page_id, DescriptorHeapType::cbv_srv_uav);
+            DescriptorHeapType::cbv_srv_uav, m_target_descriptor_heap_page_id);
 
     
     uint32_t offset = target_descriptor_heap.reserveDescriptors(total_descriptor_count);
@@ -142,3 +145,28 @@ ResourceViewDescriptorTableReference ResourceViewDescriptorTableBuilder::build()
     
     return rv;
 }
+
+SamplerTableBuilder::SamplerTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page):
+    m_globals{ globals },
+    m_target_descriptor_heap_page_id{ target_descriptor_heap_page }
+{
+}
+
+void SamplerTableBuilder::addDescriptor(SamplerDescriptor const& descriptor)
+{
+    m_sampler_descriptors.push_back(descriptor);
+}
+
+SamplerDescriptorTableReference SamplerTableBuilder::build() const
+{
+    auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
+        *m_globals.get<Device>(), DescriptorHeapType::sampler, m_target_descriptor_heap_page_id);
+
+    uint32_t offset = target_descriptor_heap.reserveDescriptors(static_cast<uint32_t>(m_sampler_descriptors.size()));
+    SamplerDescriptorTableReference rv{ m_target_descriptor_heap_page_id, offset, static_cast<uint32_t>(m_sampler_descriptors.size()) };
+
+    target_descriptor_heap.createSamplerDescriptors(offset, m_sampler_descriptors);
+
+    return rv;
+}
+
