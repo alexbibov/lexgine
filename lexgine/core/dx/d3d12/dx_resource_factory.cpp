@@ -87,7 +87,7 @@ DebugInterface const* lexgine::core::dx::d3d12::DxResourceFactory::debugInterfac
     return m_debug_interface;
 }
 
-DescriptorHeap& DxResourceFactory::retrieveDescriptorHeap(Device const& device, uint32_t page_id, DescriptorHeapType descriptor_heap_type) const
+DescriptorHeap& DxResourceFactory::retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id) const
 {
     return *m_descriptor_heaps.at(&device)[static_cast<size_t>(descriptor_heap_type)][page_id];
 }
