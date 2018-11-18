@@ -5,7 +5,7 @@
 
 #include "command_list.h"
 
-
+using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
 Device::Device(ComPtr<ID3D12Device> const& device, lexgine::core::GlobalSettings const& global_settings):

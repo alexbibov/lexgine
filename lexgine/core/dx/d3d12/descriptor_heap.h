@@ -3,6 +3,7 @@
 
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
+#include "lexgine/core/common_types.h"
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 
@@ -13,14 +14,6 @@
 using namespace Microsoft::WRL;
 
 namespace lexgine::core::dx::d3d12 {
-
-//! Descriptor heap type as dictated by Direct3D 12 specs
-enum class DescriptorHeapType {
-    cbv_srv_uav,
-    sampler,
-    rtv,
-    dsv
-};
 
 class DescriptorHeap final : public NamedEntity<class_names::D3D12DescriptorHeap>
 {

@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <array>
+
+#include "common_types.h"
 
 namespace lexgine { namespace core { 
 
@@ -21,15 +24,14 @@ private:
     std::string m_cache_path;
     std::string m_combined_cache_name;
     uint64_t m_max_combined_cache_size;
-    uint32_t m_descriptor_heaps_capacity;
     uint32_t m_upload_heap_capacity;
     bool m_enable_async_compute;
     bool m_enable_async_copy;
     uint16_t m_max_frames_in_flight;
     uint32_t m_max_non_blocking_upload_buffer_allocation_timeout;
 
-    static uint32_t constexpr m_max_descriptors_per_page = 2048U;
-
+    std::array<uint32_t, static_cast<size_t>(DescriptorHeapType::count)> m_descriptors_per_page;
+    std::array<uint32_t, static_cast<size_t>(DescriptorHeapType::count)> m_descriptor_heap_page_count;
 
 public:
     GlobalSettings() = default;
@@ -49,8 +51,8 @@ public:
     std::string getCombinedCacheName() const;
     uint64_t getMaxCombinedCacheSize() const;
 
-    uint32_t getDescriptorPageCapacity(uint32_t page_id) const;
-    uint32_t getDescriptorPageCount() const;
+    uint32_t getDescriptorHeapPageCapacity(DescriptorHeapType descriptor_heap_type) const;
+    uint32_t getDescriptorHeapPageCount(DescriptorHeapType descriptor_heap_type) const;
     uint32_t getUploadHeapCapacity() const;
 
     bool isAsyncComputeEnabled() const;

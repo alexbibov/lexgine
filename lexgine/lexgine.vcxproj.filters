@@ -408,6 +408,9 @@
     <ClInclude Include="core\dx\d3d12\sampler_descriptor.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
+    <ClInclude Include="core\common_types.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">

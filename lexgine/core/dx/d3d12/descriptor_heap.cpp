@@ -1,6 +1,7 @@
 #include "descriptor_heap.h"
 #include "device.h"
 #include "lexgine/core/exception.h"
+#include "lexgine/core/dx/d3d12/d3d12_tools.h"
 
 #include "resource.h"
 #include "cbv_descriptor.h"
@@ -13,6 +14,8 @@
 #include <cassert>
 #include <algorithm>
 
+
+using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
 Device& DescriptorHeap::device() const
@@ -27,7 +30,7 @@ ComPtr<ID3D12DescriptorHeap> DescriptorHeap::native() const
 
 uint32_t DescriptorHeap::getDescriptorSize() const
 {
-    return m_device.native()->GetDescriptorHandleIncrementSize(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(m_type));
+    return m_descriptor_size;
 }
 
 uint32_t DescriptorHeap::capacity() const
@@ -156,13 +159,13 @@ uint64_t DescriptorHeap::createDepthStencilViewDescriptors(size_t offset, std::v
 DescriptorHeap::DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t descriptor_capacity, uint32_t node_mask) :
     m_device{ device },
     m_type{ type },
-    m_descriptor_size{ device.native()->GetDescriptorHandleIncrementSize(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(type)) },
+    m_descriptor_size{ device.native()->GetDescriptorHandleIncrementSize(d3d12Convert(type)) },
     m_descriptor_capacity{ descriptor_capacity },
     m_node_mask{ node_mask },
     m_num_descriptors_allocated{ 0U }
 {
     D3D12_DESCRIPTOR_HEAP_DESC desc;
-    desc.Type = static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(type);
+    desc.Type = d3d12Convert(type);
     desc.NumDescriptors = static_cast<UINT>(descriptor_capacity);
     switch (type)
     {

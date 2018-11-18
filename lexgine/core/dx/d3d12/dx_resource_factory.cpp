@@ -20,8 +20,6 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
 {
     m_hw_adapter_enumerator.setStringName("Hardware adapter enumerator");
 
-    uint32_t descriptor_heaps_num_pages = global_settings.getDescriptorPageCount();
-
     for (auto& adapter : m_hw_adapter_enumerator)
     {
         Device& dev_ref = adapter.device();
@@ -29,29 +27,33 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
         uint32_t node_mask = 1;
 
         // initialize descriptor heaps
+
+        descriptor_heap_page_pool page_pool{};
+        std::array<std::string, 4U> descriptor_heap_name_suffixes = {
+            "_cbv_srv_uav_heap", "_sampler_heap", "_rtv_heap", "_dsv_heap"
+        };
+        for (auto heap_type : 
+            { DescriptorHeapType::cbv_srv_uav, 
+            DescriptorHeapType::sampler,
+            DescriptorHeapType::rtv,
+            DescriptorHeapType::dsv })
         {
-            descriptor_heap_page_pool page_pool{};
-            for (uint32_t page_id = 0U; page_id < descriptor_heaps_num_pages; ++page_id)
+            uint32_t descriptor_heap_page_count = global_settings.getDescriptorHeapPageCount(heap_type);
+            page_pool[static_cast<size_t>(heap_type)].resize(descriptor_heap_page_count);
+
+            for (uint32_t page_id = 0U; page_id < descriptor_heap_page_count; ++page_id)
             {
-                uint32_t num_descriptors = global_settings.getDescriptorPageCapacity(page_id);
+                uint32_t descriptor_count = global_settings.getDescriptorHeapPageCapacity(heap_type);
+                auto& new_descriptor_heap_ref =
+                    page_pool[static_cast<size_t>(heap_type)][page_id] = 
+                    dev_ref.createDescriptorHeap(heap_type, descriptor_count, node_mask);
 
-                std::array<std::unique_ptr<DescriptorHeap>, 4> descriptor_heaps{
-                    dev_ref.createDescriptorHeap(DescriptorHeapType::cbv_srv_uav, num_descriptors, node_mask),
-                    dev_ref.createDescriptorHeap(DescriptorHeapType::sampler, num_descriptors, node_mask),
-                    dev_ref.createDescriptorHeap(DescriptorHeapType::rtv, num_descriptors, node_mask),
-                    dev_ref.createDescriptorHeap(DescriptorHeapType::dsv, num_descriptors, node_mask)
-                };
-
-                descriptor_heaps[0]->setStringName(dev_ref.getStringName() + "__cbv_srv_uav_heap");
-                descriptor_heaps[1]->setStringName(dev_ref.getStringName() + "__sampler_heap");
-                descriptor_heaps[2]->setStringName(dev_ref.getStringName() + "__rtv_heap");
-                descriptor_heaps[3]->setStringName(dev_ref.getStringName() + "__dsv_heap");
-
-                page_pool.push_back(std::move(descriptor_heaps));
+                new_descriptor_heap_ref->setStringName(dev_ref.getStringName() 
+                    + descriptor_heap_name_suffixes[static_cast<size_t>(heap_type)] + "_page" + std::to_string(page_id));
             }
-
-            m_descriptor_heaps.emplace(&dev_ref, std::move(page_pool));
         }
+
+        m_descriptor_heaps.emplace(&dev_ref, std::move(page_pool));
 
         // initialize upload heaps
         {
@@ -87,7 +89,7 @@ DebugInterface const* lexgine::core::dx::d3d12::DxResourceFactory::debugInterfac
 
 DescriptorHeap& DxResourceFactory::retrieveDescriptorHeap(Device const& device, uint32_t page_id, DescriptorHeapType descriptor_heap_type) const
 {
-    return *m_descriptor_heaps.at(&device)[page_id][static_cast<size_t>(descriptor_heap_type)];
+    return *m_descriptor_heaps.at(&device)[static_cast<size_t>(descriptor_heap_type)][page_id];
 }
 
 Heap& DxResourceFactory::retrieveUploadHeap(Device const& device)
