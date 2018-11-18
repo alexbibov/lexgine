@@ -170,3 +170,50 @@ SamplerDescriptorTableReference SamplerTableBuilder::build() const
     return rv;
 }
 
+RenderTargetViewTableBuilder::RenderTargetViewTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page):
+    m_globals{ globals },
+    m_target_descriptor_heap_page_id{ target_descriptor_heap_page }
+{
+}
+
+void RenderTargetViewTableBuilder::addDescriptor(RTVDescriptor const& descriptor)
+{
+    m_rtv_descriptors.push_back(descriptor);
+}
+
+RenderTargetViewDescriptorTableReference RenderTargetViewTableBuilder::build() const
+{
+    auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
+        *m_globals.get<Device>(), DescriptorHeapType::rtv, m_target_descriptor_heap_page_id);
+
+    uint32_t offset = target_descriptor_heap.reserveDescriptors(static_cast<uint32_t>(m_rtv_descriptors.size()));
+    RenderTargetViewDescriptorTableReference rv{ m_target_descriptor_heap_page_id, offset, static_cast<uint32_t>(m_rtv_descriptors.size()) };
+
+    target_descriptor_heap.createRenderTargetViewDescriptors(offset, m_rtv_descriptors);
+
+    return rv;
+}
+
+DepthStencilViewTableBuilder::DepthStencilViewTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page):
+    m_globals{ globals },
+    m_target_descriptor_heap_page_id{ target_descriptor_heap_page }
+{
+}
+
+void DepthStencilViewTableBuilder::addDescriptor(DSVDescriptor const& descriptor)
+{
+    m_dsv_descriptors.push_back(descriptor);
+}
+
+DepthStencilViewDescriptorTableReference DepthStencilViewTableBuilder::build() const
+{
+    auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
+        *m_globals.get<Device>(), DescriptorHeapType::dsv, m_target_descriptor_heap_page_id);
+
+    uint32_t offset = target_descriptor_heap.reserveDescriptors(static_cast<uint32_t>(m_dsv_descriptors.size()));
+    DepthStencilViewDescriptorTableReference rv{ m_target_descriptor_heap_page_id, offset, static_cast<uint32_t>(m_dsv_descriptors.size()) };
+
+    target_descriptor_heap.createDepthStencilViewDescriptors(offset, m_dsv_descriptors);
+
+    return rv;
+}
