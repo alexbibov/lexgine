@@ -1,11 +1,13 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_SCHEDULABLE_TASK_H
+#define LEXGINE_CORE_CONCURRENCY_SCHEDULABLE_TASK_H
+
 
 #include "abstract_task.h"
 #include "task_graph_node.h"
 
 #include <mutex>
 
-namespace lexgine {namespace core {namespace concurrency {
+namespace lexgine::core::concurrency {
 
 /*! Convenience class, which allows to create task graph
  structure transparently avoiding explicit usage of TaskGraphNode type
@@ -42,8 +44,6 @@ bool checkConcurrentExecutionAbility(AbstractTask const& task);
 #define ROOT_NODE_CAST(node_ptr) (reinterpret_cast<lexgine::core::concurrency::TaskGraphRootNode*>(static_cast<lexgine::core::concurrency::TaskGraphNode*>(node_ptr)))
 
 
-}}}
+}
 
-
-#define LEXGINE_CORE_CONCURRENCY_SCHEDULABLE_TASK_H
-#endif
+#endif    // LEXGINE_CORE_CONCURRENCY_SCHEDULABLE_TASK_H

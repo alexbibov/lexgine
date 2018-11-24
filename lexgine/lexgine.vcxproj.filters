@@ -648,6 +648,9 @@
     <ClCompile Include="core\dx\d3d12\profiler.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
+    <ClCompile Include="core\dx\d3d12\rendering_tasks.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="core\dx\d3d12\constant_buffer_impl.inl">

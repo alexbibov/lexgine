@@ -1,5 +1,6 @@
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
+#include "lexgine/core/concurrency/abstract_task.h"
 
 #include "rendering_loop.h"
 #include "command_list.h"
@@ -8,7 +9,41 @@
 #include <cassert>
 
 using namespace lexgine::core;
+using namespace lexgine::core::concurrency;
 using namespace lexgine::core::dx::d3d12;
+
+
+namespace {
+
+class InitFrameTask : public AbstractTask
+{
+public:
+    InitFrameTask(Device& device, math::Vector4f const& clear_color):
+        m_clear_color{ clear_color },
+        m_command_list{ device.createCommandList(CommandType::direct, 0x1, FenceSharing::none) }
+    {
+        m_command_list.setStringName("clear_screen");
+    }
+
+private:    // required by the AbstractTask interface
+    bool do_task(uint8_t worker_id, uint16_t frame_index) override
+    {
+       
+
+    }
+
+    TaskType get_task_type() const override
+    {
+        return TaskType::gpu_draw;
+    }
+
+private:
+    
+    math::Vector4f m_clear_color;
+    CommandList m_command_list;
+};
+
+}
 
 
 RenderingLoopTarget::RenderingLoopTarget(std::vector<Resource> const& target_resources,
@@ -45,7 +80,7 @@ RenderingLoop::RenderingLoop(Globals const& globals,
     m_global_settings{ *globals.get<GlobalSettings>() },
     m_queued_frame_counter{ 0U },
     m_rendering_loop_target_ptr{ rendering_loop_target_ptr },
-    m_rendering_tasks{ globals }
+    m_rendering_tasks{ globals, {} }
 {
 }
 
@@ -54,7 +89,7 @@ void RenderingLoop::draw()
     PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
         "CPU job for frame %i start", m_queued_frame_counter);
 
-
+    
 
    
     PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
