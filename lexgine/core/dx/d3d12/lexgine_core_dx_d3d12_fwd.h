@@ -21,7 +21,9 @@ struct GraphicsPSODescriptor;
 struct ComputePSODescriptor;
 class PipelineState;
 class Resource;
-template<size_t> class ResourceBarrier;
+class ResourceBarrierPack;
+class DynamicResourceBarrierPack;
+template<unsigned int capacity> class StaticResourceBarrierPack;
 class RootSignature;
 class Signal;
 
@@ -53,6 +55,9 @@ class ResourceViewDescriptorTableBuilder;
 class SamplerTableBuilder;
 class RenderTargetViewTableBuilder;
 class DepthStencilViewTableBuilder;
+
+class RenderingLoop;
+class RenderingTasks;
 
 }
 

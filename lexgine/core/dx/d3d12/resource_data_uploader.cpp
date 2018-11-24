@@ -2,7 +2,7 @@
 
 #include "resource_data_uploader.h"
 #include "device.h"
-#include "resource_barrier.h"
+#include "resource_barrier_pack.h"
 
 #include "lexgine/core/exception.h"
 #include "lexgine/core/globals.h"
@@ -31,7 +31,7 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
     }
 
     {
-        ResourceBarrier<1> barriers{ m_upload_commands_list };
+        StaticResourceBarrierPack<1> barriers{ m_upload_commands_list };
 
         barriers.addTransitionBarrier(destination_descriptor.p_destination_resource,
             destination_descriptor.destination_resource_state, ResourceState::enum_type::common);
@@ -110,7 +110,7 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
     }
 
     {
-        ResourceBarrier<1> barriers{ m_upload_commands_list };
+        StaticResourceBarrierPack<1> barriers{ m_upload_commands_list };
 
         barriers.addTransitionBarrier(destination_descriptor.p_destination_resource,
             ResourceState::enum_type::common, destination_descriptor.destination_resource_state);

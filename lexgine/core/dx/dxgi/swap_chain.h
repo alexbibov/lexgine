@@ -75,7 +75,7 @@ private:
     osinteraction::windows::Window const& m_window;    //!< window, which holds the swap chain
     d3d12::CommandQueue const& m_default_command_queue;    //!< graphics command queue associated with the swap chain
 
-    ComPtr<IDXGISwapChain3> m_dxgi_swap_chain;   //!< DXGI interface representing the swap chain
+    ComPtr<IDXGISwapChain4> m_dxgi_swap_chain;   //!< DXGI interface representing the swap chain
 
 };
 
