@@ -8,14 +8,14 @@
 #include "resource.h"
 #include "resource_barrier_pack.h"
 
-#include "resource.h"
+#include "profiler.h"
 
 namespace lexgine::core::dx::d3d12 {
 
 class RenderingLoopTarget
 {
 public:
-    RenderingLoopTarget(std::vector<Resource> const& target_resourcers,
+    RenderingLoopTarget(std::vector<Resource> const& target_resources,
         std::vector<ResourceState> const& target_resources_initial_states);
 
     void switchToRenderAccessState(CommandList const& command_list) const;
@@ -23,7 +23,8 @@ public:
 
 private:
     std::vector<Resource> m_target_resources;
-    DynamicResourceBarrierPack m_barriers;
+    DynamicResourceBarrierPack m_forward_barriers;
+    DynamicResourceBarrierPack m_backward_barriers;
 };
 
 
@@ -36,7 +37,9 @@ public:
     void draw();
 
 private:
-    Globals const& m_globals;
+    Device const& m_device;
+    GlobalSettings const& m_global_settings;
+    uint32_t m_queued_frame_counter;
     std::shared_ptr<RenderingLoopTarget> m_rendering_loop_target_ptr;
     std::vector<Signal> m_frame_end_signals;
     RenderTargetViewDescriptorTableReference m_rtvs;
