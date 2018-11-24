@@ -14,7 +14,7 @@ public:
     TaskSink(
         TaskGraph const& source_task_graph, 
         std::vector<std::ostream*> const& worker_thread_logging_streams, 
-        uint16_t max_frames_to_queue = 16U, 
+        uint16_t max_frames_to_queue = 6U, 
         std::string const& debug_name = "");
     ~TaskSink();
 

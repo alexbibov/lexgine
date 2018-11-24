@@ -177,6 +177,7 @@
     <ClCompile Include="core\dx\d3d12\dx_resource_factory.cpp" />
     <ClCompile Include="core\dx\d3d12\fence.cpp" />
     <ClCompile Include="core\dx\d3d12\heap.cpp" />
+    <ClCompile Include="core\dx\d3d12\profiler.cpp" />
     <ClCompile Include="core\dx\d3d12\rendering_loop.cpp" />
     <ClCompile Include="core\dx\d3d12\resource_barrier_pack.cpp" />
     <ClCompile Include="core\dx\d3d12\rtv_descriptor.cpp" />
@@ -254,6 +255,7 @@
     <ClInclude Include="core\dx\d3d12\cbv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\dsv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\descriptor_table_builders.h" />
+    <ClInclude Include="core\dx\d3d12\profiler.h" />
     <ClInclude Include="core\dx\d3d12\rendering_loop.h" />
     <ClInclude Include="core\dx\d3d12\rendering_tasks.h" />
     <ClInclude Include="core\dx\d3d12\rtv_descriptor.h" />
@@ -352,8 +354,16 @@
     <None Include="core\dx\d3d12\constant_buffer_impl_converters_vector_types.inl" />
     <None Include="core\dx\d3d12\d3d12_min_mag_filter_converter.inl" />
     <None Include="core\dx\d3d12\d3d12_type_traits.inl" />
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\WinPixEventRuntime.1.0.181027001\build\WinPixEventRuntime.targets" Condition="Exists('..\packages\WinPixEventRuntime.1.0.181027001\build\WinPixEventRuntime.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\WinPixEventRuntime.1.0.181027001\build\WinPixEventRuntime.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WinPixEventRuntime.1.0.181027001\build\WinPixEventRuntime.targets'))" />
+  </Target>
 </Project>
