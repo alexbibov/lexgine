@@ -177,6 +177,8 @@
     <ClCompile Include="core\dx\d3d12\dx_resource_factory.cpp" />
     <ClCompile Include="core\dx\d3d12\fence.cpp" />
     <ClCompile Include="core\dx\d3d12\heap.cpp" />
+    <ClCompile Include="core\dx\d3d12\rendering_loop.cpp" />
+    <ClCompile Include="core\dx\d3d12\resource_barrier_pack.cpp" />
     <ClCompile Include="core\dx\d3d12\rtv_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\resource_data_uploader.cpp" />
     <ClCompile Include="core\dx\d3d12\heap_resource_placer.cpp" />
@@ -252,6 +254,8 @@
     <ClInclude Include="core\dx\d3d12\cbv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\dsv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\descriptor_table_builders.h" />
+    <ClInclude Include="core\dx\d3d12\rendering_loop.h" />
+    <ClInclude Include="core\dx\d3d12\rendering_tasks.h" />
     <ClInclude Include="core\dx\d3d12\rtv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\root_signature_cache.h" />
     <ClInclude Include="core\dx\d3d12\command_allocator_ring.h" />
@@ -271,7 +275,7 @@
     <ClInclude Include="core\dx\d3d12\lexgine_core_dx_d3d12_fwd.h" />
     <ClInclude Include="core\dx\d3d12\pipeline_state.h" />
     <ClInclude Include="core\dx\d3d12\resource.h" />
-    <ClInclude Include="core\dx\d3d12\resource_barrier.h" />
+    <ClInclude Include="core\dx\d3d12\resource_barrier_pack.h" />
     <ClInclude Include="core\dx\d3d12\root_signature.h" />
     <ClInclude Include="core\dx\d3d12\sampler_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\srv_descriptor.h" />
