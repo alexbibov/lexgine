@@ -1,6 +1,5 @@
 #include "rendering_loop.h"
 #include "command_list.h"
-#include "resource_barrier_pack.h"
 
 #include <cassert>
 
@@ -10,8 +9,7 @@ using namespace lexgine::core::dx::d3d12;
 
 RenderingLoopTarget::RenderingLoopTarget(std::vector<Resource> const& target_resourcers,
     std::vector<ResourceState> const& target_resources_initial_states):
-    m_target_resources{ target_resourcers },
-    m_target_resources_initial_states{ target_resources_initial_states }
+    m_target_resources{ target_resourcers }
 {
     assert(target_resourcers.size() == target_resources_initial_states.size());
 

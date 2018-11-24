@@ -6,6 +6,7 @@
 #include "descriptor_table_builders.h"
 #include "rendering_tasks.h"
 #include "resource.h"
+#include "resource_barrier_pack.h"
 
 #include "resource.h"
 
@@ -22,7 +23,7 @@ public:
 
 private:
     std::vector<Resource> m_target_resources;
-    std::vector<ResourceState> m_target_resources_initial_states;
+    DynamicResourceBarrierPack m_barriers;
 };
 
 

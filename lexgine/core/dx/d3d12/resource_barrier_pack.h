@@ -21,7 +21,7 @@ enum class SplitResourceBarrierFlags
 class ResourceBarrierPack
 {
 public:
-    ResourceBarrierPack(CommandList const& cmd_list);
+    ResourceBarrierPack() = default;
 
     ResourceBarrierPack(ResourceBarrierPack const&) = delete;
     ResourceBarrierPack(ResourceBarrierPack&&) = default;
@@ -45,15 +45,12 @@ public:
     void addUAVBarrier(Resource const* p_resource,
         SplitResourceBarrierFlags split_barrier_flags = SplitResourceBarrierFlags::none);
 
-    void applyBarriers() const;
+    void applyBarriers(CommandList const& cmd_list) const;
 
 private:
     virtual void emplaceResourceBarrier(D3D12_RESOURCE_BARRIER&& barrier) = 0;
     virtual uint32_t nativeBarrierCount() const = 0;
     virtual D3D12_RESOURCE_BARRIER const* nativeBarriers() const = 0;
-
-private:
-    CommandList const& m_command_list;
     
 };
 
@@ -61,9 +58,6 @@ private:
 //! Resource barrier pack with capacity determined at runtime (not that it uses heap allocations, so use with care)
 class DynamicResourceBarrierPack final : public ResourceBarrierPack
 {
-public:
-    DynamicResourceBarrierPack(CommandList const& cmd_list);
-
 private:    // required by ResourceBarrierPack interface
     void emplaceResourceBarrier(D3D12_RESOURCE_BARRIER&& barrier) override;
     uint32_t nativeBarrierCount() const override;
@@ -80,8 +74,7 @@ template<unsigned int capacity>
 class StaticResourceBarrierPack final : public ResourceBarrierPack
 {
 public:
-    StaticResourceBarrierPack(CommandList const& cmd_list) :
-        ResourceBarrierPack{ cmd_list },
+    StaticResourceBarrierPack() :
         m_barrier_count{ 0U }
     {
 

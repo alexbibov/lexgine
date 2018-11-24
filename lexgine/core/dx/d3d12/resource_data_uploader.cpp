@@ -31,11 +31,11 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
     }
 
     {
-        StaticResourceBarrierPack<1> barriers{ m_upload_commands_list };
+        StaticResourceBarrierPack<1> barriers;
 
         barriers.addTransitionBarrier(destination_descriptor.p_destination_resource,
             destination_descriptor.destination_resource_state, ResourceState::enum_type::common);
-        barriers.applyBarriers();
+        barriers.applyBarriers(m_upload_commands_list);
     }
     
     D3D12_RESOURCE_DESC d3d12_destination_resource_descriptor = destination_descriptor.p_destination_resource->descriptor().native();
@@ -110,11 +110,11 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
     }
 
     {
-        StaticResourceBarrierPack<1> barriers{ m_upload_commands_list };
+        StaticResourceBarrierPack<1> barriers;
 
         barriers.addTransitionBarrier(destination_descriptor.p_destination_resource,
             ResourceState::enum_type::common, destination_descriptor.destination_resource_state);
-        barriers.applyBarriers();
+        barriers.applyBarriers(m_upload_commands_list);
     }
 }
 

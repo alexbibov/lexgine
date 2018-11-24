@@ -3,11 +3,6 @@
 
 using namespace lexgine::core::dx::d3d12;
 
-ResourceBarrierPack::ResourceBarrierPack(CommandList const& cmd_list):
-    m_command_list{ cmd_list }
-{
-}
-
 void ResourceBarrierPack::addTransitionBarrier(Resource const* p_resource,
     uint16_t mipmap_level, uint16_t array_layer, 
     ResourceState state_before, ResourceState state_after, 
@@ -76,14 +71,9 @@ void ResourceBarrierPack::addUAVBarrier(Resource const* p_resource, SplitResourc
     emplaceResourceBarrier(std::move(new_uav_barrier));
 }
 
-void ResourceBarrierPack::applyBarriers() const
+void ResourceBarrierPack::applyBarriers(CommandList const& cmd_list) const
 {
-    m_command_list.resourceBarrier(nativeBarrierCount(), nativeBarriers());
-}
-
-DynamicResourceBarrierPack::DynamicResourceBarrierPack(CommandList const& cmd_list):
-    ResourceBarrierPack{ cmd_list }
-{
+    cmd_list.resourceBarrier(nativeBarrierCount(), nativeBarriers());
 }
 
 void DynamicResourceBarrierPack::emplaceResourceBarrier(D3D12_RESOURCE_BARRIER&& barrier)
