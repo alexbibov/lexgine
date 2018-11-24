@@ -179,6 +179,7 @@
     <ClCompile Include="core\dx\d3d12\heap.cpp" />
     <ClCompile Include="core\dx\d3d12\profiler.cpp" />
     <ClCompile Include="core\dx\d3d12\rendering_loop.cpp" />
+    <ClCompile Include="core\dx\d3d12\rendering_tasks.cpp" />
     <ClCompile Include="core\dx\d3d12\resource_barrier_pack.cpp" />
     <ClCompile Include="core\dx\d3d12\rtv_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\resource_data_uploader.cpp" />

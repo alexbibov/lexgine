@@ -1,11 +1,12 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_TASK_SINK_H
+#define LEXGINE_CORE_CONCURRENCY_TASK_SINK_H
 
 #include "task_graph.h"
 #include "lexgine/core/class_names.h"
 
 #include <vector>
 
-namespace lexgine {namespace core {namespace concurrency {
+namespace lexgine::core::concurrency {
 
 //! Implements task scheduling based on provided task graph
 class TaskSink : public NamedEntity<class_names::TaskSink>
@@ -46,7 +47,6 @@ private:
     std::unique_ptr<TaskGraphEndExecutionGuard> m_task_graph_end_execution_guarding_task;
 };
 
-}}}
+}
 
-#define LEXGINE_CORE_CONCURRENCY_TASK_SINK_H
-#endif
+#endif    // LEXGINE_CORE_CONCURRENCY_TASK_SINK_H

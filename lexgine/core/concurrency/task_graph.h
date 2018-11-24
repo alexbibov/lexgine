@@ -7,7 +7,7 @@
 
 #include <iterator>
 
-namespace lexgine {namespace core {namespace concurrency {
+namespace lexgine::core::concurrency {
 
 template<typename> class TaskGraphAttorney;
 
@@ -83,6 +83,6 @@ private:
 };
 
 
-}}}
+}
 
-#endif
+#endif    // LEXGINE_CORE_CONCURRENCY_TASK_GRAPH
