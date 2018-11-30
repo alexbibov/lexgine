@@ -33,6 +33,16 @@ uint32_t DescriptorHeap::getDescriptorSize() const
     return m_descriptor_size;
 }
 
+size_t DescriptorHeap::getBaseCPUPointer() const
+{
+    return m_descriptor_heap->GetCPUDescriptorHandleForHeapStart().ptr;
+}
+
+uint64_t DescriptorHeap::getBaseGPUPointer() const
+{
+    return m_descriptor_heap->GetGPUDescriptorHandleForHeapStart().ptr;
+}
+
 uint32_t DescriptorHeap::capacity() const
 {
     return m_descriptor_capacity;

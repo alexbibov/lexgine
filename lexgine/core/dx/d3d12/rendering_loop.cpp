@@ -5,6 +5,8 @@
 #include "rendering_loop.h"
 #include "command_list.h"
 #include "device.h"
+#include "dx_resource_factory.h"
+#include "descriptor_table_builders.h"
 
 #include <cassert>
 
@@ -18,17 +20,23 @@ namespace {
 class InitFrameTask : public AbstractTask
 {
 public:
-    InitFrameTask(Device& device, math::Vector4f const& clear_color):
+    InitFrameTask(Device& device, DxResourceFactory const& dx_resources, math::Vector4f const& clear_color) :
         m_clear_color{ clear_color },
         m_command_list{ device.createCommandList(CommandType::direct, 0x1, FenceSharing::none) }
     {
         m_command_list.setStringName("clear_screen");
+
+        for (int i = 0; i < 4U; ++i)
+        {
+            m_page0_descriptor_heaps[i] =
+                &dx_resources.retrieveDescriptorHeap(device, static_cast<DescriptorHeapType>(i), 0);
+        }
     }
 
 private:    // required by the AbstractTask interface
     bool do_task(uint8_t worker_id, uint16_t frame_index) override
     {
-       
+        m_command_list.reset();
 
     }
 
@@ -38,7 +46,7 @@ private:    // required by the AbstractTask interface
     }
 
 private:
-    
+    std::array<DescriptorHeap*, 4U> m_page0_descriptor_heaps;
     math::Vector4f m_clear_color;
     CommandList m_command_list;
 };
@@ -46,7 +54,8 @@ private:
 }
 
 
-RenderingLoopTarget::RenderingLoopTarget(std::vector<Resource> const& target_resources,
+RenderingLoopTarget::RenderingLoopTarget(Globals const& globals,
+    std::vector<Resource> const& target_resources,
     std::vector<ResourceState> const& target_resources_initial_states):
     m_target_resources{ target_resources }
 {

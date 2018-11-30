@@ -24,6 +24,8 @@ public:
     ComPtr<ID3D12DescriptorHeap> native() const;    //! returns encapsulated reference to the native Direct3D 12 interface representing the descriptor heap
     
     uint32_t getDescriptorSize() const;    //! returns size occupied in GPU memory by single descriptor
+    size_t getBaseCPUPointer() const;    //! returns base CPU pointer of the descriptor heap
+    uint64_t getBaseGPUPointer() const;    //! returns base GPU pointer of the descriptor heap
 
     DescriptorHeap(DescriptorHeap const&) = delete;
     DescriptorHeap(DescriptorHeap&&) = default;

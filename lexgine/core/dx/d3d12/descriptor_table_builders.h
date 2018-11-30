@@ -9,16 +9,14 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-template<typename T>
-struct TableReference final
+template<typename TagType>
+struct DescriptorTable final
 {
-    uint32_t page_id;
-    uint32_t offset_from_heap_start;
-    uint32_t descriptor_capacity;
+    size_t cpu_pointer;
+    uint64_t gpu_pointer;
+    uint32_t descriptor_count;
+    uint32_t descriptor_size;
 };
-
-struct tag_CBV_SRV_UAV;
-using ResourceViewDescriptorTableReference = TableReference<tag_CBV_SRV_UAV>;
 
 class ResourceViewDescriptorTableBuilder final
 {
@@ -29,7 +27,7 @@ public:
     void addDescriptor(SRVDescriptor const& descriptor);
     void addDescriptor(UAVDescriptor const& descriptor);
     
-    ResourceViewDescriptorTableReference build() const;
+    ShaderResourceDescriptorTable build() const;
 
 private:
     enum class descriptor_cache_type
@@ -64,8 +62,6 @@ private:
 };
 
 
-struct tag_Sampler;
-using SamplerDescriptorTableReference = TableReference<tag_Sampler>;
 
 class SamplerTableBuilder final
 {
@@ -74,7 +70,7 @@ public:
 
     void addDescriptor(SamplerDescriptor const& descriptor);
 
-    SamplerDescriptorTableReference build() const;
+    ShaderResourceDescriptorTable build() const;
 
 private:
     Globals const& m_globals;
@@ -83,8 +79,6 @@ private:
 };
 
 
-struct tag_RTV;
-using RenderTargetViewDescriptorTableReference = TableReference<tag_RTV>;
 
 class RenderTargetViewTableBuilder final
 {
@@ -92,7 +86,7 @@ public:
     RenderTargetViewTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page);
     void addDescriptor(RTVDescriptor const& descriptor);
 
-    RenderTargetViewDescriptorTableReference build() const;
+    RenderTargetViewDescriptorTable build() const;
 
 private:
     Globals const& m_globals;
@@ -101,8 +95,6 @@ private:
 };
 
 
-struct tag_DSV;
-using DepthStencilViewDescriptorTableReference = TableReference<tag_DSV>;
 
 class DepthStencilViewTableBuilder final
 {
@@ -110,7 +102,7 @@ public:
     DepthStencilViewTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page);
     void addDescriptor(DSVDescriptor const& descriptor);
 
-    DepthStencilViewDescriptorTableReference build() const;
+    DepthStencilViewDescriptorTable build() const;
 
 private:
     Globals const& m_globals;
