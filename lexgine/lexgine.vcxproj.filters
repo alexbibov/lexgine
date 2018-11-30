@@ -641,7 +641,6 @@
     <ClCompile Include="core\dx\d3d12\sampler_descriptor.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="core\dx\d3d12\rendering_loop.cpp" />
     <ClCompile Include="core\dx\d3d12\resource_barrier_pack.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
@@ -649,6 +648,9 @@
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\rendering_tasks.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\rendering_loop.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
   </ItemGroup>

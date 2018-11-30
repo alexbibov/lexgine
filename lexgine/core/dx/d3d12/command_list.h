@@ -46,6 +46,22 @@ private:
 };
 
 
+enum class DSVClearFlags
+{
+    clear_depth = 1,
+    clear_stencil
+};
+
+
+//! Used to identify the intended caller context when recording a bundle
+enum class BundleInvocationContext
+{
+    none,    // the command list being recorded is not a bundle
+    direct,    // the bundle will be invoked by a direct command list
+    compute    // the bundle will be invoked by a compute command list
+};
+
+
 class CommandList: public NamedEntity<class_names::D3D12CommandList>
 {
     friend class CommandListAttorney<Device>;
@@ -60,6 +76,10 @@ public:
     void reset(PipelineState const* initial_pipeline_state = nullptr);   //! resets the command list back to its initial state as if it was just created
 
     void close() const;
+
+    void clearState() const;
+
+    void setPipelineState(PipelineState const& pipeline_state) const;
 
     void resourceBarrier(uint32_t num_barriers, void const* resource_barriers_data_ptr) const;    //! records resource barriers into the command list
 
@@ -82,24 +102,73 @@ public:
     void resolveSubresource(Resource const& dst_resource, uint32_t dst_subresource,
         Resource const& src_resource, uint32_t src_subresource, DXGI_FORMAT format) const;
 
+
+    //! Pipeline state settings routines not contained in PSO
+    
     void inputAssemblySetPrimitiveTopology(PrimitiveTopology primitive_topology) const;
 
-    void rasterizerStateSetViewports(std::vector<Viewport const*> const& viewports) const;
+    // void inputAssemblySetIndexBuffer(IndexBufferView const&);
 
-    void rasterizerStateSetScissorRectangles(std::vector<math::Rectangle const*> const& rectangles) const;
+    // void inputAssemblySetVertexBuffers(uint32_t start_slot, std::vector<VertexBufferView> const&);
+    
+    void rasterizerStateSetViewports(std::vector<Viewport> const& viewports) const;
+
+    void rasterizerStateSetScissorRectangles(std::vector<math::Rectangle> const& rectangles) const;
 
     void outputMergerSetBlendFactor(math::Vector4f const& blend_factor) const;
 
     void outputMergerSetStencilReference(uint32_t reference_value) const;
 
-    void setPipelineState(PipelineState const& pipeline_state) const;
+    void outputMergerSetRenderTargets(RenderTargetViewDescriptorTable const& rtv_descriptor_table,
+        DepthStencilViewDescriptorTable const& dsv_descriptor_table, uint32_t dsv_descriptor_table_offset) const;
+
+    // void streamOutputSetTargets(uint32_t start_slot, std::vector<StreamOutputBufferView> const&) const;
+
+
+    //! Clear view routines
+
+    void clearDepthStencilView(DepthStencilViewDescriptorTable const& dsv_descriptor_table, uint32_t dsv_descriptor_table_offset,
+        DSVClearFlags clear_flags, float depth_clear_value, uint8_t stencil_clear_value, 
+        std::vector<math::Rectangle> const& clear_rectangles = {}) const;
+
+    void clearRenderTargetView(RenderTargetViewDescriptorTable const& rtv_descriptor_table, uint32_t rtv_descriptor_table_offset,
+        math::Vector4f const& rgba_clear_value, std::vector<math::Rectangle> const& clear_rectangles = {}) const;
+
+    void clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
+        Resource const& resource_to_clear, math::Vector4u const& rgba_clear_value, std::vector<math::Rectangle> const& clear_rectangles = {}) const;
+
+    void clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
+        Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value, std::vector<math::Rectangle> const& clear_rectangles = {}) const;
+
+
+    //! Data binding routines
 
     void setDescriptorHeaps(std::vector<DescriptorHeap const*> const& descriptor_heaps) const;
 
-    void setComputeRootSignature(std::string const& cached_root_signature_friendly_name) const;
+    void setRootSignature(std::string const& cached_root_signature_friendly_name, 
+        BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
 
-    void setGraphicsRootSignature(std::string const& cached_root_signature_friendly_name) const;
+    void setRootDescriptorTable(uint32_t root_signature_slot, ShaderResourceDescriptorTable const& cbv_srv_uav_table,
+        BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
 
+    void setRoot32BitConstant(uint32_t root_signature_slot, uint32_t data, uint32_t offset_in_32_bit_values,
+        BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
+    
+    void setRoot32BitConstants(uint32_t root_signature_slot, std::vector<uint32_t> const& data, uint32_t offset_in_32_bit_values,
+        BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
+
+    void setRootConstantBufferView(uint32_t root_signature_slot, uint64_t gpu_virtual_address, 
+        BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
+    
+    void setRootShaderResourceView(uint32_t root_signature_slot, uint64_t gpu_virtual_address,
+        BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
+
+    void setRootUnorderedAccessView(uint32_t root_signature_slot, uint64_t gpu_virtual_address,
+        BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
+
+
+    //! Miscellaneous routines
+    
     void setStringName(std::string const& entity_string_name) override;	//! sets new user-friendly string name for the command list
 
     CommandType commandType() const;    //! returns type of the command list
@@ -118,10 +187,16 @@ private:
     Signal const* getJobCompletionSignalPtr() const;
 
 private:
+    static constexpr uint32_t maximal_clear_rectangles_count = 128U;
+    static constexpr uint32_t maximal_viewport_count = 64U;
+    static constexpr uint32_t maximal_scissor_rectangles = 256U;
+
+private:
     CommandAllocatorRing m_allocator_ring;    //!< command allocator to which the command list belongs
     uint32_t m_node_mask;    //!< node mask determining on which node the command list resides
     ComPtr<ID3D12GraphicsCommandList> m_command_list;    //!< pointer to the native Direct3D12 command list interface
     Signal m_signal;    //!< signal, which fires when the batch, as part of which this command list is submitted for execution is completed
+    PipelineState const* m_initial_pipeline_state;    //!< pointer to the pipeline state the command list was initialized with
 };
 
 

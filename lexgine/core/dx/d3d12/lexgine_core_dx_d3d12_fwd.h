@@ -50,7 +50,15 @@ class DSVDescriptor;
 
 class SamplerDescriptor;
 
-template<typename T> struct TableReference;
+template<typename> struct DescriptorTable;
+struct tag_CBV_SRV_UAV_Sampler;
+struct tag_RTV;
+struct tag_DSV;
+using ShaderResourceDescriptorTable = DescriptorTable<tag_CBV_SRV_UAV_Sampler>;
+using RenderTargetViewDescriptorTable = DescriptorTable<tag_RTV>;
+using DepthStencilViewDescriptorTable = DescriptorTable<tag_DSV>;
+
+
 class ResourceViewDescriptorTableBuilder;
 class SamplerTableBuilder;
 class RenderTargetViewTableBuilder;

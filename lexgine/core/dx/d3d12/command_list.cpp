@@ -3,6 +3,7 @@
 #include "pipeline_state.h"
 #include "resource.h"
 #include "d3d12_tools.h"
+#include "descriptor_table_builders.h"
 
 #include "lexgine/core/exception.h"
 #include "lexgine/core/viewport.h"
@@ -11,10 +12,32 @@
 #include "lexgine/core/math/rectangle.h"
 
 #include <algorithm>
+#include <cassert>
 
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
+
+
+namespace {
+
+RECT convertRectangleToDXGINativeRECT(math::Rectangle const& rectangle)
+{
+    D3D12_RECT rv{};
+
+    auto ul = rectangle.upperLeft();
+    rv.left = static_cast<LONG>(ul.x);
+    rv.top = static_cast<LONG>(ul.y);
+
+    auto dims = rectangle.size();
+    rv.right = static_cast<LONG>(ul.x + dims.x);
+    rv.bottom = static_cast<LONG>(ul.y + dims.y);
+
+    return rv;
+}
+
+}
+
 
 uint32_t CommandList::getNodeMask() const
 {
@@ -41,6 +64,8 @@ void CommandList::reset(PipelineState const* initial_pipeline_state)
         m_command_list->Reset(allocator.Get(),
             initial_pipeline_state ? initial_pipeline_state->native().Get() : NULL),
         S_OK);
+
+    m_initial_pipeline_state = initial_pipeline_state;
 }
 
 void CommandList::close() const
@@ -49,6 +74,11 @@ void CommandList::close() const
         this,
         m_command_list->Close(),
         S_OK);
+}
+
+void CommandList::clearState() const
+{
+    m_command_list->ClearState(m_initial_pipeline_state->native().Get());
 }
 
 void CommandList::resourceBarrier(uint32_t num_barriers, void const* resource_barriers_data_ptr) const
@@ -178,22 +208,24 @@ void CommandList::inputAssemblySetPrimitiveTopology(PrimitiveTopology primitive_
     m_command_list->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(native_topology));
 }
 
-void CommandList::rasterizerStateSetViewports(std::vector<Viewport const*> const& viewports) const
+void CommandList::rasterizerStateSetViewports(std::vector<Viewport> const& viewports) const
 {
-    std::vector<D3D12_VIEWPORT> native_viewports(viewports.size());
+    assert(viewports.size() <= maximal_viewport_count);
+
+    std::array<D3D12_VIEWPORT, maximal_viewport_count> native_viewports;
     std::transform(viewports.begin(), viewports.end(), native_viewports.begin(),
-        [](Viewport const* v)
+        [](Viewport const& v)
         {
             D3D12_VIEWPORT rv{};
 
-            auto top_left_corner = v->topLeftCorner();
+            auto top_left_corner = v.topLeftCorner();
             rv.TopLeftX = static_cast<FLOAT>(top_left_corner.x);
             rv.TopLeftY = static_cast<FLOAT>(top_left_corner.y);
 
-            rv.Width = static_cast<FLOAT>(v->width());
-            rv.Height = static_cast<FLOAT>(v->height());
+            rv.Width = static_cast<FLOAT>(v.width());
+            rv.Height = static_cast<FLOAT>(v.height());
 
-            auto depth_range = v->depthRange();
+            auto depth_range = v.depthRange();
             rv.MinDepth = static_cast<FLOAT>(depth_range.x);
             rv.MaxDepth = static_cast<FLOAT>(depth_range.y);
 
@@ -204,25 +236,13 @@ void CommandList::rasterizerStateSetViewports(std::vector<Viewport const*> const
     m_command_list->RSSetViewports(static_cast<UINT>(viewports.size()), native_viewports.data());
 }
 
-void CommandList::rasterizerStateSetScissorRectangles(std::vector<math::Rectangle const*> const& rectangles) const
+void CommandList::rasterizerStateSetScissorRectangles(std::vector<math::Rectangle> const& rectangles) const
 {
-    std::vector<D3D12_RECT> native_rects(rectangles.size());
+    assert(rectangles.size() <= maximal_scissor_rectangles);
+
+    std::array<D3D12_RECT, maximal_scissor_rectangles> native_rects;
     std::transform(rectangles.begin(), rectangles.end(), native_rects.begin(),
-        [](math::Rectangle const* r)
-        {
-            D3D12_RECT rv{};
-            
-            auto ul = r->upperLeft();
-            rv.left = static_cast<LONG>(ul.x);
-            rv.top = static_cast<LONG>(ul.y);
-
-            auto dims = r->size();
-            rv.right = static_cast<LONG>(ul.x + dims.x);
-            rv.bottom = static_cast<LONG>(ul.y - dims.y);
-
-            return rv;
-        }
-    );
+        convertRectangleToDXGINativeRECT);
 
     m_command_list->RSSetScissorRects(static_cast<UINT>(rectangles.size()), native_rects.data());
 }
@@ -237,6 +257,119 @@ void CommandList::outputMergerSetStencilReference(uint32_t reference_value) cons
     m_command_list->OMSetStencilRef(static_cast<UINT>(reference_value));
 }
 
+void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable const& rtv_descriptor_table, 
+    DepthStencilViewDescriptorTable const& dsv_descriptor_table, uint32_t dsv_descriptor_table_offset) const
+{
+    assert(dsv_descriptor_table_offset < dsv_descriptor_table.descriptor_count);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv_base_cpu_handle{ rtv_descriptor_table.cpu_pointer };
+    D3D12_CPU_DESCRIPTOR_HANDLE dsv_cpu_handle{ dsv_descriptor_table.cpu_pointer + dsv_descriptor_table_offset * dsv_descriptor_table.descriptor_size };
+
+    m_command_list->OMSetRenderTargets(rtv_descriptor_table.descriptor_count, &rtv_base_cpu_handle, TRUE, &dsv_cpu_handle);
+}
+
+void CommandList::clearDepthStencilView(DepthStencilViewDescriptorTable const& dsv_descriptor_table,
+    uint32_t dsv_descriptor_table_offset, DSVClearFlags clear_flags, 
+    float depth_clear_value, uint8_t stencil_clear_value, 
+    std::vector<math::Rectangle> const& clear_rectangles) const
+{
+    D3D12_CPU_DESCRIPTOR_HANDLE dsv_cpu_handle{ dsv_descriptor_table.cpu_pointer
+            + dsv_descriptor_table.descriptor_size*dsv_descriptor_table_offset };
+    D3D12_CLEAR_FLAGS flags = static_cast<D3D12_CLEAR_FLAGS>(clear_flags);
+
+    if (clear_rectangles.size())
+    {
+        assert(clear_rectangles.size() <= maximal_clear_rectangles_count);
+
+        std::array<RECT, maximal_clear_rectangles_count> converted_clear_rectangles;
+        std::transform(clear_rectangles.begin(), clear_rectangles.end(), 
+            converted_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
+
+        m_command_list->ClearDepthStencilView(dsv_cpu_handle, flags, depth_clear_value, stencil_clear_value,
+            static_cast<UINT>(clear_rectangles.size()), converted_clear_rectangles.data());
+    }
+    else
+    {
+        m_command_list->ClearDepthStencilView(dsv_cpu_handle, flags, depth_clear_value, stencil_clear_value, 0U, NULL);
+    }
+}
+
+void CommandList::clearRenderTargetView(RenderTargetViewDescriptorTable const& rtv_descriptor_table, 
+    uint32_t rtv_descriptor_table_offset, math::Vector4f const& rgba_clear_value, 
+    std::vector<math::Rectangle> const& clear_rectangles) const
+{
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv_cpu_descriptor{ rtv_descriptor_table.cpu_pointer
+        + rtv_descriptor_table.descriptor_size*rtv_descriptor_table_offset };
+
+    if (clear_rectangles.size())
+    {
+        std::array<RECT, maximal_clear_rectangles_count> converted_clear_rectangles;
+        std::transform(clear_rectangles.begin(), clear_rectangles.end(),
+            converted_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
+
+        m_command_list->ClearRenderTargetView(rtv_cpu_descriptor, rgba_clear_value.getDataAsArray(),
+            static_cast<UINT>(clear_rectangles.size()), converted_clear_rectangles.data());
+    }
+    else
+    {
+        m_command_list->ClearRenderTargetView(rtv_cpu_descriptor, rgba_clear_value.getDataAsArray(), 0U, NULL);
+    }
+}
+
+void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, 
+    uint32_t uav_descriptor_table_offset, Resource const& resource_to_clear, 
+    math::Vector4u const& rgba_clear_value, std::vector<math::Rectangle> const& clear_rectangles) const
+{
+    D3D12_CPU_DESCRIPTOR_HANDLE uav_cpu_descriptor{ uav_descriptor_table.cpu_pointer
+        + uav_descriptor_table.descriptor_size*uav_descriptor_table_offset };
+
+    D3D12_GPU_DESCRIPTOR_HANDLE uav_gpu_descriptor{ uav_descriptor_table.gpu_pointer
+        + uav_descriptor_table.descriptor_size*uav_descriptor_table_offset };
+
+    if (clear_rectangles.size())
+    {
+        std::array<RECT, maximal_clear_rectangles_count> converted_clear_rectangles;
+        std::transform(clear_rectangles.begin(), clear_rectangles.end(),
+            converted_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
+
+        m_command_list->ClearUnorderedAccessViewUint(uav_gpu_descriptor, uav_cpu_descriptor,
+            resource_to_clear.native().Get(), rgba_clear_value.getDataAsArray(),
+            static_cast<UINT>(clear_rectangles.size()), converted_clear_rectangles.data());
+    }
+    else
+    {
+        m_command_list->ClearUnorderedAccessViewUint(uav_gpu_descriptor, uav_cpu_descriptor,
+            resource_to_clear.native().Get(), rgba_clear_value.getDataAsArray(), 0U, NULL);
+    }
+}
+
+void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, 
+    uint32_t uav_descriptor_table_offset, Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value, 
+    std::vector<math::Rectangle> const& clear_rectangles) const
+{
+    D3D12_CPU_DESCRIPTOR_HANDLE uav_cpu_descriptor{ uav_descriptor_table.cpu_pointer
+        + uav_descriptor_table.descriptor_size*uav_descriptor_table_offset };
+
+    D3D12_GPU_DESCRIPTOR_HANDLE uav_gpu_descriptor{ uav_descriptor_table.gpu_pointer
+        + uav_descriptor_table.descriptor_size*uav_descriptor_table_offset };
+
+    if (clear_rectangles.size())
+    {
+        std::array<RECT, maximal_clear_rectangles_count> converted_clear_rectangles;
+        std::transform(clear_rectangles.begin(), clear_rectangles.end(),
+            converted_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
+
+        m_command_list->ClearUnorderedAccessViewFloat(uav_gpu_descriptor, uav_cpu_descriptor,
+            resource_to_clear.native().Get(), rgba_clear_value.getDataAsArray(),
+            static_cast<UINT>(clear_rectangles.size()), converted_clear_rectangles.data());
+    }
+    else
+    {
+        m_command_list->ClearUnorderedAccessViewFloat(uav_gpu_descriptor, uav_cpu_descriptor,
+            resource_to_clear.native().Get(), rgba_clear_value.getDataAsArray(), 0U, NULL);
+    }
+}
+
 void CommandList::setPipelineState(PipelineState const& pipeline_state) const
 {
     m_command_list->SetPipelineState(pipeline_state.native().Get());
@@ -244,47 +377,154 @@ void CommandList::setPipelineState(PipelineState const& pipeline_state) const
 
 void CommandList::setDescriptorHeaps(std::vector<DescriptorHeap const*> const& descriptor_heaps) const
 {
-    std::vector<ID3D12DescriptorHeap*> native_descriptor_heaps(descriptor_heaps.size());
+    auto cmd_list_type = commandType();
+
+    // formally SetDescriptorHeaps(...) API is supported by command list bundles, but the heaps set from
+    // the bundle must correspond to the heaps set by the invoking command list, so this API is 
+    // essentially useless for bundles and therefore, we disallow it
+    assert(cmd_list_type == CommandType::direct || cmd_list_type == CommandType::compute);
+    assert(descriptor_heaps.size() <= static_cast<size_t>(DescriptorHeapType::count));
+
+
+    std::array<ID3D12DescriptorHeap*, static_cast<size_t>(DescriptorHeapType::count)> native_descriptor_heaps{};
     std::transform(descriptor_heaps.begin(), descriptor_heaps.end(), native_descriptor_heaps.begin(),
         [](DescriptorHeap const* dh) { return dh->native().Get(); });
 
     m_command_list->SetDescriptorHeaps(static_cast<UINT>(descriptor_heaps.size()), native_descriptor_heaps.data());
 }
 
-void CommandList::setComputeRootSignature(std::string const& cached_root_signature_friendly_name) const
+
+void CommandList::setRootSignature(std::string const& cached_root_signature_friendly_name, 
+    BundleInvocationContext bundle_invokation_context) const
 {
+    auto cmd_list_type = commandType();
+
+    assert((cmd_list_type == CommandType::direct || cmd_list_type == CommandType::compute) 
+        && bundle_invokation_context == BundleInvocationContext::none
+        || cmd_list_type == CommandType::bundle 
+        && (bundle_invokation_context == BundleInvocationContext::direct || bundle_invokation_context == BundleInvocationContext::compute));
+
     auto rs = device().retrieveRootSignature(cached_root_signature_friendly_name, m_node_mask);
+
     if (!rs)
     {
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "Cannot set compute root signature for command list \""
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "Cannot set root signature for command list \""
         + getStringName() + "\": the root signature is identified to have friendly name \"" + cached_root_signature_friendly_name
         + "\", but no root signature with this friendly name and the node mask " + std::to_string(m_node_mask)
         + " exists in the device cache. This usually means that the root signature has not been created for "
         " the node mask required by the command list attempting to set this root signature");
     }
-    else
-    {
-        m_command_list->SetComputeRootSignature(rs.Get());
-    }
+    
+    cmd_list_type == CommandType::direct || bundle_invokation_context == BundleInvocationContext::direct
+        ? m_command_list->SetGraphicsRootSignature(rs.Get())
+        : m_command_list->SetComputeRootSignature(rs.Get());
 }
 
-void CommandList::setGraphicsRootSignature(std::string const& cached_root_signature_friendly_name) const
+void CommandList::setRootDescriptorTable(uint32_t root_signature_slot, 
+    ShaderResourceDescriptorTable const& cbv_srv_uav_table,
+    BundleInvocationContext bundle_invokation_context) const
 {
-    auto rs = device().retrieveRootSignature(cached_root_signature_friendly_name, m_node_mask);
-    if (!rs)
-    {
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "Cannot set graphics root signature for command list \""
-            + getStringName() + "\": the root signature is identified to have friendly name \"" + cached_root_signature_friendly_name
-            + "\", but no root signature with this friendly name and the node mask " + std::to_string(m_node_mask)
-            + " exists in the device cache. This usually means that the root signature has not been created for "
-            " the node mask required by the command list attempting to set this root signature");
-    }
-    else
-    {
-        m_command_list->SetGraphicsRootSignature(rs.Get());
-    }
+    auto cmd_list_type = commandType();
+
+    assert((cmd_list_type == CommandType::direct || cmd_list_type == CommandType::compute)
+        && bundle_invokation_context == BundleInvocationContext::none
+        || cmd_list_type == CommandType::bundle
+        && (bundle_invokation_context == BundleInvocationContext::direct || bundle_invokation_context == BundleInvocationContext::compute));
+
+    cmd_list_type == CommandType::direct || bundle_invokation_context == BundleInvocationContext::direct
+        ? m_command_list->SetGraphicsRootDescriptorTable(static_cast<UINT>(root_signature_slot),
+            D3D12_GPU_DESCRIPTOR_HANDLE{ cbv_srv_uav_table.gpu_pointer })
+        : m_command_list->SetComputeRootDescriptorTable(static_cast<UINT>(root_signature_slot),
+            D3D12_GPU_DESCRIPTOR_HANDLE{ cbv_srv_uav_table.gpu_pointer });
 }
 
+void CommandList::setRoot32BitConstant(uint32_t root_signature_slot, uint32_t data, 
+    uint32_t offset_in_32_bit_values, BundleInvocationContext bundle_invokation_context) const
+{
+    auto cmd_list_type = commandType();
+
+    assert((cmd_list_type == CommandType::direct || cmd_list_type == CommandType::compute)
+        && bundle_invokation_context == BundleInvocationContext::none
+        || cmd_list_type == CommandType::bundle
+        && (bundle_invokation_context == BundleInvocationContext::direct || bundle_invokation_context == BundleInvocationContext::compute));
+
+    cmd_list_type == CommandType::direct || bundle_invokation_context == BundleInvocationContext::direct
+        ? m_command_list->SetGraphicsRoot32BitConstant(static_cast<UINT>(root_signature_slot),
+            static_cast<UINT>(data), static_cast<UINT>(offset_in_32_bit_values))
+        : m_command_list->SetComputeRoot32BitConstant(static_cast<UINT>(root_signature_slot),
+            static_cast<UINT>(data), static_cast<UINT>(offset_in_32_bit_values));
+}
+
+void CommandList::setRoot32BitConstants(uint32_t root_signature_slot, std::vector<uint32_t> const& data, 
+    uint32_t offset_in_32_bit_values, BundleInvocationContext bundle_invokation_context) const
+{
+    auto cmd_list_type = commandType();
+
+    assert((cmd_list_type == CommandType::direct || cmd_list_type == CommandType::compute)
+        && bundle_invokation_context == BundleInvocationContext::none
+        || cmd_list_type == CommandType::bundle
+        && (bundle_invokation_context == BundleInvocationContext::direct || bundle_invokation_context == BundleInvocationContext::compute));
+
+    cmd_list_type == CommandType::direct || bundle_invokation_context == BundleInvocationContext::direct
+        ? m_command_list->SetGraphicsRoot32BitConstants(static_cast<UINT>(root_signature_slot),
+            static_cast<UINT>(data.size()), data.data(), static_cast<UINT>(offset_in_32_bit_values))
+        : m_command_list->SetComputeRoot32BitConstants(static_cast<UINT>(root_signature_slot),
+            static_cast<UINT>(data.size()), data.data(), static_cast<UINT>(offset_in_32_bit_values));
+}
+
+void CommandList::setRootShaderResourceView(uint32_t root_signature_slot, 
+    uint64_t gpu_virtual_address,
+    BundleInvocationContext bundle_invokation_context) const
+{
+    auto cmd_list_type = commandType();
+
+    assert((cmd_list_type == CommandType::direct || cmd_list_type == CommandType::compute)
+        && bundle_invokation_context == BundleInvocationContext::none
+        || cmd_list_type == CommandType::bundle
+        && (bundle_invokation_context == BundleInvocationContext::direct || bundle_invokation_context == BundleInvocationContext::compute));
+
+    cmd_list_type == CommandType::direct || bundle_invokation_context == BundleInvocationContext::direct
+        ? m_command_list->SetGraphicsRootShaderResourceView(static_cast<UINT>(root_signature_slot),
+            static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(gpu_virtual_address))
+        : m_command_list->SetComputeRootShaderResourceView(static_cast<UINT>(root_signature_slot),
+            static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(gpu_virtual_address));
+}
+
+void CommandList::setRootUnorderedAccessView(uint32_t root_signature_slot, 
+    uint64_t gpu_virtual_address,
+    BundleInvocationContext bundle_invokation_context) const
+{
+    auto cmd_list_type = commandType();
+
+    assert((cmd_list_type == CommandType::direct || cmd_list_type == CommandType::compute)
+        && bundle_invokation_context == BundleInvocationContext::none
+        || cmd_list_type == CommandType::bundle
+        && (bundle_invokation_context == BundleInvocationContext::direct || bundle_invokation_context == BundleInvocationContext::compute));
+
+    cmd_list_type == CommandType::direct || bundle_invokation_context == BundleInvocationContext::direct
+        ? m_command_list->SetGraphicsRootUnorderedAccessView(static_cast<UINT>(root_signature_slot),
+            static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(gpu_virtual_address))
+        : m_command_list->SetComputeRootUnorderedAccessView(static_cast<UINT>(root_signature_slot),
+            static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(gpu_virtual_address));
+}
+
+void CommandList::setRootConstantBufferView(uint32_t root_signature_slot, 
+    uint64_t gpu_virtual_address,
+    BundleInvocationContext bundle_invokation_context) const
+{
+    auto cmd_list_type = commandType();
+
+    assert((cmd_list_type == CommandType::direct || cmd_list_type == CommandType::compute)
+        && bundle_invokation_context == BundleInvocationContext::none
+        || cmd_list_type == CommandType::bundle
+        && (bundle_invokation_context == BundleInvocationContext::direct || bundle_invokation_context == BundleInvocationContext::compute));
+
+    cmd_list_type == CommandType::direct || bundle_invokation_context == BundleInvocationContext::direct
+        ? m_command_list->SetGraphicsRootConstantBufferView(static_cast<UINT>(root_signature_slot),
+            static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(gpu_virtual_address))
+        : m_command_list->SetComputeRootConstantBufferView(static_cast<UINT>(root_signature_slot),
+            static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(gpu_virtual_address));
+}
 
 void CommandList::setStringName(std::string const& entity_string_name)
 {
@@ -306,13 +546,14 @@ Device& CommandList::device() const
     return m_allocator_ring.device();
 }
 
-CommandList::CommandList(Device& device, 
-    CommandType command_workload_type, uint32_t node_mask, 
-    FenceSharing command_list_sync_mode/* = FenceSharing::none*/, 
-    PipelineState const* initial_pipeline_state/* = nullptr */):
+CommandList::CommandList(Device& device,
+    CommandType command_workload_type, uint32_t node_mask,
+    FenceSharing command_list_sync_mode/* = FenceSharing::none*/,
+    PipelineState const* initial_pipeline_state/* = nullptr */) :
     m_allocator_ring{ CommandAllocatorRingAttorney<CommandList>::makeCommandAllocatorRing(device, command_workload_type) },
     m_node_mask{ node_mask },
-    m_signal{ device, command_list_sync_mode }
+    m_signal{ device, command_list_sync_mode },
+    m_initial_pipeline_state{ initial_pipeline_state }
 {
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
@@ -321,6 +562,8 @@ CommandList::CommandList(Device& device,
             initial_pipeline_state ? initial_pipeline_state->native().Get() : NULL, 
             IID_PPV_ARGS(&m_command_list)),
         S_OK);
+
+    close();
 }
 
 void CommandList::defineSignalingCommandList(CommandList const& signaling_command_list)

@@ -15,7 +15,8 @@ namespace lexgine::core::dx::d3d12 {
 class RenderingLoopTarget
 {
 public:
-    RenderingLoopTarget(std::vector<Resource> const& target_resources,
+    RenderingLoopTarget(Globals const& globals,
+        std::vector<Resource> const& target_resources,
         std::vector<ResourceState> const& target_resources_initial_states);
 
     void switchToRenderAccessState(CommandList const& command_list) const;
@@ -25,6 +26,7 @@ private:
     std::vector<Resource> m_target_resources;
     DynamicResourceBarrierPack m_forward_barriers;
     DynamicResourceBarrierPack m_backward_barriers;
+    RenderTargetViewDescriptorTable m_rtvs;
 };
 
 
@@ -42,10 +44,9 @@ private:
     uint32_t m_queued_frame_counter;
     std::shared_ptr<RenderingLoopTarget> m_rendering_loop_target_ptr;
     std::vector<Signal> m_frame_end_signals;
-    RenderTargetViewDescriptorTableReference m_rtvs;
     RenderingTasks m_rendering_tasks;
 };
 
 }
 
-#endif // !LEXGINE_CORE_DX_D3D12_RENDERING_LOOP_H
+#endif    // !LEXGINE_CORE_DX_D3D12_RENDERING_LOOP_H
