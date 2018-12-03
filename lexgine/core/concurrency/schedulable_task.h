@@ -20,6 +20,13 @@ public:
 };
 
 
+//! Similar to SchedulableTask, but is used to creat root nodes of the task graph
+class RootSchedulableTask : public AbstractTask, public TaskGraphRootNode
+{
+public:
+    RootSchedulableTask(std::string const& debug_name = "");
+};
+
 /*! Convenience class, which allows to define tasks that cannot be executed concurrently.
     More precisely, if execute(...) is called concurrently for the same instance of SchedulableTaskWithoutConcurrency,
     the calls will be made sequentially. This is convenient when the task is using shared resource and is performed repeatedly 

@@ -31,3 +31,9 @@ bool lexgine::core::concurrency::checkConcurrentExecutionAbility(AbstractTask co
 {
     return dynamic_cast<SchedulableTaskWithoutConcurrency const*>(&task) == nullptr;
 }
+
+RootSchedulableTask::RootSchedulableTask(std::string const& debug_name):
+    AbstractTask{ debug_name },
+    TaskGraphRootNode{ static_cast<AbstractTask&>(*this) }
+{
+}

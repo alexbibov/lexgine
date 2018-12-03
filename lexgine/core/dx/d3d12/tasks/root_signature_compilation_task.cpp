@@ -9,12 +9,14 @@
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks;
+using namespace lexgine::core::dx::d3d12::task_caches;
 
 
 RootSignatureCompilationTask::RootSignatureCompilationTask(
     task_caches::CombinedCacheKey const& key, 
     GlobalSettings const& global_settings,
     RootSignature&& root_signature, RootSignatureFlags const& flags):
+    SchedulableTask{ static_cast<RootSignatureCompilationTaskCache::Key const&>(key).rs_cache_name },
     m_key{ key },
     m_global_settings{ global_settings },
     m_rs{ std::move(root_signature) },

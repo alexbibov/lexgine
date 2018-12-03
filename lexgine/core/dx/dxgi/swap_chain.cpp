@@ -31,6 +31,11 @@ math::Vector2u SwapChain::getDimensions() const
     return math::Vector2u{ swap_chain_desc1.Width, swap_chain_desc1.Height };
 }
 
+void SwapChain::present() const
+{
+    m_dxgi_swap_chain->Present(1, 0);
+}
+
 SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     Device& device,
     CommandQueue const& default_command_queue,
@@ -53,7 +58,7 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     swap_chain_desc1.BufferUsage = static_cast<DXGI_USAGE>(desc.bufferUsage);
     swap_chain_desc1.BufferCount = desc.bufferCount;
     swap_chain_desc1.Scaling = static_cast<DXGI_SCALING>(desc.scaling);
-    swap_chain_desc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+    swap_chain_desc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swap_chain_desc1.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
     swap_chain_desc1.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 

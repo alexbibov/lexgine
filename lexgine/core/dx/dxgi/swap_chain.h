@@ -62,6 +62,12 @@ public:
     //! Retrieves current width and height of the swap chain packed into a 2D vector
     math::Vector2u getDimensions() const;
 
+    /*! Puts contents of the back buffer into the front buffer.
+     When allow_frame_miss is 'true', it is allowed to skip the current frame if
+     a newer frame is queued.
+    */
+    void present() const;
+
 private:
     SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory, 
         d3d12::Device& device, 

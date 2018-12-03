@@ -60,6 +60,9 @@ public:
     //! helper function, which simplifies creation of a swap chain for the current device
     dx::dxgi::SwapChain createSwapChainForCurrentDevice(osinteraction::windows::Window const& window, dx::dxgi::SwapChainDescriptor const& desc) const;
 
+    //! creates main rendering loop
+    //dx::d3d12::RenderingLoop& 
+
 private:
 
     std::ofstream m_logging_file_stream;

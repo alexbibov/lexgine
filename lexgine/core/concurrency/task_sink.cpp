@@ -50,8 +50,8 @@ TaskSink::TaskSink(TaskGraph const& source_task_graph, std::vector<std::ostream*
 
     for (uint16_t i = 0; i < max_frames_to_queue; ++i)
     {
-        m_task_graphs.push_back(TaskGraphAttorney<TaskSink>::cloneTaskGraphForFrame(source_task_graph, i));
-        m_task_graphs.back().injectDependentNode(*m_task_graph_end_execution_guarding_task);
+        m_task_graphs.emplace_back(TaskGraphAttorney<TaskSink>::cloneTaskGraphForFrame(source_task_graph, i));
+        TaskGraphAttorney<TaskSink>::injectDependentNode(m_task_graphs.back(), *m_task_graph_end_execution_guarding_task);
         std::atomic_init(&m_task_graph_execution_busy_vector[i], false);
     }
 

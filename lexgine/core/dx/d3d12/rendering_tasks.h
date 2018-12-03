@@ -13,12 +13,16 @@ class RenderingTasks
 {
 public:
     RenderingTasks(Globals const& globals, 
-        std::set<concurrency::TaskGraphRootNode const*> const& entry_tasks);
+        std::set<concurrency::TaskGraphRootNode*> const& entry_tasks,
+        concurrency::TaskGraphNode* finalizing_task);
+
+    void run();
 
 private:
     Globals const& m_globals;
     concurrency::TaskGraph m_task_graph;
     concurrency::TaskSink m_task_sink;
+    concurrency::TaskGraphNode* m_finalizing_task_ptr;
 };
 
 }
