@@ -119,7 +119,7 @@ public:
 
     void outputMergerSetStencilReference(uint32_t reference_value) const;
 
-    void outputMergerSetRenderTargets(RenderTargetViewDescriptorTable const* rtv_descriptor_table, std::vector<uint32_t> const& rtv_descriptor_offsets,
+    void outputMergerSetRenderTargets(RenderTargetViewDescriptorTable const* rtv_descriptor_table, uint64_t active_rtv_descriptors_mask,
         DepthStencilViewDescriptorTable const* dsv_descriptor_table, uint32_t dsv_descriptor_table_offset) const;
 
     // void streamOutputSetTargets(uint32_t start_slot, std::vector<StreamOutputBufferView> const&) const;

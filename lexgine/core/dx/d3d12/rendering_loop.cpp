@@ -45,23 +45,32 @@ public:
 private:    // required by the AbstractTask interface
     bool do_task(uint8_t worker_id, uint16_t frame_index) override
     {
+        uint64_t active_color_targets_mask = m_rendering_loop.m_color_target_ptr->activeColorTargetsMask();
+
         m_command_list.reset();
         m_command_list.setDescriptorHeaps(m_page0_descriptor_heaps);
         m_command_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle);
         m_command_list.outputMergerSetRenderTargets(
             m_rendering_loop.m_color_target_ptr
             ? &m_rendering_loop.m_color_target_ptr->rtvTable()
-            : nullptr,
+            : nullptr, active_color_targets_mask,
             m_rendering_loop.m_depth_target_ptr
             ? &m_rendering_loop.m_depth_target_ptr->dsvTable()
             : nullptr,
             0U);
         m_rendering_loop.m_color_target_ptr->switchToRenderAccessState(m_command_list);
         m_rendering_loop.m_depth_target_ptr->switchToRenderAccessState(m_command_list);
-
-        for(size_t i = 0; i < m_rendering_loop.m_color_target_ptr->count(); ++i)
-            m_command_list.clearRenderTargetView(m_rendering_loop.m_color_target_ptr->rtvTable(), 
-                static_cast<uint32_t>(i), m_clear_color);
+        
+        {
+            unsigned long idx{ 0 };
+            for (unsigned long offset = 0;
+                _BitScanForward64(&idx, active_color_targets_mask);
+                offset += idx, active_color_targets_mask >>= idx + 1)
+            {
+                m_command_list.clearRenderTargetView(m_rendering_loop.m_color_target_ptr->rtvTable(),
+                    static_cast<uint32_t>(offset), m_clear_color);
+            }
+        }
 
         m_command_list.close();
 
@@ -113,7 +122,9 @@ private:
 RenderingLoopColorTarget::RenderingLoopColorTarget(Globals const& globals,
     std::vector<Resource> const& render_targets,
     std::vector<ResourceState> const& render_target_initial_states,
-    std::vector<RTVDescriptor> const& render_target_resource_views)
+    std::vector<RTVDescriptor> const& render_target_resource_views,
+    uint64_t active_color_targets):
+    m_active_color_targets{ active_color_targets }
 {
     assert(render_targets.size() == render_target_initial_states.size()
         && render_target_initial_states.size() == render_target_resource_views.size());
@@ -142,9 +153,24 @@ void RenderingLoopColorTarget::switchToInitialState(CommandList const& command_l
     m_backward_barriers.applyBarriers(command_list);
 }
 
-size_t RenderingLoopColorTarget::count() const
+void RenderingLoopColorTarget::setActiveColorTargets(uint64_t active_color_targets_mask)
+{
+    m_active_color_targets = active_color_targets_mask;
+}
+
+uint64_t RenderingLoopColorTarget::activeColorTargetsMask() const
+{
+    return m_active_color_targets;
+}
+
+size_t RenderingLoopColorTarget::totalTargetsCount() const
 {
     return m_rtvs_table.descriptor_count;
+}
+
+size_t RenderingLoopColorTarget::activeTargetsCount() const
+{
+    return misc::getSetBitCount(m_active_color_targets);
 }
 
 RenderTargetViewDescriptorTable const& RenderingLoopColorTarget::rtvTable() const

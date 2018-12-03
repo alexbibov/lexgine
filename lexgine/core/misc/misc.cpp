@@ -151,4 +151,20 @@ std::list<std::string> getFilesInDirectory(std::string const& directory_name, st
     return rv;
 }
 
+uint32_t getSetBitCount(uint64_t value)
+{
+    uint32_t rv{ 0U };
+
+    #if defined(_WIN64) && defined(_M_AMD64)
+    return static_cast<uint32_t>(__popcnt64(value));
+    #else
+    rv = value - ((value >> 1) & 0x5555555555555555);
+    rv = (rv & 0x3333333333333333) + ((rv >> 2) & 0x3333333333333333);
+    rv = (rv & 0x0F0F0F0F0F0F0F0F) + ((rv >> 4) & 0x0F0F0F0F0F0F0F0F);
+    rv = (rv + (rv >> 8)) & 0x00FF00FF00FF00FF;
+    rv = (rv + (rv >> 16)) & 0x0000FFFF0000FFFF;
+    rv = (rv & 0x00000000FFFFFFFF) + (rv >> 32);
+    #endif
+}
+
 }}}
