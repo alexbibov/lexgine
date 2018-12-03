@@ -257,22 +257,38 @@ void CommandList::outputMergerSetStencilReference(uint32_t reference_value) cons
     m_command_list->OMSetStencilRef(static_cast<UINT>(reference_value));
 }
 
-void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable const* rtv_descriptor_table, 
-    DepthStencilViewDescriptorTable const* dsv_descriptor_table, uint32_t dsv_descriptor_table_offset) const
+void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable const* rtv_descriptor_table,
+    std::vector<uint32_t> const& rtv_descriptor_offsets, DepthStencilViewDescriptorTable const* dsv_descriptor_table,
+    uint32_t dsv_descriptor_table_offset) const
 {
+    assert(rtv_descriptor_offsets.size() <= maximal_simultaneous_render_targets_count
+        && (!rtv_descriptor_table && rtv_descriptor_offsets.size() == 0
+            || rtv_descriptor_table && rtv_descriptor_offsets.size() <= rtv_descriptor_table->descriptor_count));
+
     assert(!dsv_descriptor_table || dsv_descriptor_table_offset < dsv_descriptor_table->descriptor_count);
 
-    D3D12_CPU_DESCRIPTOR_HANDLE rtv_base_cpu_handle{ rtv_descriptor_table 
-        ? rtv_descriptor_table->cpu_pointer 
-        : NULL };
+    std::array<D3D12_CPU_DESCRIPTOR_HANDLE, maximal_simultaneous_render_targets_count> rtv_cpu_handles{};
+    D3D12_CPU_DESCRIPTOR_HANDLE* rtv_base_cpu_handle{ NULL };
+    UINT rtv_count{ 0U };
+    if (rtv_descriptor_table)
+    {
+        for (size_t i = 0; i < rtv_descriptor_offsets.size(); ++i)
+        {
+            rtv_cpu_handles[i].ptr = rtv_descriptor_table->cpu_pointer
+                + rtv_descriptor_table->descriptor_size*rtv_descriptor_offsets[i];
+        }
+        rtv_base_cpu_handle = rtv_cpu_handles.data();
+        rtv_count = static_cast<UINT>(rtv_descriptor_offsets.size());
+    }
 
-    D3D12_CPU_DESCRIPTOR_HANDLE dsv_cpu_handle{ dsv_descriptor_table 
-        ? dsv_descriptor_table->cpu_pointer + dsv_descriptor_table_offset * dsv_descriptor_table->descriptor_size
-        : NULL };
+    D3D12_CPU_DESCRIPTOR_HANDLE* dsv_base_cpu_handle{ NULL };
+    if (dsv_descriptor_table)
+    {
+        dsv_base_cpu_handle->ptr = dsv_descriptor_table->cpu_pointer
+            + dsv_descriptor_table->descriptor_size*dsv_descriptor_table_offset;
+    }
 
-    m_command_list->OMSetRenderTargets(rtv_descriptor_table ? rtv_descriptor_table->descriptor_count : 0U,
-        rtv_descriptor_table ? &rtv_base_cpu_handle : NULL, TRUE,
-        dsv_descriptor_table ? &dsv_cpu_handle : NULL);
+    m_command_list->OMSetRenderTargets(rtv_count, rtv_base_cpu_handle, FALSE, dsv_base_cpu_handle);
 }
 
 void CommandList::clearDepthStencilView(DepthStencilViewDescriptorTable const& dsv_descriptor_table,
