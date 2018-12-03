@@ -18,16 +18,22 @@ public:
     RenderingLoopColorTarget(Globals const& globals,
         std::vector<Resource> const& render_targets,
         std::vector<ResourceState> const& render_target_initial_states,
-        std::vector<RTVDescriptor> const& render_target_resource_views);
+        std::vector<RTVDescriptor> const& render_target_resource_views,
+        uint64_t active_color_targets);
 
     void switchToRenderAccessState(CommandList const& command_list) const;
     void switchToInitialState(CommandList const& command_list) const;
 
-    size_t count() const;
-    
+    void setActiveColorTargets(uint64_t active_color_targets_mask);
+    uint64_t activeColorTargetsMask() const;
+
+    size_t totalTargetsCount() const;    //! returns total number of color targets
+    size_t activeTargetsCount() const;    //! returns number of active color targets
+
     RenderTargetViewDescriptorTable const& rtvTable() const;
 
 private:
+    uint64_t m_active_color_targets;
     DynamicResourceBarrierPack m_forward_barriers;
     DynamicResourceBarrierPack m_backward_barriers;
     RenderTargetViewDescriptorTable m_rtvs_table;

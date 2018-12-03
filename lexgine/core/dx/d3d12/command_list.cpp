@@ -258,27 +258,29 @@ void CommandList::outputMergerSetStencilReference(uint32_t reference_value) cons
 }
 
 void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable const* rtv_descriptor_table,
-    std::vector<uint32_t> const& rtv_descriptor_offsets, DepthStencilViewDescriptorTable const* dsv_descriptor_table,
+    uint64_t active_rtv_descriptors_mask, DepthStencilViewDescriptorTable const* dsv_descriptor_table,
     uint32_t dsv_descriptor_table_offset) const
 {
-    assert(rtv_descriptor_offsets.size() <= maximal_simultaneous_render_targets_count
-        && (!rtv_descriptor_table && rtv_descriptor_offsets.size() == 0
-            || rtv_descriptor_table && rtv_descriptor_offsets.size() <= rtv_descriptor_table->descriptor_count));
+    UINT rtv_count = misc::getSetBitCount(active_rtv_descriptors_mask);
+    assert(!rtv_descriptor_table && active_rtv_descriptors_mask == 0
+        || rtv_descriptor_table && rtv_descriptor_table->descriptor_count <= 64
+        && rtv_count <= maximal_simultaneous_render_targets_count);
 
     assert(!dsv_descriptor_table || dsv_descriptor_table_offset < dsv_descriptor_table->descriptor_count);
 
     std::array<D3D12_CPU_DESCRIPTOR_HANDLE, maximal_simultaneous_render_targets_count> rtv_cpu_handles{};
     D3D12_CPU_DESCRIPTOR_HANDLE* rtv_base_cpu_handle{ NULL };
-    UINT rtv_count{ 0U };
-    if (rtv_descriptor_table)
+    if (rtv_descriptor_table && active_rtv_descriptors_mask)
     {
-        for (size_t i = 0; i < rtv_descriptor_offsets.size(); ++i)
+        unsigned long idx{ 0 }, i{ 0 };
+        for (unsigned long offset = 0;
+            _BitScanForward64(&idx, active_rtv_descriptors_mask);
+            offset += idx, active_rtv_descriptors_mask >>= idx + 1, ++i)
         {
             rtv_cpu_handles[i].ptr = rtv_descriptor_table->cpu_pointer
-                + rtv_descriptor_table->descriptor_size*rtv_descriptor_offsets[i];
+                + rtv_descriptor_table->descriptor_size*offset;
         }
         rtv_base_cpu_handle = rtv_cpu_handles.data();
-        rtv_count = static_cast<UINT>(rtv_descriptor_offsets.size());
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE* dsv_base_cpu_handle{ NULL };

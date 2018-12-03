@@ -152,6 +152,10 @@ template<typename T> std::unique_ptr<T> stackToUnique(T& val)
 }
 
 
+//! Retrievs count of set bits in 64-bit number
+uint32_t getSetBitCount(uint64_t value);
+
+
 }}}
 
 #endif
