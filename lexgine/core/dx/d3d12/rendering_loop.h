@@ -31,7 +31,6 @@ private:
     DynamicResourceBarrierPack m_forward_barriers;
     DynamicResourceBarrierPack m_backward_barriers;
     RenderTargetViewDescriptorTable m_rtvs_table;
-    
 };
 
 

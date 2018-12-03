@@ -119,7 +119,7 @@ public:
 
     void outputMergerSetStencilReference(uint32_t reference_value) const;
 
-    void outputMergerSetRenderTargets(RenderTargetViewDescriptorTable const* rtv_descriptor_table,
+    void outputMergerSetRenderTargets(RenderTargetViewDescriptorTable const* rtv_descriptor_table, std::vector<uint32_t> const& rtv_descriptor_offsets,
         DepthStencilViewDescriptorTable const* dsv_descriptor_table, uint32_t dsv_descriptor_table_offset) const;
 
     // void streamOutputSetTargets(uint32_t start_slot, std::vector<StreamOutputBufferView> const&) const;
@@ -187,6 +187,7 @@ private:
     Signal const* getJobCompletionSignalPtr() const;
 
 private:
+    static constexpr uint32_t maximal_simultaneous_render_targets_count = 8U;
     static constexpr uint32_t maximal_clear_rectangles_count = 128U;
     static constexpr uint32_t maximal_viewport_count = 64U;
     static constexpr uint32_t maximal_scissor_rectangles = 256U;
