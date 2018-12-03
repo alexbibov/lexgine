@@ -19,7 +19,7 @@ public:
         std::string const& debug_name = "");
     ~TaskSink();
 
-    void run() noexcept(false);    //! begins execution of the task sink
+    void run();    //! begins execution of the task sink
     void dispatchExitSignal();    //! directs the sink to stop dispatching new tasks into the queue and exit the main loop as soon as the queue gets empty
 
 private:

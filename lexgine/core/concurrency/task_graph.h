@@ -21,7 +21,8 @@ public:
 
 public:
     TaskGraph(uint8_t num_workers = 8U, std::string const& name = "");
-    TaskGraph(std::set<TaskGraphRootNode const*> const& root_nodes, uint8_t num_workers = 8U, std::string const& name = "");
+    TaskGraph(std::set<TaskGraphRootNode const*> const& root_nodes,
+        uint8_t num_workers = 8U, std::string const& name = "");
     TaskGraph(TaskGraph const& other) = delete;
     TaskGraph(TaskGraph&& other);
     ~TaskGraph() = default;
@@ -32,9 +33,7 @@ public:
 
     uint8_t getNumberOfWorkerThreads() const;    //! returns number of worker threads assigned to the task graph
 
-    void createDotRepresentation(std::string const& destination_path) const;    //! creates representation of the task graph using DOT language and saves it to the given destination path
-
-    void injectDependentNode(TaskGraphNode const& dependent_node);    //! injects new task into the task graph, which will be dependent on all tasks currently in the task graph
+    void createDotRepresentation(std::string const& destination_path);    //! creates representation of the task graph using DOT language and saves it to the given destination path
 
     uint16_t frameIndex() const;    //! returns frame index, to which this task graph is assigned
 
@@ -48,12 +47,13 @@ public:
 
 private:
     void compile(std::set<TaskGraphRootNode const*> const& root_nodes);    //! creates list of task graph nodes sorted in topological order, creates a full deep copy of the task graph as side effect
-
-#if 0
-    void parse();    //! parses the task graph and creates local copy of its structure using provided set of root nodes as entry points
-#endif
-    
     void reset_completion_status();    //! resets completion status of all the nodes in the task graph
+    
+    /*! injects new task graph node that will be dependent on all nodes present in the task graph.
+     This function is to be used only with already compiled task graph. Also, all dependencies present
+     in the injected node at the moment of injection will be ignored.
+    */
+    void inject_dependent_node(TaskGraphNode const& node);    
 
 private:
     uint8_t m_num_workers;    //!< number of worker threads assigned to the task graph
@@ -77,9 +77,14 @@ private:
     {
         TaskGraph rv{ parent_task_graph.m_num_workers, parent_task_graph.getStringName() + "_frame_idx_copy#" + std::to_string(frame_index) };
         rv.m_frame_index = frame_index;
-        rv.setRootNodes(parent_task_graph.m_root_nodes);
+        rv.compile(parent_task_graph.m_root_nodes);
         return rv;
     } 
+
+    static inline void injectDependentNode(TaskGraph& parent_task_graph, TaskGraphNode const& node)
+    {
+        parent_task_graph.inject_dependent_node(node);
+    }
 };
 
 

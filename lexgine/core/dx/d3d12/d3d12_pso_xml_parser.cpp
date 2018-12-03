@@ -1386,7 +1386,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
     core::GlobalSettings const& global_settings = *m_globals.get<core::GlobalSettings>();
     if (global_settings.isDeferredPSOCompilationOn())
     {
-        std::set<concurrency::TaskGraphRootNode const*> root_tasks{};
+        std::set<concurrency::TaskGraphRootNode*> root_tasks{};
 
         {
             for (tasks::GraphicsPSOCompilationTask* t : m_parsed_graphics_pso_compilation_tasks)
@@ -1436,8 +1436,18 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
             }
         }
 
-        concurrency::TaskGraph pso_compilation_task_graph{ root_tasks, global_settings.getNumberOfWorkers(), "deferred_pso_compilation_task_graph" };
-        pso_compilation_task_graph.injectDependentNode(*m_impl->deferredShaderCompilationExitTask());
+        for (auto& task : m_parsed_graphics_pso_compilation_tasks)
+            task->addDependent(*m_impl->deferredShaderCompilationExitTask());
+
+        for (auto& task : m_parsed_compute_pso_compilation_tasks)
+            task->addDependent(*m_impl->deferredShaderCompilationExitTask());
+
+
+        concurrency::TaskGraph pso_compilation_task_graph{ std::set<concurrency::TaskGraphRootNode const*>{root_tasks.begin(), root_tasks.end()},
+            global_settings.getNumberOfWorkers(), "deferred_pso_compilation_task_graph" };
+        
+        
+        //pso_compilation_task_graph.injectDependentNode(*m_impl->deferredShaderCompilationExitTask());
 
         #ifdef LEXGINE_D3D12DEBUG
         pso_compilation_task_graph.createDotRepresentation("deferred_pso_compilation_task_graph__" + getId().toString() + ".gv");

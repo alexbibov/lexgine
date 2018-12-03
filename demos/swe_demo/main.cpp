@@ -5,6 +5,7 @@
 #include "lexgine/core/initializer.h"
 #include "lexgine/osinteraction/windows/window.h"
 #include "lexgine/osinteraction/windows/window_listeners.h"
+#include "lexgine/core/dx/d3d12/rendering_loop.h"
 
 using namespace lexgine;
 using namespace lexgine::osinteraction;

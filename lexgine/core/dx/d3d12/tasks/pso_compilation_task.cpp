@@ -12,6 +12,7 @@
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks;
+using namespace lexgine::core::dx::d3d12::task_caches;
 
 
 namespace {
@@ -50,6 +51,7 @@ GraphicsPSOCompilationTask::GraphicsPSOCompilationTask(
     task_caches::CombinedCacheKey const& key, 
     Globals& globals,
     GraphicsPSODescriptor const& descriptor):
+    SchedulableTask{ static_cast<PSOCompilationTaskCache::Key const&>(key).pso_cache_name },
     m_key{ key },
     m_globals{ globals },
     m_descriptor{ descriptor },
@@ -196,6 +198,7 @@ ComputePSOCompilationTask::ComputePSOCompilationTask(
     task_caches::CombinedCacheKey const& key,
     Globals& globals,
     ComputePSODescriptor const& descriptor):
+    SchedulableTask{ static_cast<PSOCompilationTaskCache::Key const&>(key).pso_cache_name },
     m_key{ key },
     m_globals{ globals },
     m_descriptor{ descriptor },
