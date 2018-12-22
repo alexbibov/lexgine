@@ -67,6 +67,9 @@ class DepthStencilViewTableBuilder;
 class RenderingLoop;
 class RenderingTasks;
 
+class RenderingTargetColor;
+class RenderingTargetDepth;
+
 }
 
 #endif

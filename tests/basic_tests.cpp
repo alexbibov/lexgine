@@ -16,11 +16,6 @@
 #include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 #include "lexgine/core/dx/d3d12/task_caches/root_signature_compilation_task_cache.h"
 
-#pragma warning(push)
-#pragma warning(disable : 4307)    // this is needed to suppress the warning caused by the static hash function
-
-#include "../lexgine/core/misc/static_hash_table.h"
-
 #include <sstream>
 #include <windows.h>
 #include <utility>
@@ -74,38 +69,6 @@ public:
 
             Log::shutdown();
         }
-
-
-        TEST_METHOD(TestStaticHashTable)
-        {
-            using namespace lexgine::core::misc;
-
-            std::stringstream test_log;
-            {
-                Log const& logger = Log::create(test_log, "Test Static Hash Table", 2, true);
-
-                struct custom_type
-                {
-                    char c;
-                };
-
-                LEXGINE_SHT_KVPAIR(key0, uint32_t);
-                LEXGINE_SHT_KVPAIR(key1, long long);
-                LEXGINE_SHT_KVPAIR(key2, custom_type);
-
-                LEXGINE_SHT(table, key0, key1);
-                table::add_entry<key2> my_table;
-
-                my_table.getValue<key0>() = 0;
-                my_table.getValue<key1>() = 100;
-                my_table.getValue<key2>() = custom_type{ 'c' };
-
-                Assert::IsTrue(my_table.getValue<key0>() == 0 && my_table.getValue<key1>() == 100 && my_table.getValue<key2>().c == 'c');
-            }
-
-            Log::shutdown();
-        }
-
 
         TEST_METHOD(TestConcurrency)
         {
@@ -817,7 +780,3 @@ public:
 
     };
 }
-
-
-
-#pragma warning(pop)

@@ -169,13 +169,13 @@ uint64_t DescriptorHeap::createDepthStencilViewDescriptors(size_t offset, std::v
 DescriptorHeap::DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t descriptor_capacity, uint32_t node_mask) :
     m_device{ device },
     m_type{ type },
-    m_descriptor_size{ device.native()->GetDescriptorHandleIncrementSize(d3d12Convert(type)) },
+    m_descriptor_size{ device.native()->GetDescriptorHandleIncrementSize(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(type)) },
     m_descriptor_capacity{ descriptor_capacity },
     m_node_mask{ node_mask },
     m_num_descriptors_allocated{ 0U }
 {
     D3D12_DESCRIPTOR_HEAP_DESC desc;
-    desc.Type = d3d12Convert(type);
+    desc.Type = static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(type);
     desc.NumDescriptors = static_cast<UINT>(descriptor_capacity);
     switch (type)
     {

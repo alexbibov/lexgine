@@ -9,7 +9,6 @@
 #include "lexgine/core/viewport.h"
 
 #include "lexgine/core/math/box.h"
-#include "lexgine/core/math/rectangle.h"
 
 #include <algorithm>
 #include <cassert>
@@ -191,14 +190,17 @@ void CommandList::inputAssemblySetPrimitiveTopology(PrimitiveTopology primitive_
         native_topology = 
             misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::point>::value();
         break;
+
     case PrimitiveTopology::line:
         native_topology = 
             misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::line>::value();
         break;
+
     case PrimitiveTopology::triangle:
         native_topology =
             misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::triangle>::value();
         break;
+
     case PrimitiveTopology::patch:
         native_topology =
             misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch>::value();
@@ -208,11 +210,10 @@ void CommandList::inputAssemblySetPrimitiveTopology(PrimitiveTopology primitive_
     m_command_list->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(native_topology));
 }
 
-void CommandList::rasterizerStateSetViewports(std::vector<Viewport> const& viewports) const
+void CommandList::rasterizerStateSetViewports(misc::StaticVector<Viewport, c_maximal_viewport_count> const& viewports) const
 {
-    assert(viewports.size() <= maximal_viewport_count);
+    misc::StaticVector<D3D12_VIEWPORT, c_maximal_viewport_count> native_viewports(viewports.size());
 
-    std::array<D3D12_VIEWPORT, maximal_viewport_count> native_viewports;
     std::transform(viewports.begin(), viewports.end(), native_viewports.begin(),
         [](Viewport const& v)
         {
@@ -236,14 +237,10 @@ void CommandList::rasterizerStateSetViewports(std::vector<Viewport> const& viewp
     m_command_list->RSSetViewports(static_cast<UINT>(viewports.size()), native_viewports.data());
 }
 
-void CommandList::rasterizerStateSetScissorRectangles(std::vector<math::Rectangle> const& rectangles) const
+void CommandList::rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_scissor_rectangles> const& rectangles) const
 {
-    assert(rectangles.size() <= maximal_scissor_rectangles);
-
-    std::array<D3D12_RECT, maximal_scissor_rectangles> native_rects;
-    std::transform(rectangles.begin(), rectangles.end(), native_rects.begin(),
-        convertRectangleToDXGINativeRECT);
-
+    misc::StaticVector<D3D12_RECT, c_maximal_scissor_rectangles> native_rects(rectangles.size());
+    std::transform(rectangles.begin(), rectangles.end(), native_rects.begin(), convertRectangleToDXGINativeRECT);
     m_command_list->RSSetScissorRects(static_cast<UINT>(rectangles.size()), native_rects.data());
 }
 
@@ -262,13 +259,14 @@ void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable c
     uint32_t dsv_descriptor_table_offset) const
 {
     UINT rtv_count = misc::getSetBitCount(active_rtv_descriptors_mask);
+
     assert(!rtv_descriptor_table && active_rtv_descriptors_mask == 0
-        || rtv_descriptor_table && rtv_descriptor_table->descriptor_count <= 64
-        && rtv_count <= maximal_simultaneous_render_targets_count);
+        || rtv_descriptor_table && rtv_descriptor_table->descriptor_count <= c_maximal_rtv_descriptor_table_length
+        && rtv_count <= c_maximal_simultaneous_render_targets_count);
 
     assert(!dsv_descriptor_table || dsv_descriptor_table_offset < dsv_descriptor_table->descriptor_count);
 
-    std::array<D3D12_CPU_DESCRIPTOR_HANDLE, maximal_simultaneous_render_targets_count> rtv_cpu_handles{};
+    misc::StaticVector<D3D12_CPU_DESCRIPTOR_HANDLE, c_maximal_simultaneous_render_targets_count> rtv_cpu_handles{};
     D3D12_CPU_DESCRIPTOR_HANDLE* rtv_base_cpu_handle{ NULL };
     if (rtv_descriptor_table && active_rtv_descriptors_mask)
     {
@@ -296,54 +294,38 @@ void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable c
 void CommandList::clearDepthStencilView(DepthStencilViewDescriptorTable const& dsv_descriptor_table,
     uint32_t dsv_descriptor_table_offset, DSVClearFlags clear_flags, 
     float depth_clear_value, uint8_t stencil_clear_value, 
-    std::vector<math::Rectangle> const& clear_rectangles) const
+    misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles) const
 {
     D3D12_CPU_DESCRIPTOR_HANDLE dsv_cpu_handle{ dsv_descriptor_table.cpu_pointer
             + dsv_descriptor_table.descriptor_size*dsv_descriptor_table_offset };
     D3D12_CLEAR_FLAGS flags = static_cast<D3D12_CLEAR_FLAGS>(clear_flags);
 
-    if (clear_rectangles.size())
-    {
-        assert(clear_rectangles.size() <= maximal_clear_rectangles_count);
+    misc::StaticVector<RECT, c_maximal_clear_rectangles_count> native_clear_rectangles(clear_rectangles.size());
+    std::transform(clear_rectangles.begin(), clear_rectangles.end(),
+        native_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
 
-        std::array<RECT, maximal_clear_rectangles_count> converted_clear_rectangles;
-        std::transform(clear_rectangles.begin(), clear_rectangles.end(), 
-            converted_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
-
-        m_command_list->ClearDepthStencilView(dsv_cpu_handle, flags, depth_clear_value, stencil_clear_value,
-            static_cast<UINT>(clear_rectangles.size()), converted_clear_rectangles.data());
-    }
-    else
-    {
-        m_command_list->ClearDepthStencilView(dsv_cpu_handle, flags, depth_clear_value, stencil_clear_value, 0U, NULL);
-    }
+    m_command_list->ClearDepthStencilView(dsv_cpu_handle, flags, depth_clear_value, stencil_clear_value,
+        static_cast<UINT>(clear_rectangles.size()), clear_rectangles.size() ? native_clear_rectangles.data() : NULL);
 }
 
 void CommandList::clearRenderTargetView(RenderTargetViewDescriptorTable const& rtv_descriptor_table, 
     uint32_t rtv_descriptor_table_offset, math::Vector4f const& rgba_clear_value, 
-    std::vector<math::Rectangle> const& clear_rectangles) const
+    misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles) const
 {
     D3D12_CPU_DESCRIPTOR_HANDLE rtv_cpu_descriptor{ rtv_descriptor_table.cpu_pointer
         + rtv_descriptor_table.descriptor_size*rtv_descriptor_table_offset };
 
-    if (clear_rectangles.size())
-    {
-        std::array<RECT, maximal_clear_rectangles_count> converted_clear_rectangles;
-        std::transform(clear_rectangles.begin(), clear_rectangles.end(),
-            converted_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
+    misc::StaticVector<RECT, c_maximal_clear_rectangles_count> native_clear_rectangles(clear_rectangles.size());
+    std::transform(clear_rectangles.begin(), clear_rectangles.end(),
+        native_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
 
-        m_command_list->ClearRenderTargetView(rtv_cpu_descriptor, rgba_clear_value.getDataAsArray(),
-            static_cast<UINT>(clear_rectangles.size()), converted_clear_rectangles.data());
-    }
-    else
-    {
-        m_command_list->ClearRenderTargetView(rtv_cpu_descriptor, rgba_clear_value.getDataAsArray(), 0U, NULL);
-    }
+    m_command_list->ClearRenderTargetView(rtv_cpu_descriptor, rgba_clear_value.getDataAsArray(),
+        static_cast<UINT>(clear_rectangles.size()), clear_rectangles.size() ? native_clear_rectangles.data() : NULL);
 }
 
 void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, 
-    uint32_t uav_descriptor_table_offset, Resource const& resource_to_clear, 
-    math::Vector4u const& rgba_clear_value, std::vector<math::Rectangle> const& clear_rectangles) const
+    uint32_t uav_descriptor_table_offset, Resource const& resource_to_clear, math::Vector4u const& rgba_clear_value, 
+    misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles) const
 {
     D3D12_CPU_DESCRIPTOR_HANDLE uav_cpu_descriptor{ uav_descriptor_table.cpu_pointer
         + uav_descriptor_table.descriptor_size*uav_descriptor_table_offset };
@@ -351,26 +333,18 @@ void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& 
     D3D12_GPU_DESCRIPTOR_HANDLE uav_gpu_descriptor{ uav_descriptor_table.gpu_pointer
         + uav_descriptor_table.descriptor_size*uav_descriptor_table_offset };
 
-    if (clear_rectangles.size())
-    {
-        std::array<RECT, maximal_clear_rectangles_count> converted_clear_rectangles;
-        std::transform(clear_rectangles.begin(), clear_rectangles.end(),
-            converted_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
+    misc::StaticVector<RECT, c_maximal_clear_rectangles_count> native_clear_rectangles(clear_rectangles.size());
+    std::transform(clear_rectangles.begin(), clear_rectangles.end(),
+        native_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
 
-        m_command_list->ClearUnorderedAccessViewUint(uav_gpu_descriptor, uav_cpu_descriptor,
-            resource_to_clear.native().Get(), rgba_clear_value.getDataAsArray(),
-            static_cast<UINT>(clear_rectangles.size()), converted_clear_rectangles.data());
-    }
-    else
-    {
-        m_command_list->ClearUnorderedAccessViewUint(uav_gpu_descriptor, uav_cpu_descriptor,
-            resource_to_clear.native().Get(), rgba_clear_value.getDataAsArray(), 0U, NULL);
-    }
+    m_command_list->ClearUnorderedAccessViewUint(uav_gpu_descriptor, uav_cpu_descriptor,
+        resource_to_clear.native().Get(), rgba_clear_value.getDataAsArray(),
+        static_cast<UINT>(clear_rectangles.size()), clear_rectangles.size() ? native_clear_rectangles.data() : NULL);
 }
 
 void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, 
     uint32_t uav_descriptor_table_offset, Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value, 
-    std::vector<math::Rectangle> const& clear_rectangles) const
+    misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles) const
 {
     D3D12_CPU_DESCRIPTOR_HANDLE uav_cpu_descriptor{ uav_descriptor_table.cpu_pointer
         + uav_descriptor_table.descriptor_size*uav_descriptor_table_offset };
@@ -378,21 +352,13 @@ void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& 
     D3D12_GPU_DESCRIPTOR_HANDLE uav_gpu_descriptor{ uav_descriptor_table.gpu_pointer
         + uav_descriptor_table.descriptor_size*uav_descriptor_table_offset };
 
-    if (clear_rectangles.size())
-    {
-        std::array<RECT, maximal_clear_rectangles_count> converted_clear_rectangles;
-        std::transform(clear_rectangles.begin(), clear_rectangles.end(),
-            converted_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
+    misc::StaticVector<RECT, c_maximal_clear_rectangles_count> native_clear_rectangles(clear_rectangles.size());
+    std::transform(clear_rectangles.begin(), clear_rectangles.end(),
+        native_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
 
-        m_command_list->ClearUnorderedAccessViewFloat(uav_gpu_descriptor, uav_cpu_descriptor,
-            resource_to_clear.native().Get(), rgba_clear_value.getDataAsArray(),
-            static_cast<UINT>(clear_rectangles.size()), converted_clear_rectangles.data());
-    }
-    else
-    {
-        m_command_list->ClearUnorderedAccessViewFloat(uav_gpu_descriptor, uav_cpu_descriptor,
-            resource_to_clear.native().Get(), rgba_clear_value.getDataAsArray(), 0U, NULL);
-    }
+    m_command_list->ClearUnorderedAccessViewFloat(uav_gpu_descriptor, uav_cpu_descriptor,
+        resource_to_clear.native().Get(), rgba_clear_value.getDataAsArray(),
+        static_cast<UINT>(clear_rectangles.size()), clear_rectangles.size() ? native_clear_rectangles.data() : NULL);
 }
 
 void CommandList::setPipelineState(PipelineState const& pipeline_state) const
@@ -400,18 +366,16 @@ void CommandList::setPipelineState(PipelineState const& pipeline_state) const
     m_command_list->SetPipelineState(pipeline_state.native().Get());
 }
 
-void CommandList::setDescriptorHeaps(std::vector<DescriptorHeap const*> const& descriptor_heaps) const
+void CommandList::setDescriptorHeaps(misc::StaticVector<DescriptorHeap const*, static_cast<size_t>(DescriptorHeapType::count)> const& descriptor_heaps) const
 {
     auto cmd_list_type = commandType();
 
     // formally SetDescriptorHeaps(...) API is supported by command list bundles, but the heaps set from
     // the bundle must correspond to the heaps set by the invoking command list, so this API is 
     // essentially useless for bundles and therefore, we disallow it
-    assert(cmd_list_type == CommandType::direct || cmd_list_type == CommandType::compute);
-    assert(descriptor_heaps.size() <= static_cast<size_t>(DescriptorHeapType::count));
+    assert((cmd_list_type == CommandType::direct || cmd_list_type == CommandType::compute));
 
-
-    std::array<ID3D12DescriptorHeap*, static_cast<size_t>(DescriptorHeapType::count)> native_descriptor_heaps{};
+    misc::StaticVector<ID3D12DescriptorHeap*, static_cast<size_t>(DescriptorHeapType::count)> native_descriptor_heaps(descriptor_heaps.size());
     std::transform(descriptor_heaps.begin(), descriptor_heaps.end(), native_descriptor_heaps.begin(),
         [](DescriptorHeap const* dh) { return dh->native().Get(); });
 

@@ -10,13 +10,19 @@
 #include "lexgine/core/class_names.h"
 #include "lexgine/core/primitive_topology.h"
 #include "lexgine/core/lexgine_core_fwd.h"
+
 #include "lexgine/core/math/lexgine_core_math_fwd.h"
+#include "lexgine/core/math/rectangle.h"
+
+#include "lexgine/core/misc/static_vector.h"
+#include "lexgine/osinteraction/windows/fence_event.h"
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "command_allocator_ring.h"
+#include "descriptor_heap.h"
 #include "fence.h"
 #include "signal.h"
-#include "lexgine/osinteraction/windows/fence_event.h"
+
 
 using namespace Microsoft::WRL;
 
@@ -68,6 +74,13 @@ class CommandList: public NamedEntity<class_names::D3D12CommandList>
     friend class CommandListAttorney<CommandQueue>;
 
 public:
+    static constexpr uint32_t c_maximal_simultaneous_render_targets_count = 8U;
+    static constexpr uint32_t c_maximal_clear_rectangles_count = 128U;
+    static constexpr uint32_t c_maximal_viewport_count = 64U;
+    static constexpr uint32_t c_maximal_scissor_rectangles = 256U;
+    static constexpr uint32_t c_maximal_rtv_descriptor_table_length = 64U;
+
+public:
     uint32_t getNodeMask() const;    //! returns the node mask determining which node on the adapter link owns the command list
     ComPtr<ID3D12GraphicsCommandList> native() const;    //! returns pointer to the native ID3D12GraphicsCommandList interface
 
@@ -111,9 +124,9 @@ public:
 
     // void inputAssemblySetVertexBuffers(uint32_t start_slot, std::vector<VertexBufferView> const&);
     
-    void rasterizerStateSetViewports(std::vector<Viewport> const& viewports) const;
+    void rasterizerStateSetViewports(misc::StaticVector<Viewport, c_maximal_viewport_count> const& viewports) const;
 
-    void rasterizerStateSetScissorRectangles(std::vector<math::Rectangle> const& rectangles) const;
+    void rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_scissor_rectangles> const& rectangles) const;
 
     void outputMergerSetBlendFactor(math::Vector4f const& blend_factor) const;
 
@@ -129,21 +142,23 @@ public:
 
     void clearDepthStencilView(DepthStencilViewDescriptorTable const& dsv_descriptor_table, uint32_t dsv_descriptor_table_offset,
         DSVClearFlags clear_flags, float depth_clear_value, uint8_t stencil_clear_value, 
-        std::vector<math::Rectangle> const& clear_rectangles = {}) const;
+        misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles = {}) const;
 
     void clearRenderTargetView(RenderTargetViewDescriptorTable const& rtv_descriptor_table, uint32_t rtv_descriptor_table_offset,
-        math::Vector4f const& rgba_clear_value, std::vector<math::Rectangle> const& clear_rectangles = {}) const;
+        math::Vector4f const& rgba_clear_value, misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles = {}) const;
 
     void clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
-        Resource const& resource_to_clear, math::Vector4u const& rgba_clear_value, std::vector<math::Rectangle> const& clear_rectangles = {}) const;
+        Resource const& resource_to_clear, math::Vector4u const& rgba_clear_value, 
+        misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles = {}) const;
 
     void clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
-        Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value, std::vector<math::Rectangle> const& clear_rectangles = {}) const;
+        Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value, 
+        misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles = {}) const;
 
 
     //! Data binding routines
 
-    void setDescriptorHeaps(std::vector<DescriptorHeap const*> const& descriptor_heaps) const;
+    void setDescriptorHeaps(misc::StaticVector<DescriptorHeap const*, static_cast<size_t>(DescriptorHeapType::count)> const& descriptor_heaps) const;
 
     void setRootSignature(std::string const& cached_root_signature_friendly_name, 
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
@@ -185,12 +200,6 @@ private:
 
     void defineSignalingCommandList(CommandList const& signaling_command_list);
     Signal const* getJobCompletionSignalPtr() const;
-
-private:
-    static constexpr uint32_t maximal_simultaneous_render_targets_count = 8U;
-    static constexpr uint32_t maximal_clear_rectangles_count = 128U;
-    static constexpr uint32_t maximal_viewport_count = 64U;
-    static constexpr uint32_t maximal_scissor_rectangles = 256U;
 
 private:
     CommandAllocatorRing m_allocator_ring;    //!< command allocator to which the command list belongs
