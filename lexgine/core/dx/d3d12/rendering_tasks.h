@@ -9,20 +9,27 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-class RenderingTasks 
+class RenderingTasks final
 {
 public:
-    RenderingTasks(Globals const& globals, 
-        std::set<concurrency::TaskGraphRootNode*> const& entry_tasks,
-        concurrency::TaskGraphNode* finalizing_task);
+    RenderingTasks(Globals& globals);
+    ~RenderingTasks();
 
     void run();
 
+    void setRenderingTargets(RenderingTargetColor const* color_rendering_target,
+        RenderingTargetDepth const* depth_rendering_target);
+
+
 private:
-    Globals const& m_globals;
+    DxResourceFactory const& m_dx_resources;
+    Device& m_device;
+    RenderingTargetColor const* m_color_rendering_target_ptr;
+    RenderingTargetDepth const* m_depth_rendering_target_ptr;
+
+
     concurrency::TaskGraph m_task_graph;
     concurrency::TaskSink m_task_sink;
-    concurrency::TaskGraphNode* m_finalizing_task_ptr;
 };
 
 }

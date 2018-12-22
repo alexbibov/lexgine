@@ -11,6 +11,7 @@
 
 
 using namespace lexgine::core;
+using namespace lexgine::core::dx::d3d12;
 using json = nlohmann::json;
 
 

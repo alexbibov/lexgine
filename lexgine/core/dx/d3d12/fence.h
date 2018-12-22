@@ -21,8 +21,8 @@ template<typename T> class FenceAttorney;
 enum class FenceSharing
 {
     none = 0,
-    multinode = D3D12_FENCE_FLAG_SHARED,
-    multiadapter = D3D12_FENCE_FLAG_SHARED | D3D12_FENCE_FLAG_SHARED_CROSS_ADAPTER
+    shared = D3D12_FENCE_FLAG_SHARED,
+    shared_cross_adapter = D3D12_FENCE_FLAG_SHARED | D3D12_FENCE_FLAG_SHARED_CROSS_ADAPTER
 };
 
 

@@ -178,6 +178,7 @@
     <ClCompile Include="core\dx\d3d12\heap.cpp" />
     <ClCompile Include="core\dx\d3d12\profiler.cpp" />
     <ClCompile Include="core\dx\d3d12\rendering_loop.cpp" />
+    <ClCompile Include="core\dx\d3d12\rendering_target.cpp" />
     <ClCompile Include="core\dx\d3d12\rendering_tasks.cpp" />
     <ClCompile Include="core\dx\d3d12\resource_barrier_pack.cpp" />
     <ClCompile Include="core\dx\d3d12\rtv_descriptor.cpp" />
@@ -250,11 +251,11 @@
     <ClInclude Include="core\data_blob.h" />
     <ClInclude Include="core\default_allocator.h" />
     <ClInclude Include="core\depth_stencil_descriptor.h" />
-    <ClInclude Include="core\common_types.h" />
     <ClInclude Include="core\dx\d3d12\cbv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\dsv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\descriptor_table_builders.h" />
     <ClInclude Include="core\dx\d3d12\profiler.h" />
+    <ClInclude Include="core\dx\d3d12\rendering_target.h" />
     <ClInclude Include="core\dx\d3d12\rendering_loop.h" />
     <ClInclude Include="core\dx\d3d12\rendering_tasks.h" />
     <ClInclude Include="core\dx\d3d12\rtv_descriptor.h" />
@@ -323,7 +324,6 @@
     <ClInclude Include="core\misc\log.h" />
     <ClInclude Include="core\misc\misc.h" />
     <ClInclude Include="core\misc\optional.h" />
-    <ClInclude Include="core\misc\static_hash_table.h" />
     <ClInclude Include="core\misc\static_vector.h" />
     <ClInclude Include="core\misc\template_argument_iterator.h" />
     <ClInclude Include="core\misc\strict_weak_ordering.h" />

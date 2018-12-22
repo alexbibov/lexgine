@@ -395,6 +395,7 @@ inline D3D12_STATIC_BORDER_COLOR d3d12Convert(StaticBorderColor border_color)
 }
 
 
+#if 0
 //! Converts API-agnostic descriptor heap type to enumeration value accepted by Direct3D 12
 inline D3D12_DESCRIPTOR_HEAP_TYPE d3d12Convert(DescriptorHeapType descriptor_heap_type)
 {
@@ -416,6 +417,7 @@ inline D3D12_DESCRIPTOR_HEAP_TYPE d3d12Convert(DescriptorHeapType descriptor_hea
         throw;
     }
 }
+#endif
 
 
 }

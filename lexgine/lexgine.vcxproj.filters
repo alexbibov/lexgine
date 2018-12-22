@@ -156,9 +156,6 @@
     <ClInclude Include="core\misc\optional.h">
       <Filter>core\misc</Filter>
     </ClInclude>
-    <ClInclude Include="core\misc\static_hash_table.h">
-      <Filter>core\misc</Filter>
-    </ClInclude>
     <ClInclude Include="core\metal\metal_tools.h">
       <Filter>core\metal</Filter>
     </ClInclude>
@@ -402,9 +399,6 @@
     <ClInclude Include="core\dx\d3d12\sampler_descriptor.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="core\common_types.h">
-      <Filter>core</Filter>
-    </ClInclude>
     <ClInclude Include="core\dx\d3d12\rendering_tasks.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
@@ -415,6 +409,9 @@
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
     <ClInclude Include="core\dx\d3d12\profiler.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\rendering_target.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
   </ItemGroup>
@@ -647,6 +644,7 @@
     <ClCompile Include="core\dx\d3d12\rendering_loop.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
+    <ClCompile Include="core\dx\d3d12\rendering_target.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="core\dx\d3d12\constant_buffer_impl.inl">

@@ -9,7 +9,6 @@
 #include "lexgine/core/depth_stencil_descriptor.h"
 #include "lexgine/core/primitive_topology.h"
 #include "lexgine/core/filter.h"
-#include "lexgine/core/common_types.h"
 
 namespace lexgine::core::misc {
 

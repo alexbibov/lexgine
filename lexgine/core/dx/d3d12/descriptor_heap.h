@@ -3,7 +3,6 @@
 
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
-#include "lexgine/core/common_types.h"
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 
@@ -14,6 +13,14 @@
 using namespace Microsoft::WRL;
 
 namespace lexgine::core::dx::d3d12 {
+
+enum class DescriptorHeapType {
+    cbv_srv_uav,
+    sampler,
+    rtv,
+    dsv,
+    count
+};
 
 class DescriptorHeap final : public NamedEntity<class_names::D3D12DescriptorHeap>
 {
@@ -76,7 +83,6 @@ public:
 
 private:
     DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t descriptor_capacity, uint32_t node_mask);
-
 
     Device& m_device;    //!< device that has created this heap
     ComPtr<ID3D12DescriptorHeap> m_descriptor_heap;    //!< reference to the native Direct3D 12 descriptor heap interface

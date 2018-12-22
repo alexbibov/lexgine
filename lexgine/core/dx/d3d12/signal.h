@@ -4,6 +4,7 @@
 #include "fence.h"
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/osinteraction/windows/fence_event.h"
+#include "lexgine/core/misc/optional.h"
 
 namespace lexgine::core::dx::d3d12 {
 
