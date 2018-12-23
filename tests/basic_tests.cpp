@@ -466,7 +466,7 @@ public:
                         ROOT_NODE_CAST(&op3), ROOT_NODE_CAST(&op4) });
                 taskGraph.createDotRepresentation("task_graph.gv");
 
-                TaskSink taskSink{ taskGraph, worker_thread_logs, 1 };
+                TaskSink taskSink{ taskGraph, worker_thread_logs };
                 exit.setInput(&taskSink);
 
                 try 

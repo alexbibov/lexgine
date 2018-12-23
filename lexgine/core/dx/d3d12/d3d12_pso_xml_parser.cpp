@@ -1454,7 +1454,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
         #endif
 
         std::vector<std::ostream*> worker_log_streams = *m_globals.get<std::vector<std::ostream*>>();
-        concurrency::TaskSink task_sink{ pso_compilation_task_graph, worker_log_streams, 1, "pso_compilation_task_sink_" + getId().toString() };
+        concurrency::TaskSink task_sink{ pso_compilation_task_graph, worker_log_streams, "pso_compilation_task_sink_" + getId().toString() };
         m_impl->deferredShaderCompilationExitTask()->setInput(&task_sink);
 
         try
