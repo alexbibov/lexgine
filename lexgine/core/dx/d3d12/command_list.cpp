@@ -106,8 +106,8 @@ void CommandList::dispatch(uint32_t thread_group_x, uint32_t thread_group_y, uin
         static_cast<UINT>(thread_group_z));
 }
 
-void CommandList::copyBufferRegion(Resource const& dst_buffer, uint64_t dst_buffer_offset, 
-    Resource const& src_buffer, uint64_t src_buffer_offset, uint64_t num_bytes)
+void CommandList::copyBufferRegion(PlacedResource const& dst_buffer, uint64_t dst_buffer_offset, 
+    PlacedResource const& src_buffer, uint64_t src_buffer_offset, uint64_t num_bytes)
 {
     m_command_list->CopyBufferRegion(dst_buffer.native().Get(), static_cast<UINT64>(dst_buffer_offset),
         src_buffer.native().Get(), static_cast<UINT64>(src_buffer_offset), static_cast<UINT64>(num_bytes));
@@ -169,13 +169,13 @@ void CommandList::copyTextureRegion(TextureCopyLocation const& dst, math::Vector
         &src_copy_location, &box);
 }
 
-void CommandList::copyResource(Resource const& dst_resource, Resource const& src_resource) const
+void CommandList::copyResource(PlacedResource const& dst_resource, PlacedResource const& src_resource) const
 {
     m_command_list->CopyResource(dst_resource.native().Get(), src_resource.native().Get());
 }
 
-void CommandList::resolveSubresource(Resource const& dst_resource, uint32_t dst_subresource,
-    Resource const& src_resource, uint32_t src_subresource, DXGI_FORMAT format) const
+void CommandList::resolveSubresource(PlacedResource const& dst_resource, uint32_t dst_subresource,
+    PlacedResource const& src_resource, uint32_t src_subresource, DXGI_FORMAT format) const
 {
     m_command_list->ResolveSubresource(dst_resource.native().Get(), static_cast<UINT>(dst_subresource),
         src_resource.native().Get(), static_cast<UINT>(src_subresource), format);
@@ -324,7 +324,7 @@ void CommandList::clearRenderTargetView(RenderTargetViewDescriptorTable const& r
 }
 
 void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, 
-    uint32_t uav_descriptor_table_offset, Resource const& resource_to_clear, math::Vector4u const& rgba_clear_value, 
+    uint32_t uav_descriptor_table_offset, PlacedResource const& resource_to_clear, math::Vector4u const& rgba_clear_value, 
     misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles) const
 {
     D3D12_CPU_DESCRIPTOR_HANDLE uav_cpu_descriptor{ uav_descriptor_table.cpu_pointer
@@ -343,7 +343,7 @@ void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& 
 }
 
 void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, 
-    uint32_t uav_descriptor_table_offset, Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value, 
+    uint32_t uav_descriptor_table_offset, PlacedResource const& resource_to_clear, math::Vector4f const& rgba_clear_value, 
     misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles) const
 {
     D3D12_CPU_DESCRIPTOR_HANDLE uav_cpu_descriptor{ uav_descriptor_table.cpu_pointer
@@ -565,13 +565,13 @@ Signal const* CommandList::getJobCompletionSignalPtr() const
     return CommandAllocatorRingAttorney<CommandList>::getCurrentJobCompletionSignalPtrFromCommandAllocatorRing(m_allocator_ring);
 }
 
-TextureCopyLocation::TextureCopyLocation(Resource const& copy_location_resource, uint32_t subresource_index):
+TextureCopyLocation::TextureCopyLocation(PlacedResource const& copy_location_resource, uint32_t subresource_index):
     m_copy_location_resource_ref{ copy_location_resource }
 {
     m_native_copy_location_desc = static_cast<UINT>(subresource_index);
 }
 
-TextureCopyLocation::TextureCopyLocation(Resource const& copy_location_resource, uint64_t resource_offset,
+TextureCopyLocation::TextureCopyLocation(PlacedResource const& copy_location_resource, uint64_t resource_offset,
     DXGI_FORMAT resource_format, 
     uint32_t resource_width, uint32_t resource_height, uint32_t resource_depth, uint32_t resource_row_pitch):
     m_copy_location_resource_ref{ copy_location_resource }

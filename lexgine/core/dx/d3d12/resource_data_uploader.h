@@ -38,7 +38,7 @@ public:
         //! Describes type of the memory segment of the destination resource
         enum DestinationDescriptorSegmentType { texture, buffer };
 
-        Resource const* p_destination_resource;    //!< destination resource receiving the data being uploaded
+        PlacedResource const* p_destination_resource;    //!< destination resource receiving the data being uploaded
         ResourceState destination_resource_state;    //!< state, in which the destination resource is expected to reside at the moment when the data upload happens
         DestinationDescriptorSegment segment;    //!< segment of the destination resource that will receive the source data
         DestinationDescriptorSegmentType segment_type;    //!< type of memory segment of the target resource

@@ -102,7 +102,7 @@ ResourceDescriptor ResourceDescriptor::CreateTexture3D(uint64_t width, uint32_t 
     return desc;
 }
 
-Resource::Resource(Heap& heap, uint64_t heap_offset, 
+PlacedResource::PlacedResource(Heap& heap, uint64_t heap_offset, 
     ResourceState const& initial_state, 
     misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value, 
     ResourceDescriptor const& descriptor):
@@ -125,27 +125,27 @@ Resource::Resource(Heap& heap, uint64_t heap_offset,
         S_OK);
 }
 
-Heap& Resource::heap() const
+Heap& PlacedResource::heap() const
 {
     return m_heap;
 }
 
-uint64_t Resource::offset() const
+uint64_t PlacedResource::offset() const
 {
     return m_offset;
 }
 
-ComPtr<ID3D12Resource> Resource::native() const
+ComPtr<ID3D12Resource> PlacedResource::native() const
 {
     return m_resource;
 }
 
-ResourceDescriptor const& Resource::descriptor() const
+ResourceDescriptor const& PlacedResource::descriptor() const
 {
     return m_descriptor;
 }
 
-void* Resource::map(unsigned int subresource/* = 0U */, 
+void* PlacedResource::map(unsigned int subresource/* = 0U */, 
     size_t offset/* = 0U */, size_t mapping_range/* = static_cast<size_t>(-1) */) const
 {
     D3D12_RESOURCE_DESC desc = m_descriptor.native();
@@ -162,12 +162,12 @@ void* Resource::map(unsigned int subresource/* = 0U */,
     return rv;
 }
 
-void Resource::unmap(unsigned int subresource/* = 0U */) const
+void PlacedResource::unmap(unsigned int subresource/* = 0U */) const
 {
     m_resource->Unmap(static_cast<UINT>(subresource), nullptr);
 }
 
-uint64_t Resource::getGPUVirtualAddress() const
+uint64_t PlacedResource::getGPUVirtualAddress() const
 {
     return m_resource->GetGPUVirtualAddress();
 }

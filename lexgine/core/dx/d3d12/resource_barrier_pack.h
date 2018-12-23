@@ -31,18 +31,18 @@ public:
 
     virtual ~ResourceBarrierPack() = default;
 
-    void addTransitionBarrier(Resource const* p_resource, uint16_t mipmap_level, uint16_t array_layer,
+    void addTransitionBarrier(PlacedResource const* p_resource, uint16_t mipmap_level, uint16_t array_layer,
         ResourceState state_before, ResourceState state_after,
         SplitResourceBarrierFlags split_barrier_flags = SplitResourceBarrierFlags::none);
 
-    void addTransitionBarrier(Resource const* p_resource,
+    void addTransitionBarrier(PlacedResource const* p_resource,
         ResourceState state_before, ResourceState state_after,
         SplitResourceBarrierFlags split_barrier_flags = SplitResourceBarrierFlags::none);
 
-    void addAliasingBarrier(Resource const* p_resource_before, Resource const* p_resource_after,
+    void addAliasingBarrier(PlacedResource const* p_resource_before, PlacedResource const* p_resource_after,
         SplitResourceBarrierFlags split_barrier_flags = SplitResourceBarrierFlags::none);
 
-    void addUAVBarrier(Resource const* p_resource,
+    void addUAVBarrier(PlacedResource const* p_resource,
         SplitResourceBarrierFlags split_barrier_flags = SplitResourceBarrierFlags::none);
 
     void applyBarriers(CommandList const& cmd_list) const;

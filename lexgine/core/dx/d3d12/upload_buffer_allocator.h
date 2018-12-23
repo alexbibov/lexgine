@@ -56,7 +56,7 @@ public:
     uint64_t scheduledWork() const;
     uint64_t totalCapacity() const;
 
-    Resource const& getUploadResource() const;
+    PlacedResource const& getUploadResource() const;
 
 private:
     using list_of_allocations = std::list<memory_block_type>;
@@ -66,7 +66,7 @@ private:
     Device& m_device;
     Heap& m_upload_heap;
     Signal m_progress_tracking_signal;
-    Resource m_upload_buffer;
+    PlacedResource m_upload_buffer;
 
     std::mutex m_access_semaphore;
     list_of_allocations m_blocks;

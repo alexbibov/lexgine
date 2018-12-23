@@ -72,7 +72,7 @@ public:
     math::Vector2u getDimensions() const;
 
     //! Retrieves one of the back buffers of the swap chain and wrappes it into a Resource object
-    dx::d3d12::Resource getBackBuffer() const;
+    dx::d3d12::PlacedResource getBackBuffer(uint32_t buffer_index) const;
 
     //! Puts contents of the back buffer into the front buffer.
     void present() const;
