@@ -18,7 +18,7 @@ public:
     HeapResourcePlacer(HeapResourcePlacer&&) = default;
 
     //! adds new resource to the heap and moves the current allocation offset caret accordingly
-    Resource addResource(ResourceState const& initial_state, ResourceOptimizedClearValue const& optimized_clear_value, ResourceDescriptor const& descriptor);
+    PlacedResource addResource(ResourceState const& initial_state, ResourceOptimizedClearValue const& optimized_clear_value, ResourceDescriptor const& descriptor);
 
     //! resets heap allocation caret to zero. Could be used for resource aliasing
     void reset();

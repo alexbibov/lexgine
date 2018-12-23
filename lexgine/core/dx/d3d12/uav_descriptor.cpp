@@ -5,9 +5,9 @@
 
 using namespace lexgine::core::dx::d3d12;
 
-UAVDescriptor::UAVDescriptor(Resource const& resource, 
+UAVDescriptor::UAVDescriptor(PlacedResource const& resource, 
     UAVBufferInfo const& buffer_info,
-    Resource const* p_counter_resource):
+    PlacedResource const* p_counter_resource):
     m_resource_ref{ resource },
     m_counter_resource_ptr{ p_counter_resource }
 {
@@ -24,9 +24,9 @@ UAVDescriptor::UAVDescriptor(Resource const& resource,
     m_native.Buffer.Flags = static_cast<D3D12_BUFFER_UAV_FLAGS>(buffer_info.flags);
 }
 
-UAVDescriptor::UAVDescriptor(Resource const& resource, 
+UAVDescriptor::UAVDescriptor(PlacedResource const& resource, 
     UAVTextureInfo const& texture_info,
-    Resource const* p_counter_resource):
+    PlacedResource const* p_counter_resource):
     m_resource_ref{ resource },
     m_counter_resource_ptr{ p_counter_resource }
 {
@@ -61,9 +61,9 @@ UAVDescriptor::UAVDescriptor(Resource const& resource,
     }
 }
 
-UAVDescriptor::UAVDescriptor(Resource const& resource, 
+UAVDescriptor::UAVDescriptor(PlacedResource const& resource, 
     UAVTextureArrayInfo const& texture_array_info,
-    Resource const* p_counter_resource):
+    PlacedResource const* p_counter_resource):
     m_resource_ref{ resource },
     m_counter_resource_ptr{ p_counter_resource }
 {
@@ -106,12 +106,12 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDescriptor::nativeDescriptor() const
     return m_native;
 }
 
-Resource const& UAVDescriptor::associatedResource() const
+PlacedResource const& UAVDescriptor::associatedResource() const
 {
     return m_resource_ref;
 }
 
-Resource const* UAVDescriptor::associatedCounterResourcePtr() const
+PlacedResource const* UAVDescriptor::associatedCounterResourcePtr() const
 {
     return m_counter_resource_ptr;
 }

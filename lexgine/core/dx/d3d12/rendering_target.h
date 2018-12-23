@@ -18,7 +18,7 @@ class RenderingTargetColor
 {
 public:
     RenderingTargetColor(Globals const& globals,
-        std::vector<Resource> const& render_targets,
+        std::vector<PlacedResource> const& render_targets,
         std::vector<ResourceState> const& render_target_initial_states,
         std::vector<RTVDescriptor> const& render_target_resource_views,
         uint64_t active_color_targets);
@@ -46,7 +46,7 @@ class RenderingTargetDepth
 {
 public:
     RenderingTargetDepth(Globals const& globals,
-        Resource const& depth_target_resource,
+        PlacedResource const& depth_target_resource,
         ResourceState initial_depth_target_resource_state,
         DSVDescriptor const& depth_target_resource_view);
 

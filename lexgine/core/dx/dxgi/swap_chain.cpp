@@ -33,12 +33,15 @@ math::Vector2u SwapChain::getDimensions() const
     return math::Vector2u{ swap_chain_desc1.Width, swap_chain_desc1.Height };
 }
 
-dx::d3d12::Resource SwapChain::getBackBuffer(uint32_t buffer_index) const
+dx::d3d12::PlacedResource SwapChain::getBackBuffer(uint32_t buffer_index) const
 {
     ComPtr<ID3D12Resource> backbuffer_interface;
+    
     LEXGINE_THROW_ERROR_IF_FAILED(this,
         m_dxgi_swap_chain->GetBuffer(static_cast<UINT>(buffer_index), IID_PPV_ARGS(backbuffer_interface.GetAddressOf())),
         S_OK);
+
+    return dx::d3d12::PlacedResource{}
 }
 
 void SwapChain::present() const

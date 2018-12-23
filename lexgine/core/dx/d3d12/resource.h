@@ -153,7 +153,7 @@ struct ResourceOptimizedClearValue final
 
 
 //! Wrapper over placed resource context
-class Resource final : public NamedEntity<class_names::D3D12Resource>
+class PlacedResource final : public NamedEntity<class_names::D3D12Resource>
 {
     // template<size_t> friend class ResourceBarrier;    // resource state transitions are allowed to change the current resource state, which is otherwise hidden
 
@@ -161,15 +161,15 @@ public:
     /*! Creates placed resource in provided @param heap at the given @param offset. Note that @param initial_state and @param optimized_clear_value
      may be overridden to certain values depending on the type of the heap and on the dimension of the resource being created. THROWS
      */
-    Resource(Heap& heap, uint64_t heap_offset, ResourceState const& initial_state, 
+    PlacedResource(Heap& heap, uint64_t heap_offset, ResourceState const& initial_state, 
         misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value, ResourceDescriptor const& descriptor);
 
 
     // Resources are the only copyable objects at ring0. The copy is always shallow as the object is merely wrapper over the
     // memory occupied by the resource
 
-    Resource(Resource const&) = default;
-    Resource(Resource&&) = default;
+    PlacedResource(PlacedResource const&) = default;
+    PlacedResource(PlacedResource&&) = default;
 
     Heap& heap() const;    //! returns the heap, in which the resource resides
     uint64_t offset() const;    //! returns offset to the resource in the owning heap

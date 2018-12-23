@@ -31,11 +31,11 @@ struct DSVTextureArrayInfo final
 class DSVDescriptor final
 {
 public:
-    DSVDescriptor(Resource const& resource, 
+    DSVDescriptor(PlacedResource const& resource, 
         DSVTextureInfo const& texture_info, 
         DSVFlags flags = DSVFlags::none);
 
-    DSVDescriptor(Resource const& resource, 
+    DSVDescriptor(PlacedResource const& resource, 
         DSVTextureArrayInfo const& texture_array_info,
         DSVFlags flags = DSVFlags::none);
 
@@ -45,10 +45,10 @@ public:
     void overrideFormat(DXGI_FORMAT format);
 
     D3D12_DEPTH_STENCIL_VIEW_DESC nativeDescriptor() const;
-    Resource const& associatedResource() const;
+    PlacedResource const& associatedResource() const;
 
 private:
-    Resource const& m_resource_ref;
+    PlacedResource const& m_resource_ref;
     D3D12_DEPTH_STENCIL_VIEW_DESC m_native;
 };
 

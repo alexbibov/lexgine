@@ -20,7 +20,7 @@ class HeapResourcePlacer;
 struct GraphicsPSODescriptor;
 struct ComputePSODescriptor;
 class PipelineState;
-class Resource;
+class PlacedResource;
 class ResourceBarrierPack;
 class DynamicResourceBarrierPack;
 template<unsigned int capacity> class StaticResourceBarrierPack;

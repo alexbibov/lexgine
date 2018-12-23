@@ -43,17 +43,17 @@ struct UAVTextureArrayInfo final
 class UAVDescriptor final
 {
 public:
-    UAVDescriptor(Resource const& resource,
+    UAVDescriptor(PlacedResource const& resource,
         UAVBufferInfo const& buffer_info,
-        Resource const* p_counter_resource = nullptr);
+        PlacedResource const* p_counter_resource = nullptr);
 
-    UAVDescriptor(Resource const& resource,
+    UAVDescriptor(PlacedResource const& resource,
         UAVTextureInfo const& texture_info,
-        Resource const* p_counter_resource = nullptr);
+        PlacedResource const* p_counter_resource = nullptr);
 
-    UAVDescriptor(Resource const& resource,
+    UAVDescriptor(PlacedResource const& resource,
         UAVTextureArrayInfo const& texture_array_info,
-        Resource const* p_counter_resource = nullptr);
+        PlacedResource const* p_counter_resource = nullptr);
 
     /*! Normally, DXGI format for the SRV descriptor is fetched from resource descriptor.
      This function can be use if another setting for the format is preferable
@@ -61,12 +61,12 @@ public:
     void overrideFormat(DXGI_FORMAT format);
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC nativeDescriptor() const;
-    Resource const& associatedResource() const;
-    Resource const* associatedCounterResourcePtr() const;
+    PlacedResource const& associatedResource() const;
+    PlacedResource const* associatedCounterResourcePtr() const;
 
 private:
-    Resource const& m_resource_ref;
-    Resource const* m_counter_resource_ptr;
+    PlacedResource const& m_resource_ref;
+    PlacedResource const* m_counter_resource_ptr;
     D3D12_UNORDERED_ACCESS_VIEW_DESC m_native;
 };
 

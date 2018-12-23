@@ -11,14 +11,14 @@ namespace lexgine::core::dx::d3d12 {
 class CBVDescriptor final
 {
 public:
-    CBVDescriptor(Resource const& resource,
+    CBVDescriptor(PlacedResource const& resource,
         uint32_t offset_from_start, uint32_t view_size_in_bytes);
 
     D3D12_CONSTANT_BUFFER_VIEW_DESC nativeDescriptor() const;
-    Resource const& associatedResource() const;
+    PlacedResource const& associatedResource() const;
 
 private:
-    Resource const& m_resource_ref;
+    PlacedResource const& m_resource_ref;
     D3D12_CONSTANT_BUFFER_VIEW_DESC m_native;
 };
 

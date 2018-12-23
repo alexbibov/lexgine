@@ -5,7 +5,7 @@
 
 using namespace lexgine::core::dx::d3d12;
 
-RTVDescriptor::RTVDescriptor(Resource const& resource, RTVBufferInfo const& buffer_info):
+RTVDescriptor::RTVDescriptor(PlacedResource const& resource, RTVBufferInfo const& buffer_info):
     m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -18,7 +18,7 @@ RTVDescriptor::RTVDescriptor(Resource const& resource, RTVBufferInfo const& buff
     m_native.Buffer.NumElements = static_cast<UINT>(buffer_info.num_elements);
 }
 
-RTVDescriptor::RTVDescriptor(Resource const& resource, RTVTextureInfo const& texture_info):
+RTVDescriptor::RTVDescriptor(PlacedResource const& resource, RTVTextureInfo const& texture_info):
     m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -54,7 +54,7 @@ RTVDescriptor::RTVDescriptor(Resource const& resource, RTVTextureInfo const& tex
     }
 }
 
-RTVDescriptor::RTVDescriptor(Resource const& resource, RTVTextureArrayInfo const& texture_array_info):
+RTVDescriptor::RTVDescriptor(PlacedResource const& resource, RTVTextureArrayInfo const& texture_array_info):
     m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -107,7 +107,7 @@ D3D12_RENDER_TARGET_VIEW_DESC RTVDescriptor::nativeDescriptor() const
     return m_native;
 }
 
-Resource const& RTVDescriptor::associatedResource() const
+PlacedResource const& RTVDescriptor::associatedResource() const
 {
     return m_resource_ref;
 }
