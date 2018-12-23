@@ -20,6 +20,9 @@ public:
     void setRenderingTargets(RenderingTargetColor const* color_rendering_target,
         RenderingTargetDepth const* depth_rendering_target);
 
+private:
+    class FrameBeginTask;
+    class FrameEndTask;
 
 private:
     DxResourceFactory const& m_dx_resources;
@@ -27,9 +30,11 @@ private:
     RenderingTargetColor const* m_color_rendering_target_ptr;
     RenderingTargetDepth const* m_depth_rendering_target_ptr;
 
-
     concurrency::TaskGraph m_task_graph;
     concurrency::TaskSink m_task_sink;
+
+    std::unique_ptr<FrameBeginTask> m_frame_begin_task;
+    std::unique_ptr<FrameEndTask> m_frame_end_task;
 };
 
 }
