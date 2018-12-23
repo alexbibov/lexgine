@@ -26,19 +26,24 @@ osinteraction::windows::Window const& SwapChain::window() const
 math::Vector2u SwapChain::getDimensions() const
 {
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc1;
-    m_dxgi_swap_chain->GetDesc1(&swap_chain_desc1);
+    LEXGINE_THROW_ERROR_IF_FAILED(this,
+        m_dxgi_swap_chain->GetDesc1(&swap_chain_desc1),
+        S_OK);
 
     return math::Vector2u{ swap_chain_desc1.Width, swap_chain_desc1.Height };
 }
 
-uint32_t SwapChain::getBackBufferIndex() const
+dx::d3d12::Resource SwapChain::getBackBuffer(uint32_t buffer_index) const
 {
-    return uint32_t();
+    ComPtr<ID3D12Resource> backbuffer_interface;
+    LEXGINE_THROW_ERROR_IF_FAILED(this,
+        m_dxgi_swap_chain->GetBuffer(static_cast<UINT>(buffer_index), IID_PPV_ARGS(backbuffer_interface.GetAddressOf())),
+        S_OK);
 }
 
 void SwapChain::present() const
 {
-    m_dxgi_swap_chain->Present(1, 0);
+    LEXGINE_THROW_ERROR_IF_FAILED(this, m_dxgi_swap_chain->Present(1, 0), S_OK);
 }
 
 SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
