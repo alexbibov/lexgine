@@ -3,8 +3,9 @@
 
 
 #include <cstdint>
+#include <dxgi1_6.h>
+#include <wrl.h>
 
-#include "common.h"
 #include "lexgine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/math/vector_types.h"
@@ -14,7 +15,7 @@
 using namespace Microsoft::WRL;
 
 
-namespace lexgine {namespace core {namespace dx {namespace dxgi {
+namespace lexgine::core::dx::dxgi {
 
 template<typename T> class SwapChainAttorney;
 
@@ -32,11 +33,17 @@ struct SwapChainDescriptor
 {
     DXGI_FORMAT format;    //!< display format
     bool stereo;
-    ResourceUsage bufferUsage;
-    uint32_t bufferCount;
     SwapChainScaling scaling;
     uint32_t refreshRate;
     bool windowed;
+};
+
+
+//! Extra parameters used when creating swap chains and not exposed by the APIs accessed by the client
+struct SwapChainAdvancedParameters
+{
+    uint32_t queued_buffer_count;
+    DXGI_USAGE back_buffer_usage_scenario;
 };
 
 
@@ -62,10 +69,10 @@ public:
     //! Retrieves current width and height of the swap chain packed into a 2D vector
     math::Vector2u getDimensions() const;
 
-    /*! Puts contents of the back buffer into the front buffer.
-     When allow_frame_miss is 'true', it is allowed to skip the current frame if
-     a newer frame is queued.
-    */
+    //! Get index of the currently back buffer of the swap chain
+    uint32_t getBackBufferIndex() const;
+
+    //! Puts contents of the back buffer into the front buffer.
     void present() const;
 
 private:
@@ -73,7 +80,8 @@ private:
         d3d12::Device& device, 
         d3d12::CommandQueue const& default_command_queue,
         osinteraction::windows::Window const& window, 
-        SwapChainDescriptor const& desc);
+        SwapChainDescriptor const& desc,
+        SwapChainAdvancedParameters const& advanced_parameters);
 
 private:
     ComPtr<IDXGIFactory6> m_dxgi_factory;   //!< DXGI factory used to create the swap chain
@@ -95,14 +103,14 @@ private:
         d3d12::Device& device,
         d3d12::CommandQueue const& default_command_queue,
         osinteraction::windows::Window const& window,
-        SwapChainDescriptor const& desc)
+        SwapChainDescriptor const& desc, SwapChainAdvancedParameters const& advanced_parameters)
     {
-        return SwapChain{ dxgi_factory, device, default_command_queue, window, desc };
+        return SwapChain{ dxgi_factory, device, default_command_queue, window, desc, advanced_parameters };
     }
 };
 
 
 
-}}}}
+}
 
 #endif

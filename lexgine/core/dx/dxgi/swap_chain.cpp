@@ -31,6 +31,11 @@ math::Vector2u SwapChain::getDimensions() const
     return math::Vector2u{ swap_chain_desc1.Width, swap_chain_desc1.Height };
 }
 
+uint32_t SwapChain::getBackBufferIndex() const
+{
+    return uint32_t();
+}
+
 void SwapChain::present() const
 {
     m_dxgi_swap_chain->Present(1, 0);
@@ -40,7 +45,7 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     Device& device,
     CommandQueue const& default_command_queue,
     osinteraction::windows::Window const& window,
-    SwapChainDescriptor const& desc):
+    SwapChainDescriptor const& desc, SwapChainAdvancedParameters const& advanced_parameters):
     m_dxgi_factory{ dxgi_factory },
     m_device{ device },
     m_window{ window },
@@ -55,8 +60,8 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     swap_chain_desc1.Format = desc.format;
     swap_chain_desc1.Stereo = desc.stereo;
     swap_chain_desc1.SampleDesc = DXGI_SAMPLE_DESC{ 1, 0 };
-    swap_chain_desc1.BufferUsage = static_cast<DXGI_USAGE>(desc.bufferUsage);
-    swap_chain_desc1.BufferCount = desc.bufferCount;
+    swap_chain_desc1.BufferUsage = advanced_parameters.back_buffer_usage_scenario;
+    swap_chain_desc1.BufferCount = advanced_parameters.queued_buffer_count;
     swap_chain_desc1.Scaling = static_cast<DXGI_SCALING>(desc.scaling);
     swap_chain_desc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swap_chain_desc1.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;

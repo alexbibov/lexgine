@@ -156,8 +156,6 @@ int main(int argc, char* argv[])
     rendering_window.setVisibility(true);
 
     SwapChainDescriptor swap_chain_desc{};
-    swap_chain_desc.bufferCount = 2;
-    swap_chain_desc.bufferUsage = ResourceUsage::enum_type::render_target;
     swap_chain_desc.format = DXGI_FORMAT_R8G8B8A8_UNORM;
     swap_chain_desc.refreshRate = 60;
     swap_chain_desc.scaling = SwapChainScaling::stretch;
