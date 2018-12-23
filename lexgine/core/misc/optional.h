@@ -18,7 +18,7 @@ public:
     explicit Optional(Args&&... args):
         m_is_valid{ true }
     {
-        new(m_value) T{ std::forward<Args>(args)... };
+        new(m_value) T(std::forward<Args>(args)...);
     }
 
     //! initializes wrapper containing provided value

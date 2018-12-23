@@ -1,8 +1,9 @@
+#include <algorithm>
+#include <cassert>
+
 #include "resource.h"
 #include "device.h"
 #include "lexgine/core/exception.h"
-
-#include <algorithm>
 
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core;
@@ -102,14 +103,90 @@ ResourceDescriptor ResourceDescriptor::CreateTexture3D(uint64_t width, uint32_t 
     return desc;
 }
 
+
+
+Resource::Resource(ComPtr<ID3D12Resource> const& native/* = nullptr */) :
+    m_resource{ native }
+{
+    if(m_resource)
+        m_resource->GetDevice(IID_PPV_ARGS(&m_native_device));
+}
+
+ComPtr<ID3D12Resource> Resource::native() const
+{
+    return m_resource;
+}
+
+void* Resource::map(unsigned int subresource/* = 0U */,
+    size_t offset/* = 0U */, size_t mapping_range/* = static_cast<size_t>(-1) */) const
+{
+    assert(m_resource != nullptr);
+
+    D3D12_RESOURCE_DESC desc = static_cast<ResourceDescriptor&>(m_descriptor).native();
+    uint64_t total_resource_size_in_bytes{ 0 };
+    m_native_device->GetCopyableFootprints(&desc, subresource, 1, 0UI64, nullptr, nullptr, nullptr, &total_resource_size_in_bytes);
+
+    D3D12_RANGE read_range{ offset, (std::min<uint64_t>)(total_resource_size_in_bytes, mapping_range) };
+    void* rv{ nullptr };
+    LEXGINE_THROW_ERROR_IF_FAILED(this,
+        m_resource->Map(static_cast<UINT>(subresource), &read_range, &rv),
+        S_OK
+    );
+
+    return rv;
+}
+
+void Resource::unmap(unsigned int subresource/* = 0U */) const
+{
+    assert(m_resource != nullptr);
+
+    m_resource->Unmap(static_cast<UINT>(subresource), nullptr);
+}
+
+uint64_t Resource::getGPUVirtualAddress() const
+{
+    assert(m_resource != nullptr);
+
+    return m_resource->GetGPUVirtualAddress();
+}
+
+ResourceDescriptor const& Resource::descriptor() const
+{
+    assert(m_resource != nullptr);
+
+    if (!m_descriptor.isValid())
+    {
+        auto native_descriptor = m_resource->GetDesc();
+        ResourceDescriptor desc;
+        desc.dimension = static_cast<ResourceDimension>(native_descriptor.Dimension);
+        desc.alignment = static_cast<ResourceAlignment>(native_descriptor.Alignment);
+        desc.width = native_descriptor.Width;
+        desc.height = native_descriptor.Height;
+        desc.depth = native_descriptor.DepthOrArraySize;
+        desc.num_mipmaps = native_descriptor.MipLevels;
+        desc.format = native_descriptor.Format;
+        desc.multisampling_format.quality = native_descriptor.SampleDesc.Quality;
+        desc.multisampling_format.count = native_descriptor.SampleDesc.Count;
+        desc.layout = static_cast<TextureLayout>(native_descriptor.Layout);
+        desc.flags = native_descriptor.Flags;
+
+        m_descriptor = desc;
+    }
+
+    return static_cast<ResourceDescriptor const&>(m_descriptor);
+}
+
+
+
+
 PlacedResource::PlacedResource(Heap& heap, uint64_t heap_offset, 
     ResourceState const& initial_state, 
     misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value, 
     ResourceDescriptor const& descriptor):
     m_heap{ heap },
-    m_offset{ heap_offset },
-    m_descriptor{ descriptor }
+    m_offset{ heap_offset }
 {
+    m_descriptor = descriptor;
     D3D12_RESOURCE_DESC desc = descriptor.native();
 
     D3D12_CLEAR_VALUE native_clear_value{};
@@ -135,42 +212,9 @@ uint64_t PlacedResource::offset() const
     return m_offset;
 }
 
-ComPtr<ID3D12Resource> PlacedResource::native() const
-{
-    return m_resource;
-}
 
-ResourceDescriptor const& PlacedResource::descriptor() const
-{
-    return m_descriptor;
-}
 
-void* PlacedResource::map(unsigned int subresource/* = 0U */, 
-    size_t offset/* = 0U */, size_t mapping_range/* = static_cast<size_t>(-1) */) const
-{
-    D3D12_RESOURCE_DESC desc = m_descriptor.native();
-    uint64_t total_resource_size_in_bytes{ 0 };
-    m_heap.device().native()->GetCopyableFootprints(&desc, subresource, 1, 0UI64, nullptr, nullptr, nullptr, &total_resource_size_in_bytes);
 
-    D3D12_RANGE read_range{ offset, (std::min<uint64_t>)(total_resource_size_in_bytes, mapping_range) };
-    void* rv{ nullptr };
-    LEXGINE_THROW_ERROR_IF_FAILED(this,
-        m_resource->Map(static_cast<UINT>(subresource), &read_range, &rv),
-        S_OK
-    );
-
-    return rv;
-}
-
-void PlacedResource::unmap(unsigned int subresource/* = 0U */) const
-{
-    m_resource->Unmap(static_cast<UINT>(subresource), nullptr);
-}
-
-uint64_t PlacedResource::getGPUVirtualAddress() const
-{
-    return m_resource->GetGPUVirtualAddress();
-}
 
 DepthStencilValue::DepthStencilValue(float depth, uint8_t stencil):
     depth{ depth },
@@ -212,3 +256,4 @@ D3D12_CLEAR_VALUE ResourceOptimizedClearValue::native() const
 
     return rv;
 }
+
