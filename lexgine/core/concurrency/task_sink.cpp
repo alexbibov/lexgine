@@ -9,21 +9,18 @@ using namespace lexgine::core::misc;
 class TaskSink::TaskGraphEndExecutionGuard : public SchedulableTask
 {
 public: 
-    TaskGraphEndExecutionGuard(std::vector<std::atomic_bool>& guard_vector, std::atomic_uint16_t& exit_level) :
+    TaskGraphEndExecutionGuard(std::atomic_uint16_t& exit_level) :
         SchedulableTask{ "TaskGraphEndExecutionGuard", false },
-        m_guard_vector{guard_vector},
         m_exit_level{ exit_level }
     {
 
     }
 
 private:
-    std::vector<std::atomic_bool>& m_guard_vector;
     std::atomic_uint16_t& m_exit_level;
 
     bool do_task(uint8_t worker_id, uint16_t frame_index) override
     {
-        m_guard_vector[frame_index].store(false, std::memory_order_release);
         --m_exit_level;
         return true;
     }
@@ -37,23 +34,18 @@ private:
 
 
 
-TaskSink::TaskSink(TaskGraph const& source_task_graph, std::vector<std::ostream*> const& worker_thread_logging_streams, 
-    uint16_t max_frames_to_queue, std::string const& debug_name):
-    m_task_graph_execution_busy_vector(max_frames_to_queue),
+TaskSink::TaskSink(TaskGraph const& source_task_graph, 
+    std::vector<std::ostream*> const& worker_thread_logging_streams, std::string const& debug_name):
     m_exit_signal{ false },
     m_exit_level{ 0U },
     m_num_threads_finished{ 0U },
     m_error_watchdog{ 0U },
-    m_task_graph_end_execution_guarding_task{ new TaskGraphEndExecutionGuard{m_task_graph_execution_busy_vector, m_exit_level} }
+    m_task_graph_end_execution_guarding_task{ new TaskGraphEndExecutionGuard{m_exit_level} }
 {
     setStringName(debug_name);
 
-    for (uint16_t i = 0; i < max_frames_to_queue; ++i)
-    {
-        m_task_graphs.emplace_back(TaskGraphAttorney<TaskSink>::cloneTaskGraphForFrame(source_task_graph, i));
-        TaskGraphAttorney<TaskSink>::injectDependentNode(m_task_graphs.back(), *m_task_graph_end_execution_guarding_task);
-        std::atomic_init(&m_task_graph_execution_busy_vector[i], false);
-    }
+    m_compiled_task_graph.reset(new TaskGraph{ TaskGraphAttorney<TaskSink>::cloneTaskGraphForFrame(source_task_graph, 0) });
+    TaskGraphAttorney<TaskSink>::injectDependentNode(*m_compiled_task_graph, *m_task_graph_end_execution_guarding_task);
 
     for (uint8_t i = 0; i < source_task_graph.getNumberOfWorkerThreads(); ++i)
     {
@@ -80,23 +72,25 @@ void TaskSink::run()
     while (!(error_status = m_error_watchdog.load(std::memory_order_acquire))
         && (!(exit_signal = m_exit_signal.load(std::memory_order_acquire)) || m_exit_level.load(std::memory_order_acquire) > 0))
     {
-        for (uint16_t i = 0; i < m_task_graph_execution_busy_vector.size(); ++i)
+        // if exit signal was not dispatched try to start new concurrent frame
+        if (!exit_signal && m_exit_level.load(std::memory_order_acquire) == 0)
         {
-            // if exit signal was not dispatched try to start new concurrent frame 
-            bool false_val = false;
-            if (!exit_signal && m_task_graph_execution_busy_vector[i].compare_exchange_strong(false_val, true, std::memory_order_acq_rel))
-            {
-                TaskGraphAttorney<TaskSink>::resetTaskGraphCompletionStatus(m_task_graphs[i]);
-                ++m_exit_level;
-            }
+            TaskGraphAttorney<TaskSink>::resetTaskGraphCompletionStatus(*m_compiled_task_graph);
+            ++m_exit_level;
+        }
 
-            // try to put more tasks into the task queue
-            for (auto& task : m_task_graphs[i])
+        // try to put more tasks into the task queue
+        bool more_tasks_dispatched{ false };
+        for (auto& task : *m_compiled_task_graph)
+        {
+            if (!task.isCompleted() && task.isReadyToLaunch())
             {
-                if (!task.isCompleted() && task.isReadyToLaunch())
-                    task.schedule(m_task_queue);
+                task.schedule(m_task_queue);
+                more_tasks_dispatched = true;
             }
         }
+
+        if (!more_tasks_dispatched) YieldProcessor();
     }
 
     m_task_queue.shutdown();

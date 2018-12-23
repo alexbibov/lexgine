@@ -9,18 +9,17 @@
 namespace lexgine::core::concurrency {
 
 //! Implements task scheduling based on provided task graph
-class TaskSink : public NamedEntity<class_names::TaskSink>
+class TaskSink final : public NamedEntity<class_names::TaskSink>
 {
 public:
     TaskSink(
         TaskGraph const& source_task_graph, 
-        std::vector<std::ostream*> const& worker_thread_logging_streams, 
-        uint16_t max_frames_to_queue = 6U, 
+        std::vector<std::ostream*> const& worker_thread_logging_streams,
         std::string const& debug_name = "");
     ~TaskSink();
 
     void run();    //! begins execution of the task sink
-    void dispatchExitSignal();    //! directs the sink to stop dispatching new tasks into the queue and exit the main loop as soon as the queue gets empty
+    void dispatchExitSignal();    //! directs the sink to stop dispatching new tasks into the queue and exit the main loop as soon as the last task graph is done
 
 private:
     void dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t logging_time_zone, bool logging_dts);    //! function looped by worker threads
@@ -28,8 +27,7 @@ private:
 
     using worker_thread_context = std::pair<std::thread, std::ostream*>;
     std::list<worker_thread_context> m_workers_list;    //!< list of work threads
-    std::vector<TaskGraph> m_task_graphs;    //!< task graphs that can be executed concurrently
-    std::vector<std::atomic_bool> m_task_graph_execution_busy_vector;    //!< vector of weak locks that identify occupied concurrent frame execution buckets
+    std::unique_ptr<TaskGraph> m_compiled_task_graph;    //!< compiled task graph ('compiled' here means that it has been optimized for execution and cannot change any longer)
     RingBufferTaskQueue<TaskGraphNode*> m_task_queue;    //!< concurrent task queue
 
     std::atomic_bool m_exit_signal;    //!< becomes 'true' when the sink encounters an exit task, which has been successfully executed

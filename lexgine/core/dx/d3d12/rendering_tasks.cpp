@@ -135,8 +135,7 @@ RenderingTasks::RenderingTasks(Globals& globals):
 
     m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" },
 
-    m_task_sink{ m_task_graph, **globals.get<std::vector<std::ostream*>*>(), 
-    globals.get<GlobalSettings>()->getMaxFramesInFlight(), "RenderingTasksSink" }
+    m_task_sink{ m_task_graph, **globals.get<std::vector<std::ostream*>*>(), "RenderingTasksSink" }
 
 {
     
