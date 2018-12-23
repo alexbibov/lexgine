@@ -8,9 +8,11 @@
 
 #include "lexgine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
+#include "lexgine/core/dx/d3d12/resource.h"
 #include "lexgine/core/math/vector_types.h"
 #include "lexgine/core/multisampling.h"
 #include "lexgine/osinteraction/windows/window.h"
+
 
 using namespace Microsoft::WRL;
 
@@ -69,8 +71,8 @@ public:
     //! Retrieves current width and height of the swap chain packed into a 2D vector
     math::Vector2u getDimensions() const;
 
-    //! Get index of the currently back buffer of the swap chain
-    uint32_t getBackBufferIndex() const;
+    //! Retrieves one of the back buffers of the swap chain and wrappes it into a Resource object
+    dx::d3d12::Resource getBackBuffer() const;
 
     //! Puts contents of the back buffer into the front buffer.
     void present() const;

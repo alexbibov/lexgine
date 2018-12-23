@@ -151,6 +151,7 @@ struct ResourceOptimizedClearValue final
 };
 
 
+
 //! Wrapper over placed resource context
 class Resource final : public NamedEntity<class_names::D3D12Resource>
 {
