@@ -192,9 +192,6 @@
     <ClInclude Include="core\concurrency\task_sink.h">
       <Filter>core\concurrency</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\dxgi\common.h">
-      <Filter>core\dx\dxgi</Filter>
-    </ClInclude>
     <ClInclude Include="core\dx\dxgi\hw_adapter_enumerator.h">
       <Filter>core\dx\dxgi</Filter>
     </ClInclude>

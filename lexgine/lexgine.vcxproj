@@ -297,7 +297,6 @@
     <ClInclude Include="core\dx\d3d12\upload_buffer_allocator.h" />
     <ClInclude Include="core\dx\dxcompilation\common.h" />
     <ClInclude Include="core\dx\dxcompilation\dx_compiler_proxy.h" />
-    <ClInclude Include="core\dx\dxgi\common.h" />
     <ClInclude Include="core\dx\dxgi\hw_adapter_enumerator.h" />
     <ClInclude Include="core\dx\dxgi\hw_output_enumerator.h" />
     <ClInclude Include="core\dx\dxgi\lexgine_core_dx_dxgi_fwd.h" />

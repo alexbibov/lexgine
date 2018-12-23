@@ -8,8 +8,6 @@
 #include <vector>
 #include <list>
 
-#include "common.h"
-
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/osinteraction/windows/window.h"
@@ -113,7 +111,8 @@ public:
     HwOutputEnumerator const& getOutputEnumerator() const;
 
     //! Creates swap chain for this adapter (or adapter link) and associates it with the given window
-    SwapChain createSwapChain(osinteraction::windows::Window const& window, SwapChainDescriptor const& desc) const;
+    SwapChain createSwapChain(osinteraction::windows::Window const& window, SwapChainDescriptor const& desc,
+        SwapChainAdvancedParameters const& advanced_parameters) const;
 
     d3d12::Device& device() const;
 

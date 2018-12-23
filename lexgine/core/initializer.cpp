@@ -226,5 +226,9 @@ uint32_t Initializer::getAdapterCount() const
 
 dx::dxgi::SwapChain Initializer::createSwapChainForCurrentDevice(osinteraction::windows::Window const& window, dx::dxgi::SwapChainDescriptor const& desc) const
 {
-    return getCurrentDeviceHwAdapter().createSwapChain(window, desc);
+    dx::dxgi::SwapChainAdvancedParameters advanced_parameters;
+    advanced_parameters.queued_buffer_count = m_global_settings->getMaxFramesInFlight();
+    advanced_parameters.back_buffer_usage_scenario = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+
+    return getCurrentDeviceHwAdapter().createSwapChain(window, desc, advanced_parameters);
 }
