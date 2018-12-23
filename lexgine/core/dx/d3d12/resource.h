@@ -82,7 +82,7 @@ struct ResourceDescriptor
     uint64_t getAllocationSize(Device const& device, uint32_t node_exposure_mask) const;
 
     D3D12_RESOURCE_DESC native() const;    // returns native D3D12 resource descriptor struct
-    
+
     static ResourceDescriptor CreateBuffer(uint64_t size, ResourceFlags flags = ResourceFlags{ ResourceFlags::enum_type::none });    //! fills out the fields of the structure as required for buffers
 
     static ResourceDescriptor CreateTexture1D(uint64_t width, uint16_t array_size, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags{ ResourceFlags::enum_type::none },
@@ -151,9 +151,33 @@ struct ResourceOptimizedClearValue final
 };
 
 
+class Resource : public NamedEntity<class_names::D3D12Resource>
+{
+public:
+    Resource(ComPtr<ID3D12Resource> const& native = nullptr);
+    virtual ~Resource() = default;
+
+    ComPtr<ID3D12Resource> native() const;    //! returns encapsulated native Direct3D12 interface representing the resource
+
+    //! maps resource to the CPU-memory. Call to this function will fail if the resource's heap does not support CPU access
+    void* map(unsigned int subresource = 0U,
+        size_t offset = 0U, size_t mapping_range = static_cast<size_t>(-1)) const;
+
+    void unmap(unsigned int subresource = 0U) const;    //! unmaps resource from the CPU memory
+
+    uint64_t getGPUVirtualAddress() const;
+
+    ResourceDescriptor const& descriptor() const;    //! returns descriptor of the resource
+
+protected:
+    ComPtr<ID3D12Device> m_native_device;    //!< native device that owns the native resource
+    ComPtr<ID3D12Resource> m_resource;    //!< encapsulated native interface representing the resource
+    misc::Optional<ResourceDescriptor> mutable m_descriptor;    //!< resource descriptor
+};
+
 
 //! Wrapper over placed resource context
-class PlacedResource final : public NamedEntity<class_names::D3D12Resource>
+class PlacedResource final : public Resource
 {
     // template<size_t> friend class ResourceBarrier;    // resource state transitions are allowed to change the current resource state, which is otherwise hidden
 
@@ -161,38 +185,20 @@ public:
     /*! Creates placed resource in provided @param heap at the given @param offset. Note that @param initial_state and @param optimized_clear_value
      may be overridden to certain values depending on the type of the heap and on the dimension of the resource being created. THROWS
      */
-    PlacedResource(Heap& heap, uint64_t heap_offset, ResourceState const& initial_state, 
+    PlacedResource(Heap& heap, uint64_t heap_offset, ResourceState const& initial_state,
         misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value, ResourceDescriptor const& descriptor);
 
-
-    // Resources are the only copyable objects at ring0. The copy is always shallow as the object is merely wrapper over the
-    // memory occupied by the resource
-
-    PlacedResource(PlacedResource const&) = default;
-    PlacedResource(PlacedResource&&) = default;
-
     Heap& heap() const;    //! returns the heap, in which the resource resides
-    uint64_t offset() const;    //! returns offset to the resource in the owning heap
-
-    ComPtr<ID3D12Resource> native() const;    //! returns encapsulated native Direct3D12 interface representing the resource
-
-    ResourceDescriptor const& descriptor() const;    //! returns descriptor of the resource
-
-    //! maps resource to the CPU-memory. Call to this function will fail if the resource's heap does not support CPU access
-    void* map(unsigned int subresource = 0U, 
-        size_t offset = 0U, size_t mapping_range = static_cast<size_t>(-1)) const;
-
-    void unmap(unsigned int subresource = 0U) const;    //! unmaps resource from the CPU memory
-
-    uint64_t getGPUVirtualAddress() const;
+    uint64_t offset() const;    //! returns offset to the resource in the owning heap    
 
 private:
     Heap& m_heap;    //!< reference to the heap, in which the resource resides
     uint64_t m_offset;    //!< offset to the resource in the owning heap
-    ResourceDescriptor m_descriptor;    //!< resource descriptor
-
-    ComPtr<ID3D12Resource> m_resource;    //!< encapsulated native interface representing the resource
 };
+
+
+
+
 
 }
 
