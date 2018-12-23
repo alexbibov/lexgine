@@ -14,13 +14,13 @@ using namespace lexgine::core;
 using namespace lexgine::core::concurrency;
 using namespace lexgine::core::dx::d3d12;
 
-#if 0
-class RenderingTasks::InitFrameTask : public RootSchedulableTask
+
+class RenderingTasks::FrameBeginTask final : public RootSchedulableTask
 {
 public:
-    InitFrameTask(RenderingTasks& rendering_tasks,
+    FrameBeginTask(RenderingTasks& rendering_tasks,
         math::Vector4f const& clear_color) :
-        RootSchedulableTask{ "begin_frame_task" },
+        RootSchedulableTask{ "frame_begin_task" },
         m_rendering_tasks{ rendering_tasks },
         m_clear_color{ clear_color },
         m_command_list{ rendering_tasks.m_device.createCommandList(CommandType::direct, 0x1) }
@@ -43,22 +43,22 @@ public:
 private:    // required by the AbstractTask interface
     bool do_task(uint8_t worker_id, uint16_t frame_index) override
     {
-        
+
         uint64_t active_color_targets_mask = m_rendering_tasks.m_color_rendering_target_ptr->activeColorTargetsMask();
 
         m_command_list.reset();
         m_command_list.setDescriptorHeaps(m_page0_descriptor_heaps);
         m_command_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle);
         m_command_list.outputMergerSetRenderTargets(
-            m_rendering_tasks.m_
-            ? &m_rendering_loop.m_color_target_ptr->rtvTable()
+            m_rendering_tasks.m_color_rendering_target_ptr
+            ? &m_rendering_tasks.m_color_rendering_target_ptr->rtvTable()
             : nullptr, active_color_targets_mask,
-            m_rendering_loop.m_depth_target_ptr
-            ? &m_rendering_loop.m_depth_target_ptr->dsvTable()
+            m_rendering_tasks.m_depth_rendering_target_ptr
+            ? &m_rendering_tasks.m_depth_rendering_target_ptr->dsvTable()
             : nullptr,
             0U);
-        m_rendering_loop.m_color_target_ptr->switchToRenderAccessState(m_command_list);
-        m_rendering_loop.m_depth_target_ptr->switchToRenderAccessState(m_command_list);
+        m_rendering_tasks.m_color_rendering_target_ptr->switchToRenderAccessState(m_command_list);
+        m_rendering_tasks.m_depth_rendering_target_ptr->switchToRenderAccessState(m_command_list);
 
         {
             unsigned long idx{ 0 };
@@ -66,15 +66,15 @@ private:    // required by the AbstractTask interface
                 _BitScanForward64(&idx, active_color_targets_mask);
                 offset += idx, active_color_targets_mask >>= idx + 1)
             {
-                m_command_list.clearRenderTargetView(m_rendering_loop.m_color_target_ptr->rtvTable(),
+                m_command_list.clearRenderTargetView(m_rendering_tasks.m_color_rendering_target_ptr->rtvTable(),
                     static_cast<uint32_t>(offset), m_clear_color);
             }
         }
 
         m_command_list.close();
 
-        m_rendering_loop.m_device.defaultCommandQueue().executeCommandList(m_command_list);
-       
+        m_rendering_tasks.m_device.defaultCommandQueue().executeCommandList(m_command_list);
+
         return true;
     }
 
@@ -90,11 +90,11 @@ private:
     CommandList m_command_list;
 };
 
-class RenderingTasks::PostFrameTask : public SchedulableTask
+class RenderingTasks::FrameEndTask final : public SchedulableTask
 {
-public:
-    PostFrameTask(RenderingTasks& rendering_tasks) :
-        SchedulableTask{ "end_frame_task" },
+    public:
+    FrameEndTask(RenderingTasks& rendering_tasks) :
+        SchedulableTask{ "frame_end_task" },
         m_rendering_tasks{ rendering_tasks },
         m_command_list{ m_rendering_tasks.m_device.createCommandList(CommandType::direct, 0x1) }
     {
@@ -104,14 +104,14 @@ public:
 private:    // required by the AbstractTask interface
     bool do_task(uint8_t worker_id, uint16_t frame_index) override
     {
-        uint64_t active_color_targets_mask = m_rendering_loop.m_color_target_ptr->activeColorTargetsMask();
+        uint64_t active_color_targets_mask = m_rendering_tasks.m_color_rendering_target_ptr->activeColorTargetsMask();
 
         m_command_list.reset();
-        m_rendering_loop.m_color_target_ptr->switchToInitialState(m_command_list);
-        m_rendering_loop.m_depth_target_ptr->switchToInitialState(m_command_list);
+        m_rendering_tasks.m_color_rendering_target_ptr->switchToInitialState(m_command_list);
+        m_rendering_tasks.m_depth_rendering_target_ptr->switchToInitialState(m_command_list);
         m_command_list.close();
 
-        m_rendering_loop.m_device.defaultCommandQueue().executeCommandList(m_command_list);
+        m_rendering_tasks.m_device.defaultCommandQueue().executeCommandList(m_command_list);
 
         return true;
     }
@@ -125,20 +125,20 @@ private:
     RenderingTasks& m_rendering_tasks;
     CommandList m_command_list;
 };
-#endif
-
 
 
 RenderingTasks::RenderingTasks(Globals& globals):
     m_dx_resources{ *globals.get<DxResourceFactory>() },
     m_device{ *globals.get<Device>() },
-
     m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" },
+    m_task_sink{ m_task_graph, **globals.get<std::vector<std::ostream*>*>(), "RenderingTasksSink" },
 
-    m_task_sink{ m_task_graph, **globals.get<std::vector<std::ostream*>*>(), "RenderingTasksSink" }
+    m_frame_begin_task{ new FrameBeginTask{*this, math::Vector4f{0.f, 0.f, 0.f, 0.f}} },
+    m_frame_end_task{ new FrameEndTask{*this} }
 
 {
-    
+    m_task_graph.setRootNodes({ m_frame_begin_task.get() });
+    m_frame_begin_task->addDependent(*m_frame_end_task);
 }
 
 RenderingTasks::~RenderingTasks() = default;

@@ -25,6 +25,7 @@ RenderingLoop::RenderingLoop(Globals& globals,
     m_end_of_frame_gpu_wall{ m_device },
     m_rendering_tasks{ globals }
 {
+    m_rendering_tasks.setRenderingTargets(m_color_target_ptr.get(), m_depth_target_ptr.get());
 }
 
 RenderingLoop::~RenderingLoop() = default;
