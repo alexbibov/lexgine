@@ -2,6 +2,8 @@
 #define LEXGINE_CORE_DX_D3D12_RENDERING_TASKS_H
 
 #include "lexgine/core/lexgine_core_fwd.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
 #include "lexgine/core/concurrency/task_sink.h"
 
 #include "lexgine_core_dx_d3d12_fwd.h"
@@ -9,7 +11,7 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-class RenderingTasks final
+class RenderingTasks final : public NamedEntity<class_names::D3D12_RenderingTasks>
 {
 public:
     RenderingTasks(Globals& globals);

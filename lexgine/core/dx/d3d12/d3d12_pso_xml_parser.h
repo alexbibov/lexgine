@@ -1,22 +1,23 @@
 #ifndef LEXGINE_CORE_DX_D3D12_D3D12_PSO_XML_PARSER_H
+#define LEXGINE_CORE_DX_D3D12_D3D12_PSO_XML_PARSER_H
 
 #include <string>
 #include <list>
 
 #include "pipeline_state.h"
-#include "../../entity.h"
-#include "../../class_names.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
 #include "task_caches/hlsl_compilation_task_cache.h"
-#include "../../globals.h"
+#include "lexgine/core/globals.h"
 
 
-namespace lexgine { namespace core { namespace dx { namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 /*! Convenience class that parses supplied XML descriptions of PSO objects and constructs
  corresponding GraphicsPSODescriptor and ComputePSODescriptor structures. Note that this 
  class is NOT thread safe
 */
-class D3D12PSOXMLParser : public NamedEntity<class_names::D3D12PSOXMLParser>
+class D3D12PSOXMLParser : public NamedEntity<class_names::D3D12_PSOXMLParser>
 {
 public:
 
@@ -46,7 +47,6 @@ private:
     std::unique_ptr<impl> m_impl;
 };
 
-}}}}
+}
 
-#define LEXGINE_CORE_DX_D3D12_D3D12_PSO_XML_PARSER_H
 #endif

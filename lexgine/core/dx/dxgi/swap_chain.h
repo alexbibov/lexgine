@@ -49,7 +49,7 @@ struct SwapChainAdvancedParameters
 };
 
 
-class SwapChain final : public NamedEntity<class_names::SwapChain>
+class SwapChain final : public NamedEntity<class_names::DXGI_SwapChain>
 {
     friend class SwapChainAttorney<HwAdapter>;
 

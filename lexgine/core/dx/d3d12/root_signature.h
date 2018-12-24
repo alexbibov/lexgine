@@ -156,7 +156,7 @@ using RootSignatureFlags = misc::Flags<__tag::tagRootSignatureFlags>;
 
 
 //! Wrapper that simplifies procedural creation of root signatures
-class RootSignature final : public NamedEntity<class_names::D3D12RootSignature>
+class RootSignature final : public NamedEntity<class_names::D3D12_RootSignature>
 {
 public:
     RootSignature() = default;

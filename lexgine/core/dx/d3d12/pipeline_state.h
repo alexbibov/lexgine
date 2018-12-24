@@ -88,7 +88,7 @@ struct ComputePSODescriptor
 
 
 //! Implements pipeline state object
-class PipelineState final : public NamedEntity<class_names::D3D12PipelineState>
+class PipelineState final : public NamedEntity<class_names::D3D12_PipelineState>
 {
 public:
     ComPtr<ID3D12PipelineState> native() const;

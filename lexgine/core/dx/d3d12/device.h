@@ -151,7 +151,7 @@ struct FeatureGPUVirtualAddressSupport final
  in order to provide convenience APIs for the basic Direc3D12 functionality. All features provided by this
  class can be emulated by calling native() and then using the basic APIs of ID3D12Device
  */
-class Device final : public NamedEntity<class_names::D3D12Device>
+class Device final : public NamedEntity<class_names::D3D12_Device>
 {
     friend class DeviceAttorney<dxgi::HwAdapter>;
 

@@ -15,7 +15,7 @@
 #include "hw_output_enumerator.h"
 #include "swap_chain.h"
 
-namespace lexgine { namespace core { namespace dx { namespace dxgi {
+namespace lexgine::core::dx::dxgi {
 
 using namespace Microsoft::WRL;
 
@@ -33,7 +33,7 @@ template<typename T> class HwAdapterAttorney;
 class HwAdapterEnumerator;
 
 //! Tiny wrapper over DXGI adapter interface
-class HwAdapter final : public NamedEntity<class_names::HwAdapter>
+class HwAdapter final : public NamedEntity<class_names::DXGI_HwAdapter>
 {
     friend class HwAdapterAttorney<HwAdapterEnumerator>;
 
@@ -150,7 +150,7 @@ private:
 
 
 //! Implements enumeration of hardware adapters supporting D3D12
-class HwAdapterEnumerator final : public NamedEntity<class_names::HwAdapterEnumerator>
+class HwAdapterEnumerator final : public NamedEntity<class_names::DXGI_HwAdapterEnumerator>
 {
 public:
     using adapter_list_type = std::list<HwAdapter>;
@@ -198,6 +198,6 @@ private:
     adapter_list_type m_adapter_list;
 };
 
-}}}}
+}
 
 #endif

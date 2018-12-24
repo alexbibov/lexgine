@@ -15,7 +15,7 @@
 namespace lexgine::core::dx::d3d12 {
 
 //! Helper: implements uploading of placed subresources to the GPU-side
-class ResourceDataUploader : public NamedEntity<class_names::D3D12HeapDataUploader>
+class ResourceDataUploader : public NamedEntity<class_names::D3D12_ResourceDataUploader>
 {
 public:
     //! Structure that describes destination of the data being uploaded

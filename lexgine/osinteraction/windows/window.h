@@ -1,6 +1,7 @@
 //Implements wrapper over a window in Microsoft Windows and initializes DirectX 12 context over it
 
 #ifndef LEXGINE_OSINTERACTION_WINDOWS_WINDOW_H
+#define LEXGINE_OSINTERACTION_WINDOWS_WINDOW_H
 
 #define OEMRESOURCE
 #include <windows.h>
@@ -22,7 +23,7 @@
 
 
 
-namespace lexgine { namespace osinteraction { namespace windows {
+namespace lexgine::osinteraction::windows {
 
 namespace __tag {
 
@@ -57,7 +58,7 @@ enum class tagWindowExStyle : uint32_t
 
 
 
-class Window final : public core::NamedEntity<lexgine::core::class_names::Window>
+class Window final : public core::NamedEntity<lexgine::core::class_names::OSWindows_Window>
 {
 public:
     using WindowStyle = core::misc::Flags<__tag::tagWindowStyle, uint32_t>;    //! Window style flags
@@ -118,8 +119,6 @@ private:
     static LRESULT CALLBACK WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam);
 };
 
-}}}
+}
 
-
-#define LEXGINE_OSINTERACTION_WINDOWS_WINDOW_H
 #endif

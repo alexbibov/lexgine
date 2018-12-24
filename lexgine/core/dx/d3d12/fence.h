@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_DX_D3D12_FENCE_H
+#define LEXGINE_CORE_DX_D3D12_FENCE_H
 
 #include <d3d12.h>
 #include <wrl.h>
@@ -14,7 +15,7 @@
 
 using namespace Microsoft::WRL;
 
-namespace lexgine {namespace core {namespace dx {namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 template<typename T> class FenceAttorney;
 
@@ -27,7 +28,7 @@ enum class FenceSharing
 
 
 //! Thin wrapper over Direct3D 12 fence
-class Fence final : public NamedEntity<class_names::D3D12Fence>
+class Fence final : public NamedEntity<class_names::D3D12_Fence>
 {
     friend class FenceAttorney<Device>;
     friend class FenceAttorney<CommandQueue>;
@@ -86,9 +87,8 @@ private:
     }
 };
 
-}}}}
+}
 
-#define LEXGINE_CORE_DX_D3D12_FENCE_H
 #endif
 
 

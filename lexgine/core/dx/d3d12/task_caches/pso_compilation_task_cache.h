@@ -15,7 +15,7 @@
 
 namespace lexgine::core::dx::d3d12::task_caches {
 
-class PSOCompilationTaskCache : public NamedEntity<class_names::PSOCompilationTaskCache>
+class PSOCompilationTaskCache : public NamedEntity<class_names::D3D12_PSOCompilationTaskCache>
 {
     friend class tasks::GraphicsPSOCompilationTask;
     friend class tasks::ComputePSOCompilationTask;

@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_DX_D3D12_TASKS_PSO_COMPILATION_TASK_H
+#define LEXGINE_CORE_DX_D3D12_TASKS_PSO_COMPILATION_TASK_H
 
 #include "lexgine/core/concurrency/schedulable_task.h"
 #include "lexgine/core/dx/d3d12/pipeline_state.h"
@@ -11,7 +12,7 @@
 
 #include <list>
 
-namespace lexgine { namespace core { namespace dx { namespace d3d12 { namespace tasks {
+namespace lexgine::core::dx::d3d12::tasks {
 
 //! Performs compilation and caching of graphics PSOs
 class GraphicsPSOCompilationTask final : public concurrency::SchedulableTask
@@ -118,7 +119,6 @@ private:
 
 
 
-}}}}}
+}
 
-#define LEXGINE_CORE_DX_D3D12_TASKS_PSO_COMPILATION_TASK_H
 #endif

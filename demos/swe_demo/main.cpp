@@ -163,6 +163,7 @@ int main(int argc, char* argv[])
     swap_chain_desc.windowed = true;
     
     engine_initializer.createSwapChainForCurrentDevice(rendering_window, swap_chain_desc);
+    engine_initializer.createMainRenderingLoop();
     
     Device& dev_ref = engine_initializer.getCurrentDevice();
 

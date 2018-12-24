@@ -68,7 +68,7 @@ enum class BundleInvocationContext
 };
 
 
-class CommandList: public NamedEntity<class_names::D3D12CommandList>
+class CommandList: public NamedEntity<class_names::D3D12_CommandList>
 {
     friend class CommandListAttorney<Device>;
     friend class CommandListAttorney<CommandQueue>;

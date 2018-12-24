@@ -22,7 +22,7 @@ enum class DescriptorHeapType {
     count
 };
 
-class DescriptorHeap final : public NamedEntity<class_names::D3D12DescriptorHeap>
+class DescriptorHeap final : public NamedEntity<class_names::D3D12_DescriptorHeap>
 {
     friend class Device;    // only devices are allowed to create the heaps
 
