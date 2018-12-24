@@ -131,7 +131,7 @@ RenderingTasks::RenderingTasks(Globals& globals):
     m_dx_resources{ *globals.get<DxResourceFactory>() },
     m_device{ *globals.get<Device>() },
     m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" },
-    m_task_sink{ m_task_graph, **globals.get<std::vector<std::ostream*>*>(), "RenderingTasksSink" },
+    m_task_sink{ m_task_graph, *globals.get<std::vector<std::ostream*>>(), "RenderingTasksSink" },
 
     m_frame_begin_task{ new FrameBeginTask{*this, math::Vector4f{0.f, 0.f, 0.f, 0.f}} },
     m_frame_end_task{ new FrameEndTask{*this} }
