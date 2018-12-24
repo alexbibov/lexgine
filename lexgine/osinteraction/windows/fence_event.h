@@ -1,4 +1,5 @@
 #ifndef LEXGINE_OSINTERACTION_WINDOWS_FENCE_EVENT_H
+#define LEXGINE_OSINTERACTION_WINDOWS_FENCE_EVENT_H
 
 #include <functional>
 
@@ -13,7 +14,7 @@ namespace lexgine::osinteraction::windows {
 /*! Thin wrapper over Windows system event. The event maintained by the object grants all possible access rights.
   NOTE: this event is not secured by security descriptor and thus will not be inherited by children processes
 */
-class FenceEvent final : public core::NamedEntity<core::class_names::FenceEvent>
+class FenceEvent final : public core::NamedEntity<core::class_names::OSWindows_FenceEvent>
 {
 public:
     FenceEvent(bool is_reset_manually = true);
@@ -57,5 +58,4 @@ private:
 
 }
 
-#define  LEXGINE_OSINTERACTION_WINDOWS_FENCE_EVENT_H
 #endif

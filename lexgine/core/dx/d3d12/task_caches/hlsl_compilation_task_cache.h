@@ -1,4 +1,8 @@
 #ifndef LEXGINE_CORE_DX_D3D12_TASK_CACHES_HLSL_COMPILATION_TASK_CACHE_H
+#define LEXGINE_CORE_DX_D3D12_TASK_CACHES_HLSL_COMPILATION_TASK_CACHE_H
+
+#include <list>
+#include <map>
 
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
@@ -8,14 +12,10 @@
 #include "lexgine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
 
 
-#include <list>
-#include <map>
-
-
-namespace lexgine {namespace core {namespace dx {namespace d3d12 {namespace task_caches {
+namespace lexgine::core::dx::d3d12::task_caches {
 
 //! Dictionary of HLSL compilation tasks
-class HLSLCompilationTaskCache : public NamedEntity<class_names::HLSLCompilationTaskCache>
+class HLSLCompilationTaskCache : public NamedEntity<class_names::D3D12_HLSLCompilationTaskCache>
 {
     friend class tasks::HLSLCompilationTask;
     friend class CombinedCacheKey;
@@ -82,8 +82,6 @@ private:
     cache_mapping m_tasks_cache_keys;
 };
 
+}
 
-}}}}}
-
-#define LEXGINE_CORE_DX_D3D12_TASK_CACHES_HLSL_COMPILATION_TASK_CACHE_H
 #endif

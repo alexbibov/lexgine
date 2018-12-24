@@ -14,21 +14,25 @@ using namespace lexgine::core::concurrency;
 using namespace lexgine::core::dx::d3d12;
 
 
-RenderingLoop::RenderingLoop(Globals& globals,
-    std::shared_ptr<RenderingTargetColor> const& rendering_loop_color_target_ptr,
-    std::shared_ptr<RenderingTargetDepth> const& rendering_loop_depth_target_ptr) :
+RenderingLoop::RenderingLoop(Globals& globals) :
     m_device{ *globals.get<Device>() },
     m_queued_frame_counter{ 1U },
-    m_color_target_ptr{ rendering_loop_color_target_ptr },
-    m_depth_target_ptr{ rendering_loop_depth_target_ptr },
     m_end_of_frame_cpu_wall{ m_device },
     m_end_of_frame_gpu_wall{ m_device },
     m_rendering_tasks{ globals }
 {
-    m_rendering_tasks.setRenderingTargets(m_color_target_ptr.get(), m_depth_target_ptr.get());
+    
 }
 
 RenderingLoop::~RenderingLoop() = default;
+
+void RenderingLoop::setRenderingTargets(std::shared_ptr<RenderingTargetColor> const& rendering_loop_color_target_ptr, 
+    std::shared_ptr<RenderingTargetDepth> const& rendering_loop_depth_target_ptr)
+{
+    m_color_target_ptr = rendering_loop_color_target_ptr;
+    m_depth_target_ptr = rendering_loop_depth_target_ptr;
+    m_rendering_tasks.setRenderingTargets(m_color_target_ptr.get(), m_depth_target_ptr.get());
+}
 
 void RenderingLoop::draw()
 {

@@ -25,7 +25,7 @@ enum class CommandType
 
 
 //! Thin wrapper over ID3D12CommandAllocator interface
-class CommandAllocatorRing : public NamedEntity<class_names::D3D12CommandAllocatorRing>
+class CommandAllocatorRing : public NamedEntity<class_names::D3D12_CommandAllocatorRing>
 {
     friend class CommandAllocatorRingAttorney<CommandList>;
 

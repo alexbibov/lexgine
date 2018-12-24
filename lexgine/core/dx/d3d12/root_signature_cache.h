@@ -14,7 +14,7 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-class RootSignatureCache : public NamedEntity<class_names::RootSignatureCache>
+class RootSignatureCache : public NamedEntity<class_names::D3D12_RootSignatureCache>
 {
     friend class Device;    // only device classes are allowed to create root signature low-level cache
 

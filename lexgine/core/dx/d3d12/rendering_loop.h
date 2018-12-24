@@ -2,6 +2,8 @@
 #define LEXGINE_CORE_DX_D3D12_RENDERING_LOOP_H
 
 #include "lexgine/core/lexgine_core_fwd.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "descriptor_table_builders.h"
 #include "rendering_tasks.h"
@@ -14,13 +16,14 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-class RenderingLoop final
+class RenderingLoop final : public NamedEntity<class_names::D3D12_RenderingLoop>
 {
 public:
-    RenderingLoop(Globals& globals, 
-        std::shared_ptr<RenderingTargetColor> const& rendering_loop_color_target_ptr,
-        std::shared_ptr<RenderingTargetDepth> const& rendering_loop_depth_target_ptr);
+    RenderingLoop(Globals& globals);
     ~RenderingLoop();
+
+    void setRenderingTargets(std::shared_ptr<RenderingTargetColor> const& rendering_loop_color_target_ptr,
+        std::shared_ptr<RenderingTargetDepth> const& rendering_loop_depth_target_ptr);
 
     void draw();
 

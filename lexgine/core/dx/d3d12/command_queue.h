@@ -15,7 +15,7 @@
 
 using namespace Microsoft::WRL;
 
-namespace lexgine {namespace core {namespace dx {namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 template<typename T> class CommandQueueAttorney;
 
@@ -47,7 +47,7 @@ enum class CommandQueuePriority
 using CommandQueueFlags = misc::Flags<__tag::tagCommandQueueFlags>;
 
 //! Thin wrapper over Direct3D 12 command queue
-class CommandQueue final : public NamedEntity<class_names::D3D12CommandQueue>
+class CommandQueue final : public NamedEntity<class_names::D3D12_CommandQueue>
 {
     friend class CommandQueueAttorney<Device>;
 
@@ -112,7 +112,7 @@ private:
 };
 
 
-}}}}
+}
 
 
 #endif

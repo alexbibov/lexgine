@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_DX_DXGI_HW_OUTPUT_ENUMERATOR_H
+#define LEXGINE_CORE_DX_DXGI_HW_OUTPUT_ENUMERATOR_H
 
 #include <dxgi1_6.h>
 #include <wrl.h>
@@ -8,12 +9,12 @@
 #include <ratio>
 #include <cstdint>
 
-#include "../../math/rectangle.h"
-#include "../../misc/flags.h"
-#include "../../entity.h"
-#include "../../class_names.h"
+#include "lexgine/core/math/rectangle.h"
+#include "lexgine/core/misc/flags.h"
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
 
-namespace lexgine {namespace core {namespace dx {namespace dxgi {
+namespace lexgine::core::dx::dxgi {
 
 
 using namespace Microsoft::WRL;
@@ -21,7 +22,7 @@ using namespace Microsoft::WRL;
 
 
 //! Represents hardware output device
-class HwOutput final : public NamedEntity<class_names::HwOutput>
+class HwOutput final : public NamedEntity<class_names::DXGI_HwOutput>
 {
     friend class HwOutputEnumerator;    // HwOutput objects can only be created by the corresponding enumerators, which is just logical
 
@@ -148,7 +149,7 @@ private:
 
 
 //! Enumerates physical output devices attached to a certain DXGI adapter
-class HwOutputEnumerator final : public NamedEntity<class_names::HwOutputEnumerator>
+class HwOutputEnumerator final : public NamedEntity<class_names::DXGI_HwOutputEnumerator>
 {
     friend class HwAdapter; // output enumerator can only be created by adapter classes, which is logical
 
@@ -172,7 +173,6 @@ private:
     LUID m_adapter_luid;    //!< local identifier of the adapter that has created this enumerator
 };
 
-}}}}
+}
 
-#define LEXGINE_CORE_DX_DXGI_HW_OUTPUT_ENUMERATOR_H
 #endif

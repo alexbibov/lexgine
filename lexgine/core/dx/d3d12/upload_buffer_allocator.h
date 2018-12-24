@@ -40,7 +40,7 @@ private:
 };
 
 class UploadBufferAllocator : public Allocator<UploadBufferBlock>,
-    public NamedEntity<class_names::UploadBufferAllocator>
+    public NamedEntity<class_names::D3D12_UploadBufferAllocator>
 {
 public:
     UploadBufferAllocator(Globals& globals, 

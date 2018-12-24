@@ -151,7 +151,7 @@ struct ResourceOptimizedClearValue final
 };
 
 
-class Resource : public NamedEntity<class_names::D3D12Resource>
+class Resource : public NamedEntity<class_names::D3D12_Resource>
 {
 public:
     Resource(ComPtr<ID3D12Resource> const& native = nullptr);

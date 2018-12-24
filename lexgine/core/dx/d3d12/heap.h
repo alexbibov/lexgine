@@ -11,7 +11,7 @@
 
 using namespace Microsoft::WRL;
 
-namespace lexgine {namespace core {namespace dx {namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 namespace __tag {
 enum class tagHeapCreationFlags
@@ -54,7 +54,7 @@ enum class GPUMemoryPool
 };
 
 //! Wrapper over Direct3D heap
-class Heap : public NamedEntity<class_names::D3D12Heap>
+class Heap : public NamedEntity<class_names::D3D12_Heap>
 {
     friend class Device;    // only devices are allowed to create heaps
 
@@ -94,6 +94,6 @@ private:
     uint32_t m_node_exposure_mask;    //!< mask with those bits set that correspond to the physical adapters, for which the heap will be visible
 };
 
-}}}}
+}
 
 #endif

@@ -8,6 +8,8 @@
 #include "lexgine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h"
 #include "lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
 #include "lexgine/core/dx/dxgi/swap_chain.h"
+#include "lexgine/core/dx/d3d12/rendering_loop.h"
+
 
 #include <fstream>
 #include <memory>
@@ -59,6 +61,9 @@ public:
 
     //! helper function, which simplifies creation of a swap chain for the current device
     dx::dxgi::SwapChain createSwapChainForCurrentDevice(osinteraction::windows::Window const& window, dx::dxgi::SwapChainDescriptor const& desc) const;
+
+    //! hepler function creating the main rendering loop abstraction
+    dx::d3d12::RenderingLoop createMainRenderingLoop();
 
     //! creates main rendering loop
     //dx::d3d12::RenderingLoop& 

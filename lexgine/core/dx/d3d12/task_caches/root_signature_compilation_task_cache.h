@@ -13,7 +13,7 @@
 
 namespace lexgine::core::dx::d3d12::task_caches {
 
-class RootSignatureCompilationTaskCache : public NamedEntity<class_names::RootSignatureCompilationTaskCache>
+class RootSignatureCompilationTaskCache : public NamedEntity<class_names::D3D12_RootSignatureCompilationTaskCache>
 {
     friend class tasks::RootSignatureCompilationTask;
     friend class CombinedCacheKey;

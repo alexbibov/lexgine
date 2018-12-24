@@ -1,15 +1,16 @@
 #ifndef LEXGINE_CORE_DX_D3D12_TASK_CACHES_CACHE_UTILITIES_H
 #define LEXGINE_CORE_DX_D3D12_TASK_CACHES_CACHE_UTILITIES_H
 
+#include <fstream>
+
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/global_constants.h"
 #include "lexgine/core/streamed_cache.h"
 #include "lexgine/core/misc/optional.h"
 #include "combined_cache_key.h"
 
-#include <fstream>
 
-namespace lexgine { namespace core { namespace dx { namespace d3d12 { namespace task_caches {
+namespace lexgine::core::dx::d3d12::task_caches {
 
 using CombinedCache = StreamedCache<CombinedCacheKey, global_constants::combined_cache_cluster_size>;
 
@@ -48,6 +49,6 @@ StreamedCacheConnection establishConnectionWithCombinedCache(GlobalSettings cons
 */
 misc::Optional<StreamedCacheConnection> findCombinedCacheContainingKey(CombinedCacheKey const& key, GlobalSettings const& global_settings);
 
-}}}}}
+}
 
 #endif

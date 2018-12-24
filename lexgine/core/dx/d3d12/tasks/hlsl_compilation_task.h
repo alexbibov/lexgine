@@ -16,7 +16,7 @@
 
 #include <list>
 
-namespace lexgine {namespace core {namespace dx {namespace d3d12 {namespace tasks {
+namespace lexgine::core::dx::d3d12::tasks {
 
 //! Implements compilation of provided HLSL source code
 class HLSLCompilationTask : public concurrency::SchedulableTask
@@ -108,7 +108,7 @@ private:
     D3DDataBlob m_shader_byte_code;
 };
 
-}}}}}
+}
 
 
 #endif

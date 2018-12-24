@@ -1,18 +1,19 @@
 #ifndef LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_H
-
-#include "../../entity.h"
-#include "../../class_names.h"
-#include "d3d12_tools.h"
-#include "../../data_blob.h"
+#define LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_H
 
 #include <list>
 #include <vector>
 #include <memory>
 
-namespace lexgine {namespace core {namespace dx {namespace d3d12 {
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
+#include "lexgine/core/data_blob.h"
+#include "d3d12_tools.h"
+
+namespace lexgine::core::dx::d3d12 {
 
 //! High-level API for constant buffer usage. This API is tailored for Direct3D 12
-class ConstantBuffer final : public NamedEntity<class_names::D3D12ConstantBuffer>
+class ConstantBuffer final : public NamedEntity<class_names::D3D12_ConstantBuffer>
 {
 public:
     template<typename T> class constant_buffer_entry;
@@ -290,7 +291,6 @@ private:
     bool m_is_constructed;    //!< 'true' if the buffer has already been constructed
 };
 
-}}}}
+}
 
-#define LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_H
 #endif
