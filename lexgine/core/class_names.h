@@ -35,7 +35,6 @@ extern char const D3D12_PSOCompilationTaskCache[];
 extern char const Dummy[];
 extern char const D3D12_RootSignatureCache[];
 extern char const D3D12_UploadBufferAllocator[];
-extern char const D3D12_RenderingLoop[];
 extern char const D3D12_RenderingTasks[];
 }
 

@@ -177,7 +177,6 @@
     <ClCompile Include="core\dx\d3d12\fence.cpp" />
     <ClCompile Include="core\dx\d3d12\heap.cpp" />
     <ClCompile Include="core\dx\d3d12\profiler.cpp" />
-    <ClCompile Include="core\dx\d3d12\rendering_loop.cpp" />
     <ClCompile Include="core\dx\d3d12\rendering_target.cpp" />
     <ClCompile Include="core\dx\d3d12\rendering_tasks.cpp" />
     <ClCompile Include="core\dx\d3d12\resource_barrier_pack.cpp" />
@@ -191,6 +190,7 @@
     <ClCompile Include="core\dx\d3d12\sampler_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\srv_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\signal.cpp" />
+    <ClCompile Include="core\dx\d3d12\swap_chain_link.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\data_uploading_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\hlsl_compilation_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\pso_compilation_task.cpp" />
@@ -256,7 +256,6 @@
     <ClInclude Include="core\dx\d3d12\descriptor_table_builders.h" />
     <ClInclude Include="core\dx\d3d12\profiler.h" />
     <ClInclude Include="core\dx\d3d12\rendering_target.h" />
-    <ClInclude Include="core\dx\d3d12\rendering_loop.h" />
     <ClInclude Include="core\dx\d3d12\rendering_tasks.h" />
     <ClInclude Include="core\dx\d3d12\rtv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\root_signature_cache.h" />
@@ -282,6 +281,7 @@
     <ClInclude Include="core\dx\d3d12\sampler_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\srv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\signal.h" />
+    <ClInclude Include="core\dx\d3d12\swap_chain_link.h" />
     <ClInclude Include="core\dx\d3d12\tasks\data_uploading_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\hlsl_compilation_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\lexgine_core_dx_d3d12_tasks_fwd.h" />

@@ -1,13 +1,16 @@
 #ifndef LEXGINE_CORE_DX_D3D12_RENDERING_TASKS_H
 #define LEXGINE_CORE_DX_D3D12_RENDERING_TASKS_H
 
+#include <atomic>
+#include <memory>
+
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
 #include "lexgine/core/concurrency/task_sink.h"
 
 #include "lexgine_core_dx_d3d12_fwd.h"
-
+#include "signal.h"
 
 namespace lexgine::core::dx::d3d12 {
 
@@ -19,8 +22,22 @@ public:
 
     void run();
 
-    void setRenderingTargets(RenderingTargetColor const* color_rendering_target,
-        RenderingTargetDepth const* depth_rendering_target);
+    void dispatchExitSignal();
+
+    void setRenderingTargets(std::shared_ptr<RenderingTargetColor> const& color_rendering_target,
+        std::shared_ptr<RenderingTargetDepth> const& depth_rendering_target);
+
+    /*! signals the rendering tasks producing thread that a frame has been consumed.
+     After the frame is consumed it cannot be accessed for reading any longer and its
+     contents should be considered discarded
+    */
+    void consumeFrame();
+
+    void waitUntilFrameIsReady(uint64_t frame_index) const;    //! blocks calling thread until the frame with the specified index is completed
+
+    uint64_t totalFramesScheduled() const;
+    uint64_t totalFramesRendered() const;
+    uint64_t totalFramesConsumed() const;
 
 private:
     class FrameBeginTask;
@@ -29,14 +46,19 @@ private:
 private:
     DxResourceFactory const& m_dx_resources;
     Device& m_device;
-    RenderingTargetColor const* m_color_rendering_target_ptr;
-    RenderingTargetDepth const* m_depth_rendering_target_ptr;
+    std::shared_ptr<RenderingTargetColor> m_color_rendering_target_ptr;
+    std::shared_ptr<RenderingTargetDepth> m_depth_rendering_target_ptr;
 
     concurrency::TaskGraph m_task_graph;
     concurrency::TaskSink m_task_sink;
 
     std::unique_ptr<FrameBeginTask> m_frame_begin_task;
     std::unique_ptr<FrameEndTask> m_frame_end_task;
+
+    uint16_t m_queued_frames_count;
+    Signal m_end_of_frame_cpu_wall;
+    Signal m_end_of_frame_gpu_wall;
+    Signal m_frame_consumed_wall;
 };
 
 }

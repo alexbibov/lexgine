@@ -35,11 +35,11 @@ struct RTVTextureArrayInfo final
 class RTVDescriptor final
 {
 public:
-    RTVDescriptor(PlacedResource const& resource, RTVBufferInfo const& buffer_info);
+    RTVDescriptor(Resource const& resource, RTVBufferInfo const& buffer_info);
 
-    RTVDescriptor(PlacedResource const& resource, RTVTextureInfo const& texture_info);
+    RTVDescriptor(Resource const& resource, RTVTextureInfo const& texture_info);
 
-    RTVDescriptor(PlacedResource const& resource, RTVTextureArrayInfo const& texture_array_info);
+    RTVDescriptor(Resource const& resource, RTVTextureArrayInfo const& texture_array_info);
 
     /*! Normally, DXGI format for the SRV descriptor is fetched from resource descriptor.
      This function can be use if another setting for the format is preferable
@@ -47,10 +47,10 @@ public:
     void overrideFormat(DXGI_FORMAT format);
 
     D3D12_RENDER_TARGET_VIEW_DESC nativeDescriptor() const;
-    PlacedResource const& associatedResource() const;
+    Resource const& associatedResource() const;
 
 private:
-    PlacedResource const& m_resource_ref;
+    Resource const& m_resource_ref;
     D3D12_RENDER_TARGET_VIEW_DESC m_native;
 };
 

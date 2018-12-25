@@ -228,7 +228,7 @@ uint64_t UploadBufferAllocator::totalCapacity() const
     return m_upload_buffer.descriptor().width;
 }
 
-PlacedResource const& UploadBufferAllocator::getUploadResource() const
+Resource const& UploadBufferAllocator::getUploadResource() const
 {
     return m_upload_buffer;
 }

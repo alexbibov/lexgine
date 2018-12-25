@@ -40,14 +40,14 @@ public:
         std::variant<UINT, D3D12_PLACED_SUBRESOURCE_FOOTPRINT>;
 
 public:
-    TextureCopyLocation(PlacedResource const& copy_location_resource, uint32_t subresource_index);
+    TextureCopyLocation(Resource const& copy_location_resource, uint32_t subresource_index);
 
-    TextureCopyLocation(PlacedResource const& copy_location_resource, uint64_t resource_offset,
+    TextureCopyLocation(Resource const& copy_location_resource, uint64_t resource_offset,
         DXGI_FORMAT resource_format, uint32_t resource_width, uint32_t resource_height, uint32_t resource_depth, 
         uint32_t resource_row_pitch);
 
 private:
-    PlacedResource const& m_copy_location_resource_ref;
+    Resource const& m_copy_location_resource_ref;
     native_copy_location_type m_native_copy_location_desc;
 };
 
@@ -104,16 +104,16 @@ public:
 
     void dispatch(uint32_t thread_group_x, uint32_t thread_group_y = 1U, uint32_t thread_group_z = 1U) const;
 
-    void copyBufferRegion(PlacedResource const& dst_buffer, uint64_t dst_buffer_offset,
-        PlacedResource const& src_buffer, uint64_t src_buffer_offset, uint64_t num_bytes);
+    void copyBufferRegion(Resource const& dst_buffer, uint64_t dst_buffer_offset,
+        Resource const& src_buffer, uint64_t src_buffer_offset, uint64_t num_bytes);
 
     void copyTextureRegion(TextureCopyLocation const& dst, math::Vector3u const& dst_offset, 
         TextureCopyLocation const& src, math::Box const& src_box);
 
-    void copyResource(PlacedResource const& dst_resource, PlacedResource const& src_resource) const;
+    void copyResource(Resource const& dst_resource, Resource const& src_resource) const;
 
-    void resolveSubresource(PlacedResource const& dst_resource, uint32_t dst_subresource,
-        PlacedResource const& src_resource, uint32_t src_subresource, DXGI_FORMAT format) const;
+    void resolveSubresource(Resource const& dst_resource, uint32_t dst_subresource,
+        Resource const& src_resource, uint32_t src_subresource, DXGI_FORMAT format) const;
 
 
     //! Pipeline state settings routines not contained in PSO
@@ -148,11 +148,11 @@ public:
         math::Vector4f const& rgba_clear_value, misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles = {}) const;
 
     void clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
-        PlacedResource const& resource_to_clear, math::Vector4u const& rgba_clear_value, 
+        Resource const& resource_to_clear, math::Vector4u const& rgba_clear_value, 
         misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles = {}) const;
 
     void clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
-        PlacedResource const& resource_to_clear, math::Vector4f const& rgba_clear_value, 
+        Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value, 
         misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles = {}) const;
 
 

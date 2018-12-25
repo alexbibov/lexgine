@@ -20,6 +20,7 @@ class HeapResourcePlacer;
 struct GraphicsPSODescriptor;
 struct ComputePSODescriptor;
 class PipelineState;
+class Resource;
 class PlacedResource;
 class ResourceBarrierPack;
 class DynamicResourceBarrierPack;
@@ -64,11 +65,11 @@ class SamplerTableBuilder;
 class RenderTargetViewTableBuilder;
 class DepthStencilViewTableBuilder;
 
-class RenderingLoop;
 class RenderingTasks;
 
 class RenderingTargetColor;
 class RenderingTargetDepth;
+class SwapChainLink;
 
 }
 
