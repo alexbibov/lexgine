@@ -163,7 +163,9 @@ int main(int argc, char* argv[])
     
     auto swap_chain = engine_initializer.createSwapChainForCurrentDevice(rendering_window, swap_chain_desc);
     auto rendering_tasks = engine_initializer.createRenderingTasks();
-    
+    auto swap_chain_link = engine_initializer.createSwapChainLink(swap_chain, lexgine::core::dx::d3d12::SwapChainDepthBufferFormat::d32float, rendering_tasks);
+    swap_chain_link.beginRenderingLoop();
+
     Device& dev_ref = engine_initializer.getCurrentDevice();
 
     while (!rendering_window.shouldClose())
@@ -174,9 +176,12 @@ int main(int argc, char* argv[])
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
+            swap_chain_link.present();
         }
         else break;
     }
+
+    swap_chain_link.dispatchExitSignal();
 
     return 0;
 }
