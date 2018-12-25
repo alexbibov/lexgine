@@ -233,7 +233,16 @@ dx::dxgi::SwapChain Initializer::createSwapChainForCurrentDevice(osinteraction::
     return getCurrentDeviceHwAdapter().createSwapChain(window, desc, advanced_parameters);
 }
 
-dx::d3d12::RenderingTasks Initializer::createRenderingTasks()
+dx::d3d12::RenderingTasks Initializer::createRenderingTasks() const
 {
     return dx::d3d12::RenderingTasks{ *m_globals };
+}
+
+dx::d3d12::SwapChainLink Initializer::createSwapChainLink(dx::dxgi::SwapChain const& target_swap_chain,
+    dx::d3d12::SwapChainDepthBufferFormat depth_buffer_format, 
+    dx::d3d12::RenderingTasks& source_rendering_tasks) const
+{
+    dx::d3d12::SwapChainLink swap_chain_link{ *m_globals, target_swap_chain, depth_buffer_format };
+    swap_chain_link.linkRenderingTasks(&source_rendering_tasks);
+    return swap_chain_link;
 }
