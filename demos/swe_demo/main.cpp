@@ -5,7 +5,6 @@
 #include "lexgine/core/initializer.h"
 #include "lexgine/osinteraction/windows/window.h"
 #include "lexgine/osinteraction/windows/window_listeners.h"
-#include "lexgine/core/dx/d3d12/rendering_loop.h"
 
 using namespace lexgine;
 using namespace lexgine::osinteraction;
@@ -162,8 +161,8 @@ int main(int argc, char* argv[])
     swap_chain_desc.stereo = false;
     swap_chain_desc.windowed = true;
     
-    engine_initializer.createSwapChainForCurrentDevice(rendering_window, swap_chain_desc);
-    engine_initializer.createMainRenderingLoop();
+    auto swap_chain = engine_initializer.createSwapChainForCurrentDevice(rendering_window, swap_chain_desc);
+    auto rendering_tasks = engine_initializer.createRenderingTasks();
     
     Device& dev_ref = engine_initializer.getCurrentDevice();
 

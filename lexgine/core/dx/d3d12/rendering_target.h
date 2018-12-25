@@ -18,24 +18,18 @@ class RenderingTargetColor
 {
 public:
     RenderingTargetColor(Globals const& globals,
-        std::vector<PlacedResource> const& render_targets,
+        std::vector<Resource> const& render_targets,
         std::vector<ResourceState> const& render_target_initial_states,
-        std::vector<RTVDescriptor> const& render_target_resource_views,
-        uint64_t active_color_targets);
+        std::vector<RTVDescriptor> const& render_target_resource_views);
 
     void switchToRenderAccessState(CommandList const& command_list) const;
     void switchToInitialState(CommandList const& command_list) const;
 
-    void setActiveColorTargets(uint64_t active_color_targets_mask);
-    uint64_t activeColorTargetsMask() const;
-
-    size_t totalTargetsCount() const;    //! returns total number of color targets
-    size_t activeTargetsCount() const;    //! returns number of active color targets
+    size_t targetCount() const;    //! returns total number of color targets
 
     RenderTargetViewDescriptorTable const& rtvTable() const;
 
 private:
-    uint64_t m_active_color_targets;
     DynamicResourceBarrierPack m_forward_barriers;
     DynamicResourceBarrierPack m_backward_barriers;
     RenderTargetViewDescriptorTable m_rtvs_table;
@@ -46,9 +40,9 @@ class RenderingTargetDepth
 {
 public:
     RenderingTargetDepth(Globals const& globals,
-        PlacedResource const& depth_target_resource,
-        ResourceState initial_depth_target_resource_state,
-        DSVDescriptor const& depth_target_resource_view);
+        std::vector<Resource> const& depth_targets,
+        std::vector<ResourceState> const& depth_target_initial_states,
+        std::vector<DSVDescriptor> const& depth_target_resource_views);
 
     void switchToRenderAccessState(CommandList const& command_list) const;
     void switchToInitialState(CommandList const& command_list) const;

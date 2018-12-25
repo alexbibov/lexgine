@@ -6,7 +6,7 @@
 using namespace lexgine::core::dx::d3d12;
 
 
-SRVDescriptor::SRVDescriptor(PlacedResource const& resource,
+SRVDescriptor::SRVDescriptor(Resource const& resource,
     SRVBufferInfo const& buffer_info):
     m_resource_ref{ resource }
 {
@@ -24,7 +24,7 @@ SRVDescriptor::SRVDescriptor(PlacedResource const& resource,
     m_native.Buffer.Flags = static_cast<D3D12_BUFFER_SRV_FLAGS>(buffer_info.flags);
 }
 
-SRVDescriptor::SRVDescriptor(PlacedResource const& resource,
+SRVDescriptor::SRVDescriptor(Resource const& resource,
     SRVTextureInfo const& texture_info, bool is_cubemap):
     m_resource_ref{ resource }
 {
@@ -78,7 +78,7 @@ SRVDescriptor::SRVDescriptor(PlacedResource const& resource,
     }
 }
 
-SRVDescriptor::SRVDescriptor(PlacedResource const& resource,
+SRVDescriptor::SRVDescriptor(Resource const& resource,
     SRVTextureArrayInfo const& texture_array_info, bool is_cubemap):
     m_resource_ref{ resource }
 {
@@ -162,7 +162,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC SRVDescriptor::nativeDescriptor() const
     return m_native;
 }
 
-PlacedResource const& SRVDescriptor::associatedResource() const
+Resource const& SRVDescriptor::associatedResource() const
 {
     return m_resource_ref;
 }

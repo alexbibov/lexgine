@@ -233,7 +233,7 @@ dx::dxgi::SwapChain Initializer::createSwapChainForCurrentDevice(osinteraction::
     return getCurrentDeviceHwAdapter().createSwapChain(window, desc, advanced_parameters);
 }
 
-dx::d3d12::RenderingLoop Initializer::createMainRenderingLoop()
+dx::d3d12::RenderingTasks Initializer::createRenderingTasks()
 {
-    return dx::d3d12::RenderingLoop{ *m_globals };
+    return dx::d3d12::RenderingTasks{ *m_globals };
 }

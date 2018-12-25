@@ -56,7 +56,7 @@ public:
     uint64_t scheduledWork() const;
     uint64_t totalCapacity() const;
 
-    PlacedResource const& getUploadResource() const;
+    Resource const& getUploadResource() const;
 
 private:
     using list_of_allocations = std::list<memory_block_type>;

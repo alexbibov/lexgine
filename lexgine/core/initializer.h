@@ -5,10 +5,10 @@
 #include "global_settings.h"
 #include "lexgine/core/misc/log.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
+#include "lexgine/core/dx/d3d12/rendering_tasks.h"
 #include "lexgine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h"
 #include "lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
 #include "lexgine/core/dx/dxgi/swap_chain.h"
-#include "lexgine/core/dx/d3d12/rendering_loop.h"
 
 
 #include <fstream>
@@ -63,7 +63,7 @@ public:
     dx::dxgi::SwapChain createSwapChainForCurrentDevice(osinteraction::windows::Window const& window, dx::dxgi::SwapChainDescriptor const& desc) const;
 
     //! hepler function creating the main rendering loop abstraction
-    dx::d3d12::RenderingLoop createMainRenderingLoop();
+    dx::d3d12::RenderingTasks createRenderingTasks();
 
     //! creates main rendering loop
     //dx::d3d12::RenderingLoop& 

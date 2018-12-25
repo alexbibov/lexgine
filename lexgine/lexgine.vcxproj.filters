@@ -399,9 +399,6 @@
     <ClInclude Include="core\dx\d3d12\rendering_tasks.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\rendering_loop.h">
-      <Filter>core\dx\d3d12</Filter>
-    </ClInclude>
     <ClInclude Include="core\dx\d3d12\resource_barrier_pack.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
@@ -411,6 +408,7 @@
     <ClInclude Include="core\dx\d3d12\rendering_target.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
+    <ClInclude Include="core\dx\d3d12\swap_chain_link.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -638,10 +636,8 @@
     <ClCompile Include="core\dx\d3d12\rendering_tasks.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="core\dx\d3d12\rendering_loop.cpp">
-      <Filter>core\dx\d3d12</Filter>
-    </ClCompile>
     <ClCompile Include="core\dx\d3d12\rendering_target.cpp" />
+    <ClCompile Include="core\dx\d3d12\swap_chain_link.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="core\dx\d3d12\constant_buffer_impl.inl">

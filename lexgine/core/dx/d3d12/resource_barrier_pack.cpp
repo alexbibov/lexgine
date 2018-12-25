@@ -3,7 +3,7 @@
 
 using namespace lexgine::core::dx::d3d12;
 
-void ResourceBarrierPack::addTransitionBarrier(PlacedResource const* p_resource,
+void ResourceBarrierPack::addTransitionBarrier(Resource const* p_resource,
     uint16_t mipmap_level, uint16_t array_layer, 
     ResourceState state_before, ResourceState state_after, 
     SplitResourceBarrierFlags split_barrier_flags)
@@ -23,7 +23,7 @@ void ResourceBarrierPack::addTransitionBarrier(PlacedResource const* p_resource,
     emplaceResourceBarrier(std::move(new_transition_barrier));
 }
 
-void ResourceBarrierPack::addTransitionBarrier(PlacedResource const* p_resource,
+void ResourceBarrierPack::addTransitionBarrier(Resource const* p_resource,
     ResourceState state_before, ResourceState state_after, 
     SplitResourceBarrierFlags split_barrier_flags)
 {
@@ -59,7 +59,7 @@ void ResourceBarrierPack::addAliasingBarrier(PlacedResource const* p_resource_be
     emplaceResourceBarrier(std::move(new_aliasing_barrier));
 }
 
-void ResourceBarrierPack::addUAVBarrier(PlacedResource const* p_resource, SplitResourceBarrierFlags split_barrier_flags)
+void ResourceBarrierPack::addUAVBarrier(Resource const* p_resource, SplitResourceBarrierFlags split_barrier_flags)
 {
     D3D12_RESOURCE_UAV_BARRIER uav_desc;
     uav_desc.pResource = p_resource ? p_resource->native().Get() : nullptr;

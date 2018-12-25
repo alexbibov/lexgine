@@ -5,7 +5,7 @@
 
 using namespace lexgine::core::dx::d3d12;
 
-CBVDescriptor::CBVDescriptor(PlacedResource const& resource,
+CBVDescriptor::CBVDescriptor(Resource const& resource,
     uint32_t offset_from_start, uint32_t view_size_in_bytes):
     m_resource_ref{ resource }
 {
@@ -22,7 +22,7 @@ D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDescriptor::nativeDescriptor() const
     return m_native;
 }
 
-PlacedResource const& CBVDescriptor::associatedResource() const
+Resource const& CBVDescriptor::associatedResource() const
 {
     return m_resource_ref;
 }

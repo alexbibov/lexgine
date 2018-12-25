@@ -46,14 +46,14 @@ struct SRVTextureArrayInfo final
 class SRVDescriptor final
 {
 public:
-    SRVDescriptor(PlacedResource const& resource, 
+    SRVDescriptor(Resource const& resource, 
         SRVBufferInfo const& buffer_info);
     
-    SRVDescriptor(PlacedResource const& resource,
+    SRVDescriptor(Resource const& resource,
         SRVTextureInfo const& texture_info,
         bool is_cubemap = false);
 
-    SRVDescriptor(PlacedResource const& resource,
+    SRVDescriptor(Resource const& resource,
         SRVTextureArrayInfo const& texture_array_info,
         bool is_cubemap = false);
 
@@ -63,10 +63,10 @@ public:
     void overrideFormat(DXGI_FORMAT format);
 
     D3D12_SHADER_RESOURCE_VIEW_DESC nativeDescriptor() const;
-    PlacedResource const& associatedResource() const;
+    Resource const& associatedResource() const;
 
 private:
-    PlacedResource const& m_resource_ref;
+    Resource const& m_resource_ref;
     D3D12_SHADER_RESOURCE_VIEW_DESC m_native;
 };
 
