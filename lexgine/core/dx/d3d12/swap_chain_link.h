@@ -9,6 +9,9 @@
 #include "lexgine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
 #include "resource.h"
 
+#include "dsv_descriptor.h"
+#include "rtv_descriptor.h"
+
 
 namespace lexgine::core::dx::d3d12 {
 
@@ -27,6 +30,9 @@ public:
     SwapChainLink(Globals& globals, dxgi::SwapChain const& swap_chain_to_link,
         SwapChainDepthBufferFormat depth_buffer_format);
     ~SwapChainLink();
+
+    SwapChainLink(SwapChainLink const&) = delete;
+    SwapChainLink(SwapChainLink&&) = default;
 
     void linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link);
 

@@ -9,6 +9,7 @@
 #include "lexgine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h"
 #include "lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
 #include "lexgine/core/dx/dxgi/swap_chain.h"
+#include "lexgine/core/dx/d3d12/swap_chain_link.h"
 
 
 #include <fstream>
@@ -63,7 +64,11 @@ public:
     dx::dxgi::SwapChain createSwapChainForCurrentDevice(osinteraction::windows::Window const& window, dx::dxgi::SwapChainDescriptor const& desc) const;
 
     //! hepler function creating the main rendering loop abstraction
-    dx::d3d12::RenderingTasks createRenderingTasks();
+    dx::d3d12::RenderingTasks createRenderingTasks() const;
+
+    //! helper function that simplifies linking swap chain to rendering tasks
+    dx::d3d12::SwapChainLink createSwapChainLink(dx::dxgi::SwapChain const& target_swap_chain,
+        dx::d3d12::SwapChainDepthBufferFormat depth_buffer_format, dx::d3d12::RenderingTasks& source_rendering_tasks) const;
 
     //! creates main rendering loop
     //dx::d3d12::RenderingLoop& 
