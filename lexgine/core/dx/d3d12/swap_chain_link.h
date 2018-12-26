@@ -7,8 +7,9 @@
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
-#include "resource.h"
 
+#include "resource.h"
+#include "rendering_target.h"
 #include "dsv_descriptor.h"
 #include "rtv_descriptor.h"
 
@@ -48,13 +49,13 @@ private:
     dxgi::SwapChain const& m_linked_swap_chain;
 
     std::unique_ptr<Heap> m_depth_buffer_heap;
-    std::vector<Resource> m_depth_buffers;
+    std::vector<TargetDescriptor> m_depth_buffers;
     std::vector<DSVDescriptor> m_dsv_descriptors;
 
     DXGI_FORMAT m_depth_buffer_native_format;
     ResourceOptimizedClearValue m_depth_optimized_clear_value;
 
-    std::vector<Resource> m_color_buffers;
+    std::vector<TargetDescriptor> m_color_buffers;
     std::vector<RTVDescriptor> m_rtv_descriptors;
 
     RenderingTasks* m_linked_rendering_tasks_ptr;

@@ -14,13 +14,19 @@
 
 namespace lexgine::core::dx::d3d12 {
 
+struct TargetDescriptor
+{
+    Resource target_resource;
+    uint32_t target_mipmap_level = 0U;
+    uint32_t target_array_layer = 0U;
+    ResourceState target_initial_state;
+};
+
 class RenderingTargetColor
 {
 public:
-    RenderingTargetColor(Globals const& globals,
-        std::vector<Resource> const& render_targets,
-        std::vector<ResourceState> const& render_target_initial_states,
-        std::vector<RTVDescriptor> const& render_target_resource_views);
+    RenderingTargetColor(Globals const& globals, std::vector<TargetDescriptor> const& targets,
+        std::vector<RTVDescriptor> const& views);
 
     void switchToRenderAccessState(CommandList const& command_list) const;
     void switchToInitialState(CommandList const& command_list) const;
@@ -39,10 +45,8 @@ private:
 class RenderingTargetDepth
 {
 public:
-    RenderingTargetDepth(Globals const& globals,
-        std::vector<Resource> const& depth_targets,
-        std::vector<ResourceState> const& depth_target_initial_states,
-        std::vector<DSVDescriptor> const& depth_target_resource_views);
+    RenderingTargetDepth(Globals const& globals, std::vector<TargetDescriptor> const& targets,
+        std::vector<DSVDescriptor> const& views);
 
     void switchToRenderAccessState(CommandList const& command_list) const;
     void switchToInitialState(CommandList const& command_list) const;

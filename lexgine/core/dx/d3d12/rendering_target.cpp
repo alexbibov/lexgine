@@ -1,27 +1,28 @@
+#include <algorithm>
 #include <cassert>
+
 #include "rendering_target.h"
 
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
-RenderingTargetColor::RenderingTargetColor(Globals const& globals,
-    std::vector<Resource> const& render_targets,
-    std::vector<ResourceState> const& render_target_initial_states,
-    std::vector<RTVDescriptor> const& render_target_resource_views)
+RenderingTargetColor::RenderingTargetColor(Globals const& globals, std::vector<TargetDescriptor> const& targets,
+    std::vector<RTVDescriptor> const& views)
 {
-    assert(render_targets.size() == render_target_initial_states.size()
-        && render_target_initial_states.size() == render_target_resource_views.size());
+    assert(targets.size() == views.size());
 
     RenderTargetViewTableBuilder rtv_table_builder{ globals, 0U };
-    for (size_t i = 0U; i < render_targets.size(); ++i)
+    for (size_t i = 0U; i < targets.size(); ++i)
     {
-        m_forward_barriers.addTransitionBarrier(&render_targets[i], render_target_initial_states[i],
-            ResourceState::enum_type::render_target);
-        m_backward_barriers.addTransitionBarrier(&render_targets[i], ResourceState::enum_type::render_target,
-            render_target_initial_states[i]);
+        TargetDescriptor const& desc = targets[i];
+        m_forward_barriers.addTransitionBarrier(&desc.target_resource, desc.target_mipmap_level, desc.target_array_layer,
+            desc.target_initial_state, ResourceState::enum_type::render_target);
 
-        rtv_table_builder.addDescriptor(render_target_resource_views[i]);
+        m_backward_barriers.addTransitionBarrier(&desc.target_resource, desc.target_mipmap_level, desc.target_array_layer,
+            ResourceState::enum_type::render_target, desc.target_initial_state);
+
+        rtv_table_builder.addDescriptor(views[i]);
     }
     m_rtvs_table = rtv_table_builder.build();
 }
@@ -48,29 +49,25 @@ RenderTargetViewDescriptorTable const& RenderingTargetColor::rtvTable() const
 
 
 
-RenderingTargetDepth::RenderingTargetDepth(Globals const& globals,
-    std::vector<Resource> const& depth_targets,
-    std::vector<ResourceState> const& depth_target_initial_states,
-    std::vector<DSVDescriptor> const& depth_target_resource_views)
+RenderingTargetDepth::RenderingTargetDepth(Globals const& globals, std::vector<TargetDescriptor> const& targets,
+    std::vector<DSVDescriptor> const& views)
 {
-    assert(depth_targets.size() == depth_target_initial_states.size()
-        && depth_target_initial_states.size() == depth_target_resource_views.size());
+    assert(targets.size() == views.size());
 
     DepthStencilViewTableBuilder dsv_table_builder{ globals, 0U };
-
-    for (size_t i = 0U; i < depth_targets.size(); ++i)
+    for (size_t i = 0U; i < targets.size(); ++i)
     {
-        m_forward_barriers.addTransitionBarrier(&depth_targets[i], depth_target_initial_states[i],
-            ResourceState::enum_type::depth_write);
-        m_backward_barriers.addTransitionBarrier(&depth_targets[i], ResourceState::enum_type::depth_write,
-            depth_target_initial_states[i]);
+        TargetDescriptor const& desc = targets[i];
 
-        dsv_table_builder.addDescriptor(depth_target_resource_views[i]);
+        m_forward_barriers.addTransitionBarrier(&desc.target_resource, desc.target_mipmap_level, desc.target_array_layer,
+            desc.target_initial_state, ResourceState::enum_type::depth_write);
+
+        m_backward_barriers.addTransitionBarrier(&desc.target_resource, desc.target_mipmap_level, desc.target_array_layer,
+            ResourceState::enum_type::depth_write, desc.target_initial_state);
+
+        dsv_table_builder.addDescriptor(views[i]);
     }
-
     m_dsv_table = dsv_table_builder.build();
-
-    
 }
 
 void RenderingTargetDepth::switchToRenderAccessState(CommandList const& command_list) const
