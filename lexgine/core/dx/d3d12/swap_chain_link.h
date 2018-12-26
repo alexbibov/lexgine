@@ -10,8 +10,6 @@
 
 #include "resource.h"
 #include "rendering_target.h"
-#include "dsv_descriptor.h"
-#include "rtv_descriptor.h"
 
 
 namespace lexgine::core::dx::d3d12 {
@@ -48,23 +46,17 @@ private:
     GlobalSettings const& m_global_settings;
     Device& m_device;
     dxgi::SwapChain const& m_linked_swap_chain;
-
-    std::unique_ptr<Heap> m_depth_buffer_heap;
-    std::vector<TargetDescriptor> m_depth_buffers;
-    std::vector<DSVDescriptor> m_dsv_descriptors;
-
-    DXGI_FORMAT m_depth_buffer_native_format;
-    ResourceOptimizedClearValue m_depth_optimized_clear_value;
-
-    std::vector<TargetDescriptor> m_color_buffers;
-    std::vector<RTVDescriptor> m_rtv_descriptors;
-
     RenderingTasks* m_linked_rendering_tasks_ptr;
 
-    std::shared_ptr<RenderingTargetColor> m_color_rendering_target;
-    std::shared_ptr<RenderingTargetDepth> m_depth_rendering_target;
+    std::unique_ptr<Heap> m_depth_buffer_heap;
+    DXGI_FORMAT m_depth_buffer_native_format;
+    ResourceOptimizedClearValue m_depth_optimized_clear_value;
+    Resource m_depth_buffer;
+
+    std::vector<std::shared_ptr<RenderingTarget>> m_targets;
 
     uint64_t m_expected_frame_index;
+
     std::thread m_rendering_tasks_producer_thread;
 };
 

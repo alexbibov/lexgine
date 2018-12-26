@@ -111,3 +111,48 @@ Resource const& RTVDescriptor::associatedResource() const
 {
     return m_resource_ref;
 }
+
+uint32_t RTVDescriptor::viewedMipmapLevel() const
+{
+    switch (m_native.ViewDimension)
+    {
+    
+    case D3D12_RTV_DIMENSION_TEXTURE1D:
+    case D3D12_RTV_DIMENSION_TEXTURE1DARRAY:
+    case D3D12_RTV_DIMENSION_TEXTURE2D:
+    case D3D12_RTV_DIMENSION_TEXTURE2DARRAY:
+    case D3D12_RTV_DIMENSION_TEXTURE3D:
+        return static_cast<uint32_t>(m_native.Texture1D.MipSlice);
+
+    case D3D12_RTV_DIMENSION_BUFFER:
+    case D3D12_RTV_DIMENSION_TEXTURE2DMS:
+    case D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY:
+        return 0;
+    }
+
+    return 0;
+}
+
+std::pair<uint32_t, uint32_t> RTVDescriptor::viewedSubArray() const
+{
+    switch (m_native.ViewDimension)
+    {
+    case D3D12_RTV_DIMENSION_BUFFER:
+    case D3D12_RTV_DIMENSION_TEXTURE1D:
+    case D3D12_RTV_DIMENSION_TEXTURE2D:
+    case D3D12_RTV_DIMENSION_TEXTURE2DMS:
+        return std::make_pair(0U, 1U);
+
+    case D3D12_RTV_DIMENSION_TEXTURE1DARRAY:
+    case D3D12_RTV_DIMENSION_TEXTURE2DARRAY:
+    case D3D12_RTV_DIMENSION_TEXTURE3D:
+        return std::make_pair(static_cast<uint32_t>(m_native.Texture1DArray.FirstArraySlice),
+            static_cast<uint32_t>(m_native.Texture1DArray.ArraySize));
+
+    case D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY:
+        return std::make_pair(static_cast<uint32_t>(m_native.Texture2DMSArray.FirstArraySlice),
+            static_cast<uint32_t>(m_native.Texture2DMSArray.ArraySize));
+    }
+
+    return std::make_pair(0U, 0U);
+}

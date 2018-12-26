@@ -267,7 +267,7 @@ void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable c
     assert(!dsv_descriptor_table || dsv_descriptor_table_offset < dsv_descriptor_table->descriptor_count);
 
     misc::StaticVector<D3D12_CPU_DESCRIPTOR_HANDLE, c_maximal_simultaneous_render_targets_count> rtv_cpu_handles{};
-    D3D12_CPU_DESCRIPTOR_HANDLE* rtv_base_cpu_handle{ NULL };
+    D3D12_CPU_DESCRIPTOR_HANDLE* p_rtv_base_cpu_handle{ NULL };
     if (rtv_descriptor_table && active_rtv_descriptors_mask)
     {
         unsigned long idx{ 0 }, i{ 0 };
@@ -275,20 +275,22 @@ void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable c
             _BitScanForward64(&idx, active_rtv_descriptors_mask);
             offset += idx, active_rtv_descriptors_mask >>= idx + 1, ++i)
         {
-            rtv_cpu_handles[i].ptr = rtv_descriptor_table->cpu_pointer
-                + rtv_descriptor_table->descriptor_size*offset;
+            rtv_cpu_handles.push_back(D3D12_CPU_DESCRIPTOR_HANDLE{ rtv_descriptor_table->cpu_pointer
+                + rtv_descriptor_table->descriptor_size*offset });
         }
-        rtv_base_cpu_handle = rtv_cpu_handles.data();
+        p_rtv_base_cpu_handle = rtv_cpu_handles.data();
     }
 
-    D3D12_CPU_DESCRIPTOR_HANDLE* dsv_base_cpu_handle{ NULL };
+    D3D12_CPU_DESCRIPTOR_HANDLE dsv_base_cpu_handle{ NULL };
+    D3D12_CPU_DESCRIPTOR_HANDLE* p_dsv_base_cpu_handle{ NULL };
     if (dsv_descriptor_table)
     {
-        dsv_base_cpu_handle->ptr = dsv_descriptor_table->cpu_pointer
+        dsv_base_cpu_handle.ptr = dsv_descriptor_table->cpu_pointer
             + dsv_descriptor_table->descriptor_size*dsv_descriptor_table_offset;
+        p_dsv_base_cpu_handle = &dsv_base_cpu_handle;
     }
 
-    m_command_list->OMSetRenderTargets(rtv_count, rtv_base_cpu_handle, FALSE, dsv_base_cpu_handle);
+    m_command_list->OMSetRenderTargets(rtv_count, p_rtv_base_cpu_handle, FALSE, p_dsv_base_cpu_handle);
 }
 
 void CommandList::clearDepthStencilView(DepthStencilViewDescriptorTable const& dsv_descriptor_table,

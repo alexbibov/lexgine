@@ -24,8 +24,7 @@ public:
 
     void dispatchExitSignal();
 
-    void setRenderingTargets(std::shared_ptr<RenderingTargetColor> const& color_rendering_target,
-        std::shared_ptr<RenderingTargetDepth> const& depth_rendering_target);
+    void setRenderingTargets(std::vector<std::shared_ptr<RenderingTarget>> const& multiframe_targets);
 
     /*! signals the rendering tasks producing thread that a frame has been consumed.
      After the frame is consumed it cannot be accessed for reading any longer and its
@@ -46,8 +45,7 @@ private:
 private:
     DxResourceFactory const& m_dx_resources;
     Device& m_device;
-    std::shared_ptr<RenderingTargetColor> m_color_rendering_target_ptr;
-    std::shared_ptr<RenderingTargetDepth> m_depth_rendering_target_ptr;
+    std::vector<std::shared_ptr<RenderingTarget>> m_targets;
 
     concurrency::TaskGraph m_task_graph;
     concurrency::TaskSink m_task_sink;

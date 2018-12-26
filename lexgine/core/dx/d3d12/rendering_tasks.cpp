@@ -70,46 +70,19 @@ private:    // required by the AbstractTask interface
         PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
         "CPU job for frame %i start", current_frame_index);
 
+        uint16_t frame_id = current_frame_index % m_rendering_tasks.m_queued_frames_count;
+        auto& target = m_rendering_tasks.m_targets[frame_id];
+
         m_command_list.reset();
         m_command_list.setDescriptorHeaps(m_page0_descriptor_heaps);
         m_command_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle);
 
-        {
-            // set rendering targets
-            RenderTargetViewDescriptorTable const* p_supplied_rtv_table = m_rendering_tasks.m_color_rendering_target_ptr
-                ? &m_rendering_tasks.m_color_rendering_target_ptr->rtvTable() : nullptr;
+        m_command_list.outputMergerSetRenderTargets(&target->rtvTable(), 1,
+            target->hasDepth() ? &target->dsvTable() : nullptr, 0U);
 
-            DepthStencilViewDescriptorTable const* p_supplied_dsv_table = m_rendering_tasks.m_depth_rendering_target_ptr
-                ? &m_rendering_tasks.m_depth_rendering_target_ptr->dsvTable() : nullptr;
+        m_rendering_tasks.m_targets[frame_id]->switchToRenderAccessState(m_command_list);
 
-            RenderTargetViewDescriptorTable processed_rtv_table{ *p_supplied_rtv_table };
-            DepthStencilViewDescriptorTable processed_dsv_table{ *p_supplied_dsv_table };
-
-            uint16_t frame_shift = current_frame_index % m_rendering_tasks.m_queued_frames_count;
-            
-            uint32_t rtv_shift = processed_rtv_table.descriptor_size*frame_shift;
-            processed_rtv_table.cpu_pointer += rtv_shift;
-            processed_rtv_table.gpu_pointer += rtv_shift;
-
-            uint32_t dsv_shift = processed_dsv_table.descriptor_size*frame_shift;
-            processed_dsv_table.cpu_pointer += dsv_shift;
-            processed_dsv_table.gpu_pointer += dsv_shift;
-
-
-            m_command_list.outputMergerSetRenderTargets(
-                m_rendering_tasks.m_color_rendering_target_ptr
-                ? &processed_rtv_table
-                : nullptr, 1,
-                m_rendering_tasks.m_depth_rendering_target_ptr
-                ? &processed_dsv_table
-                : nullptr,
-                0U);
-
-            m_rendering_tasks.m_color_rendering_target_ptr->switchToRenderAccessState(m_command_list);
-            m_rendering_tasks.m_depth_rendering_target_ptr->switchToRenderAccessState(m_command_list);
-
-            m_command_list.clearRenderTargetView(processed_rtv_table, 0, m_clear_color);
-        }
+        m_command_list.clearRenderTargetView(target->rtvTable(), 0, m_clear_color);
 
         m_command_list.close();
 
@@ -144,20 +117,20 @@ class RenderingTasks::FrameEndTask final : public SchedulableTask
 private:    // required by the AbstractTask interface
     bool do_task(uint8_t worker_id, uint16_t frame_index) override
     {
+        uint64_t current_frame_index = m_rendering_tasks.m_end_of_frame_cpu_wall.lastValueSignaled();
+        uint16_t frame_id = current_frame_index % m_rendering_tasks.m_queued_frames_count;
+        auto& target = m_rendering_tasks.m_targets[frame_id];
+
         m_command_list.reset();
 
-        if(m_rendering_tasks.m_color_rendering_target_ptr)
-            m_rendering_tasks.m_color_rendering_target_ptr->switchToInitialState(m_command_list);
-
-        if(m_rendering_tasks.m_depth_rendering_target_ptr)
-            m_rendering_tasks.m_depth_rendering_target_ptr->switchToInitialState(m_command_list);
+        target->switchToInitialState(m_command_list);
 
         m_command_list.close();
         m_rendering_tasks.m_device.defaultCommandQueue().executeCommandList(m_command_list);
         m_rendering_tasks.m_end_of_frame_gpu_wall.signalFromGPU(m_rendering_tasks.m_device.defaultCommandQueue());
         
         PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
-            "CPU job for frame %i finish", m_rendering_tasks.m_end_of_frame_cpu_wall.lastValueSignaled());
+            "CPU job for frame %i finish", current_frame_index);
 
         m_rendering_tasks.m_end_of_frame_cpu_wall.signalFromCPU();
 
@@ -206,31 +179,17 @@ void RenderingTasks::dispatchExitSignal()
     m_task_sink.dispatchExitSignal();
 }
 
-void RenderingTasks::setRenderingTargets(std::shared_ptr<RenderingTargetColor> const& color_rendering_target,
-    std::shared_ptr<RenderingTargetDepth> const& depth_rendering_target)
+void RenderingTasks::setRenderingTargets(std::vector<std::shared_ptr<RenderingTarget>> const& multiframe_targets)
 {
-    uint32_t color_descriptors_count = color_rendering_target->rtvTable().descriptor_count;
-    if (color_descriptors_count != m_queued_frames_count)
+    if (multiframe_targets.size() != m_queued_frames_count)
     {
         LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
-            "Attempted to set invalid color rendering target: the target must have the same number"
-            " of elements as the maximal frame queue length (" + std::to_string(m_queued_frames_count)
-            + " frames as defined by the current settings). However, the target supplies " 
-            + std::to_string(color_descriptors_count) + " elements");
+            "Unable to set rendering targets for the rendering tasks: the number of targets being set must be"
+            " equal to the maximal length of frame buffer queue (" + std::to_string(m_queued_frames_count)
+            + " frames as defined by the active settings). However, the number of targets provided was " + std::to_string(multiframe_targets.size()));
     }
 
-    uint32_t depth_descriptors_count = depth_rendering_target->dsvTable().descriptor_count;
-    if (depth_descriptors_count != m_queued_frames_count)
-    {
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
-            "Attempted to set invalid depth rendering target: the target must have the same number"
-            " of elements as the maximal frame queue length (" + std::to_string(m_queued_frames_count)
-            + "frames as defined by the current settings). However, the target supplies " 
-            + std::to_string(depth_descriptors_count) + " elements");
-    }
-
-    m_color_rendering_target_ptr = color_rendering_target;
-    m_depth_rendering_target_ptr = depth_rendering_target;
+    m_targets = multiframe_targets;
 }
 
 void RenderingTasks::consumeFrame()

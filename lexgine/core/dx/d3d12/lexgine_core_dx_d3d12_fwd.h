@@ -67,8 +67,7 @@ class DepthStencilViewTableBuilder;
 
 class RenderingTasks;
 
-class RenderingTargetColor;
-class RenderingTargetDepth;
+class RenderingTarget;
 class SwapChainLink;
 
 }
