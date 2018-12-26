@@ -2,6 +2,7 @@
 
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
+#include "lexgine/core/logging_streams.h"
 #include "lexgine/core/dx/dxgi/swap_chain.h"
 
 #include "device.h"
@@ -16,6 +17,7 @@ using namespace lexgine::core::dx::d3d12;
 SwapChainLink::SwapChainLink(Globals& globals, dxgi::SwapChain const& swap_chain_to_link,
     SwapChainDepthBufferFormat depth_buffer_format) :
     m_globals{ globals },
+    m_global_settings{ *globals.get<GlobalSettings>() },
     m_device{ *m_globals.get<Device>() },
     m_linked_swap_chain{ swap_chain_to_link },
     m_depth_buffer_native_format{ static_cast<DXGI_FORMAT>(depth_buffer_format) },
@@ -41,6 +43,7 @@ SwapChainLink::SwapChainLink(Globals& globals, dxgi::SwapChain const& swap_chain
         auto depth_buffer_resource = placer.addResource(ResourceState::enum_type::depth_read, m_depth_optimized_clear_value, descriptor);
         
         m_depth_buffers.reserve(queued_frames_count);
+        m_dsv_descriptors.reserve(queued_frames_count);
         for (uint16_t i = 0U; i < queued_frames_count; ++i)
         {
             TargetDescriptor desc;
@@ -57,6 +60,7 @@ SwapChainLink::SwapChainLink(Globals& globals, dxgi::SwapChain const& swap_chain
     // initialize rendering targets
     {
         m_color_buffers.reserve(queued_frames_count);
+        m_rtv_descriptors.reserve(queued_frames_count);
         for (uint16_t i = 0U; i < queued_frames_count; ++i)
         {
             TargetDescriptor desc;
@@ -80,7 +84,16 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 
 void SwapChainLink::beginRenderingLoop()
 {
-    m_rendering_tasks_producer_thread = std::thread{ &RenderingTasks::run, m_linked_rendering_tasks_ptr };
+    misc::Log::retrieve()->out("Main loop started", misc::LogMessageType::information);
+    m_rendering_tasks_producer_thread = std::thread{ [this]()
+    {
+        auto& rendering_logging_file_stream = m_globals.get<LoggingStreams>()->rendering_logging_stream;
+        misc::Log::create(rendering_logging_file_stream, "rendering_loop_log", m_global_settings.getTimeZone(), m_global_settings.isDTS());
+
+        m_linked_rendering_tasks_ptr->run();
+
+        misc::Log::shutdown();
+    } };
     m_rendering_tasks_producer_thread.detach();
 }
 
@@ -88,6 +101,8 @@ void SwapChainLink::dispatchExitSignal()
 {
     m_linked_rendering_tasks_ptr->dispatchExitSignal();
     m_rendering_tasks_producer_thread.join();
+
+    misc::Log::retrieve()->out("Main loop finished", misc::LogMessageType::information);
 }
 
 void SwapChainLink::present()

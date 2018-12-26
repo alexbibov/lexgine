@@ -1,8 +1,19 @@
+#include <windows.h>
+#include <cwchar>
+
+
 #include "initializer.h"
+
 #include "exception.h"
+#include "globals.h"
+#include "global_settings.h"
+#include "logging_streams.h"
+
 #include "lexgine/core/build_info.h"
 #include "lexgine/core/misc/misc.h"
+#include "lexgine/core/misc/log.h"
 #include "lexgine/core/global_settings.h"
+
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 #include "lexgine/core/dx/d3d12/device.h"
 
@@ -15,9 +26,6 @@
 #include "lexgine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 
-#include <windows.h>
-#include <algorithm>
-#include <cwchar>
 
 using namespace lexgine;
 using namespace lexgine::core;
@@ -55,18 +63,27 @@ Initializer::Initializer(EngineSettings const& settings)
     std::string corrected_global_lookup_prefix = correct_path(settings.global_lookup_prefix);
     std::string corrected_settings_lookup_path = correct_path(settings.settings_lookup_path);
 
-    // Initialize logging
+    m_globals.reset(new Globals{});
+    m_logging_streams.reset(new LoggingStreams{});
+
+
+    MainGlobalsBuilder builder;
+
+
+    // Initialize main logging stream (must be done first)
+    int8_t time_zone_bias;
+    bool dts;
     {
-        m_logging_file_stream.open(corrected_logging_output_path + settings.log_name + ".html", std::ios::out);
-        if (!m_logging_file_stream)
+        m_logging_streams->main_logging_stream.open(corrected_logging_output_path + settings.log_name + ".html", std::ios::out);
+        if (!m_logging_streams->main_logging_stream)
         {
             throw std::runtime_error{ "unable to initialize main logging stream" };
         }
 
         DYNAMIC_TIME_ZONE_INFORMATION time_zone_info;
         DWORD time_zone_id = GetDynamicTimeZoneInformation(&time_zone_info);
-        bool dts = time_zone_id == 0 || time_zone_id == 2;
-        int8_t time_zone_bias = static_cast<uint8_t>(-(time_zone_info.Bias + time_zone_info.StandardBias) / 60);
+        dts = time_zone_id == 0 || time_zone_id == 2;
+        time_zone_bias = static_cast<uint8_t>(-(time_zone_info.Bias + time_zone_info.StandardBias) / 60);
 
         wchar_t host_computer_name[MAX_COMPUTERNAME_LENGTH + 1];
         DWORD host_computer_name_length;
@@ -77,17 +94,37 @@ Initializer::Initializer(EngineSettings const& settings)
         + std::to_string(PROJECT_VERSION_MINOR) + " rev." + std::to_string(PROJECT_VERSION_REVISION)
         + "(" + PROJECT_VERSION_STAGE + ")" + " (" + misc::wstringToAsciiString(host_computer_name) + ")" };
 
-        misc::Log::create(m_logging_file_stream, settings.log_name, time_zone_bias, dts);
+        misc::Log::create(m_logging_streams->main_logging_stream, settings.log_name, time_zone_bias, dts);
     }
 
+    // Load the global settings
+    m_global_settings.reset(new GlobalSettings{ corrected_global_lookup_prefix + corrected_settings_lookup_path + settings.global_settings_json_file, time_zone_bias, dts });
+    builder.defineGlobalSettings(*m_global_settings);
 
-    m_globals.reset(new Globals{});
+    // Initialize rendering logging stream
+    {
+        m_logging_streams->rendering_logging_stream.open(corrected_logging_output_path + settings.log_name + "_rendering.html", std::ios::out);
+        if (!m_logging_streams->rendering_logging_stream)
+        {
+            LEXGINE_THROW_ERROR("Unable to create rendering working stream");
+        }
+    }
 
-    MainGlobalsBuilder builder;
+    // Create logging streams for workers
+    {
+        uint8_t num_workers = m_global_settings->getNumberOfWorkers();
+        m_logging_streams->worker_logging_streams.resize(num_workers);
+        for (uint8_t i = 0; i < num_workers; ++i)
+        {
+            m_logging_streams->worker_logging_streams[i].open(corrected_logging_output_path + settings.log_name + "_worker" + std::to_string(i) + ".html", std::ios::out);
+            if (!m_logging_streams->worker_logging_streams[i])
+            {
+                LEXGINE_THROW_ERROR("ERROR: unable to initialize logging stream for worker thread " + std::to_string(i));
+            }
+        }
+    }
 
-    builder.registerMainLog(m_logging_file_stream);
-
-    m_global_settings.reset(new GlobalSettings{ corrected_global_lookup_prefix + corrected_settings_lookup_path + settings.global_settings_json_file });
+    builder.defineLoggingStreams(*m_logging_streams);
     
     // Correct shader lookup directories
     {
@@ -118,28 +155,6 @@ Initializer::Initializer(EngineSettings const& settings)
     }
 
     builder.defineGlobalSettings(*m_global_settings);
-
-    // Create logging streams for workers
-    {
-        uint8_t num_workers = m_global_settings->getNumberOfWorkers();
-        m_logging_worker_file_streams.resize(num_workers);
-        for (uint8_t i = 0; i < num_workers; ++i)
-        {
-            m_logging_worker_file_streams[i].open(corrected_logging_output_path + settings.log_name + "_worker" + std::to_string(i) + ".html", std::ios::out);
-            if (!m_logging_worker_file_streams[i])
-            {
-                LEXGINE_THROW_ERROR("ERROR: unable to initialize logging stream for worker thread " + std::to_string(i));
-            }
-        }
-
-        m_logging_worker_generic_streams.resize(m_logging_worker_file_streams.size());
-        std::transform(m_logging_worker_file_streams.begin(),
-            m_logging_worker_file_streams.end(),
-            m_logging_worker_generic_streams.begin(),
-            [](std::ofstream& e) -> std::ostream* { return &e; });
-        builder.registerWorkerThreadLogs(m_logging_worker_generic_streams);
-    }
-
 
     // Initialize resource factory
 
@@ -176,8 +191,6 @@ Initializer::~Initializer()
 
     // Logger must be shutdown the last since many objects may still log stuff on destruction
     misc::Log::shutdown();
-    m_logging_file_stream.close();
-    for (auto& s : m_logging_worker_file_streams) s.close();
 }
 
 

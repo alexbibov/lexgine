@@ -471,6 +471,7 @@ public:
 
                 try 
                 {
+
                     taskSink.run();
                 }
                 catch (lexgine::core::Exception const& e)

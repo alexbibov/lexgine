@@ -213,6 +213,7 @@
     <ClCompile Include="core\globals.cpp" />
     <ClCompile Include="core\global_settings.cpp" />
     <ClCompile Include="core\initializer.cpp" />
+    <ClCompile Include="core\logging_streams.cpp" />
     <ClCompile Include="core\math\box.cpp" />
     <ClCompile Include="core\math\rectangle.cpp" />
     <ClCompile Include="core\misc\datetime.cpp" />
@@ -310,6 +311,7 @@
     <ClInclude Include="core\global_settings.h" />
     <ClInclude Include="core\initializer.h" />
     <ClInclude Include="core\lexgine_core_fwd.h" />
+    <ClInclude Include="core\logging_streams.h" />
     <ClInclude Include="core\math\box.h" />
     <ClInclude Include="core\math\lexgine_core_math_fwd.h" />
     <ClInclude Include="core\math\matrix_types.h" />
