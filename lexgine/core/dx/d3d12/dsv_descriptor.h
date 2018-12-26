@@ -1,8 +1,10 @@
 #ifndef LEXGINE_CORE_DX_D3D12_DSV_DESCRIPTOR_H
 #define LEXGINE_CORE_DX_D3D12_DSV_DESCRIPTOR_H
 
-#include <d3d12.h>
 #include <cstdint>
+#include <utility>
+#include <d3d12.h>
+
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 
@@ -46,6 +48,9 @@ public:
 
     D3D12_DEPTH_STENCIL_VIEW_DESC nativeDescriptor() const;
     Resource const& associatedResource() const;
+
+    uint32_t viewedMipmapLevel() const;    //! mipmap level associated with the view
+    std::pair<uint32_t, uint32_t> viewedSubArray() const;    //! returns first array slice and the number of array layers associated with the view
 
 private:
     Resource const& m_resource_ref;
