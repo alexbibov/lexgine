@@ -42,6 +42,13 @@ public:
             new(m_value) T{ *reinterpret_cast<T const*>(other.m_value) };
     }
 
+    Optional(Optional&& other) :
+        m_is_valid{ other.m_is_valid }
+    {
+        if (other.m_is_valid)
+            new(m_value) T{ std::move(*reinterpret_cast<T const*>(other.m_value)) };
+    }
+
     ~Optional()
     {
         invalidate();
