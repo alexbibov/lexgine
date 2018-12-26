@@ -45,6 +45,7 @@ public:
 
 private:
     Globals& m_globals;
+    GlobalSettings const& m_global_settings;
     Device& m_device;
     dxgi::SwapChain const& m_linked_swap_chain;
 

@@ -1,11 +1,13 @@
+#include <cassert>
+
 #include "globals.h"
 #include "global_settings.h"
+#include "logging_streams.h"
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 #include "lexgine/core/dx/d3d12/task_caches/hlsl_compilation_task_cache.h"
 #include "lexgine/core/dx/d3d12/task_caches/pso_compilation_task_cache.h"
 #include "lexgine/core/dx/d3d12/task_caches/root_signature_compilation_task_cache.h"
 
-#include <cassert>
 
 using namespace lexgine::core;
 
@@ -37,18 +39,13 @@ void MainGlobalsBuilder::defineGlobalSettings(GlobalSettings& global_settings)
     m_global_settings = &global_settings;
 }
 
-void MainGlobalsBuilder::registerWorkerThreadLogs(std::vector<std::ostream*>& worker_threads_logging_output_streams)
+void MainGlobalsBuilder::defineLoggingStreams(LoggingStreams& logging_streams)
 {
     assert(m_global_settings);
     uint8_t num_workers = m_global_settings->getNumberOfWorkers();
-    assert(worker_threads_logging_output_streams.size() == num_workers);
+    assert(logging_streams.worker_logging_streams.size() == num_workers);
 
-    m_worker_logs = &worker_threads_logging_output_streams;
-}
-
-void MainGlobalsBuilder::registerMainLog(std::ostream& logging_output_stream)
-{
-    m_main_log = &logging_output_stream;
+    m_logging_streams = &logging_streams;
 }
 
 void MainGlobalsBuilder::registerDxResourceFactory(dx::d3d12::DxResourceFactory& dx_resource_factory)
@@ -75,8 +72,7 @@ Globals MainGlobalsBuilder::build()
 {
     Globals rv;
     rv.put(m_global_settings);
-    rv.put(m_worker_logs);
-    rv.put(m_main_log);
+    rv.put(m_logging_streams);
     rv.put(m_dx_resource_factory);
     rv.put(m_shader_cache);
     rv.put(m_pso_cache);

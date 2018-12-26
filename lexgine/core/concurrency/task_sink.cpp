@@ -36,6 +36,7 @@ private:
 
 TaskSink::TaskSink(TaskGraph const& source_task_graph, 
     std::vector<std::ostream*> const& worker_thread_logging_streams, std::string const& debug_name):
+    m_source_task_graph_ptr{ &source_task_graph },
     m_exit_signal{ false },
     m_exit_level{ 0U },
     m_num_threads_finished{ 0U },
@@ -43,9 +44,6 @@ TaskSink::TaskSink(TaskGraph const& source_task_graph,
     m_task_graph_end_execution_guarding_task{ new TaskGraphEndExecutionGuard{m_exit_level} }
 {
     setStringName(debug_name);
-
-    m_compiled_task_graph.reset(new TaskGraph{ TaskGraphAttorney<TaskSink>::cloneTaskGraphForFrame(source_task_graph, 0) });
-    TaskGraphAttorney<TaskSink>::injectDependentNode(*m_compiled_task_graph, *m_task_graph_end_execution_guarding_task);
 
     for (uint8_t i = 0; i < source_task_graph.getNumberOfWorkerThreads(); ++i)
     {
@@ -57,13 +55,19 @@ TaskSink::~TaskSink() = default;
 
 void TaskSink::run()
 {
+    logger().out("Compiling task graph", LogMessageType::information);
+
+    m_compiled_task_graph.reset(new TaskGraph{ TaskGraphAttorney<TaskSink>::cloneTaskGraphForFrame(*m_source_task_graph_ptr, 0) });
+    TaskGraphAttorney<TaskSink>::injectDependentNode(*m_compiled_task_graph, *m_task_graph_end_execution_guarding_task);
+
+
     // Start workers
     logger().out("Starting worker threads", LogMessageType::information);
     uint8_t i = 0;
     for (auto worker = m_workers_list.begin(); worker != m_workers_list.end(); ++worker, ++i)
     {
-        auto main_log_last_entry_time_stamp = Log::retrieve()->getLastEntryTimeStamp();
-        worker->first = std::thread{ &TaskSink::dispatch, this, i, worker->second, main_log_last_entry_time_stamp.getTimeZone(), main_log_last_entry_time_stamp.isDTS() };
+        auto last_stamp_time = logger().getLastEntryTimeStamp();
+        worker->first = std::thread{ &TaskSink::dispatch, this, i, worker->second, last_stamp_time.getTimeZone(), last_stamp_time.isDTS() };
         worker->first.detach();
     }
 
@@ -97,6 +101,8 @@ void TaskSink::run()
     while (m_num_threads_finished.load(std::memory_order_acquire) < m_workers_list.size());    // wait until all workers are done with their tasks
     m_num_threads_finished.store(0U, std::memory_order_release);    // reset "job done" semaphore
 
+    logger().out("Worker threads finished", LogMessageType::information);
+
     // errors may occur at any time during execution
     if (error_status)
     {
@@ -105,8 +111,6 @@ void TaskSink::run()
         LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(*this,
             "Task " + p_failed_task->getStringName() + " has failed during execution (" + p_failed_task->getErrorString() + "). Worker thread logs may contain more details");
     }
-
-    logger().out("Main loop finished", LogMessageType::information);
 }
 
 void TaskSink::dispatchExitSignal()

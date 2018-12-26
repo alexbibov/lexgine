@@ -8,6 +8,7 @@
 
 #include "lexgine/core/global_settings.h"
 #include "lexgine/core/exception.h"
+#include "lexgine/core/logging_streams.h"
 
 #include "lexgine/core/misc/template_argument_iterator.h"
 
@@ -1453,7 +1454,11 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
         pso_compilation_task_graph.createDotRepresentation("deferred_pso_compilation_task_graph__" + getId().toString() + ".gv");
         #endif
 
-        std::vector<std::ostream*> worker_log_streams = *m_globals.get<std::vector<std::ostream*>>();
+        std::vector<std::ostream*> worker_log_streams(global_settings.getNumberOfWorkers());
+        auto& worker_file_logging_streams = globals.get<LoggingStreams>()->worker_logging_streams;
+        std::transform(worker_file_logging_streams.begin(), worker_file_logging_streams.end(),
+            worker_log_streams.begin(), [](std::ofstream& fs)->std::ostream* {return &fs; });
+
         concurrency::TaskSink task_sink{ pso_compilation_task_graph, worker_log_streams, "pso_compilation_task_sink_" + getId().toString() };
         m_impl->deferredShaderCompilationExitTask()->setInput(&task_sink);
 

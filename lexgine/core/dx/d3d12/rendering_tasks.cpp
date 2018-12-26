@@ -1,6 +1,7 @@
 #include "rendering_tasks.h"
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
+#include "lexgine/core/logging_streams.h"
 #include "lexgine/core/exception.h"
 #include "lexgine/core/concurrency/schedulable_task.h"
 #include "lexgine/core/math/vector_types.h"
@@ -15,6 +16,18 @@
 using namespace lexgine::core;
 using namespace lexgine::core::concurrency;
 using namespace lexgine::core::dx::d3d12;
+
+
+namespace {
+
+std::vector<std::ostream*> convertFileStreamsToGenericStreams(std::vector<std::ofstream>& fstreams)
+{
+    std::vector<std::ostream*> res(fstreams.size());
+    std::transform(fstreams.begin(), fstreams.end(), res.begin(), [](std::ofstream& fs)->std::ostream* { return &fs; });
+    return res;
+}
+
+}
 
 
 class RenderingTasks::FrameBeginTask final : public RootSchedulableTask
@@ -166,7 +179,7 @@ RenderingTasks::RenderingTasks(Globals& globals):
     m_dx_resources{ *globals.get<DxResourceFactory>() },
     m_device{ *globals.get<Device>() },
     m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" },
-    m_task_sink{ m_task_graph, *globals.get<std::vector<std::ostream*>>(), "RenderingTasksSink" },
+    m_task_sink{ m_task_graph, convertFileStreamsToGenericStreams(globals.get<LoggingStreams>()->worker_logging_streams), "RenderingTasksSink" },
 
     m_frame_begin_task{ new FrameBeginTask{*this, math::Vector4f{0.f, 0.f, 0.f, 0.f}} },
     m_frame_end_task{ new FrameEndTask{*this} },

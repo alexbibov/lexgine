@@ -26,7 +26,9 @@ std::string to_string<std::string>(std::string const& value) { return value; }
 }
 
 
-GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
+GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int8_t time_zone, bool dts):
+    m_time_zone{ time_zone },
+    m_dts{ dts }
 {
     // initialize default values for the settings
     {
@@ -377,6 +379,16 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
             m_deferred_root_signature_compilation = false;
         }
     }
+}
+
+int8_t GlobalSettings::getTimeZone() const
+{
+    return m_time_zone;
+}
+
+bool GlobalSettings::isDTS() const
+{
+    return m_dts;
 }
 
 void GlobalSettings::serialize(std::string const& json_serialization_path) const

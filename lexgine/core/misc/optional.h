@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace lexgine { namespace core { namespace misc {
+namespace lexgine::core::misc{
 
 //! Implements nullable type wrapper over provided type T
 template<typename T>
@@ -12,14 +12,6 @@ class Optional final
 {
 public:
     Optional() noexcept : m_is_valid{ false } {}    //! initializes invalidated wrapper
-
-    //! constructs wrapped type "in-place" without copy overhead
-    template<typename... Args>
-    explicit Optional(Args&&... args):
-        m_is_valid{ true }
-    {
-        new(m_value) T(std::forward<Args>(args)...);
-    }
 
     //! initializes wrapper containing provided value
     Optional(T const& value) :
@@ -47,6 +39,16 @@ public:
     {
         if (other.m_is_valid)
             new(m_value) T{ std::move(*reinterpret_cast<T const*>(other.m_value)) };
+    }
+
+    //! constructs wrapped type "in-place" without copy overhead
+    template<typename A, typename... Args,
+        typename = std::enable_if<std::is_constructible<T, A, Args...>::value
+        && !(std::is_same<std::decay<A>::type, T>::value && sizeof...(Args) == 0)>::value>
+    explicit Optional(A&& a0, Args&&... args) :
+        m_is_valid{ true }
+    {
+        new(m_value) T(std::forward<A>(a0), std::forward<Args>(args)...);
     }
 
     ~Optional()
@@ -183,6 +185,6 @@ Optional<T> makeOptional(Args&&... args)
     return Optional<T>{std::forward<Args>(args)...};
 }
 
-}}}
+}
 
 #endif

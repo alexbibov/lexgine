@@ -1,11 +1,7 @@
 #ifndef LEXGINE_CORE_GLOBALS_H
+#define LEXGINE_CORE_GLOBALS_H
 
 #include <map>
-#include <string>
-#include <memory>
-#include <vector>
-#include <ostream>
-#include <type_traits>
 #include <cassert>
 
 #include "misc/hashed_string.h"
@@ -15,7 +11,7 @@
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h"
 
-namespace lexgine { namespace core {
+namespace lexgine::core {
 
 class Globals : NamedEntity<class_names::Globals>
 {
@@ -96,18 +92,16 @@ public:
 class MainGlobalsBuilder
 {
 private:
-    GlobalSettings * m_global_settings;
-    std::ostream* m_main_log;
-    std::vector<std::ostream*>* m_worker_logs;
+    GlobalSettings* m_global_settings;
     dx::d3d12::DxResourceFactory* m_dx_resource_factory;
     dx::d3d12::task_caches::HLSLCompilationTaskCache* m_shader_cache;
     dx::d3d12::task_caches::PSOCompilationTaskCache* m_pso_cache;
     dx::d3d12::task_caches::RootSignatureCompilationTaskCache* m_rs_cache;
+    LoggingStreams* m_logging_streams;
 
 public:
     void defineGlobalSettings(GlobalSettings& global_settings);
-    void registerWorkerThreadLogs(std::vector<std::ostream*>& worker_threads_logging_output_streams);
-    void registerMainLog(std::ostream& logging_output_stream);
+    void defineLoggingStreams(LoggingStreams& logging_streams);
     void registerDxResourceFactory(dx::d3d12::DxResourceFactory& dx_resource_factory);
     void registerHLSLCompilationTaskCache(dx::d3d12::task_caches::HLSLCompilationTaskCache& shader_cache);
     void registerPSOCompilationTaskCache(dx::d3d12::task_caches::PSOCompilationTaskCache& pso_cache);
@@ -117,7 +111,6 @@ public:
 };
 
 
-}}
+}
 
-#define LEXGINE_CORE_GLOBALS_H
 #endif

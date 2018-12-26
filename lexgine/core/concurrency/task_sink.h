@@ -18,7 +18,7 @@ public:
         std::string const& debug_name = "");
     ~TaskSink();
 
-    void run();    //! begins execution of the task sink
+    void run();    //! begins execution of the task sink, @param now_time is used for logging
     void dispatchExitSignal();    //! directs the sink to stop dispatching new tasks into the queue and exit the main loop as soon as the last task graph is done
 
 private:
@@ -27,6 +27,7 @@ private:
 
     using worker_thread_context = std::pair<std::thread, std::ostream*>;
     std::list<worker_thread_context> m_workers_list;    //!< list of work threads
+    TaskGraph const* m_source_task_graph_ptr;    //!< source task graph in raw representation
     std::unique_ptr<TaskGraph> m_compiled_task_graph;    //!< compiled task graph ('compiled' here means that it has been optimized for execution and cannot change any longer)
     RingBufferTaskQueue<TaskGraphNode*> m_task_queue;    //!< concurrent task queue
 
