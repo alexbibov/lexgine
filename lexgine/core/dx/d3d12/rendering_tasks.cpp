@@ -42,8 +42,8 @@ public:
     {
         m_command_list.setStringName("clear_screen");
 
-        m_page0_descriptor_heaps.resize(4U);
-        for (int i = 0; i < 4U; ++i)
+        m_page0_descriptor_heaps.resize(2U);    // we only fetch two heaps: cbv_srv_uav and sampler since only these two must be set from the command list
+        for (int i = 0; i < 2U; ++i)
         {
             m_page0_descriptor_heaps[i] =
                 &m_rendering_tasks.m_dx_resources.retrieveDescriptorHeap(rendering_tasks.m_device, static_cast<DescriptorHeapType>(i), 0);
