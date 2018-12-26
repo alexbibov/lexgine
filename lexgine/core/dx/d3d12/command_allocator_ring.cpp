@@ -36,8 +36,8 @@ ComPtr<ID3D12CommandAllocator> CommandAllocatorRing::spin()
     auto& signal_desc = m_signaling_allocators[m_current_index];
     Signal const* p_signal = signal_desc.signal_ptr;
     if (p_signal
-        && p_signal->lastValueSignaled() < signal_desc.signal_value
-        || !signal_desc.signal_value)
+        && (p_signal->lastValueSignaled() < signal_desc.signal_value
+        || !signal_desc.signal_value))
     {
         p_signal->waitUntilValue(signal_desc.signal_value);
     }
