@@ -63,12 +63,8 @@ Initializer::Initializer(EngineSettings const& settings)
     std::string corrected_global_lookup_prefix = correct_path(settings.global_lookup_prefix);
     std::string corrected_settings_lookup_path = correct_path(settings.settings_lookup_path);
 
-    m_globals.reset(new Globals{});
+    
     m_logging_streams.reset(new LoggingStreams{});
-
-
-    MainGlobalsBuilder builder;
-
 
     // Initialize main logging stream (must be done first)
     int8_t time_zone_bias;
@@ -96,6 +92,10 @@ Initializer::Initializer(EngineSettings const& settings)
 
         misc::Log::create(m_logging_streams->main_logging_stream, settings.log_name, time_zone_bias, dts);
     }
+
+    // Initialize global object pool
+    m_globals.reset(new Globals{});
+    MainGlobalsBuilder builder;
 
     // Load the global settings
     m_global_settings.reset(new GlobalSettings{ corrected_global_lookup_prefix + corrected_settings_lookup_path + settings.global_settings_json_file, time_zone_bias, dts });
