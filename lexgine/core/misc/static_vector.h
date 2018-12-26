@@ -363,7 +363,7 @@ template<typename T, size_t max_size>
 inline typename StaticVector<T, max_size>::StaticVectorIterator& StaticVector<T, max_size>::StaticVectorIterator::operator++()
 {
     ++m_current;
-    assert(m_current < *m_referred_vector_size_ptr + m_start);
+    assert(m_current <= *m_referred_vector_size_ptr + m_start);
     return *this;
 }
 
@@ -372,7 +372,7 @@ inline typename StaticVector<T, max_size>::StaticVectorIterator StaticVector<T, 
 {
     StaticVectorIterator rv{ *this };
     ++m_current;
-    assert(m_current < *m_referred_vector_size_ptr + m_start);
+    assert(m_current <= *m_referred_vector_size_ptr + m_start);
     return rv;
 }
 
@@ -461,7 +461,7 @@ template<typename T, size_t max_size>
 inline typename StaticVector<T, max_size>::StaticVectorIterator& StaticVector<T, max_size>::StaticVectorIterator::operator+=(size_t n)
 {
     m_current += n;
-    assert(m_current < *m_referred_vector_size_ptr + m_start);
+    assert(m_current <= *m_referred_vector_size_ptr + m_start);
     return *this;
 }
 
@@ -477,7 +477,7 @@ template<typename T, size_t max_size>
 inline typename StaticVector<T, max_size>::StaticVectorIterator StaticVector<T, max_size>::StaticVectorIterator::operator+(size_t n) const
 {
     T* ptr = m_current + n;
-    assert(ptr < *m_referred_vector_size_ptr + m_start);
+    assert(ptr <= *m_referred_vector_size_ptr + m_start);
     return StaticVectorIterator{ reinterpret_cast<char*>(ptr), *m_referred_vector_size_ptr };
 }
 
