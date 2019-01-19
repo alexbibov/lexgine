@@ -14,29 +14,81 @@ using namespace lexgine::core;
 using namespace lexgine::core::dx::dxgi;
 using namespace lexgine::core::dx::d3d12;
 
-class WindowEventListener : 
-    public Listeners<
-    KeyInputListener, 
-    MouseButtonListener, 
-    MouseMoveListener, 
-    WindowSizeChangeListener, 
-    ClientAreaUpdateListener
-    >
+namespace 
+{
+
+EngineSettings createEngineSettings()
+{
+    EngineSettings settings;
+
+    settings.debug_mode = true;
+    settings.adapter_enumeration_preference = HwAdapterEnumerator::DxgiGpuPreference::high_performance;
+    settings.global_lookup_prefix = "";
+    settings.settings_lookup_path = "../../settings/";
+    settings.global_settings_json_file = "global_settings.json";
+    settings.logging_output_path = "";
+    settings.log_name = "swe_demo.log";
+
+    return settings;
+}
+
+SwapChainDescriptor createSwapChainSettings()
+{
+    SwapChainDescriptor swap_chain_desc{};
+    swap_chain_desc.format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    swap_chain_desc.refreshRate = 60;
+    swap_chain_desc.scaling = SwapChainScaling::stretch;
+    swap_chain_desc.stereo = false;
+    swap_chain_desc.windowed = true;
+
+    return swap_chain_desc;
+}
+
+}
+
+class MainClass : 
+    public Listeners<KeyInputListener, MouseButtonListener, MouseMoveListener, 
+    WindowSizeChangeListener, ClientAreaUpdateListener>
 {
 public:
-    bool keyDown(SystemKey key) const override
+    MainClass()
+        : m_engine_settings{ createEngineSettings() }
+        , m_engine_initializer{ m_engine_settings }
+        , m_swap_chain{ m_engine_initializer.createSwapChainForCurrentDevice(m_rendering_window, createSwapChainSettings()) }
+        , m_rendering_tasks{ m_engine_initializer.createRenderingTasks() }
+        , m_swap_chain_link{ m_engine_initializer.createSwapChainLink(m_swap_chain, lexgine::core::dx::d3d12::SwapChainDepthBufferFormat::d32float, *m_rendering_tasks) }
+    {
+        m_rendering_window.setDimensions(lexgine::core::math::Vector2u{ 1280, 720 });
+        m_rendering_window.addListener(this);
+        m_rendering_window.setVisibility(true);
+
+        Device& dev_ref = m_engine_initializer.getCurrentDevice();
+    }
+
+    bool shouldClose()
+    {
+        return m_rendering_window.shouldClose();
+    }
+
+    void loop() const
+    {
+        m_rendering_window.processMessages();
+    }
+
+public:
+    bool keyDown(SystemKey key) override
     {
         std::cout << "key with code " << static_cast<uint32_t>(key) << " pressed" << std::endl;
         return true;
     }
 
-    bool keyUp(SystemKey key) const override
+    bool keyUp(SystemKey key) override
     {
         std::cout << "key with code " << static_cast<uint32_t>(key) << " released" << std::endl;
         return true;
     }
 
-    bool character(wchar_t char_key) const override
+    bool character(wchar_t char_key) override
     {
         std::cout << "character " << char_key << " received" << std::endl;
         return true;
@@ -44,7 +96,7 @@ public:
 
 
 
-    bool buttonDown(MouseButton button, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) const override
+    bool buttonDown(MouseButton button, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
     {
         switch (button)
         {
@@ -61,7 +113,7 @@ public:
         return true;
     }
 
-    bool buttonUp(MouseButton button, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) const override
+    bool buttonUp(MouseButton button, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
     {
         switch (button)
         {
@@ -78,7 +130,7 @@ public:
         return true;
     }
 
-    bool wheelMove(double move_delta, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) const override
+    bool wheelMove(double move_delta, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
     {
         std::cout << "mouse wheel moved, delta=" << move_delta << std::endl;
         return true;
@@ -86,19 +138,19 @@ public:
 
 
 
-    bool move(uint16_t x, uint16_t y, ControlKeyFlag const& control_key_flag) const override
+    bool move(uint16_t x, uint16_t y, ControlKeyFlag const& control_key_flag) override
     {
         std::cout << "mouse moves at position (" << x << "," << y << ")" << std::endl;
         return true;
     }
 
-    bool enter_client_area() const override
+    bool enter_client_area() override
     {
         std::cout << "mouse enters client area" << std::endl;
         return true;
     }
 
-    bool leave_client_area() const override
+    bool leave_client_area() override
     {
         std::cout << "mouse leaves client area" << std::endl;
         return true;
@@ -106,82 +158,48 @@ public:
 
 
 
-    bool minimized() const override
+    bool minimized() override
     {
         std::cout << "window has been minimized" << std::endl;
         return true;
     }
 
-    bool maximized(uint16_t new_width, uint16_t new_height) const override
+    bool maximized(uint16_t new_width, uint16_t new_height) override
     {
         std::cout << "window has been maximized. The new size is (" << new_width << ", " << new_height << ")" << std::endl;
         return true;
     }
 
-    bool size_changed(uint16_t new_width, uint16_t new_height) const override
+    bool size_changed(uint16_t new_width, uint16_t new_height) override
     {
         std::cout << "window  size has been changed. The new size is (" << new_width << ", " << new_height << ")" << std::endl;
         return true;
     }
 
-    bool paint(lexgine::core::math::Rectangle const& update_region) const override
+    bool paint(lexgine::core::math::Rectangle const& update_region) override
     {
+        // m_swap_chain_link.render();
         return true;
     }
 
 
-    private:
-        lexgine::core::dx::d3d12::CommandList* p_cmd_list;
+private:
+    EngineSettings m_engine_settings;
+    Initializer m_engine_initializer;
+    Window m_rendering_window;
+    SwapChain m_swap_chain;
+    std::unique_ptr<RenderingTasks> m_rendering_tasks;
+    SwapChainLink m_swap_chain_link;
 };
 
 int main(int argc, char* argv[])
 {
-    EngineSettings engine_settings{};
-    engine_settings.debug_mode = true;
-    engine_settings.adapter_enumeration_preference = HwAdapterEnumerator::DxgiGpuPreference::high_performance;
-    engine_settings.global_lookup_prefix = "";
-    engine_settings.settings_lookup_path = "../../settings/";
-    engine_settings.global_settings_json_file = "global_settings.json";
-    engine_settings.logging_output_path = "";
-    engine_settings.log_name = "swe_demo.log";
-
-
-    Initializer engine_initializer{ engine_settings };
-
-    Window rendering_window{};
-    rendering_window.setDimensions(lexgine::core::math::Vector2u{ 1280, 720 });
-    WindowEventListener event_listener;
-    rendering_window.addListener(&event_listener);
-    rendering_window.setVisibility(true);
-
-    SwapChainDescriptor swap_chain_desc{};
-    swap_chain_desc.format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    swap_chain_desc.refreshRate = 60;
-    swap_chain_desc.scaling = SwapChainScaling::stretch;
-    swap_chain_desc.stereo = false;
-    swap_chain_desc.windowed = true;
-    
-    auto swap_chain = engine_initializer.createSwapChainForCurrentDevice(rendering_window, swap_chain_desc);
-    auto rendering_tasks = engine_initializer.createRenderingTasks();
-    auto swap_chain_link = engine_initializer.createSwapChainLink(swap_chain, lexgine::core::dx::d3d12::SwapChainDepthBufferFormat::d32float, rendering_tasks);
-    swap_chain_link.beginRenderingLoop();
-
-    Device& dev_ref = engine_initializer.getCurrentDevice();
-
-    while (!rendering_window.shouldClose())
+    MainClass main_class{};
+    while (!main_class.shouldClose())
     {
-        MSG msg;
-        BOOL res = GetMessage(&msg, NULL, NULL, NULL);
-        if (res)
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-            swap_chain_link.present();
-        }
-        else break;
+        main_class.loop();
     }
 
-    swap_chain_link.dispatchExitSignal();
 
     return 0;
 }

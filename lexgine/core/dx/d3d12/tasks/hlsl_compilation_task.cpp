@@ -156,7 +156,7 @@ std::string HLSLCompilationTask::getCompilationLog() const
 
 bool HLSLCompilationTask::execute(uint8_t worker_id)
 {
-    return do_task(worker_id, 0);
+    return doTask(worker_id, 0);
 }
 
 D3DDataBlob HLSLCompilationTask::getTaskData() const
@@ -164,7 +164,7 @@ D3DDataBlob HLSLCompilationTask::getTaskData() const
     return m_shader_byte_code;
 }
 
-bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
+bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
 {
     try
     {
@@ -345,7 +345,7 @@ bool HLSLCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
     return true;    // the task is not reschedulable, so do_task() returns 'true' regardless of compilation outcome
 }
 
-lexgine::core::concurrency::TaskType HLSLCompilationTask::get_task_type() const
+lexgine::core::concurrency::TaskType HLSLCompilationTask::type() const
 {
     return concurrency::TaskType::cpu;
 }

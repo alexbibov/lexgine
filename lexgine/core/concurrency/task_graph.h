@@ -9,7 +9,7 @@
 
 namespace lexgine::core::concurrency {
 
-template<typename> class TaskGraphAttorney;
+template<typename T> class TaskGraphAttorney;
 
 class TaskGraph : public NamedEntity<class_names::TaskGraph>
 {
@@ -29,64 +29,70 @@ public:
     TaskGraph& operator=(TaskGraph const& other) = delete;
     TaskGraph& operator=(TaskGraph&& other);
 
-    void setRootNodes(std::set<TaskGraphRootNode const*> const& root_nodes);    //! re-defines the task graph given a list of root nodes
+    //! Sets new root nodes for the task graph
+    void setRootNodes(std::set<TaskGraphRootNode const*> const& root_nodes);    
 
     uint8_t getNumberOfWorkerThreads() const;    //! returns number of worker threads assigned to the task graph
 
     void createDotRepresentation(std::string const& destination_path);    //! creates representation of the task graph using DOT language and saves it to the given destination path
 
-    uint16_t frameIndex() const;    //! returns frame index, to which this task graph is assigned
+    std::set<TaskGraphRootNode const*> const& rootNodes() const; 
 
-    std::set<TaskGraphRootNode const*> const& rootNodes() const;
+    //! Resets execution status of the task graph (effectively, this resets execution status of every node of the graph)
+    void resetExecutionStatus();
 
-    iterator begin();    //! returns iterator pointing at the first task of the task graph
-    iterator end();    //! returns iterator pointing one step forward from the last task of the task graph
+    //! Sets custom user data, which will be associated with every node in the task graph. The task graph must be compiled before calling this function.
+    void setUserData(uint64_t user_data);
 
-    const_iterator begin() const;    //! returns immutable iterator pointing at the first task of the task graph
-    const_iterator end() const;    //! returns immutable iterator pointing one step forward from the last task of the task graph
+
+    // support of iteration over compiled graph nodes
+
+    iterator begin();
+    iterator end();
+
+    const_iterator cbegin() const;
+    const_iterator cend() const;
+    const_iterator begin() const;
+    const_iterator end() const;
+
+    std::reverse_iterator<iterator> rbegin();
+    std::reverse_iterator<iterator> rend();
+
+    std::reverse_iterator<const_iterator> rbegin() const;
+    std::reverse_iterator<const_iterator> rend() const;
+
 
 private:
-    void compile(std::set<TaskGraphRootNode const*> const& root_nodes);    //! creates list of task graph nodes sorted in topological order, creates a full deep copy of the task graph as side effect
-    void reset_completion_status();    //! resets completion status of all the nodes in the task graph
-    
-    /*! injects new task graph node that will be dependent on all nodes present in the task graph.
-     This function is to be used only with already compiled task graph. Also, all dependencies present
-     in the injected node at the moment of injection will be ignored.
+    /*! Prepares the task graph for execution. This process creates the internal list containing all the nodes of the task graph
+     sorted using topological ordering. As a side effect this routine generates a deep copy of the task graph.
     */
-    void inject_dependent_node(TaskGraphNode const& node);    
+    void compile();
 
 private:
     uint8_t m_num_workers;    //!< number of worker threads assigned to the task graph
     std::set<TaskGraphRootNode const*> m_root_nodes;    //!< set of pointers to task graph root nodes
-    std::list<TaskGraphNode> m_all_nodes;    //!< list of all graph nodes sorted in topological order
-    uint16_t m_frame_index;    //!< index of the frame, to which this task graph corresponds
+    std::list<TaskGraphNode> m_compiled_task_graph;    //!< list of all graph nodes sorted in topological order
 };
-
 
 template<> class TaskGraphAttorney<TaskSink>
 {
-    friend class TaskSink;
+    friend TaskSink;
 
-private:
-    static inline void resetTaskGraphCompletionStatus(TaskGraph& parent_task_graph)
+    static TaskGraph assembleCompiledTaskGraphWithBarrierSync(TaskGraph const& source_task_graph, 
+        TaskGraphNode const& barrier_sync_node)
     {
-        parent_task_graph.reset_completion_status();
-    }
+        TaskGraph rv{ source_task_graph.m_num_workers, source_task_graph.getStringName() };
+        rv.m_root_nodes = source_task_graph.m_root_nodes;
+        rv.compile();
 
-    static inline TaskGraph cloneTaskGraphForFrame(TaskGraph const& parent_task_graph, uint16_t frame_index)
-    {
-        TaskGraph rv{ parent_task_graph.m_num_workers, parent_task_graph.getStringName() + "_frame_idx_copy#" + std::to_string(frame_index) };
-        rv.m_frame_index = frame_index;
-        rv.compile(parent_task_graph.m_root_nodes);
+        rv.m_compiled_task_graph.push_back(barrier_sync_node.clone());
+        auto last_node_iter = (++rv.m_compiled_task_graph.rbegin()).base();
+        for (auto p = rv.m_compiled_task_graph.begin(); p != last_node_iter; ++p)
+            p->addDependent(*last_node_iter);
+
         return rv;
-    } 
-
-    static inline void injectDependentNode(TaskGraph& parent_task_graph, TaskGraphNode const& node)
-    {
-        parent_task_graph.inject_dependent_node(node);
     }
 };
-
 
 }
 

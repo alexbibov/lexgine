@@ -56,33 +56,23 @@ public:
     }
 
 private:    // required by the AbstractTask interface
-    bool do_task(uint8_t worker_id, uint16_t frame_index) override
+    bool doTask(uint8_t worker_id, uint64_t current_frame_index) override
     {
-        uint64_t current_frame_index = m_rendering_tasks.m_end_of_frame_cpu_wall.lastValueSignaled();
-
-        if (current_frame_index > m_rendering_tasks.m_frame_consumed_wall.lastValueSignaled()
-            + m_rendering_tasks.m_queued_frames_count)
-        {
-            YieldProcessor();
-            return false;    // we return 'false' here because we want this task to be rescheduled at a later time
-        }
-
         PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
         "CPU job for frame %i start", current_frame_index);
 
-        uint16_t frame_id = current_frame_index % m_rendering_tasks.m_queued_frames_count;
-        auto& target = m_rendering_tasks.m_targets[frame_id];
+        auto& target = *m_rendering_tasks.m_current_rendering_target_ptr;
 
         m_command_list.reset();
         m_command_list.setDescriptorHeaps(m_page0_descriptor_heaps);
         m_command_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle);
 
-        m_command_list.outputMergerSetRenderTargets(&target->rtvTable(), 1,
-            target->hasDepth() ? &target->dsvTable() : nullptr, 0U);
+        m_command_list.outputMergerSetRenderTargets(&target.rtvTable(), 1,
+            target.hasDepth() ? &target.dsvTable() : nullptr, 0U);
 
-        m_rendering_tasks.m_targets[frame_id]->switchToRenderAccessState(m_command_list);
+        target.switchToRenderAccessState(m_command_list);
 
-        m_command_list.clearRenderTargetView(target->rtvTable(), 0, m_clear_color);
+        m_command_list.clearRenderTargetView(target.rtvTable(), 0, m_clear_color);
 
         m_command_list.close();
 
@@ -91,7 +81,7 @@ private:    // required by the AbstractTask interface
         return true;
     }
 
-    TaskType get_task_type() const override
+    TaskType type() const override
     {
         return TaskType::gpu_draw;
     }
@@ -115,15 +105,14 @@ class RenderingTasks::FrameEndTask final : public SchedulableTask
     }
 
 private:    // required by the AbstractTask interface
-    bool do_task(uint8_t worker_id, uint16_t frame_index) override
+    bool doTask(uint8_t worker_id, uint64_t current_frame_index) override
     {
-        uint64_t current_frame_index = m_rendering_tasks.m_end_of_frame_cpu_wall.lastValueSignaled();
-        uint16_t frame_id = current_frame_index % m_rendering_tasks.m_queued_frames_count;
-        auto& target = m_rendering_tasks.m_targets[frame_id];
+        
+        auto& target = *m_rendering_tasks.m_current_rendering_target_ptr;
 
         m_command_list.reset();
 
-        target->switchToInitialState(m_command_list);
+        target.switchToInitialState(m_command_list);
 
         m_command_list.close();
         m_rendering_tasks.m_device.defaultCommandQueue().executeCommandList(m_command_list);
@@ -137,7 +126,7 @@ private:    // required by the AbstractTask interface
         return true;
     }
 
-    TaskType get_task_type() const override
+    TaskType type() const override
     {
         return TaskType::gpu_draw;
     }
@@ -148,72 +137,53 @@ private:
 };
 
 
-RenderingTasks::RenderingTasks(Globals& globals):
-    m_dx_resources{ *globals.get<DxResourceFactory>() },
-    m_device{ *globals.get<Device>() },
-    m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" },
-    m_task_sink{ m_task_graph, convertFileStreamsToGenericStreams(globals.get<LoggingStreams>()->worker_logging_streams), "RenderingTasksSink" },
+RenderingTasks::RenderingTasks(Globals& globals)
+    : m_dx_resources{ *globals.get<DxResourceFactory>() }
+    , m_device{ *globals.get<Device>() }
 
-    m_frame_begin_task{ new FrameBeginTask{*this, math::Vector4f{0.f, 0.f, 0.f, 0.f}} },
-    m_frame_end_task{ new FrameEndTask{*this} },
+    , m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" }
+    , m_task_sink{ m_task_graph, convertFileStreamsToGenericStreams(globals.get<LoggingStreams>()->worker_logging_streams), "RenderingTasksSink" }
 
-    m_queued_frames_count{ globals.get<GlobalSettings>()->getMaxFramesInFlight() },
-    m_end_of_frame_cpu_wall{ m_device },
-    m_end_of_frame_gpu_wall{ m_device },
-    m_frame_consumed_wall{ m_device }
+    , m_frame_begin_task{ new FrameBeginTask{*this, math::Vector4f{0.f, 0.f, 0.f, 0.f}} }
+    , m_frame_end_task{ new FrameEndTask{*this} }
+
+    , m_end_of_frame_cpu_wall{ m_device }
+    , m_end_of_frame_gpu_wall{ m_device }
 {
     m_task_graph.setRootNodes({ m_frame_begin_task.get() });
     m_frame_begin_task->addDependent(*m_frame_end_task);
+
+    m_task_sink.start();
 }
 
-RenderingTasks::~RenderingTasks() = default;
-
-
-void RenderingTasks::run()
+RenderingTasks::~RenderingTasks()
 {
-    m_task_sink.run();
+    m_task_sink.shutdown();
 }
 
-void RenderingTasks::dispatchExitSignal()
+
+void RenderingTasks::render(RenderingTarget& target, 
+    std::function<void(RenderingTarget const&)> const& presentation_routine)
 {
-    m_task_sink.dispatchExitSignal();
+    m_current_rendering_target_ptr = &target;
+    m_task_sink.submit(m_end_of_frame_cpu_wall.lastValueSignaled());
+    presentation_routine(target);
+
+    m_end_of_frame_cpu_wall.signalFromCPU();
+    m_end_of_frame_gpu_wall.signalFromGPU(m_device.defaultCommandQueue());
 }
 
-void RenderingTasks::setRenderingTargets(std::vector<std::shared_ptr<RenderingTarget>> const& multiframe_targets)
-{
-    if (multiframe_targets.size() != m_queued_frames_count)
-    {
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
-            "Unable to set rendering targets for the rendering tasks: the number of targets being set must be"
-            " equal to the maximal length of frame buffer queue (" + std::to_string(m_queued_frames_count)
-            + " frames as defined by the active settings). However, the number of targets provided was " + std::to_string(multiframe_targets.size()));
-    }
-
-    m_targets = multiframe_targets;
-}
-
-void RenderingTasks::consumeFrame()
-{
-    m_frame_consumed_wall.signalFromCPU();
-}
-
-void RenderingTasks::waitUntilFrameIsReady(uint64_t frame_index) const
-{
-    m_end_of_frame_gpu_wall.waitUntilValue(frame_index);
-}
-
-uint64_t RenderingTasks::totalFramesScheduled() const
+uint64_t RenderingTasks::dispatchedFramesCount() const
 {
     return m_end_of_frame_cpu_wall.lastValueSignaled();
 }
 
-uint64_t RenderingTasks::totalFramesRendered() const
+uint64_t RenderingTasks::completedFramesCount() const
 {
     return m_end_of_frame_gpu_wall.lastValueSignaled();
 }
 
-uint64_t RenderingTasks::totalFramesConsumed() const
+void RenderingTasks::waitForFrameCompletion(uint64_t frame_idx) const
 {
-    return m_frame_consumed_wall.lastValueSignaled();
+    m_end_of_frame_gpu_wall.waitUntilValue(frame_idx + 1);
 }
-

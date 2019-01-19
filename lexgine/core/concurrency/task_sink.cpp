@@ -1,107 +1,121 @@
 #include "task_sink.h"
 #include "schedulable_task.h"
-#include "../exception.h"
+#include "lexgine/core/exception.h"
+#include "lexgine/core/misc/misc.h"
 
 using namespace lexgine::core::concurrency;
 using namespace lexgine::core::misc;
 
 
-class TaskSink::TaskGraphEndExecutionGuard : public SchedulableTask
+class TaskSink::BarrierTask : public SchedulableTask
 {
-public: 
-    TaskGraphEndExecutionGuard(std::atomic_uint16_t& exit_level) :
-        SchedulableTask{ "TaskGraphEndExecutionGuard", false },
-        m_exit_level{ exit_level }
+public:
+    BarrierTask() : SchedulableTask{ "task_sink_frame_completion_task", false },
+        m_completion_semaphore{ false }
     {
 
     }
 
-private:
-    std::atomic_uint16_t& m_exit_level;
-
-    bool do_task(uint8_t worker_id, uint16_t frame_index) override
+    void resetCompletionStatus()
     {
-        --m_exit_level;
+        m_completion_semaphore.store(false, std::memory_order_release);
+    }
+
+    bool completionStatus() const
+    {
+        return m_completion_semaphore.load(std::memory_order_acquire);
+    }
+
+
+public:    // AbstractTask interface implementation
+    bool doTask(uint8_t worker_id, uint64_t user_data) override
+    {
+        m_completion_semaphore.store(true, std::memory_order_release);
         return true;
     }
 
-    TaskType get_task_type() const
-    {
-        return TaskType::cpu;
-    }
+    TaskType type() const override { return TaskType::cpu; }
+
+
+private:
+    std::atomic_bool m_completion_semaphore;
 };
 
 
-
-
-TaskSink::TaskSink(TaskGraph const& source_task_graph, 
-    std::vector<std::ostream*> const& worker_thread_logging_streams, std::string const& debug_name):
-    m_source_task_graph_ptr{ &source_task_graph },
-    m_exit_signal{ false },
-    m_exit_level{ 0U },
-    m_num_threads_finished{ 0U },
-    m_error_watchdog{ 0U },
-    m_task_graph_end_execution_guarding_task{ new TaskGraphEndExecutionGuard{m_exit_level} }
+TaskSink::TaskSink(TaskGraph& source_task_graph, 
+    std::vector<std::ostream*> const& worker_thread_logging_streams, 
+    std::string const& debug_name):
+    m_source_task_graph{ source_task_graph },
+    m_num_threads_finished{ source_task_graph.getNumberOfWorkerThreads() },
+    m_stop_signal{ true },
+    m_error_watchdog{ 0 },
+    m_barrier_task{ new BarrierTask{} }
 {
+    assert(worker_thread_logging_streams.size() == source_task_graph.getNumberOfWorkerThreads());
+
     setStringName(debug_name);
 
     for (uint8_t i = 0; i < source_task_graph.getNumberOfWorkerThreads(); ++i)
     {
-        m_workers_list.push_back(std::make_pair(std::thread{}, i < worker_thread_logging_streams.size() ? worker_thread_logging_streams[i] : nullptr));
+        m_workers_list.push_back(std::make_pair(std::thread{}, worker_thread_logging_streams[i]));
     }
 }
 
-TaskSink::~TaskSink() = default;
-
-void TaskSink::run()
+TaskSink::~TaskSink() 
 {
-    logger().out("Compiling task graph", LogMessageType::information);
+    if (!m_stop_signal.load(std::memory_order_acquire))
+    {
+        shutdown();
+    }
+}
 
-    m_compiled_task_graph.reset(new TaskGraph{ TaskGraphAttorney<TaskSink>::cloneTaskGraphForFrame(*m_source_task_graph_ptr, 0) });
-    TaskGraphAttorney<TaskSink>::injectDependentNode(*m_compiled_task_graph, *m_task_graph_end_execution_guarding_task);
+void TaskSink::start()
+{
+    assert(m_stop_signal.load(std::memory_order_acquire));
 
+    logger().out(misc::formatString("Starting task sink %s", getStringName().c_str()), LogMessageType::information);
 
-    // Start workers
-    logger().out("Starting worker threads", LogMessageType::information);
+    m_patched_task_graph.reset(new TaskGraph{ TaskGraphAttorney<TaskSink>::assembleCompiledTaskGraphWithBarrierSync(m_source_task_graph, *m_barrier_task) });
+
+    m_num_threads_finished.store(0, std::memory_order_release);
+    m_stop_signal.store(false, std::memory_order_release);
+    m_error_watchdog.store(0, std::memory_order_release);
+
+    // Start worker threads
     uint8_t i = 0;
+    
     for (auto worker = m_workers_list.begin(); worker != m_workers_list.end(); ++worker, ++i)
     {
+        logger().out(misc::formatString("Starting worker thread %i", i), LogMessageType::information);
         auto last_stamp_time = logger().getLastEntryTimeStamp();
         worker->first = std::thread{ &TaskSink::dispatch, this, i, worker->second, last_stamp_time.getTimeZone(), last_stamp_time.isDTS() };
         worker->first.detach();
     }
+}
 
-    bool exit_signal;
+void TaskSink::submit(uint64_t user_data)
+{
+    assert(!m_stop_signal.load(std::memory_order_acquire));
+
     uint64_t error_status{ 0x0 };
-    while (!(error_status = m_error_watchdog.load(std::memory_order_acquire))
-        && (!(exit_signal = m_exit_signal.load(std::memory_order_acquire)) || m_exit_level.load(std::memory_order_acquire) > 0))
+
+    while(!m_barrier_task->completionStatus() && 
+        !(error_status = m_error_watchdog.load(std::memory_order_acquire)))
     {
-        // if exit signal was not dispatched try to start new concurrent frame
-        if (!exit_signal && m_exit_level.load(std::memory_order_acquire) == 0)
-        {
-            TaskGraphAttorney<TaskSink>::resetTaskGraphCompletionStatus(*m_compiled_task_graph);
-            ++m_exit_level;
-        }
+        bool some_tasks_were_dispatched{ false };
 
         // try to put more tasks into the task queue
-        bool more_tasks_dispatched{ false };
-        for (auto& task : *m_compiled_task_graph)
+        for (auto& task : *m_patched_task_graph)
         {
             if (!task.isCompleted() && task.isReadyToLaunch())
             {
                 task.schedule(m_task_queue);
-                more_tasks_dispatched = true;
+                some_tasks_were_dispatched = true;
             }
         }
 
-        if (!more_tasks_dispatched) YieldProcessor();
+        if (!some_tasks_were_dispatched) YieldProcessor();
     }
-
-    m_task_queue.shutdown();
-    while (m_num_threads_finished.load(std::memory_order_acquire) < m_workers_list.size());    // wait until all workers are done with their tasks
-    m_num_threads_finished.store(0U, std::memory_order_release);    // reset "job done" semaphore
-
-    logger().out("Worker threads finished", LogMessageType::information);
 
     // errors may occur at any time during execution
     if (error_status)
@@ -111,35 +125,48 @@ void TaskSink::run()
         LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(*this,
             "Task " + p_failed_task->getStringName() + " has failed during execution (" + p_failed_task->getErrorString() + "). Worker thread logs may contain more details");
     }
+
+    // reset task graph completion status
+    m_patched_task_graph->resetExecutionStatus();
+    m_barrier_task->resetCompletionStatus();
 }
 
-void TaskSink::dispatchExitSignal()
+void TaskSink::shutdown()
 {
-    m_exit_signal.store(true, std::memory_order_release);
+    assert(!m_stop_signal.load(std::memory_order_acquire));
+
+    logger().out(misc::formatString("Task sink %s is shutting down", getStringName().c_str()), LogMessageType::information);
+    
+    m_stop_signal.store(true, std::memory_order_release);    //! dispatch the stop signal
+    while (m_num_threads_finished.load(std::memory_order_acquire) < m_workers_list.size()) YieldProcessor();
+    m_task_queue.shutdown();
+
+    logger().out("Worker threads finished", LogMessageType::information);
 }
+
 
 void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t logging_time_zone, bool logging_dts)
 {
     if (logging_stream)
     {
-        Log::create(*logging_stream, "Worker #" + std::to_string(worker_id),  logging_time_zone, logging_dts);
-        logger().out("Thread " + std::to_string(worker_id) + " log started", LogMessageType::information);
+        Log::create(*logging_stream, misc::formatString("Worker #%i", worker_id),  logging_time_zone, logging_dts);
+        logger().out(misc::formatString("###### Worker thread %i log start ######", worker_id), LogMessageType::information);
     }
 
     Optional<TaskGraphNode*> task;
     while (!m_error_watchdog.load(std::memory_order_acquire)
-        && ((task = m_task_queue.dequeueTask()).isValid() || !m_exit_signal.load(std::memory_order_acquire) || m_exit_level.load(std::memory_order_acquire) > 0))
+        && ((task = m_task_queue.dequeueTask()).isValid() || !m_stop_signal.load(std::memory_order_acquire)))
     {
         if(task.isValid())
         {
             TaskGraphNode* unwrapped_task = static_cast<TaskGraphNode*>(task);
-            AbstractTask* p_contained_task = TaskGraphNodeAttorney<TaskSink>::getContainedTask(*unwrapped_task);
+            AbstractTask* p_contained_task = unwrapped_task->task();
             try
             {
                 if (!unwrapped_task->execute(worker_id))
                 {
                     // if execution returns 'false', this means that the task has to be rescheduled
-                    TaskGraphNodeAttorney<TaskSink>::resetScheduleStatus(*unwrapped_task);
+                    unwrapped_task->resetSchedulingStatus();
                 }
             }
             catch (lexgine::core::Exception const&)
@@ -151,10 +178,11 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
             if (p_contained_task->getErrorState())
                 m_error_watchdog.store(reinterpret_cast<uint64_t>(p_contained_task), std::memory_order_release);
         }
+        else YieldProcessor();
     }
 
     m_task_queue.shutdown();
-
+    logger().out(misc::formatString("###### Worker thread %i log end ######", worker_id), LogMessageType::information);
     Log::shutdown();
 
     ++m_num_threads_finished;

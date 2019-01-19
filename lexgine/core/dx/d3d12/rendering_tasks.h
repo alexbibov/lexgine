@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <memory>
+#include <functional>
 
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/entity.h"
@@ -20,23 +21,14 @@ public:
     RenderingTasks(Globals& globals);
     ~RenderingTasks();
 
-    void run();
 
-    void dispatchExitSignal();
+    void render(RenderingTarget& target, 
+        std::function<void(RenderingTarget const&)> const& presentation_routine);
 
-    void setRenderingTargets(std::vector<std::shared_ptr<RenderingTarget>> const& multiframe_targets);
+    uint64_t dispatchedFramesCount() const;
+    uint64_t completedFramesCount() const;
 
-    /*! signals the rendering tasks producing thread that a frame has been consumed.
-     After the frame is consumed it cannot be accessed for reading any longer and its
-     contents should be considered discarded
-    */
-    void consumeFrame();
-
-    void waitUntilFrameIsReady(uint64_t frame_index) const;    //! blocks calling thread until the frame with the specified index is completed
-
-    uint64_t totalFramesScheduled() const;
-    uint64_t totalFramesRendered() const;
-    uint64_t totalFramesConsumed() const;
+    void waitForFrameCompletion(uint64_t frame_idx) const;
 
 private:
     class FrameBeginTask;
@@ -45,7 +37,6 @@ private:
 private:
     DxResourceFactory const& m_dx_resources;
     Device& m_device;
-    std::vector<std::shared_ptr<RenderingTarget>> m_targets;
 
     concurrency::TaskGraph m_task_graph;
     concurrency::TaskSink m_task_sink;
@@ -53,10 +44,10 @@ private:
     std::unique_ptr<FrameBeginTask> m_frame_begin_task;
     std::unique_ptr<FrameEndTask> m_frame_end_task;
 
-    uint16_t m_queued_frames_count;
     Signal m_end_of_frame_cpu_wall;
     Signal m_end_of_frame_gpu_wall;
-    Signal m_frame_consumed_wall;
+
+    RenderingTarget* m_current_rendering_target_ptr;
 };
 
 }

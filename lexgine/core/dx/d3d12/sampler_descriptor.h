@@ -1,8 +1,9 @@
 #ifndef LEXGINE_CORE_DX_D3D12_SAMPLER_DESCRIPTOR_H
 #define LEXGINE_CORE_DX_D3D12_SAMPLER_DESCRIPTOR_H
 
-#include <d3d12.h>
 #include <cstdint>
+
+#include <d3d12.h>
 
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/math/vector_types.h"

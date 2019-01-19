@@ -1,8 +1,9 @@
 #ifndef LEXGINE_CORE_DX_D3D12_CBV_DESCRIPTOR_H
 #define LEXGINE_CORE_DX_D3D12_CBV_DESCRIPTOR_H
 
-#include <d3d12.h>
 #include <cstdint>
+
+#include <d3d12.h>
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 
@@ -16,6 +17,9 @@ public:
 
     D3D12_CONSTANT_BUFFER_VIEW_DESC nativeDescriptor() const;
     Resource const& associatedResource() const;
+
+    uint64_t gpuVirtualAddress() const;
+    uint32_t size() const;
 
 private:
     Resource const& m_resource_ref;

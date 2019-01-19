@@ -21,7 +21,7 @@ class RootSignatureCache : public NamedEntity<class_names::D3D12_RootSignatureCa
 private:
     RootSignatureCache() = default;
     RootSignatureCache(RootSignatureCache const&) = delete;
-    RootSignatureCache(RootSignatureCache&&) = delete;
+    RootSignatureCache(RootSignatureCache&&) = delete;    // cannot move because of the mutex
 
 private:
     Microsoft::WRL::ComPtr<ID3D12RootSignature> findOrCreate(

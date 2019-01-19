@@ -17,7 +17,7 @@
 #include "3rd_party/half/half.h"
 #include "datetime.h"
 
-namespace lexgine { namespace core { namespace misc {
+namespace lexgine::core::misc {
 
 //! Version of the renderer
 enum class EngineAPI
@@ -155,7 +155,10 @@ template<typename T> std::unique_ptr<T> stackToUnique(T& val)
 //! Retrievs count of set bits in 64-bit number
 uint32_t getSetBitCount(uint64_t value);
 
+//! Returns formatted string similar to how it is done by printf(...) routine
+std::string formatString(char const* format_string, ...);
 
-}}}
+
+}
 
 #endif

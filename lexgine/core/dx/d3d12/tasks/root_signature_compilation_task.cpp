@@ -37,7 +37,7 @@ bool RootSignatureCompilationTask::wasSuccessful() const
 
 bool RootSignatureCompilationTask::execute(uint8_t worker_id)
 {
-    return do_task(worker_id, 0);
+    return doTask(worker_id, 0);
 }
 
 std::string RootSignatureCompilationTask::getCacheName() const
@@ -45,7 +45,7 @@ std::string RootSignatureCompilationTask::getCacheName() const
     return m_key.toString();
 }
 
-bool RootSignatureCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
+bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
 {
     try
     {
@@ -106,7 +106,7 @@ bool RootSignatureCompilationTask::do_task(uint8_t worker_id, uint16_t frame_ind
     return true;    // under no circumstances this task can be rescheduled
 }
 
-concurrency::TaskType RootSignatureCompilationTask::get_task_type() const
+concurrency::TaskType RootSignatureCompilationTask::type() const
 {
     return concurrency::TaskType::cpu;
 }

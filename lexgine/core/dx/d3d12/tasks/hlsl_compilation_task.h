@@ -77,8 +77,8 @@ public:
     static std::string shaderModelAndTypeToTargetName(dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type);
 
 private:
-    bool do_task(uint8_t worker_id, uint16_t frame_index) override;    //! performs actual compilation of the shader
-    concurrency::TaskType get_task_type() const override;    //! returns type of this task (CPU)
+    bool doTask(uint8_t worker_id, uint64_t user_data) override;    //! performs actual compilation of the shader
+    concurrency::TaskType type() const override;    //! returns type of this task (CPU)
 
     task_caches::CombinedCacheKey const& m_key;
     misc::DateTime const m_time_stamp;

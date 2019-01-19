@@ -54,7 +54,9 @@ private:
     DynamicResourceBarrierPack m_backward_barriers;
     RenderTargetViewDescriptorTable m_rtvs_table;
     DepthStencilViewDescriptorTable m_dsv_table;
-    bool m_has_depth;
+
+    std::vector<ColorTarget> m_color_targets;
+    misc::Optional<DepthTarget> m_depth_target;
 };
 
 

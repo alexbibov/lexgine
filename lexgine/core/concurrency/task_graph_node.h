@@ -1,30 +1,21 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_TASK_GRAPH_NODE_H
+#define LEXGINE_CORE_CONCURRENCY_TASK_GRAPH_NODE_H
+
+#include <set>
 
 #include "lexgine/core/entity.h"
 #include "lexgine/core/misc/optional.h"
 #include "ring_buffer_task_queue.h"
+#include "lexgine_core_concurrency_fwd.h"
 
-#include <set>
-#include <algorithm>
-#include <atomic>
 
-namespace lexgine {namespace core {namespace concurrency {
-
-class TaskGraph;
-class TaskSink;
-class AbstractTask;
-
-template<typename> class TaskGraphNodeAttorney;
-template<typename> class TaskGraphNodeAttorney;
+namespace lexgine::core::concurrency {
 
 //! Implementation of task graph nodes
 class TaskGraphNode
 {
-    friend class TaskGraphNodeAttorney<TaskGraph>;
-    friend class TaskGraphNodeAttorney<TaskSink>;
-
 public:
-    using set_of_nodes_type = std::set<TaskGraphNode*>;
+    using set_of_nodes = std::set<TaskGraphNode*>;
 
 public:
     explicit TaskGraphNode(AbstractTask& task);    //! creates task graph node encapsulating given task
@@ -50,6 +41,8 @@ public:
 
     bool isReadyToLaunch() const;    //! returns 'true' if all of this task's dependencies have been executed and the task is ready to launch
 
+    bool isScheduled() const;    //! returns 'true' if the node has been scheduled
+
     /*! adds a task that depends on this task, i.e. provided task can only begin execution when this task is completed.
      Returns 'true' if the specified dependent task has been added successfully; returns 'false' if this dependent task has already been added to this node
     */
@@ -60,79 +53,46 @@ public:
     */
     bool addDependency(TaskGraphNode& task);
 
-    //! retrieves index of the frame, to which this node belongs
-    uint16_t frameIndex() const;
+    //! creates task graph node with same id and containing the same task as this node, but having no dependents or dependency nodes.
+    TaskGraphNode clone() const;
 
-protected:
-    void forceUndone();    //! forces the task to appear as uncompleted
+    //! returns identifier of the node
+    uint64_t getId() const;
+
+    //! Retrieves all dependencies of this node
+    set_of_nodes getDependencies() const;
+
+    //! Retrieves all dependent nodes of this node
+    set_of_nodes getDependents() const;
+
+    //! Resets execution status of the graph node, so it appears as undone
+    void resetExecutionStatus();
+
+    //! Resets scheduling status of the graph node, so it appears as unscheduled
+    void resetSchedulingStatus();
+
+    //! Retrieves task contained in the node
+    AbstractTask* task() const;
+
+    //! Defines custom user data associated with the task graph node
+    void setUserData(uint64_t user_data);
+
+    //! Retrieves custom user data associated with the task graph node
+    uint64_t getUserData() const;
 
 private:
     TaskGraphNode(TaskGraphNode const& other);    //! NOTE: copies only identifier and the pointer to contained task but not completion status or dependency sets (see implementation)
 
 private:
     uint64_t m_id;    //!< identifier of the node
+    uint64_t m_user_data;    //!< user data associated with the task graph node 
     AbstractTask* m_contained_task;    //!< task contained by the node
     std::atomic_bool m_is_completed;    //!< equals 'true' if the task was completed. Equals 'false' otherwise
     bool m_is_scheduled;    //!< equals true if the node has already been scheduled, equals 'false' otherwise
-    uint16_t m_frame_index;   //!< index of the frame, to which the task container belongs
 
-    set_of_nodes_type m_dependencies;    //!< dependencies of this task. This task cannot run before all of its dependencies are executed
-    set_of_nodes_type m_dependents;    //!< dependencies of this task. This task cannot be executed before the dependent tasks are completed
+    set_of_nodes m_dependencies;    //!< dependencies of this task. This task cannot run before all of its dependencies are executed
+    set_of_nodes m_dependents;    //!< dependencies of this task. This task cannot be executed before the dependent tasks are completed
 };
-
-template<> class TaskGraphNodeAttorney<TaskGraph>
-{
-    friend class TaskGraph;
-
-    static uint64_t getNodeId(TaskGraphNode const& parent_task_graph_node)
-    {
-        return parent_task_graph_node.m_id;
-    }
-
-    static inline TaskGraphNode cloneNodeForFrame(TaskGraphNode const& source_node, uint16_t frame_index)
-    {
-        TaskGraphNode rv{ source_node };
-        rv.m_frame_index = frame_index;
-        return rv;
-    }
-
-    static inline TaskGraphNode::set_of_nodes_type const& getDependents(TaskGraphNode const& parent_task_graph_node)
-    {
-        return parent_task_graph_node.m_dependents;
-    }
-
-    static inline TaskGraphNode::set_of_nodes_type const& getDependencies(TaskGraphNode const& parent_task_graph_node)
-    {
-        return parent_task_graph_node.m_dependencies;
-    }
-
-    static inline AbstractTask* getContainedTask(TaskGraphNode const& parent_task_graph_node)
-    {
-        return parent_task_graph_node.m_contained_task;
-    }
-
-    static inline void resetNodeCompletionStatus(TaskGraphNode& parent_task_graph_node)
-    {
-        parent_task_graph_node.forceUndone();
-    }
-};
-
-template<> class TaskGraphNodeAttorney<TaskSink>
-{
-    friend class TaskSink;
-
-private:
-    static inline AbstractTask* getContainedTask(TaskGraphNode const& parent_task_graph_node)
-    {
-        return parent_task_graph_node.m_contained_task;
-    }
-
-    static inline void resetScheduleStatus(TaskGraphNode& parent_task_graph_node)
-    {
-        parent_task_graph_node.m_is_scheduled = false;
-    }
-};
-
 
 
 class TaskGraphRootNode : public TaskGraphNode
@@ -147,7 +107,6 @@ public:
     bool addDependency(TaskGraphNode& task);    
 };
 
-}}}
+}
 
-#define LEXGINE_CORE_CONCURRENCY_TASK_GRAPH_NODE_H
 #endif

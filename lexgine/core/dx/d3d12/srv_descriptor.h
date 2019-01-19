@@ -1,9 +1,10 @@
 #ifndef LEXGINE_CORE_DX_D3D12_SRV_DESCRIPTOR_H
 #define LEXGINE_CORE_DX_D3D12_SRV_DESCRIPTOR_H
 
-#include <d3d12.h>
+#include <cstdint>
+#include <utility>
 
-#include <cinttypes>
+#include <d3d12.h>
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 
@@ -64,6 +65,15 @@ public:
 
     D3D12_SHADER_RESOURCE_VIEW_DESC nativeDescriptor() const;
     Resource const& associatedResource() const;
+
+    /*! returns pair containing the most detailed mipmap level accessed by the view and the 
+     maximal number of mipmap levels that can be accessed. The values are returned in the
+     specified order.
+    */
+    std::pair<uint32_t, uint32_t> mipmapView() const;
+
+    //! for compatible resources returns the first array slice and the total number of array elements that were attached to the view
+    std::pair<uint64_t, uint32_t> arrayOffsetAndSize() const;
 
 private:
     Resource const& m_resource_ref;

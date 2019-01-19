@@ -5,7 +5,7 @@ using namespace lexgine::osinteraction::windows;
 namespace
 {
 
-bool keyDownKeyUpSelector(KeyInputListener const& key_input_listener, lexgine::osinteraction::SystemKey key, bool is_key_down)
+bool keyDownKeyUpSelector(KeyInputListener& key_input_listener, lexgine::osinteraction::SystemKey key, bool is_key_down)
 {
     return is_key_down ? key_input_listener.keyDown(key) : key_input_listener.keyUp(key);
 }
@@ -34,7 +34,7 @@ template<> struct pointer_sized_int<8> { using type = uint64_t; };
 
 
 int64_t KeyInputListener::process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
-    uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) const
+    uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
     bool isKeyDown = false;
     bool success = false;    // 'true' if the message processing succeeds
@@ -264,7 +264,7 @@ int64_t KeyInputListener::process_message(uint64_t message, uint64_t p_window, u
 
 
 int64_t MouseButtonListener::process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
-    uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) const
+    uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
     uint16_t x = lParam & 0xFFFF;
     uint16_t y = (lParam & 0xFFFF0000) >> 16;
@@ -311,7 +311,7 @@ MouseMoveListener::MouseMoveListener():
 
 
 int64_t MouseMoveListener::process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
-    uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) const
+    uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
     uint16_t x = lParam & 0xFFFF;
     uint16_t y = (lParam & 0xFFFF0000) >> 16;
@@ -351,7 +351,7 @@ int64_t MouseMoveListener::process_message(uint64_t message, uint64_t p_window, 
 
 
 int64_t ClientAreaUpdateListener::process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
-    uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) const
+    uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
     core::math::Rectangle rect{ core::math::Vector2f{0}, 0, 0 };
     HWND hWnd = reinterpret_cast<Window*>(static_cast<pointer_sized_int<sizeof(Window*)>::type>(p_window))->native();
@@ -380,7 +380,7 @@ int64_t ClientAreaUpdateListener::process_message(uint64_t message, uint64_t p_w
 }
 
 int64_t WindowSizeChangeListener::process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam,
-    uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) const
+    uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
     uint16_t new_width = lParam & 0xFFFF;
     uint16_t new_height = static_cast<uint16_t>(lParam >> 16);

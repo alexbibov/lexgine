@@ -16,8 +16,8 @@ public:
 private:
     // required by SchedulableTask
 
-    bool do_task(uint8_t worker_id, uint16_t frame_index) override;
-    concurrency::TaskType get_task_type() const override;
+    bool doTask(uint8_t worker_id, uint64_t user_data) override;
+    concurrency::TaskType type() const override;
 
 private:
     Globals const& m_globals;

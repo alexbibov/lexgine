@@ -94,8 +94,9 @@ public:
 
     HWND native() const;    //! returns native window handler (HWND)
 
-    void addListener(AbstractListener const* listener);    //! adds new event listener to the window. For design simplicity the listeners once added can never be removed without re-initialization of the Window object
+    void addListener(AbstractListener* listener);    //! adds new event listener to the window. For design simplicity the listeners once added can never be removed without re-initialization of the Window object
 
+    void processMessages() const;    //! retrieves messages addressed to the window from the message queue and dispatches them to the window
 
 private:
     // Window properties
@@ -112,7 +113,7 @@ private:
     uint32_t m_width, m_height;	//!< width and height of the window in pixels
     bool m_is_visible;	//!< equals 'true' if the window is visible. Equals 'false' otherwise
     bool m_should_close;	//!< equals 'true' if the window is ready to close. Equals 'false' otherwise
-    std::list<AbstractListener const*> m_listener_list;    //!< list of window listeners
+    std::list<AbstractListener*> m_listener_list;    //!< list of window listeners
 
 
     //! Window callback procedure shared by all windows in the application

@@ -42,45 +42,52 @@ DepthTarget::DepthTarget(Resource const& target_resource, ResourceState target_d
 
 
 RenderingTarget::RenderingTarget(Globals const& globals,
-    std::vector<ColorTarget> const& color_targets, misc::Optional<DepthTarget> const& depth_target):
-    m_has_depth{ depth_target.isValid() }
+    std::vector<ColorTarget> const& color_targets, misc::Optional<DepthTarget> const& depth_target)
+    : m_color_targets{ color_targets }
+    , m_depth_target{ depth_target }
 {
     RenderTargetViewTableBuilder rtv_table_builder{ globals, 0U };
     for (size_t i = 0U; i < color_targets.size(); ++i)
     {
         auto const& target = color_targets[i];
-        auto viewed_array = target.target_view.viewedSubArray();
-        assert(viewed_array.second == 1U);
+        auto viewed_array = target.target_view.arrayOffsetAndSize();
 
-        m_forward_barriers.addTransitionBarrier(&target.target_view.associatedResource(), 
-            target.target_view.viewedMipmapLevel(), viewed_array.first,
-            target.target_default_state, ResourceState::enum_type::render_target);
+        rtv_table_builder.addDescriptor(target.target_view);
+        for (size_t j = 0U; j < viewed_array.second; ++j)
+        {
+            m_forward_barriers.addTransitionBarrier(&target.target_view.associatedResource(),
+                target.target_view.mipmapLevel(), static_cast<uint16_t>(viewed_array.first + j),
+                target.target_default_state, ResourceState::enum_type::render_target);
 
-        m_backward_barriers.addTransitionBarrier(&target.target_view.associatedResource(), 
-            target.target_view.viewedMipmapLevel(), viewed_array.first,
-            ResourceState::enum_type::render_target, target.target_default_state);
+            m_backward_barriers.addTransitionBarrier(&target.target_view.associatedResource(),
+                target.target_view.mipmapLevel(), static_cast<uint16_t>(viewed_array.first + j),
+                ResourceState::enum_type::render_target, target.target_default_state);
+        }
 
-        rtv_table_builder.addDescriptor(color_targets[i].target_view);
+        
     }
     m_rtvs_table = rtv_table_builder.build();
 
-    if (m_has_depth)
+
+    if (m_depth_target.isValid())
     {
         auto const& target = static_cast<DepthTarget const&>(depth_target);
-        auto viewed_array = target.target_view.viewedSubArray();
-        assert(viewed_array.second == 1U);
-
-        m_forward_barriers.addTransitionBarrier(&target.target_view.associatedResource(), 
-            target.target_view.viewedMipmapLevel(), viewed_array.first,
-            target.target_default_state, ResourceState::enum_type::depth_write);
-
-        m_backward_barriers.addTransitionBarrier(&target.target_view.associatedResource(),
-            target.target_view.viewedMipmapLevel(), viewed_array.first,
-            target.target_default_state, ResourceState::enum_type::depth_write);
 
         DepthStencilViewTableBuilder dsv_table_builder{ globals, 0U };
         dsv_table_builder.addDescriptor(target.target_view);
         m_dsv_table = dsv_table_builder.build();
+
+        auto viewed_array = target.target_view.arrayOffsetAndSize();
+        for(size_t j = 0; j < viewed_array.second; ++j)
+        {
+            m_forward_barriers.addTransitionBarrier(&target.target_view.associatedResource(),
+                target.target_view.mipmapLevel(), static_cast<uint16_t>(viewed_array.first + j),
+                target.target_default_state, ResourceState::enum_type::depth_write);
+
+            m_backward_barriers.addTransitionBarrier(&target.target_view.associatedResource(),
+                target.target_view.mipmapLevel(), static_cast<uint16_t>(viewed_array.first + j),
+                ResourceState::enum_type::depth_write, target.target_default_state);
+        }
     }
 }
 
@@ -101,7 +108,7 @@ size_t RenderingTarget::count() const
 
 bool RenderingTarget::hasDepth() const
 {
-    return m_has_depth;
+    return m_depth_target.isValid();
 }
 
 RenderTargetViewDescriptorTable const& RenderingTarget::rtvTable() const
@@ -113,4 +120,3 @@ DepthStencilViewDescriptorTable const& RenderingTarget::dsvTable() const
 {
     return m_dsv_table;
 }
-
