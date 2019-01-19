@@ -1,7 +1,7 @@
+#include <cassert>
+
 #include "dsv_descriptor.h"
 #include "resource.h"
-
-#include <cassert>
 
 using namespace lexgine::core::dx::d3d12;
 
@@ -88,7 +88,7 @@ Resource const& DSVDescriptor::associatedResource() const
     return m_resource_ref;
 }
 
-uint32_t DSVDescriptor::viewedMipmapLevel() const
+uint32_t DSVDescriptor::mipmapLevel() const
 {
     switch (m_native.ViewDimension)
     {
@@ -103,10 +103,10 @@ uint32_t DSVDescriptor::viewedMipmapLevel() const
         return 0;
     }
 
-    return 0;
+    return static_cast<uint32_t>(-1);
 }
 
-std::pair<uint32_t, uint32_t> DSVDescriptor::viewedSubArray() const
+std::pair<uint64_t, uint32_t> DSVDescriptor::arrayOffsetAndSize() const
 {
     switch (m_native.ViewDimension)
     {
@@ -117,13 +117,13 @@ std::pair<uint32_t, uint32_t> DSVDescriptor::viewedSubArray() const
 
     case D3D12_DSV_DIMENSION_TEXTURE1DARRAY:
     case D3D12_DSV_DIMENSION_TEXTURE2DARRAY:
-        return std::make_pair(static_cast<uint32_t>(m_native.Texture1DArray.FirstArraySlice),
+        return std::make_pair(m_native.Texture1DArray.FirstArraySlice,
             static_cast<uint32_t>(m_native.Texture1DArray.ArraySize));
 
     case D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY:
-        return std::make_pair(static_cast<uint32_t>(m_native.Texture2DMSArray.FirstArraySlice),
+        return std::make_pair(m_native.Texture2DMSArray.FirstArraySlice,
             static_cast<uint32_t>(m_native.Texture2DMSArray.ArraySize));
     }
 
-    return std::make_pair(0U, 0U);
+    return std::make_pair(static_cast<uint64_t>(-1), static_cast<uint32_t>(-1));
 }

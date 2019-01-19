@@ -13,7 +13,6 @@ struct LoggingStreams final
     ~LoggingStreams();
 
     std::ofstream main_logging_stream;
-    std::ofstream rendering_logging_stream;
     std::vector<std::ofstream> worker_logging_streams;
 };
 

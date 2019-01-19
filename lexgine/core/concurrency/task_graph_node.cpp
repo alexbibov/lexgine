@@ -14,8 +14,7 @@ TaskGraphNode::TaskGraphNode(AbstractTask& task) :
     m_id{ ++id_counter },
     m_contained_task{ &task },
     m_is_completed{ false },
-    m_is_scheduled{ false },
-    m_frame_index{ 0U }
+    m_is_scheduled{ false }
 {
 
 }
@@ -24,7 +23,7 @@ TaskGraphNode::TaskGraphNode(TaskGraphNode const& other) :
     m_id{ other.m_id },
     m_contained_task{ other.m_contained_task },
     m_is_completed{ false },
-    m_frame_index{ 0U }
+    m_is_scheduled{ false }
 {
 
 }
@@ -34,7 +33,6 @@ TaskGraphNode::TaskGraphNode(TaskGraphNode&& other) :
     m_contained_task{ other.m_contained_task },
     m_is_completed{ other.m_is_completed.load(std::memory_order_acquire) },
     m_is_scheduled{ other.m_is_scheduled },
-    m_frame_index{ other.m_frame_index },
     m_dependencies{ std::move(other.m_dependencies) },
     m_dependents{ std::move(other.m_dependents) }
 {
@@ -48,7 +46,7 @@ bool lexgine::core::concurrency::TaskGraphNode::operator==(TaskGraphNode const& 
 
 bool TaskGraphNode::execute(uint8_t worker_id)
 {
-    bool rv = m_contained_task->execute(worker_id, m_frame_index);
+    bool rv = m_contained_task->execute(worker_id, m_user_data);
     m_is_completed.store(rv && !m_contained_task->getErrorState(), std::memory_order_release);
     return rv;
 }
@@ -78,6 +76,11 @@ bool TaskGraphNode::isReadyToLaunch() const
     return true;
 }
 
+bool TaskGraphNode::isScheduled() const
+{
+    return m_is_scheduled;
+}
+
 bool TaskGraphNode::addDependent(TaskGraphNode& task)
 {
     m_dependents.insert(&task);
@@ -90,15 +93,49 @@ bool TaskGraphNode::addDependency(TaskGraphNode& task)
     return task.m_dependents.insert(this).second;
 }
 
-uint16_t TaskGraphNode::frameIndex() const
+TaskGraphNode TaskGraphNode::clone() const
 {
-    return m_frame_index;
+    return TaskGraphNode{ *this };
 }
 
-void TaskGraphNode::forceUndone()
+uint64_t TaskGraphNode::getId() const
 {
-    m_is_completed.store(false, std::memory_order_release);
+    return m_id;
+}
+
+TaskGraphNode::set_of_nodes TaskGraphNode::getDependencies() const
+{
+    return m_dependencies;
+}
+
+TaskGraphNode::set_of_nodes TaskGraphNode::getDependents() const
+{
+    return m_dependents;
+}
+
+void TaskGraphNode::resetExecutionStatus()
+{
+    m_is_completed = m_is_scheduled = false;
+}
+
+void TaskGraphNode::resetSchedulingStatus()
+{
     m_is_scheduled = false;
+}
+
+AbstractTask* TaskGraphNode::task() const
+{
+    return m_contained_task;
+}
+
+void TaskGraphNode::setUserData(uint64_t user_data)
+{
+    m_user_data = user_data;
+}
+
+uint64_t TaskGraphNode::getUserData() const
+{
+    return m_user_data;
 }
 
 TaskGraphRootNode::TaskGraphRootNode(AbstractTask& task) :

@@ -219,9 +219,24 @@ bool Window::shouldClose() const { return m_should_close; }
 HWND Window::native() const { return m_hwnd; }
 
 
-void Window::addListener(AbstractListener const* listener)
+void Window::addListener(AbstractListener* listener)
 {
     m_listener_list.push_back(listener);
+}
+
+void Window::processMessages() const
+{
+    MSG msg;
+
+    for (auto& e : window_pool)
+    {
+        BOOL res = PeekMessage(&msg, e.first, 0, 0, PM_REMOVE);
+        if (res)
+        {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+    }
 }
 
 
@@ -270,8 +285,6 @@ LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wPar
         return static_cast<LRESULT>(success_status);
     }
     }
-
-
 }
 
 

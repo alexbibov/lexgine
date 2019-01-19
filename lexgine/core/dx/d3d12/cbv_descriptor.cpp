@@ -1,7 +1,7 @@
+#include <cassert>
+
 #include "cbv_descriptor.h"
 #include "resource.h"
-
-#include <cassert>
 
 using namespace lexgine::core::dx::d3d12;
 
@@ -25,4 +25,14 @@ D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDescriptor::nativeDescriptor() const
 Resource const& CBVDescriptor::associatedResource() const
 {
     return m_resource_ref;
+}
+
+uint64_t CBVDescriptor::gpuVirtualAddress() const
+{
+    return m_native.SizeInBytes;
+}
+
+uint32_t CBVDescriptor::size() const
+{
+    return m_native.SizeInBytes;
 }

@@ -1,7 +1,8 @@
+#include <cassert>
+
 #include "uav_descriptor.h"
 #include "resource.h"
 
-#include <cassert>
 
 using namespace lexgine::core::dx::d3d12;
 
@@ -114,4 +115,44 @@ Resource const& UAVDescriptor::associatedResource() const
 Resource const* UAVDescriptor::associatedCounterResourcePtr() const
 {
     return m_counter_resource_ptr;
+}
+
+uint32_t UAVDescriptor::mipmapLevel() const
+{
+    switch (m_native.ViewDimension)
+    {
+    case D3D12_UAV_DIMENSION_BUFFER:
+        return 0U;
+
+    case D3D12_UAV_DIMENSION_TEXTURE1D:
+    case D3D12_UAV_DIMENSION_TEXTURE1DARRAY:
+    case D3D12_UAV_DIMENSION_TEXTURE2D:
+    case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
+    case D3D12_UAV_DIMENSION_TEXTURE3D:
+        return static_cast<uint32_t>(m_native.Texture1D.MipSlice);
+    }
+
+    return static_cast<uint32_t>(-1);
+}
+
+std::pair<uint64_t, uint32_t> UAVDescriptor::arrayOffsetAndSize() const
+{
+    switch (m_native.ViewDimension)
+    {
+    case D3D12_UAV_DIMENSION_BUFFER:
+        return std::make_pair(m_native.Buffer.FirstElement,
+            static_cast<uint32_t>(m_native.Buffer.NumElements));
+
+    case D3D12_UAV_DIMENSION_TEXTURE1D:
+    case D3D12_UAV_DIMENSION_TEXTURE2D:
+        return std::make_pair(0U, 1U);
+
+    case D3D12_UAV_DIMENSION_TEXTURE1DARRAY:
+    case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
+    case D3D12_UAV_DIMENSION_TEXTURE3D:
+        return std::make_pair(static_cast<uint32_t>(m_native.Texture1DArray.FirstArraySlice),
+            static_cast<uint32_t>(m_native.Texture1DArray.ArraySize));
+    }
+
+    return std::make_pair(static_cast<uint64_t>(-1), static_cast<uint32_t>(-1));
 }

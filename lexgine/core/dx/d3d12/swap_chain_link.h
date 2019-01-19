@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <thread>
+#include <functional>
 
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
@@ -31,15 +32,11 @@ public:
     ~SwapChainLink();
 
     SwapChainLink(SwapChainLink const&) = delete;
-    SwapChainLink(SwapChainLink&&) = default;
+    SwapChainLink(SwapChainLink&& other);
 
     void linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link);
 
-    void beginRenderingLoop();
-
-    void dispatchExitSignal();
-
-    void present();
+    void render();
 
 private:
     Globals& m_globals;
@@ -48,16 +45,16 @@ private:
     dxgi::SwapChain const& m_linked_swap_chain;
     RenderingTasks* m_linked_rendering_tasks_ptr;
 
+    std::vector<Resource> m_color_buffers;
+
     std::unique_ptr<Heap> m_depth_buffer_heap;
     DXGI_FORMAT m_depth_buffer_native_format;
     ResourceOptimizedClearValue m_depth_optimized_clear_value;
     Resource m_depth_buffer;
 
-    std::vector<std::shared_ptr<RenderingTarget>> m_targets;
+    std::vector<RenderingTarget> m_targets;
 
-    uint64_t m_expected_frame_index;
-
-    std::thread m_rendering_tasks_producer_thread;
+    std::function<void(RenderingTarget const&)> m_presenter;
 };
 
 }

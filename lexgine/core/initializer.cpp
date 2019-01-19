@@ -101,15 +101,6 @@ Initializer::Initializer(EngineSettings const& settings)
     m_global_settings.reset(new GlobalSettings{ corrected_global_lookup_prefix + corrected_settings_lookup_path + settings.global_settings_json_file, time_zone_bias, dts });
     builder.defineGlobalSettings(*m_global_settings);
 
-    // Initialize rendering logging stream
-    {
-        m_logging_streams->rendering_logging_stream.open(corrected_logging_output_path + settings.log_name + "_rendering.html", std::ios::out);
-        if (!m_logging_streams->rendering_logging_stream)
-        {
-            LEXGINE_THROW_ERROR("Unable to create rendering working stream");
-        }
-    }
-
     // Create logging streams for workers
     {
         uint8_t num_workers = m_global_settings->getNumberOfWorkers();
@@ -246,9 +237,9 @@ dx::dxgi::SwapChain Initializer::createSwapChainForCurrentDevice(osinteraction::
     return getCurrentDeviceHwAdapter().createSwapChain(window, desc, advanced_parameters);
 }
 
-dx::d3d12::RenderingTasks Initializer::createRenderingTasks() const
+std::unique_ptr<dx::d3d12::RenderingTasks> Initializer::createRenderingTasks() const
 {
-    return dx::d3d12::RenderingTasks{ *m_globals };
+    return std::make_unique<dx::d3d12::RenderingTasks>(*m_globals);
 }
 
 dx::d3d12::SwapChainLink Initializer::createSwapChainLink(dx::dxgi::SwapChain const& target_swap_chain,

@@ -1,7 +1,7 @@
+#include <cassert>
+
 #include "rtv_descriptor.h"
 #include "resource.h"
-
-#include <cassert>
 
 using namespace lexgine::core::dx::d3d12;
 
@@ -112,7 +112,7 @@ Resource const& RTVDescriptor::associatedResource() const
     return m_resource_ref;
 }
 
-uint32_t RTVDescriptor::viewedMipmapLevel() const
+uint32_t RTVDescriptor::mipmapLevel() const
 {
     switch (m_native.ViewDimension)
     {
@@ -130,14 +130,13 @@ uint32_t RTVDescriptor::viewedMipmapLevel() const
         return 0;
     }
 
-    return 0;
+    return static_cast<uint32_t>(-1);
 }
 
-std::pair<uint32_t, uint32_t> RTVDescriptor::viewedSubArray() const
+std::pair<uint64_t, uint32_t> RTVDescriptor::arrayOffsetAndSize() const
 {
     switch (m_native.ViewDimension)
     {
-    case D3D12_RTV_DIMENSION_BUFFER:
     case D3D12_RTV_DIMENSION_TEXTURE1D:
     case D3D12_RTV_DIMENSION_TEXTURE2D:
     case D3D12_RTV_DIMENSION_TEXTURE2DMS:
@@ -146,13 +145,17 @@ std::pair<uint32_t, uint32_t> RTVDescriptor::viewedSubArray() const
     case D3D12_RTV_DIMENSION_TEXTURE1DARRAY:
     case D3D12_RTV_DIMENSION_TEXTURE2DARRAY:
     case D3D12_RTV_DIMENSION_TEXTURE3D:
-        return std::make_pair(static_cast<uint32_t>(m_native.Texture1DArray.FirstArraySlice),
+        return std::make_pair(m_native.Texture1DArray.FirstArraySlice,
             static_cast<uint32_t>(m_native.Texture1DArray.ArraySize));
+
+    case D3D12_RTV_DIMENSION_BUFFER:
+        return std::make_pair(m_native.Buffer.FirstElement, m_native.Buffer.NumElements);
+        
 
     case D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY:
         return std::make_pair(static_cast<uint32_t>(m_native.Texture2DMSArray.FirstArraySlice),
             static_cast<uint32_t>(m_native.Texture2DMSArray.ArraySize));
     }
 
-    return std::make_pair(0U, 0U);
+    return std::make_pair(static_cast<uint64_t>(-1), static_cast<uint32_t>(-1));
 }

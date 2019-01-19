@@ -187,12 +187,12 @@ public:
                 }
 
             private:
-                bool do_task(uint8_t worker_id, uint16_t frame_index) override
+                bool doTask(uint8_t worker_id, uint64_t user_data) override
                 {
                     return true;
                 }
 
-                TaskType get_task_type() const override
+                TaskType type() const override
                 {
                     return TaskType::cpu;
                 }
@@ -208,12 +208,12 @@ public:
                 }
 
             private:
-                bool do_task(uint8_t worker_id, uint16_t frame_index) override
+                bool doTask(uint8_t worker_id, uint64_t user_data) override
                 {
                     return true;
                 }
 
-                TaskType get_task_type() const override
+                TaskType type() const override
                 {
                     return TaskType::gpu_draw;
                 }
@@ -230,12 +230,12 @@ public:
 
 
             private:
-                bool do_task(uint8_t worker_id, uint16_t frame_index) override
+                bool doTask(uint8_t worker_id, uint64_t user_data) override
                 {
                     return true;
                 }
 
-                TaskType get_task_type() const override
+                TaskType type() const override
                 {
                     return TaskType::gpu_compute;
                 }
@@ -251,12 +251,12 @@ public:
                 }
 
             private:
-                bool do_task(uint8_t worker_id, uint16_t frame_index) override
+                bool doTask(uint8_t worker_id, uint64_t user_data) override
                 {
                     return true;
                 }
 
-                TaskType get_task_type() const override
+                TaskType type() const override
                 {
                     return TaskType::gpu_copy;
                 }
@@ -272,12 +272,12 @@ public:
                 }
 
             private:
-                bool do_task(uint8_t worker_id, uint16_t frame_index) override
+                bool doTask(uint8_t worker_id, uint64_t user_data) override
                 {
                     return true;
                 }
 
-                TaskType get_task_type() const override
+                TaskType type() const override
                 {
                     return TaskType::other;
                 }
@@ -358,7 +358,7 @@ public:
                     }
 
                 private:
-                    bool do_task(uint8_t worker_id, uint16_t frame_index) override
+                    bool doTask(uint8_t worker_id, uint64_t user_data) override
                     {
                         switch (m_op)
                         {
@@ -389,7 +389,7 @@ public:
                         return true;
                     }
 
-                    TaskType get_task_type() const override
+                    TaskType type() const override
                     {
                         return TaskType::cpu;
                     }
@@ -398,34 +398,6 @@ public:
                     float& m_b;
                     float& m_result;
                     operation_type m_op;
-                };
-
-                class ExitOp : public SchedulableTask
-                {
-                public:
-                    ExitOp() :
-                        SchedulableTask{ "ExitTask" }
-                    {
-                    }
-
-                    void setInput(TaskSink* sink)
-                    {
-                        m_sink = sink;
-                    }
-
-                private:
-                    TaskSink* m_sink;
-
-                    bool do_task(uint8_t worker_id, uint16_t frame_index) override
-                    {
-                        m_sink->dispatchExitSignal();
-                        return true;
-                    }
-
-                    TaskType get_task_type() const override
-                    {
-                        return TaskType::cpu;
-                    }
                 };
 
                 float const control_value = ((5 + 3)*(8 - 1) / 2.f + 1) / ((10 + 2) * (3 - 1) / 6.f + 5);
@@ -443,7 +415,6 @@ public:
                 ArithmeticOp op9{ "+1", r7, a3, r9, operation_type::add };
                 ArithmeticOp op10{ "+5", r8, a0, r10, operation_type::add };
                 ArithmeticOp op11{ "/", r9, r10, r11, operation_type::divide };
-                ExitOp exit{};
 
                 op1.addDependent(op5);
                 op2.addDependent(op5);
@@ -458,7 +429,6 @@ public:
                 op9.addDependent(op11);
                 op10.addDependent(op11);
 
-                op11.addDependent(exit);
 
                 
                 TaskGraph taskGraph(std::set<TaskGraphRootNode const*>{
@@ -467,18 +437,18 @@ public:
                 taskGraph.createDotRepresentation("task_graph.gv");
 
                 TaskSink taskSink{ taskGraph, worker_thread_logs };
-                exit.setInput(&taskSink);
+                taskSink.start();
 
                 try 
                 {
 
-                    taskSink.run();
+                    taskSink.submit(0);
                 }
                 catch (lexgine::core::Exception const& e)
                 {
                     Assert::Fail(lexgine::core::misc::asciiStringToWstring(e.what()).c_str());
                 }
-                
+                taskSink.shutdown();
 
                 Assert::IsTrue(r11 == control_value);
             }

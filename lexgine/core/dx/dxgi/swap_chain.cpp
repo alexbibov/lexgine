@@ -44,9 +44,19 @@ dx::d3d12::Resource SwapChain::getBackBuffer(uint32_t buffer_index) const
     return dx::d3d12::Resource{ backbuffer_interface };
 }
 
+uint32_t SwapChain::getCurrentBackBufferIndex() const
+{
+    return static_cast<uint32_t>(m_dxgi_swap_chain->GetCurrentBackBufferIndex());
+}
+
 void SwapChain::present() const
 {
     LEXGINE_THROW_ERROR_IF_FAILED(this, m_dxgi_swap_chain->Present(1, 0), S_OK);
+}
+
+uint32_t SwapChain::backBufferCount() const
+{
+    return m_advanced_parameters.queued_buffer_count;
 }
 
 SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
@@ -57,7 +67,8 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     m_dxgi_factory{ dxgi_factory },
     m_device{ device },
     m_window{ window },
-    m_default_command_queue{ default_command_queue }
+    m_default_command_queue{ default_command_queue },
+    m_advanced_parameters{ advanced_parameters }
 {
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc1{};
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC swap_chain_fs_desc{};

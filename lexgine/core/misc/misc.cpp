@@ -1,13 +1,14 @@
-#include "misc.h"
-
 #include <fstream>
 #include <sstream>
 #include <limits>
+#include <cstdio>
 
 #include <windows.h>
 
+#include "misc.h"
 
-namespace lexgine{namespace core {namespace misc{
+
+namespace lexgine::core::misc{
 
 std::wstring asciiStringToWstring(std::string const& str)
 {
@@ -167,4 +168,26 @@ uint32_t getSetBitCount(uint64_t value)
     #endif
 }
 
-}}}
+std::string formatString(char const* format_string, ...)
+{
+    std::unique_ptr<char[]> tmp;
+
+    int processed_length, allocated_length = static_cast<int>(strlen(format_string));
+
+    va_list va;
+    do
+    {
+        allocated_length *= 2;
+        tmp.reset(new char[allocated_length]);
+        va_start(va, format_string);
+        processed_length = vsnprintf(tmp.get(), allocated_length, format_string, va);
+        va_end(va);
+
+        if (processed_length < 0) throw;
+
+    } while (processed_length > allocated_length - 1);
+
+    return std::string{ tmp.get() };
+}
+
+}

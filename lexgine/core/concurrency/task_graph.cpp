@@ -1,19 +1,19 @@
+#include <unordered_set>
+#include <deque>
+#include <algorithm>
+
 #include "task_graph.h"
 #include "abstract_task.h"
 #include "lexgine/core/exception.h"
 #include <fstream>
 #include <cassert>
 
-#include <unordered_set>
-#include <deque>
-
 
 using namespace lexgine::core::concurrency;
 
 
 TaskGraph::TaskGraph(uint8_t num_workers, std::string const& name):
-    m_num_workers{ num_workers },
-    m_frame_index{ 0U }
+    m_num_workers{ num_workers }
 {
     setStringName(name);
 }
@@ -29,8 +29,7 @@ TaskGraph::TaskGraph(TaskGraph&& other):
     NamedEntity<class_names::TaskGraph>{ std::move(other) },
     m_num_workers{ other.m_num_workers },
     m_root_nodes{ std::move(other.m_root_nodes) },
-    m_all_nodes{ std::move(other.m_all_nodes) },
-    m_frame_index{ other.m_frame_index }
+    m_compiled_task_graph{ std::move(other.m_compiled_task_graph) }
 {
 }
 
@@ -42,8 +41,7 @@ TaskGraph& TaskGraph::operator=(TaskGraph&& other)
 
     m_num_workers = other.m_num_workers;
     m_root_nodes = std::move(other.m_root_nodes);
-    m_all_nodes = std::move(other.m_all_nodes);
-    m_frame_index = other.m_frame_index;
+    m_compiled_task_graph = std::move(other.m_compiled_task_graph);
 
     return *this;
 }
@@ -51,6 +49,7 @@ TaskGraph& TaskGraph::operator=(TaskGraph&& other)
 void TaskGraph::setRootNodes(std::set<TaskGraphRootNode const*> const& root_nodes)
 {
     m_root_nodes = root_nodes;
+    m_compiled_task_graph.clear();
 }
 
 uint8_t lexgine::core::concurrency::TaskGraph::getNumberOfWorkerThreads() const
@@ -60,16 +59,16 @@ uint8_t lexgine::core::concurrency::TaskGraph::getNumberOfWorkerThreads() const
 
 void TaskGraph::createDotRepresentation(std::string const& destination_path)
 {
-    compile(m_root_nodes);
+    compile();
     std::string dot_graph_representation = "digraph " + getStringName() + " {\nnode[style=filled];\n";
 
-    for (auto& task : m_all_nodes)
+    for (auto& t : m_compiled_task_graph)
     {
-        AbstractTask* contained_task = TaskGraphNodeAttorney<TaskGraph>::getContainedTask(task);
-        if (!AbstractTaskAttorney<TaskGraph>::isExposedInTaskGraph(*contained_task)) continue;
+        AbstractTask* contained_task = t.task();
+        if (!AbstractTaskAttorney<TaskGraph>::isTaskExposedInDebugInformation(*contained_task)) continue;
 
         dot_graph_representation += "task" + contained_task->getId().toString() + "[label=\"" + contained_task->getStringName() + "\", ";
-        switch (AbstractTaskAttorney<TaskGraph>::getTaskType(*contained_task))
+        switch (contained_task->type())
         {
         case TaskType::cpu:
             dot_graph_representation += "fillcolor=lightblue, shape=box";
@@ -94,14 +93,14 @@ void TaskGraph::createDotRepresentation(std::string const& destination_path)
         dot_graph_representation += "];\n";
     }
 
-    for (auto& task : m_all_nodes)
+    for (auto& t : m_compiled_task_graph)
     {
         std::string task_string_id = "task"
-            + TaskGraphNodeAttorney<TaskGraph>::getContainedTask(task)->getId().toString();
-        for (auto dependent_task : TaskGraphNodeAttorney<TaskGraph>::getDependents(task))
+            + t.task()->getId().toString();
+        for (auto dependent : t.getDependents())
         {
             dot_graph_representation += task_string_id + "->" + "task"
-                + TaskGraphNodeAttorney<TaskGraph>::getContainedTask(*dependent_task)->getId().toString() + ";\n";
+                + dependent->task()->getId().toString() + ";\n";
         }
     }
 
@@ -119,38 +118,29 @@ void TaskGraph::createDotRepresentation(std::string const& destination_path)
     }
 }
 
-uint16_t TaskGraph::frameIndex() const
-{
-    return m_frame_index;
-}
-
 std::set<TaskGraphRootNode const*> const& TaskGraph::rootNodes() const
 {
     return m_root_nodes;
 }
 
-TaskGraph::iterator TaskGraph::begin()
+void TaskGraph::resetExecutionStatus()
 {
-    return m_all_nodes.begin();
+    for (auto& n : m_compiled_task_graph)
+    {
+        n.resetExecutionStatus();
+    }
 }
 
-TaskGraph::iterator TaskGraph::end()
+void TaskGraph::setUserData(uint64_t user_data)
 {
-    return m_all_nodes.end();
+    for (auto& node : m_compiled_task_graph)
+        node.setUserData(user_data);
 }
 
-TaskGraph::const_iterator TaskGraph::begin() const
+void TaskGraph::compile()
 {
-    return m_all_nodes.begin();
-}
+    m_compiled_task_graph.clear();
 
-TaskGraph::const_iterator TaskGraph::end() const
-{
-    return m_all_nodes.end();
-}
-
-void TaskGraph::compile(std::set<TaskGraphRootNode const*> const& root_nodes)
-{
     // perform DFS in order to create topological order for the graph
     {
         std::list<TaskGraphNode> dfs_stack;
@@ -160,9 +150,9 @@ void TaskGraph::compile(std::set<TaskGraphRootNode const*> const& root_nodes)
         {
             auto visit_internal = [this, &dfs_stack, &node_visit_temp_tlb, &node_visit_perm_tlb](TaskGraphNode const& n, auto& myself)->void
             {
-                if (node_visit_perm_tlb.find(TaskGraphNodeAttorney<TaskGraph>::getNodeId(n)) != node_visit_perm_tlb.end()) return;
+                if (node_visit_perm_tlb.find(n.getId()) != node_visit_perm_tlb.end()) return;
 
-                auto[p, insertion_result] = node_visit_temp_tlb.insert(TaskGraphNodeAttorney<TaskGraph>::getNodeId(n));
+                auto[p, insertion_result] = node_visit_temp_tlb.insert(n.getId());
 
                 if (!insertion_result)
                 {
@@ -170,11 +160,11 @@ void TaskGraph::compile(std::set<TaskGraphRootNode const*> const& root_nodes)
                 }
                 else
                 {
-                    for (auto e : TaskGraphNodeAttorney<TaskGraph>::getDependents(n))
+                    for (auto e : n.getDependents())
                     {
                         myself(*e, myself);
                     }
-                    dfs_stack.push_front(TaskGraphNodeAttorney<TaskGraph>::cloneNodeForFrame(n, m_frame_index));
+                    dfs_stack.push_front(n.clone());
                     node_visit_perm_tlb.insert(*p);
                     node_visit_temp_tlb.erase(p);
                 }
@@ -184,12 +174,12 @@ void TaskGraph::compile(std::set<TaskGraphRootNode const*> const& root_nodes)
         };
 
 
-        for (auto e : root_nodes)
+        for (auto e : m_root_nodes)
         {
             visit(*e);
         }
 
-        m_all_nodes = std::move(dfs_stack);
+        m_compiled_task_graph = std::move(dfs_stack);
     }
 
 
@@ -197,56 +187,50 @@ void TaskGraph::compile(std::set<TaskGraphRootNode const*> const& root_nodes)
     {
         std::unordered_map<uint64_t, std::list<TaskGraphNode>::iterator> node_id_lut;
 
-        for (auto p = m_all_nodes.begin(); p != m_all_nodes.end(); ++p)
+        for (auto p = m_compiled_task_graph.begin(); p != m_compiled_task_graph.end(); ++p)
         {
-            node_id_lut.insert(std::make_pair(TaskGraphNodeAttorney<TaskGraph>::getNodeId(*p), p));
+            node_id_lut.insert(std::make_pair(p->getId(), p));
         }
 
 
-        // BFS
+        // BFS. Well, this is not the real BFS, since we allow repeated traversal over the 
+        // graph nodes in order to copy all of the dependencies. We do not care about possible
+        // cycles as those would have been captured by the DFS above
         std::deque<TaskGraphNode const*> queue{};
-        queue.insert(queue.end(), root_nodes.begin(), root_nodes.end());
+        queue.insert(queue.end(), m_root_nodes.begin(), m_root_nodes.end());
 
         while (queue.size())
         {
             TaskGraphNode const* p_n = queue.front(); queue.pop_front();
-            auto children = TaskGraphNodeAttorney<TaskGraph>::getDependents(*p_n);
+            auto children = p_n->getDependents();
 
-            auto parent_node_copy_iter = node_id_lut[TaskGraphNodeAttorney<TaskGraph>::getNodeId(*p_n)];
+            auto parent_node_copy_iter = node_id_lut[p_n->getId()];
             for (auto n : children)
             {
-                auto& child_node_copy_ref = *node_id_lut[TaskGraphNodeAttorney<TaskGraph>::getNodeId(*n)];
+                auto& child_node_copy_ref = *node_id_lut[n->getId()];
                 parent_node_copy_iter->addDependent(child_node_copy_ref);
+                queue.push_back(n);
             }
-
-            queue.insert(queue.end(), children.begin(), children.end());
         }
-        
-
-        // acquire pointers for the root nodes
-        std::set<TaskGraphRootNode const*> cloned_root_nodes{};
-        for (auto e : root_nodes)
-        {
-            TaskGraphNode& root_node_clone_ref = *node_id_lut[TaskGraphNodeAttorney<TaskGraph>::getNodeId(*e)];
-            cloned_root_nodes.insert(reinterpret_cast<TaskGraphRootNode*>(&root_node_clone_ref));
-        }
-        m_root_nodes = cloned_root_nodes;
     }
 }
 
-void TaskGraph::reset_completion_status()
-{
-    for (auto& task : m_all_nodes)
-    {
-        TaskGraphNodeAttorney<TaskGraph>::resetNodeCompletionStatus(task);
-    }
-}
+TaskGraph::iterator TaskGraph::begin() { return m_compiled_task_graph.begin(); }
 
-void TaskGraph::inject_dependent_node(TaskGraphNode const& dependent_node)
-{
-    m_all_nodes.emplace_back(TaskGraphNodeAttorney<TaskGraph>::cloneNodeForFrame(dependent_node, m_frame_index));
+TaskGraph::iterator TaskGraph::end() { return m_compiled_task_graph.end(); }
 
-    TaskGraphNode& p_new_dependent_task = m_all_nodes.back();
-    for (auto p = m_all_nodes.begin(); p != --m_all_nodes.end(); ++p)
-        p->addDependent(p_new_dependent_task);
-}
+TaskGraph::const_iterator TaskGraph::cbegin() const { return m_compiled_task_graph.cbegin(); }
+
+TaskGraph::const_iterator TaskGraph::cend() const { return m_compiled_task_graph.cend(); }
+
+TaskGraph::const_iterator TaskGraph::begin() const { return cbegin(); }
+
+TaskGraph::const_iterator TaskGraph::end() const { return cend(); }
+
+std::reverse_iterator<TaskGraph::iterator> TaskGraph::rbegin() { return m_compiled_task_graph.rbegin(); }
+
+std::reverse_iterator<TaskGraph::iterator> TaskGraph::rend() { return m_compiled_task_graph.rend(); }
+
+std::reverse_iterator<TaskGraph::const_iterator> TaskGraph::rbegin() const { return m_compiled_task_graph.rbegin(); }
+
+std::reverse_iterator<TaskGraph::const_iterator> TaskGraph::rend() const { return m_compiled_task_graph.rend(); }

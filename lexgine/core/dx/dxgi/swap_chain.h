@@ -74,8 +74,14 @@ public:
     //! Retrieves one of the back buffers of the swap chain and wrappes it into a Resource object
     dx::d3d12::Resource getBackBuffer(uint32_t buffer_index) const;
 
+    //! Returns index of the current back buffer of the swap chain
+    uint32_t getCurrentBackBufferIndex() const;
+
     //! Puts contents of the back buffer into the front buffer.
     void present() const;
+
+    //! Total back buffer count
+    uint32_t backBufferCount() const;
 
 private:
     SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory, 
@@ -90,7 +96,7 @@ private:
     d3d12::Device& m_device;    //!< Direct3D12 device interface
     osinteraction::windows::Window const& m_window;    //!< window, which holds the swap chain
     d3d12::CommandQueue const& m_default_command_queue;    //!< graphics command queue associated with the swap chain
-
+    SwapChainAdvancedParameters m_advanced_parameters;    //!< advanced parameters of the swap chain
     ComPtr<IDXGISwapChain4> m_dxgi_swap_chain;   //!< DXGI interface representing the swap chain
 
 };

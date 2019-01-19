@@ -74,7 +74,7 @@ bool GraphicsPSOCompilationTask::wasSuccessful() const
 
 bool GraphicsPSOCompilationTask::execute(uint8_t worker_id)
 {
-    return do_task(worker_id, 0);
+    return doTask(worker_id, 0);
 }
 
 void GraphicsPSOCompilationTask::setVertexShaderCompilationTask(HLSLCompilationTask* vs_compilation_task)
@@ -148,7 +148,7 @@ std::string GraphicsPSOCompilationTask::getCacheName() const
     return m_key.toString();
 }
 
-bool GraphicsPSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
+bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 {
     try
     {
@@ -187,7 +187,7 @@ bool GraphicsPSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index
     return true;    // this task is never rescheduled
 }
 
-concurrency::TaskType GraphicsPSOCompilationTask::get_task_type() const
+concurrency::TaskType GraphicsPSOCompilationTask::type() const
 {
     return concurrency::TaskType::cpu;
 }
@@ -222,7 +222,7 @@ bool ComputePSOCompilationTask::wasSuccessful() const
 
 bool ComputePSOCompilationTask::execute(uint8_t worker_id)
 {
-    return do_task(worker_id, 0);
+    return doTask(worker_id, 0);
 }
 
 void ComputePSOCompilationTask::setComputeShaderCompilationTask(HLSLCompilationTask* cs_compilation_task)
@@ -252,7 +252,7 @@ std::string ComputePSOCompilationTask::getCacheName() const
     return m_key.toString();
 }
 
-bool ComputePSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
+bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 {
     try
     {
@@ -287,7 +287,7 @@ bool ComputePSOCompilationTask::do_task(uint8_t worker_id, uint16_t frame_index)
     return true;    // this task is never rescheduled
 }
 
-concurrency::TaskType ComputePSOCompilationTask::get_task_type() const
+concurrency::TaskType ComputePSOCompilationTask::type() const
 {
     return concurrency::TaskType::cpu;
 }

@@ -16,10 +16,10 @@ TaskExecutionStatistics const& AbstractTask::getExecutionStatistics() const
     return m_execution_statistics;
 }
 
-bool AbstractTask::execute(uint8_t worker_id, uint16_t frame_index)
+bool AbstractTask::execute(uint8_t worker_id, uint64_t user_data)
 {
     auto task_begin_execution_time_point = std::chrono::system_clock::now();
-    bool result = do_task(worker_id, frame_index);
+    bool result = doTask(worker_id, user_data);
     auto task_complete_execution_time_point = std::chrono::system_clock::now();
 
     uint64_t completion_time_in_ms = std::chrono::duration_cast<std::chrono::milliseconds>(task_complete_execution_time_point - task_begin_execution_time_point).count();

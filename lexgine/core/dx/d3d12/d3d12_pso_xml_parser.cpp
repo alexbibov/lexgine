@@ -752,9 +752,9 @@ class lexgine::core::dx::d3d12::D3D12PSOXMLParser::impl
 {
 public:
     impl(D3D12PSOXMLParser& parent) :
-        m_parent{ parent },
-        m_deferred_compilation_exit_task_executed{ false },
-        m_deferred_shader_compilation_exit_task{ *this }
+        m_parent{ parent }
+        // m_deferred_compilation_exit_task_executed{ false },
+        // m_deferred_shader_compilation_exit_task{ *this }
     {
 
     }
@@ -1273,10 +1273,11 @@ public:
 
 private:
     D3D12PSOXMLParser& m_parent;
-    bool m_deferred_compilation_exit_task_executed;
+    // std::atomic_bool m_deferred_compilation_exit_task_executed;
 
 private:
 
+    #if 0
     class DeferredPSOCompilationExitTask : public concurrency::SchedulableTask
     {
     public:
@@ -1296,7 +1297,7 @@ private:
 
         bool execute_manually()
         {
-            return do_task(0, 0);
+            return doTask(0, 0);
         }
 
 
@@ -1308,14 +1309,13 @@ private:
         
     private:
         
-        bool do_task(uint8_t /* worker_id */, uint16_t /* frame_index */) override
+        bool doTask(uint8_t /* worker_id */, uint64_t /* user?data */) override
         {
-            if(m_p_sink) m_p_sink->dispatchExitSignal();
             m_parent.m_deferred_compilation_exit_task_executed = true;
             return true;
         }
         
-        concurrency::TaskType get_task_type() const override
+        concurrency::TaskType type() const override
         {
             return concurrency::TaskType::cpu;
         }
@@ -1332,10 +1332,10 @@ private:
 
         bool isDeferredShaderCompilationExitTaskExecuted() const
         {
-            return m_deferred_compilation_exit_task_executed;
+            return m_deferred_compilation_exit_task_executed.load(std::memory_order_acquire);
         }
 
-
+    #endif
 };
 
 
@@ -1437,18 +1437,18 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
             }
         }
 
+        #if 0
         for (auto& task : m_parsed_graphics_pso_compilation_tasks)
             task->addDependent(*m_impl->deferredShaderCompilationExitTask());
 
         for (auto& task : m_parsed_compute_pso_compilation_tasks)
             task->addDependent(*m_impl->deferredShaderCompilationExitTask());
+        #endif
 
 
         concurrency::TaskGraph pso_compilation_task_graph{ std::set<concurrency::TaskGraphRootNode const*>{root_tasks.begin(), root_tasks.end()},
             global_settings.getNumberOfWorkers(), "deferred_pso_compilation_task_graph" };
         
-        
-        //pso_compilation_task_graph.injectDependentNode(*m_impl->deferredShaderCompilationExitTask());
 
         #ifdef LEXGINE_D3D12DEBUG
         pso_compilation_task_graph.createDotRepresentation("deferred_pso_compilation_task_graph__" + getId().toString() + ".gv");
@@ -1460,11 +1460,15 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
             worker_log_streams.begin(), [](std::ofstream& fs)->std::ostream* {return &fs; });
 
         concurrency::TaskSink task_sink{ pso_compilation_task_graph, worker_log_streams, "pso_compilation_task_sink_" + getId().toString() };
+        task_sink.start();
+
+        #if 0
         m_impl->deferredShaderCompilationExitTask()->setInput(&task_sink);
+        #endif
 
         try
         {
-            task_sink.run();
+            task_sink.submit(0);
         }
         catch (core::Exception& e)
         {
@@ -1518,7 +1522,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
             }
         }
 
-        m_impl->deferredShaderCompilationExitTask()->execute_manually();
+        // m_impl->deferredShaderCompilationExitTask()->execute_manually();
     }
 }
 
