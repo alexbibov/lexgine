@@ -20,7 +20,6 @@ public:
         if (number_of_cells)
         {
             m_buffer_ptr = new RingBufferCell{ false, nullptr };
-            --number_of_cells;
 
             RingBufferCell* p_current_cell = m_buffer_ptr;
             for (size_t i = 0; i < number_of_cells - 1; ++i)
@@ -49,7 +48,7 @@ public:
         RingBufferCell* p_current_cell = m_buffer_ptr;
         uint32_t num_parsed_count{ 0U };
 
-        while(true)
+        while (true)
         {
             while (num_parsed_count < m_num_of_cells && p_current_cell->is_used.load(std::memory_order_acquire))
             {
