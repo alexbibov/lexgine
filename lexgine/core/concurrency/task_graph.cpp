@@ -11,9 +11,20 @@
 
 using namespace lexgine::core::concurrency;
 
+class TaskGraph::BarrierSyncTask : public AbstractTask
+{
+public:
+    BarrierSyncTask() : AbstractTask{ "", false } {}
+
+public:    // AbstractTask interface implementation
+    bool doTask(uint8_t worker_id, uint64_t user_data) override { return true; }
+    TaskType type() const override { return TaskType::cpu; }
+};
+
 
 TaskGraph::TaskGraph(uint8_t num_workers, std::string const& name):
-    m_num_workers{ num_workers }
+    m_num_workers{ num_workers },
+    m_barrier_sync_task{ new BarrierSyncTask{} }
 {
     setStringName(name);
 }
@@ -29,9 +40,12 @@ TaskGraph::TaskGraph(TaskGraph&& other):
     NamedEntity<class_names::TaskGraph>{ std::move(other) },
     m_num_workers{ other.m_num_workers },
     m_root_nodes{ std::move(other.m_root_nodes) },
-    m_compiled_task_graph{ std::move(other.m_compiled_task_graph) }
+    m_compiled_task_graph{ std::move(other.m_compiled_task_graph) },
+    m_barrier_sync_task{ std::move(other.m_barrier_sync_task) }
 {
 }
+
+TaskGraph::~TaskGraph() = default;
 
 TaskGraph& TaskGraph::operator=(TaskGraph&& other)
 {
@@ -42,6 +56,7 @@ TaskGraph& TaskGraph::operator=(TaskGraph&& other)
     m_num_workers = other.m_num_workers;
     m_root_nodes = std::move(other.m_root_nodes);
     m_compiled_task_graph = std::move(other.m_compiled_task_graph);
+    m_barrier_sync_task = std::move(other.m_barrier_sync_task);
 
     return *this;
 }
@@ -95,12 +110,19 @@ void TaskGraph::createDotRepresentation(std::string const& destination_path)
 
     for (auto& t : m_compiled_task_graph)
     {
-        std::string task_string_id = "task"
-            + t.task()->getId().toString();
+        AbstractTask* dependency_task = t.task();
+        
+        if (!AbstractTaskAttorney<TaskGraph>::isTaskExposedInDebugInformation(*dependency_task)) continue;
+
+        std::string task_string_id = "task" + dependency_task->getId().toString();
         for (auto dependent : t.getDependents())
         {
+            
+            AbstractTask* dependent_task = dependent->task();
+            if (!AbstractTaskAttorney<TaskGraph>::isTaskExposedInDebugInformation(*dependent_task)) continue;
+            
             dot_graph_representation += task_string_id + "->" + "task"
-                + dependent->task()->getId().toString() + ";\n";
+                + dependent_task->getId().toString() + ";\n";
         }
     }
 
@@ -213,6 +235,22 @@ void TaskGraph::compile()
             }
         }
     }
+
+    // insert barrier synchronization
+    {
+        m_barrier_sync_task->setStringName(getStringName() + "__barrier_sync_task");
+        m_compiled_task_graph.emplace_back(*m_barrier_sync_task);
+
+        auto sync_node_iter = (++m_compiled_task_graph.rbegin()).base();
+        for (auto p = m_compiled_task_graph.begin(); p != sync_node_iter; ++p) p->addDependent(*sync_node_iter);
+    }
+}
+
+bool TaskGraph::isCompleted() const
+{
+    if (m_barrier_sync_task) return m_compiled_task_graph.back().isCompleted();
+
+    return false;
 }
 
 TaskGraph::iterator TaskGraph::begin() { return m_compiled_task_graph.begin(); }

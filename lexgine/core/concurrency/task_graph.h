@@ -25,7 +25,7 @@ public:
         uint8_t num_workers = 8U, std::string const& name = "");
     TaskGraph(TaskGraph const& other) = delete;
     TaskGraph(TaskGraph&& other);
-    ~TaskGraph() = default;
+    ~TaskGraph();
     TaskGraph& operator=(TaskGraph const& other) = delete;
     TaskGraph& operator=(TaskGraph&& other);
 
@@ -44,7 +44,6 @@ public:
     //! Sets custom user data, which will be associated with every node in the task graph. The task graph must be compiled before calling this function.
     void setUserData(uint64_t user_data);
 
-
     // support of iteration over compiled graph nodes
 
     iterator begin();
@@ -61,6 +60,8 @@ public:
     std::reverse_iterator<const_iterator> rbegin() const;
     std::reverse_iterator<const_iterator> rend() const;
 
+private:
+    class BarrierSyncTask;
 
 private:
     /*! Prepares the task graph for execution. This process creates the internal list containing all the nodes of the task graph
@@ -68,29 +69,34 @@ private:
     */
     void compile();
 
+    /*! For compiled task graph returns 'true' when its execution has been finished, otherwise returns 'false'.
+     If the task graph was not compiled, the results of this function's invocation are undefined
+    */
+    bool isCompleted() const;
+
 private:
     uint8_t m_num_workers;    //!< number of worker threads assigned to the task graph
     std::set<TaskGraphRootNode const*> m_root_nodes;    //!< set of pointers to task graph root nodes
     std::list<TaskGraphNode> m_compiled_task_graph;    //!< list of all graph nodes sorted in topological order
+    std::unique_ptr<BarrierSyncTask> m_barrier_sync_task;    //!< barrier synchronization dummy task used to determine when execution of compiled task graph is finished
 };
 
 template<> class TaskGraphAttorney<TaskSink>
 {
     friend TaskSink;
 
-    static TaskGraph assembleCompiledTaskGraphWithBarrierSync(TaskGraph const& source_task_graph, 
-        TaskGraphNode const& barrier_sync_node)
+    static TaskGraph compileTaskGraph(TaskGraph const& source_task_graph)
     {
         TaskGraph rv{ source_task_graph.m_num_workers, source_task_graph.getStringName() };
         rv.m_root_nodes = source_task_graph.m_root_nodes;
         rv.compile();
 
-        rv.m_compiled_task_graph.push_back(barrier_sync_node.clone());
-        auto last_node_iter = (++rv.m_compiled_task_graph.rbegin()).base();
-        for (auto p = rv.m_compiled_task_graph.begin(); p != last_node_iter; ++p)
-            p->addDependent(*last_node_iter);
-
         return rv;
+    }
+
+    static bool isTaskGraphCompleted(TaskGraph const& compiled_task_graph)
+    {
+        return compiled_task_graph.isCompleted();
     }
 };
 

@@ -39,6 +39,7 @@ public:
     void enqueue(T const& value)
     {
         allocator_type::address_type p_new_node = nullptr;
+        
         while (!p_new_node)
         {
             p_new_node = m_allocator.allocate();
@@ -61,7 +62,7 @@ public:
                 {
                     // the tail node is not actually the tail any longer, attempt to move it forward...
                     size_t p_tail_addr = static_cast<size_t>(p_tail);
-                    m_tail.compare_exchange_weak(p_tail_addr, p_next, std::memory_order::memory_order_acq_rel);
+                    m_tail.compare_exchange_strong(p_tail_addr, p_next, std::memory_order::memory_order_acq_rel);
                 }
                 else
                 {
@@ -70,7 +71,7 @@ public:
                     {
                         // if we were successful attempt to move the tail node pointer forward
                         size_t p_tail_addr = static_cast<size_t>(p_tail);
-                        m_tail.compare_exchange_weak(p_tail_addr, static_cast<size_t>(p_new_node), std::memory_order::memory_order_acq_rel);
+                        m_tail.compare_exchange_strong(p_tail_addr, static_cast<size_t>(p_new_node), std::memory_order::memory_order_acq_rel);
 
 #ifdef _DEBUG
                         ++m_num_elements_enqueued;
@@ -116,7 +117,7 @@ public:
                     // We end up here if the queue is not empty, but the head and the tail pointers refer to the same node.
                     // In this case we attempt to move the tail pointer forward
                     size_t p_tail_addr = static_cast<size_t>(p_tail);
-                    m_tail.compare_exchange_weak(p_tail_addr, static_cast<size_t>(p_head_next), std::memory_order::memory_order_acq_rel);
+                    m_tail.compare_exchange_strong(p_tail_addr, static_cast<size_t>(p_head_next), std::memory_order::memory_order_acq_rel);
                 }
                 else
                 {
@@ -169,6 +170,11 @@ public:
         return m_head.load(std::memory_order::memory_order_consume) == m_tail.load(std::memory_order::memory_order_consume);
     }
 
+    void setGarbageCollectionThreshold(uint32_t threshold)
+    {
+        m_hp_pool.setGCThreshold(threshold);
+    }
+
 
     ~LockFreeQueue()
     {
@@ -192,7 +198,6 @@ private:
 
     using allocator_type = AllocatorTemplate<Node>;
     using hpp_type = HazardPointerPool<allocator_type>;
-
 
     std::atomic_size_t m_head, m_tail;    //!< head and tail of the underlying queue data structure
 
