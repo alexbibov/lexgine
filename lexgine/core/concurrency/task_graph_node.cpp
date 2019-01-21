@@ -32,7 +32,7 @@ TaskGraphNode::TaskGraphNode(TaskGraphNode&& other) :
     m_id{ other.m_id },
     m_contained_task{ other.m_contained_task },
     m_is_completed{ other.m_is_completed.load(std::memory_order_acquire) },
-    m_is_scheduled{ other.m_is_scheduled },
+    m_is_scheduled{ other.m_is_scheduled.load(std::memory_order_acquire) },
     m_dependencies{ std::move(other.m_dependencies) },
     m_dependents{ std::move(other.m_dependents) }
 {
@@ -58,10 +58,10 @@ bool TaskGraphNode::isCompleted() const
 
 void TaskGraphNode::schedule(RingBufferTaskQueue<TaskGraphNode*>& queue)
 {
-    if(!m_is_scheduled)
+    if(!m_is_scheduled.load(std::memory_order_acquire))
     {
+        m_is_scheduled.store(true, std::memory_order_release);
         queue.enqueueTask(this);
-        m_is_scheduled = true;
     }
 }
 
@@ -69,8 +69,7 @@ bool TaskGraphNode::isReadyToLaunch() const
 {
     for (auto node : m_dependencies)
     {
-        if (!node->isCompleted())
-            return false;
+        if (!node->isCompleted()) return false;
     }
 
     return true;
@@ -78,7 +77,7 @@ bool TaskGraphNode::isReadyToLaunch() const
 
 bool TaskGraphNode::isScheduled() const
 {
-    return m_is_scheduled;
+    return m_is_scheduled.load(std::memory_order_acquire);
 }
 
 bool TaskGraphNode::addDependent(TaskGraphNode& task)
@@ -115,12 +114,8 @@ TaskGraphNode::set_of_nodes TaskGraphNode::getDependents() const
 
 void TaskGraphNode::resetExecutionStatus()
 {
-    m_is_completed = m_is_scheduled = false;
-}
-
-void TaskGraphNode::resetSchedulingStatus()
-{
-    m_is_scheduled = false;
+    m_is_completed.store(false, std::memory_order_release);
+    m_is_scheduled.store(false, std::memory_order_release);
 }
 
 AbstractTask* TaskGraphNode::task() const

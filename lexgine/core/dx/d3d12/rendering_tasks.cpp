@@ -121,8 +121,6 @@ private:    // required by the AbstractTask interface
         PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
             "CPU job for frame %i finish", current_frame_index);
 
-        m_rendering_tasks.m_end_of_frame_cpu_wall.signalFromCPU();
-
         return true;
     }
 

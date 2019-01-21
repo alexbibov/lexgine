@@ -31,7 +31,7 @@ CommandAllocatorRing::CommandAllocatorRing(Device& device, CommandType allocated
 
 ComPtr<ID3D12CommandAllocator> CommandAllocatorRing::spin()
 {
-    ++m_current_index;
+    m_current_index = (m_current_index + 1) % m_signaling_allocators.size();
 
     auto& signal_desc = m_signaling_allocators[m_current_index];
     Signal const* p_signal = signal_desc.signal_ptr;

@@ -178,7 +178,7 @@ public:
 
     bool paint(lexgine::core::math::Rectangle const& update_region) override
     {
-        // m_swap_chain_link.render();
+        m_swap_chain_link.render();
         return true;
     }
 

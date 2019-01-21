@@ -50,9 +50,6 @@ private:
      The value acquired in the latter case contains a pointer to the task graph node was the source of the error.
     */
     std::atomic_uint64_t m_error_watchdog;
-
-    class BarrierTask;
-    std::unique_ptr<BarrierTask> m_barrier_task;    //! barrier synchronization task that signals completion of the task graph execution
 };
 
 }

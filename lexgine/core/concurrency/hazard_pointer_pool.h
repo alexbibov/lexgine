@@ -147,6 +147,8 @@ public:
     //! acquires new hazard pointer for the calling thread and uses it to protect the provided raw pointer value.
     HazardPointerRecord acquire(typename AllocatorInstantiation::address_type const& ptr_value)
     {
+        // forceGC();
+
         // First we check if there are unused pointers in the list
         for (HPListEntry* p_entry = m_hp_list_head; p_entry != nullptr; p_entry = p_entry->next.load(std::memory_order::memory_order_acquire))
         {
@@ -205,10 +207,7 @@ public:
         __addEntryToLocalGCList(m_dlist_tail, static_cast<HPListEntry*>(hp_record.m_p_hp_entry));
         ++m_dlist_cardinality;
 
-        if (m_dlist_cardinality > m_gc_threshold)
-        {
-            __scan();
-        }
+        forceGC();
     }
 
 
@@ -220,6 +219,12 @@ public:
         {
             __scan();
         }
+    }
+
+    //! forces garbage collection to wake up and check if there are memory blocks that have to be removed
+    void forceGC() 
+    {
+        if (m_dlist_cardinality >= m_gc_threshold) __scan();
     }
 
     /*!
@@ -319,7 +324,9 @@ private:
         // now it is time to remove the pointers that are not in "hazardous" state from the delete list
 
         // formate the list of pointers that are currently in "hazardous" state
-        for (HPListEntry* p_hp_list_entry = m_hp_list_head; p_hp_list_entry != nullptr; p_hp_list_entry = p_hp_list_entry->next.load(std::memory_order::memory_order_consume))
+        for (HPListEntry* p_hp_list_entry = m_hp_list_head; 
+            p_hp_list_entry != nullptr; 
+            p_hp_list_entry = p_hp_list_entry->next.load(std::memory_order::memory_order_consume))
         {
             if (p_hp_list_entry->is_active)
                 __addEntryToLocalGCList(m_plist_tail, p_hp_list_entry);
@@ -328,7 +335,9 @@ private:
         // for each pointer marked for deletion check if this pointer is NOT in the list of pointers in "hazardous" state. 
         // If it's OK to do so, deallocate the corresponding memory block
         uint32_t num_freed_successfully{ 0U };
-        for (GCListEntry* p_dlist_entry = m_dlist_head->p_next; p_dlist_entry != nullptr; p_dlist_entry = p_dlist_entry->p_next)
+        for (GCListEntry* p_dlist_entry = m_dlist_head->p_next; 
+            p_dlist_entry != nullptr; 
+            p_dlist_entry = p_dlist_entry->p_next)
         {
             if (!p_dlist_entry->is_in_use || !p_dlist_entry->p_mem_block)
                 continue;
@@ -364,7 +373,9 @@ private:
         m_dlist_cardinality -= num_freed_successfully;
 
         // reset plist
-        for (GCListEntry* p_plist_entry = m_plist_head->p_next; p_plist_entry != m_plist_tail->p_next; p_plist_entry = p_plist_entry->p_next)
+        for (GCListEntry* p_plist_entry = m_plist_head->p_next; 
+            p_plist_entry != m_plist_tail->p_next; 
+            p_plist_entry = p_plist_entry->p_next)
         {
             p_plist_entry->is_in_use = false;
         }

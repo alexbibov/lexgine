@@ -68,9 +68,6 @@ public:
     //! Resets execution status of the graph node, so it appears as undone
     void resetExecutionStatus();
 
-    //! Resets scheduling status of the graph node, so it appears as unscheduled
-    void resetSchedulingStatus();
-
     //! Retrieves task contained in the node
     AbstractTask* task() const;
 
@@ -88,7 +85,7 @@ private:
     uint64_t m_user_data;    //!< user data associated with the task graph node 
     AbstractTask* m_contained_task;    //!< task contained by the node
     std::atomic_bool m_is_completed;    //!< equals 'true' if the task was completed. Equals 'false' otherwise
-    bool m_is_scheduled;    //!< equals true if the node has already been scheduled, equals 'false' otherwise
+    std::atomic_bool m_is_scheduled;    //!< equals true if the node has already been scheduled, equals 'false' otherwise
 
     set_of_nodes m_dependencies;    //!< dependencies of this task. This task cannot run before all of its dependencies are executed
     set_of_nodes m_dependents;    //!< dependencies of this task. This task cannot be executed before the dependent tasks are completed

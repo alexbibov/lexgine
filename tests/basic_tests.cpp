@@ -76,7 +76,7 @@ public:
 
             uint8_t const num_consumption_threads = 7U;
 
-            RingBufferTaskQueue<int*> queue{ 65536 };
+            RingBufferTaskQueue<int*> queue{ num_consumption_threads, 65536 };
 
             bool production_finished = false;
             std::atomic_uint64_t tasks_produced{ 0U };
