@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5DC120BC-E2B4-454D-82ED-565E3A9A9C50}</ProjectGuid>
     <RootNamespace>lexgine</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
     <SccProjectName>SAK</SccProjectName>
     <SccAuxPath>SAK</SccAuxPath>
     <SccLocalPath>SAK</SccLocalPath>
@@ -358,12 +358,12 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\WinPixEventRuntime.1.0.181027001\build\WinPixEventRuntime.targets" Condition="Exists('..\packages\WinPixEventRuntime.1.0.181027001\build\WinPixEventRuntime.targets')" />
+    <Import Project="..\packages\WinPixEventRuntime.1.0.181206001\build\WinPixEventRuntime.targets" Condition="Exists('..\packages\WinPixEventRuntime.1.0.181206001\build\WinPixEventRuntime.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\WinPixEventRuntime.1.0.181027001\build\WinPixEventRuntime.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WinPixEventRuntime.1.0.181027001\build\WinPixEventRuntime.targets'))" />
+    <Error Condition="!Exists('..\packages\WinPixEventRuntime.1.0.181206001\build\WinPixEventRuntime.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WinPixEventRuntime.1.0.181206001\build\WinPixEventRuntime.targets'))" />
   </Target>
 </Project>
