@@ -70,6 +70,9 @@ class RenderingTasks;
 class RenderingTarget;
 class SwapChainLink;
 
+class VertexBufferBinding;
+class IndexBufferBinding;
+
 }
 
 #endif

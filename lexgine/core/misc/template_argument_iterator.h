@@ -197,7 +197,7 @@ namespace lexgine { namespace core { namespace misc {
         {
             if (LoopBodyType<tuple_list_type<index>>::iterate(user_data))
             {
-                return loop_iteration<index + 1>(user_data);
+                loop_iteration<index + 1>(user_data);
             }
         }
 

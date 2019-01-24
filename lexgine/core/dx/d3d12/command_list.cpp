@@ -1,17 +1,20 @@
+#include <algorithm>
+#include <cassert>
+
 #include "command_list.h"
 #include "device.h"
 #include "pipeline_state.h"
 #include "resource.h"
 #include "d3d12_tools.h"
 #include "descriptor_table_builders.h"
+#include "vertex_buffer_binding.h"
+
 
 #include "lexgine/core/exception.h"
 #include "lexgine/core/viewport.h"
-
 #include "lexgine/core/math/box.h"
 
-#include <algorithm>
-#include <cassert>
+
 
 
 using namespace lexgine::core;
@@ -210,6 +213,36 @@ void CommandList::inputAssemblySetPrimitiveTopology(PrimitiveTopology primitive_
     m_command_list->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(native_topology));
 }
 
+void CommandList::inputAssemblySetVertexBuffers(VertexBufferBinding const& vb_binding)
+{
+    D3D12_VERTEX_BUFFER_VIEW native_vb_views[c_input_assemblers_count];
+
+    unsigned long index{ 0 };
+    size_t offset{ 0 };
+    size_t offset_old{ 0 };
+    size_t base{ 0 };
+    for (unsigned long mask = vb_binding.slotUsageMask();
+        _BitScanForward(&index, mask); 
+        mask >>= 1, offset += index + 1)
+    {
+        if (offset - offset_old <= 1)
+            native_vb_views[offset] = vb_binding.vertexBufferViewAtSlot(static_cast<uint8_t>(offset));
+        else
+        {
+            m_command_list->IASetVertexBuffers(static_cast<UINT>(base), static_cast<UINT>(offset - base), &native_vb_views[base]);
+            base = offset;
+        }
+
+        offset_old = offset;
+    }
+}
+
+void CommandList::inputAssemblySetIndexBuffer(IndexBufferBinding const& ib_binding)
+{
+    D3D12_INDEX_BUFFER_VIEW const& native_ib_view = ib_binding.indexBufferView();
+    m_command_list->IASetIndexBuffer(&native_ib_view);
+}
+
 void CommandList::rasterizerStateSetViewports(misc::StaticVector<Viewport, c_maximal_viewport_count> const& viewports) const
 {
     misc::StaticVector<D3D12_VIEWPORT, c_maximal_viewport_count> native_viewports(viewports.size());
@@ -237,9 +270,9 @@ void CommandList::rasterizerStateSetViewports(misc::StaticVector<Viewport, c_max
     m_command_list->RSSetViewports(static_cast<UINT>(viewports.size()), native_viewports.data());
 }
 
-void CommandList::rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_scissor_rectangles> const& rectangles) const
+void CommandList::rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_scissor_rectangles_count> const& rectangles) const
 {
-    misc::StaticVector<D3D12_RECT, c_maximal_scissor_rectangles> native_rects(rectangles.size());
+    misc::StaticVector<D3D12_RECT, c_maximal_scissor_rectangles_count> native_rects(rectangles.size());
     std::transform(rectangles.begin(), rectangles.end(), native_rects.begin(), convertRectangleToDXGINativeRECT);
     m_command_list->RSSetScissorRects(static_cast<UINT>(rectangles.size()), native_rects.data());
 }

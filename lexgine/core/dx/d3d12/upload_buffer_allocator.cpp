@@ -55,6 +55,7 @@ UploadBufferAllocator::UploadBufferAllocator(Globals& globals,
     m_progress_tracking_signal{ m_device, FenceSharing::none },
     m_upload_buffer{ m_upload_heap, offset_from_heap_start, ResourceState::enum_type::generic_read,
         misc::makeEmptyOptional<ResourceOptimizedClearValue>(), ResourceDescriptor::CreateBuffer(upload_buffer_size) },
+    m_last_allocation{ m_blocks.end() },
     m_unpartitioned_chunk_size{ upload_buffer_size },
     m_max_non_blocking_allocation_timeout{ globals.get<GlobalSettings>()->getMaxNonBlockingUploadBufferAllocationTimeout() }
 {
@@ -99,18 +100,18 @@ UploadBufferAllocator::address_type UploadBufferAllocator::allocate(size_t size_
 
         m_unpartitioned_chunk_size -= size_in_bytes;
 
-        m_last_allocation = --m_blocks.end();
+        m_last_allocation = std::prev(m_blocks.end());
         allocation_successful = true;
     }
 
-    // attempt to allocate space after the last allocation
+    // attempt to allocate space after the last allocation (the wrap-around mode)
     if(!allocation_successful)
     {
         size_t requested_space_counter{ 0U };
         uint32_t trailing_end_allocation_addr{ (*m_last_allocation)->m_allocation_end };
         uint64_t controlling_signal_value{ 0U };
 
-        auto q = ++m_last_allocation;
+        auto q = std::next(m_last_allocation); 
         while (q != m_blocks.end() && requested_space_counter < size_in_bytes)
         {
             requested_space_counter += (*q)->m_allocation_end - trailing_end_allocation_addr;
@@ -126,7 +127,7 @@ UploadBufferAllocator::address_type UploadBufferAllocator::allocate(size_t size_
             if (is_blocking_call) m_progress_tracking_signal.waitUntilValue(controlling_signal_value);
             else m_progress_tracking_signal.waitUntilValue(controlling_signal_value, m_max_non_blocking_allocation_timeout);
 
-            auto next_allocation = ++m_last_allocation;
+            auto next_allocation = std::next(m_last_allocation);
             (*next_allocation)->m_allocation_begin = (*m_last_allocation)->m_allocation_end;
             end_of_new_allocation = (*next_allocation)->m_allocation_end = 
                 static_cast<uint32_t>((*next_allocation)->m_allocation_begin + size_in_bytes);
@@ -143,31 +144,30 @@ UploadBufferAllocator::address_type UploadBufferAllocator::allocate(size_t size_
     // attempt to allocate space before the last allocation
     if(!allocation_successful)
     {
-        size_t requested_size_in_bytes{ 0U };
+        size_t requested_space_counter{ 0U };
         uint32_t trailing_end_allocation_addr{ 0U };
         uint64_t controlling_signal_value{ 0U };
 
         auto q = m_blocks.begin();
-        while (q != m_last_allocation && requested_size_in_bytes < size_in_bytes)
+        while (q != m_last_allocation && requested_space_counter < size_in_bytes)
         {
-            requested_size_in_bytes += (*q)->m_allocation_end - trailing_end_allocation_addr;
+            requested_space_counter += (*q)->m_allocation_end - trailing_end_allocation_addr;
             trailing_end_allocation_addr = (*q)->m_allocation_end;
             controlling_signal_value = (std::max)(controlling_signal_value, (*q)->m_controlling_signal_value);
             ++q;
         }
 
-        if (requested_size_in_bytes >= size_in_bytes)
+        if (requested_space_counter >= size_in_bytes)
         {
             if (is_blocking_call) m_progress_tracking_signal.waitUntilValue(controlling_signal_value);
             else m_progress_tracking_signal.waitUntilValue(controlling_signal_value, m_max_non_blocking_allocation_timeout);
 
             auto next_allocation = m_blocks.begin();
-            end_of_new_allocation = (*next_allocation)->m_allocation_end = 
-                static_cast<uint32_t>(size_in_bytes);
+            end_of_new_allocation = (*next_allocation)->m_allocation_end = static_cast<uint32_t>(size_in_bytes);
             (*next_allocation)->m_controlling_signal_value = m_progress_tracking_signal.nextValueOfSignal();
 
             m_last_allocation = next_allocation;
-            first_allocation_block_to_invalidate = ++next_allocation;
+            first_allocation_block_to_invalidate = std::next(next_allocation);
             one_past_last_allocation_block_to_invalidate = q;
             allocation_successful = true;
         }
@@ -181,11 +181,10 @@ UploadBufferAllocator::address_type UploadBufferAllocator::allocate(size_t size_
         else m_progress_tracking_signal.waitUntilValue((*m_last_allocation)->m_controlling_signal_value, m_max_non_blocking_allocation_timeout);
 
         m_last_allocation = m_blocks.begin();
-        end_of_new_allocation = (*m_last_allocation)->m_allocation_end 
-            = static_cast<uint32_t>(size_in_bytes);
+        end_of_new_allocation = (*m_last_allocation)->m_allocation_end = static_cast<uint32_t>(size_in_bytes);
         (*m_last_allocation)->m_controlling_signal_value = m_progress_tracking_signal.nextValueOfSignal();
 
-        first_allocation_block_to_invalidate = ++m_last_allocation;
+        first_allocation_block_to_invalidate = std::next(m_last_allocation);
         one_past_last_allocation_block_to_invalidate = m_blocks.end();
         allocation_successful = true;
     }
@@ -196,8 +195,7 @@ UploadBufferAllocator::address_type UploadBufferAllocator::allocate(size_t size_
     std::for_each(first_allocation_block_to_invalidate, one_past_last_allocation_block_to_invalidate,
         [end_of_new_allocation](memory_block_type& mem_block_ref)
         {
-            mem_block_ref->m_allocation_begin = mem_block_ref->m_allocation_end =
-                static_cast<uint32_t>(end_of_new_allocation);
+            mem_block_ref->m_allocation_begin = mem_block_ref->m_allocation_end = static_cast<uint32_t>(end_of_new_allocation);
         }
     );
 

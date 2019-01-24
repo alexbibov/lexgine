@@ -131,7 +131,7 @@ void ResourceDataUploader::upload()
 
 void ResourceDataUploader::waitUntilUploadIsFinished() const
 {
-    while (!isUploadFinished());
+    while (!isUploadFinished()) YieldProcessor();
 }
 
 bool ResourceDataUploader::isUploadFinished() const
