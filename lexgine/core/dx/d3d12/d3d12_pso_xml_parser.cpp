@@ -21,7 +21,9 @@
 
 #include "pugixml.hpp"
 
-
+using namespace lexgine;
+using namespace lexgine::core;
+using namespace lexgine::core::misc;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::dxcompilation;
 
@@ -658,48 +660,48 @@ namespace {
         }
     }
 
-
     struct VATargetSpecification
     {
-        using arg_pack0 = lexgine::core::misc::arg_pack<half, float, int16_t, int32_t, uint16_t, uint32_t>;
-        using value_arg_pack0 = lexgine::core::misc::value_arg_pack<unsigned char, 1U, 2U, 3U, 4U>;
-        using value_arg_pack1 = lexgine::core::misc::value_arg_pack<bool, false, true>;
+        using arg_pack0 = arg_pack<half, float, int16_t, int32_t, uint16_t, uint32_t>;
+        using value_arg_pack0 = value_arg_pack<unsigned char, 1U, 2U, 3U, 4U>;
+        using value_arg_pack1 = value_arg_pack<bool, false, true>;
 
-        lexgine::core::misc::DataFormat va_target_data_format;
+        DataFormat va_target_data_format;
         unsigned char va_target_data_format_element_size;
         bool va_is_target_format_normalized;
 
         unsigned char ia_slot;
+        unsigned char element_stride;
         char const* name;
         uint32_t name_index;
         uint32_t instancing_rate;
 
-        std::shared_ptr<lexgine::core::AbstractVertexAttributeSpecification> instance;
+        std::shared_ptr<AbstractVertexAttributeSpecification> instance;
     };
 
 
 
     template<typename TupleListType>
-    class LoopBody
+    class VASpecificationLoopBody
     {
     public:
         static bool iterate(void* user_data)
         {
-            using arg0 = typename lexgine::core::misc::get_tuple_element<TupleListType, 0>::value_type;
-            constexpr auto arg1 = lexgine::core::misc::get_tuple_element<TupleListType, 1>::value;
-            constexpr auto arg2 = lexgine::core::misc::get_tuple_element<TupleListType, 2>::value;
+            using arg0 = typename get_tuple_element<TupleListType, 0>::value_type;
+            constexpr auto arg1 = get_tuple_element<TupleListType, 1>::value;
+            constexpr auto arg2 = get_tuple_element<TupleListType, 2>::value;
 
             VATargetSpecification& va_target_spec = *(reinterpret_cast<VATargetSpecification*>(user_data));
 
-            if (va_target_spec.va_target_data_format == lexgine::core::dx::d3d12::StaticTypeToDataFormat<arg0>::data_format 
+            if (va_target_spec.va_target_data_format == StaticTypeToDataFormat<arg0>::data_format 
                 && va_target_spec.va_target_data_format_element_size == arg1 
                 && va_target_spec.va_is_target_format_normalized == arg2)
             {
                 va_target_spec.instance.reset(
-                    new lexgine::core::VertexAttributeSpecification<
+                    new VertexAttributeSpecification<
                         arg0,
                         arg1,
-                        arg2>{ va_target_spec.ia_slot, va_target_spec.name, va_target_spec.name_index, va_target_spec.instancing_rate });
+                        arg2>{ va_target_spec.ia_slot, va_target_spec.element_stride, va_target_spec.name, va_target_spec.name_index, va_target_spec.instancing_rate });
                 return false;
             }
 
@@ -707,8 +709,8 @@ namespace {
         }
     };
 
-    std::shared_ptr<lexgine::core::AbstractVertexAttributeSpecification> createVertexAttributeSpecification(lexgine::core::misc::DataFormat type, uint32_t size, bool is_normalized,
-        unsigned char primitive_assembler_input_slot, char const* name, uint32_t name_index, uint32_t instancing_data_rate)
+    std::shared_ptr<AbstractVertexAttributeSpecification> createVertexAttributeSpecification(DataFormat type, uint32_t size, bool is_normalized,
+        unsigned char primitive_assembler_input_slot, unsigned char element_stride, char const* name, uint32_t name_index, uint32_t instancing_data_rate)
     {
         VATargetSpecification target_spec;
 
@@ -717,14 +719,15 @@ namespace {
         target_spec.va_is_target_format_normalized = is_normalized;
 
         target_spec.ia_slot = primitive_assembler_input_slot;
+        target_spec.element_stride = element_stride;
         target_spec.name = name;
         target_spec.name_index = name_index;
         target_spec.instancing_rate = instancing_data_rate;
 
         target_spec.instance = nullptr;
 
-        lexgine::core::misc::TemplateArgumentIterator<
-            LoopBody,
+        TemplateArgumentIterator<
+            VASpecificationLoopBody,
             VATargetSpecification::arg_pack0,
             VATargetSpecification::value_arg_pack0,
             VATargetSpecification::value_arg_pack1>::loop(&target_spec);
@@ -1137,7 +1140,7 @@ public:
                             + ": VertexAttribute node must define attribute \"size\"");
                     }
 
-                    lexgine::core::misc::DataFormat type = extractAttribute<attribute_type::data_format>(va.attribute("type"), lexgine::core::misc::DataFormat::float32, &was_successful);
+                    DataFormat type = extractAttribute<attribute_type::data_format>(va.attribute("type"), DataFormat::float32, &was_successful);
                     if (!was_successful)
                     {
                         LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
@@ -1157,10 +1160,11 @@ public:
                             + ": slot \"" + std::to_string(slot) + "\" is already used by another vertex attribute");
                     }
 
+                    uint32_t element_stride = extractAttribute<attribute_type::unsigned_numeric>(va.attribute("stride"), D3D12_APPEND_ALIGNED_ELEMENT, &was_successful);
                     bool normalized = extractAttribute<attribute_type::boolean>(va.attribute("normalized"), false);
                     uint32_t instancing_rate = extractAttribute<attribute_type::unsigned_numeric>(va.attribute("instancing_rate"), 0);
 
-                    currently_assembled_pso_descriptor.vertex_attributes.push_back(createVertexAttributeSpecification(type, size, normalized, slot, name.c_str(), index, instancing_rate));
+                    currently_assembled_pso_descriptor.vertex_attributes.push_back(createVertexAttributeSpecification(type, size, normalized, slot, element_stride, name.c_str(), index, instancing_rate));
                 }
             }
         }

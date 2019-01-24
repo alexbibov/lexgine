@@ -116,7 +116,6 @@ private:    // required by the AbstractTask interface
 
         m_command_list.close();
         m_rendering_tasks.m_device.defaultCommandQueue().executeCommandList(m_command_list);
-        m_rendering_tasks.m_end_of_frame_gpu_wall.signalFromGPU(m_rendering_tasks.m_device.defaultCommandQueue());
         
         PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
             "CPU job for frame %i finish", current_frame_index);

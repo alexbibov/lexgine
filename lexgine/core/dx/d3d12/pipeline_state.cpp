@@ -193,7 +193,7 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
         input_element_descs[input_element_desc_idx].SemanticIndex = (**p).name_index();
         input_element_descs[input_element_desc_idx].Format = (**p).format<EngineAPI::Direct3D12>();
         input_element_descs[input_element_desc_idx].InputSlot = (**p).input_slot();
-        input_element_descs[input_element_desc_idx].AlignedByteOffset = (**p).capacity();
+        input_element_descs[input_element_desc_idx].AlignedByteOffset = (**p).stride();
         input_element_descs[input_element_desc_idx].InputSlotClass = (**p).type() == AbstractVertexAttributeSpecification::specification_type::per_instance ?
             D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
         input_element_descs[input_element_desc_idx].InstanceDataStepRate = (**p).instancingRate();

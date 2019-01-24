@@ -21,7 +21,6 @@ public:
     RenderingTasks(Globals& globals);
     ~RenderingTasks();
 
-
     void render(RenderingTarget& target, 
         std::function<void(RenderingTarget const&)> const& presentation_routine);
 

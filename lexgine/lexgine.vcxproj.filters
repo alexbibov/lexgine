@@ -67,6 +67,9 @@
     <Filter Include="core\dx\dxcompilation">
       <UniqueIdentifier>{797ae9dd-0a12-4ffa-9ce1-98f268bfd560}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd_party\imgui">
+      <UniqueIdentifier>{428131e5-4acf-41ef-87ea-b29a1889e496}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="osinteraction\keyboard.h">
@@ -414,6 +417,27 @@
     <ClInclude Include="core\logging_streams.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="core\dx\d3d12\vertex_buffer_binding.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\imgui\imconfig.h">
+      <Filter>3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\imgui\imgui.h">
+      <Filter>3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\imgui\imgui_internal.h">
+      <Filter>3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\imgui\imstb_rectpack.h">
+      <Filter>3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\imgui\imstb_textedit.h">
+      <Filter>3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\imgui\imstb_truetype.h">
+      <Filter>3rd_party\imgui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -649,6 +673,21 @@
     </ClCompile>
     <ClCompile Include="core\logging_streams.cpp">
       <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\vertex_buffer_binding.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\3rd_party\imgui\imgui.cpp">
+      <Filter>3rd_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\3rd_party\imgui\imgui_demo.cpp">
+      <Filter>3rd_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\3rd_party\imgui\imgui_draw.cpp">
+      <Filter>3rd_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\3rd_party\imgui\imgui_widgets.cpp">
+      <Filter>3rd_party\imgui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

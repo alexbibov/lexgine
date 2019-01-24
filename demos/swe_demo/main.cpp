@@ -78,19 +78,19 @@ public:
 public:
     bool keyDown(SystemKey key) override
     {
-        std::cout << "key with code " << static_cast<uint32_t>(key) << " pressed" << std::endl;
+        // std::cout << "key with code " << static_cast<uint32_t>(key) << " pressed" << std::endl;
         return true;
     }
 
     bool keyUp(SystemKey key) override
     {
-        std::cout << "key with code " << static_cast<uint32_t>(key) << " released" << std::endl;
+        // std::cout << "key with code " << static_cast<uint32_t>(key) << " released" << std::endl;
         return true;
     }
 
     bool character(wchar_t char_key) override
     {
-        std::cout << "character " << char_key << " received" << std::endl;
+        // std::cout << "character " << char_key << " received" << std::endl;
         return true;
     }
 
@@ -101,13 +101,13 @@ public:
         switch (button)
         {
         case lexgine::osinteraction::windows::MouseButtonListener::MouseButton::left:
-            std::cout << "left mouse button pressed" << std::endl;
+            // std::cout << "left mouse button pressed" << std::endl;
             break;
         case lexgine::osinteraction::windows::MouseButtonListener::MouseButton::middle:
-            std::cout << "middle mouse button pressed" << std::endl;
+            // std::cout << "middle mouse button pressed" << std::endl;
             break;
         case lexgine::osinteraction::windows::MouseButtonListener::MouseButton::right:
-            std::cout << "right mouse button pressed" << std::endl;
+            //std::cout << "right mouse button pressed" << std::endl;
             break;
         }
         return true;
@@ -118,13 +118,13 @@ public:
         switch (button)
         {
         case lexgine::osinteraction::windows::MouseButtonListener::MouseButton::left:
-            std::cout << "left mouse button released" << std::endl;
+            // std::cout << "left mouse button released" << std::endl;
             break;
         case lexgine::osinteraction::windows::MouseButtonListener::MouseButton::middle:
-            std::cout << "middle mouse button released" << std::endl;
+            // std::cout << "middle mouse button released" << std::endl;
             break;
         case lexgine::osinteraction::windows::MouseButtonListener::MouseButton::right:
-            std::cout << "right mouse button released" << std::endl;
+            // std::cout << "right mouse button released" << std::endl;
             break;
         }
         return true;
@@ -132,7 +132,7 @@ public:
 
     bool wheelMove(double move_delta, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
     {
-        std::cout << "mouse wheel moved, delta=" << move_delta << std::endl;
+        // std::cout << "mouse wheel moved, delta=" << move_delta << std::endl;
         return true;
     }
 
@@ -140,19 +140,19 @@ public:
 
     bool move(uint16_t x, uint16_t y, ControlKeyFlag const& control_key_flag) override
     {
-        std::cout << "mouse moves at position (" << x << "," << y << ")" << std::endl;
+        // std::cout << "mouse moves at position (" << x << "," << y << ")" << std::endl;
         return true;
     }
 
     bool enter_client_area() override
     {
-        std::cout << "mouse enters client area" << std::endl;
+        // std::cout << "mouse enters client area" << std::endl;
         return true;
     }
 
     bool leave_client_area() override
     {
-        std::cout << "mouse leaves client area" << std::endl;
+        // std::cout << "mouse leaves client area" << std::endl;
         return true;
     }
 
@@ -160,19 +160,19 @@ public:
 
     bool minimized() override
     {
-        std::cout << "window has been minimized" << std::endl;
+        // std::cout << "window has been minimized" << std::endl;
         return true;
     }
 
     bool maximized(uint16_t new_width, uint16_t new_height) override
     {
-        std::cout << "window has been maximized. The new size is (" << new_width << ", " << new_height << ")" << std::endl;
+        // std::cout << "window has been maximized. The new size is (" << new_width << ", " << new_height << ")" << std::endl;
         return true;
     }
 
     bool size_changed(uint16_t new_width, uint16_t new_height) override
     {
-        std::cout << "window  size has been changed. The new size is (" << new_width << ", " << new_height << ")" << std::endl;
+        // std::cout << "window  size has been changed. The new size is (" << new_width << ", " << new_height << ")" << std::endl;
         return true;
     }
 
