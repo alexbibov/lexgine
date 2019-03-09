@@ -42,7 +42,7 @@ void CommandQueue::executeCommandLists(CommandList* command_list_array, size_t n
 
     m_command_queue->ExecuteCommandLists(static_cast<UINT>(num_command_lists), native_command_lists.data());
     
-    Signal const* job_completion_signal_ptr = CommandListAttorney<CommandQueue>::getJobCompletionSignalPtrForCommandList(last_cmd_list);
+    Signal* job_completion_signal_ptr = CommandListAttorney<CommandQueue>::getJobCompletionSignalPtrForCommandList(last_cmd_list);
     job_completion_signal_ptr->signalFromGPU(*this);    // signal job completion
 }
 
@@ -53,7 +53,7 @@ void CommandQueue::executeCommandList(CommandList& command_list) const
     ID3D12CommandList* native_command_list = command_list.native().Get();
     m_command_queue->ExecuteCommandLists(1U, &native_command_list);
 
-    Signal const* job_completion_signal_ptr = CommandListAttorney<CommandQueue>::getJobCompletionSignalPtrForCommandList(command_list);
+    Signal* job_completion_signal_ptr = CommandListAttorney<CommandQueue>::getJobCompletionSignalPtrForCommandList(command_list);
     job_completion_signal_ptr->signalFromGPU(*this);    // signal job completion
 }
 
@@ -77,7 +77,7 @@ void CommandQueue::setStringName(std::string const& entity_string_name)
     );
 }
 
-void CommandQueue::signal(Fence const& fence) const
+void CommandQueue::signal(Fence& fence) const
 {
     FenceAttorney<CommandQueue>::signalFenceFromGPU(fence, *this);
 }

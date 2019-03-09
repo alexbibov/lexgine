@@ -43,14 +43,14 @@ public:
 private:
     CommandAllocatorRing(Device& device, CommandType allocated_command_type);
     ComPtr<ID3D12CommandAllocator> spin();    //! moves ring position to the next allocator while making sure this next allocator is available for reuse
-    void attachSignal(Signal const& signal);    //! associates currently active allocator with provided signaling fence
+    void attachSignal(Signal& signal);    //! associates currently active allocator with provided signaling fence
     ComPtr<ID3D12CommandAllocator> allocator() const;    //! returns COM pointer for the currently active command allocator
 
 private:
     struct signaling_allocator
     {
         ComPtr<ID3D12CommandAllocator> command_allocator;
-        Signal const* signal_ptr;
+        Signal* signal_ptr;
         uint64_t signal_value;
     };
 
@@ -76,7 +76,7 @@ private:
         return parent_command_allocator_ring.spin();
     }
 
-    static void attachSignalToCommandAllocatorRing(CommandAllocatorRing& parent_command_allocator_ring, Signal const& signal)
+    static void attachSignalToCommandAllocatorRing(CommandAllocatorRing& parent_command_allocator_ring, Signal& signal)
     {
         parent_command_allocator_ring.attachSignal(signal);
     }
@@ -86,7 +86,7 @@ private:
         return parent_command_allocator_ring.m_signaling_allocators[parent_command_allocator_ring.m_current_index].command_allocator;
     }
 
-    static Signal const* getCurrentJobCompletionSignalPtrFromCommandAllocatorRing(CommandAllocatorRing const& parent_command_allocator_ring)
+    static Signal* getCurrentJobCompletionSignalPtrFromCommandAllocatorRing(CommandAllocatorRing& parent_command_allocator_ring)
     {
         return parent_command_allocator_ring.m_signaling_allocators[parent_command_allocator_ring.m_current_index].signal_ptr;
     }

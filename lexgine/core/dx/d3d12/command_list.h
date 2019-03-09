@@ -198,8 +198,8 @@ private:
     CommandList(Device& device, CommandType command_workload_type, uint32_t node_mask, 
         FenceSharing command_list_sync_mode = FenceSharing::none, PipelineState const* initial_pipeline_state = nullptr);
 
-    void defineSignalingCommandList(CommandList const& signaling_command_list);
-    Signal const* getJobCompletionSignalPtr() const;
+    void defineSignalingCommandList(CommandList& signaling_command_list);
+    Signal* getJobCompletionSignalPtr();
 
 private:
     CommandAllocatorRing m_allocator_ring;    //!< command allocator to which the command list belongs
@@ -228,12 +228,12 @@ template<> class CommandListAttorney<CommandQueue>
     friend class CommandQueue;
 
 private:
-    static void defineSignalingCommandListForTargetCommandList(CommandList& target_command_list, CommandList const& signaling_command_list)
+    static void defineSignalingCommandListForTargetCommandList(CommandList& target_command_list, CommandList& signaling_command_list)
     {
         target_command_list.defineSignalingCommandList(signaling_command_list);
     }
 
-    static Signal const* getJobCompletionSignalPtrForCommandList(CommandList const& parent_command_list)
+    static Signal* getJobCompletionSignalPtrForCommandList(CommandList& parent_command_list)
     {
         return parent_command_list.getJobCompletionSignalPtr();
     }
