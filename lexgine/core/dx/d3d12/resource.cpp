@@ -257,3 +257,11 @@ D3D12_CLEAR_VALUE ResourceOptimizedClearValue::native() const
     return rv;
 }
 
+CommittedResource::CommittedResource(Device const& device, ResourceState const& initial_state,
+    misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
+    ResourceDescriptor const& descriptor)
+{
+    m_native_device = device.native();
+    LEXGINE_THROW_ERROR_IF_FAILED(this, 
+        m_native_device->CreateCommittedResource())
+}

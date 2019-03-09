@@ -15,10 +15,10 @@
 namespace lexgine::core::dx::d3d12
 {
 
-class UploadBufferBlock final
+class UploadDataBlock final
 {
-    friend class UploadBufferAllocator;
-    friend class Allocator<UploadBufferBlock>::memory_block_type;
+    friend class UploadDataAllocator;
+    friend class Allocator<UploadDataBlock>::memory_block_type;
 
 public:
     size_t capacity() const;
@@ -28,29 +28,27 @@ public:
     uint32_t offset() const;  //! returns offset of the starting address of the allocation within the upload buffer
 
 private:
-    UploadBufferBlock(Signal const& tracking_signal, void* mapped_gpu_buffer_addr,
+    UploadDataBlock(UploadDataAllocator const& allocator, void* mapped_gpu_buffer_addr,
         uint64_t signal_value, uint32_t allocation_begin, uint32_t allocation_end);
 
 private:
-    Signal const& m_tracking_signal;
+    UploadDataAllocator const& m_allocator;
     unsigned char* m_mapped_gpu_buffer_addr;
     uint64_t m_controlling_signal_value;
     uint32_t m_allocation_begin;
     uint32_t m_allocation_end;
 };
 
-class UploadBufferAllocator : public Allocator<UploadBufferBlock>,
+class UploadDataAllocator : public Allocator<UploadDataBlock>,
     public NamedEntity<class_names::D3D12_UploadBufferAllocator>
 {
 public:
-    UploadBufferAllocator(Globals& globals, 
+    UploadDataAllocator(Globals& globals, 
         uint64_t offset_from_heap_start, size_t upload_buffer_size);
 
-    virtual ~UploadBufferAllocator();
+    virtual ~UploadDataAllocator();
 
     address_type allocate(size_t size_in_bytes, bool is_blocking_call = true);
-
-    void signalAllocator(CommandQueue const& signalling_queue) const;
 
     uint64_t completedWork() const;
     uint64_t scheduledWork() const;
@@ -62,10 +60,13 @@ private:
     using list_of_allocations = std::list<memory_block_type>;
 
 private:
-    DxResourceFactory& m_dx_resource_factory;
-    Device& m_device;
+    virtual void waitUntilControllingSignalValue(uint64_t value) const = 0;
+    virtual void waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const = 0;
+    virtual uint64_t nextValueOfControllingSignal() const = 0;
+    virtual uint64_t lastSignaledValueOfControllingSignal() const = 0;
+
+private:
     Heap& m_upload_heap;
-    Signal m_progress_tracking_signal;
     PlacedResource m_upload_buffer;
 
     std::mutex m_access_semaphore;
@@ -76,6 +77,45 @@ private:
 
     void* m_upload_buffer_mapping;
 };
+
+
+class DedicatedUploadDataStreamAllocator : public UploadDataAllocator
+{
+public:
+    DedicatedUploadDataStreamAllocator(Globals& globals,
+        uint64_t offset_from_heap_start, size_t upload_buffer_size);
+
+    void signalAllocator(CommandQueue const& signalling_queue) const;
+
+private:
+    void waitUntilControllingSignalValue(uint64_t value) const override;
+    void waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const override;
+    uint64_t nextValueOfControllingSignal() const override;
+    uint64_t lastSignaledValueOfControllingSignal() const override;
+
+private:
+    Signal m_progress_tracking_signal;
+};
+
+class PerFrameUploadDataStreamAllocator : public UploadDataAllocator
+{
+public:
+    PerFrameUploadDataStreamAllocator(Globals& globals,
+        uint64_t offset_from_heap_start, uint64_t upload_buffer_size,
+        FrameProgressTracker const& frame_progress_tracker);
+
+    FrameProgressTracker const& frameProgressTracker() const;
+
+private:
+    void waitUntilControllingSignalValue(uint64_t value) const override;
+    void waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const override;
+    uint64_t nextValueOfControllingSignal() const override;
+    uint64_t lastSignaledValueOfControllingSignal() const override;
+
+private:
+    FrameProgressTracker const& m_frame_progress_tracker;
+};
+
 
 }
 

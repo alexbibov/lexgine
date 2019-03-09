@@ -12,12 +12,11 @@ template<> struct bool_to_uint32<bool> { using type = uint32_t; };
 
 //! helper: adds non-boolean vector entry into the constant buffer
 template<typename T>
-constant_buffer_entry<T> add_vector(std::string const& name, T const& vector)
+constant_buffer_entry<T> add_vector(std::string const& name, T const& vector, void* destination_buffer)
 {
     size_t const entry_size = T::dimension * sizeof(bool_to_uint32<T::value_type>::type);
-    DataChunk* p_data_chunk = new DataChunk{ entry_size };
-    constant_buffer_hlsl_type_raw_data_converter<T>::convert(p_data_chunk->data(), vector);
-    return constant_buffer_entry<T>{*this, add_entry(name, p_data_chunk, entry_size), p_data_chunk->size()};
+    constant_buffer_hlsl_type_raw_data_converter<T>::convert(destination_buffer, vector);
+    return constant_buffer_entry<T>{*this, add_entry(name, data_chunk, entry_size), data_chunk->size()};
 }
 
 //! helper: adds vector array into the constant buffer
@@ -26,9 +25,9 @@ constant_buffer_entry<std::vector<T>> add_vector_array(std::string const& name, 
 {
     uint8_t const aligned_dimension = T::dimension <= 2U ? T::dimension : 4U;
     size_t const entry_size = aligned_dimension * sizeof(bool_to_uint32<T::value_type>::type) * vector_array.size() - (T:dimension == 3);
-    DataChunk* p_data_chunk = new DataChunk{ entry_size };
-    constant_buffer_hlsl_type_raw_data_converter<T>::convert(p_data_chunk->data(), vector_array);
-    return constant_buffer_entry<std::vector<T>>{*this, add_entry(name, p_data_chunk, T::dimension * sizeof(bool_to_uint32<T::value_type>::type)), p_data_chunk->size()};
+    DataChunk* data_chunk = std::unique_ptr<DataChunk>{ entry_size };
+    constant_buffer_hlsl_type_raw_data_converter<T>::convert(data_chunk->data(), vector_array);
+    return constant_buffer_entry<std::vector<T>>{*this, add_entry(name, data_chunk, T::dimension * sizeof(bool_to_uint32<T::value_type>::type)), data_chunk->size()};
 }
 
 //! helper: adds new matrix entry into the constant buffer
@@ -38,9 +37,9 @@ constant_buffer_entry<math::shader_matrix_type<T, nrows, ncolumns>> add_matrix(s
 {
     uint8_t const aligned_column_bucket_size = nrows <= 2U ? nrows : 4U;
     size_t const entry_size = sizeof(bool_to_uint32<T>::type) * aligned_column_bucket_size * ncolumns - (nrows == 3);
-    DataChunk* p_data_chunk = new DataChunk{ entry_size };
-    constant_buffer_hlsl_type_raw_data_converter<T>::convert(p_data_chunk->data(), hlsl_matrix);
-    return constant_buffer_entry<math::shader_matrix_type<T, nrows, ncolumns>>{*this, add_entry(name, p_data_chunk, nrows * sizeof(bool_to_uint32<T>::type)), p_data_chunk->size()};
+    DataChunk* data_chunk = std::unique_ptr<DataChunk>{ entry_size };
+    constant_buffer_hlsl_type_raw_data_converter<T>::convert(data_chunk->data(), hlsl_matrix);
+    return constant_buffer_entry<math::shader_matrix_type<T, nrows, ncolumns>>{*this, add_entry(name, data_chunk, nrows * sizeof(bool_to_uint32<T>::type)), data_chunk->size()};
 }
 
 //! helper: adds array of matrices into the constant buffer
@@ -50,7 +49,7 @@ constant_buffer_entry<std::vector<math::shader_matrix_type<T, nrows, ncolumns>>>
 {
     uint8_t const aligned_column_bucket_size = nrows <= 2U ? nrows : 4U;
     size_t const entry_size = sizeof(bool_to_uint32<T>::type) * aligned_column_bucket_size * ncolumns * hlsl_matrix_array.size() - (nrows == 3);
-    DataChunk* p_data_chunk = new DataChunk{ entry_size };
-    constant_buffer_hlsl_type_raw_data_converter<T>::convert(p_data_chunk->data(), hlsl_matrix_array);
-    return constant_buffer_entry<std::vector<math::shader_matrix_type<T, nrows, ncolumns>>>{*this, add_entry(name, p_data_chunk, nrows * sizeof(bool_to_uint32<T>::type)), p_data_chunk->size()};
+    DataChunk* data_chunk = std::unique_ptr<DataChunk>{ entry_size };
+    constant_buffer_hlsl_type_raw_data_converter<T>::convert(data_chunk->data(), hlsl_matrix_array);
+    return constant_buffer_entry<std::vector<math::shader_matrix_type<T, nrows, ncolumns>>>{*this, add_entry(name, data_chunk, nrows * sizeof(bool_to_uint32<T>::type)), data_chunk->size()};
 }

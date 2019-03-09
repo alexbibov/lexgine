@@ -21,6 +21,7 @@ extern char const D3D12_DescriptorHeap[];
 extern char const D3D12_Heap[];
 extern char const D3D12_Resource[];
 extern char const D3D12_ConstantBuffer[];
+extern char const D3D12_ConstantBufferReflection[];
 extern char const D3D12_ResourceDataUploader[];
 extern char const Task[];
 extern char const TaskGraph[];

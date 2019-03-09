@@ -176,11 +176,9 @@ protected:
 };
 
 
-//! Wrapper over placed resource context
+//! Wrapper over placed resource
 class PlacedResource final : public Resource
 {
-    // template<size_t> friend class ResourceBarrier;    // resource state transitions are allowed to change the current resource state, which is otherwise hidden
-
 public:
     /*! Creates placed resource in provided @param heap at the given @param offset. Note that @param initial_state and @param optimized_clear_value
      may be overridden to certain values depending on the type of the heap and on the dimension of the resource being created. THROWS
@@ -196,6 +194,27 @@ private:
     uint64_t m_offset;    //!< offset to the resource in the owning heap
 };
 
+
+//! Wrapper over committed resource
+class CommittedResource final : public Resource
+{
+public:
+    CommittedResource(Device const& device, ResourceState const& initial_state, 
+        misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
+        ResourceDescriptor const& descriptor, AbstractHeapType resource_memory_type);
+
+    CommittedResource(Device const& device, ResourceState const& initial_state,
+        misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
+        ResourceDescriptor const& descriptor, CPUPageProperty cpu_page_property,
+        GPUMemoryPool gpu_memory_pool);
+
+private:
+    Device& m_device;
+    CPUPageProperty m_cpu_page_property;
+    GPUMemoryPool m_gpu_memory_pool;
+    uint32_t m_node_mask;
+    uint32_t m_node_exposure_mask;
+};
 
 
 

@@ -10,7 +10,8 @@
 #include "device.h"
 #include "command_list.h"
 #include "rendering_target.h"
-#include "profiler.h"
+
+#include "frame_progress_tracker.h"
 
 
 using namespace lexgine::core;
@@ -58,9 +59,6 @@ public:
 private:    // required by the AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t current_frame_index) override
     {
-        PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
-        "CPU job for frame %i start", current_frame_index);
-
         auto& target = *m_rendering_tasks.m_current_rendering_target_ptr;
 
         m_command_list.reset();
@@ -76,6 +74,8 @@ private:    // required by the AbstractTask interface
 
         m_command_list.close();
 
+        FrameProgressTrackerAttorney<RenderingTasks>::signalGPUBeginFrame(m_rendering_tasks.m_frame_progress_tracker, 
+            m_rendering_tasks.m_device.defaultCommandQueue());
         m_rendering_tasks.m_device.defaultCommandQueue().executeCommandList(m_command_list);
 
         return true;
@@ -116,10 +116,9 @@ private:    // required by the AbstractTask interface
 
         m_command_list.close();
         m_rendering_tasks.m_device.defaultCommandQueue().executeCommandList(m_command_list);
+        FrameProgressTrackerAttorney<RenderingTasks>::signalGPUEndFrame(m_rendering_tasks.m_frame_progress_tracker,
+            m_rendering_tasks.m_device.defaultCommandQueue());
         
-        PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
-            "CPU job for frame %i finish", current_frame_index);
-
         return true;
     }
 
@@ -137,15 +136,13 @@ private:
 RenderingTasks::RenderingTasks(Globals& globals)
     : m_dx_resources{ *globals.get<DxResourceFactory>() }
     , m_device{ *globals.get<Device>() }
+    , m_frame_progress_tracker{ m_dx_resources.retrieveFrameProgressTracker(m_device) }
 
     , m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" }
     , m_task_sink{ m_task_graph, convertFileStreamsToGenericStreams(globals.get<LoggingStreams>()->worker_logging_streams), "RenderingTasksSink" }
 
     , m_frame_begin_task{ new FrameBeginTask{*this, math::Vector4f{0.f, 0.f, 0.f, 0.f}} }
     , m_frame_end_task{ new FrameEndTask{*this} }
-
-    , m_end_of_frame_cpu_wall{ m_device }
-    , m_end_of_frame_gpu_wall{ m_device }
 {
     m_task_graph.setRootNodes({ m_frame_begin_task.get() });
     m_frame_begin_task->addDependent(*m_frame_end_task);
@@ -162,25 +159,16 @@ RenderingTasks::~RenderingTasks()
 void RenderingTasks::render(RenderingTarget& target, 
     std::function<void(RenderingTarget const&)> const& presentation_routine)
 {
+    FrameProgressTrackerAttorney<RenderingTasks>::signalCPUBeginFrame(m_frame_progress_tracker);
     m_current_rendering_target_ptr = &target;
-    m_task_sink.submit(m_end_of_frame_cpu_wall.lastValueSignaled());
+    m_task_sink.submit(m_frame_progress_tracker.currentFrameIndex());
     presentation_routine(target);
-
-    m_end_of_frame_cpu_wall.signalFromCPU();
-    m_end_of_frame_gpu_wall.signalFromGPU(m_device.defaultCommandQueue());
+    FrameProgressTrackerAttorney<RenderingTasks>::signalCPUEndFrame(m_frame_progress_tracker);
 }
 
-uint64_t RenderingTasks::dispatchedFramesCount() const
+
+FrameProgressTracker const& RenderingTasks::frameProgressTracker() const
 {
-    return m_end_of_frame_cpu_wall.lastValueSignaled();
+    return m_frame_progress_tracker;
 }
 
-uint64_t RenderingTasks::completedFramesCount() const
-{
-    return m_end_of_frame_gpu_wall.lastValueSignaled();
-}
-
-void RenderingTasks::waitForFrameCompletion(uint64_t frame_idx) const
-{
-    m_end_of_frame_gpu_wall.waitUntilValue(frame_idx + 1);
-}

@@ -9,6 +9,7 @@
 #include "heap.h"
 #include "heap_resource_placer.h"
 #include "rendering_tasks.h"
+#include "frame_progress_tracker.h"
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx;
@@ -93,14 +94,15 @@ void SwapChainLink::render()
     {
         uint32_t current_back_buffer_index = m_linked_swap_chain.getCurrentBackBufferIndex();
         RenderingTarget& target = m_targets[current_back_buffer_index];
+        FrameProgressTracker const& frame_progress_tracker = m_linked_rendering_tasks_ptr->frameProgressTracker();
 
-        uint64_t frame_idx = m_linked_rendering_tasks_ptr->dispatchedFramesCount();
+        uint64_t frame_idx = frame_progress_tracker.currentFrameIndex();
         uint64_t competing_frame_idx = frame_idx - m_linked_swap_chain.backBufferCount();
 
         if (frame_idx >= m_linked_swap_chain.backBufferCount()
-            && m_linked_rendering_tasks_ptr->completedFramesCount() < competing_frame_idx + 1)
+            && frame_progress_tracker.lastCompletedFrameIndex() < competing_frame_idx)
         {
-            m_linked_rendering_tasks_ptr->waitForFrameCompletion(competing_frame_idx);
+            frame_progress_tracker.waitForFrameCompletion(competing_frame_idx);
         }
 
         m_linked_rendering_tasks_ptr->render(target, m_presenter);

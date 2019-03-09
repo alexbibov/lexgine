@@ -5,7 +5,7 @@
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
 #include "lexgine/core/dx/dxcompilation/dx_compiler_proxy.h"
-#include "lexgine/core/dx/d3d12/descriptor_heap.h"
+
 
 #include <vector>
 #include <map>
@@ -29,6 +29,7 @@ public:
     
     DescriptorHeap& retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id) const;
     Heap& retrieveUploadHeap(Device const& device);
+    FrameProgressTracker& retrieveFrameProgressTracker(Device const& device);
 
     dxgi::HwAdapter const* retrieveHwAdapterOwningDevicePtr(Device const& device) const;
 
@@ -42,6 +43,7 @@ private:
     dxcompilation::DXCompilerProxy m_dxc_proxy;
     std::map<Device const*, descriptor_heap_page_pool> m_descriptor_heaps;
     std::map<Device const*, Heap> m_upload_heaps;
+    std::map<Device const*, FrameProgressTracker> m_frame_progress_trackers;
 };
 
 }

@@ -21,6 +21,7 @@ extern char const D3D12_DescriptorHeap[] = "lexgine::core::dx::d3d12::Descriptor
 extern char const D3D12_Heap[] = "lexgine::core::dx::d3d12::Heap";
 extern char const D3D12_Resource[] = "lexgine::core::dx::d3d12::Resource";
 extern char const D3D12_ConstantBuffer[] = "lexgine::core::dx::d3d12::ConstantBuffer";
+extern char const D3D12_ConstantBufferReflection[] = "lexgine::core::dx::d3d12::ConstantBufferReflection";
 extern char const D3D12_ResourceDataUploader[] = "lexgine::core::dx:d3d12::ResourceDataUploader";
 extern char const Task[] = "lexgine::core::concurrency::AbstractTask";
 extern char const TaskGraph[] = "lexgine::core::concurrency::TaskGraph";
