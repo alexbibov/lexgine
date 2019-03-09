@@ -179,7 +179,7 @@ ResourceDescriptor const& Resource::descriptor() const
 
 
 
-PlacedResource::PlacedResource(Heap& heap, uint64_t heap_offset, 
+PlacedResource::PlacedResource(Heap const& heap, uint64_t heap_offset, 
     ResourceState const& initial_state, 
     misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value, 
     ResourceDescriptor const& descriptor):
@@ -202,7 +202,7 @@ PlacedResource::PlacedResource(Heap& heap, uint64_t heap_offset,
         S_OK);
 }
 
-Heap& PlacedResource::heap() const
+Heap const& PlacedResource::heap() const
 {
     return m_heap;
 }
@@ -257,11 +257,4 @@ D3D12_CLEAR_VALUE ResourceOptimizedClearValue::native() const
     return rv;
 }
 
-CommittedResource::CommittedResource(Device const& device, ResourceState const& initial_state,
-    misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
-    ResourceDescriptor const& descriptor)
-{
-    m_native_device = device.native();
-    LEXGINE_THROW_ERROR_IF_FAILED(this, 
-        m_native_device->CreateCommittedResource())
-}
+

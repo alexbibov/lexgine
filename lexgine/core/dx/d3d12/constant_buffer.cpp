@@ -4,7 +4,7 @@
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core;
 
-
+#if 0
 ConstantBuffer::ConstantBuffer() :
     m_current_offset{ 0 }
 {
@@ -39,3 +39,4 @@ uint32_t ConstantBuffer::add_entry(std::string const& name, std::unique_ptr<Data
 
     return aligned_offset;
 }
+#endif

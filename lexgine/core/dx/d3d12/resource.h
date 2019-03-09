@@ -183,14 +183,14 @@ public:
     /*! Creates placed resource in provided @param heap at the given @param offset. Note that @param initial_state and @param optimized_clear_value
      may be overridden to certain values depending on the type of the heap and on the dimension of the resource being created. THROWS
      */
-    PlacedResource(Heap& heap, uint64_t heap_offset, ResourceState const& initial_state,
+    PlacedResource(Heap const& heap, uint64_t heap_offset, ResourceState const& initial_state,
         misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value, ResourceDescriptor const& descriptor);
 
-    Heap& heap() const;    //! returns the heap, in which the resource resides
+    Heap const& heap() const;    //! returns the heap, in which the resource resides
     uint64_t offset() const;    //! returns offset to the resource in the owning heap    
 
 private:
-    Heap& m_heap;    //!< reference to the heap, in which the resource resides
+    Heap const& m_heap;    //!< reference to the heap, in which the resource resides
     uint64_t m_offset;    //!< offset to the resource in the owning heap
 };
 

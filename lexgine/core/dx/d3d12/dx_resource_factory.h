@@ -28,8 +28,8 @@ public:
     DebugInterface const* debugInterface() const;
     
     DescriptorHeap& retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id) const;
-    Heap& retrieveUploadHeap(Device const& device);
-    FrameProgressTracker& retrieveFrameProgressTracker(Device const& device);
+    Heap const& retrieveUploadHeap(Device const& device) const;
+    FrameProgressTracker const& retrieveFrameProgressTracker(Device const& device) const;
 
     dxgi::HwAdapter const* retrieveHwAdapterOwningDevicePtr(Device const& device) const;
 

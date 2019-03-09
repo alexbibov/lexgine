@@ -26,7 +26,7 @@ void Signal::signalFromCPU()
     m_fence.signalFromCPU();
 }
 
-void Signal::signalFromGPU(CommandQueue const& signaling_queue) const
+void Signal::signalFromGPU(CommandQueue const& signaling_queue)
 {
     signaling_queue.signal(m_fence);
 }

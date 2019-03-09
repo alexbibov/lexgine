@@ -66,7 +66,7 @@ private:
     virtual uint64_t lastSignaledValueOfControllingSignal() const = 0;
 
 private:
-    Heap& m_upload_heap;
+    Heap const& m_upload_heap;
     PlacedResource m_upload_buffer;
 
     std::mutex m_access_semaphore;

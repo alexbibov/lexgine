@@ -48,7 +48,8 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
 
         m_max_combined_cache_size = 1024ull * 1024 * 1024 * 4;    // defaults to 4Gbs
         
-        m_upload_heap_capacity = 1024 * 1024 * 256;    // 256MBs by default
+        m_upload_heap_capacity = 1024 * 1024 * 512;    // 512MBs by default
+        m_streamed_constant_data_partitioning = .125f;    // 12.5% of the upload heap capacity by default is dedicated to constant data streaming
         m_enable_async_compute = true;
         m_enable_async_copy = true;
         m_max_frames_in_flight = 6;
@@ -212,6 +213,17 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
         {
             yield_warning_log_message("upload_heap_capacity", 
                 std::to_string(m_upload_heap_capacity / 1024 / 1024) + "MBs");
+        }
+
+        if ((p = document.find("streamed_constant_data_partitioning")) != document.end()
+            && p->is_number_float())
+        {
+            m_streamed_constant_data_partitioning = p->get<float>();
+        }
+        else
+        {
+            yield_warning_log_message("streamed_constant_data_partitioning",
+                std::to_string(.125f * 100) + "%");
         }
 
         if ((p = document.find("enable_async_compute")) != document.end()
@@ -410,6 +422,7 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
         { "combined_cache_name", m_combined_cache_name },
         { "maximal_combined_cache_size", m_max_combined_cache_size },
         { "upload_heap_capacity", m_upload_heap_capacity },
+        { "streamed_constant_data_partitioning", m_streamed_constant_data_partitioning },
         { "enable_async_compute", m_enable_async_compute },
         { "enable_async_copy", m_enable_async_copy },
         { "max_frames_in_flight", m_max_frames_in_flight },
@@ -487,6 +500,11 @@ uint32_t GlobalSettings::getDescriptorHeapPageCount(DescriptorHeapType descripto
 uint32_t GlobalSettings::getUploadHeapCapacity() const
 {
     return m_upload_heap_capacity;
+}
+
+float GlobalSettings::getStreamedConstantDataPartitioning() const
+{
+    return m_streamed_constant_data_partitioning;
 }
 
 bool GlobalSettings::isAsyncComputeEnabled() const

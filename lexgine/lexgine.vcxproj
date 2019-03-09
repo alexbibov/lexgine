@@ -172,6 +172,7 @@
     <ClCompile Include="core\dx\d3d12\constant_buffer.cpp" />
     <ClCompile Include="core\dx\d3d12\constant_buffer_reflection.cpp" />
     <ClCompile Include="core\dx\d3d12\cbv_descriptor.cpp" />
+    <ClCompile Include="core\dx\d3d12\constant_data_stream.cpp" />
     <ClCompile Include="core\dx\d3d12\d3d12_pso_xml_parser.cpp" />
     <ClCompile Include="core\dx\d3d12\debug_interface.cpp" />
     <ClCompile Include="core\dx\d3d12\descriptor_table_builders.cpp" />

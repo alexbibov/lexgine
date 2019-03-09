@@ -590,12 +590,12 @@ CommandList::CommandList(Device& device,
     close();
 }
 
-void CommandList::defineSignalingCommandList(CommandList const& signaling_command_list)
+void CommandList::defineSignalingCommandList(CommandList& signaling_command_list)
 {
     CommandAllocatorRingAttorney<CommandList>::attachSignalToCommandAllocatorRing(m_allocator_ring, signaling_command_list.m_signal);
 }
 
-Signal const* CommandList::getJobCompletionSignalPtr() const
+Signal* CommandList::getJobCompletionSignalPtr()
 {
     return CommandAllocatorRingAttorney<CommandList>::getCurrentJobCompletionSignalPtrFromCommandAllocatorRing(m_allocator_ring);
 }

@@ -101,12 +101,12 @@ DescriptorHeap& DxResourceFactory::retrieveDescriptorHeap(Device const& device, 
     return *m_descriptor_heaps.at(&device)[static_cast<size_t>(descriptor_heap_type)][page_id];
 }
 
-Heap& DxResourceFactory::retrieveUploadHeap(Device const& device)
+Heap const& DxResourceFactory::retrieveUploadHeap(Device const& device) const
 {
     return m_upload_heaps.at(&device);
 }
 
-FrameProgressTracker& DxResourceFactory::retrieveFrameProgressTracker(Device const& device)
+FrameProgressTracker const& DxResourceFactory::retrieveFrameProgressTracker(Device const& device) const
 {
     return m_frame_progress_trackers.at(&device);
 }

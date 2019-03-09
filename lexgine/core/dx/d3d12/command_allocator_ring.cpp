@@ -50,7 +50,7 @@ ComPtr<ID3D12CommandAllocator> CommandAllocatorRing::spin()
     return signal_desc.command_allocator;
 }
 
-void CommandAllocatorRing::attachSignal(Signal const& signal)
+void CommandAllocatorRing::attachSignal(Signal& signal)
 {
     auto& signal_desc = m_signaling_allocators[m_current_index];
     signal_desc.signal_ptr = &signal;

@@ -38,6 +38,7 @@ public:
     uint32_t getDescriptorHeapPageCapacity(dx::d3d12::DescriptorHeapType descriptor_heap_type) const;
     uint32_t getDescriptorHeapPageCount(dx::d3d12::DescriptorHeapType descriptor_heap_type) const;
     uint32_t getUploadHeapCapacity() const;
+    float getStreamedConstantDataPartitioning() const;    //! returns the portion of the upload heap dedicated to constant data streaming (cannot exceed 25% of the upload heap)
 
     bool isAsyncComputeEnabled() const;
     bool isAsyncCopyEnabled() const;
@@ -74,6 +75,7 @@ private:
     std::string m_combined_cache_name;
     uint64_t m_max_combined_cache_size;
     uint32_t m_upload_heap_capacity;
+    float m_streamed_constant_data_partitioning;
     bool m_enable_async_compute;
     bool m_enable_async_copy;
     uint16_t m_max_frames_in_flight;

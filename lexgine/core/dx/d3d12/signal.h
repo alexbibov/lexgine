@@ -19,7 +19,7 @@ public:
     FenceSharing fenceSharingMode() const;    //! Sharing mode of the underlying fence object
 
     void signalFromCPU();    //! Signals underlying fence object from the CPU side
-    void signalFromGPU(CommandQueue const& signaling_queue) const;    //! Signals underlying fence object from GPU side on the given GPU queue
+    void signalFromGPU(CommandQueue const& signaling_queue);    //! Signals underlying fence object from GPU side on the given GPU queue
 
     uint64_t lastValueSignaled() const;    //! Last value, which has been already signaled
     uint64_t nextValueOfSignal() const;    //! Returns the next value of the signal
