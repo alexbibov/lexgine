@@ -1,75 +1,74 @@
-#include "upload_buffer_allocator.h"
-
 #include "lexgine/core/globals.h"
-#include "lexgine/core/dx/d3d12/dx_resource_factory.h"
-#include "lexgine/core/dx/d3d12/heap.h"
-#include "lexgine/core/dx/d3d12/device.h"
 #include "lexgine/core/exception.h"
+
+#include "dx_resource_factory.h"
+#include "heap.h"
+#include "device.h"
+#include "frame_progress_tracker.h"
+
+#include "upload_buffer_allocator.h"
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
-size_t UploadBufferBlock::capacity() const
+size_t UploadDataBlock::capacity() const
 {
     return m_allocation_end - m_allocation_begin;
 }
 
-bool UploadBufferBlock::isInUse() const
+bool UploadDataBlock::isInUse() const
 {
-    return m_tracking_signal.lastValueSignaled() < m_controlling_signal_value;
+    return m_allocator.completedWork() < m_controlling_signal_value;
 }
 
-void* UploadBufferBlock::address() const
+void* UploadDataBlock::address() const
 {
     return m_mapped_gpu_buffer_addr + m_allocation_begin;
 }
 
-void* UploadBufferBlock::offsetted_address(uint32_t offset) const
+void* UploadDataBlock::offsetted_address(uint32_t offset) const
 {
     assert(m_allocation_begin + offset < m_allocation_end);
     return m_mapped_gpu_buffer_addr + m_allocation_begin + offset;
 }
 
-uint32_t UploadBufferBlock::offset() const
+uint32_t UploadDataBlock::offset() const
 {
     return m_allocation_begin;
 }
 
-UploadBufferBlock::UploadBufferBlock(Signal const& tracking_signal, void* mapped_gpu_buffer_addr,
-    uint64_t signal_value, uint32_t allocation_begin, uint32_t allocation_end):
-    m_tracking_signal{ tracking_signal },
-    m_mapped_gpu_buffer_addr{ static_cast<unsigned char*>(mapped_gpu_buffer_addr) },
-    m_controlling_signal_value{ signal_value },
-    m_allocation_begin{ allocation_begin },
-    m_allocation_end{ allocation_end }
+UploadDataBlock::UploadDataBlock(UploadDataAllocator const& allocator, void* mapped_gpu_buffer_addr,
+    uint64_t signal_value, uint32_t allocation_begin, uint32_t allocation_end)
+    : m_allocator{ allocator }
+    , m_mapped_gpu_buffer_addr{ static_cast<unsigned char*>(mapped_gpu_buffer_addr) }
+    , m_controlling_signal_value{ signal_value }
+    , m_allocation_begin{ allocation_begin }
+    , m_allocation_end{ allocation_end }
 {
 }
 
 
 
-UploadBufferAllocator::UploadBufferAllocator(Globals& globals, 
-    uint64_t offset_from_heap_start, size_t upload_buffer_size) :
-    m_dx_resource_factory{ *globals.get<DxResourceFactory>() },
-    m_device{ *globals.get<Device>() },
-    m_upload_heap{ m_dx_resource_factory.retrieveUploadHeap(m_device) },
-    m_progress_tracking_signal{ m_device, FenceSharing::none },
-    m_upload_buffer{ m_upload_heap, offset_from_heap_start, ResourceState::enum_type::generic_read,
-        misc::makeEmptyOptional<ResourceOptimizedClearValue>(), ResourceDescriptor::CreateBuffer(upload_buffer_size) },
-    m_last_allocation{ m_blocks.end() },
-    m_unpartitioned_chunk_size{ upload_buffer_size },
-    m_max_non_blocking_allocation_timeout{ globals.get<GlobalSettings>()->getMaxNonBlockingUploadBufferAllocationTimeout() }
+UploadDataAllocator::UploadDataAllocator(Globals& globals, 
+    uint64_t offset_from_heap_start, size_t upload_buffer_size)
+    : m_upload_heap{ globals.get<DxResourceFactory>()->retrieveUploadHeap(*globals.get<Device>()) }
+    , m_upload_buffer{ m_upload_heap, offset_from_heap_start, ResourceState::enum_type::generic_read,
+        misc::makeEmptyOptional<ResourceOptimizedClearValue>(), ResourceDescriptor::CreateBuffer(upload_buffer_size) }
+    , m_last_allocation{ m_blocks.end() }
+    , m_unpartitioned_chunk_size{ upload_buffer_size }
+    , m_max_non_blocking_allocation_timeout{ globals.get<GlobalSettings>()->getMaxNonBlockingUploadBufferAllocationTimeout() }
 {
     assert(offset_from_heap_start + upload_buffer_size <= m_upload_heap.capacity());
 
     m_upload_buffer_mapping = m_upload_buffer.map();
 }
 
-UploadBufferAllocator::~UploadBufferAllocator()
+UploadDataAllocator::~UploadDataAllocator()
 {
     m_upload_buffer.unmap();
 }
 
-UploadBufferAllocator::address_type UploadBufferAllocator::allocate(size_t size_in_bytes, bool is_blocking_call)
+UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_bytes, bool is_blocking_call)
 {
     if (size_in_bytes > m_upload_buffer.descriptor().width)
     {
@@ -94,8 +93,8 @@ UploadBufferAllocator::address_type UploadBufferAllocator::allocate(size_t size_
         end_of_new_allocation = static_cast<uint32_t>(allocation_begin + size_in_bytes);
         uint32_t allocation_end = end_of_new_allocation;
 
-        m_blocks.emplace_back(m_progress_tracking_signal, m_upload_buffer_mapping,
-            m_progress_tracking_signal.nextValueOfSignal(),
+        m_blocks.emplace_back(*this, m_upload_buffer_mapping,
+            nextValueOfControllingSignal(),
             allocation_begin, allocation_end);
 
         m_unpartitioned_chunk_size -= size_in_bytes;
@@ -124,14 +123,14 @@ UploadBufferAllocator::address_type UploadBufferAllocator::allocate(size_t size_
         {
             // allocation after the last block succeeded
 
-            if (is_blocking_call) m_progress_tracking_signal.waitUntilValue(controlling_signal_value);
-            else m_progress_tracking_signal.waitUntilValue(controlling_signal_value, m_max_non_blocking_allocation_timeout);
+            if (is_blocking_call) waitUntilControllingSignalValue(controlling_signal_value);
+            else waitUntilControllingSignalValue(controlling_signal_value, m_max_non_blocking_allocation_timeout);
 
             auto next_allocation = std::next(m_last_allocation);
             (*next_allocation)->m_allocation_begin = (*m_last_allocation)->m_allocation_end;
             end_of_new_allocation = (*next_allocation)->m_allocation_end = 
                 static_cast<uint32_t>((*next_allocation)->m_allocation_begin + size_in_bytes);
-            (*next_allocation)->m_controlling_signal_value = m_progress_tracking_signal.nextValueOfSignal();
+            (*next_allocation)->m_controlling_signal_value = nextValueOfControllingSignal();
 
             m_unpartitioned_chunk_size -= size_in_bytes - requested_space_counter;
             m_last_allocation = next_allocation;
@@ -159,12 +158,12 @@ UploadBufferAllocator::address_type UploadBufferAllocator::allocate(size_t size_
 
         if (requested_space_counter >= size_in_bytes)
         {
-            if (is_blocking_call) m_progress_tracking_signal.waitUntilValue(controlling_signal_value);
-            else m_progress_tracking_signal.waitUntilValue(controlling_signal_value, m_max_non_blocking_allocation_timeout);
+            if (is_blocking_call) waitUntilControllingSignalValue(controlling_signal_value);
+            else waitUntilControllingSignalValue(controlling_signal_value, m_max_non_blocking_allocation_timeout);
 
             auto next_allocation = m_blocks.begin();
             end_of_new_allocation = (*next_allocation)->m_allocation_end = static_cast<uint32_t>(size_in_bytes);
-            (*next_allocation)->m_controlling_signal_value = m_progress_tracking_signal.nextValueOfSignal();
+            (*next_allocation)->m_controlling_signal_value = nextValueOfControllingSignal();
 
             m_last_allocation = next_allocation;
             first_allocation_block_to_invalidate = std::next(next_allocation);
@@ -177,12 +176,12 @@ UploadBufferAllocator::address_type UploadBufferAllocator::allocate(size_t size_
     // are not any longer in use
     if (!allocation_successful)
     {
-        if (is_blocking_call) m_progress_tracking_signal.waitUntilValue((*m_last_allocation)->m_controlling_signal_value);
-        else m_progress_tracking_signal.waitUntilValue((*m_last_allocation)->m_controlling_signal_value, m_max_non_blocking_allocation_timeout);
+        if (is_blocking_call) waitUntilControllingSignalValue((*m_last_allocation)->m_controlling_signal_value);
+        else waitUntilControllingSignalValue((*m_last_allocation)->m_controlling_signal_value, m_max_non_blocking_allocation_timeout);
 
         m_last_allocation = m_blocks.begin();
         end_of_new_allocation = (*m_last_allocation)->m_allocation_end = static_cast<uint32_t>(size_in_bytes);
-        (*m_last_allocation)->m_controlling_signal_value = m_progress_tracking_signal.nextValueOfSignal();
+        (*m_last_allocation)->m_controlling_signal_value = nextValueOfControllingSignal();
 
         first_allocation_block_to_invalidate = std::next(m_last_allocation);
         one_past_last_allocation_block_to_invalidate = m_blocks.end();
@@ -206,27 +205,87 @@ UploadBufferAllocator::address_type UploadBufferAllocator::allocate(size_t size_
 
 }
 
-void UploadBufferAllocator::signalAllocator(CommandQueue const& signalling_queue) const
+uint64_t UploadDataAllocator::completedWork() const
 {
-    m_progress_tracking_signal.signalFromGPU(signalling_queue);
+    return lastSignaledValueOfControllingSignal();
 }
 
-uint64_t UploadBufferAllocator::completedWork() const
+uint64_t UploadDataAllocator::scheduledWork() const
 {
-    return m_progress_tracking_signal.lastValueSignaled();
+    return nextValueOfControllingSignal() - 1;
 }
 
-uint64_t UploadBufferAllocator::scheduledWork() const
-{
-    return m_progress_tracking_signal.nextValueOfSignal() - 1;
-}
-
-uint64_t UploadBufferAllocator::totalCapacity() const
+uint64_t UploadDataAllocator::totalCapacity() const
 {
     return m_upload_buffer.descriptor().width;
 }
 
-Resource const& UploadBufferAllocator::getUploadResource() const
+Resource const& UploadDataAllocator::getUploadResource() const
 {
     return m_upload_buffer;
+}
+
+
+DedicatedUploadDataStreamAllocator::DedicatedUploadDataStreamAllocator(Globals& globals, uint64_t offset_from_heap_start, size_t upload_buffer_size)
+    : UploadDataAllocator{ globals, offset_from_heap_start, upload_buffer_size }
+    , m_progress_tracking_signal{ *globals.get<Device>(), FenceSharing::none }
+{
+
+}
+
+void DedicatedUploadDataStreamAllocator::signalAllocator(CommandQueue const& signalling_queue) const
+{
+    m_progress_tracking_signal.signalFromGPU(signalling_queue);
+}
+
+void DedicatedUploadDataStreamAllocator::waitUntilControllingSignalValue(uint64_t value) const
+{
+    m_progress_tracking_signal.waitUntilValue(value);
+}
+
+void DedicatedUploadDataStreamAllocator::waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const
+{
+    m_progress_tracking_signal.waitUntilValue(value, timeout_in_milliseconds);
+}
+
+uint64_t DedicatedUploadDataStreamAllocator::nextValueOfControllingSignal() const
+{
+    return m_progress_tracking_signal.nextValueOfSignal();
+}
+
+uint64_t DedicatedUploadDataStreamAllocator::lastSignaledValueOfControllingSignal() const
+{
+    return m_progress_tracking_signal.lastValueSignaled();
+}
+
+PerFrameUploadDataStreamAllocator::PerFrameUploadDataStreamAllocator(Globals& globals, uint64_t offset_from_heap_start, uint64_t upload_buffer_size, 
+    FrameProgressTracker const& frame_progress_tracker)
+    : UploadDataAllocator{ globals, offset_from_heap_start, upload_buffer_size }
+    , m_frame_progress_tracker{ frame_progress_tracker }
+{
+}
+
+FrameProgressTracker const& PerFrameUploadDataStreamAllocator::frameProgressTracker() const
+{
+    return m_frame_progress_tracker;
+}
+
+void PerFrameUploadDataStreamAllocator::waitUntilControllingSignalValue(uint64_t value) const
+{
+    m_frame_progress_tracker.waitForFrameCompletion(value - 1);
+}
+
+void PerFrameUploadDataStreamAllocator::waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const
+{
+    m_frame_progress_tracker.waitForFrameCompletion(value - 1, timeout_in_milliseconds);
+}
+
+uint64_t PerFrameUploadDataStreamAllocator::nextValueOfControllingSignal() const
+{
+    return m_frame_progress_tracker.currentFrameIndex() + 1;
+}
+
+uint64_t PerFrameUploadDataStreamAllocator::lastSignaledValueOfControllingSignal() const
+{
+    return m_frame_progress_tracker.completedFramesCount();
 }

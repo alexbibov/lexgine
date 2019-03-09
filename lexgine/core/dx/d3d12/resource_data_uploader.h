@@ -76,7 +76,7 @@ public:
 
 private:
     Device& m_device;    //!< device object corresponding to the uploader
-    UploadBufferAllocator m_upload_buffer_allocator;    //!< upload buffer allocation manager
+    DedicatedUploadDataStreamAllocator m_upload_buffer_allocator;    //!< upload buffer allocation manager
     CommandList m_upload_commands_list;    //!< command list intended to contain upload commands
     bool m_upload_command_list_needs_reset;
 

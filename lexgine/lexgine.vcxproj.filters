@@ -210,9 +210,6 @@
     <ClInclude Include="core\dx\d3d12\command_queue.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\constant_buffer.h">
-      <Filter>core\dx\d3d12</Filter>
-    </ClInclude>
     <ClInclude Include="core\dx\d3d12\d3d12_tools.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
@@ -438,6 +435,14 @@
     <ClInclude Include="..\3rd_party\imgui\imstb_truetype.h">
       <Filter>3rd_party\imgui</Filter>
     </ClInclude>
+    <ClInclude Include="core\dx\d3d12\constant_data_stream.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\constant_buffer_reflection.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\constant_buffer.h" />
+    <ClInclude Include="core\dx\d3d12\frame_progress_tracker.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -525,9 +530,6 @@
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\command_queue.cpp">
-      <Filter>core\dx\d3d12</Filter>
-    </ClCompile>
-    <ClCompile Include="core\dx\d3d12\constant_buffer.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\debug_interface.cpp">
@@ -689,6 +691,11 @@
     <ClCompile Include="..\3rd_party\imgui\imgui_widgets.cpp">
       <Filter>3rd_party\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="core\dx\d3d12\constant_buffer_reflection.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\constant_buffer.cpp" />
+    <ClCompile Include="core\dx\d3d12\frame_progress_tracker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="core\dx\d3d12\constant_buffer_impl.inl">

@@ -7,6 +7,7 @@ class CommandAllocatorRing;
 class CommandList;
 class CommandQueue;
 class ConstantBuffer;
+class ConstantBufferReflection;
 class D3D12PSOXMLParser;
 class DebugInterface;
 class DescriptorHeap;
@@ -73,6 +74,11 @@ class SwapChainLink;
 class VertexBufferBinding;
 class IndexBufferBinding;
 
+class FrameProgressTracker;
+
+class UploadBufferAllocator;
+class DedicatedUploadDataStreamAllocator;
+class PerFrameUploadDataStreamAllocator;
 }
 
 #endif

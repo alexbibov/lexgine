@@ -1,9 +1,12 @@
-#include "dx_resource_factory.h"
-#include "debug_interface.h"
-
-#include "lexgine/core/dx/d3d12/device.h"
-
 #include <algorithm>
+
+#include "debug_interface.h"
+#include "device.h"
+#include "descriptor_heap.h"
+#include "frame_progress_tracker.h"
+
+#include "dx_resource_factory.h"
+
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx;
@@ -63,6 +66,12 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
 
             m_upload_heaps.emplace(&dev_ref, std::move(upload_heap));
         }
+        
+
+        // initialize frame progress trackers
+        {
+            m_frame_progress_trackers.emplace(&dev_ref, FrameProgressTracker{ dev_ref });
+        }
 
     }
 }
@@ -95,6 +104,11 @@ DescriptorHeap& DxResourceFactory::retrieveDescriptorHeap(Device const& device, 
 Heap& DxResourceFactory::retrieveUploadHeap(Device const& device)
 {
     return m_upload_heaps.at(&device);
+}
+
+FrameProgressTracker& DxResourceFactory::retrieveFrameProgressTracker(Device const& device)
+{
+    return m_frame_progress_trackers.at(&device);
 }
 
 dxgi::HwAdapter const* DxResourceFactory::retrieveHwAdapterOwningDevicePtr(Device const& device) const

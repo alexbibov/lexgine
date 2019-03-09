@@ -24,28 +24,22 @@ public:
     void render(RenderingTarget& target, 
         std::function<void(RenderingTarget const&)> const& presentation_routine);
 
-    uint64_t dispatchedFramesCount() const;
-    uint64_t completedFramesCount() const;
-
-    void waitForFrameCompletion(uint64_t frame_idx) const;
+    FrameProgressTracker const& frameProgressTracker() const;
 
 private:
     class FrameBeginTask;
     class FrameEndTask;
 
 private:
-    DxResourceFactory const& m_dx_resources;
+    DxResourceFactory& m_dx_resources;
     Device& m_device;
+    FrameProgressTracker& m_frame_progress_tracker;
 
     concurrency::TaskGraph m_task_graph;
     concurrency::TaskSink m_task_sink;
 
     std::unique_ptr<FrameBeginTask> m_frame_begin_task;
     std::unique_ptr<FrameEndTask> m_frame_end_task;
-
-    Signal m_end_of_frame_cpu_wall;
-    Signal m_end_of_frame_gpu_wall;
-
     RenderingTarget* m_current_rendering_target_ptr;
 };
 
