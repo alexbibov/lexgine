@@ -96,17 +96,17 @@ DebugInterface const* lexgine::core::dx::d3d12::DxResourceFactory::debugInterfac
     return m_debug_interface;
 }
 
-DescriptorHeap& DxResourceFactory::retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id) const
+DescriptorHeap& DxResourceFactory::retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id)
 {
     return *m_descriptor_heaps.at(&device)[static_cast<size_t>(descriptor_heap_type)][page_id];
 }
 
-Heap const& DxResourceFactory::retrieveUploadHeap(Device const& device) const
+Heap& DxResourceFactory::retrieveUploadHeap(Device const& device)
 {
     return m_upload_heaps.at(&device);
 }
 
-FrameProgressTracker const& DxResourceFactory::retrieveFrameProgressTracker(Device const& device) const
+FrameProgressTracker& DxResourceFactory::retrieveFrameProgressTracker(Device const& device)
 {
     return m_frame_progress_trackers.at(&device);
 }
