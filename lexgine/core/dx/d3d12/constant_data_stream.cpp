@@ -1,6 +1,7 @@
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
 #include "dx_resource_factory.h"
+#include "device.h"
 #include "constant_data_stream.h"
 
 
@@ -19,8 +20,8 @@ size_t fetchConstantStreamSize(Globals const& globals)
 
 }
 
-ConstantDataStream::ConstantDataStream(Globals const& globals)
-    : m_allocator{ globals, 0U, fetchConstantStreamSize(globals), 
-        globals.get<DxResourceFactory>()->retrieveFrameProgressTracker(*globals.get<Device>()) }}
+ConstantDataStream::ConstantDataStream(Globals& globals)
+    : m_allocator{ globals, 0U, fetchConstantStreamSize(globals),
+        globals.get<DxResourceFactory>()->retrieveFrameProgressTracker(*globals.get<Device>()) }
 {
 }
