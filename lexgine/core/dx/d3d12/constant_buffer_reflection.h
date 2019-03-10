@@ -6,8 +6,6 @@
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
 #include "lexgine/core/misc/hashed_string.h"
-#include "lexgine/core/math/vector_types.h"
-#include "lexgine/core/math/matrix_types.h"
 
 namespace lexgine::core::dx::d3d12 {
 
@@ -42,34 +40,6 @@ public:
         bool3x2, bool3x3, bool3x4,
         bool4x2, bool4x3, bool4x4
     };
-
-    template<ReflectionEntryBaseType base_type>
-    struct ReflectionToStaticCast;
-
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::float1> { using type = float; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::int1> { using type = int; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::uint1> { using type = unsigned int; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::bool1> { using type = bool; };
-
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::float2> { using type = math::Vector2f; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::int2> { using type = math::Vector2i; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::uint2> { using type = math::Vector2u; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::bool2> { using type = math::Vector2b; };
-
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::float3> { using type = math::Vector3f; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::int3> { using type = math::Vector3i; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::uint3> { using type = math::Vector3u; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::bool3> { using type = math::Vector3b; };
-
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::float4> { using type = math::Vector4f; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::int4> { using type = math::Vector4i; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::uint4> { using type = math::Vector4u; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::bool4> { using type = math::Vector4b; };
-
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::float2x2> { using type = math::Vector2f; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::int2> { using type = math::Vector2i; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::uint2> { using type = math::Vector2u; };
-    template<> struct ReflectionToStaticCast<ReflectionEntryBaseType::bool2> { using type = math::Vector2b; };
 
     struct ReflectionEntryDataType
     {
