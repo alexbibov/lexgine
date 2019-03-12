@@ -233,7 +233,7 @@ DedicatedUploadDataStreamAllocator::DedicatedUploadDataStreamAllocator(Globals& 
 
 }
 
-void DedicatedUploadDataStreamAllocator::signalAllocator(CommandQueue const& signalling_queue) const
+void DedicatedUploadDataStreamAllocator::signalAllocator(CommandQueue const& signalling_queue)
 {
     m_progress_tracking_signal.signalFromGPU(signalling_queue);
 }
