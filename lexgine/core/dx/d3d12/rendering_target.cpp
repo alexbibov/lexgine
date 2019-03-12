@@ -41,7 +41,7 @@ DepthTarget::DepthTarget(Resource const& target_resource, ResourceState target_d
 }
 
 
-RenderingTarget::RenderingTarget(Globals const& globals,
+RenderingTarget::RenderingTarget(Globals& globals,
     std::vector<ColorTarget> const& color_targets, misc::Optional<DepthTarget> const& depth_target)
     : m_color_targets{ color_targets }
     , m_depth_target{ depth_target }

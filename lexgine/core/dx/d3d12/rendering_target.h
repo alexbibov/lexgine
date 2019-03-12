@@ -37,7 +37,7 @@ struct DepthTarget
 class RenderingTarget
 {
 public:
-    RenderingTarget(Globals const& globals, 
+    RenderingTarget(Globals& globals, 
         std::vector<ColorTarget> const& color_targets, misc::Optional<DepthTarget> const& depth_target);
 
     void switchToRenderAccessState(CommandList const& command_list) const;

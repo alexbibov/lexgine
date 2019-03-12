@@ -5,6 +5,7 @@
 
 using namespace lexgine::osinteraction::windows;
 using namespace lexgine::core::dx::d3d12::tasks;
+using namespace lexgine::core::concurrency;
 
 namespace {
 
@@ -25,6 +26,16 @@ UIDrawTask::UIDrawTask(Window const& window)
     ImGui::StyleColorsDark();
     
     
+}
+
+bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
+{
+    return true;
+}
+
+TaskType UIDrawTask::type() const
+{
+    return concurrency::TaskType::cpu;
 }
 
 

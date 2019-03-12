@@ -85,7 +85,7 @@ public:
     DedicatedUploadDataStreamAllocator(Globals& globals,
         uint64_t offset_from_heap_start, size_t upload_buffer_size);
 
-    void signalAllocator(CommandQueue const& signalling_queue) const;
+    void signalAllocator(CommandQueue const& signalling_queue);
 
 private:
     void waitUntilControllingSignalValue(uint64_t value) const override;

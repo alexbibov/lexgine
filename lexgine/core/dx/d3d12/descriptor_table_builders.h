@@ -21,7 +21,7 @@ struct DescriptorTable final
 class ResourceViewDescriptorTableBuilder final
 {
 public:
-    ResourceViewDescriptorTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page_id);
+    ResourceViewDescriptorTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page_id);
 
     void addDescriptor(CBVDescriptor const& descriptor);
     void addDescriptor(SRVDescriptor const& descriptor);
@@ -49,7 +49,7 @@ private:
     using uav_descriptor_cache = std::vector<UAVDescriptor>;
 
 private:
-    Globals const& m_globals;
+    Globals& m_globals;
     uint32_t m_target_descriptor_heap_page_id;
 
     descriptor_cache_type m_currently_assembled_range;
@@ -66,14 +66,14 @@ private:
 class SamplerTableBuilder final
 {
 public:
-    SamplerTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page);
+    SamplerTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page);
 
     void addDescriptor(SamplerDescriptor const& descriptor);
 
     ShaderResourceDescriptorTable build() const;
 
 private:
-    Globals const& m_globals;
+    Globals& m_globals;
     uint32_t m_target_descriptor_heap_page_id;
     std::vector<SamplerDescriptor> m_sampler_descriptors;
 };
@@ -83,13 +83,13 @@ private:
 class RenderTargetViewTableBuilder final
 {
 public:
-    RenderTargetViewTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page);
+    RenderTargetViewTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page);
     void addDescriptor(RTVDescriptor const& descriptor);
 
     RenderTargetViewDescriptorTable build() const;
 
 private:
-    Globals const& m_globals;
+    Globals& m_globals;
     uint32_t m_target_descriptor_heap_page_id;
     std::vector<RTVDescriptor> m_rtv_descriptors;
 };
@@ -99,13 +99,13 @@ private:
 class DepthStencilViewTableBuilder final
 {
 public:
-    DepthStencilViewTableBuilder(Globals const& globals, uint32_t target_descriptor_heap_page);
+    DepthStencilViewTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page);
     void addDescriptor(DSVDescriptor const& descriptor);
 
     DepthStencilViewDescriptorTable build() const;
 
 private:
-    Globals const& m_globals;
+    Globals& m_globals;
     uint32_t m_target_descriptor_heap_page_id;
     std::vector<DSVDescriptor> m_dsv_descriptors;
 };
