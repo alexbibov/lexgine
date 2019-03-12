@@ -443,6 +443,9 @@
     </ClInclude>
     <ClInclude Include="core\dx\d3d12\constant_buffer.h" />
     <ClInclude Include="core\dx\d3d12\frame_progress_tracker.h" />
+    <ClInclude Include="core\dx\d3d12\constant_buffer_data_mapper.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">

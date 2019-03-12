@@ -170,6 +170,7 @@
     <ClCompile Include="core\dx\d3d12\command_list.cpp" />
     <ClCompile Include="core\dx\d3d12\command_queue.cpp" />
     <ClCompile Include="core\dx\d3d12\constant_buffer.cpp" />
+    <ClCompile Include="core\dx\d3d12\constant_buffer_data_mapper.cpp" />
     <ClCompile Include="core\dx\d3d12\constant_buffer_reflection.cpp" />
     <ClCompile Include="core\dx\d3d12\cbv_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\constant_data_stream.cpp" />
@@ -268,6 +269,7 @@
     <ClInclude Include="core\depth_stencil_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\cbv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\constant_buffer.h" />
+    <ClInclude Include="core\dx\d3d12\constant_buffer_data_mapper.h" />
     <ClInclude Include="core\dx\d3d12\constant_data_stream.h" />
     <ClInclude Include="core\dx\d3d12\dsv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\descriptor_table_builders.h" />
