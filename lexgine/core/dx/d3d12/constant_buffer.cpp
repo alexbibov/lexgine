@@ -1,42 +1,30 @@
-#include "constant_buffer.h"
+#include "resource.h"
 
+#include "constant_buffer.h"
 
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core;
 
-#if 0
-ConstantBuffer::ConstantBuffer() :
-    m_current_offset{ 0 }
+ConstantBuffer::ConstantBuffer(Device const& device, uint64_t size,
+    uint32_t node_mask/* = 0x1*/, uint32_t node_exposure_mask/* = 0x1*/,
+    bool allow_cross_adapter/* = false*/)
 {
+    ResourceFlags creation_flags = allow_cross_adapter ? ResourceFlags::enum_type::allow_cross_adapter : ResourceFlags::enum_type::none;
+    ResourceDescriptor buffer_descriptor = ResourceDescriptor::CreateBuffer(size, creation_flags);
+
+    m_resource = std::make_unique<CommittedResource>(device, ResourceState::enum_type::generic_read,
+        misc::Optional<ResourceOptimizedClearValue>{}, buffer_descriptor, AbstractHeapType::upload,
+        HeapCreationFlags::enum_type::allow_only_buffers, node_mask, node_exposure_mask);
+
+    m_buffer_gpu_virtual_address = reinterpret_cast<uint64_t>(m_resource->map());
 }
 
-void ConstantBuffer::build(void* p_output_address)
+ConstantBuffer::~ConstantBuffer()
 {
-    for (auto& desc : m_constants)
-    {
-        void* p_constructed_data_offset = static_cast<char*>(m_raw_data) + desc.offset;
-        size_t constructed_data_size = desc.p_data->size();
-        memcpy(p_constructed_data_offset, desc.p_data->data(), constructed_data_size);
-        desc.p_data = std::move(std::unique_ptr<DataBlob>{new DataBlob{ p_constructed_data_offset, constructed_data_size }});
-    }
+    m_resource->unmap();
 }
 
-size_t ConstantBuffer::size() const
+uint64_t ConstantBuffer::mappingAddress(size_t offset) const
 {
-    return m_current_offset;
+    return m_buffer_gpu_virtual_address + offset;
 }
-
-uint32_t ConstantBuffer::add_entry(std::string const& name, std::unique_ptr<DataChunk>&& data_chunk, size_t element_size)
-{
-    uint32_t candidate_offset = m_current_offset;
-    uint32_t next_16_byte_aligned_address = (m_current_offset & 0xFFFFFFF0) + 16;
-    uint32_t aligned_offset =
-        candidate_offset % 16 != 0 && candidate_offset + static_cast<uint32_t>(element_size) > next_16_byte_aligned_address ?
-        next_16_byte_aligned_address : candidate_offset;
-
-    m_current_offset = aligned_offset + static_cast<uint32_t>(data_chunk->size());
-    m_constants.emplace_back(entry_desc{ name, aligned_offset, std::move(data_chunk) });
-
-    return aligned_offset;
-}
-#endif
