@@ -23,6 +23,7 @@ struct ComputePSODescriptor;
 class PipelineState;
 class Resource;
 class PlacedResource;
+class CommittedResource;
 class ResourceBarrierPack;
 class DynamicResourceBarrierPack;
 template<unsigned int capacity> class StaticResourceBarrierPack;
