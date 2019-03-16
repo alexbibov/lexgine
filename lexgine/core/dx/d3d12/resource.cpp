@@ -8,6 +8,7 @@
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core;
 
+
 uint64_t ResourceDescriptor::getAllocationSize(Device const& device, uint32_t node_exposure_mask) const
 {
     D3D12_RESOURCE_DESC desc = native();
@@ -257,4 +258,54 @@ D3D12_CLEAR_VALUE ResourceOptimizedClearValue::native() const
     return rv;
 }
 
+CommittedResource::CommittedResource(Device const& device, ResourceState initial_state, 
+    misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value, 
+    ResourceDescriptor const& descriptor, AbstractHeapType resource_memory_type,
+    HeapCreationFlags resource_usage_flags,
+    uint32_t node_mask/* = 0x1*/, uint32_t node_exposure_mask/* = 0x1*/)
+    : m_device{ device }
+    , m_node_mask{ node_mask }
+    , m_node_exposure_mask{ node_exposure_mask }
+{
+    Heap::retrieveAbstractHeapTypeProperties(device, resource_memory_type, node_mask, m_cpu_page_property, m_gpu_memory_pool);
+    D3D12_HEAP_PROPERTIES heap_properties = Heap::createNativeHeapProperties(resource_memory_type, node_mask, node_exposure_mask);
+    createResource(heap_properties, initial_state, descriptor, resource_usage_flags, optimized_clear_value);
+}
 
+CommittedResource::CommittedResource(Device const& device, ResourceState initial_state,
+    misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
+    ResourceDescriptor const& descriptor, CPUPageProperty cpu_page_property,
+    GPUMemoryPool gpu_memory_pool, HeapCreationFlags resource_usage_flags,
+    uint32_t node_mask/* = 0x1*/, uint32_t node_exposure_mask/* = 0x1*/)
+    : m_device{ device }
+    , m_cpu_page_property{ cpu_page_property }
+    , m_gpu_memory_pool{ gpu_memory_pool }
+    , m_node_mask{ node_mask }
+    , m_node_exposure_mask{ node_exposure_mask }
+{
+    D3D12_HEAP_PROPERTIES heap_properties = Heap::createNativeHeapProperties(cpu_page_property, gpu_memory_pool, node_mask, node_exposure_mask);
+    createResource(heap_properties, initial_state, descriptor, resource_usage_flags, optimized_clear_value);
+}
+
+void CommittedResource::createResource(D3D12_HEAP_PROPERTIES const& owning_heap_properties, 
+    ResourceState resource_init_state, ResourceDescriptor const& resource_desc,
+    HeapCreationFlags resource_usage_flags, misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value)
+{
+    D3D12_HEAP_FLAGS flags = static_cast<D3D12_HEAP_FLAGS>(resource_usage_flags.getValue());
+    D3D12_RESOURCE_DESC native_resource_desc = resource_desc.native();
+
+    D3D12_CLEAR_VALUE resource_clear_value{};
+    D3D12_CLEAR_VALUE* resource_clear_value_ptr{ nullptr };
+    if (optimized_clear_value.isValid())
+    {
+        resource_clear_value = static_cast<ResourceOptimizedClearValue const&>(optimized_clear_value).native();
+        resource_clear_value_ptr = &resource_clear_value;
+    }
+
+    LEXGINE_THROW_ERROR_IF_FAILED(
+        this,
+        m_device.native()->CreateCommittedResource(&owning_heap_properties, flags, &native_resource_desc,
+            static_cast<D3D12_RESOURCE_STATES>(resource_init_state.getValue()), resource_clear_value_ptr,
+            IID_PPV_ARGS(&m_resource)),
+        S_OK);
+}

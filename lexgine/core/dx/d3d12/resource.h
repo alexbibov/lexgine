@@ -199,17 +199,25 @@ private:
 class CommittedResource final : public Resource
 {
 public:
-    CommittedResource(Device const& device, ResourceState const& initial_state, 
+    CommittedResource(Device const& device, ResourceState initial_state, 
         misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
-        ResourceDescriptor const& descriptor, AbstractHeapType resource_memory_type);
+        ResourceDescriptor const& descriptor, AbstractHeapType resource_memory_type,
+        HeapCreationFlags resource_usage_flags,
+        uint32_t node_mask = 0x1, uint32_t node_exposure_mask = 0x1);
 
-    CommittedResource(Device const& device, ResourceState const& initial_state,
+    CommittedResource(Device const& device, ResourceState initial_state,
         misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
         ResourceDescriptor const& descriptor, CPUPageProperty cpu_page_property,
-        GPUMemoryPool gpu_memory_pool);
+        GPUMemoryPool gpu_memory_pool, HeapCreationFlags resource_usage_flags,
+        uint32_t node_mask = 0x1, uint32_t node_exposure_mask = 0x1);
 
 private:
-    Device& m_device;
+    void createResource(D3D12_HEAP_PROPERTIES const& owning_heap_properties,
+        ResourceState resource_init_state, ResourceDescriptor const& resource_desc,
+        HeapCreationFlags resource_usage_flags, misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value);
+
+private:
+    Device const& m_device;
     CPUPageProperty m_cpu_page_property;
     GPUMemoryPool m_gpu_memory_pool;
     uint32_t m_node_mask;

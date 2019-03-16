@@ -49,6 +49,7 @@ enum class CPUPageProperty
 //! GPU memory pool type
 enum class GPUMemoryPool
 {
+    unknown = 0,    //!< memory pool is unknown
     L0 = 1,    //!< system memory pool. For UMA adapters this pool is the only available
     L1 = 2    //!< GPU physical memory pool, available only in NUMA adapters
 };
@@ -57,6 +58,12 @@ enum class GPUMemoryPool
 class Heap : public NamedEntity<class_names::D3D12_Heap>
 {
     friend class Device;    // only devices are allowed to create heaps
+
+public:
+    static D3D12_HEAP_PROPERTIES createNativeHeapProperties(AbstractHeapType heap_type, uint32_t node_mask, uint32_t node_exposure_mask);
+    static D3D12_HEAP_PROPERTIES createNativeHeapProperties(CPUPageProperty cpu_page_property, GPUMemoryPool gpu_memory_pool,
+        uint32_t node_mask, uint32_t node_exposure_mask);
+    static void retrieveAbstractHeapTypeProperties(Device const& device, AbstractHeapType heap_type, uint32_t node_mask, CPUPageProperty& out_cpu_page_property, GPUMemoryPool& out_gpu_memory_pool);
 
 public:
 
