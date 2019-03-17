@@ -210,6 +210,7 @@
     <ClCompile Include="core\dx\d3d12\task_caches\root_signature_compilation_task_cache.cpp" />
     <ClCompile Include="core\dx\d3d12\uav_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\upload_buffer_allocator.cpp" />
+    <ClCompile Include="core\dx\d3d12\vertex_buffer.cpp" />
     <ClCompile Include="core\dx\d3d12\vertex_buffer_binding.cpp" />
     <ClCompile Include="core\dx\dxcompilation\dx_compiler_proxy.cpp" />
     <ClCompile Include="core\dx\dxgi\hw_adapter_enumerator.cpp" />
@@ -315,6 +316,7 @@
     <ClInclude Include="core\dx\d3d12\task_caches\root_signature_compilation_task_cache.h" />
     <ClInclude Include="core\dx\d3d12\uav_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\upload_buffer_allocator.h" />
+    <ClInclude Include="core\dx\d3d12\vertex_buffer.h" />
     <ClInclude Include="core\dx\d3d12\vertex_buffer_binding.h" />
     <ClInclude Include="core\dx\dxcompilation\common.h" />
     <ClInclude Include="core\dx\dxcompilation\dx_compiler_proxy.h" />

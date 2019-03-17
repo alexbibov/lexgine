@@ -6,6 +6,7 @@
 
 #include "lexgine/core/exception.h"
 #include "lexgine/core/globals.h"
+#include "lexgine/core/global_settings.h"
 
 
 using namespace lexgine::core;
@@ -17,9 +18,10 @@ ResourceDataUploader::ResourceDataUploader(Globals& globals, uint64_t offset, ui
     m_device{ *globals.get<Device>() },
     m_upload_buffer_allocator{ globals, offset, capacity },
     m_upload_commands_list{ m_device.createCommandList(CommandType::copy, 0x1) },
-    m_upload_command_list_needs_reset{ true }
+    m_upload_command_list_needs_reset{ true },
+    m_copy_destination_resource_state{ globals.get<GlobalSettings>()->isAsyncCopyEnabled() ? ResourceState::enum_type::common : ResourceState::enum_type::copy_destination }
 {
-    
+
 }
 
 void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& destination_descriptor, SourceDescriptor const& source_descriptor)
@@ -34,7 +36,7 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
         StaticResourceBarrierPack<1> barriers;
 
         barriers.addTransitionBarrier(destination_descriptor.p_destination_resource,
-            destination_descriptor.destination_resource_state, ResourceState::enum_type::common);
+            destination_descriptor.destination_resource_state, m_copy_destination_resource_state);
         barriers.applyBarriers(m_upload_commands_list);
     }
     
@@ -113,7 +115,7 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
         StaticResourceBarrierPack<1> barriers;
 
         barriers.addTransitionBarrier(destination_descriptor.p_destination_resource,
-            ResourceState::enum_type::common, destination_descriptor.destination_resource_state);
+            m_copy_destination_resource_state, destination_descriptor.destination_resource_state);
         barriers.applyBarriers(m_upload_commands_list);
     }
 }

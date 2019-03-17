@@ -446,6 +446,7 @@
     <ClInclude Include="core\dx\d3d12\constant_buffer_data_mapper.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
+    <ClInclude Include="core\dx\d3d12\vertex_buffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -702,6 +703,8 @@
     <ClCompile Include="core\dx\d3d12\constant_data_stream.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
+    <ClCompile Include="core\dx\d3d12\constant_buffer_data_mapper.cpp" />
+    <ClCompile Include="core\dx\d3d12\vertex_buffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="core\dx\d3d12\constant_buffer_impl.inl">
