@@ -5,6 +5,7 @@
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/vertex_attributes.h"
 #include "vertex_buffer_binding.h"
+#include "resource.h"
 
 namespace lexgine::core::dx::d3d12 {
 
@@ -16,15 +17,21 @@ public:
         bool allow_cross_adapter = false);
 
     void setSegment(VertexAttributeSpecificationList const& va_spec_list,
-        size_t segment_vertex_capacity, uint8_t target_slot);    //! defines a segment of the vertex buffer
+        uint32_t segment_num_vertices, uint8_t target_slot);    //! defines a segment of the vertex buffer
 
     void build();    //! builds the vertex buffer with given segments
+
+    static ResourceState defaultState() { return ResourceState::enum_type::vertex_and_constant_buffer; }
+    CommittedResource const& resource() const;
+
+    void bind(CommandList& command_list) const;    //! records vertex buffer binding into the given command list
+
 
 private:
     struct vb_segment
     {
         VertexAttributeSpecificationList va_spec_list;
-        size_t vertex_capacity;
+        uint32_t num_vertices;
         uint8_t target_slot;
     };
 
