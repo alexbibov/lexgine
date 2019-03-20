@@ -47,6 +47,25 @@ private:
     VertexBufferBinding m_vertex_buffer_binding;
 };
 
+
+class IndexBuffer
+{
+public:
+    IndexBuffer(Device const& device, IndexDataType index_type, uint32_t indices_count,
+        uint32_t node_mask = 0x1, uint32_t node_exposure_mask = 0x1, bool allow_cross_adapter = false);
+
+    static ResourceState defaultState(){ return ResourceState::enum_type::index_buffer; }
+    CommittedResource const& resource() const;
+
+    void bind(CommandList& command_list);    //! records index buffer binding into the given command list
+
+private:
+    std::unique_ptr<CommittedResource> m_index_buffer;
+    std::unique_ptr<IndexBufferBinding> m_index_buffer_binding;
+};
+
+
+
 }
 
 #endif

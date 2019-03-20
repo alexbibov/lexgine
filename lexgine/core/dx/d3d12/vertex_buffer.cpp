@@ -79,4 +79,49 @@ void VertexBuffer::bind(CommandList& command_list) const
 }
 
 
+IndexBuffer::IndexBuffer(Device const& device, IndexDataType index_type, uint32_t indices_count,
+    uint32_t node_mask/* = 0x1*/, uint32_t node_exposure_mask/* = 0x1*/, bool allow_cross_adapter/* = false*/)
+{
+    size_t index_buffer_size;
+    {
+        // calculate size of the index buffer
 
+        switch (index_type)
+        {
+        case IndexDataType::_16_bit:
+            index_buffer_size = 2;
+            break;
+        case IndexDataType::_32_bit:
+            index_buffer_size = 4;
+            break;
+        default:
+            __assume(0);
+        }
+        index_buffer_size *= indices_count;
+    }
+
+    ResourceFlags resource_flags = ResourceFlags::enum_type::deny_shader_resource;
+    HeapCreationFlags heap_flags = HeapCreationFlags::enum_type::allow_only_buffers;
+    if (allow_cross_adapter)
+    {
+        resource_flags |= ResourceFlags::enum_type::allow_cross_adapter;
+        heap_flags |= HeapCreationFlags::enum_type::shared_cross_adapter;
+    }
+    ResourceDescriptor index_buffer_descriptor = ResourceDescriptor::CreateBuffer(index_buffer_size, resource_flags);
+
+    m_index_buffer = std::make_unique<CommittedResource>(device, defaultState(),
+        Optional<ResourceOptimizedClearValue>{}, index_buffer_descriptor, AbstractHeapType::default, heap_flags,
+        node_mask, node_exposure_mask);
+
+    m_index_buffer_binding = std::make_unique<IndexBufferBinding>(*m_index_buffer, 0U, index_type, indices_count);
+}
+
+CommittedResource const& lexgine::core::dx::d3d12::IndexBuffer::resource() const
+{
+    return *m_index_buffer;
+}
+
+void IndexBuffer::bind(CommandList& command_list)
+{
+    command_list.inputAssemblySetIndexBuffer(*m_index_buffer_binding);
+}
