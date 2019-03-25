@@ -8,7 +8,7 @@ Signal::Signal(Device& device, FenceSharing sync_mode/* = FenceSharing::none*/) 
     m_fence{ device.createFence(sync_mode) },
     m_event{ true }
 {
-    
+
 }
 
 Device& Signal::device() const
@@ -53,6 +53,11 @@ bool Signal::waitUntilValue(uint64_t signal_value, uint32_t milliseconds) const
     m_event.reset();
     m_fence.setEvent(signal_value, m_event);
     return m_event.wait(milliseconds);
+}
+
+void Signal::waitOnGPUQueue(CommandQueue const& waiting_queue, uint64_t signal_value)
+{
+    waiting_queue.wait(m_fence, signal_value);
 }
 
 

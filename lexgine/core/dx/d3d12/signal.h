@@ -25,13 +25,16 @@ public:
     uint64_t nextValueOfSignal() const;    //! Returns the next value of the signal
 
     void waitUntilValue(uint64_t signal_value) const;    //! Blocks the calling thread until the signal crosses the specified value
-    
+
     /*!
      Blocks the calling thread for at most given amount of milliseconds or until the signal crosses
-     the specified value. Returns 'true' if the value has been crossed by the signal. 
+     the specified value. Returns 'true' if the value has been crossed by the signal.
      Returns 'false' if the function returned due to timeout.
     */
     bool waitUntilValue(uint64_t signal_value, uint32_t milliseconds) const;
+
+    //! Inserts wait object into the waiting_queue which remains active until this signal reaches the given signal_value
+    void waitOnGPUQueue(CommandQueue const& waiting_queue, uint64_t signal_value);
 
 private:
     Fence m_fence;

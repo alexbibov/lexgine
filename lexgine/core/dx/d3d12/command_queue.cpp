@@ -9,7 +9,7 @@
 using namespace lexgine::core::dx::d3d12;
 
 
-CommandQueue::CommandQueue(Device& device, WorkloadType type, uint32_t node_mask, CommandQueuePriority priority, CommandQueueFlags flags):
+CommandQueue::CommandQueue(Device& device, WorkloadType type, uint32_t node_mask, CommandQueuePriority priority, CommandQueueFlags flags) :
     m_type{ type },
     m_priority{ priority },
     m_flags{ flags },
@@ -24,7 +24,7 @@ CommandQueue::CommandQueue(Device& device, WorkloadType type, uint32_t node_mask
 
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        device.native()->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_command_queue)), 
+        device.native()->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_command_queue)),
         S_OK
     );
 }
@@ -41,7 +41,7 @@ void CommandQueue::executeCommandLists(CommandList* command_list_array, size_t n
     }
 
     m_command_queue->ExecuteCommandLists(static_cast<UINT>(num_command_lists), native_command_lists.data());
-    
+
     Signal* job_completion_signal_ptr = CommandListAttorney<CommandQueue>::getJobCompletionSignalPtrForCommandList(last_cmd_list);
     job_completion_signal_ptr->signalFromGPU(*this);    // signal job completion
 }
@@ -82,11 +82,11 @@ void CommandQueue::signal(Fence& fence) const
     FenceAttorney<CommandQueue>::signalFenceFromGPU(fence, *this);
 }
 
-void CommandQueue::wait(Fence const & fence, uint64_t num_crosses) const
+void CommandQueue::wait(Fence const& fence, uint64_t num_crosses) const
 {
     LEXGINE_LOG_ERROR_IF_FAILED(
         this,
-        m_command_queue->Wait(fence.native().Get(), num_crosses), 
+        m_command_queue->Wait(fence.native().Get(), num_crosses),
         S_OK
     );
 }
