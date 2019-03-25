@@ -10,8 +10,10 @@
 #include "device.h"
 #include "command_list.h"
 #include "rendering_target.h"
-
 #include "frame_progress_tracker.h"
+
+#include "resource_data_uploader.h"
+#include "vertex_buffer.h"
 
 
 using namespace lexgine::core;
@@ -130,6 +132,81 @@ private:    // required by the AbstractTask interface
 private:
     RenderingTasks& m_rendering_tasks;
     CommandList m_command_list;
+};
+
+
+class RenderingTasks::TestTriangleRendering final
+{
+public:
+    TestTriangleRendering(Globals& globals)
+        : m_device{ *globals.get<Device>() }
+        , m_data_uploader{ globals, 0, 64 * 1024 * 1024 }
+        , m_vb{ m_device }
+        , m_ib{ m_device, IndexDataType::_16_bit, 32 * 1024 }
+        , m_texture{ m_device, ResourceState::enum_type::pixel_shader, misc::makeEmptyOptional<ResourceOptimizedClearValue>(),
+                    ResourceDescriptor::CreateTexture2D(256, 256, 1, DXGI_FORMAT_R8G8B8A8_UNORM), AbstractHeapType::default,
+                    HeapCreationFlags::enum_type::allow_only_non_rt_ds_textures }
+    {
+        {
+            ResourceDataUploader::DestinationDescriptor destination_descriptor;
+            destination_descriptor.p_destination_resource = &m_vb.resource();
+            destination_descriptor.destination_resource_state = ResourceState::enum_type::vertex_and_constant_buffer;
+            destination_descriptor.segment.base_offset = 0U;
+
+            m_box_vertices = std::array<float, 24>{
+                -1.f, -1.f, -1.f,
+                 1.f, -1.f, -1.f,
+                 1.f,  1.f, -1.f,
+                -1.f,  1.f, -1.f,
+
+                -1.f, -1.f,  1.f,
+                 1.f, -1.f,  1.f,
+                 1.f,  1.f,  1.f,
+                -1.f,  1.f,  1.f,
+            };
+
+            ResourceDataUploader::BufferSourceDescriptor source_descriptor;
+            source_descriptor.p_data = m_box_vertices.data();
+            source_descriptor.buffer_size = m_box_vertices.size() * sizeof(float);
+
+            m_data_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
+        }
+
+
+        {
+            ResourceDataUploader::DestinationDescriptor destination_descriptor;
+            destination_descriptor.p_destination_resource = &m_ib.resource();
+            destination_descriptor.destination_resource_state = ResourceState::enum_type::index_buffer;
+            destination_descriptor.segment.base_offset = 0U;
+
+            m_box_indices = std::array<short, 36>{
+                0, 3, 1, 1, 3, 2,
+                4, 5, 7, 5, 6, 7,
+                7, 6, 3, 6, 2, 3,
+                4, 0, 5, 5, 0, 1,
+                5, 1, 6, 1, 2, 6,
+                0, 4, 7, 0, 7, 3
+            };
+
+            ResourceDataUploader::BufferSourceDescriptor source_descriptor;
+            source_descriptor.p_data = m_box_indices.data();
+            source_descriptor.buffer_size = m_box_indices.size() * sizeof(short);
+
+            m_data_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
+        }
+
+
+    }
+
+private:
+    Device const& m_device;
+    ResourceDataUploader m_data_uploader;
+    VertexBuffer m_vb;
+    IndexBuffer m_ib;
+    CommittedResource m_texture;
+
+    std::array<float, 24> m_box_vertices;
+    std::array<short, 36> m_box_indices;
 };
 
 

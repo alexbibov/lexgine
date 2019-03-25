@@ -75,7 +75,7 @@ public:
 
     void signal(Fence& fence) const;    //! puts signal into the queue
 
-    void wait(Fence const& fence, uint64_t num_crosses) const;    //! blocks the calling thread until fence is crossed at least num_crosses times
+    void wait(Fence const& fence, uint64_t num_crosses) const;    //! instructs the command queue to wait until the given fence is crossed num_crosses times
 
 
     CommandQueue(CommandQueue const&) = delete;
