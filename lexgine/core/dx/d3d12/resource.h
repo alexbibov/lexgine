@@ -170,7 +170,6 @@ public:
     ResourceDescriptor const& descriptor() const;    //! returns descriptor of the resource
 
 protected:
-    ComPtr<ID3D12Device> m_native_device;    //!< native device that owns the native resource
     ComPtr<ID3D12Resource> m_resource;    //!< encapsulated native interface representing the resource
     misc::Optional<ResourceDescriptor> mutable m_descriptor;    //!< resource descriptor
 };
@@ -199,7 +198,7 @@ private:
 class CommittedResource final : public Resource
 {
 public:
-    CommittedResource(Device const& device, ResourceState initial_state, 
+    CommittedResource(Device const& device, ResourceState initial_state,
         misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
         ResourceDescriptor const& descriptor, AbstractHeapType resource_memory_type,
         HeapCreationFlags resource_usage_flags,

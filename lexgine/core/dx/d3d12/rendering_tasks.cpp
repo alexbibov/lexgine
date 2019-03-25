@@ -76,7 +76,7 @@ private:    // required by the AbstractTask interface
 
         m_command_list.close();
 
-        FrameProgressTrackerAttorney<RenderingTasks>::signalGPUBeginFrame(m_rendering_tasks.m_frame_progress_tracker, 
+        FrameProgressTrackerAttorney<RenderingTasks>::signalGPUBeginFrame(m_rendering_tasks.m_frame_progress_tracker,
             m_rendering_tasks.m_device.defaultCommandQueue());
         m_rendering_tasks.m_device.defaultCommandQueue().executeCommandList(m_command_list);
 
@@ -109,7 +109,7 @@ class RenderingTasks::FrameEndTask final : public SchedulableTask
 private:    // required by the AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t current_frame_index) override
     {
-        
+
         auto& target = *m_rendering_tasks.m_current_rendering_target_ptr;
 
         m_command_list.reset();
@@ -120,7 +120,7 @@ private:    // required by the AbstractTask interface
         m_rendering_tasks.m_device.defaultCommandQueue().executeCommandList(m_command_list);
         FrameProgressTrackerAttorney<RenderingTasks>::signalGPUEndFrame(m_rendering_tasks.m_frame_progress_tracker,
             m_rendering_tasks.m_device.defaultCommandQueue());
-        
+
         return true;
     }
 
@@ -145,24 +145,31 @@ public:
         , m_ib{ m_device, IndexDataType::_16_bit, 32 * 1024 }
         , m_texture{ m_device, ResourceState::enum_type::pixel_shader, misc::makeEmptyOptional<ResourceOptimizedClearValue>(),
                     ResourceDescriptor::CreateTexture2D(256, 256, 1, DXGI_FORMAT_R8G8B8A8_UNORM), AbstractHeapType::default,
-                    HeapCreationFlags::enum_type::allow_only_non_rt_ds_textures }
+                    HeapCreationFlags::enum_type::allow_all }
     {
         {
+            std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
+                std::make_shared<VertexAttributeSpecification<float, 3>>(0, 24, "SV_Position", 0, 0));
+            std::shared_ptr<AbstractVertexAttributeSpecification> color = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
+                std::make_shared<VertexAttributeSpecification<float, 3>>(0, 24, "COLOR", 0, 0));
+            m_vb.setSegment(VertexAttributeSpecificationList{ position, color }, 8, 0);
+            m_vb.build();
+
             ResourceDataUploader::DestinationDescriptor destination_descriptor;
             destination_descriptor.p_destination_resource = &m_vb.resource();
             destination_descriptor.destination_resource_state = ResourceState::enum_type::vertex_and_constant_buffer;
             destination_descriptor.segment.base_offset = 0U;
 
-            m_box_vertices = std::array<float, 24>{
-                -1.f, -1.f, -1.f,
-                 1.f, -1.f, -1.f,
-                 1.f,  1.f, -1.f,
-                -1.f,  1.f, -1.f,
+            m_box_vertices = std::array<float, 48>{
+                -1.f, -1.f, -1.f, 1.f, 0.f, 0.f,
+                    1.f, -1.f, -1.f, 0.f, 1.f, 0.f,
+                    1.f, 1.f, -1.f, 0.f, 0.f, 1.f,
+                    -1.f, 1.f, -1.f, .5f, .5f, .5f,
 
-                -1.f, -1.f,  1.f,
-                 1.f, -1.f,  1.f,
-                 1.f,  1.f,  1.f,
-                -1.f,  1.f,  1.f,
+                    -1.f, -1.f, 1.f, .5f, .5f, .5f,
+                    1.f, -1.f, 1.f, 0.f, 0.f, 1.f,
+                    1.f, 1.f, 1.f, 0.f, 1.f, 0.f,
+                    -1.f, 1.f, 1.f, 1.f, 0.f, 0.f,
             };
 
             ResourceDataUploader::BufferSourceDescriptor source_descriptor;
@@ -181,11 +188,11 @@ public:
 
             m_box_indices = std::array<short, 36>{
                 0, 3, 1, 1, 3, 2,
-                4, 5, 7, 5, 6, 7,
-                7, 6, 3, 6, 2, 3,
-                4, 0, 5, 5, 0, 1,
-                5, 1, 6, 1, 2, 6,
-                0, 4, 7, 0, 7, 3
+                    4, 5, 7, 5, 6, 7,
+                    7, 6, 3, 6, 2, 3,
+                    4, 0, 5, 5, 0, 1,
+                    5, 1, 6, 1, 2, 6,
+                    0, 4, 7, 0, 7, 3
             };
 
             ResourceDataUploader::BufferSourceDescriptor source_descriptor;
@@ -195,7 +202,8 @@ public:
             m_data_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
         }
 
-
+        m_data_uploader.upload();
+        m_data_uploader.waitUntilUploadIsFinished();
     }
 
 private:
@@ -205,7 +213,7 @@ private:
     IndexBuffer m_ib;
     CommittedResource m_texture;
 
-    std::array<float, 24> m_box_vertices;
+    std::array<float, 48> m_box_vertices;
     std::array<short, 36> m_box_indices;
 };
 
@@ -220,6 +228,8 @@ RenderingTasks::RenderingTasks(Globals& globals)
 
     , m_frame_begin_task{ new FrameBeginTask{*this, math::Vector4f{0.f, 0.f, 0.f, 0.f}} }
     , m_frame_end_task{ new FrameEndTask{*this} }
+
+    , m_test_triangle_rendering{ new TestTriangleRendering{ globals } }
 {
     m_task_graph.setRootNodes({ m_frame_begin_task.get() });
     m_frame_begin_task->addDependent(*m_frame_end_task);
@@ -233,7 +243,7 @@ RenderingTasks::~RenderingTasks()
 }
 
 
-void RenderingTasks::render(RenderingTarget& target, 
+void RenderingTasks::render(RenderingTarget& target,
     std::function<void(RenderingTarget const&)> const& presentation_routine)
 {
     FrameProgressTrackerAttorney<RenderingTasks>::signalCPUBeginFrame(m_frame_progress_tracker);

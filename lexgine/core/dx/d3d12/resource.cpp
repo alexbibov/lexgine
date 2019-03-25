@@ -46,7 +46,7 @@ ResourceDescriptor ResourceDescriptor::CreateBuffer(uint64_t size, ResourceFlags
 }
 
 
-ResourceDescriptor ResourceDescriptor::CreateTexture1D(uint64_t width, uint16_t array_size, 
+ResourceDescriptor ResourceDescriptor::CreateTexture1D(uint64_t width, uint16_t array_size,
     DXGI_FORMAT format, uint16_t num_mipmaps, ResourceFlags flags,
     MultiSamplingFormat ms_format, ResourceAlignment alignment, TextureLayout layout)
 {
@@ -65,9 +65,9 @@ ResourceDescriptor ResourceDescriptor::CreateTexture1D(uint64_t width, uint16_t 
     return desc;
 }
 
-ResourceDescriptor ResourceDescriptor::CreateTexture2D(uint64_t width, uint32_t height, 
+ResourceDescriptor ResourceDescriptor::CreateTexture2D(uint64_t width, uint32_t height,
     uint16_t array_size, DXGI_FORMAT format, uint16_t num_mipmaps,
-    ResourceFlags flags, MultiSamplingFormat ms_format, 
+    ResourceFlags flags, MultiSamplingFormat ms_format,
     ResourceAlignment alignment, TextureLayout layout)
 {
     ResourceDescriptor desc;
@@ -85,8 +85,8 @@ ResourceDescriptor ResourceDescriptor::CreateTexture2D(uint64_t width, uint32_t 
     return desc;
 }
 
-ResourceDescriptor ResourceDescriptor::CreateTexture3D(uint64_t width, uint32_t height, 
-    uint16_t depth, DXGI_FORMAT format, uint16_t num_mipmaps, ResourceFlags flags, 
+ResourceDescriptor ResourceDescriptor::CreateTexture3D(uint64_t width, uint32_t height,
+    uint16_t depth, DXGI_FORMAT format, uint16_t num_mipmaps, ResourceFlags flags,
     MultiSamplingFormat ms_format, ResourceAlignment alignment, TextureLayout layout)
 {
     ResourceDescriptor desc;
@@ -109,8 +109,6 @@ ResourceDescriptor ResourceDescriptor::CreateTexture3D(uint64_t width, uint32_t 
 Resource::Resource(ComPtr<ID3D12Resource> const& native/* = nullptr */) :
     m_resource{ native }
 {
-    if(m_resource)
-        m_resource->GetDevice(IID_PPV_ARGS(&m_native_device));
 }
 
 ComPtr<ID3D12Resource> Resource::native() const
@@ -123,9 +121,12 @@ void* Resource::map(unsigned int subresource/* = 0U */,
 {
     assert(m_resource != nullptr);
 
+    ComPtr<ID3D12Device> native_device;
+    m_resource->GetDevice(IID_PPV_ARGS(&native_device));
+
     D3D12_RESOURCE_DESC desc = static_cast<ResourceDescriptor&>(m_descriptor).native();
     uint64_t total_resource_size_in_bytes{ 0 };
-    m_native_device->GetCopyableFootprints(&desc, subresource, 1, 0UI64, nullptr, nullptr, nullptr, &total_resource_size_in_bytes);
+    native_device->GetCopyableFootprints(&desc, subresource, 1, 0UI64, nullptr, nullptr, nullptr, &total_resource_size_in_bytes);
 
     D3D12_RANGE read_range{ offset, (std::min<uint64_t>)(total_resource_size_in_bytes, mapping_range) };
     void* rv{ nullptr };
@@ -180,10 +181,10 @@ ResourceDescriptor const& Resource::descriptor() const
 
 
 
-PlacedResource::PlacedResource(Heap const& heap, uint64_t heap_offset, 
-    ResourceState const& initial_state, 
-    misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value, 
-    ResourceDescriptor const& descriptor):
+PlacedResource::PlacedResource(Heap const& heap, uint64_t heap_offset,
+    ResourceState const& initial_state,
+    misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
+    ResourceDescriptor const& descriptor) :
     m_heap{ heap },
     m_offset{ heap_offset }
 {
@@ -217,7 +218,7 @@ uint64_t PlacedResource::offset() const
 
 
 
-DepthStencilValue::DepthStencilValue(float depth, uint8_t stencil):
+DepthStencilValue::DepthStencilValue(float depth, uint8_t stencil) :
     depth{ depth },
     stencil{ stencil }
 {
@@ -233,13 +234,13 @@ D3D12_DEPTH_STENCIL_VALUE DepthStencilValue::native() const
     return rv;
 }
 
-ResourceOptimizedClearValue::ResourceOptimizedClearValue(DXGI_FORMAT format, math::Vector4f const& color):
+ResourceOptimizedClearValue::ResourceOptimizedClearValue(DXGI_FORMAT format, math::Vector4f const& color) :
     format{ format },
     value{ color }
 {
 }
 
-ResourceOptimizedClearValue::ResourceOptimizedClearValue(DXGI_FORMAT format, DepthStencilValue const& depth_stencil_value):
+ResourceOptimizedClearValue::ResourceOptimizedClearValue(DXGI_FORMAT format, DepthStencilValue const& depth_stencil_value) :
     format{ format },
     value{ depth_stencil_value }
 {
@@ -249,7 +250,7 @@ D3D12_CLEAR_VALUE ResourceOptimizedClearValue::native() const
 {
     D3D12_CLEAR_VALUE rv{};
     rv.Format = format;
-    
+
     if (std::holds_alternative<math::Vector4f>(value))
         memcpy(rv.Color, std::get<math::Vector4f>(value).getDataAsArray(), sizeof(float) * 4);
     else
@@ -258,8 +259,8 @@ D3D12_CLEAR_VALUE ResourceOptimizedClearValue::native() const
     return rv;
 }
 
-CommittedResource::CommittedResource(Device const& device, ResourceState initial_state, 
-    misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value, 
+CommittedResource::CommittedResource(Device const& device, ResourceState initial_state,
+    misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
     ResourceDescriptor const& descriptor, AbstractHeapType resource_memory_type,
     HeapCreationFlags resource_usage_flags,
     uint32_t node_mask/* = 0x1*/, uint32_t node_exposure_mask/* = 0x1*/)
@@ -287,7 +288,7 @@ CommittedResource::CommittedResource(Device const& device, ResourceState initial
     createResource(heap_properties, initial_state, descriptor, resource_usage_flags, optimized_clear_value);
 }
 
-void CommittedResource::createResource(D3D12_HEAP_PROPERTIES const& owning_heap_properties, 
+void CommittedResource::createResource(D3D12_HEAP_PROPERTIES const& owning_heap_properties,
     ResourceState resource_init_state, ResourceDescriptor const& resource_desc,
     HeapCreationFlags resource_usage_flags, misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value)
 {

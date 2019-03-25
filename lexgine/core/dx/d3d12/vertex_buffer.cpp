@@ -14,10 +14,10 @@ VertexBuffer::VertexBuffer(Device const& device,
     , m_node_exposure_mask{ node_exposure_mask }
     , m_allow_cross_adapter{ allow_cross_adapter }
 {
-    
+
 }
 
-void VertexBuffer::setSegment(VertexAttributeSpecificationList const& va_spec_list, 
+void VertexBuffer::setSegment(VertexAttributeSpecificationList const& va_spec_list,
     uint32_t segment_num_vertices, uint8_t target_slot)
 {
     m_vb_specification.push_back(vb_segment{ va_spec_list, segment_num_vertices, target_slot });
@@ -32,12 +32,12 @@ void VertexBuffer::build()
 
     for (auto const& segment : m_vb_specification)
     {
-        segment_per_vertex_strides[counter] = 
+        segment_per_vertex_strides[counter] =
             std::accumulate(segment.va_spec_list.begin(), segment.va_spec_list.end(),
-            0U, [](uint32_t size, std::shared_ptr<AbstractVertexAttributeSpecification> const& spec) -> uint32_t
-            {
-                return size + spec->capacity();
-            }
+                0U, [](uint32_t size, std::shared_ptr<AbstractVertexAttributeSpecification> const& spec) -> uint32_t
+        {
+            return size + spec->capacity();
+        }
         );
 
         segment_vertex_capacities[counter] = segment.num_vertices;
@@ -47,7 +47,7 @@ void VertexBuffer::build()
     }
 
     ResourceFlags vb_resource_flags = ResourceFlags::enum_type::deny_shader_resource;
-    HeapCreationFlags vb_heap_flags = HeapCreationFlags::enum_type::allow_only_buffers;
+    HeapCreationFlags vb_heap_flags = HeapCreationFlags::enum_type::allow_all;
     if (m_allow_cross_adapter)
     {
         vb_resource_flags |= ResourceFlags::enum_type::allow_cross_adapter;
@@ -101,7 +101,7 @@ IndexBuffer::IndexBuffer(Device const& device, IndexDataType index_type, uint32_
     }
 
     ResourceFlags resource_flags = ResourceFlags::enum_type::deny_shader_resource;
-    HeapCreationFlags heap_flags = HeapCreationFlags::enum_type::allow_only_buffers;
+    HeapCreationFlags heap_flags = HeapCreationFlags::enum_type::allow_all;
     if (allow_cross_adapter)
     {
         resource_flags |= ResourceFlags::enum_type::allow_cross_adapter;
