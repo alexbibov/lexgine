@@ -18,6 +18,8 @@ class FenceEvent final : public core::NamedEntity<core::class_names::OSWindows_F
 {
 public:
     FenceEvent(bool is_reset_manually = true);
+    FenceEvent(FenceEvent const&) = delete;
+    FenceEvent(FenceEvent&& other);
     ~FenceEvent();
 
     HANDLE native() const;    //! returns native handle maintained by the operating system

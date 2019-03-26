@@ -29,8 +29,17 @@ FenceEvent::FenceEvent(bool is_reset_manually /* = true */) :
     }
 }
 
+FenceEvent::FenceEvent(FenceEvent&& other)
+    : m_event_handle{ other.m_event_handle }
+    , m_is_reset_manually{ other.m_is_reset_manually }
+{
+    other.m_event_handle = 0;
+}
+
 FenceEvent::~FenceEvent()
 {
+    if (!m_event_handle) return;
+
     DWORD error_code;
 
     if (m_callback.isValid())

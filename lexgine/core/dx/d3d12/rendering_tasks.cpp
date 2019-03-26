@@ -6,6 +6,10 @@
 #include "lexgine/core/concurrency/schedulable_task.h"
 #include "lexgine/core/math/vector_types.h"
 
+#include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
+#include "lexgine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
+#include "lexgine/core/dx/d3d12/tasks/pso_compilation_task.h"
+
 #include "dx_resource_factory.h"
 #include "device.h"
 #include "command_list.h"
@@ -19,6 +23,8 @@
 using namespace lexgine::core;
 using namespace lexgine::core::concurrency;
 using namespace lexgine::core::dx::d3d12;
+using namespace lexgine::core::dx::d3d12::tasks;
+using namespace lexgine::core::dx::d3d12::task_caches;
 
 
 namespace {
@@ -147,12 +153,16 @@ public:
                     ResourceDescriptor::CreateTexture2D(256, 256, 1, DXGI_FORMAT_R8G8B8A8_UNORM), AbstractHeapType::default,
                     HeapCreationFlags::enum_type::allow_all }
     {
+        std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
+            std::make_shared<VertexAttributeSpecification<float, 3>>(0, 24, "SV_Position", 0, 0));
+        std::shared_ptr<AbstractVertexAttributeSpecification> color = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
+            std::make_shared<VertexAttributeSpecification<float, 3>>(0, 24, "COLOR", 0, 0));
+
+        VertexAttributeSpecificationList va_spec_list{ position, color };
+
+
         {
-            std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
-                std::make_shared<VertexAttributeSpecification<float, 3>>(0, 24, "SV_Position", 0, 0));
-            std::shared_ptr<AbstractVertexAttributeSpecification> color = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
-                std::make_shared<VertexAttributeSpecification<float, 3>>(0, 24, "COLOR", 0, 0));
-            m_vb.setSegment(VertexAttributeSpecificationList{ position, color }, 8, 0);
+            m_vb.setSegment(va_spec_list, 8, 0);
             m_vb.build();
 
             ResourceDataUploader::DestinationDescriptor destination_descriptor;
@@ -162,14 +172,14 @@ public:
 
             m_box_vertices = std::array<float, 48>{
                 -1.f, -1.f, -1.f, 1.f, 0.f, 0.f,
-                    1.f, -1.f, -1.f, 0.f, 1.f, 0.f,
-                    1.f, 1.f, -1.f, 0.f, 0.f, 1.f,
-                    -1.f, 1.f, -1.f, .5f, .5f, .5f,
+                 1.f, -1.f, -1.f, 0.f, 1.f, 0.f,
+                 1.f, 1.f, -1.f, 0.f, 0.f, 1.f,
+                -1.f, 1.f, -1.f, .5f, .5f, .5f,
 
-                    -1.f, -1.f, 1.f, .5f, .5f, .5f,
-                    1.f, -1.f, 1.f, 0.f, 0.f, 1.f,
-                    1.f, 1.f, 1.f, 0.f, 1.f, 0.f,
-                    -1.f, 1.f, 1.f, 1.f, 0.f, 0.f,
+                -1.f, -1.f, 1.f, .5f, .5f, .5f,
+                 1.f, -1.f, 1.f, 0.f, 0.f, 1.f,
+                 1.f, 1.f, 1.f, 0.f, 1.f, 0.f,
+                -1.f, 1.f, 1.f, 1.f, 0.f, 0.f,
             };
 
             ResourceDataUploader::BufferSourceDescriptor source_descriptor;
@@ -188,11 +198,11 @@ public:
 
             m_box_indices = std::array<short, 36>{
                 0, 3, 1, 1, 3, 2,
-                    4, 5, 7, 5, 6, 7,
-                    7, 6, 3, 6, 2, 3,
-                    4, 0, 5, 5, 0, 1,
-                    5, 1, 6, 1, 2, 6,
-                    0, 4, 7, 0, 7, 3
+                4, 5, 7, 5, 6, 7,
+                7, 6, 3, 6, 2, 3,
+                4, 0, 5, 5, 0, 1,
+                5, 1, 6, 1, 2, 6,
+                0, 4, 7, 0, 7, 3
             };
 
             ResourceDataUploader::BufferSourceDescriptor source_descriptor;
@@ -204,6 +214,29 @@ public:
 
         m_data_uploader.upload();
         m_data_uploader.waitUntilUploadIsFinished();
+
+
+        RootSignatureCompilationTask* rs_compilation_task{ nullptr };
+        {
+            // Create root signature
+            RootSignatureCompilationTaskCache& rs_compilation_task_cache = *globals.get<RootSignatureCompilationTaskCache>();
+            RootSignature rs{};
+            
+            RootEntryDescriptorTable main_parameters;
+            main_parameters.addRange(RootEntryDescriptorTable::RangeType::srv, 1, 0, 0, 0);
+            main_parameters.addRange(RootEntryDescriptorTable::RangeType::cbv, 1, 0, 0, 1);
+
+            RootEntryDescriptorTable sampler_table;
+            sampler_table.addRange(RootEntryDescriptorTable::RangeType::sampler, 1, 0, 0, 0);
+
+            rs.addParameter(0, main_parameters);
+            rs.addParameter(1, sampler_table);
+
+            
+            rs_compilation_task = rs_compilation_task_cache.addTask(globals, std::move(rs), RootSignatureFlags::enum_type::none,
+                "test_rendering_rs", 0);
+            rs_compilation_task->execute(0);
+        }
     }
 
 private:
