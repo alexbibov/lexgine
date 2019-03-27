@@ -172,6 +172,8 @@ public:
     HwAdapterEnumerator(HwAdapterEnumerator const&) = delete;
     HwAdapterEnumerator(HwAdapterEnumerator&&) = delete;
 
+    ~HwAdapterEnumerator();
+
 public:
     iterator begin();
     iterator end();

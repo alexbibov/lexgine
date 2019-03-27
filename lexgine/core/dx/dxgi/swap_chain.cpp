@@ -10,7 +10,7 @@ using namespace lexgine::core::dx::dxgi;
 
 SwapChain::~SwapChain()
 {
-    OutputDebugStringA(("Removing swap chain, ref. count" + std::to_string(m_dxgi_swap_chain.Reset()) + "\n").c_str());
+    OutputDebugStringA(("Removing swap chain, ref. count " + std::to_string(m_dxgi_swap_chain.Reset()) + "\n").c_str());
 }
 
 Device& lexgine::core::dx::dxgi::SwapChain::device() const

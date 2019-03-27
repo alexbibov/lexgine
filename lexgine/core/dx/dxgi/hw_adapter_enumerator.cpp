@@ -35,6 +35,12 @@ HwAdapterEnumerator::HwAdapterEnumerator(GlobalSettings const& global_settings,
     refresh(enumeration_preference);
 }
 
+HwAdapterEnumerator::~HwAdapterEnumerator()
+{
+    OutputDebugStringA(("Destroying adapter enumerator. DXGI factory ref. counter "
+        + std::to_string(m_dxgi_factory6.Reset()) + "\n").c_str());
+}
+
 HwAdapterEnumerator::iterator HwAdapterEnumerator::begin()
 {
     return m_adapter_list.begin();
@@ -71,13 +77,13 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 
     // Enumerate DXGI adapters and attempt to create DX12 device with minimal required feature level (i.e. dx11.0) for
     // each of them. If the call succeeds, then add the corresponding adapter to the iteration list
-    ComPtr<IDXGIAdapter> dxgi_adapter{ nullptr };
+    IDXGIAdapter* dxgi_adapter{ nullptr };
 
     HRESULT hres = S_OK;
     UINT id = 0;
     while ((hres = m_dxgi_factory6->EnumAdapterByGpuPreference(id,
-        static_cast<DXGI_GPU_PREFERENCE>(enumeration_preference),
-        IID_PPV_ARGS(&dxgi_adapter))) != DXGI_ERROR_NOT_FOUND)
+        static_cast<DXGI_GPU_PREFERENCE>(enumeration_preference), __uuidof(IDXGIAdapter),
+        reinterpret_cast<void**>(&dxgi_adapter))) != DXGI_ERROR_NOT_FOUND)
     {
         if (hres != S_OK)
         {
@@ -90,6 +96,7 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
             dxgi_adapter->QueryInterface(IID_PPV_ARGS(&dxgi_adapter4)),
             S_OK
         );
+        dxgi_adapter->Release();
         if (!dxgi_adapter4) continue;
 
         HRESULT res;
@@ -301,6 +308,7 @@ dx::d3d12::Device& HwAdapter::device() const
 HwAdapter::~HwAdapter()
 {
     m_device.reset();
+    m_impl.reset();
 
     OutputDebugString(asciiStringToWstring("Destroying adapter \""
         + getStringName() + "\"\n").c_str());
