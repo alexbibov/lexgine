@@ -35,12 +35,6 @@ HwAdapterEnumerator::HwAdapterEnumerator(GlobalSettings const& global_settings,
     refresh(enumeration_preference);
 }
 
-HwAdapterEnumerator::~HwAdapterEnumerator()
-{
-    OutputDebugStringA(("Destroying adapter enumerator. DXGI factory ref. counter "
-        + std::to_string(m_dxgi_factory6.Reset()) + "\n").c_str());
-}
-
 HwAdapterEnumerator::iterator HwAdapterEnumerator::begin()
 {
     return m_adapter_list.begin();
@@ -273,6 +267,9 @@ HwAdapter::HwAdapter(GlobalSettings const& global_settings,
 }
 
 
+HwAdapter::~HwAdapter() = default;
+
+
 void HwAdapter::reserveVideoMemory(uint32_t node_index, MemoryBudget budget_type, uint64_t amount_in_bytes) const
 {
     LEXGINE_THROW_ERROR_IF_FAILED(
@@ -303,16 +300,4 @@ SwapChain HwAdapter::createSwapChain(osinteraction::windows::Window const& windo
 dx::d3d12::Device& HwAdapter::device() const
 {
     return *m_device;
-}
-
-HwAdapter::~HwAdapter()
-{
-    m_device.reset();
-    m_impl.reset();
-
-    OutputDebugString(asciiStringToWstring("Destroying adapter \""
-        + getStringName() + "\"\n").c_str());
-
-    OutputDebugStringA(("Adapter ref. count " + std::to_string(m_dxgi_adapter.Reset()) + "\n").c_str());
-    OutputDebugStringA(("DXGI factory ref. count " + std::to_string(m_dxgi_adapter_factory.Reset()) + "\n").c_str());
 }

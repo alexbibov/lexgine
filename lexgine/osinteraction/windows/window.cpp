@@ -239,6 +239,14 @@ void Window::processMessages() const
     }
 }
 
+bool Window::update() const
+{
+    RECT rect{ 0, 0, static_cast<LONG>(m_width), static_cast<LONG>(m_height) };
+    BOOL res = InvalidateRect(m_hwnd, &rect, FALSE);
+    res |= UpdateWindow(m_hwnd);
+    return static_cast<bool>(res);
+}
+
 
 LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam)
 {

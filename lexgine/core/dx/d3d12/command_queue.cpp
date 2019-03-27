@@ -11,11 +11,6 @@ using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::misc;
 
 
-CommandQueue::~CommandQueue()
-{
-    OutputDebugString(asciiStringToWstring("Destroying command queue \"" + getStringName() + "\"\n").c_str());
-}
-
 CommandQueue::CommandQueue(Device& device, WorkloadType type, uint32_t node_mask, CommandQueuePriority priority, CommandQueueFlags flags) :
     m_type{ type },
     m_priority{ priority },

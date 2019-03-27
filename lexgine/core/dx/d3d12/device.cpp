@@ -20,11 +20,6 @@ Device::Device(ComPtr<ID3D12Device> const& device, lexgine::core::GlobalSettings
     m_copy_command_queue.setStringName("copy_command_queue");
 }
 
-Device::~Device()
-{
-    OutputDebugStringA(("Destroying device, ref. count " + std::to_string(m_device.Reset()) + "\n").c_str());
-}
-
 FeatureD3D12Options Device::queryFeatureD3D12Options() const
 {
     FeatureD3D12Options rv{};

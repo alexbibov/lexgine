@@ -71,6 +71,11 @@ public:
 
     }
 
+    bool update() const
+    {
+        return m_rendering_window.update();
+    }
+
     bool shouldClose()
     {
         return m_rendering_window.shouldClose();
@@ -204,6 +209,7 @@ int main(int argc, char* argv[])
     while (!main_class.shouldClose())
     {
         main_class.loop();
+        main_class.update();
     }
 
     return 0;

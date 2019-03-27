@@ -98,6 +98,8 @@ public:
 
     void processMessages() const;    //! retrieves messages addressed to the window from the message queue and dispatches them to the window
 
+    bool update() const;    //! updates window and returns 'true' on success
+
 private:
     // Window properties
 

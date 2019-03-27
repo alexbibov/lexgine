@@ -206,7 +206,6 @@ public:
 
     Device(Device const&) = delete;
     Device(Device&&) = delete;
-    ~Device();
 
 private:
     Device(ComPtr<ID3D12Device> const& native_device, lexgine::core::GlobalSettings const& global_settings);

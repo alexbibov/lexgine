@@ -97,7 +97,6 @@ public:
 public:
     HwAdapter(HwAdapter const&) = delete;
     HwAdapter(HwAdapter&&) = default;
-
     ~HwAdapter();
 
 public:
@@ -171,8 +170,6 @@ public:
 
     HwAdapterEnumerator(HwAdapterEnumerator const&) = delete;
     HwAdapterEnumerator(HwAdapterEnumerator&&) = delete;
-
-    ~HwAdapterEnumerator();
 
 public:
     iterator begin();
