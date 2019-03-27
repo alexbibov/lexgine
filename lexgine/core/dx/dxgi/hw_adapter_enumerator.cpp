@@ -298,4 +298,8 @@ dx::d3d12::Device& HwAdapter::device() const
     return *m_device;
 }
 
-HwAdapter::~HwAdapter() = default;
+HwAdapter::~HwAdapter()
+{
+    OutputDebugString(asciiStringToWstring("Destroying adapter \"" 
+        + getStringName() + "\"\n").c_str());
+}

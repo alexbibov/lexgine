@@ -71,14 +71,14 @@ private:    // required by the AbstractTask interface
 
         m_command_list.reset();
         m_command_list.setDescriptorHeaps(m_page0_descriptor_heaps);
-        m_command_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle);
+        //m_command_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle);
 
-        m_command_list.outputMergerSetRenderTargets(&target.rtvTable(), 1,
+        /*m_command_list.outputMergerSetRenderTargets(&target.rtvTable(), 1,
             target.hasDepth() ? &target.dsvTable() : nullptr, 0U);
 
         target.switchToRenderAccessState(m_command_list);
 
-        m_command_list.clearRenderTargetView(target.rtvTable(), 0, m_clear_color);
+        m_command_list.clearRenderTargetView(target.rtvTable(), 0, m_clear_color);*/
 
         m_command_list.close();
 
@@ -120,7 +120,7 @@ private:    // required by the AbstractTask interface
 
         m_command_list.reset();
 
-        target.switchToInitialState(m_command_list);
+        // target.switchToInitialState(m_command_list);
 
         m_command_list.close();
         m_rendering_tasks.m_device.defaultCommandQueue().executeCommandList(m_command_list);
@@ -262,7 +262,7 @@ RenderingTasks::RenderingTasks(Globals& globals)
     , m_frame_begin_task{ new FrameBeginTask{*this, math::Vector4f{0.f, 0.f, 0.f, 0.f}} }
     , m_frame_end_task{ new FrameEndTask{*this} }
 
-    , m_test_triangle_rendering{ new TestTriangleRendering{ globals } }
+    // , m_test_triangle_rendering{ new TestTriangleRendering{ globals } }
 {
     m_task_graph.setRootNodes({ m_frame_begin_task.get() });
     m_frame_begin_task->addDependent(*m_frame_end_task);
@@ -273,6 +273,7 @@ RenderingTasks::RenderingTasks(Globals& globals)
 RenderingTasks::~RenderingTasks()
 {
     m_task_sink.shutdown();
+    m_frame_progress_tracker.waitForFrameCompletion(m_frame_progress_tracker.lastScheduledFrameIndex());
 }
 
 
