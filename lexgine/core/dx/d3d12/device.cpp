@@ -8,7 +8,7 @@
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
-Device::Device(ComPtr<ID3D12Device> const& device, lexgine::core::GlobalSettings const& global_settings):
+Device::Device(ComPtr<ID3D12Device> const& device, lexgine::core::GlobalSettings const& global_settings) :
     m_device{ device },
     m_max_frames_in_flight{ global_settings.getMaxFramesInFlight() },
     m_default_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::enum_type::none) },
@@ -22,7 +22,7 @@ Device::Device(ComPtr<ID3D12Device> const& device, lexgine::core::GlobalSettings
 
 Device::~Device()
 {
-    OutputDebugString(L"Destroying device\n");
+    OutputDebugStringA(("Destroying device, ref. count " + std::to_string(m_device.Reset()) + "\n").c_str());
 }
 
 FeatureD3D12Options Device::queryFeatureD3D12Options() const
@@ -202,8 +202,8 @@ CommandQueue const& Device::copyCommandQueue() const
     return m_copy_command_queue;
 }
 
-CommandList Device::createCommandList(CommandType command_list_workload_type, uint32_t node_mask, 
-    FenceSharing command_list_sync_mode/* = FenceSharing::none */, 
+CommandList Device::createCommandList(CommandType command_list_workload_type, uint32_t node_mask,
+    FenceSharing command_list_sync_mode/* = FenceSharing::none */,
     PipelineState const* initial_pipeline_state/* = nullptr */)
 {
     return CommandListAttorney<Device>::makeCommandList(*this, command_list_workload_type,

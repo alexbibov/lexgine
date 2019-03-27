@@ -13,13 +13,13 @@ using namespace lexgine::core::dx;
 using namespace lexgine::core::dx::d3d12;
 
 
-DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings, 
+DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
     bool enable_debug_mode,
-    dxgi::HwAdapterEnumerator::DxgiGpuPreference enumeration_preference) :
-    m_global_settings{ global_settings },
-    m_debug_interface{ enable_debug_mode ? DebugInterface::retrieve() : nullptr },
-    m_hw_adapter_enumerator{global_settings, enable_debug_mode, enumeration_preference},
-    m_dxc_proxy(m_global_settings)
+    dxgi::HwAdapterEnumerator::DxgiGpuPreference enumeration_preference)
+    : m_global_settings{ global_settings }
+    , m_debug_interface{ enable_debug_mode ? DebugInterface::retrieve() : nullptr }
+    , m_hw_adapter_enumerator{ global_settings, enable_debug_mode, enumeration_preference }
+    , m_dxc_proxy(m_global_settings)
 {
     m_hw_adapter_enumerator.setStringName("Hardware adapter enumerator");
 
@@ -35,8 +35,8 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
         std::array<std::string, 4U> descriptor_heap_name_suffixes = {
             "_cbv_srv_uav_heap", "_sampler_heap", "_rtv_heap", "_dsv_heap"
         };
-        for (auto heap_type : 
-            { DescriptorHeapType::cbv_srv_uav, 
+        for (auto heap_type :
+            { DescriptorHeapType::cbv_srv_uav,
             DescriptorHeapType::sampler,
             DescriptorHeapType::rtv,
             DescriptorHeapType::dsv })
@@ -48,10 +48,10 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
             {
                 uint32_t descriptor_count = global_settings.getDescriptorHeapPageCapacity(heap_type);
                 auto& new_descriptor_heap_ref =
-                    page_pool[static_cast<size_t>(heap_type)][page_id] = 
+                    page_pool[static_cast<size_t>(heap_type)][page_id] =
                     dev_ref.createDescriptorHeap(heap_type, descriptor_count, node_mask);
 
-                new_descriptor_heap_ref->setStringName(dev_ref.getStringName() 
+                new_descriptor_heap_ref->setStringName(dev_ref.getStringName()
                     + descriptor_heap_name_suffixes[static_cast<size_t>(heap_type)] + "_page" + std::to_string(page_id));
             }
         }
@@ -66,7 +66,7 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
 
             m_upload_heaps.emplace(&dev_ref, std::move(upload_heap));
         }
-        
+
 
         // initialize frame progress trackers
         {
@@ -78,7 +78,7 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
 
 DxResourceFactory::~DxResourceFactory()
 {
-    if (m_debug_interface) 
+    if (m_debug_interface)
         m_debug_interface->shutdown();
 }
 
@@ -116,10 +116,10 @@ dxgi::HwAdapter const* DxResourceFactory::retrieveHwAdapterOwningDevicePtr(Devic
 {
     auto target_adapter = std::find_if(m_hw_adapter_enumerator.begin(), m_hw_adapter_enumerator.end(),
         [&device](auto& adapter)
-        {
-            Device& dev_ref = adapter.device();
-            return &dev_ref == &device;
-        }
+    {
+        Device& dev_ref = adapter.device();
+        return &dev_ref == &device;
+    }
     );
 
     if (target_adapter != m_hw_adapter_enumerator.end())
