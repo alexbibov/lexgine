@@ -11,8 +11,8 @@ HwOutputEnumerator::HwOutputEnumerator(ComPtr<IDXGIAdapter4> const& adapter, LUI
 {
     HRESULT rv = S_OK;
     UINT id = 0;
-    ComPtr<IDXGIOutput> dxgi_output;
-    while ((rv = m_adapter->EnumOutputs(id, dxgi_output.GetAddressOf())) != DXGI_ERROR_NOT_FOUND)
+    IDXGIOutput* dxgi_output{ nullptr };
+    while ((rv = m_adapter->EnumOutputs(id, &dxgi_output)) != DXGI_ERROR_NOT_FOUND)
     {
         if (rv != S_OK)
         {
@@ -26,6 +26,7 @@ HwOutputEnumerator::HwOutputEnumerator(ComPtr<IDXGIAdapter4> const& adapter, LUI
 
         ComPtr<IDXGIOutput6> dxgi_output6;
         dxgi_output->QueryInterface(IID_PPV_ARGS(&dxgi_output6));
+        dxgi_output->Release();
         m_outputs.emplace_back(HwOutput{ dxgi_output6 });
 
         ++id;
