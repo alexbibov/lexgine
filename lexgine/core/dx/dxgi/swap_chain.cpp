@@ -10,7 +10,7 @@ using namespace lexgine::core::dx::dxgi;
 
 SwapChain::~SwapChain()
 {
-    OutputDebugString(L"Removing swap chain\n");
+    OutputDebugStringA(("Removing swap chain, ref. count" + std::to_string(m_dxgi_swap_chain.Reset()) + "\n").c_str());
 }
 
 Device& lexgine::core::dx::dxgi::SwapChain::device() const
@@ -41,7 +41,7 @@ math::Vector2u SwapChain::getDimensions() const
 dx::d3d12::Resource SwapChain::getBackBuffer(uint32_t buffer_index) const
 {
     ComPtr<ID3D12Resource> backbuffer_interface;
-    
+
     LEXGINE_THROW_ERROR_IF_FAILED(this,
         m_dxgi_swap_chain->GetBuffer(static_cast<UINT>(buffer_index), IID_PPV_ARGS(backbuffer_interface.GetAddressOf())),
         S_OK);
@@ -68,7 +68,7 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     Device& device,
     CommandQueue const& default_command_queue,
     osinteraction::windows::Window const& window,
-    SwapChainDescriptor const& desc, SwapChainAdvancedParameters const& advanced_parameters):
+    SwapChainDescriptor const& desc, SwapChainAdvancedParameters const& advanced_parameters) :
     m_dxgi_factory{ dxgi_factory },
     m_device{ device },
     m_window{ window },
@@ -99,7 +99,7 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     IDXGISwapChain1* p_swap_chain1 = nullptr;
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        m_dxgi_factory->CreateSwapChainForHwnd(m_default_command_queue.native().Get(), 
+        m_dxgi_factory->CreateSwapChainForHwnd(m_default_command_queue.native().Get(),
             m_window.native(), &swap_chain_desc1, &swap_chain_fs_desc, NULL, &p_swap_chain1),
         S_OK
     );

@@ -14,7 +14,7 @@ using namespace lexgine::core;
 using namespace lexgine::core::dx::dxgi;
 using namespace lexgine::core::dx::d3d12;
 
-namespace 
+namespace
 {
 
 EngineSettings createEngineSettings()
@@ -46,8 +46,8 @@ SwapChainDescriptor createSwapChainSettings()
 
 }
 
-class MainClass final: 
-    public Listeners<KeyInputListener, MouseButtonListener, MouseMoveListener, 
+class MainClass final :
+    public Listeners<KeyInputListener, MouseButtonListener, MouseMoveListener,
     WindowSizeChangeListener, ClientAreaUpdateListener>
 {
 public:
@@ -58,6 +58,7 @@ public:
         , m_rendering_tasks{ m_engine_initializer.createRenderingTasks() }
         , m_swap_chain_link{ m_engine_initializer.createSwapChainLink(m_swap_chain, lexgine::core::dx::d3d12::SwapChainDepthBufferFormat::d32float, *m_rendering_tasks) }
     {
+        m_swap_chain_link.linkRenderingTasks(m_rendering_tasks.get());
         m_rendering_window.setDimensions(lexgine::core::math::Vector2u{ 1280, 720 });
         m_rendering_window.addListener(this);
         m_rendering_window.setVisibility(true);
@@ -67,7 +68,7 @@ public:
 
     ~MainClass()
     {
-        m_rendering_tasks.reset();
+
     }
 
     bool shouldClose()
@@ -204,7 +205,6 @@ int main(int argc, char* argv[])
     {
         main_class.loop();
     }
-
 
     return 0;
 }

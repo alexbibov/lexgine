@@ -71,14 +71,14 @@ private:    // required by the AbstractTask interface
 
         m_command_list.reset();
         m_command_list.setDescriptorHeaps(m_page0_descriptor_heaps);
-        //m_command_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle);
+        m_command_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle);
 
-        /*m_command_list.outputMergerSetRenderTargets(&target.rtvTable(), 1,
+        m_command_list.outputMergerSetRenderTargets(&target.rtvTable(), 1,
             target.hasDepth() ? &target.dsvTable() : nullptr, 0U);
 
         target.switchToRenderAccessState(m_command_list);
 
-        m_command_list.clearRenderTargetView(target.rtvTable(), 0, m_clear_color);*/
+        m_command_list.clearRenderTargetView(target.rtvTable(), 0, m_clear_color);
 
         m_command_list.close();
 
@@ -120,12 +120,10 @@ private:    // required by the AbstractTask interface
 
         m_command_list.reset();
 
-        // target.switchToInitialState(m_command_list);
+        target.switchToInitialState(m_command_list);
 
         m_command_list.close();
         m_rendering_tasks.m_device.defaultCommandQueue().executeCommandList(m_command_list);
-        FrameProgressTrackerAttorney<RenderingTasks>::signalGPUEndFrame(m_rendering_tasks.m_frame_progress_tracker,
-            m_rendering_tasks.m_device.defaultCommandQueue());
 
         return true;
     }
@@ -172,14 +170,14 @@ public:
 
             m_box_vertices = std::array<float, 48>{
                 -1.f, -1.f, -1.f, 1.f, 0.f, 0.f,
-                 1.f, -1.f, -1.f, 0.f, 1.f, 0.f,
-                 1.f, 1.f, -1.f, 0.f, 0.f, 1.f,
-                -1.f, 1.f, -1.f, .5f, .5f, .5f,
+                    1.f, -1.f, -1.f, 0.f, 1.f, 0.f,
+                    1.f, 1.f, -1.f, 0.f, 0.f, 1.f,
+                    -1.f, 1.f, -1.f, .5f, .5f, .5f,
 
-                -1.f, -1.f, 1.f, .5f, .5f, .5f,
-                 1.f, -1.f, 1.f, 0.f, 0.f, 1.f,
-                 1.f, 1.f, 1.f, 0.f, 1.f, 0.f,
-                -1.f, 1.f, 1.f, 1.f, 0.f, 0.f,
+                    -1.f, -1.f, 1.f, .5f, .5f, .5f,
+                    1.f, -1.f, 1.f, 0.f, 0.f, 1.f,
+                    1.f, 1.f, 1.f, 0.f, 1.f, 0.f,
+                    -1.f, 1.f, 1.f, 1.f, 0.f, 0.f,
             };
 
             ResourceDataUploader::BufferSourceDescriptor source_descriptor;
@@ -198,11 +196,11 @@ public:
 
             m_box_indices = std::array<short, 36>{
                 0, 3, 1, 1, 3, 2,
-                4, 5, 7, 5, 6, 7,
-                7, 6, 3, 6, 2, 3,
-                4, 0, 5, 5, 0, 1,
-                5, 1, 6, 1, 2, 6,
-                0, 4, 7, 0, 7, 3
+                    4, 5, 7, 5, 6, 7,
+                    7, 6, 3, 6, 2, 3,
+                    4, 0, 5, 5, 0, 1,
+                    5, 1, 6, 1, 2, 6,
+                    0, 4, 7, 0, 7, 3
             };
 
             ResourceDataUploader::BufferSourceDescriptor source_descriptor;
@@ -221,7 +219,7 @@ public:
             // Create root signature
             RootSignatureCompilationTaskCache& rs_compilation_task_cache = *globals.get<RootSignatureCompilationTaskCache>();
             RootSignature rs{};
-            
+
             RootEntryDescriptorTable main_parameters;
             main_parameters.addRange(RootEntryDescriptorTable::RangeType::srv, 1, 0, 0, 0);
             main_parameters.addRange(RootEntryDescriptorTable::RangeType::cbv, 1, 0, 0, 1);
@@ -232,7 +230,7 @@ public:
             rs.addParameter(0, main_parameters);
             rs.addParameter(1, sampler_table);
 
-            
+
             rs_compilation_task = rs_compilation_task_cache.addTask(globals, std::move(rs), RootSignatureFlags::enum_type::none,
                 "test_rendering_rs", 0);
             rs_compilation_task->execute(0);
@@ -259,7 +257,7 @@ RenderingTasks::RenderingTasks(Globals& globals)
     , m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" }
     , m_task_sink{ m_task_graph, convertFileStreamsToGenericStreams(globals.get<LoggingStreams>()->worker_logging_streams), "RenderingTasksSink" }
 
-    , m_frame_begin_task{ new FrameBeginTask{*this, math::Vector4f{0.f, 0.f, 0.f, 0.f}} }
+    , m_frame_begin_task{ new FrameBeginTask{*this, math::Vector4f{1.f, 0.f, 0.f, 0.f}} }
     , m_frame_end_task{ new FrameEndTask{*this} }
 
     // , m_test_triangle_rendering{ new TestTriangleRendering{ globals } }
@@ -284,7 +282,9 @@ void RenderingTasks::render(RenderingTarget& target,
     m_current_rendering_target_ptr = &target;
     m_task_sink.submit(m_frame_progress_tracker.currentFrameIndex());
     presentation_routine(target);
+    FrameProgressTrackerAttorney<RenderingTasks>::signalGPUEndFrame(m_frame_progress_tracker, m_device.defaultCommandQueue());
     FrameProgressTrackerAttorney<RenderingTasks>::signalCPUEndFrame(m_frame_progress_tracker);
+    OutputDebugStringA(("Frame " + std::to_string(m_frame_progress_tracker.lastScheduledFrameIndex()) + " scheduled\n").c_str());
 }
 
 

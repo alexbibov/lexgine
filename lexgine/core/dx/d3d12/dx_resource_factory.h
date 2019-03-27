@@ -11,7 +11,7 @@
 #include <map>
 #include <array>
 
-namespace lexgine::core::dx::d3d12{
+namespace lexgine::core::dx::d3d12 {
 
 //! Used to create and encapsulate reused Direct3D resources
 class DxResourceFactory final
@@ -26,7 +26,7 @@ public:
     dxgi::HwAdapterEnumerator const& hardwareAdapterEnumerator() const;
     dxcompilation::DXCompilerProxy& shaderModel6xDxCompilerProxy();
     DebugInterface const* debugInterface() const;
-    
+
     DescriptorHeap& retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id);
     Heap& retrieveUploadHeap(Device const& device);
     FrameProgressTracker& retrieveFrameProgressTracker(Device const& device);

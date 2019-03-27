@@ -12,7 +12,7 @@ using namespace lexgine::core::misc;
 
 
 HwAdapterEnumerator::HwAdapterEnumerator(GlobalSettings const& global_settings,
-    bool enable_debug_mode, DxgiGpuPreference enumeration_preference):
+    bool enable_debug_mode, DxgiGpuPreference enumeration_preference) :
     m_global_settings{ global_settings },
     m_enable_debug_mode{ enable_debug_mode }
 {
@@ -75,9 +75,9 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 
     HRESULT hres = S_OK;
     UINT id = 0;
-    while ((hres = m_dxgi_factory6->EnumAdapterByGpuPreference(id, 
-            static_cast<DXGI_GPU_PREFERENCE>(enumeration_preference), 
-            IID_PPV_ARGS(&dxgi_adapter))) != DXGI_ERROR_NOT_FOUND)
+    while ((hres = m_dxgi_factory6->EnumAdapterByGpuPreference(id,
+        static_cast<DXGI_GPU_PREFERENCE>(enumeration_preference),
+        IID_PPV_ARGS(&dxgi_adapter))) != DXGI_ERROR_NOT_FOUND)
     {
         if (hres != S_OK)
         {
@@ -90,7 +90,7 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
             dxgi_adapter->QueryInterface(IID_PPV_ARGS(&dxgi_adapter4)),
             S_OK
         );
-        if(!dxgi_adapter4) continue;
+        if (!dxgi_adapter4) continue;
 
         HRESULT res;
         if ((res = D3D12CreateDevice(dxgi_adapter4.Get(), static_cast<D3D_FEATURE_LEVEL>(D3D12FeatureLevel::_11_0), __uuidof(ID3D12Device), nullptr)) == S_OK || res == S_FALSE)
@@ -101,7 +101,7 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
             dxgi_adapter4->GetDesc3(&desc);
             std::string adapter_name = wstringToAsciiString(desc.Description);
 
-            LEXGINE_LOG_ERROR(this, 
+            LEXGINE_LOG_ERROR(this,
                 "unable to create Direct3D12 device for adapter \"" + adapter_name + "\". "
                 "The possible reason is that the adapter does not support Direct3D 12");
         }
@@ -129,7 +129,7 @@ uint32_t HwAdapterEnumerator::getAdapterCount() const
 class HwAdapter::impl final
 {
 public:
-    impl(HwAdapter& enclosing, ComPtr<IDXGIAdapter4> const& adapter, LUID luid, uint32_t num_nodes):
+    impl(HwAdapter& enclosing, ComPtr<IDXGIAdapter4> const& adapter, LUID luid, uint32_t num_nodes) :
         m_enclosing{ enclosing },
         m_output_enumerator{ adapter, luid },
         m_num_nodes{ num_nodes },
@@ -183,18 +183,18 @@ public:
     }
 
 private:
-    HwAdapter& m_enclosing;  
+    HwAdapter& m_enclosing;
     HwOutputEnumerator m_output_enumerator;
     uint32_t m_num_nodes;
-    std::vector<MemoryDesc> m_local_memory_desc;   
-    std::vector<MemoryDesc> m_non_local_memory_desc;    
+    std::vector<MemoryDesc> m_local_memory_desc;
+    std::vector<MemoryDesc> m_non_local_memory_desc;
 };
 
 
 
-HwAdapter::HwAdapter(GlobalSettings const& global_settings, 
-    ComPtr<IDXGIFactory6> const& adapter_factory, 
-    ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode):
+HwAdapter::HwAdapter(GlobalSettings const& global_settings,
+    ComPtr<IDXGIFactory6> const& adapter_factory,
+    ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode) :
     m_global_settings{ global_settings },
     m_dxgi_adapter{ adapter },
     m_dxgi_adapter_factory{ adapter_factory },
@@ -289,7 +289,7 @@ HwOutputEnumerator const& HwAdapter::getOutputEnumerator() const
 SwapChain HwAdapter::createSwapChain(osinteraction::windows::Window const& window, SwapChainDescriptor const& desc,
     SwapChainAdvancedParameters const& advanced_parameters) const
 {
-    return SwapChainAttorney<HwAdapter>::makeSwapChain(m_dxgi_adapter_factory, *m_device, 
+    return SwapChainAttorney<HwAdapter>::makeSwapChain(m_dxgi_adapter_factory, *m_device,
         m_device->defaultCommandQueue(), window, desc, advanced_parameters);
 }
 
@@ -300,6 +300,11 @@ dx::d3d12::Device& HwAdapter::device() const
 
 HwAdapter::~HwAdapter()
 {
-    OutputDebugString(asciiStringToWstring("Destroying adapter \"" 
+    m_device.reset();
+
+    OutputDebugString(asciiStringToWstring("Destroying adapter \""
         + getStringName() + "\"\n").c_str());
+
+    OutputDebugStringA(("Adapter ref. count " + std::to_string(m_dxgi_adapter.Reset()) + "\n").c_str());
+    OutputDebugStringA(("DXGI factory ref. count " + std::to_string(m_dxgi_adapter_factory.Reset()) + "\n").c_str());
 }
