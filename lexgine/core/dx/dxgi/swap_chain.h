@@ -57,6 +57,8 @@ public:
     SwapChain(SwapChain const&) = delete;
     SwapChain(SwapChain&&) = default;
 
+    ~SwapChain();
+
 public:
 
     //! Retrieves Direct3D12 device associated with the swap chain

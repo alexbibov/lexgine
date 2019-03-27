@@ -8,6 +8,11 @@ using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::dxgi;
 
 
+SwapChain::~SwapChain()
+{
+    OutputDebugString(L"Removing swap chain\n");
+}
+
 Device& lexgine::core::dx::dxgi::SwapChain::device() const
 {
     return m_device;

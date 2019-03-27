@@ -15,7 +15,14 @@ Device::Device(ComPtr<ID3D12Device> const& device, lexgine::core::GlobalSettings
     m_async_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, global_settings.isAsyncComputeEnabled() ? WorkloadType::compute : WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::enum_type::none) },
     m_copy_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, global_settings.isAsyncCopyEnabled() ? WorkloadType::copy : WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::enum_type::none) }
 {
-    
+    m_default_command_queue.setStringName("default_command_queue");
+    m_async_command_queue.setStringName("async_command_queue");
+    m_copy_command_queue.setStringName("copy_command_queue");
+}
+
+Device::~Device()
+{
+    OutputDebugString(L"Destroying device\n");
 }
 
 FeatureD3D12Options Device::queryFeatureD3D12Options() const

@@ -81,6 +81,8 @@ public:
     CommandQueue(CommandQueue const&) = delete;
     CommandQueue(CommandQueue&&) = default;
 
+    ~CommandQueue();
+
 private:
     CommandQueue(Device& device,
         WorkloadType type = WorkloadType::direct,

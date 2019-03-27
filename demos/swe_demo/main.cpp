@@ -46,7 +46,7 @@ SwapChainDescriptor createSwapChainSettings()
 
 }
 
-class MainClass : 
+class MainClass final: 
     public Listeners<KeyInputListener, MouseButtonListener, MouseMoveListener, 
     WindowSizeChangeListener, ClientAreaUpdateListener>
 {
@@ -63,6 +63,11 @@ public:
         m_rendering_window.setVisibility(true);
 
         Device& dev_ref = m_engine_initializer.getCurrentDevice();
+    }
+
+    ~MainClass()
+    {
+        m_rendering_tasks.reset();
     }
 
     bool shouldClose()
