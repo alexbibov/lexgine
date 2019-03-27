@@ -284,7 +284,6 @@ void RenderingTasks::render(RenderingTarget& target,
     presentation_routine(target);
     FrameProgressTrackerAttorney<RenderingTasks>::signalGPUEndFrame(m_frame_progress_tracker, m_device.defaultCommandQueue());
     FrameProgressTrackerAttorney<RenderingTasks>::signalCPUEndFrame(m_frame_progress_tracker);
-    OutputDebugStringA(("Frame " + std::to_string(m_frame_progress_tracker.lastScheduledFrameIndex()) + " scheduled\n").c_str());
 }
 
 
