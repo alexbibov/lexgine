@@ -30,7 +30,7 @@ private:
     class FrameBeginTask;
     class FrameEndTask;
 
-    class TestTriangleRendering;    // To be removed, here for testing purposes only
+    class TestRendering;    // To be removed, here for testing purposes only
 
 private:
     DxResourceFactory& m_dx_resources;
@@ -44,7 +44,7 @@ private:
     std::unique_ptr<FrameEndTask> m_frame_end_task;
     RenderingTarget* m_current_rendering_target_ptr;
 
-    std::unique_ptr<TestTriangleRendering> m_test_triangle_rendering;
+    std::unique_ptr<TestRendering> m_test_triangle_rendering;
 };
 
 }

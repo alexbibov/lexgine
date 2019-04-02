@@ -171,24 +171,20 @@ RootSignature& RootSignature::addParameter(uint32_t slot, RootEntryDescriptorTab
     D3D12_ROOT_PARAMETER param;
     param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
-
     size_t num_ranges = root_entry_descriptor_table_declaration.m_ranges.size();
     param.DescriptorTable.NumDescriptorRanges = static_cast<UINT>(num_ranges);
 
-    size_t current_offset_in_cache = m_descriptor_range_cache.size();
-    m_descriptor_range_cache.resize(current_offset_in_cache + num_ranges);
     auto range_iterator = root_entry_descriptor_table_declaration.m_ranges.begin();
-    for (size_t i = current_offset_in_cache; i < current_offset_in_cache + num_ranges; ++i, ++range_iterator)
+    auto& range_cache = m_descriptor_range_cache.emplace_back(num_ranges);
+    for (size_t i = 0; i < num_ranges; ++i, ++range_iterator)
     {
-        m_descriptor_range_cache[i].RangeType = static_cast<D3D12_DESCRIPTOR_RANGE_TYPE>(range_iterator->type);
-        m_descriptor_range_cache[i].NumDescriptors = range_iterator->num_descriptors;
-        m_descriptor_range_cache[i].BaseShaderRegister = range_iterator->base_register;
-        m_descriptor_range_cache[i].RegisterSpace = range_iterator->register_space;
-        m_descriptor_range_cache[i].OffsetInDescriptorsFromTableStart = range_iterator->offset;
+        range_cache[i].RangeType = static_cast<D3D12_DESCRIPTOR_RANGE_TYPE>(range_iterator->type);
+        range_cache[i].NumDescriptors = range_iterator->num_descriptors;
+        range_cache[i].BaseShaderRegister = range_iterator->base_register;
+        range_cache[i].RegisterSpace = range_iterator->register_space;
+        range_cache[i].OffsetInDescriptorsFromTableStart = range_iterator->offset;
     }
-    param.DescriptorTable.pDescriptorRanges = m_descriptor_range_cache.data() + current_offset_in_cache;
-
-
+    param.DescriptorTable.pDescriptorRanges = range_cache.data();
     param.ShaderVisibility = static_cast<D3D12_SHADER_VISIBILITY>(shader_visibility);
 
     m_root_parameters.emplace(slot, param);

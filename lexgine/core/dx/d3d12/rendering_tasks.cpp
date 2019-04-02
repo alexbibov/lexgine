@@ -8,6 +8,7 @@
 
 #include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
+#include "lexgine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/pso_compilation_task.h"
 
 #include "dx_resource_factory.h"
@@ -139,10 +140,10 @@ private:
 };
 
 
-class RenderingTasks::TestTriangleRendering final
+class RenderingTasks::TestRendering final
 {
 public:
-    TestTriangleRendering(Globals& globals)
+    TestRendering(Globals& globals)
         : m_device{ *globals.get<Device>() }
         , m_data_uploader{ globals, 0, 64 * 1024 * 1024 }
         , m_vb{ m_device }
@@ -152,9 +153,9 @@ public:
                     HeapCreationFlags::enum_type::allow_all }
     {
         std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
-            std::make_shared<VertexAttributeSpecification<float, 3>>(0, 24, "SV_Position", 0, 0));
+            std::make_shared<VertexAttributeSpecification<float, 3>>(0, 24, "POSITION", 0, 0));
         std::shared_ptr<AbstractVertexAttributeSpecification> color = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
-            std::make_shared<VertexAttributeSpecification<float, 3>>(0, 24, "COLOR", 0, 0));
+            std::make_shared<VertexAttributeSpecification<float, 3>>(1, 24, "COLOR", 0, 0));
 
         VertexAttributeSpecificationList va_spec_list{ position, color };
 
@@ -235,6 +236,24 @@ public:
                 "test_rendering_rs", 0);
             rs_compilation_task->execute(0);
         }
+
+        HLSLCompilationTask* vs{ nullptr }, *ps{ nullptr };
+        {
+            std::string hlsl_source = "";
+
+            HLSLCompilationTaskCache& hlsl_compilation_task_cache = *globals.get<HLSLCompilationTaskCache>();
+
+            vs = hlsl_compilation_task_cache.addTask(globals, hlsl_source, "vertex_shader",
+                dxcompilation::ShaderModel::model_62, dxcompilation::ShaderType::vertex, "VSMain",
+                ShaderSourceCodePreprocessor::SourceType::string);
+
+            ps = hlsl_compilation_task_cache.addTask(globals, hlsl_source, "vertex_shader",
+                dxcompilation::ShaderModel::model_62, dxcompilation::ShaderType::vertex, "PSMain",
+                ShaderSourceCodePreprocessor::SourceType::string);
+
+            vs->execute(0);
+            ps->execute(0);
+        }
     }
 
 private:
@@ -260,7 +279,7 @@ RenderingTasks::RenderingTasks(Globals& globals)
     , m_frame_begin_task{ new FrameBeginTask{*this, math::Vector4f{1.f, 0.f, 0.f, 0.f}} }
     , m_frame_end_task{ new FrameEndTask{*this} }
 
-    // , m_test_triangle_rendering{ new TestTriangleRendering{ globals } }
+    , m_test_triangle_rendering{ new TestRendering{ globals } }
 {
     m_task_graph.setRootNodes({ m_frame_begin_task.get() });
     m_frame_begin_task->addDependent(*m_frame_end_task);
