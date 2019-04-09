@@ -11,6 +11,8 @@
 #include "lexgine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/pso_compilation_task.h"
 
+#include "lexgine/core/math/utility.h"
+
 #include "dx_resource_factory.h"
 #include "device.h"
 #include "command_list.h"
@@ -22,6 +24,7 @@
 
 
 using namespace lexgine::core;
+using namespace lexgine::core::math;
 using namespace lexgine::core::concurrency;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks;
@@ -254,6 +257,8 @@ public:
             vs->execute(0);
             ps->execute(0);
         }
+
+
     }
 
 private:

@@ -441,12 +441,21 @@
     <ClInclude Include="core\dx\d3d12\constant_buffer_reflection.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\constant_buffer.h" />
-    <ClInclude Include="core\dx\d3d12\frame_progress_tracker.h" />
     <ClInclude Include="core\dx\d3d12\constant_buffer_data_mapper.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\vertex_buffer.h" />
+    <ClInclude Include="core\math\utility.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\constant_buffer.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\frame_progress_tracker.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\vertex_buffer.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -698,13 +707,24 @@
     <ClCompile Include="core\dx\d3d12\constant_buffer_reflection.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="core\dx\d3d12\constant_buffer.cpp" />
-    <ClCompile Include="core\dx\d3d12\frame_progress_tracker.cpp" />
     <ClCompile Include="core\dx\d3d12\constant_data_stream.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="core\dx\d3d12\constant_buffer_data_mapper.cpp" />
-    <ClCompile Include="core\dx\d3d12\vertex_buffer.cpp" />
+    <ClCompile Include="core\math\utility.cpp">
+      <Filter>core\math</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\constant_buffer.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\constant_buffer_data_mapper.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\frame_progress_tracker.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\vertex_buffer.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="core\dx\d3d12\constant_buffer_impl.inl">

@@ -226,6 +226,7 @@
     <ClCompile Include="core\logging_streams.cpp" />
     <ClCompile Include="core\math\box.cpp" />
     <ClCompile Include="core\math\rectangle.cpp" />
+    <ClCompile Include="core\math\utility.cpp" />
     <ClCompile Include="core\misc\datetime.cpp" />
     <ClCompile Include="core\misc\hashed_string.cpp" />
     <ClCompile Include="core\misc\log.cpp" />
@@ -338,6 +339,7 @@
     <ClInclude Include="core\math\lexgine_core_math_fwd.h" />
     <ClInclude Include="core\math\matrix_types.h" />
     <ClInclude Include="core\math\rectangle.h" />
+    <ClInclude Include="core\math\utility.h" />
     <ClInclude Include="core\math\vector_types.h" />
     <ClInclude Include="core\metal\metal_tools.h" />
     <ClInclude Include="core\misc\constant_converter.h" />

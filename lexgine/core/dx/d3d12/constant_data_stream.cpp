@@ -25,3 +25,13 @@ ConstantDataStream::ConstantDataStream(Globals& globals)
         globals.get<DxResourceFactory>()->retrieveFrameProgressTracker(*globals.get<Device>()) }
 {
 }
+
+uint64_t ConstantDataStream::totalCapacity() const
+{
+    return m_allocator.totalCapacity();
+}
+
+uint64_t ConstantDataStream::allocate(uint64_t size)
+{
+    return reinterpret_cast<uint64_t>(m_allocator.allocate(size)->address());
+}

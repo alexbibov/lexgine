@@ -8,6 +8,8 @@ class CommandList;
 class CommandQueue;
 class ConstantBuffer;
 class ConstantBufferReflection;
+class ConstantDataUpdater;
+class ConstantDataMapper;
 class D3D12PSOXMLParser;
 class DebugInterface;
 class DescriptorHeap;
