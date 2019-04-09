@@ -435,9 +435,6 @@
     <ClInclude Include="..\3rd_party\imgui\imstb_truetype.h">
       <Filter>3rd_party\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\constant_data_stream.h">
-      <Filter>core\dx\d3d12</Filter>
-    </ClInclude>
     <ClInclude Include="core\dx\d3d12\constant_buffer_reflection.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
@@ -454,6 +451,9 @@
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
     <ClInclude Include="core\dx\d3d12\vertex_buffer.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\constant_buffer_stream.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
   </ItemGroup>
@@ -707,9 +707,6 @@
     <ClCompile Include="core\dx\d3d12\constant_buffer_reflection.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="core\dx\d3d12\constant_data_stream.cpp">
-      <Filter>core\dx\d3d12</Filter>
-    </ClCompile>
     <ClCompile Include="core\math\utility.cpp">
       <Filter>core\math</Filter>
     </ClCompile>
@@ -723,6 +720,9 @@
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\vertex_buffer.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\constant_buffer_stream.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
   </ItemGroup>
