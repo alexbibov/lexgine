@@ -13,9 +13,9 @@ namespace lexgine::core::dx::d3d12 {
 
 template<typename T> struct StaticTypeToReflectionEntryBaseType;
 
-template<> struct StaticTypeToReflectionEntryBaseType<float> 
-{ 
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float1; 
+template<> struct StaticTypeToReflectionEntryBaseType<float>
+{
+    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float1;
 };
 
 template<> struct StaticTypeToReflectionEntryBaseType<int>
@@ -291,8 +291,8 @@ public:
 template<typename T> class ConstantDataProvider : public AbstractConstantDataProvider
 {
 public:
-    using value_type = typename std::conditional<std::is_scalar<T>::value, 
-        T, 
+    using value_type = typename std::conditional<std::is_scalar<T>::value,
+        T,
         typename std::remove_const<typename std::remove_reference<T>::type>::type&>;
 
 public:
@@ -305,7 +305,7 @@ public:
     void const* data() const override { return &m_value; }
     size_t elementCount() const override { return 1U; }
 
-    ConstantBufferReflection::ReflectionEntryBaseType reflectionType() const override 
+    ConstantBufferReflection::ReflectionEntryBaseType reflectionType() const override
     {
         return StaticTypeToReflectionEntryBaseType<value_type>::base_reflection_type;
     }
@@ -333,7 +333,7 @@ public:
     std::vector<T> const& value() const { return m_value; }
     ConstantBufferReflection::ReflectionEntryBaseType reflectionType() const override
     {
-        return 
+        return
             StaticTypeToReflectionEntryBaseType<typename std::remove_const<typename std::remove_reference<T>::type>::type>
             ::base_reflection_type;
     }
@@ -344,13 +344,13 @@ private:
 
 
 
-class ConstantDataUpdater
+class ConstantBufferDataUpdater
 {
 public:
-    ConstantDataUpdater(std::string const& variable_name,
+    ConstantBufferDataUpdater(std::string const& variable_name,
         std::shared_ptr<AbstractConstantDataProvider> const& constant_data_provider);
 
-    void update(uint64_t constant_buffer_allocation_base_address, ConstantBufferReflection const& reflection);
+    void update(uint64_t constant_buffer_allocation_base_address, ConstantBufferReflection const& reflection) const;
 
 protected:
     misc::HashedString m_hash;
@@ -363,9 +363,15 @@ class ConstantBufferDataMapper final
 public:
     ConstantBufferDataMapper(ConstantBufferReflection const& reflection);
 
+    void addDataUpdater(ConstantBufferDataUpdater const& data_updater);
+
+    size_t requiredDestinationBufferCapacity() const;
+
+    void update(uint64_t constant_buffer_allocation_base_address) const;
+
 private:
     ConstantBufferReflection const& m_reflection;
-    std::list<ConstantDataUpdater> m_updaters;
+    std::list<ConstantBufferDataUpdater> m_updaters;
 };
 
 }

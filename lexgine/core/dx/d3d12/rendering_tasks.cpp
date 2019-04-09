@@ -22,6 +22,10 @@
 #include "resource_data_uploader.h"
 #include "vertex_buffer.h"
 
+#include "constant_buffer_reflection.h"
+#include "constant_buffer_data_mapper.h"
+#include "constant_buffer_stream.h"
+
 
 using namespace lexgine::core;
 using namespace lexgine::core::math;
@@ -154,6 +158,7 @@ public:
         , m_texture{ m_device, ResourceState::enum_type::pixel_shader, misc::makeEmptyOptional<ResourceOptimizedClearValue>(),
                     ResourceDescriptor::CreateTexture2D(256, 256, 1, DXGI_FORMAT_R8G8B8A8_UNORM), AbstractHeapType::default,
                     HeapCreationFlags::enum_type::allow_all }
+        , m_cb_data_mapper{ m_cb_reflection }
     {
         std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
             std::make_shared<VertexAttributeSpecification<float, 3>>(0, 24, "POSITION", 0, 0));
@@ -250,7 +255,7 @@ public:
                 dxcompilation::ShaderModel::model_62, dxcompilation::ShaderType::vertex, "VSMain",
                 ShaderSourceCodePreprocessor::SourceType::string);
 
-            ps = hlsl_compilation_task_cache.addTask(globals, hlsl_source, "vertex_shader",
+            ps = hlsl_compilation_task_cache.addTask(globals, hlsl_source, "pixel_shader",
                 dxcompilation::ShaderModel::model_62, dxcompilation::ShaderType::vertex, "PSMain",
                 ShaderSourceCodePreprocessor::SourceType::string);
 
@@ -258,7 +263,16 @@ public:
             ps->execute(0);
         }
 
+        // Setup constant buffer data
+        {
+            m_cb_reflection.addElement("ProjectionMatrix",
+                ConstantBufferReflection::ReflectionEntryDesc{ ConstantBufferReflection::ReflectionEntryBaseType::float4x4, 1 });
 
+            m_cb_reflection.addElement("RotationAngle",
+                ConstantBufferReflection::ReflectionEntryDesc{ ConstantBufferReflection::ReflectionEntryBaseType::float1, 1 });
+
+
+        }
     }
 
 private:
@@ -267,6 +281,12 @@ private:
     VertexBuffer m_vb;
     IndexBuffer m_ib;
     CommittedResource m_texture;
+    ConstantBufferReflection m_cb_reflection;
+    ConstantBufferDataMapper m_cb_data_mapper;
+    float m_box_rotation_angle;
+    math::Matrix4f m_mvp_transform;
+    std::shared_ptr<AbstractConstantDataProvider> m_box_rotation_angle_source;
+    std::shared_ptr<AbstractConstantDataProvider> m_mvp_transform_provider;
 
     std::array<float, 48> m_box_vertices;
     std::array<short, 36> m_box_indices;

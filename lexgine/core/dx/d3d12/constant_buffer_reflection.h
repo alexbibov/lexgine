@@ -1,4 +1,4 @@
-#ifndef LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_RELFECTION_H
+#ifndef LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_REFLECTION_H
 #define LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_REFLECTION_H
 
 #include <map>
@@ -77,7 +77,7 @@ public:
     inline size_t size() const { return m_current_offset; }
 
     //! returns reflection entry corresponding to the given name
-    ReflectionEntry const& operator[](std::string const& name) const;    
+    ReflectionEntry const& operator[](std::string const& name) const;
 
     //! returns reflection entry corresponding to the given hash
     ReflectionEntry const& operator[](misc::HashedString const& hash) const;
