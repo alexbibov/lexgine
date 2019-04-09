@@ -6,18 +6,19 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-
-
-
-
 class ConstantDataStream
 {
 public:
     ConstantDataStream(Globals& globals);
 
-    uint64_t total_capacity() const;
+    uint64_t totalCapacity() const;
 
+    uint64_t allocate(uint64_t size);
 
+    void update(uint64_t dst_gpu_address, ConstantDataMapper const& data_mapper,
+        ConstantBufferReflection const& reflection);
+
+    void allocateAndUpdate(ConstantDataMapper const& data_mapper, ConstantBufferReflection const& reflection);
 
 private:
     PerFrameUploadDataStreamAllocator m_allocator;
