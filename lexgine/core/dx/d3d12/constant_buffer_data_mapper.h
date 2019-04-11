@@ -293,10 +293,10 @@ template<typename T> class ConstantDataProvider : public AbstractConstantDataPro
 public:
     using value_type = typename std::conditional<std::is_scalar<T>::value,
         T,
-        typename std::remove_const<typename std::remove_reference<T>::type>::type&>;
+        typename std::remove_const<typename std::remove_reference<T>::type>::type const&>::type;
 
 public:
-    explicit ConstantDataProvider(typename std::remove_reference<value_type>::type const& value)
+    explicit ConstantDataProvider(value_type value)
         : m_value{ value }
     {
 
@@ -307,11 +307,12 @@ public:
 
     ConstantBufferReflection::ReflectionEntryBaseType reflectionType() const override
     {
-        return StaticTypeToReflectionEntryBaseType<value_type>::base_reflection_type;
+        return StaticTypeToReflectionEntryBaseType<typename std::remove_const<
+            typename std::remove_reference<value_type>::type
+        >::type>::base_reflection_type;
     }
 
-    typename value_type& value() { return m_value; }
-    typename std::remove_reference<value_type>::type const& value() const { return m_value; }
+    typename value_type value() const { return m_value; }
 
 private:
     value_type m_value;

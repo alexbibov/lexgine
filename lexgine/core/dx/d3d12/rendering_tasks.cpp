@@ -24,7 +24,6 @@
 
 #include "constant_buffer_reflection.h"
 #include "constant_buffer_data_mapper.h"
-#include "constant_buffer_stream.h"
 
 
 using namespace lexgine::core;
@@ -150,8 +149,9 @@ private:
 class RenderingTasks::TestRendering final
 {
 public:
-    TestRendering(Globals& globals)
+    TestRendering(Globals& globals, RenderingTasks const& rendering_tasks)
         : m_device{ *globals.get<Device>() }
+        , m_rendering_tasks{ rendering_tasks }
         , m_data_uploader{ globals, 0, 64 * 1024 * 1024 }
         , m_vb{ m_device }
         , m_ib{ m_device, IndexDataType::_16_bit, 32 * 1024 }
@@ -271,12 +271,23 @@ public:
             m_cb_reflection.addElement("RotationAngle",
                 ConstantBufferReflection::ReflectionEntryDesc{ ConstantBufferReflection::ReflectionEntryBaseType::float1, 1 });
 
+            m_box_rotation_angle_provider = std::static_pointer_cast<AbstractConstantDataProvider>(
+                std::make_shared<ConstantDataProvider<float>>(m_box_rotation_angle)
+                );
+            m_mvp_transform_provider = std::static_pointer_cast<AbstractConstantDataProvider>(
+                std::make_shared<ConstantDataProvider<Matrix4f>>(m_mvp_transform)
+                );
+            
+            m_cb_data_mapper.addDataUpdater(ConstantBufferDataUpdater{ "ProjectionMatrix", m_mvp_transform_provider });
+            m_cb_data_mapper.addDataUpdater(ConstantBufferDataUpdater{ "RotationAngle", m_box_rotation_angle_provider });
+
 
         }
     }
 
 private:
     Device const& m_device;
+    RenderingTasks const& m_rendering_tasks;
     ResourceDataUploader m_data_uploader;
     VertexBuffer m_vb;
     IndexBuffer m_ib;
@@ -285,7 +296,7 @@ private:
     ConstantBufferDataMapper m_cb_data_mapper;
     float m_box_rotation_angle;
     math::Matrix4f m_mvp_transform;
-    std::shared_ptr<AbstractConstantDataProvider> m_box_rotation_angle_source;
+    std::shared_ptr<AbstractConstantDataProvider> m_box_rotation_angle_provider;
     std::shared_ptr<AbstractConstantDataProvider> m_mvp_transform_provider;
 
     std::array<float, 48> m_box_vertices;
@@ -304,7 +315,9 @@ RenderingTasks::RenderingTasks(Globals& globals)
     , m_frame_begin_task{ new FrameBeginTask{*this, math::Vector4f{1.f, 0.f, 0.f, 0.f}} }
     , m_frame_end_task{ new FrameEndTask{*this} }
 
-    , m_test_triangle_rendering{ new TestRendering{ globals } }
+    , m_constant_data_stream{ globals }
+
+    , m_test_triangle_rendering{ new TestRendering{ globals, this } }
 {
     m_task_graph.setRootNodes({ m_frame_begin_task.get() });
     m_frame_begin_task->addDependent(*m_frame_end_task);
