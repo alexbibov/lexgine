@@ -12,6 +12,7 @@
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "signal.h"
+#include "constant_buffer_stream.h"
 
 namespace lexgine::core::dx::d3d12 {
 
@@ -43,6 +44,8 @@ private:
     std::unique_ptr<FrameBeginTask> m_frame_begin_task;
     std::unique_ptr<FrameEndTask> m_frame_end_task;
     RenderingTarget* m_current_rendering_target_ptr;
+
+    ConstantBufferStream m_constant_data_stream;
 
     std::unique_ptr<TestRendering> m_test_triangle_rendering;
 };
