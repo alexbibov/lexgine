@@ -146,7 +146,7 @@ private:
 };
 
 
-class RenderingTasks::TestRendering final
+class RenderingTasks::TestRendering final : public SchedulableTask
 {
 public:
     TestRendering(Globals& globals, RenderingTasks const& rendering_tasks)
@@ -159,6 +159,7 @@ public:
                     ResourceDescriptor::CreateTexture2D(256, 256, 1, DXGI_FORMAT_R8G8B8A8_UNORM), AbstractHeapType::default,
                     HeapCreationFlags::enum_type::allow_all }
         , m_cb_data_mapper{ m_cb_reflection }
+        , m_cmd_list{m_device.createCommandList(CommandType::direct, 0x1)}
     {
         std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
             std::make_shared<VertexAttributeSpecification<float, 3>>(0, 24, "POSITION", 0, 0));
@@ -222,10 +223,9 @@ public:
         m_data_uploader.upload();
         m_data_uploader.waitUntilUploadIsFinished();
 
-
+        // Create root signature
         RootSignatureCompilationTask* rs_compilation_task{ nullptr };
         {
-            // Create root signature
             RootSignatureCompilationTaskCache& rs_compilation_task_cache = *globals.get<RootSignatureCompilationTaskCache>();
             RootSignature rs{};
 
@@ -239,12 +239,13 @@ public:
             rs.addParameter(0, main_parameters);
             rs.addParameter(1, sampler_table);
 
-
             rs_compilation_task = rs_compilation_task_cache.addTask(globals, std::move(rs), RootSignatureFlags::enum_type::none,
                 "test_rendering_rs", 0);
             rs_compilation_task->execute(0);
         }
 
+
+        // Create shaders
         HLSLCompilationTask* vs{ nullptr }, *ps{ nullptr };
         {
             std::string hlsl_source = "";
@@ -261,6 +262,12 @@ public:
 
             vs->execute(0);
             ps->execute(0);
+        }
+
+        // Create PSO
+        GraphicsPSOCompilationTask* pso_compilation_task{ nullptr };
+        {
+
         }
 
         // Setup constant buffer data
@@ -280,13 +287,23 @@ public:
             
             m_cb_data_mapper.addDataUpdater(ConstantBufferDataUpdater{ "ProjectionMatrix", m_mvp_transform_provider });
             m_cb_data_mapper.addDataUpdater(ConstantBufferDataUpdater{ "RotationAngle", m_box_rotation_angle_provider });
-
-
         }
     }
 
+private:    // required by the AbstractTask interface
+    bool doTask(uint8_t worker_id, uint64_t current_frame_index) override
+    {
+
+            
+    }
+
+    TaskType type() const override
+    {
+        return TaskType::gpu_draw;
+    }
+
 private:
-    Device const& m_device;
+    Device& m_device;
     RenderingTasks const& m_rendering_tasks;
     ResourceDataUploader m_data_uploader;
     VertexBuffer m_vb;
@@ -298,6 +315,7 @@ private:
     math::Matrix4f m_mvp_transform;
     std::shared_ptr<AbstractConstantDataProvider> m_box_rotation_angle_provider;
     std::shared_ptr<AbstractConstantDataProvider> m_mvp_transform_provider;
+    CommandList m_cmd_list;
 
     std::array<float, 48> m_box_vertices;
     std::array<short, 36> m_box_indices;
