@@ -26,7 +26,7 @@ struct ComparisonFunctionConverter<EngineAPI::Metal, cmp_fun>;   // NOTICE_TO_DE
 template<StencilOperation stencil_op>
 struct StencilOperationConverter<EngineAPI::Metal, stencil_op>;   // NOTICE_TO_DEVELOPER: to be implemented
 
-template<PrimitiveTopology primitive_topology>
+template<PrimitiveTopologyType primitive_topology>
 struct PrimitiveTopologyConverter<EngineAPI::Metal, primitive_topology>;    // NOTICE_TO_DEVELOPER: to be implemented
 
 }}}

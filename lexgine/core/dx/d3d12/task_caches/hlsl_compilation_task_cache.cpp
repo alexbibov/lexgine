@@ -3,7 +3,6 @@
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
 #include "lexgine/core/exception.h"
-#include "lexgine/core/misc/datetime.h"
 #include "lexgine/core/misc/optional.h"
 #include "lexgine/core/misc/misc.h"
 #include "lexgine/core/misc/strict_weak_ordering.h"
@@ -35,6 +34,96 @@ std::string getStringifiedDefines(std::list<dxcompilation::HLSLMacroDefinition> 
 }
 
 }
+
+
+HLSLFileTranslationUnit::HLSLFileTranslationUnit(Globals& globals, std::string const& source_name, std::string const& file_path)
+    : HLSLTranslationUnit{ globals }
+{
+    m_source_name = source_name;
+
+    {
+        auto& global_settings = *globals.get<GlobalSettings>();
+
+        // find the full correct path to the shader if the shader exists
+        
+        {
+            bool shader_found{ false };
+            for (auto const& path_prefix : global_settings.getShaderLookupDirectories())
+            {
+                m_path_to_shader = path_prefix + file_path;
+                if (misc::doesFileExist(m_path_to_shader))
+                {
+                    shader_found = true;
+                    break;
+                }
+            }
+
+            if (!shader_found)
+            {
+                LEXGINE_THROW_ERROR("Unable to retrieve shader asset \"" + file_path + "\"");
+            }
+        }
+
+        m_hlsl_source_code = ShaderSourceCodePreprocessor{ m_path_to_shader, ShaderSourceCodePreprocessor::SourceType::file }.getPreprocessedSource();
+    }
+
+    m_timestamp = misc::getFileLastUpdatedTimeStamp(m_path_to_shader);
+}
+
+
+class HLSLCompilationTaskCache::impl
+{
+public:
+    impl(HLSLCompilationTaskCache& enclosing)
+        : m_enclosing{ enclosing }
+    {
+
+    }
+
+    HLSLCompilationTask* insertHLSLCompilationTask(Globals& globals, CombinedCacheKey const& key,
+        misc::DateTime const& timestamp, std::string const& processed_hlsl_source_code,
+        std::string const& source_name, dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type,
+        std::string const& shader_entry_point, std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions, dxcompilation::HLSLCompilationOptimizationLevel optimization_level,
+        bool strict_mode, bool force_all_resources_be_bound, bool force_ieee_standart,
+        bool treat_warnings_as_errors, bool enable_validation, bool enable_debug_information, bool enable_16bit_types)
+    {
+        HLSLCompilationTask* inserted_task_ptr{ nullptr };
+        auto q = m_enclosing.m_tasks_cache_keys.find(key);
+        if (q == m_enclosing.m_tasks_cache_keys.end())
+        {
+            auto cache_map_insertion_position =
+                m_enclosing.m_tasks_cache_keys.insert(std::make_pair(key, cache_storage::iterator{})).first;
+
+            m_enclosing.m_tasks.emplace_back(
+                cache_map_insertion_position->first,
+                timestamp,
+                globals, processed_hlsl_source_code, source_name, shader_model, shader_type, shader_entry_point,
+                macro_definitions, optimization_level,
+                strict_mode, force_all_resources_be_bound,
+                force_ieee_standart, treat_warnings_as_errors,
+                enable_validation, enable_debug_information, enable_16bit_types);
+
+            cache_storage::iterator p = --m_enclosing.m_tasks.end();
+            cache_map_insertion_position->second = p;
+            HLSLCompilationTask& new_hlsl_compilation_task_ref = *p;
+            inserted_task_ptr = &new_hlsl_compilation_task_ref;
+        }
+        else
+        {
+            return &(*q->second);
+        }
+
+        if (!globals.get<GlobalSettings>()->isDeferredShaderCompilationOn())
+        {
+            inserted_task_ptr->execute(0);
+        }
+
+        return inserted_task_ptr;
+    }
+
+private:
+    HLSLCompilationTaskCache& m_enclosing;
+};
 
 
 std::string HLSLCompilationTaskCache::Key::toString() const
@@ -97,105 +186,56 @@ bool HLSLCompilationTaskCache::Key::operator==(Key const& other) const
         && hash_value == other.hash_value;
 }
 
+HLSLCompilationTaskCache::HLSLCompilationTaskCache()
+    : m_impl{ new impl{*this} }
+{
 
-tasks::HLSLCompilationTask* HLSLCompilationTaskCache::addTask(core::Globals& globals, std::string const& source, std::string const& source_name, 
-    dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point, 
-    ShaderSourceCodePreprocessor::SourceType source_type,
-    std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions, 
-    dxcompilation::HLSLCompilationOptimizationLevel optimization_level, 
-    bool strict_mode, bool force_all_resources_be_bound, 
-    bool force_ieee_standard, bool treat_warnings_as_errors, bool enable_validation,
+}
+
+HLSLCompilationTaskCache::~HLSLCompilationTaskCache() = default;
+
+tasks::HLSLCompilationTask* HLSLCompilationTaskCache::findOrCreateTask(HLSLFileTranslationUnit const& hlsl_translation_unit,
+    dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
+    std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions,
+    dxcompilation::HLSLCompilationOptimizationLevel optimization_level,
+    bool strict_mode, bool force_all_resources_be_bound,
+    bool force_ieee_standart, bool treat_warnings_as_errors, bool enable_validation,
     bool enable_debug_information, bool enable_16bit_types)
 {
-    std::string stringified_defines = getStringifiedDefines(macro_definitions);
+    uint64_t hash_value = misc::HashedString{ getStringifiedDefines(macro_definitions) + hlsl_translation_unit.source() }.hash();
 
-    std::string hlsl_source_code{};
-    misc::Optional<misc::DateTime> timestamp{};
-    Key key{};
-
-    if(source_type == ShaderSourceCodePreprocessor::SourceType::file)
-    {
-        auto& global_settings = *globals.get<GlobalSettings>();
-
-        // find the full correct path to the shader if the shader exists
-        std::string path_to_shader{};
-        {
-            bool shader_found{ false };
-            for (auto const& path_prefix : global_settings.getShaderLookupDirectories())
-            {
-                path_to_shader = path_prefix + source;
-                if (misc::doesFileExist(path_to_shader))
-                {
-                    shader_found = true;
-                    break;
-                }
-            }
-
-            if (!shader_found)
-            {
-                LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "Unable to retrieve shader asset \"" + source + "\"");
-            }
-        }
-
-        // Retrieve shader source code and time stamp
-        hlsl_source_code = ShaderSourceCodePreprocessor{ path_to_shader, source_type }.getPreprocessedSource();
-        timestamp = misc::getFileLastUpdatedTimeStamp(path_to_shader);
-        uint64_t hash_value = misc::HashedString{ stringified_defines + hlsl_source_code }.hash();
-
-        // Generate hash value
-        key = Key{ path_to_shader, 
-            static_cast<unsigned short>(shader_type),
-            static_cast<unsigned short>(shader_model), 
-            hash_value };
-    }
-    else
-    {
-        hlsl_source_code = source;
-        timestamp = misc::DateTime::now();    // NOTE: HLSL sources supplied directly (i.e. not via source files) are always recompiled
-        uint64_t hash_value = misc::HashedString{ stringified_defines + hlsl_source_code }.hash();
-
-        key = Key{ source_name,
-            static_cast<unsigned short>(shader_type),
-            static_cast<unsigned short>(shader_model),
-            hash_value };
-    }
+    Key key{ hlsl_translation_unit.pathToShader(),
+        static_cast<unsigned short>(shader_type),
+        static_cast<unsigned short>(shader_model),
+        hash_value };
     CombinedCacheKey combined_key{ key };
 
-    
-    HLSLCompilationTask* inserted_task_ptr{ nullptr };
+    return m_impl->insertHLSLCompilationTask(hlsl_translation_unit.globals(), combined_key, hlsl_translation_unit.timestamp(),
+        hlsl_translation_unit.source(), hlsl_translation_unit.name(), shader_model, shader_type, shader_entry_point,
+        macro_definitions, optimization_level, strict_mode, force_all_resources_be_bound, force_ieee_standart, treat_warnings_as_errors,
+        enable_validation, enable_debug_information, enable_16bit_types);
+}
 
-    if (m_tasks_cache_keys.find(combined_key) == m_tasks_cache_keys.end())
-    {
-        auto cache_map_insertion_position = 
-            m_tasks_cache_keys.insert(std::make_pair(combined_key, cache_storage::iterator{})).first;
+tasks::HLSLCompilationTask* HLSLCompilationTaskCache::findOrCreateTask(HLSLSourceTranslationUnit const& hlsl_translation_unit,
+    dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
+    std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions,
+    dxcompilation::HLSLCompilationOptimizationLevel optimization_level,
+    bool strict_mode, bool force_all_resources_be_bound,
+    bool force_ieee_standart, bool treat_warnings_as_errors, bool enable_validation,
+    bool enable_debug_information, bool enable_16bit_types)
+{
+    uint64_t hash_value = misc::HashedString{ getStringifiedDefines(macro_definitions) + hlsl_translation_unit.source() }.hash();
 
-        m_tasks.emplace_back(
-            cache_map_insertion_position->first,
-            timestamp.isValid() ? static_cast<misc::DateTime>(timestamp) : misc::DateTime::now(),
-            globals, hlsl_source_code, source_name, shader_model, shader_type, shader_entry_point,
-            macro_definitions, optimization_level,
-            strict_mode, force_all_resources_be_bound,
-            force_ieee_standard, treat_warnings_as_errors,
-            enable_validation, enable_debug_information, enable_16bit_types);
+    Key key{ hlsl_translation_unit.name(),
+        static_cast<unsigned short>(shader_type),
+        static_cast<unsigned short>(shader_model),
+        hash_value };
+    CombinedCacheKey combined_key{ key };
 
-        cache_storage::iterator p = --m_tasks.end();
-        cache_map_insertion_position->second = p;
-        HLSLCompilationTask& new_hlsl_compilation_task_ref = *p;
-        inserted_task_ptr = &new_hlsl_compilation_task_ref;
-    }
-    else if (source_type == ShaderSourceCodePreprocessor::SourceType::string)
-    {
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "HLSL source code with key \"" + key.toString() + "\" already exists in the cache. "
-            "In order to circumvent this issue make sure that all HLSL sources that are directly (i.e. not via files) supplied for "
-            "compilation are having unique source names");
-    }
-
-    if (!globals.get<GlobalSettings>()->isDeferredShaderCompilationOn())
-    {
-        inserted_task_ptr->execute(0);
-    }
-
-    return inserted_task_ptr;
+    return m_impl->insertHLSLCompilationTask(hlsl_translation_unit.globals(), combined_key, hlsl_translation_unit.timestamp(),
+        hlsl_translation_unit.source(), hlsl_translation_unit.name(), shader_model, shader_type, shader_entry_point,
+        macro_definitions, optimization_level, strict_mode, force_all_resources_be_bound, force_ieee_standart, treat_warnings_as_errors,
+        enable_validation, enable_debug_information, enable_16bit_types);
 }
 
 HLSLCompilationTaskCache::cache_storage& task_caches::HLSLCompilationTaskCache::storage()

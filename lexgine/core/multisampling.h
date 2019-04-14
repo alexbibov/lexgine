@@ -10,7 +10,7 @@ struct MultiSamplingFormat
     uint32_t count;    //!< number of samples
     uint32_t quality;    //!< quality of multi-sampling. The exact meaning is OS- API- and video driver dependent
 
-    MultiSamplingFormat() = default;
+    MultiSamplingFormat();
     MultiSamplingFormat(uint32_t sample_count, uint32_t ms_quality);
 };
 

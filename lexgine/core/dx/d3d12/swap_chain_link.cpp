@@ -86,6 +86,7 @@ SwapChainLink::~SwapChainLink() = default;
 void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 {
     m_linked_rendering_tasks_ptr = p_rendering_loop_to_link;
+    m_linked_rendering_tasks_ptr->setDefaultColorAndDepthFormats(m_linked_swap_chain.descriptor().format, m_depth_buffer_native_format);
 }
 
 void SwapChainLink::render()

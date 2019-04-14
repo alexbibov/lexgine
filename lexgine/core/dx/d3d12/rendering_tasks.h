@@ -22,6 +22,12 @@ public:
     RenderingTasks(Globals& globals);
     ~RenderingTasks();
 
+    /*! Assigns default color and depth formats assumed for the rendering targets
+     This may be used by some rendering tasks that need to assume certain color and
+     depth formats for correct initialization of their associated pipeline state objects
+    */
+    void setDefaultColorAndDepthFormats(DXGI_FORMAT default_color_format, DXGI_FORMAT default_depth_format);
+
     void render(RenderingTarget& target, 
         std::function<void(RenderingTarget const&)> const& presentation_routine);
 
@@ -34,6 +40,7 @@ private:
     class TestRendering;    // To be removed, here for testing purposes only
 
 private:
+    Globals& m_globals;
     DxResourceFactory& m_dx_resources;
     Device& m_device;
     FrameProgressTracker& m_frame_progress_tracker;
@@ -41,13 +48,15 @@ private:
     concurrency::TaskGraph m_task_graph;
     concurrency::TaskSink m_task_sink;
 
-    std::unique_ptr<FrameBeginTask> m_frame_begin_task;
-    std::unique_ptr<FrameEndTask> m_frame_end_task;
-    RenderingTarget* m_current_rendering_target_ptr;
-
     ConstantBufferStream m_constant_data_stream;
 
+    std::unique_ptr<FrameBeginTask> m_frame_begin_task;
+    std::unique_ptr<FrameEndTask> m_frame_end_task;
     std::unique_ptr<TestRendering> m_test_triangle_rendering;
+
+    RenderingTarget* m_current_rendering_target_ptr;
+    DXGI_FORMAT m_default_color_format;
+    DXGI_FORMAT m_default_depth_format;
 };
 
 }

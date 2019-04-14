@@ -78,14 +78,14 @@ namespace {
             || std::strcmp(attribute.value(), "PATCH") == 0;
     }
 
-    lexgine::core::PrimitiveTopology getPrimitiveTopologyFromAttribute(pugi::xml_attribute& attribute)
+    lexgine::core::PrimitiveTopologyType getPrimitiveTopologyFromAttribute(pugi::xml_attribute& attribute)
     {
-        if (std::strcmp(attribute.value(), "POINT") == 0) return lexgine::core::PrimitiveTopology::point;
-        if (std::strcmp(attribute.value(), "LINE") == 0) return lexgine::core::PrimitiveTopology::line;
-        if (std::strcmp(attribute.value(), "TRIANGLE") == 0) return lexgine::core::PrimitiveTopology::triangle;
-        if (std::strcmp(attribute.value(), "PATCH") == 0) return lexgine::core::PrimitiveTopology::patch;
+        if (std::strcmp(attribute.value(), "POINT") == 0) return lexgine::core::PrimitiveTopologyType::point;
+        if (std::strcmp(attribute.value(), "LINE") == 0) return lexgine::core::PrimitiveTopologyType::line;
+        if (std::strcmp(attribute.value(), "TRIANGLE") == 0) return lexgine::core::PrimitiveTopologyType::triangle;
+        if (std::strcmp(attribute.value(), "PATCH") == 0) return lexgine::core::PrimitiveTopologyType::patch;
 
-        return lexgine::core::PrimitiveTopology::triangle;
+        return lexgine::core::PrimitiveTopologyType::triangle;
     }
 
     bool isUnsignedNumericAttribute(pugi::xml_attribute& attribute)
@@ -506,7 +506,7 @@ namespace {
     template<>
     struct attribute_format_to_cpp_format<attribute_type::primitive_topology>
     {
-        using value_type = lexgine::core::PrimitiveTopology;
+        using value_type = lexgine::core::PrimitiveTopologyType;
         static constexpr bool(*is_correct_format_func)(pugi::xml_attribute&) = isPrimitiveTopologyAttribute;
         static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute&) = getPrimitiveTopologyFromAttribute;
     };
@@ -779,9 +779,11 @@ public:
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
         ShaderModel sm = extractAttribute<attribute_type::shader_model>(shader_node.attribute("model"), ShaderModel::model_50);
 
-        return m_parent.m_hlsl_compilation_task_cache.addTask(m_parent.m_globals, shader_source_location, 
-            pso_cache_name + "(" + shader_source_location + ")__CS" , sm, ShaderType::compute, shader_entry_point_name,
-            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file);
+        task_caches::HLSLFileTranslationUnit hlsl_translation_unit{ m_parent.m_globals,
+            pso_cache_name + "(" + shader_source_location + ")__CS", shader_source_location };
+
+        return m_parent.m_hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, sm, 
+            ShaderType::compute, shader_entry_point_name);
     }
 
     tasks::HLSLCompilationTask* parseAndAddToCompilationCacheShader(pugi::xml_node& node, 
@@ -837,9 +839,11 @@ public:
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
         ShaderModel sm = extractAttribute<attribute_type::shader_model>(shader_node.attribute("model"), ShaderModel::model_50);
 
-        return m_parent.m_hlsl_compilation_task_cache.addTask(m_parent.m_globals, shader_source_location, 
-            pso_cache_name + "(" + shader_source_location + ")__" + compilation_task_suffix, sm, shader_type, shader_entry_point_name,
-            lexgine::core::ShaderSourceCodePreprocessor::SourceType::file);
+        task_caches::HLSLFileTranslationUnit hlsl_translation_unit{ m_parent.m_globals,
+            pso_cache_name + "(" + shader_source_location + ")__" + compilation_task_suffix, shader_source_location };
+
+        return m_parent.m_hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, sm, 
+            shader_type, shader_entry_point_name);
     }
 
     tasks::RootSignatureCompilationTask* retrieveRootSignatureCompilationTask(pugi::xml_node& node)
@@ -872,7 +876,7 @@ public:
         currently_assembled_pso_descriptor.node_mask = node_mask;
 
         currently_assembled_pso_descriptor.primitive_restart = extractAttribute<attribute_type::boolean>(node.attribute("primitive_restart"), false);
-        currently_assembled_pso_descriptor.primitive_topology = extractAttribute<attribute_type::primitive_topology>(node.attribute("primitive_topology"), lexgine::core::PrimitiveTopology::triangle);
+        currently_assembled_pso_descriptor.primitive_topology_type = extractAttribute<attribute_type::primitive_topology>(node.attribute("primitive_topology"), lexgine::core::PrimitiveTopologyType::triangle);
         currently_assembled_pso_descriptor.sample_mask = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_mask"), 0xFFFFFFFF);
         currently_assembled_pso_descriptor.multi_sampling_format.count = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_count"), 1);
         currently_assembled_pso_descriptor.multi_sampling_format.quality = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_quality"), 1);
@@ -1230,7 +1234,7 @@ public:
         tasks::GraphicsPSOCompilationTask* new_graphics_pso_compilation_task{ nullptr };
         {
             uint64_t uid = misc::HashedString{ pso_cache_name }.hash();
-            new_graphics_pso_compilation_task = m_parent.m_pso_compilation_task_cache.addTask(
+            new_graphics_pso_compilation_task = m_parent.m_pso_compilation_task_cache.findOrCreateTask(
                 m_parent.m_globals,
                 currently_assembled_pso_descriptor, 
                 pso_cache_name, 
@@ -1262,7 +1266,7 @@ public:
         {
             uint64_t uid = misc::HashedString{ pso_cache_name }.hash();
 
-            new_pso_compilation_task = m_parent.m_pso_compilation_task_cache.addTask(
+            new_pso_compilation_task = m_parent.m_pso_compilation_task_cache.findOrCreateTask(
                 m_parent.m_globals,
                 currently_assembled_pso_descriptor, 
                 pso_cache_name, 

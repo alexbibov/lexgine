@@ -59,16 +59,22 @@ uint32_t SwapChain::backBufferCount() const
     return m_advanced_parameters.queued_buffer_count;
 }
 
+SwapChainDescriptor const& SwapChain::descriptor() const
+{
+    return m_descriptor;
+}
+
 SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     Device& device,
     CommandQueue const& default_command_queue,
     osinteraction::windows::Window const& window,
-    SwapChainDescriptor const& desc, SwapChainAdvancedParameters const& advanced_parameters) :
-    m_dxgi_factory{ dxgi_factory },
-    m_device{ device },
-    m_window{ window },
-    m_default_command_queue{ default_command_queue },
-    m_advanced_parameters{ advanced_parameters }
+    SwapChainDescriptor const& desc, SwapChainAdvancedParameters const& advanced_parameters)
+    : m_dxgi_factory{ dxgi_factory }
+    , m_device{ device }
+    , m_window{ window }
+    , m_default_command_queue{ default_command_queue }
+    , m_descriptor{ desc }
+    , m_advanced_parameters{ advanced_parameters }
 {
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc1{};
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC swap_chain_fs_desc{};

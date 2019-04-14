@@ -14,7 +14,7 @@ namespace
 {
 
 // Helper: transforms provided day to the given time zone
-void adjust_time_shift(uint16_t year, uint8_t const days_in_month[], uint8_t month, uint8_t day, uint8_t hour, int8_t time_shift_from_utc,
+void adjustTimeShift(uint16_t year, uint8_t const days_in_month[], uint8_t month, uint8_t day, uint8_t hour, int8_t time_shift_from_utc,
     uint16_t& adjusted_year, uint8_t& adjusted_month, uint8_t& adjusted_day, uint8_t& adjusted_hour)
 {
     int8_t raw_hour = static_cast<int8_t>(hour) + time_shift_from_utc;
@@ -49,7 +49,7 @@ DateTime::DateTime(int8_t time_zone /* = 0 */, bool daylight_saving_time /* = fa
     m_time_shift_from_utc{ daylight_saving_time + time_zone }, 
     m_is_dts{ daylight_saving_time }
 {
-    adjust_time_shift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
+    adjustTimeShift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
         m_year, m_month, m_day, m_hour);
 }
 
@@ -69,7 +69,7 @@ DateTime::DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint
     assert(second >= 0);
 
     if(time_zone || daylight_saving_time)
-        adjust_time_shift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
+        adjustTimeShift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
             m_year, m_month, m_day, m_hour);
 }
 
@@ -100,7 +100,7 @@ DateTime DateTime::getUTC() const
 {
     uint16_t utc_year;
     uint8_t utc_month, utc_day, utc_hour;
-    adjust_time_shift(m_year, m_days_in_month, m_month, m_day, m_hour, -m_time_shift_from_utc,
+    adjustTimeShift(m_year, m_days_in_month, m_month, m_day, m_hour, -m_time_shift_from_utc,
         utc_year, utc_month, utc_day, utc_hour);
 
     return DateTime{ utc_year, utc_month, utc_day, utc_hour, m_minute, m_second, 0, false };
@@ -111,23 +111,6 @@ DateTime DateTime::getLocalTime(int8_t time_zone, bool daylight_saving) const
     DateTime aux = getUTC();
     return DateTime{ aux.m_year, aux.m_month, aux.m_day, aux.m_hour, aux.m_minute, aux.m_second, time_zone, daylight_saving };
 }
-
-/*DateTime& DateTime::operator=(DateTime const& other)
-{
-    if (this == &other) return *this;
-
-    m_year = other.m_year;
-    m_month = other.m_month;
-    m_day = other.m_day;
-    m_hour = other.m_hour;
-    m_minute = other.m_minute;
-    m_second = other.m_second;
-    m_is_leap_year = other.m_is_leap_year;
-    m_unc_time_shift = other.m_unc_time_shift;
-    m_is_dts = other.m_is_dts;
-
-    return *this;
-}*/
 
 DateTime DateTime::operator+(TimeSpan const& span) const
 {

@@ -47,9 +47,7 @@ private:
 
         bool operator()(key_type const& a, key_type const& b) const    // comparator
         {
-            if (a.first < b.first) return true;
-            else if (a.first > b.first) return false;
-            else return a.second < b.second;
+            return a.first == b.first && a.second == b.second;
         }
     };
 

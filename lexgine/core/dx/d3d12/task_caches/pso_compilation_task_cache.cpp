@@ -65,7 +65,7 @@ bool PSOCompilationTaskCache::Key::operator==(Key const& other) const
 }
 
 
-tasks::GraphicsPSOCompilationTask* PSOCompilationTaskCache::addTask(
+tasks::GraphicsPSOCompilationTask* PSOCompilationTaskCache::findOrCreateTask(
     Globals& globals,
     GraphicsPSODescriptor const& descriptor,
     std::string const& pso_cache_name, uint64_t uid)
@@ -74,7 +74,8 @@ tasks::GraphicsPSOCompilationTask* PSOCompilationTaskCache::addTask(
     Key key{ pso_cache_name, uid, PSOType::graphics };
     CombinedCacheKey combined_key{ key };
 
-    if (m_psos_cache_keys.find(combined_key) == m_psos_cache_keys.end())
+    auto q = m_psos_cache_keys.find(combined_key);
+    if (q == m_psos_cache_keys.end())
     {
         auto psos_cache_keys_insertion_position =
             m_psos_cache_keys.insert(std::make_pair(
@@ -92,17 +93,15 @@ tasks::GraphicsPSOCompilationTask* PSOCompilationTaskCache::addTask(
 
         tasks::GraphicsPSOCompilationTask& new_graphics_pso_compilation_task_ref = *p;
         new_pso_compilation_task = &new_graphics_pso_compilation_task_ref;
+        return new_pso_compilation_task;
     }
     else
     {
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "PSO with provided key \"" + key.toString() + "\" already exists in the cache. "
-            "Make sure that all PSOs of same type are tagged with unique combination of cache name and UID");
+        return &(*q->second.first);
     }
-
-    return new_pso_compilation_task;
 }
 
-tasks::ComputePSOCompilationTask* PSOCompilationTaskCache::addTask(
+tasks::ComputePSOCompilationTask* PSOCompilationTaskCache::findOrCreateTask(
     Globals& globals,
     ComputePSODescriptor const& descriptor,
     std::string const& pso_cache_name, uint64_t uid)
@@ -111,7 +110,8 @@ tasks::ComputePSOCompilationTask* PSOCompilationTaskCache::addTask(
     Key key{ pso_cache_name, uid, PSOType::compute };
     CombinedCacheKey combined_key{ key };
 
-    if (m_psos_cache_keys.find(combined_key) == m_psos_cache_keys.end())
+    auto q = m_psos_cache_keys.find(combined_key);
+    if (q == m_psos_cache_keys.end())
     {
         auto psos_cache_keys_insertion_position =
             m_psos_cache_keys.insert(std::make_pair(
@@ -133,8 +133,7 @@ tasks::ComputePSOCompilationTask* PSOCompilationTaskCache::addTask(
     }
     else
     {
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "PSO with provided key \"" + key.toString() + "\" already exists in the cache. "
-            "Make sure that all PSOs of same type are tagged with unique combination of cache name and UID");
+        return &(*q->second.second);
     }
 
     return new_pso_compilation_task;

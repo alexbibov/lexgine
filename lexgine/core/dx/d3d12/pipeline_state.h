@@ -41,7 +41,7 @@ struct GraphicsPSODescriptor
     DepthStencilDescriptor depth_stencil_descriptor;    //!< descriptor object encapsulating the settings affecting stencil and depth stages of the pipeline
     VertexAttributeSpecificationList vertex_attributes;    //!< vertex attribute specification forwarded to the input primitive assembler
     bool primitive_restart;    //!< 'true' if primitive restart should be enabled
-    PrimitiveTopology primitive_topology;    //!< primitive topology
+    PrimitiveTopologyType primitive_topology_type;    //!< primitive topology type
     uint8_t num_render_targets;    //!< number of render targets (1-8 currently supported)
     DXGI_FORMAT rtv_formats[8];    //!< DXGI format for each render target in use
     DXGI_FORMAT dsv_format;    //!< DXGI depth-stencil format
@@ -67,7 +67,7 @@ struct GraphicsPSODescriptor
     //! 10) depth-stencil format is set to support at least 32-bit depth and at least 8-bit stencil buffers
     //! 11) node mask is as defined by @param node_mask
     GraphicsPSODescriptor(VertexAttributeSpecificationList const& vertex_attribute_specs, D3DDataBlob const& vs, D3DDataBlob const& ps, DXGI_FORMAT rt_format,
-        uint32_t node_mask = 0, PrimitiveTopology topology = PrimitiveTopology::triangle);
+        uint32_t node_mask = 0, PrimitiveTopologyType topology = PrimitiveTopologyType::triangle);
 
 
     //! initialized PSO descriptor using precompiled PSO blob

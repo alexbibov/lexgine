@@ -58,12 +58,12 @@ private:
 
 public:
 
-    tasks::GraphicsPSOCompilationTask* addTask(
+    tasks::GraphicsPSOCompilationTask* findOrCreateTask(
         Globals& globals,
         GraphicsPSODescriptor const& descriptor,
         std::string const& pso_cache_name, uint64_t uid);
 
-    tasks::ComputePSOCompilationTask* addTask(
+    tasks::ComputePSOCompilationTask* findOrCreateTask(
         Globals& globals,
         ComputePSODescriptor const& descriptor,
         std::string const& pso_cache_name, uint64_t uid);

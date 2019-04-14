@@ -45,13 +45,13 @@ public:
     unsigned int instancingRate() const { return m_instancing_data_rate; }
     specification_type type() const { return m_instancing_data_rate > 0 ? specification_type::per_instance : specification_type::per_vertex; }
 
-    uint32_t stride() const { return m_element_stride; }
+    uint32_t offset() const { return m_element_offset; }
 
 protected:
-    AbstractVertexAttributeSpecification(unsigned char primitive_assembler_input_slot, unsigned char element_stride,
+    AbstractVertexAttributeSpecification(unsigned char primitive_assembler_input_slot, unsigned char element_offset,
         char const* name, uint32_t name_index, uint32_t instancing_data_rate):
         m_primitive_assembler_input_slot{ primitive_assembler_input_slot },
-        m_element_stride{ element_stride },
+        m_element_offset{ element_offset },
         m_semantics_name{ name },
         m_semantics_index{ name_index },
         m_instancing_data_rate{ instancing_data_rate }
@@ -65,7 +65,7 @@ private:
 
 private:
     unsigned char m_primitive_assembler_input_slot;    //!< input slot of the primitive assembler, to which this vertex attribute is to be attached
-    unsigned char m_element_stride;    //!< offset between two consequent data elements
+    unsigned char m_element_offset;    //!< offset between two consequent data elements
     std::string m_semantics_name;    //!< string name attached to vertex attribute
     uint32_t m_semantics_index;    //!< index used when same string name is used more than once
     uint32_t m_instancing_data_rate;

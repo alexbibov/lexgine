@@ -95,13 +95,28 @@ struct StencilOperationConverter<EngineAPI::Direct3D12, stencil_op>
 };
 
 
-template<PrimitiveTopology primitive_topology>
-struct PrimitiveTopologyConverter<EngineAPI::Direct3D12, primitive_topology>
+template<PrimitiveTopologyType primitive_topology_type>
+struct PrimitiveTopologyTypeConverter<EngineAPI::Direct3D12, primitive_topology_type>
 {
     // See definition of PrimitiveTopology and of D3D12_PRIMITIVE_TOPOLOGY_TYPE for the clumsy details
     static uint8_t constexpr value()
     {
-        return static_cast<uint8_t>(primitive_topology) + 1;
+        return static_cast<uint8_t>(primitive_topology_type) + 1;
+    }
+};
+
+
+template<PrimitiveTopology primitive_topology> 
+struct PrimitiveTopologyConverter<EngineAPI::Direct3D12, primitive_topology>
+{
+    // See definition of D3D_PRIMITIVE_TOPOLOGY enumeration for details
+    static uint8_t constexpr value()
+    {
+        if (static_cast<uint8_t>(primitive_topology) <= 5)
+            return static_cast<uint8_t>(primitive_topology);
+        else if (static_cast<uint8_t>(primitive_topology) <= 9)
+            return static_cast<uint8_t>(primitive_topology) + 4;
+        else return static_cast<uint8_t>(primitive_topology) + 23;
     }
 };
 
@@ -169,7 +184,7 @@ inline D3D12_BLEND d3d12Convert(BlendFactor blend_factor)
         return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::source1_alpha>::value());
     case BlendFactor::one_minus_source1_alpha:
         return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::one_minus_source1_alpha>::value());
-    default: throw;    // not supported
+    default: __assume(0);    // not supported
     }
 }
 
@@ -190,7 +205,7 @@ inline D3D12_BLEND_OP d3d12Convert(BlendOperation blend_op)
         return static_cast<D3D12_BLEND_OP>(misc::BlendOperationConverter<misc::EngineAPI::Direct3D12, BlendOperation::min>::value());
     case BlendOperation::max:
         return static_cast<D3D12_BLEND_OP>(misc::BlendOperationConverter<misc::EngineAPI::Direct3D12, BlendOperation::max>::value());
-    default: throw;    // not supported
+    default: __assume(0);    // not supported
     }
 }
 
@@ -233,7 +248,7 @@ inline D3D12_LOGIC_OP d3d12Convert(BlendLogicalOperation blend_logical_op)
         return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::or_then_reverse>::value());
     case BlendLogicalOperation::or_then_invert:
         return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::or_then_invert>::value());
-    default: throw;    // not supported
+    default: __assume(0);    // not supported
     }
 }
 
@@ -248,7 +263,7 @@ inline D3D12_FILL_MODE d3d12Convert(FillMode fill_mode)
         return static_cast<D3D12_FILL_MODE>(misc::FillModeConverter<misc::EngineAPI::Direct3D12, FillMode::wireframe>::value());
     case FillMode::solid:
         return static_cast<D3D12_FILL_MODE>(misc::FillModeConverter<misc::EngineAPI::Direct3D12, FillMode::solid>::value());
-    default: throw;    // not supported
+    default: __assume(0);    // not supported
     }
 }
 
@@ -265,7 +280,7 @@ inline D3D12_CULL_MODE d3d12Convert(CullMode cull_mode)
         return static_cast<D3D12_CULL_MODE>(misc::CullModeConverter<misc::EngineAPI::Direct3D12, CullMode::front>::value());
     case CullMode::back:
         return static_cast<D3D12_CULL_MODE>(misc::CullModeConverter<misc::EngineAPI::Direct3D12, CullMode::back>::value());
-    default: throw;    //not supported
+    default: __assume(0);    //not supported
     }
 }
 
@@ -280,7 +295,7 @@ inline D3D12_CONSERVATIVE_RASTERIZATION_MODE d3d12Convert(ConservativeRasterizat
         return static_cast<D3D12_CONSERVATIVE_RASTERIZATION_MODE>(misc::ConservativeRasterizationModeConverter<misc::EngineAPI::Direct3D12, ConservativeRasterizationMode::off>::value());
     case ConservativeRasterizationMode::on:
         return static_cast<D3D12_CONSERVATIVE_RASTERIZATION_MODE>(misc::ConservativeRasterizationModeConverter<misc::EngineAPI::Direct3D12, ConservativeRasterizationMode::on>::value());
-    default: throw;    // not supported
+    default: __assume(0);    // not supported
     }
 }
 
@@ -308,7 +323,7 @@ inline D3D12_COMPARISON_FUNC d3d12Convert(ComparisonFunction cmp_fun)
         return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<misc::EngineAPI::Direct3D12, ComparisonFunction::greater_equal>::value());
     case ComparisonFunction::always:
         return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<misc::EngineAPI::Direct3D12, ComparisonFunction::always>::value());
-    default: throw;    // not supported
+    default: __assume(0);    // not supported
     }
 }
 
@@ -335,29 +350,165 @@ inline D3D12_STENCIL_OP d3d12Convert(StencilOperation stencil_op)
         return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<misc::EngineAPI::Direct3D12, StencilOperation::increment>::value());
     case StencilOperation::decrement:
         return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<misc::EngineAPI::Direct3D12, StencilOperation::decrement>::value());
-    default: throw;    // not supported
+    default: __assume(0);    // not supported
     }
 }
 
 
 
-//! Converts primitive topology constant from API-agnostic value to the value specific to Direct3D 12
-inline D3D12_PRIMITIVE_TOPOLOGY_TYPE d3d12Convert(PrimitiveTopology primitive_topology)
+//! Converts primitive topology type constant from API-agnostic value to the value specific to Direct3D 12
+inline D3D12_PRIMITIVE_TOPOLOGY_TYPE d3d12Convert(PrimitiveTopologyType primitive_topology_type)
+{
+    switch (primitive_topology_type)
+    {
+    case PrimitiveTopologyType::point:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyTypeConverter<misc::EngineAPI::Direct3D12, PrimitiveTopologyType::point>::value());
+    case PrimitiveTopologyType::line:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyTypeConverter<misc::EngineAPI::Direct3D12, PrimitiveTopologyType::line>::value());
+    case PrimitiveTopologyType::triangle:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyTypeConverter<misc::EngineAPI::Direct3D12, PrimitiveTopologyType::triangle>::value());
+    case PrimitiveTopologyType::patch:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyTypeConverter<misc::EngineAPI::Direct3D12, PrimitiveTopologyType::patch>::value());
+    default: __assume(0);    // not supported
+    }
+}
+
+
+//! Converts primitive topology constant from API-agnostic value to the value understood by Direct3D12
+inline D3D12_PRIMITIVE_TOPOLOGY d3d12Convert(PrimitiveTopology primitive_topology)
 {
     switch (primitive_topology)
     {
-    case PrimitiveTopology::point:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::point>::value());
-    case PrimitiveTopology::line:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::line>::value());
-    case PrimitiveTopology::triangle:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::triangle>::value());
-    case PrimitiveTopology::patch:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch>::value());
-    default: throw;    // not supported
+    case PrimitiveTopology::undefined:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::undefined>::value());
+        break;
+    case PrimitiveTopology::point_list:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::point_list>::value());
+        break;
+    case PrimitiveTopology::line_list:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::line_list>::value());
+        break;
+    case PrimitiveTopology::line_strip:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::line_strip>::value());
+        break;
+    case PrimitiveTopology::triangle_list:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::triangle_list>::value());
+        break;
+    case PrimitiveTopology::trianlge_strip:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::trianlge_strip>::value());
+        break;
+    case PrimitiveTopology::line_list_adjacent:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::line_list_adjacent>::value());
+        break;
+    case PrimitiveTopology::line_strip_adjacent:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::line_strip_adjacent>::value());
+        break;
+    case PrimitiveTopology::triangle_list_adjacent:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::triangle_list_adjacent>::value());
+        break;
+    case PrimitiveTopology::triangle_strip_adjacent:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::triangle_strip_adjacent>::value());
+        break;
+    case PrimitiveTopology::patch_list_1_ctrl_point:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_1_ctrl_point>::value());
+        break;
+    case PrimitiveTopology::patch_list_2_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_2_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_3_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_3_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_4_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_4_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_5_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_5_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_6_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_6_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_7_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_7_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_8_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_8_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_9_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_9_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_10_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_10_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_11_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_11_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_12_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_12_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_13_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_13_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_14_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_14_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_15_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_15_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_16_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_16_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_17_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_17_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_18_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_18_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_19_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_19_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_20_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_20_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_21_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_21_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_22_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_22_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_23_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_23_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_24_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_24_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_25_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_25_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_26_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_26_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_27_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_27_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_28_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_28_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_29_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_29_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_30_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_30_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_31_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_31_ctrl_points>::value());
+        break;
+    case PrimitiveTopology::patch_list_32_ctrl_points:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_32_ctrl_points>::value());
+        break;
+    default:
+        __assume(0);
     }
 }
-
 
 
 //! Converts runtime sampling boundary resolution mode constant to the enumeration value required by Direct3D 12 specs
@@ -373,7 +524,7 @@ inline D3D12_TEXTURE_ADDRESS_MODE d3d12Convert(WrapMode wrap_mode)
         return static_cast<D3D12_TEXTURE_ADDRESS_MODE>(misc::WrapModeConverter<misc::EngineAPI::Direct3D12, WrapMode::clamp>::value());
     case WrapMode::border:
         return static_cast<D3D12_TEXTURE_ADDRESS_MODE>(misc::WrapModeConverter<misc::EngineAPI::Direct3D12, WrapMode::border>::value());
-    default: throw;    // unsupported
+    default: __assume(0);    // unsupported
     }
 }
 
@@ -390,7 +541,7 @@ inline D3D12_STATIC_BORDER_COLOR d3d12Convert(StaticBorderColor border_color)
         return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<misc::EngineAPI::Direct3D12, StaticBorderColor::opaque_black>::value());
     case StaticBorderColor::opaque_white:
         return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<misc::EngineAPI::Direct3D12, StaticBorderColor::opaque_white>::value());
-    default: throw;    // not supported
+    default: __assume(0);    // not supported
     }
 }
 

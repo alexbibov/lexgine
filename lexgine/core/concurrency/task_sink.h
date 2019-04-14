@@ -28,6 +28,8 @@ public:
 
     void shutdown();    //! shutdowns the sink
 
+    bool isRunning() const;    //! returns 'true' if the task sink is running
+
 
 private:
     using worker_thread_context = std::pair<std::thread, std::ostream*>;

@@ -83,6 +83,9 @@ public:
     //! Total back buffer count
     uint32_t backBufferCount() const;
 
+    //! Retrieves descriptor of the swap chain
+    SwapChainDescriptor const& descriptor() const;
+
 private:
     SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory, 
         d3d12::Device& device, 
@@ -96,9 +99,9 @@ private:
     d3d12::Device& m_device;    //!< Direct3D12 device interface
     osinteraction::windows::Window const& m_window;    //!< window, which holds the swap chain
     d3d12::CommandQueue const& m_default_command_queue;    //!< graphics command queue associated with the swap chain
+    SwapChainDescriptor m_descriptor;    //!< Descriptor of the swap chain
     SwapChainAdvancedParameters m_advanced_parameters;    //!< advanced parameters of the swap chain
     ComPtr<IDXGISwapChain4> m_dxgi_swap_chain;   //!< DXGI interface representing the swap chain
-
 };
 
 

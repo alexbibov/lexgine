@@ -45,12 +45,15 @@ RenderingTarget::RenderingTarget(Globals& globals,
     std::vector<ColorTarget> const& color_targets, misc::Optional<DepthTarget> const& depth_target)
     : m_color_targets{ color_targets }
     , m_depth_target{ depth_target }
+    , m_depth_target_format{ DXGI_FORMAT_UNKNOWN }
 {
     RenderTargetViewTableBuilder rtv_table_builder{ globals, 0U };
+    m_color_target_formats.resize(color_targets.size());
     for (size_t i = 0U; i < color_targets.size(); ++i)
     {
         auto const& target = color_targets[i];
         auto viewed_array = target.target_view.arrayOffsetAndSize();
+        m_color_target_formats[i] = target.target_view.associatedResource().descriptor().format;
 
         rtv_table_builder.addDescriptor(target.target_view);
         for (size_t j = 0U; j < viewed_array.second; ++j)
@@ -72,6 +75,7 @@ RenderingTarget::RenderingTarget(Globals& globals,
     if (m_depth_target.isValid())
     {
         auto const& target = static_cast<DepthTarget const&>(depth_target);
+        m_depth_target_format = target.target_view.associatedResource().descriptor().format;
 
         DepthStencilViewTableBuilder dsv_table_builder{ globals, 0U };
         dsv_table_builder.addDescriptor(target.target_view);
@@ -109,6 +113,16 @@ size_t RenderingTarget::count() const
 bool RenderingTarget::hasDepth() const
 {
     return m_depth_target.isValid();
+}
+
+DXGI_FORMAT  RenderingTarget::colorFormats(uint32_t index) const
+{
+    return index < m_color_target_formats.size() ? m_color_target_formats[index] : DXGI_FORMAT_UNKNOWN;
+}
+
+DXGI_FORMAT RenderingTarget::depthFormat() const
+{
+    return m_depth_target_format;
 }
 
 RenderTargetViewDescriptorTable const& RenderingTarget::rtvTable() const
