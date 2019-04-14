@@ -193,7 +193,7 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
         input_element_descs[input_element_desc_idx].SemanticIndex = (**p).name_index();
         input_element_descs[input_element_desc_idx].Format = (**p).format<EngineAPI::Direct3D12>();
         input_element_descs[input_element_desc_idx].InputSlot = (**p).input_slot();
-        input_element_descs[input_element_desc_idx].AlignedByteOffset = (**p).stride();
+        input_element_descs[input_element_desc_idx].AlignedByteOffset = (**p).offset();
         input_element_descs[input_element_desc_idx].InputSlotClass = (**p).type() == AbstractVertexAttributeSpecification::specification_type::per_instance ?
             D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
         input_element_descs[input_element_desc_idx].InstanceDataStepRate = (**p).instancingRate();
@@ -207,7 +207,7 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
 
 
     // Primitive topology configuration
-    desc.PrimitiveTopologyType = d3d12Convert(pso_descriptor.primitive_topology);
+    desc.PrimitiveTopologyType = d3d12Convert(pso_descriptor.primitive_topology_type);
 
 
     // Miscellaneous
@@ -227,7 +227,7 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
         D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG
         : D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
 
-    LEXGINE_LOG_ERROR_IF_FAILED(
+    LEXGINE_THROW_ERROR_IF_FAILED(
         this, 
         m_device.native()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&m_pipeline_state)), 
         S_OK
@@ -272,12 +272,12 @@ void PipelineState::setStringName(std::string const& entity_string_name)
 }
 
 GraphicsPSODescriptor::GraphicsPSODescriptor(VertexAttributeSpecificationList const& vertex_attribute_specs, D3DDataBlob const& vs, D3DDataBlob const& ps,
-    DXGI_FORMAT rt_format, uint32_t node_mask, PrimitiveTopology topology) :
+    DXGI_FORMAT rt_format, uint32_t node_mask, PrimitiveTopologyType topology) :
     vertex_shader{ vs },
     pixel_shader{ ps },
     vertex_attributes{ vertex_attribute_specs },
     primitive_restart{ false },
-    primitive_topology{ topology },
+    primitive_topology_type{ topology },
     num_render_targets{ 1 },
     rtv_formats{ rt_format },
     dsv_format{ DXGI_FORMAT_D32_FLOAT_S8X24_UINT },

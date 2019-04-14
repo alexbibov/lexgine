@@ -186,29 +186,8 @@ void CommandList::resolveSubresource(Resource const& dst_resource, uint32_t dst_
 
 void CommandList::inputAssemblySetPrimitiveTopology(PrimitiveTopology primitive_topology) const
 {
-    uint8_t native_topology;
-    switch (primitive_topology)
-    {
-    case PrimitiveTopology::point:
-        native_topology = 
-            misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::point>::value();
-        break;
-
-    case PrimitiveTopology::line:
-        native_topology = 
-            misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::line>::value();
-        break;
-
-    case PrimitiveTopology::triangle:
-        native_topology =
-            misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::triangle>::value();
-        break;
-
-    case PrimitiveTopology::patch:
-        native_topology =
-            misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch>::value();
-        break;
-    }
+    uint8_t native_topology = d3d12Convert(primitive_topology);
+    
 
     m_command_list->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(native_topology));
 }

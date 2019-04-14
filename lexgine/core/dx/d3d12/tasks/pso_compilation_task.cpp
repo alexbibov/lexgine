@@ -155,15 +155,22 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
         auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key);
 
         m_descriptor.vertex_shader = m_associated_shader_compilation_tasks[0]->getTaskData();
-        m_descriptor.hull_shader = m_associated_shader_compilation_tasks[1]->getTaskData();
-        m_descriptor.domain_shader = m_associated_shader_compilation_tasks[2]->getTaskData();
-        m_descriptor.geometry_shader = m_associated_shader_compilation_tasks[3]->getTaskData();
+
+        if(m_associated_shader_compilation_tasks[1])
+            m_descriptor.hull_shader = m_associated_shader_compilation_tasks[1]->getTaskData();
+
+        if(m_associated_shader_compilation_tasks[2])
+            m_descriptor.domain_shader = m_associated_shader_compilation_tasks[2]->getTaskData();
+
+        if(m_associated_shader_compilation_tasks[3])
+            m_descriptor.geometry_shader = m_associated_shader_compilation_tasks[3]->getTaskData();
+
         m_descriptor.pixel_shader = m_associated_shader_compilation_tasks[4]->getTaskData();
 
         m_resulting_pipeline_state.reset(new PipelineState{
             m_globals,
             m_associated_root_signature_compilation_task->getTaskData(),
-            getCacheName(),
+            m_associated_root_signature_compilation_task->getCacheName(),
             m_descriptor, precached_pso_blob });
 
         if (!precached_pso_blob)

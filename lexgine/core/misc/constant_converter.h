@@ -37,6 +37,9 @@ template<EngineAPI API, ComparisonFunction cmp_fun> struct ComparisonFunctionCon
 template<EngineAPI API, StencilOperation stencil_op> struct StencilOperationConverter;
 
 //! Converts constants describing primitive topology type from API agnostic values to the values prescribed by certain graphics APIs
+template<EngineAPI API, PrimitiveTopologyType primitive_topology_type> struct PrimitiveTopologyTypeConverter;
+
+//! Converts constants describing primitive topology from API agnostic values to the values understood by requested graphics API
 template<EngineAPI API, PrimitiveTopology primitive_topology> struct PrimitiveTopologyConverter;
 
 //! Converts constants describing minification and magnification filters from API agnostic values to the values prescribed by certain graphics APIs

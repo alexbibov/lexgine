@@ -30,7 +30,7 @@ public:
      compiled shader blob. The exact type of PSO descriptor as well as its shader stage receiving the blob is determined based on
      provided value of parameter shader_type.
     */
-    HLSLCompilationTask(task_caches::CombinedCacheKey const& key, misc::DateTime const& time_stamp,
+    HLSLCompilationTask(task_caches::CombinedCacheKey const& key, misc::DateTime const& time_stamp, 
         core::Globals& globals, std::string const& hlsl_source, std::string const& source_name,
         dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
         std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions = std::list<dxcompilation::HLSLMacroDefinition>{},
@@ -105,6 +105,7 @@ private:
     std::string m_compilation_log;
 
     bool mutable m_should_recompile;
+    bool m_is_completed;
     D3DDataBlob m_shader_byte_code;
 };
 

@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <algorithm>
 
 namespace lexgine { namespace core { namespace misc {
 
@@ -93,6 +94,44 @@ public:
 
     std::string toString(unsigned char mask = 0x3F, DateOutputStyle style = DateOutputStyle::european) const;
 
+    //! Retrieves compilation timestamp of the calling translation unit
+    static DateTime buildTime()
+    {
+        std::string month_name_as_encoded_in__DATE__[] = { "Jan", "Feb", "Mar", "Apr", "May",
+        "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+        uint8_t month{}, day{};
+        uint16_t year{};
+
+        uint8_t hour{}, minute{}, second{};
+
+        // TODO: __DATE__ and __TIME__ are not part of C language standard. Especially __TIME__ seems to return GMT time
+        // in most cases, which is OK, but this behavior cannot be relied upon. Consider establishing more robust way to 
+        // support time stamps perhaps by the means of a custom macros definition created by an external script.
+
+        std::string __date__{ __DATE__ };
+        {
+            auto p = std::find_if(month_name_as_encoded_in__DATE__, month_name_as_encoded_in__DATE__ + 12,
+                [&__date__](std::string const& month_name)
+            {
+                return month_name == __date__.substr(0, 3);
+            });
+
+            month = static_cast<uint8_t>(p - month_name_as_encoded_in__DATE__);
+            day = static_cast<uint8_t>(std::atoi(__date__.substr(4, 2).c_str()));
+            year = static_cast<uint16_t>(std::atoi(__date__.substr(7).c_str()));
+        }
+
+        std::string __time__{ __TIME__ };
+        {
+            hour = static_cast<uint8_t>(std::atoi(__time__.substr(0, 2).c_str()));
+            minute = static_cast<uint8_t>(std::atoi(__time__.substr(3, 2).c_str()));
+            second = static_cast<uint8_t>(std::atoi(__time__.substr(6, 2).c_str()));
+        }
+
+        return DateTime{ year, month, day, hour, minute, static_cast<double>(second) };
+    }
+
 private:
     uint16_t m_year;
     bool m_is_leap_year;
@@ -138,7 +177,6 @@ private:
     int m_minutes;
     double m_seconds;
 };
-
 
 }}}
 

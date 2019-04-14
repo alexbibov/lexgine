@@ -109,6 +109,11 @@ void TaskSink::shutdown()
     logger().out("Worker threads finished", LogMessageType::information);
 }
 
+bool TaskSink::isRunning() const
+{
+    return !m_stop_signal.load(std::memory_order_acquire);
+}
+
 
 void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t logging_time_zone, bool logging_dts)
 {

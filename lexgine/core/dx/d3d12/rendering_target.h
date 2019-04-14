@@ -46,6 +46,16 @@ public:
     size_t count() const;    //! returns number of individual color targets
     bool hasDepth() const;    //! returns 'true' if this rendering target supports depth buffer; returns 'false' otherwise
 
+    /*! Returns DXGI format of requested associated color rendering target. If color rendering target
+     having requested index does not exist, returns DXGI_FORMAT_UNKNOWN
+    */
+    DXGI_FORMAT colorFormats(uint32_t index) const;
+
+    /*! Returns DXGI format of the depth target associated with this rendering target
+     If no depth targets were associated with this rendering target returns DXGI_FORMAT_UNKNOWN
+    */
+    DXGI_FORMAT depthFormat() const;
+
     RenderTargetViewDescriptorTable const& rtvTable() const;
     DepthStencilViewDescriptorTable const& dsvTable() const;
 
@@ -57,6 +67,9 @@ private:
 
     std::vector<ColorTarget> m_color_targets;
     misc::Optional<DepthTarget> m_depth_target;
+
+    std::vector<DXGI_FORMAT> m_color_target_formats;
+    DXGI_FORMAT m_depth_target_format;
 };
 
 
