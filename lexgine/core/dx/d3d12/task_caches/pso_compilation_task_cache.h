@@ -1,16 +1,16 @@
 #ifndef LEXGINE_CORE_DX_D3D12_TASK_CACHES_PSO_COMPILATION_TASK_CACHE_H
 #define LEXGINE_CORE_DX_D3D12_TASK_CACHES_PSO_COMPILATION_TASK_CACHE_H
 
+#include <list>
+#include <map>
+#include <set>
+
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/d3d12/pipeline_state.h"
 #include "lexgine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
-
-#include <list>
-#include <map>
-#include <set>
 
 
 namespace lexgine::core::dx::d3d12::task_caches {
@@ -25,6 +25,51 @@ public:
 
     using graphics_pso_cache_storage = std::list<tasks::GraphicsPSOCompilationTask>;
     using compute_pso_cache_storage = std::list<tasks::ComputePSOCompilationTask>;
+
+    class VersionedPSODescriptor
+    {
+    public:
+        VersionedPSODescriptor()
+            : m_timestamp{ misc::DateTime::buildTime() }
+        {
+
+        }
+
+        misc::DateTime const& timestamp() const { return m_timestamp; }
+
+    private:
+        misc::DateTime m_timestamp;
+    };
+
+    class VersionedGraphicsPSODescriptor final : public VersionedPSODescriptor
+    {
+    public:
+        VersionedGraphicsPSODescriptor(GraphicsPSODescriptor const& descriptor)
+            : m_descriptor{ descriptor }
+        {
+
+        }
+
+        GraphicsPSODescriptor const& descriptor() const { return m_descriptor; }
+
+    private:
+        GraphicsPSODescriptor m_descriptor;
+    };
+
+    class VersionedComputePSODescriptor final : public VersionedPSODescriptor
+    {
+    public:
+        VersionedComputePSODescriptor(ComputePSODescriptor const& descriptor)
+            : m_descriptor{ descriptor }
+        {
+
+        }
+
+        ComputePSODescriptor const& descriptor() const { return m_descriptor; }
+
+    private:
+        ComputePSODescriptor m_descriptor;
+    };
 
 private:
 
@@ -60,12 +105,12 @@ public:
 
     tasks::GraphicsPSOCompilationTask* findOrCreateTask(
         Globals& globals,
-        GraphicsPSODescriptor const& descriptor,
+        VersionedGraphicsPSODescriptor const& versioned_descriptor,
         std::string const& pso_cache_name, uint64_t uid);
 
     tasks::ComputePSOCompilationTask* findOrCreateTask(
         Globals& globals,
-        ComputePSODescriptor const& descriptor,
+        VersionedComputePSODescriptor const& versioned_descriptor,
         std::string const& pso_cache_name, uint64_t uid);
 
     graphics_pso_cache_storage& graphicsPSOStorage();

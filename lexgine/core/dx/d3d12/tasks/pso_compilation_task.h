@@ -19,8 +19,8 @@ class GraphicsPSOCompilationTask final : public concurrency::SchedulableTask
 {
 public:
     GraphicsPSOCompilationTask(task_caches::CombinedCacheKey const& key,
-        Globals& globals,
-        GraphicsPSODescriptor const& descriptor);
+        Globals& globals, GraphicsPSODescriptor const& descriptor,
+        misc::DateTime const& timestamp);
 
     PipelineState const& getTaskData() const;    //! returns blob containing compiled PSO
     bool wasSuccessful() const;    //! returns 'true' if the task has completed successfully
@@ -69,6 +69,7 @@ private:
     RootSignatureCompilationTask* m_associated_root_signature_compilation_task;;
     bool m_was_successful; 
     std::unique_ptr<PipelineState> m_resulting_pipeline_state;
+    misc::DateTime m_timestamp;
 };
 
 
@@ -78,7 +79,7 @@ class ComputePSOCompilationTask final : public concurrency::SchedulableTask
 public:
     ComputePSOCompilationTask(task_caches::CombinedCacheKey const& key,
         Globals& globals,
-        ComputePSODescriptor const& descriptor);
+        ComputePSODescriptor const& descriptor, misc::DateTime const& timestamp);
 
     PipelineState const& getTaskData() const;    //! returns blob containing compiled PSO data
     bool wasSuccessful() const;    //! returns 'true' if the task has completed successfully
@@ -115,6 +116,7 @@ private:
     RootSignatureCompilationTask* m_associated_root_signature_compilation_task;
     bool m_was_successful;
     std::unique_ptr<PipelineState> m_resulting_pipeline_state;
+    misc::DateTime m_timestamp;
 };
 
 

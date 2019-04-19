@@ -50,9 +50,9 @@ bool RootSignatureCompilationTaskCache::Key::operator==(Key const& other) const
         && uid == other.uid;
 }
 
-tasks::RootSignatureCompilationTask* RootSignatureCompilationTaskCache::addTask(
+tasks::RootSignatureCompilationTask* RootSignatureCompilationTaskCache::findOrCreateTask(
     Globals const& globals,
-    RootSignature&& root_signature, RootSignatureFlags const& flags,
+    VersionedRootSignature versioned_root_signature, RootSignatureFlags const& flags,
     std::string const& root_signature_cache_name, uint64_t uid)
 {
     Key key{ root_signature_cache_name, uid };
@@ -67,7 +67,7 @@ tasks::RootSignatureCompilationTask* RootSignatureCompilationTaskCache::addTask(
 
         m_rs_compilation_tasks.emplace_back(rs_cache_keys_insertion_position->first,
             *globals.get<GlobalSettings>(),
-            std::move(root_signature), flags);
+             versioned_root_signature.root_signature(), flags, versioned_root_signature.timestamp());
 
         cache_storage::iterator p = --m_rs_compilation_tasks.end();
         rs_cache_keys_insertion_position->second = p;
