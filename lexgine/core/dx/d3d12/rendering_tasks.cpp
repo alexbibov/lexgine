@@ -150,7 +150,8 @@ class RenderingTasks::TestRendering final : public SchedulableTask
 {
 public:
     TestRendering(Globals& globals, RenderingTasks const& rendering_tasks)
-        : m_device{ *globals.get<Device>() }
+        : m_globals{globals}
+        , m_device{ *globals.get<Device>() }
         , m_rendering_tasks{ rendering_tasks }
         , m_data_uploader{ globals, 0, 64 * 1024 * 1024 }
         , m_vb{ m_device }
@@ -166,11 +167,10 @@ public:
         std::shared_ptr<AbstractVertexAttributeSpecification> color = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
             std::make_shared<VertexAttributeSpecification<float, 3>>(0, 12, "COLOR", 0, 0));
 
-        VertexAttributeSpecificationList va_spec_list{ position, color };
-
+        m_va_spec_list = VertexAttributeSpecificationList{ position, color };
 
         {
-            m_vb.setSegment(va_spec_list, 8, 0);
+            m_vb.setSegment(m_va_spec_list, 8, 0);
             m_vb.build();
 
             ResourceDataUploader::DestinationDescriptor destination_descriptor;
@@ -242,13 +242,12 @@ public:
             rs_flags |= RootSignatureFlags::enum_type::deny_domain_shader;
             rs_flags |= RootSignatureFlags::enum_type::deny_hull_shader;
 
-            m_rs = rs_compilation_task_cache.addTask(globals, std::move(rs), rs_flags, "test_rendering_rs", 0);
+            m_rs = rs_compilation_task_cache.findOrCreateTask(globals, std::move(rs), rs_flags, "test_rendering_rs", 0);
             m_rs->execute(0);
         }
 
 
         // Create shaders
-        HLSLCompilationTask* vs{ nullptr }, *ps{ nullptr };
         {
             std::string hlsl_source = 
                 "struct ConstantDataStruct\n"
@@ -284,35 +283,14 @@ public:
 
             HLSLSourceTranslationUnit hlsl_translation_unit{ globals, "vertex_shader", hlsl_source };
 
-            vs = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit,
+            m_vs = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit,
                 dxcompilation::ShaderModel::model_60, dxcompilation::ShaderType::vertex, "VSMain");
 
-            ps = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit,
+            m_ps = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit,
                 dxcompilation::ShaderModel::model_60, dxcompilation::ShaderType::pixel, "PSMain");
 
-            vs->execute(0);
-            ps->execute(0);
-        }
-
-        // Create PSO
-        {
-            PSOCompilationTaskCache& pso_compilation_task_cache = *globals.get<PSOCompilationTaskCache>();
-
-            GraphicsPSODescriptor pso_descriptor{};
-            pso_descriptor.vertex_attributes = va_spec_list;
-            pso_descriptor.rtv_formats[0] = m_rendering_tasks.m_default_color_format;
-            pso_descriptor.num_render_targets = 1;
-            pso_descriptor.dsv_format = m_rendering_tasks.m_default_depth_format;
-            pso_descriptor.primitive_topology_type = PrimitiveTopologyType::triangle;
-            pso_descriptor.node_mask = 1;
-            pso_descriptor.primitive_restart = true;
-
-            m_pso = pso_compilation_task_cache.findOrCreateTask(globals, pso_descriptor, "test_rendering_pso", 0);
-            m_pso->setVertexShaderCompilationTask(vs);
-            m_pso->setPixelShaderCompilationTask(ps);
-            m_pso->setRootSignatureCompilationTask(m_rs);
-
-            m_pso->execute(0);
+            m_vs->execute(0);
+            m_ps->execute(0);
         }
 
         // Setup constant buffer data
@@ -335,6 +313,28 @@ public:
 
             m_projection_transform = math::createProjectionMatrix(misc::EngineAPI::Direct3D12, 16.f, 9.f);
         }
+    }
+
+    void updatePSO(DXGI_FORMAT color_target_format, DXGI_FORMAT depth_target_format)
+    {
+        PSOCompilationTaskCache& pso_compilation_task_cache = *m_globals.get<PSOCompilationTaskCache>();
+
+        GraphicsPSODescriptor pso_descriptor{};
+        pso_descriptor.vertex_attributes = m_va_spec_list;
+        pso_descriptor.rtv_formats[0] = color_target_format;
+        pso_descriptor.num_render_targets = 1;
+        pso_descriptor.dsv_format = depth_target_format;
+        pso_descriptor.primitive_topology_type = PrimitiveTopologyType::triangle;
+        pso_descriptor.node_mask = 1;
+        pso_descriptor.primitive_restart = true;
+
+        m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, pso_descriptor, 
+            "test_rendering_pso_" + std::to_string(color_target_format) + "_" + std::to_string(depth_target_format), 0);
+        m_pso->setVertexShaderCompilationTask(m_vs);
+        m_pso->setPixelShaderCompilationTask(m_ps);
+        m_pso->setRootSignatureCompilationTask(m_rs);
+
+        m_pso->execute(0);
     }
 
 private:    // required by the AbstractTask interface
@@ -361,11 +361,15 @@ private:    // required by the AbstractTask interface
     }
 
 private:
+    Globals& m_globals;
     Device& m_device;
     RenderingTasks const& m_rendering_tasks;
+
     ResourceDataUploader m_data_uploader;
     VertexBuffer m_vb;
     IndexBuffer m_ib;
+    VertexAttributeSpecificationList m_va_spec_list;
+
     CommittedResource m_texture;
     ConstantBufferReflection m_cb_reflection;
     ConstantBufferDataMapper m_cb_data_mapper;
@@ -373,8 +377,11 @@ private:
     math::Matrix4f m_projection_transform;
     std::shared_ptr<AbstractConstantDataProvider> m_box_rotation_angle_provider;
     std::shared_ptr<AbstractConstantDataProvider> m_mvp_transform_provider;
+
     CommandList m_cmd_list;
+
     RootSignatureCompilationTask* m_rs;
+    HLSLCompilationTask* m_vs, *m_ps;
     GraphicsPSOCompilationTask* m_pso;
     
 
@@ -418,10 +425,8 @@ void RenderingTasks::setDefaultColorAndDepthFormats(DXGI_FORMAT default_color_fo
     {
         m_test_triangle_rendering.reset(new TestRendering{ m_globals, *this });
     }
-    else
-    {
-        //m_test_triangle_rendering->updatePSO(default_color_format, default_depth_format);
-    }
+
+    m_test_triangle_rendering->updatePSO(default_color_format, default_depth_format);
     
     m_task_graph.setRootNodes({ m_frame_begin_task.get() });
     m_frame_begin_task->addDependent(*m_test_triangle_rendering);

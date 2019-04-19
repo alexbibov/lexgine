@@ -67,7 +67,7 @@ bool PSOCompilationTaskCache::Key::operator==(Key const& other) const
 
 tasks::GraphicsPSOCompilationTask* PSOCompilationTaskCache::findOrCreateTask(
     Globals& globals,
-    GraphicsPSODescriptor const& descriptor,
+    VersionedGraphicsPSODescriptor const& versioned_descriptor,
     std::string const& pso_cache_name, uint64_t uid)
 {
     tasks::GraphicsPSOCompilationTask* new_pso_compilation_task{ nullptr };
@@ -83,9 +83,8 @@ tasks::GraphicsPSOCompilationTask* PSOCompilationTaskCache::findOrCreateTask(
                 std::make_pair(graphics_pso_cache_storage::iterator{}, compute_pso_cache_storage::iterator{}))).first;
 
         m_graphics_pso_compilation_tasks.emplace_back(
-            psos_cache_keys_insertion_position->first,
-            globals,
-            descriptor
+            psos_cache_keys_insertion_position->first, globals,
+            versioned_descriptor.descriptor(), versioned_descriptor.timestamp()
         );
 
         graphics_pso_cache_storage::iterator p = --m_graphics_pso_compilation_tasks.end();
@@ -103,7 +102,7 @@ tasks::GraphicsPSOCompilationTask* PSOCompilationTaskCache::findOrCreateTask(
 
 tasks::ComputePSOCompilationTask* PSOCompilationTaskCache::findOrCreateTask(
     Globals& globals,
-    ComputePSODescriptor const& descriptor,
+    VersionedComputePSODescriptor const& versioned_descriptor,
     std::string const& pso_cache_name, uint64_t uid)
 {
     tasks::ComputePSOCompilationTask* new_pso_compilation_task{ nullptr };
@@ -120,9 +119,8 @@ tasks::ComputePSOCompilationTask* PSOCompilationTaskCache::findOrCreateTask(
 
 
         m_compute_pso_compilation_tasks.emplace_back(
-            psos_cache_keys_insertion_position->first,
-            globals,
-            descriptor
+            psos_cache_keys_insertion_position->first, globals,
+            versioned_descriptor.descriptor(), versioned_descriptor.timestamp()
         );
 
         compute_pso_cache_storage::iterator p = --m_compute_pso_compilation_tasks.end();

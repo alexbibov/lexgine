@@ -175,6 +175,7 @@ bool HLSLCompilationTaskCache::Key::operator<(Key const& other) const
 {
     int r = std::strcmp(source_path, other.source_path);
     SWO_STEP(r, < , 0);
+    SWO_STEP(shader_type, < , other.shader_type);
     SWO_STEP(shader_model, < , other.shader_model);
     SWO_END(hash_value, < , other.hash_value);
 }
@@ -182,6 +183,7 @@ bool HLSLCompilationTaskCache::Key::operator<(Key const& other) const
 bool HLSLCompilationTaskCache::Key::operator==(Key const& other) const
 {
     return strcmp(source_path, other.source_path) == 0
+        && shader_type == other.shader_type
         && shader_model == other.shader_model
         && hash_value == other.hash_value;
 }
@@ -204,7 +206,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::findOrCreateTask(HLSLFileT
 {
     uint64_t hash_value = misc::HashedString{ getStringifiedDefines(macro_definitions) + hlsl_translation_unit.source() }.hash();
 
-    Key key{ hlsl_translation_unit.pathToShader(),
+    Key key{ shader_entry_point + "__"  + hlsl_translation_unit.pathToShader(),
         static_cast<unsigned short>(shader_type),
         static_cast<unsigned short>(shader_model),
         hash_value };
@@ -226,7 +228,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::findOrCreateTask(HLSLSourc
 {
     uint64_t hash_value = misc::HashedString{ getStringifiedDefines(macro_definitions) + hlsl_translation_unit.source() }.hash();
 
-    Key key{ hlsl_translation_unit.name(),
+    Key key{ shader_entry_point + "__" + hlsl_translation_unit.name(),
         static_cast<unsigned short>(shader_type),
         static_cast<unsigned short>(shader_model),
         hash_value };

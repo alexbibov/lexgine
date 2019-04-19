@@ -17,14 +17,17 @@ using namespace lexgine::core::dx::d3d12::task_caches;
 
 namespace {
 
-D3DDataBlob loadPrecachedPSOBlob(GlobalSettings const& global_settings, task_caches::CombinedCacheKey const& key)
+D3DDataBlob loadPrecachedPSOBlob(GlobalSettings const& global_settings, task_caches::CombinedCacheKey const& key,
+    misc::DateTime const& timestamp)
 {
     auto pso_cache_containinig_requested_pso =
         task_caches::findCombinedCacheContainingKey(key, global_settings);
 
 
     D3DDataBlob rv{ nullptr };
-    if (pso_cache_containinig_requested_pso.isValid())
+
+    if (pso_cache_containinig_requested_pso.isValid() && 
+        static_cast<task_caches::StreamedCacheConnection&>(pso_cache_containinig_requested_pso).cache().getEntryTimestamp(key) >= timestamp)
     {
         SharedDataChunk blob =
             static_cast<task_caches::StreamedCacheConnection&>(pso_cache_containinig_requested_pso).cache().retrieveEntry(key);
@@ -50,15 +53,16 @@ D3DDataBlob loadPrecachedPSOBlob(GlobalSettings const& global_settings, task_cac
 GraphicsPSOCompilationTask::GraphicsPSOCompilationTask(
     task_caches::CombinedCacheKey const& key, 
     Globals& globals,
-    GraphicsPSODescriptor const& descriptor):
-    SchedulableTask{ static_cast<PSOCompilationTaskCache::Key const&>(key).pso_cache_name },
-    m_key{ key },
-    m_globals{ globals },
-    m_descriptor{ descriptor },
-    m_associated_shader_compilation_tasks(5, nullptr),
-    m_associated_root_signature_compilation_task{ nullptr },
-    m_was_successful{ false },
-    m_resulting_pipeline_state{ nullptr }
+    GraphicsPSODescriptor const& descriptor, misc::DateTime const& timestamp)
+    : SchedulableTask{ static_cast<PSOCompilationTaskCache::Key const&>(key).pso_cache_name }
+    , m_key{ key }
+    , m_globals{ globals }
+    , m_descriptor{ descriptor }
+    , m_associated_shader_compilation_tasks(5, nullptr)
+    , m_associated_root_signature_compilation_task{ nullptr }
+    , m_was_successful{ false }
+    , m_resulting_pipeline_state{ nullptr }
+    , m_timestamp{ timestamp }
 {
 }
 
@@ -152,7 +156,7 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 {
     try
     {
-        auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key);
+        auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key, m_timestamp);
 
         m_descriptor.vertex_shader = m_associated_shader_compilation_tasks[0]->getTaskData();
 
@@ -204,15 +208,16 @@ concurrency::TaskType GraphicsPSOCompilationTask::type() const
 ComputePSOCompilationTask::ComputePSOCompilationTask(
     task_caches::CombinedCacheKey const& key,
     Globals& globals,
-    ComputePSODescriptor const& descriptor):
-    SchedulableTask{ static_cast<PSOCompilationTaskCache::Key const&>(key).pso_cache_name },
-    m_key{ key },
-    m_globals{ globals },
-    m_descriptor{ descriptor },
-    m_associated_compute_shader_compilation_task{ nullptr },
-    m_associated_root_signature_compilation_task{ nullptr },
-    m_was_successful{ false },
-    m_resulting_pipeline_state{ nullptr }
+    ComputePSODescriptor const& descriptor, misc::DateTime const& timestamp)
+    : SchedulableTask{ static_cast<PSOCompilationTaskCache::Key const&>(key).pso_cache_name }
+    , m_key{ key }
+    , m_globals{ globals }
+    , m_descriptor{ descriptor }
+    , m_associated_compute_shader_compilation_task{ nullptr }
+    , m_associated_root_signature_compilation_task{ nullptr }
+    , m_was_successful{ false }
+    , m_resulting_pipeline_state{ nullptr }
+    , m_timestamp{ timestamp }
 {
 
 }
@@ -263,7 +268,7 @@ bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 {
     try
     {
-        auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key);
+        auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key, m_timestamp);
 
         m_descriptor.compute_shader = m_associated_compute_shader_compilation_task->getTaskData();
 

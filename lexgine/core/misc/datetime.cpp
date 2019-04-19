@@ -34,6 +34,62 @@ void adjustTimeShift(uint16_t year, uint8_t const days_in_month[], uint8_t month
     adjusted_day = raw_day < 0 ? days_in_month[adjusted_month - 1] : raw_day + 1;
     adjusted_hour = (raw_hour < 0 ? 24 : 0) + raw_hour;
 }
+
+}
+
+
+TimeSpan::TimeSpan() : m_years{ 0 }, m_months{ 0 }, m_days{ 0 }, m_hours{ 0 }, m_minutes{ 0 }, m_seconds{ 0 }
+{
+
+}
+
+TimeSpan::TimeSpan(int years, int months, int days, int hours, int minutes, double seconds) :
+    m_years{ years }, m_months{ months }, m_days{ days }, m_hours{ hours }, m_minutes{ minutes }, m_seconds{ seconds }
+{
+
+}
+
+int TimeSpan::years() const { return m_years; }
+
+int TimeSpan::months() const { return m_months; }
+
+int TimeSpan::days() const { return m_days; }
+
+int TimeSpan::hours() const { return m_hours; }
+
+int TimeSpan::minutes() const { return m_minutes; }
+
+double TimeSpan::seconds() const { return m_seconds; }
+
+TimeSpan& TimeSpan::operator=(TimeSpan const& other)
+{
+    if (this == &other) return *this;
+
+    m_years = other.m_years;
+    m_months = other.m_months;
+    m_days = other.m_days;
+    m_hours = other.m_hours;
+    m_minutes = other.m_minutes;
+    m_seconds = other.m_seconds;
+
+    return *this;
+}
+
+TimeSpan TimeSpan::operator+(TimeSpan const& other) const
+{
+    return TimeSpan{ m_years + other.m_years, m_months + other.m_months, m_days + other.m_days,
+        m_hours + other.m_hours, m_minutes + other.m_minutes, m_seconds + other.m_seconds };
+}
+
+TimeSpan TimeSpan::operator-(TimeSpan const& other) const
+{
+    return TimeSpan{ m_years - other.m_years, m_months - other.m_months, m_days - other.m_days,
+        m_hours - other.m_hours, m_minutes - other.m_minutes, m_seconds - other.m_seconds };
+}
+
+TimeSpan TimeSpan::operator-() const
+{
+    return TimeSpan{ -m_years, -m_months, -m_days, -m_hours, -m_minutes, -m_seconds };
 }
 
 
@@ -46,11 +102,14 @@ DateTime::DateTime(int8_t time_zone /* = 0 */, bool daylight_saving_time /* = fa
     m_hour{ 0 }, 
     m_minute{ 0 }, 
     m_second{ 0.0 },
-    m_time_shift_from_utc{ daylight_saving_time + time_zone }, 
+    m_time_shift_from_utc{ time_zone + static_cast<int8_t>(daylight_saving_time) },
     m_is_dts{ daylight_saving_time }
 {
-    adjustTimeShift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
-        m_year, m_month, m_day, m_hour);
+    if (time_zone || daylight_saving_time)
+    {
+        adjustTimeShift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
+            m_year, m_month, m_day, m_hour);
+    }
 }
 
 DateTime::DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, double second,
@@ -63,14 +122,16 @@ DateTime::DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint
     m_hour{ hour <= 23 ? hour : 23U }, 
     m_minute{ minute <= 59 ? minute : 59U }, 
     m_second{ second < 60 ? second : 59.999999999 },
-    m_time_shift_from_utc{ daylight_saving_time + time_zone }, 
+    m_time_shift_from_utc{ time_zone + static_cast<int8_t>(daylight_saving_time) },
     m_is_dts{ daylight_saving_time }
 {
     assert(second >= 0);
 
-    if(time_zone || daylight_saving_time)
+    if (time_zone || daylight_saving_time)
+    {
         adjustTimeShift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
             m_year, m_month, m_day, m_hour);
+    }
 }
 
 DateTime::DateTime(unsigned long long nanoseconds)
@@ -242,7 +303,7 @@ TimeSpan DateTime::timeSince(DateTime const& other) const
     uint8_t days_till_next_month = m_days_in_month[m_month - 1] - m_day;
     uint8_t hours_till_next_day = 23 - m_hour;
     uint8_t minutes_till_next_hour = 59 - m_minute;
-    double seconds_till_next_minute = std::max(59.999999999 - m_second, 0.0);
+    double seconds_till_next_minute = (std::max)(59.999999999 - m_second, 0.0);
 
     if (m_year != other.m_year)
         return TimeSpan{ other.m_year - m_year, months_till_next_year, days_till_next_month,
@@ -261,7 +322,7 @@ TimeSpan DateTime::timeSince(DateTime const& other) const
     if (m_minute != other.m_minute)
         return TimeSpan{ 0, 0, 0, 0, other.m_minute - m_minute, seconds_till_next_minute };
 
-    return TimeSpan{ 0, 0, 0, 0, 0, std::max(other.m_second - m_second, 0.0) };
+    return TimeSpan{ 0, 0, 0, 0, 0, (std::max)(other.m_second - m_second, 0.0) };
 }
 
 
@@ -504,60 +565,5 @@ std::string lexgine::core::misc::DateTime::toString(unsigned char mask, DateOutp
     }
 
     return output_string_stream.str();
-}
-
-
-TimeSpan::TimeSpan() : m_years{ 0 }, m_months{ 0 }, m_days{ 0 }, m_hours{ 0 }, m_minutes{ 0 }, m_seconds{ 0 }
-{
-
-}
-
-TimeSpan::TimeSpan(int years, int months, int days, int hours, int minutes, double seconds) :
-    m_years{ years }, m_months{ months }, m_days{ days }, m_hours{ hours }, m_minutes{ minutes }, m_seconds{ seconds }
-{
-
-}
-
-int TimeSpan::years() const { return m_years; }
-
-int TimeSpan::months() const { return m_months; }
-
-int TimeSpan::days() const { return m_days; }
-
-int TimeSpan::hours() const { return m_hours; }
-
-int TimeSpan::minutes() const { return m_minutes; }
-
-double TimeSpan::seconds() const { return m_seconds; }
-
-TimeSpan& TimeSpan::operator=(TimeSpan const& other)
-{
-    if (this == &other) return *this;
-
-    m_years = other.m_years;
-    m_months = other.m_months;
-    m_days = other.m_days;
-    m_hours = other.m_hours;
-    m_minutes = other.m_minutes;
-    m_seconds = other.m_seconds;
-
-    return *this;
-}
-
-TimeSpan TimeSpan::operator+(TimeSpan const& other) const
-{
-    return TimeSpan{ m_years + other.m_years, m_months + other.m_months, m_days + other.m_days,
-        m_hours + other.m_hours, m_minutes + other.m_minutes, m_seconds + other.m_seconds };
-}
-
-TimeSpan TimeSpan::operator-(TimeSpan const& other) const
-{
-    return TimeSpan{ m_years - other.m_years, m_months - other.m_months, m_days - other.m_days,
-        m_hours - other.m_hours, m_minutes - other.m_minutes, m_seconds - other.m_seconds };
-}
-
-TimeSpan TimeSpan::operator-() const
-{
-    return TimeSpan{ -m_years, -m_months, -m_days, -m_hours, -m_minutes, -m_seconds };
 }
 

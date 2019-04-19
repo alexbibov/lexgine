@@ -15,13 +15,14 @@ using namespace lexgine::core::dx::d3d12::task_caches;
 RootSignatureCompilationTask::RootSignatureCompilationTask(
     task_caches::CombinedCacheKey const& key, 
     GlobalSettings const& global_settings,
-    RootSignature&& root_signature, RootSignatureFlags const& flags):
-    SchedulableTask{ static_cast<RootSignatureCompilationTaskCache::Key const&>(key).rs_cache_name },
-    m_key{ key },
-    m_global_settings{ global_settings },
-    m_rs{ std::move(root_signature) },
-    m_rs_flags{ flags },
-    m_was_successful{ false }
+    RootSignature&& root_signature, RootSignatureFlags const& flags, misc::DateTime const& timestamp)
+    : SchedulableTask{ static_cast<RootSignatureCompilationTaskCache::Key const&>(key).rs_cache_name }
+    , m_key{ key }
+    , m_global_settings{ global_settings }
+    , m_rs{ std::move(root_signature) }
+    , m_rs_flags{ flags }
+    , m_was_successful{ false }
+    , m_timestamp{ timestamp }
 {
 }
 
@@ -54,10 +55,13 @@ bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
 
         D3DDataBlob rs_blob{ nullptr };
-        if (rs_cache_with_requested_root_signature.isValid())
+        if (rs_cache_with_requested_root_signature.isValid() 
+            && static_cast<task_caches::StreamedCacheConnection&>(rs_cache_with_requested_root_signature)
+            .cache().getEntryTimestamp(m_key) >= m_timestamp)
         {
-            SharedDataChunk blob =
-                static_cast<task_caches::StreamedCacheConnection&>(rs_cache_with_requested_root_signature).cache().retrieveEntry(m_key);
+            SharedDataChunk blob = 
+                static_cast<task_caches::StreamedCacheConnection&>(rs_cache_with_requested_root_signature)
+                .cache().retrieveEntry(m_key);
 
             if (blob.size() && blob.data())
             {

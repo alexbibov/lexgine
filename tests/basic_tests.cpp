@@ -492,7 +492,7 @@ public:
                     
                     RootSignatureFlags flags{ RootSignatureFlags::enum_type::allow_input_assembler };
                     flags |= RootSignatureFlags::enum_type::allow_stream_output;
-                    rs_compilation_tasks_cache.addTask(globals, std::move(rs),
+                    rs_compilation_tasks_cache.findOrCreateTask(globals, std::move(rs),
                         flags, "SampleRootSignature", 0);
                 }
                 

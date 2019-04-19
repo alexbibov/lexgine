@@ -14,7 +14,8 @@ class RootSignatureCompilationTask : public concurrency::SchedulableTask
 public:
     RootSignatureCompilationTask(task_caches::CombinedCacheKey const& key,
         GlobalSettings const& global_settings,
-        RootSignature&& root_signature, RootSignatureFlags const& flags);
+        RootSignature&& root_signature, RootSignatureFlags const& flags,
+        misc::DateTime const& timestamp);
 
     D3DDataBlob const& getTaskData() const;    //! returns D3D data blob containing compiled root signature
     bool wasSuccessful() const;    //! returns 'true' if the task has completed successfully
@@ -42,6 +43,7 @@ private:
     RootSignatureFlags m_rs_flags;
     bool m_was_successful;
     D3DDataBlob m_compiled_rs_blob;
+    misc::DateTime m_timestamp;
 };
 
 }

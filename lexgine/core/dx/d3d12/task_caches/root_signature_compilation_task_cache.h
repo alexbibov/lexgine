@@ -7,6 +7,7 @@
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
 #include "lexgine/core/dx/d3d12/root_signature.h"
+#include "lexgine/core/misc/datetime.h"
 
 #include <list>
 #include <map>
@@ -20,6 +21,25 @@ class RootSignatureCompilationTaskCache : public NamedEntity<class_names::D3D12_
 
 public:
     using cache_storage = std::list<tasks::RootSignatureCompilationTask>;
+
+    class VersionedRootSignature final
+    {
+    public:
+        VersionedRootSignature(RootSignature&& root_signature)
+            : m_root_signature{ std::move(root_signature) }
+            , m_timestamp{ misc::DateTime::buildTime() }
+        {
+
+        }
+
+        RootSignature&& root_signature() { return std::move(m_root_signature); }
+
+        misc::DateTime const& timestamp() const { return m_timestamp; }
+
+    private:
+        RootSignature m_root_signature;
+        misc::DateTime m_timestamp;
+    };
 
 private:
 
@@ -47,9 +67,9 @@ private:
     using cache_mapping = std::map<CombinedCacheKey, cache_storage::iterator>;
 
 public:
-    tasks::RootSignatureCompilationTask* addTask(
+    tasks::RootSignatureCompilationTask* findOrCreateTask(
         Globals const& globals,
-        RootSignature&& root_signature, RootSignatureFlags const& flags,
+        VersionedRootSignature versioned_root_signature, RootSignatureFlags const& flags,
         std::string const& root_signature_cache_name, uint64_t uid);
     
     cache_storage& storage();

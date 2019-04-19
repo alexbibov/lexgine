@@ -72,7 +72,7 @@ public:
 private:
     struct Key final
     {
-        static constexpr size_t max_string_section_length_in_bytes = 512U;
+        static constexpr size_t max_string_section_length_in_bytes = 1024U;
 
         char source_path[max_string_section_length_in_bytes];
         uint16_t shader_type;
