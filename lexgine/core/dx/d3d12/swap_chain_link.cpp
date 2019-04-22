@@ -24,7 +24,7 @@ SwapChainLink::SwapChainLink(Globals& globals, dxgi::SwapChain const& swap_chain
     , m_linked_swap_chain{ swap_chain_to_link }
     , m_linked_rendering_tasks_ptr{ nullptr }
     , m_depth_buffer_native_format{ static_cast<DXGI_FORMAT>(depth_buffer_format) }
-    , m_depth_optimized_clear_value{ m_depth_buffer_native_format, math::Vector4f{0.f, 0.f, 0.f, 0.f} }
+    , m_depth_optimized_clear_value{ m_depth_buffer_native_format, math::Vector4f{1.f, 0.f, 0.f, 0.f} }
     , m_presenter{ [this](RenderingTarget const&) { m_linked_swap_chain.present(); } }
 {
     uint16_t queued_frames_count = m_globals.get<GlobalSettings>()->getMaxFramesInFlight();
@@ -86,7 +86,13 @@ SwapChainLink::~SwapChainLink() = default;
 void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 {
     m_linked_rendering_tasks_ptr = p_rendering_loop_to_link;
-    m_linked_rendering_tasks_ptr->setDefaultColorAndDepthFormats(m_linked_swap_chain.descriptor().format, m_depth_buffer_native_format);
+
+    math::Vector2u window_dimensions = m_linked_swap_chain.getDimensions();
+    Viewport viewport{ math::Vector2f{0.f, 0.f}, math::Vector2f{ static_cast<float>(window_dimensions.x), static_cast<float>(window_dimensions.y)},
+    math::Vector2f{0, 1.f} };
+
+
+    m_linked_rendering_tasks_ptr->defineRenderingFormat(viewport, m_linked_swap_chain.descriptor().format, m_depth_buffer_native_format);
 }
 
 void SwapChainLink::render()

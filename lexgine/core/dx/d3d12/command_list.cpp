@@ -200,19 +200,26 @@ void CommandList::inputAssemblySetVertexBuffers(VertexBufferBinding const& vb_bi
     size_t offset{ 0 };
     size_t offset_old{ 0 };
     size_t base{ 0 };
-    for (unsigned long mask = vb_binding.slotUsageMask();
-        _BitScanForward(&index, mask); 
-        mask >>= 1, offset += index + 1)
+    bool buffers_set{ true };
+    unsigned long mask = vb_binding.slotUsageMask();
+
+    while (_BitScanForward(&index, mask) || !buffers_set)
     {
-        if (offset - offset_old <= 1)
+        if (mask && offset - offset_old <= 1)
+        {
             native_vb_views[offset] = vb_binding.vertexBufferViewAtSlot(static_cast<uint8_t>(offset));
+            offset_old = offset;
+            buffers_set = false;
+        }
         else
         {
-            m_command_list->IASetVertexBuffers(static_cast<UINT>(base), static_cast<UINT>(offset - base), &native_vb_views[base]);
+            m_command_list->IASetVertexBuffers(static_cast<UINT>(base), static_cast<UINT>(offset_old - base + 1), &native_vb_views[base]);
             base = offset;
+            buffers_set = true;
         }
 
-        offset_old = offset;
+        mask >>= index + 1; 
+        offset += index + 1;
     }
 }
 
@@ -249,9 +256,9 @@ void CommandList::rasterizerStateSetViewports(misc::StaticVector<Viewport, c_max
     m_command_list->RSSetViewports(static_cast<UINT>(viewports.size()), native_viewports.data());
 }
 
-void CommandList::rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_scissor_rectangles_count> const& rectangles) const
+void CommandList::rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_viewport_count> const& rectangles) const
 {
-    misc::StaticVector<D3D12_RECT, c_maximal_scissor_rectangles_count> native_rects(rectangles.size());
+    misc::StaticVector<D3D12_RECT, c_maximal_viewport_count> native_rects(rectangles.size());
     std::transform(rectangles.begin(), rectangles.end(), native_rects.begin(), convertRectangleToDXGINativeRECT);
     m_command_list->RSSetScissorRects(static_cast<UINT>(rectangles.size()), native_rects.data());
 }

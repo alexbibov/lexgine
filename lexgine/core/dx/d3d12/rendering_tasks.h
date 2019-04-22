@@ -8,7 +8,10 @@
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
+#include "lexgine/core/viewport.h"
+#include "lexgine/core/dx/d3d12/command_list.h"
 #include "lexgine/core/concurrency/task_sink.h"
+#include "lexgine/core/misc/static_vector.h"
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "signal.h"
@@ -26,12 +29,16 @@ public:
      This may be used by some rendering tasks that need to assume certain color and
      depth formats for correct initialization of their associated pipeline state objects
     */
-    void setDefaultColorAndDepthFormats(DXGI_FORMAT default_color_format, DXGI_FORMAT default_depth_format);
+    void defineRenderingFormat(Viewport const& viewport,
+        DXGI_FORMAT default_color_format, DXGI_FORMAT default_depth_format);
 
     void render(RenderingTarget& target, 
         std::function<void(RenderingTarget const&)> const& presentation_routine);
 
     FrameProgressTracker const& frameProgressTracker() const;
+
+private:
+    void setDefaultViewport(CommandList& command_list) const;
 
 private:
     class FrameBeginTask;
@@ -49,6 +56,9 @@ private:
     concurrency::TaskSink m_task_sink;
 
     ConstantBufferStream m_constant_data_stream;
+    
+    misc::StaticVector<Viewport, CommandList::c_maximal_viewport_count> m_default_viewports;
+    misc::StaticVector<math::Rectangle, CommandList::c_maximal_viewport_count> m_default_scissor_rectangles;
 
     std::unique_ptr<FrameBeginTask> m_frame_begin_task;
     std::unique_ptr<FrameEndTask> m_frame_end_task;

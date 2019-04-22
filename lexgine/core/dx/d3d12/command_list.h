@@ -77,7 +77,6 @@ public:
     static constexpr uint32_t c_maximal_simultaneous_render_targets_count = 8U;
     static constexpr uint32_t c_maximal_clear_rectangles_count = 128U;
     static constexpr uint32_t c_maximal_viewport_count = 64U;
-    static constexpr uint32_t c_maximal_scissor_rectangles_count = 256U;
     static constexpr uint8_t  c_input_assemblers_count = 16U;
     static constexpr uint32_t c_maximal_rtv_descriptor_table_length = 64U;
     
@@ -126,7 +125,7 @@ public:
     
     void rasterizerStateSetViewports(misc::StaticVector<Viewport, c_maximal_viewport_count> const& viewports) const;
 
-    void rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_scissor_rectangles_count> const& rectangles) const;
+    void rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_viewport_count> const& rectangles) const;
 
     void outputMergerSetBlendFactor(math::Vector4f const& blend_factor) const;
 

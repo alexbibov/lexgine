@@ -50,7 +50,7 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
         auto allocation = m_upload_buffer_allocator.allocate(task_size);
         for (uint32_t p = 0; p < num_subresources; ++p)
         {
-            char* p_dst_subresource = static_cast<char*>(allocation->address()) + p_placed_subresource_footprints[p].Offset;
+            char* p_dst_subresource = static_cast<char*>(allocation->cpuAddress()) + p_placed_subresource_footprints[p].Offset;
             char* p_src_subresource = static_cast<char*>(source_descriptor.subresources[p].p_data);
 
             size_t const dst_subresource_slice_pitch = p_subresource_num_rows[p] * p_placed_subresource_footprints[p].Footprint.RowPitch;
@@ -93,7 +93,7 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
             static_cast<UINT64>(destination_descriptor.segment.base_offset), p_placed_subresource_footprint, NULL, NULL, NULL);
 
         auto allocation = m_upload_buffer_allocator.allocate(source_descriptor.buffer_size);
-        char* p_upload_buffer_addr = static_cast<char*>(allocation->address());
+        char* p_upload_buffer_addr = static_cast<char*>(allocation->cpuAddress());
         memcpy(p_upload_buffer_addr + p_placed_subresource_footprint->Offset, source_descriptor.p_data, source_descriptor.buffer_size);
 
         m_upload_command_list.copyBufferRegion(*destination_descriptor.p_destination_resource, destination_descriptor.segment.base_offset,

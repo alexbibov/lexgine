@@ -99,6 +99,8 @@ public:
 
     void resize(size_t new_size);
 
+    void clear();
+
     size_t size() const;
     static constexpr size_t capacity() { return m_capacity / sizeof(T); }
 
@@ -258,7 +260,7 @@ inline StaticVector<T, max_size>& StaticVector<T, max_size>::operator=(StaticVec
 template<typename T, size_t max_size>
 inline StaticVector<T, max_size>::~StaticVector()
 {
-    while (m_size > 0) pop_back();
+    clear();
 }
 
 template<typename T, size_t max_size>
@@ -314,6 +316,12 @@ inline void StaticVector<T, max_size>::resize(size_t new_size)
 
     while (m_size > new_size)
         pop_back();
+}
+
+template<typename T, size_t max_size>
+inline void StaticVector<T, max_size>::clear()
+{
+    while (m_size) pop_back();
 }
 
 template<typename T, size_t max_size>
