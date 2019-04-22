@@ -10,369 +10,111 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-
-template<typename T> struct StaticTypeToReflectionEntryBaseType;
-
-template<> struct StaticTypeToReflectionEntryBaseType<float>
+template<typename T>
+struct ConstantElementProvider final
 {
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float1;
+    static_assert(std::is_scalar<T>::value, "type is not supported");
+
+    static void const* fetch(T const& element) { return &element; }
 };
 
-template<> struct StaticTypeToReflectionEntryBaseType<int>
+template<typename T, uint32_t nrows, uint32_t ncolumns>
+struct ConstantElementProvider<math::shader_matrix_type<T, nrows, ncolumns>> final
 {
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int1;
+    static void const* fetch(math::shader_matrix_type<T, nrows, ncolumns> const& element) 
+    { 
+        return element.getRawData(); 
+    }
 };
 
-template<> struct StaticTypeToReflectionEntryBaseType<unsigned int>
+template<typename T>
+struct ConstantElementProvider<math::tagVector2<T>> final
 {
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint1;
+    static void const* fetch(math::tagVector2<T> const& element) { return element.data(); }
 };
 
-template<> struct StaticTypeToReflectionEntryBaseType<bool>
+template<typename T>
+struct ConstantElementProvider<math::tagVector3<T>> final
 {
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool1;
+    static void const* fetch(math::tagVector3<T> const& element) { return element.data(); }
 };
 
-
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Vector2f>
+template<typename T>
+struct ConstantElementProvider<math::tagVector4<T>> final
 {
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Vector2i>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Vector2u>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Vector2b>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix2f>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float2x2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix2i>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int2x2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix2u>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint2x2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix2b>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool2x2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix2x3f>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float2x3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix2x3i>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int2x3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix2x3u>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint2x3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix2x3b>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool2x3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix2x4f>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float2x4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix2x4i>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int2x4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix2x4u>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint2x4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix2x4b>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool2x4;
-};
-
-
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Vector3f>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Vector3i>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Vector3u>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Vector3b>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix3f>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float3x3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix3i>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int3x3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix3u>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint3x3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix3b>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool3x3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix3x2f>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float3x2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix3x2i>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int3x2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix3x2u>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint3x2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix3x2b>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool3x2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix3x4f>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float3x4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix3x4i>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int3x4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix3x4u>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint3x4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix3x4b>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool3x4;
-};
-
-
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Vector4f>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Vector4i>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Vector4u>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Vector4b>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix4f>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float4x4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix4i>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int4x4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix4u>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint4x4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix4b>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool4x4;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix4x2f>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float4x2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix4x2i>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int4x2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix4x2u>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint4x2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix4x2b>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool4x2;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix4x3f>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::float4x3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix4x3i>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::int4x3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix4x3u>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::uint4x3;
-};
-
-template<> struct StaticTypeToReflectionEntryBaseType<math::Matrix4x3b>
-{
-    static ConstantBufferReflection::ReflectionEntryBaseType constexpr base_reflection_type = ConstantBufferReflection::ReflectionEntryBaseType::bool4x3;
+    static void const* fetch(math::tagVector4<T> const& element) { return element.data(); }
 };
 
 
 class AbstractConstantDataProvider
 {
 public:
-    virtual void const* data() const = 0;
-    virtual size_t elementCount() const = 0;
-    virtual ConstantBufferReflection::ReflectionEntryBaseType reflectionType() const = 0;
+    virtual void const* fetchDataElement(size_t element_index = 0U) const = 0;
+    virtual size_t dataElementCount() const = 0;
 };
 
 template<typename T> class ConstantDataProvider : public AbstractConstantDataProvider
 {
 public:
-    using value_type = typename std::conditional<std::is_scalar<T>::value,
-        T,
-        typename std::remove_const<typename std::remove_reference<T>::type>::type const&>::type;
-
-public:
-    explicit ConstantDataProvider(value_type value)
+    ConstantDataProvider(T const& value)
         : m_value{ value }
     {
 
     }
 
-    void const* data() const override { return &m_value; }
-    size_t elementCount() const override { return 1U; }
-
-    ConstantBufferReflection::ReflectionEntryBaseType reflectionType() const override
+    void const* fetchDataElement(size_t element_index /* = 0U */) const override
     {
-        return StaticTypeToReflectionEntryBaseType<typename std::remove_const<
-            typename std::remove_reference<value_type>::type
-        >::type>::base_reflection_type;
+        return ConstantElementProvider<T>::fetch(m_value);
     }
 
-    typename value_type value() const { return m_value; }
+    size_t dataElementCount() const override { return 1; }
 
 private:
-    value_type m_value;
+    T const& m_value;
 };
 
-template<typename T> class ConstantDataProvider<std::vector<T>> : public AbstractConstantDataProvider
+template<typename T> class ConstantDataProvider<std::vector<T>> 
+    : public AbstractConstantDataProvider
 {
 public:
-    explicit ConstantDataProvider(std::vector<T> const& value)
+    ConstantDataProvider(std::vector<T> const& value)
         : m_value{ value }
     {
 
     }
 
-    void const* data() const override { return m_value.data(); }
-    size_t elementCount() const override { return m_value.size(); }
-
-    std::vector<T>& value() { return m_value; }
-    std::vector<T> const& value() const { return m_value; }
-    ConstantBufferReflection::ReflectionEntryBaseType reflectionType() const override
+    void const* fetchDataElement(size_t element_index /* = 0U */) const override
     {
-        return
-            StaticTypeToReflectionEntryBaseType<typename std::remove_const<typename std::remove_reference<T>::type>::type>
-            ::base_reflection_type;
+        T const& element = m_value[element_index];
+        return ConstantElementProvider<T>::fetch(element);
     }
 
+    size_t dataElementCount() const override { return m_value.size(); }
+
 private:
-    std::vector<T>& m_value;
-};
-
-
-
-class ConstantBufferDataUpdater
-{
-public:
-    ConstantBufferDataUpdater(std::string const& variable_name,
-        std::shared_ptr<AbstractConstantDataProvider> const& constant_data_provider);
-
-    void update(uint64_t constant_buffer_allocation_base_address, ConstantBufferReflection const& reflection) const;
-
-protected:
-    misc::HashedString m_hash;
-    std::weak_ptr<AbstractConstantDataProvider> m_constant_data_provider_ptr;
+    std::vector<T> const& m_value;
 };
 
 
 class ConstantBufferDataMapper final
 {
 public:
-    ConstantBufferDataMapper(ConstantBufferReflection const& reflection);
+    explicit ConstantBufferDataMapper(ConstantBufferReflection const& reflection);
 
-    void addDataUpdater(ConstantBufferDataUpdater const& data_updater);
+    template<typename T>
+    void addDataBinding(std::string const& target_variable_name, T const& data_source)
+    {
+        m_writers.emplace_back(misc::HashedString{ target_variable_name },
+            std::unique_ptr<AbstractConstantDataProvider>{new ConstantDataProvider<std::remove_const<std::remove_reference<T>::type>::type>{ data_source }});
+    }
 
-    size_t requiredDestinationBufferCapacity() const;
+    void writeAllBoundData(uint64_t constant_buffer_allocation_base_address) const;
 
-    void update(uint64_t constant_buffer_allocation_base_address) const;
+    size_t mappedDataSize() const { return m_reflection.size(); }
 
 private:
     ConstantBufferReflection const& m_reflection;
-    std::list<ConstantBufferDataUpdater> m_updaters;
+    std::list<std::pair<misc::HashedString, std::unique_ptr<AbstractConstantDataProvider>>> m_writers;
 };
 
 }

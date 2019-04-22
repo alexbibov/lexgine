@@ -91,7 +91,7 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
         so_declaration_entries[so_declaration_entry_idx].ComponentCount = element_components.second;
         so_declaration_entries[so_declaration_entry_idx].OutputSlot = p->slot();
     }
-    so_desc.pSODeclaration = so_declaration_entries.data();
+    so_desc.pSODeclaration = so_declaration_entries.size() ? so_declaration_entries.data() : NULL;
 
     so_desc.NumStrides = static_cast<UINT>(pso_descriptor.stream_output.buffer_strides.size());
 
@@ -100,7 +100,7 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
     uint32_t buffer_stride_idx = 0;
     for (auto p = pso_descriptor.stream_output.buffer_strides.begin(); p != pso_descriptor.stream_output.buffer_strides.end(); ++p, ++buffer_stride_idx)
         buffer_strides[buffer_stride_idx] = *p;
-    so_desc.pBufferStrides = buffer_strides.data();
+    so_desc.pBufferStrides = buffer_strides.size() ? buffer_strides.data() : NULL;
 
     so_desc.RasterizedStream = pso_descriptor.stream_output.rasterized_stream;
 
@@ -269,6 +269,13 @@ void PipelineState::setStringName(std::string const& entity_string_name)
 {
     Entity::setStringName(entity_string_name);
     m_pipeline_state->SetName(misc::asciiStringToWstring(entity_string_name).c_str());
+}
+
+GraphicsPSODescriptor::GraphicsPSODescriptor()
+    : primitive_restart{ true }
+    , node_mask{ 0x1 }
+    , sample_mask{ 0xFFFFFFFF }
+{
 }
 
 GraphicsPSODescriptor::GraphicsPSODescriptor(VertexAttributeSpecificationList const& vertex_attribute_specs, D3DDataBlob const& vs, D3DDataBlob const& ps,

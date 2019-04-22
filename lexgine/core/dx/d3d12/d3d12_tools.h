@@ -394,8 +394,8 @@ inline D3D12_PRIMITIVE_TOPOLOGY d3d12Convert(PrimitiveTopology primitive_topolog
     case PrimitiveTopology::triangle_list:
         return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::triangle_list>::value());
         break;
-    case PrimitiveTopology::trianlge_strip:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::trianlge_strip>::value());
+    case PrimitiveTopology::triangle_strip:
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::triangle_strip>::value());
         break;
     case PrimitiveTopology::line_list_adjacent:
         return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::line_list_adjacent>::value());

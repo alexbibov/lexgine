@@ -32,18 +32,19 @@ uint64_t ConstantBufferStream::totalCapacity() const
     return m_allocator.totalCapacity();
 }
 
-uint64_t ConstantBufferStream::allocate(uint64_t size)
+PerFrameUploadDataStreamAllocator::address_type ConstantBufferStream::allocate(uint64_t size)
 {
-    return reinterpret_cast<uint64_t>(m_allocator.allocate(size)->address());
+    return m_allocator.allocate(size);
 }
 
-void ConstantBufferStream::update(uint64_t dst_gpu_address, ConstantBufferDataMapper const& data_mapper)
+void ConstantBufferStream::update(PerFrameUploadDataStreamAllocator::address_type const& destination_data_block, ConstantBufferDataMapper const& data_mapper)
 {
-    data_mapper.update(dst_gpu_address);
+    data_mapper.writeAllBoundData(reinterpret_cast<size_t>(destination_data_block->cpuAddress()));
 }
 
-void ConstantBufferStream::allocateAndUpdate(ConstantBufferDataMapper const& data_mapper)
+PerFrameUploadDataStreamAllocator::address_type ConstantBufferStream::allocateAndUpdate(ConstantBufferDataMapper const& data_mapper)
 {
-    auto allocation = m_allocator.allocate(data_mapper.requiredDestinationBufferCapacity());
-    update(reinterpret_cast<uint64_t>(allocation->address()), data_mapper);
+    auto allocation = m_allocator.allocate(data_mapper.mappedDataSize());
+    update(allocation, data_mapper);
+    return allocation;
 }

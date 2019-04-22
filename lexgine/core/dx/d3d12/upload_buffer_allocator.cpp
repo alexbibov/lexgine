@@ -21,15 +21,25 @@ bool UploadDataBlock::isInUse() const
     return m_allocator.completedWork() < m_controlling_signal_value;
 }
 
-void* UploadDataBlock::address() const
+void* UploadDataBlock::cpuAddress() const
 {
-    return m_mapped_gpu_buffer_addr + m_allocation_begin;
+    return m_buffer_cpu_addr + m_allocation_begin;
 }
 
-void* UploadDataBlock::offsetted_address(uint32_t offset) const
+void* UploadDataBlock::offsettedCpuAddress(uint32_t offset) const
 {
     assert(m_allocation_begin + offset < m_allocation_end);
-    return m_mapped_gpu_buffer_addr + m_allocation_begin + offset;
+    return m_buffer_cpu_addr + m_allocation_begin + offset;
+}
+
+uint64_t UploadDataBlock::virtualGpuAddress() const
+{
+    return m_buffer_virtual_gpu_addr + m_allocation_begin;
+}
+
+uint64_t UploadDataBlock::offsettedVirtualGpuAddress(uint32_t offset) const
+{
+    return virtualGpuAddress() + offset;
 }
 
 uint32_t UploadDataBlock::offset() const
@@ -37,10 +47,12 @@ uint32_t UploadDataBlock::offset() const
     return m_allocation_begin;
 }
 
-UploadDataBlock::UploadDataBlock(UploadDataAllocator const& allocator, void* mapped_gpu_buffer_addr,
+UploadDataBlock::UploadDataBlock(UploadDataAllocator const& allocator,
+    void* buffer_cpu_addr, uint64_t buffer_virtual_gpu_addr,
     uint64_t signal_value, uint32_t allocation_begin, uint32_t allocation_end)
     : m_allocator{ allocator }
-    , m_mapped_gpu_buffer_addr{ static_cast<unsigned char*>(mapped_gpu_buffer_addr) }
+    , m_buffer_cpu_addr{ static_cast<unsigned char*>(buffer_cpu_addr) }
+    , m_buffer_virtual_gpu_addr{ buffer_virtual_gpu_addr }
     , m_controlling_signal_value{ signal_value }
     , m_allocation_begin{ allocation_begin }
     , m_allocation_end{ allocation_end }
@@ -61,6 +73,7 @@ UploadDataAllocator::UploadDataAllocator(Globals& globals,
     assert(offset_from_heap_start + upload_buffer_size <= m_upload_heap.capacity());
 
     m_upload_buffer_mapping = m_upload_buffer.map();
+    m_upload_buffer_gpu_virtual_address = m_upload_buffer.getGPUVirtualAddress();
 }
 
 UploadDataAllocator::~UploadDataAllocator()
@@ -90,10 +103,10 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
     if (m_unpartitioned_chunk_size >= size_in_bytes)
     {
         uint32_t allocation_begin = m_blocks.size() ? m_blocks.back()->m_allocation_end : 0U;
-        end_of_new_allocation = static_cast<uint32_t>(allocation_begin + size_in_bytes);
+        end_of_new_allocation = static_cast<uint32_t>(misc::align(allocation_begin + size_in_bytes, 256));
         uint32_t allocation_end = end_of_new_allocation;
 
-        m_blocks.emplace_back(*this, m_upload_buffer_mapping,
+        m_blocks.emplace_back(*this, m_upload_buffer_mapping, m_upload_buffer_gpu_virtual_address,
             nextValueOfControllingSignal(),
             allocation_begin, allocation_end);
 
@@ -129,7 +142,7 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
             auto next_allocation = std::next(m_last_allocation);
             (*next_allocation)->m_allocation_begin = (*m_last_allocation)->m_allocation_end;
             end_of_new_allocation = (*next_allocation)->m_allocation_end = 
-                static_cast<uint32_t>((*next_allocation)->m_allocation_begin + size_in_bytes);
+                static_cast<uint32_t>(misc::align((*next_allocation)->m_allocation_begin + size_in_bytes, 256));
             (*next_allocation)->m_controlling_signal_value = nextValueOfControllingSignal();
 
             m_unpartitioned_chunk_size -= size_in_bytes - requested_space_counter;
@@ -162,7 +175,7 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
             else waitUntilControllingSignalValue(controlling_signal_value, m_max_non_blocking_allocation_timeout);
 
             auto next_allocation = m_blocks.begin();
-            end_of_new_allocation = (*next_allocation)->m_allocation_end = static_cast<uint32_t>(size_in_bytes);
+            end_of_new_allocation = (*next_allocation)->m_allocation_end = static_cast<uint32_t>(misc::align(size_in_bytes, 256));
             (*next_allocation)->m_controlling_signal_value = nextValueOfControllingSignal();
 
             m_last_allocation = next_allocation;
@@ -180,7 +193,7 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
         else waitUntilControllingSignalValue((*m_last_allocation)->m_controlling_signal_value, m_max_non_blocking_allocation_timeout);
 
         m_last_allocation = m_blocks.begin();
-        end_of_new_allocation = (*m_last_allocation)->m_allocation_end = static_cast<uint32_t>(size_in_bytes);
+        end_of_new_allocation = (*m_last_allocation)->m_allocation_end = static_cast<uint32_t>(misc::align(size_in_bytes, 256));
         (*m_last_allocation)->m_controlling_signal_value = nextValueOfControllingSignal();
 
         first_allocation_block_to_invalidate = std::next(m_last_allocation);

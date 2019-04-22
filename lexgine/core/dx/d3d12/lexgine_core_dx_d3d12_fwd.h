@@ -8,7 +8,7 @@ class CommandList;
 class CommandQueue;
 class ConstantBuffer;
 class ConstantBufferReflection;
-class ConstantBufferDataUpdater;
+class ConstantBufferDataWriter;
 class ConstantBufferDataMapper;
 class D3D12PSOXMLParser;
 class DebugInterface;

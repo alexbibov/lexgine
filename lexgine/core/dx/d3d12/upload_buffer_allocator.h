@@ -23,17 +23,21 @@ class UploadDataBlock final
 public:
     size_t capacity() const;
     bool isInUse() const;
-    void* address() const;
-    void* offsetted_address(uint32_t offset) const;
+    void* cpuAddress() const;
+    void* offsettedCpuAddress(uint32_t offset) const;
+    uint64_t virtualGpuAddress() const;
+    uint64_t offsettedVirtualGpuAddress(uint32_t offset) const;
     uint32_t offset() const;  //! returns offset of the starting address of the allocation within the upload buffer
 
 private:
-    UploadDataBlock(UploadDataAllocator const& allocator, void* mapped_gpu_buffer_addr,
+    UploadDataBlock(UploadDataAllocator const& allocator, 
+        void* buffer_cpu_addr, uint64_t buffer_virtual_gpu_addr,
         uint64_t signal_value, uint32_t allocation_begin, uint32_t allocation_end);
 
 private:
     UploadDataAllocator const& m_allocator;
-    unsigned char* m_mapped_gpu_buffer_addr;
+    unsigned char* m_buffer_cpu_addr;
+    uint64_t m_buffer_virtual_gpu_addr;
     uint64_t m_controlling_signal_value;
     uint32_t m_allocation_begin;
     uint32_t m_allocation_end;
@@ -76,6 +80,7 @@ private:
     uint32_t m_max_non_blocking_allocation_timeout;
 
     void* m_upload_buffer_mapping;
+    uint64_t m_upload_buffer_gpu_virtual_address;
 };
 
 

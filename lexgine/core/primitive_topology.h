@@ -22,7 +22,7 @@ enum class PrimitiveTopology : uint8_t
     line_list,
     line_strip,
     triangle_list,
-    trianlge_strip,
+    triangle_strip,
 
     line_list_adjacent,
     line_strip_adjacent,

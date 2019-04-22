@@ -28,6 +28,20 @@ enum class EngineAPI
     OpenGL45    // not sure if ever gets implemented
 };
 
+enum class DataFormat
+{
+    float64,
+    float32,
+    float16,
+    int64,
+    int32,
+    int16,
+    uint64,
+    uint32,
+    uint16,
+    unknown
+};
+
 
 //! Enumerates frame references used to define rotation transforms
 enum class RotationFrame { LOCAL, GLOBAL };
@@ -122,21 +136,6 @@ bool readBinaryDataFromSourceFile(std::string const& file_path, void* destinatio
 bool writeBinaryDataToFile(std::string const& file_path, void* source_memory_address, size_t data_size);
 
 
-enum class DataFormat
-{
-    float64,
-    float32,
-    float16,
-    int64,
-    int32,
-    int16,
-    uint64,
-    uint32,
-    uint16,
-    unknown
-};
-
-
 /*! Retrieves date and time of the last update applied to the given file. Returned time stamp is represented
     using UTC time format
 */
@@ -152,11 +151,18 @@ template<typename T> std::unique_ptr<T> stackToUnique(T& val)
 }
 
 
-//! Retrievs count of set bits in 64-bit number
+//! Retrieves count of set bits in 64-bit number
 uint32_t getSetBitCount(uint64_t value);
 
 //! Returns formatted string similar to how it is done by printf(...) routine
 std::string formatString(char const* format_string, ...);
+
+//! Aligns the given value with the specified alignment and returns the result of this operation
+template<typename T1, typename T2>
+inline decltype(T1{} % T2{}) align(T1 value, T2 alignment)
+{
+    return value + (alignment - value % alignment) % alignment;
+}
 
 
 }

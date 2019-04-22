@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "rendering_tasks.h"
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
@@ -74,18 +76,22 @@ public:
 private:    // required by the AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t current_frame_index) override
     {
-        auto& target = *m_rendering_tasks.m_current_rendering_target_ptr;
+        
 
         m_command_list.reset();
         m_command_list.setDescriptorHeaps(m_page0_descriptor_heaps);
-        m_command_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::trianlge_strip);
 
-        m_command_list.outputMergerSetRenderTargets(&target.rtvTable(), 1,
-            target.hasDepth() ? &target.dsvTable() : nullptr, 0U);
+        {
+            auto& target = *m_rendering_tasks.m_current_rendering_target_ptr;
 
-        target.switchToRenderAccessState(m_command_list);
+            m_command_list.outputMergerSetRenderTargets(&target.rtvTable(), 1,
+                target.hasDepth() ? &target.dsvTable() : nullptr, 0U);
 
-        m_command_list.clearRenderTargetView(target.rtvTable(), 0, m_clear_color);
+            target.switchToRenderAccessState(m_command_list);
+
+            m_command_list.clearRenderTargetView(target.rtvTable(), 0, m_clear_color);
+            m_command_list.clearDepthStencilView(target.dsvTable(), 0, DSVClearFlags::clear_depth, 1.f, 0);
+        }
 
         m_command_list.close();
 
@@ -148,18 +154,28 @@ private:
 
 class RenderingTasks::TestRendering final : public SchedulableTask
 {
+private:
+    static size_t getUploadDataSectionOffset(Globals& globals)
+    {
+        auto& global_settings = *globals.get<GlobalSettings>();
+        size_t offset = static_cast<size_t>(std::ceilf(global_settings.getUploadHeapCapacity()
+            *global_settings.getStreamedConstantDataPartitioning()));
+        return misc::align(offset, 256);
+    }
+
 public:
-    TestRendering(Globals& globals, RenderingTasks const& rendering_tasks)
+    TestRendering(Globals& globals, RenderingTasks& rendering_tasks)
         : m_globals{globals}
         , m_device{ *globals.get<Device>() }
         , m_rendering_tasks{ rendering_tasks }
-        , m_data_uploader{ globals, 0, 64 * 1024 * 1024 }
+        , m_data_uploader{ globals, getUploadDataSectionOffset(globals), 64 * 1024 * 1024 }
         , m_vb{ m_device }
         , m_ib{ m_device, IndexDataType::_16_bit, 32 * 1024 }
         , m_texture{ m_device, ResourceState::enum_type::pixel_shader, misc::makeEmptyOptional<ResourceOptimizedClearValue>(),
                     ResourceDescriptor::CreateTexture2D(256, 256, 1, DXGI_FORMAT_R8G8B8A8_UNORM), AbstractHeapType::default,
                     HeapCreationFlags::enum_type::allow_all }
         , m_cb_data_mapper{ m_cb_reflection }
+        , m_timestamp{std::chrono::high_resolution_clock::now().time_since_epoch().count()}
         , m_cmd_list{m_device.createCommandList(CommandType::direct, 0x1)}
     {
         std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
@@ -230,17 +246,17 @@ public:
 
             RootEntryDescriptorTable main_parameters;
             main_parameters.addRange(RootEntryDescriptorTable::RangeType::srv, 1, 0, 0, 0);
-            main_parameters.addRange(RootEntryDescriptorTable::RangeType::cbv, 1, 0, 0, 1);
 
             RootEntryDescriptorTable sampler_table;
             sampler_table.addRange(RootEntryDescriptorTable::RangeType::sampler, 1, 0, 0, 0);
 
             rs.addParameter(0, main_parameters);
             rs.addParameter(1, sampler_table);
+            rs.addParameter(2, RootEntryCBVDescriptor{ 0, 0 });
 
             RootSignatureFlags rs_flags = RootSignatureFlags::enum_type::allow_input_assembler;
-            rs_flags |= RootSignatureFlags::enum_type::deny_domain_shader;
-            rs_flags |= RootSignatureFlags::enum_type::deny_hull_shader;
+            // rs_flags |= RootSignatureFlags::enum_type::deny_domain_shader;
+            // rs_flags |= RootSignatureFlags::enum_type::deny_hull_shader;
 
             m_rs = rs_compilation_task_cache.findOrCreateTask(globals, std::move(rs), rs_flags, "test_rendering_rs", 0);
             m_rs->execute(0);
@@ -266,16 +282,25 @@ public:
                 "\n"
                 "VSOutput VSMain(float3 position: POSITION, float3 color: COLOR)\n"
                 "{\n"
+                "    float4x4 view = float4x4(1.f, 0.f, 0.f, 0.f, \n"
+                "                             0.f, 1.f, 0.f, 0.f, \n"
+                "                             0.f, 0.f, 1.f, -3.f, \n"
+                "                             0.f, 0.f, 0.f, 1.f);\n"
+                "    float4x4 model = float4x4(cos(ConstantData.rotationAngle), 0.f, sin(ConstantData.rotationAngle), 0.f, \n"
+                "                              0.f, 1.f, 0.f, 0.f, \n"
+                "                              -sin(ConstantData.rotationAngle), 0.f, cos(ConstantData.rotationAngle), 0.f, \n"
+                "                              0.f, 0.f, 0.f, 1.f);\n"
+                "    float4x4 mvp = mul(ConstantData.ProjectionMatrix, mul(view, model));\n"
                 "    VSOutput vs_output;\n"
-                "    vs_output.transformed_position = float4(position, 1.f);\n"
+                "    vs_output.transformed_position = mul(mvp, float4(position, 1.f));\n"
                 "    vs_output.color = color;\n"
                 "    return vs_output;\n"
                 "}\n"
                 "\n"
                 "\n"
-                "float4 PSMain(VSOutput input): SV_Target0\n"
+                "float4 PSMain(VSOutput vs_output): SV_Target0\n"
                 "{\n"
-                "    return float4(1.f, 1.f, 0.f, 1.f);\n"
+                "    return float4(vs_output.color, 1.f);\n"
                 "}\n"
                 "\n";
 
@@ -300,16 +325,9 @@ public:
 
             m_cb_reflection.addElement("RotationAngle",
                 ConstantBufferReflection::ReflectionEntryDesc{ ConstantBufferReflection::ReflectionEntryBaseType::float1, 1 });
-
-            m_box_rotation_angle_provider = std::static_pointer_cast<AbstractConstantDataProvider>(
-                std::make_shared<ConstantDataProvider<float>>(m_box_rotation_angle)
-                );
-            m_mvp_transform_provider = std::static_pointer_cast<AbstractConstantDataProvider>(
-                std::make_shared<ConstantDataProvider<Matrix4f>>(m_projection_transform)
-                );
             
-            m_cb_data_mapper.addDataUpdater(ConstantBufferDataUpdater{ "ProjectionMatrix", m_mvp_transform_provider });
-            m_cb_data_mapper.addDataUpdater(ConstantBufferDataUpdater{ "RotationAngle", m_box_rotation_angle_provider });
+            m_cb_data_mapper.addDataBinding("ProjectionMatrix", m_projection_transform);
+            m_cb_data_mapper.addDataBinding("RotationAngle", m_box_rotation_angle);
 
             m_projection_transform = math::createProjectionMatrix(misc::EngineAPI::Direct3D12, 16.f, 9.f);
         }
@@ -341,16 +359,39 @@ private:    // required by the AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t current_frame_index) override
     {
         m_cmd_list.reset();
-        
+
+        m_cmd_list.setPipelineState(m_pso->getTaskData());
+
+        m_cmd_list.setRootSignature(m_rs->getCacheName());
+        m_rendering_tasks.setDefaultViewport(m_cmd_list);
+
+
+        m_cmd_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
         m_vb.bind(m_cmd_list);
         m_ib.bind(m_cmd_list);
 
-        m_cmd_list.setRootSignature(m_rs->getCacheName());
-        m_cmd_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::trianlge_strip);
-        m_cmd_list.setPipelineState(m_pso->getTaskData());
+        {
+            auto& target = *m_rendering_tasks.m_current_rendering_target_ptr;
+
+            m_cmd_list.outputMergerSetRenderTargets(&target.rtvTable(), 1,
+                target.hasDepth() ? &target.dsvTable() : nullptr, 0U);
+
+        }
+
+        long long new_timestamp = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+        float duration = (new_timestamp - m_timestamp) / 1e9f;
+        m_box_rotation_angle += static_cast<float>(math::pi * duration *.5f);
+        m_timestamp = new_timestamp;
+
+        auto allocation = 
+            m_rendering_tasks.m_constant_data_stream.allocateAndUpdate(m_cb_data_mapper);
+        m_cmd_list.setRootConstantBufferView(2, allocation->virtualGpuAddress());
+
         m_cmd_list.drawIndexedInstanced(36, 1, 0, 0, 0);
 
         m_cmd_list.close();
+
+        m_rendering_tasks.m_device.defaultCommandQueue().executeCommandList(m_cmd_list);
 
         return true;
     }
@@ -363,7 +404,7 @@ private:    // required by the AbstractTask interface
 private:
     Globals& m_globals;
     Device& m_device;
-    RenderingTasks const& m_rendering_tasks;
+    RenderingTasks& m_rendering_tasks;
 
     ResourceDataUploader m_data_uploader;
     VertexBuffer m_vb;
@@ -373,10 +414,9 @@ private:
     CommittedResource m_texture;
     ConstantBufferReflection m_cb_reflection;
     ConstantBufferDataMapper m_cb_data_mapper;
+    long long m_timestamp;
     float m_box_rotation_angle;
     math::Matrix4f m_projection_transform;
-    std::shared_ptr<AbstractConstantDataProvider> m_box_rotation_angle_provider;
-    std::shared_ptr<AbstractConstantDataProvider> m_mvp_transform_provider;
 
     CommandList m_cmd_list;
 
@@ -388,6 +428,8 @@ private:
     std::array<float, 48> m_box_vertices;
     std::array<short, 36> m_box_indices;
 };
+
+
 
 
 RenderingTasks::RenderingTasks(Globals& globals)
@@ -412,13 +454,20 @@ RenderingTasks::~RenderingTasks()
 }
 
 
-void RenderingTasks::setDefaultColorAndDepthFormats(DXGI_FORMAT default_color_format, DXGI_FORMAT default_depth_format)
+void RenderingTasks::defineRenderingFormat(Viewport const& viewport,
+    DXGI_FORMAT default_color_format, DXGI_FORMAT default_depth_format)
 {
     if (m_task_sink.isRunning())
         m_task_sink.shutdown();
     while (m_task_sink.isRunning());    // wait until the task sink shuts down
 
-    m_frame_begin_task.reset(new FrameBeginTask{ *this, math::Vector4f{1.f, 0.f, 0.f, 0.f} });
+    m_default_viewports.clear();
+    m_default_viewports.push_back(viewport);
+
+    m_default_scissor_rectangles.clear();
+    m_default_scissor_rectangles.push_back(math::Rectangle{ math::Vector2f{0.f, 0.f}, viewport.width(), viewport.height() });
+
+    m_frame_begin_task.reset(new FrameBeginTask{ *this, math::Vector4f{0.f, 0.f, 0.f, 0.f} });
     m_frame_end_task.reset(new FrameEndTask{*this});
 
     if (!m_test_triangle_rendering)
@@ -453,5 +502,11 @@ void RenderingTasks::render(RenderingTarget& target,
 FrameProgressTracker const& RenderingTasks::frameProgressTracker() const
 {
     return m_frame_progress_tracker;
+}
+
+void RenderingTasks::setDefaultViewport(CommandList& command_list) const
+{
+    command_list.rasterizerStateSetScissorRectangles(m_default_scissor_rectangles);
+    command_list.rasterizerStateSetViewports(m_default_viewports);
 }
 

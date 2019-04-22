@@ -52,7 +52,7 @@ struct GraphicsPSODescriptor
     MultiSamplingFormat multi_sampling_format;    //!< multi-sampling format to be used by the pipeline
 
     //! Constructs default graphics PSO to be filled afterwards
-    GraphicsPSODescriptor() = default;
+    GraphicsPSODescriptor();
 
     //! initializes default PSO descriptor defined as follows:
     //! 1) vertex and fragment shaders must be present. The other shader stages are not included

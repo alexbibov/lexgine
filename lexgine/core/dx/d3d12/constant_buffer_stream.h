@@ -13,11 +13,11 @@ public:
 
     uint64_t totalCapacity() const;
 
-    uint64_t allocate(uint64_t size);
+    PerFrameUploadDataStreamAllocator::address_type allocate(uint64_t size);
 
-    void update(uint64_t dst_gpu_address, ConstantBufferDataMapper const& data_mapper);
+    void update(PerFrameUploadDataStreamAllocator::address_type const& destination_data_block, ConstantBufferDataMapper const& data_mapper);
 
-    void allocateAndUpdate(ConstantBufferDataMapper const& data_mapper);
+    PerFrameUploadDataStreamAllocator::address_type allocateAndUpdate(ConstantBufferDataMapper const& data_mapper);
 
 private:
     PerFrameUploadDataStreamAllocator m_allocator;

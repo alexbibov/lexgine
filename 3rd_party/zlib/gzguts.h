@@ -46,7 +46,7 @@
 #ifdef WINAPI_FAMILY
 #  define open _open
 #  define read _read
-#  define write _write
+#  define writeBoundData _write
 #  define close _close
 #endif
 
