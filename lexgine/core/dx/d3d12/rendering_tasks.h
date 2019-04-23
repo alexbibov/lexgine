@@ -9,18 +9,22 @@
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
 #include "lexgine/core/viewport.h"
-#include "lexgine/core/dx/d3d12/command_list.h"
 #include "lexgine/core/concurrency/task_sink.h"
 #include "lexgine/core/misc/static_vector.h"
+#include "lexgine/core/dx/d3d12/tasks/rendering_tasks/lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h"
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "signal.h"
 #include "constant_buffer_stream.h"
+#include "basic_rendering_services.h"
 
 namespace lexgine::core::dx::d3d12 {
 
 class RenderingTasks final : public NamedEntity<class_names::D3D12_RenderingTasks>
 {
+public:
+    class GPURenderingServices;
+
 public:
     RenderingTasks(Globals& globals);
     ~RenderingTasks();
@@ -29,44 +33,26 @@ public:
      This may be used by some rendering tasks that need to assume certain color and
      depth formats for correct initialization of their associated pipeline state objects
     */
-    void defineRenderingFormat(Viewport const& viewport,
-        DXGI_FORMAT default_color_format, DXGI_FORMAT default_depth_format);
+    void defineRenderingConfiguration(Viewport const& viewport,
+        DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format);
 
-    void render(RenderingTarget& target, 
+    void render(RenderingTarget& rendering_target, 
         std::function<void(RenderingTarget const&)> const& presentation_routine);
 
-    FrameProgressTracker const& frameProgressTracker() const;
+    BasicRenderingServices& basicRenderingServices() { return m_basic_rendering_services; }
+    FrameProgressTracker const& frameProgressTracker() { return m_frame_progress_tracker; }
 
 private:
-    void setDefaultViewport(CommandList& command_list) const;
-
-private:
-    class FrameBeginTask;
-    class FrameEndTask;
-
-    class TestRendering;    // To be removed, here for testing purposes only
-
-private:
-    Globals& m_globals;
-    DxResourceFactory& m_dx_resources;
     Device& m_device;
     FrameProgressTracker& m_frame_progress_tracker;
 
     concurrency::TaskGraph m_task_graph;
     concurrency::TaskSink m_task_sink;
 
-    ConstantBufferStream m_constant_data_stream;
-    
-    misc::StaticVector<Viewport, CommandList::c_maximal_viewport_count> m_default_viewports;
-    misc::StaticVector<math::Rectangle, CommandList::c_maximal_viewport_count> m_default_scissor_rectangles;
+    BasicRenderingServices m_basic_rendering_services;
 
-    std::unique_ptr<FrameBeginTask> m_frame_begin_task;
-    std::unique_ptr<FrameEndTask> m_frame_end_task;
-    std::unique_ptr<TestRendering> m_test_triangle_rendering;
-
-    RenderingTarget* m_current_rendering_target_ptr;
-    DXGI_FORMAT m_default_color_format;
-    DXGI_FORMAT m_default_depth_format;
+private:    // rendering tasks
+    std::unique_ptr<tasks::rendering_tasks::TestRenderingTask> m_test_rendering_task;
 };
 
 }
