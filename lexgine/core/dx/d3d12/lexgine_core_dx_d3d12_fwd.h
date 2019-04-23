@@ -70,6 +70,7 @@ class RenderTargetViewTableBuilder;
 class DepthStencilViewTableBuilder;
 
 class RenderingTasks;
+class BasicRenderingServices;
 
 class RenderingTarget;
 class SwapChainLink;

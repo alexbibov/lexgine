@@ -70,6 +70,9 @@
     <Filter Include="3rd_party\imgui">
       <UniqueIdentifier>{428131e5-4acf-41ef-87ea-b29a1889e496}</UniqueIdentifier>
     </Filter>
+    <Filter Include="core\dx\d3d12\tasks\rendering_tasks">
+      <UniqueIdentifier>{8998d6ee-8249-4683-b7c6-ee7780180351}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="osinteraction\keyboard.h">
@@ -456,6 +459,9 @@
     <ClInclude Include="core\dx\d3d12\constant_buffer_stream.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
+    <ClInclude Include="core\dx\d3d12\basic_rendering_services.h" />
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.h" />
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -725,6 +731,8 @@
     <ClCompile Include="core\dx\d3d12\constant_buffer_stream.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
+    <ClCompile Include="core\dx\d3d12\basic_rendering_services.cpp" />
+    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="core\dx\d3d12\constant_buffer_impl.inl">

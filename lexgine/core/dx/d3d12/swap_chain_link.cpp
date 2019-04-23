@@ -92,7 +92,7 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
     math::Vector2f{0, 1.f} };
 
 
-    m_linked_rendering_tasks_ptr->defineRenderingFormat(viewport, m_linked_swap_chain.descriptor().format, m_depth_buffer_native_format);
+    m_linked_rendering_tasks_ptr->defineRenderingConfiguration(viewport, m_linked_swap_chain.descriptor().format, m_depth_buffer_native_format);
 }
 
 void SwapChainLink::render()
