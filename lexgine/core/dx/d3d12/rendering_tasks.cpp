@@ -30,21 +30,20 @@ std::vector<std::ostream*> convertFileStreamsToGenericStreams(std::vector<std::o
 }
 
 RenderingTasks::RenderingTasks(Globals& globals)
-    : m_device{ *globals.get<Device>() }
+    : m_globals{ globals }
+    , m_device{ *globals.get<Device>() }
     , m_frame_progress_tracker{ globals.get<DxResourceFactory>()->retrieveFrameProgressTracker(m_device) }
     , m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" }
     , m_task_sink{ m_task_graph, convertFileStreamsToGenericStreams(globals.get<LoggingStreams>()->worker_logging_streams), "RenderingTasksSink" }
     , m_basic_rendering_services{ globals }
 {
-    m_test_rendering_task.reset(new TestRenderingTask{ globals, m_basic_rendering_services });
+    m_test_rendering_task.reset(new TestRenderingTask{ m_globals, m_basic_rendering_services });
 }
 
 RenderingTasks::~RenderingTasks()
 {
-    m_task_sink.shutdown();
     m_frame_progress_tracker.waitForFrameCompletion(m_frame_progress_tracker.lastScheduledFrameIndex());
-
-    m_test_rendering_task.release();
+    m_task_sink.shutdown();
 }
 
 
