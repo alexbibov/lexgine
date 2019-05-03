@@ -43,6 +43,7 @@ public:
     FrameProgressTracker const& frameProgressTracker() { return m_frame_progress_tracker; }
 
 private:
+    Globals& m_globals;
     Device& m_device;
     FrameProgressTracker& m_frame_progress_tracker;
 
