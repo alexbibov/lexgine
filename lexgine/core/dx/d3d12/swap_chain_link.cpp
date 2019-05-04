@@ -81,7 +81,10 @@ SwapChainLink::SwapChainLink(SwapChainLink&& other)
 
 }
 
-SwapChainLink::~SwapChainLink() = default;
+SwapChainLink::~SwapChainLink()
+{
+    if (m_linked_rendering_tasks_ptr) m_linked_rendering_tasks_ptr->flush();
+}
 
 void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 {

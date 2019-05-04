@@ -42,17 +42,13 @@ RenderingTasks::RenderingTasks(Globals& globals)
 
 RenderingTasks::~RenderingTasks()
 {
-    m_frame_progress_tracker.waitForFrameCompletion(m_frame_progress_tracker.lastScheduledFrameIndex());
-    m_task_sink.shutdown();
+    cleanup();
 }
-
 
 void RenderingTasks::defineRenderingConfiguration(Viewport const& viewport,
     DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format)
 {
-    if (m_task_sink.isRunning())
-        m_task_sink.shutdown();
-    while (m_task_sink.isRunning());    // wait until the task sink shuts down
+    cleanup();
 
     BasicRenderingServicesAttorney<RenderingTasks>
         ::defineRenderingTargetFormat(m_basic_rendering_services,
@@ -97,6 +93,17 @@ void RenderingTasks::render(RenderingTarget& rendering_target,
         FrameProgressTrackerAttorney<RenderingTasks>::signalGPUEndFrame(m_frame_progress_tracker, m_device.defaultCommandQueue());
         FrameProgressTrackerAttorney<RenderingTasks>::signalCPUEndFrame(m_frame_progress_tracker);
     }
+}
+
+void RenderingTasks::flush()
+{
+    m_frame_progress_tracker.waitForFrameCompletion(m_frame_progress_tracker.lastScheduledFrameIndex());
+}
+
+void RenderingTasks::cleanup()
+{
+    if (m_task_sink.isRunning()) m_task_sink.shutdown();
+    flush();
 }
 
 
