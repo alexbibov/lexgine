@@ -42,6 +42,11 @@ public:
     BasicRenderingServices& basicRenderingServices() { return m_basic_rendering_services; }
     FrameProgressTracker const& frameProgressTracker() { return m_frame_progress_tracker; }
 
+    void flush();    //! flushes the rendering pipeline making sure that all GPU job scheduled so far has been completed
+
+private:
+    void cleanup();    //! flushes the rendering pipeline and shutdowns the task submission sink
+
 private:
     Globals& m_globals;
     Device& m_device;
