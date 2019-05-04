@@ -155,6 +155,7 @@ class Resource : public NamedEntity<class_names::D3D12_Resource>
 {
 public:
     Resource(ComPtr<ID3D12Resource> const& native = nullptr);
+    Resource(ResourceState const& initial_state, ComPtr<ID3D12Resource> const& native = nullptr);
     virtual ~Resource() = default;
 
     ComPtr<ID3D12Resource> native() const;    //! returns encapsulated native Direct3D12 interface representing the resource
@@ -169,8 +170,11 @@ public:
 
     ResourceDescriptor const& descriptor() const;    //! returns descriptor of the resource
 
+    ResourceState const& defaultState() const { return m_resource_default_state; }
+
 protected:
     ComPtr<ID3D12Resource> m_resource;    //!< encapsulated native interface representing the resource
+    ResourceState m_resource_default_state;    //!< default state of the resource, with which it was created
     misc::Optional<ResourceDescriptor> mutable m_descriptor;    //!< resource descriptor
 };
 

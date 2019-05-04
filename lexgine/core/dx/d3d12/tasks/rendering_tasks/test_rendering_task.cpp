@@ -52,6 +52,8 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
     m_va_list = VertexAttributeSpecificationList{ position, color };
 
     {
+        // upload vertex buffer
+
         m_vb.setSegment(m_va_list, 8, 0);
         m_vb.build();
 
@@ -81,6 +83,8 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
 
 
     {
+        // upload index buffer
+
         ResourceDataUploader::DestinationDescriptor destination_descriptor;
         destination_descriptor.p_destination_resource = &m_ib.resource();
         destination_descriptor.destination_resource_state = m_ib.defaultState();
@@ -98,6 +102,25 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         ResourceDataUploader::BufferSourceDescriptor source_descriptor;
         source_descriptor.p_data = m_box_indices.data();
         source_descriptor.buffer_size = m_box_indices.size() * sizeof(short);
+
+        m_data_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
+    }
+
+    {
+        // upload texture
+        std::vector<unsigned char> texture_data((1 << 16) * 4, 0);
+        for (int i = 0; i < 256; ++i)
+            for (int j = 0; j < 256; ++j)
+                texture_data[4*(i * 256ULL + j)] = static_cast<unsigned char>(((i & j & 0x8) << 5) - 1);
+
+        ResourceDataUploader::TextureSourceDescriptor source_descriptor;
+        source_descriptor.subresources.push_back({ texture_data.data(), 256 * 4, 256 * 256 * 4 });
+
+        ResourceDataUploader::DestinationDescriptor destination_descriptor;
+        destination_descriptor.destination_resource_state = m_texture.defaultState();
+        destination_descriptor.p_destination_resource = &m_texture;
+        destination_descriptor.segment.subresources.first_subresource = 0;
+        destination_descriptor.segment.subresources.num_subresources = 1;
 
         m_data_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
     }
