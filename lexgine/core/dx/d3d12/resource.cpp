@@ -106,8 +106,14 @@ ResourceDescriptor ResourceDescriptor::CreateTexture3D(uint64_t width, uint32_t 
 
 
 
-Resource::Resource(ComPtr<ID3D12Resource> const& native/* = nullptr */) :
-    m_resource{ native }
+Resource::Resource(ComPtr<ID3D12Resource> const& native)
+    : m_resource{ native }
+{
+}
+
+Resource::Resource(ResourceState const& initial_state, ComPtr<ID3D12Resource> const& native/* = nullptr */)
+    : m_resource{ native }
+    , m_resource_default_state{ initial_state }
 {
 }
 
@@ -184,9 +190,10 @@ ResourceDescriptor const& Resource::descriptor() const
 PlacedResource::PlacedResource(Heap const& heap, uint64_t heap_offset,
     ResourceState const& initial_state,
     misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
-    ResourceDescriptor const& descriptor) :
-    m_heap{ heap },
-    m_offset{ heap_offset }
+    ResourceDescriptor const& descriptor) 
+    : Resource{ initial_state }
+    , m_heap{ heap }
+    , m_offset{ heap_offset }
 {
     m_descriptor = descriptor;
     D3D12_RESOURCE_DESC desc = descriptor.native();
@@ -264,7 +271,8 @@ CommittedResource::CommittedResource(Device const& device, ResourceState initial
     ResourceDescriptor const& descriptor, AbstractHeapType resource_memory_type,
     HeapCreationFlags resource_usage_flags,
     uint32_t node_mask/* = 0x1*/, uint32_t node_exposure_mask/* = 0x1*/)
-    : m_device{ device }
+    : Resource{ initial_state }
+    , m_device{ device }
     , m_node_mask{ node_mask }
     , m_node_exposure_mask{ node_exposure_mask }
 {
@@ -278,7 +286,8 @@ CommittedResource::CommittedResource(Device const& device, ResourceState initial
     ResourceDescriptor const& descriptor, CPUPageProperty cpu_page_property,
     GPUMemoryPool gpu_memory_pool, HeapCreationFlags resource_usage_flags,
     uint32_t node_mask/* = 0x1*/, uint32_t node_exposure_mask/* = 0x1*/)
-    : m_device{ device }
+    : Resource{ initial_state }
+    , m_device{ device }
     , m_cpu_page_property{ cpu_page_property }
     , m_gpu_memory_pool{ gpu_memory_pool }
     , m_node_mask{ node_mask }

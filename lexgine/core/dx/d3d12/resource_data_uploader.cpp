@@ -8,6 +8,7 @@
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
 
+#include "lexgine/core/math/box.h"
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
@@ -50,14 +51,15 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
         auto allocation = m_upload_buffer_allocator.allocate(task_size);
         for (uint32_t p = 0; p < num_subresources; ++p)
         {
-            char* p_dst_subresource = static_cast<char*>(allocation->cpuAddress()) + p_placed_subresource_footprints[p].Offset;
+            D3D12_PLACED_SUBRESOURCE_FOOTPRINT& footprint_desc = p_placed_subresource_footprints[p];
+            char* p_dst_subresource = static_cast<char*>(allocation->cpuAddress()) + footprint_desc.Offset;
             char* p_src_subresource = static_cast<char*>(source_descriptor.subresources[p].p_data);
 
-            size_t const dst_subresource_slice_pitch = p_subresource_num_rows[p] * p_placed_subresource_footprints[p].Footprint.RowPitch;
+            size_t const dst_subresource_slice_pitch = p_subresource_num_rows[p] * footprint_desc.Footprint.RowPitch;
             size_t const src_subresource_slice_pitch = source_descriptor.subresources[p].slice_pitch;
             size_t const src_subresource_row_pitch = source_descriptor.subresources[p].row_pitch;
 
-            for (uint32_t k = 0; k < p_placed_subresource_footprints[p].Footprint.Depth; ++k)
+            for (uint32_t k = 0; k < footprint_desc.Footprint.Depth; ++k)
             {
                 char* p_dst_subresource_slice = p_dst_subresource + dst_subresource_slice_pitch * k;
                 char* p_src_subresource_slice = p_src_subresource + src_subresource_slice_pitch * k;
@@ -69,10 +71,18 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
                     memcpy(p_dst_subresource_row, p_src_subresource_row, src_subresource_row_pitch);
                 }
             }
-        }
 
-        m_upload_command_list.copyBufferRegion(*destination_descriptor.p_destination_resource, static_cast<uint64_t>(p_placed_subresource_footprints[0].Offset),
-            m_upload_buffer_allocator.getUploadResource(), allocation->offset(), static_cast<uint64_t>(task_size));
+            TextureCopyLocation source_location{ m_upload_buffer_allocator.getUploadResource(), 
+                allocation->offset() + footprint_desc.Offset,
+                footprint_desc.Footprint.Format, footprint_desc.Footprint.Width,
+                footprint_desc.Footprint.Height, footprint_desc.Footprint.Depth,
+                footprint_desc.Footprint.RowPitch };
+
+            TextureCopyLocation destination_location{ *destination_descriptor.p_destination_resource, p };
+
+            m_upload_command_list.copyTextureRegion(destination_location, misc::makeEmptyOptional<math::Vector3u>(),
+                source_location, misc::makeEmptyOptional<math::Box>());
+        } 
     }
     endCopy(destination_descriptor);
 }

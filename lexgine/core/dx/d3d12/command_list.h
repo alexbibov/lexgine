@@ -107,8 +107,8 @@ public:
     void copyBufferRegion(Resource const& dst_buffer, uint64_t dst_buffer_offset,
         Resource const& src_buffer, uint64_t src_buffer_offset, uint64_t num_bytes);
 
-    void copyTextureRegion(TextureCopyLocation const& dst, math::Vector3u const& dst_offset, 
-        TextureCopyLocation const& src, math::Box const& src_box);
+    void copyTextureRegion(TextureCopyLocation const& dst, misc::Optional<math::Vector3u> const& dst_offset, 
+        TextureCopyLocation const& src, misc::Optional<math::Box> const& src_box);
 
     void copyResource(Resource const& dst_resource, Resource const& src_resource) const;
 

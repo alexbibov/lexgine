@@ -49,7 +49,7 @@ public:
         {
             void *p_data;    //!< pointer to the source subresource data
             size_t row_pitch;    //!< size in bytes of a single row in the subresource
-            size_t slice_pitch;    //!< size in bytes of a single slice in the subresource
+            size_t slice_pitch;    //!< size in bytes of a single data slice in the subresource
         };
 
         std::vector<Subresource> subresources;
