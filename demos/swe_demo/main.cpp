@@ -104,9 +104,18 @@ public:
         return true;
     }
 
+    bool systemKeyDown(SystemKey key) override
+    {
+        return true;
+    }
+
+    bool systemKeyUp(SystemKey key) override
+    {
+        return true;
+    }
 
 
-    bool buttonDown(MouseButton button, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
+    bool buttonDown(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
     {
         switch (button)
         {
@@ -123,7 +132,7 @@ public:
         return true;
     }
 
-    bool buttonUp(MouseButton button, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
+    bool buttonUp(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
     {
         switch (button)
         {
@@ -140,7 +149,12 @@ public:
         return true;
     }
 
-    bool wheelMove(double move_delta, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
+    bool doubleClick(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
+    {
+        return true;
+    }
+
+    bool wheelMove(double move_delta, bool is_horizontal_wheel, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
     {
         // std::cout << "mouse wheel moved, delta=" << move_delta << std::endl;
         return true;

@@ -462,6 +462,7 @@
     <ClInclude Include="core\dx\d3d12\basic_rendering_services.h" />
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h" />
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\profiler_task.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -733,6 +734,7 @@
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\basic_rendering_services.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.cpp" />
+    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\profiler_task.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="core\dx\d3d12\constant_buffer_impl.inl">

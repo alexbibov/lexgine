@@ -57,6 +57,7 @@ class SamplerDescriptor;
 
 template<typename> struct DescriptorTable;
 struct tag_CBV_SRV_UAV_Sampler;
+struct tag_Sampler;
 struct tag_RTV;
 struct tag_DSV;
 using ShaderResourceDescriptorTable = DescriptorTable<tag_CBV_SRV_UAV_Sampler>;
@@ -65,7 +66,7 @@ using DepthStencilViewDescriptorTable = DescriptorTable<tag_DSV>;
 
 
 class ResourceViewDescriptorTableBuilder;
-class SamplerTableBuilder;
+class SamplerDescriptorTableBuilder;
 class RenderTargetViewTableBuilder;
 class DepthStencilViewTableBuilder;
 

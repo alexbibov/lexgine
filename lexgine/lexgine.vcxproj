@@ -203,6 +203,7 @@
     <ClCompile Include="core\dx\d3d12\tasks\data_uploading_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\hlsl_compilation_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\pso_compilation_task.cpp" />
+    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\profiler_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\root_signature_compilation_task.cpp" />
     <ClCompile Include="core\dx\d3d12\task_caches\cache_utilities.cpp" />
@@ -312,6 +313,7 @@
     <ClInclude Include="core\dx\d3d12\tasks\lexgine_core_dx_d3d12_tasks_fwd.h" />
     <ClInclude Include="core\dx\d3d12\tasks\pso_compilation_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h" />
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\profiler_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\root_signature_compilation_task.h" />
     <ClInclude Include="core\dx\d3d12\task_caches\cache_utilities.h" />

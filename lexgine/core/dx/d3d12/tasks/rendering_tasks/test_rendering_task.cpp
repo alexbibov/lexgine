@@ -48,8 +48,10 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         std::make_shared<VertexAttributeSpecification<float, 3>>(0, 0, "POSITION", 0, 0));
     std::shared_ptr<AbstractVertexAttributeSpecification> color = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
         std::make_shared<VertexAttributeSpecification<float, 3>>(0, 12, "COLOR", 0, 0));
+    std::shared_ptr<AbstractVertexAttributeSpecification> texture_coordinate = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
+        std::make_shared<VertexAttributeSpecification<float, 2>>(0, 24, "TEXCOORD", 0, 0));
 
-    m_va_list = VertexAttributeSpecificationList{ position, color };
+    m_va_list = VertexAttributeSpecificationList{ position, color, texture_coordinate };
 
     {
         // upload vertex buffer
@@ -62,16 +64,16 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         destination_descriptor.destination_resource_state = ResourceState::enum_type::vertex_and_constant_buffer;
         destination_descriptor.segment.base_offset = 0U;
 
-        m_box_vertices = std::array<float, 48>{
-            -1.f, -1.f, -1.f, 1.f, 0.f, 0.f,
-                1.f, -1.f, -1.f, 0.f, 1.f, 0.f,
-                1.f, 1.f, -1.f, 0.f, 0.f, 1.f,
-                -1.f, 1.f, -1.f, .5f, .5f, .5f,
+        m_box_vertices = std::array<float, 64>{
+            -1.f, -1.f, -1.f, 1.f, 0.f, 0.f, 0.f, 0.f,
+                1.f, -1.f, -1.f, 0.f, 1.f, 0.f, 1.f, 0.f,
+                1.f, 1.f, -1.f, 0.f, 0.f, 1.f, 1.f, 1.f,
+                -1.f, 1.f, -1.f, .5f, .5f, .5f, 0.f, 1.f,
 
-                -1.f, -1.f, 1.f, .5f, .5f, .5f,
-                1.f, -1.f, 1.f, 0.f, 0.f, 1.f,
-                1.f, 1.f, 1.f, 0.f, 1.f, 0.f,
-                -1.f, 1.f, 1.f, 1.f, 0.f, 0.f,
+                -1.f, -1.f, 1.f, .5f, .5f, .5f, 1.f, 1.f,
+                1.f, -1.f, 1.f, 0.f, 0.f, 1.f, 0.f, 1.f,
+                1.f, 1.f, 1.f, 0.f, 1.f, 0.f, 0.f, 0.f,
+                -1.f, 1.f, 1.f, 1.f, 0.f, 0.f, 1.f, 0.f
         };
 
         ResourceDataUploader::BufferSourceDescriptor source_descriptor;
@@ -111,7 +113,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         std::vector<unsigned char> texture_data((1 << 16) * 4, 0);
         for (int i = 0; i < 256; ++i)
             for (int j = 0; j < 256; ++j)
-                texture_data[4*(i * 256ULL + j)] = static_cast<unsigned char>(((i & j & 0x8) << 5) - 1);
+                texture_data[4 * (i * 256ULL + j)] = static_cast<unsigned char>(((i & j & 0x8) >> 3) * 255);
 
         ResourceDataUploader::TextureSourceDescriptor source_descriptor;
         source_descriptor.subresources.push_back({ texture_data.data(), 256 * 4, 256 * 256 * 4 });
@@ -128,7 +130,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
     m_data_uploader.upload();
     m_data_uploader.waitUntilUploadIsFinished();
 
-    // Create root signature
+    // Create root signature and the related descriptor tables
     {
         RootSignatureCompilationTaskCache& rs_compilation_task_cache = *globals.get<RootSignatureCompilationTaskCache>();
         RootSignature rs{};
@@ -149,6 +151,21 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
 
         m_rs = rs_compilation_task_cache.findOrCreateTask(globals, std::move(rs), rs_flags, "test_rendering_rs", 0);
         m_rs->execute(0);
+
+        {
+            ResourceViewDescriptorTableBuilder builder{ globals, 0 };
+            builder.addDescriptor(SRVDescriptor{ m_texture, SRVTextureInfo{} });
+            m_srv_table = builder.build();
+        }
+
+        {
+            FilterPack filter_pack{ MinificationFilter::linear, MagnificationFilter::linear, 16,
+                WrapMode::clamp, WrapMode::clamp, WrapMode::clamp };
+
+            SamplerDescriptorTableBuilder builder{ globals, 0 };
+            builder.addDescriptor(SamplerDescriptor{ filter_pack, math::Vector4f{0.f} });
+            m_sampler_table = builder.build();
+        }
     }
 
 
@@ -162,14 +179,23 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
             "};\n"
             "\n"
             "ConstantBuffer<ConstantDataStruct> ConstantData : register(b0);\n"
+            "Texture2D<float4> SampleTexture : register(t0);\n"
+            "SamplerState BillinearSampler : register(s0);\n"
             "\n"
-            "struct VSOutput\n"
+            "struct SOutput\n"
             "{\n"
-            "    float4 transformed_position: SV_Position;\n"
+            "    float4 transformed_position: SV_POSITION;\n"
             "    float3 color: COLOR;\n"
+            "    float2 texcoord: TEXCOORD;\n"
+            "};\n"
+            "struct SInput\n"
+            "{\n"
+            "    float3 position: POSITION;\n"
+            "    float3 color: COLOR;\n"
+            "    float2 texcoord: TEXCOORD;\n"
             "};\n"
             "\n"
-            "VSOutput VSMain(float3 position: POSITION, float3 color: COLOR)\n"
+            "SOutput VSMain(SInput s_input)\n"
             "{\n"
             "    float4x4 view = float4x4(1.f, 0.f, 0.f, 0.f, \n"
             "                             0.f, 1.f, 0.f, 0.f, \n"
@@ -180,16 +206,19 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
             "                              -sin(ConstantData.rotationAngle), 0.f, cos(ConstantData.rotationAngle), 0.f, \n"
             "                              0.f, 0.f, 0.f, 1.f);\n"
             "    float4x4 mvp = mul(ConstantData.ProjectionMatrix, mul(view, model));\n"
-            "    VSOutput vs_output;\n"
-            "    vs_output.transformed_position = mul(mvp, float4(position, 1.f));\n"
-            "    vs_output.color = color;\n"
-            "    return vs_output;\n"
+            "    SOutput s_output;\n"
+            "    s_output.transformed_position = mul(mvp, float4(s_input.position, 1.f));\n"
+            "    s_output.color = s_input.color;\n"
+            "    s_output.texcoord = s_input.texcoord;\n"
+            "    return s_output;\n"
             "}\n"
             "\n"
             "\n"
-            "float4 PSMain(VSOutput vs_output): SV_Target0\n"
+            "float4 PSMain(SOutput s_output): SV_Target0\n"
             "{\n"
-            "    return float4(vs_output.color, 1.f);\n"
+            "    float3 color = s_output.color + SampleTexture.Sample(BillinearSampler, s_output.texcoord).r;\n"
+            "    color = 1.f - exp(-color);\n"
+            "    return float4(color, 1.f);\n"
             "}\n"
             "\n";
 
@@ -270,6 +299,8 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
 
     auto allocation =
         m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_cb_data_mapping);
+    m_cmd_list.setRootDescriptorTable(0, m_srv_table);
+    m_cmd_list.setRootDescriptorTable(1, m_sampler_table);
     m_cmd_list.setRootConstantBufferView(2, allocation->virtualGpuAddress());
 
     m_cmd_list.drawIndexedInstanced(36, 1, 0, 0, 0);

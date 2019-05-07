@@ -1,11 +1,17 @@
 #ifndef LEXGINE_CORE_DX_D3D12_DESCRIPTOR_TABLE_BUILDERS_H
 #define LEXGINE_CORE_DX_D3D12_DESCRIPTOR_TABLE_BUILDERS_H
 
-#include "lexgine/core/lexgine_core_fwd.h"
-#include "lexgine_core_dx_d3d12_fwd.h"
-
 #include <cstdint>
 #include <vector>
+
+#include "lexgine/core/lexgine_core_fwd.h"
+#include "lexgine_core_dx_d3d12_fwd.h"
+#include "lexgine/core/dx/d3d12/srv_descriptor.h"
+#include "lexgine/core/dx/d3d12/uav_descriptor.h"
+#include "lexgine/core/dx/d3d12/cbv_descriptor.h"
+#include "lexgine/core/dx/d3d12/sampler_descriptor.h"
+#include "lexgine/core/dx/d3d12/rtv_descriptor.h"
+#include "lexgine/core/dx/d3d12/dsv_descriptor.h"
 
 namespace lexgine::core::dx::d3d12 {
 
@@ -63,10 +69,10 @@ private:
 
 
 
-class SamplerTableBuilder final
+class SamplerDescriptorTableBuilder final
 {
 public:
-    SamplerTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page);
+    SamplerDescriptorTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page);
 
     void addDescriptor(SamplerDescriptor const& descriptor);
 
