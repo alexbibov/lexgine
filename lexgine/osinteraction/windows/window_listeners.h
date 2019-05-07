@@ -13,10 +13,10 @@
 
 #include "window.h"
 
-namespace lexgine {namespace osinteraction {namespace windows {
+namespace lexgine::osinteraction::windows {
 
 //! Listener implementing handling of the basic key hits
-class KeyInputListener : public ConcreteListener<WM_KEYDOWN, WM_KEYUP, WM_CHAR>
+class KeyInputListener : public ConcreteListener<WM_KEYDOWN, WM_KEYUP, WM_CHAR, WM_SYSKEYDOWN, WM_SYSKEYUP>
 {
 public:
     virtual bool keyDown(SystemKey key) = 0;    //! called when a system key is pressed; must be implemented by derived classes. The function should return 'true' on success
@@ -24,6 +24,10 @@ public:
     virtual bool keyUp(SystemKey key) = 0;    //! called when a system key is released; must be implemented by derived classes. The function should return 'true' on success
 
     virtual bool character(wchar_t char_key) = 0;    //! called when a character key is pressed; must be implemented by derived classes. The function should return 'true' on success
+
+    virtual bool systemKeyDown(SystemKey key) = 0;    //! called when the user presses F10 to activate menu or holds down the alt key and then presses one of the system keys.
+
+    virtual bool systemKeyUp(SystemKey key) = 0;    //! called after the user releases a key that was pressed while the alt key was held
 
 protected:
     int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
@@ -41,7 +45,9 @@ enum class tagControlKey
     left_mouse_button = 2,
     middle_mouse_button = 4,
     right_mouse_button = 8,
-    shift = 16
+    shift = 0x10,
+    xbutton1 = 0x20,
+    xbutton2 = 0x40
 };
 }
 
@@ -49,7 +55,16 @@ enum class tagControlKey
 using ControlKeyFlag = core::misc::Flags<__tag::tagControlKey>;
 
 //! Listener implementing handling of the basic mouse button actions that are present on the most mouse models
-class MouseButtonListener : public ConcreteListener<WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_MOUSEWHEEL>
+class MouseButtonListener : public ConcreteListener<
+    WM_LBUTTONDOWN, WM_LBUTTONUP, 
+    WM_MBUTTONDOWN, WM_MBUTTONUP, 
+    WM_RBUTTONDOWN, WM_RBUTTONUP, 
+    WM_XBUTTONDOWN, WM_XBUTTONUP,
+
+    WM_LBUTTONDBLCLK, WM_RBUTTONDBLCLK, WM_XBUTTONDBLCLK,
+
+    WM_MOUSEWHEEL, WM_MOUSEHWHEEL
+>
 {
 public:
     //! Enumerates basic three mouse buttons
@@ -57,12 +72,21 @@ public:
     {
         left,
         middle,
-        right
+        right,
+        x
     };
 
-    virtual bool buttonDown(MouseButton button, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;    //! called when one of the mouse buttons is pressed. The function should return 'true' on success
-    virtual bool buttonUp(MouseButton button, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;    //! called when one of the mouse buttons is released. The function should return 'true' on success
-    virtual bool wheelMove(double move_delta, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;    //! called when mouse wheel is moved. The function should return 'true' on success
+    //! called when one of the mouse buttons is pressed. The function should return 'true' on success
+    virtual bool buttonDown(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;    
+    
+    //! called when one of the mouse buttons is released. The function should return 'true' on success
+    virtual bool buttonUp(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
+
+    //! called when one of the mouse buttons is double-clicked. The function shoudl return 'true' on success
+    virtual bool doubleClick(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
+
+    //! called when mouse wheel is moved. The function should return 'true' on success
+    virtual bool wheelMove(double move_delta, bool is_horizontal_wheel, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;    
 
 protected:
     int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
@@ -127,6 +151,6 @@ protected:
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
-}}}
+}
 
 #endif

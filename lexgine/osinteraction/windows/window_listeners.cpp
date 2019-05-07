@@ -1,5 +1,6 @@
 #include "window_listeners.h"
 
+using namespace lexgine::osinteraction;
 using namespace lexgine::osinteraction::windows;
 
 namespace
@@ -11,17 +12,139 @@ bool keyDownKeyUpSelector(KeyInputListener& key_input_listener, lexgine::osinter
 }
 
 
-ControlKeyFlag transformControlFlag(WPARAM wParamValue)
+ControlKeyFlag transformControlFlag(WPARAM wParam)
 {
     ControlKeyFlag rv{ 0 };
 
-    if ((wParamValue & MK_CONTROL) == MK_CONTROL) rv.set(ControlKeyFlag::enum_type::ctrl);
-    if ((wParamValue & MK_LBUTTON) == MK_LBUTTON) rv.set(ControlKeyFlag::enum_type::left_mouse_button);
-    if ((wParamValue & MK_MBUTTON) == MK_MBUTTON) rv.set(ControlKeyFlag::enum_type::middle_mouse_button);
-    if ((wParamValue & MK_RBUTTON) == MK_RBUTTON) rv.set(ControlKeyFlag::enum_type::right_mouse_button);
-    if ((wParamValue & MK_SHIFT) == MK_SHIFT) rv.set(ControlKeyFlag::enum_type::shift);
+    if ((wParam & MK_CONTROL) == MK_CONTROL) rv.set(ControlKeyFlag::enum_type::ctrl);
+    if ((wParam & MK_LBUTTON) == MK_LBUTTON) rv.set(ControlKeyFlag::enum_type::left_mouse_button);
+    if ((wParam & MK_MBUTTON) == MK_MBUTTON) rv.set(ControlKeyFlag::enum_type::middle_mouse_button);
+    if ((wParam & MK_RBUTTON) == MK_RBUTTON) rv.set(ControlKeyFlag::enum_type::right_mouse_button);
+    if ((wParam & MK_SHIFT) == MK_SHIFT) rv.set(ControlKeyFlag::enum_type::shift);
+    if ((wParam & MK_XBUTTON1) == MK_XBUTTON1) rv.set(ControlKeyFlag::enum_type::xbutton1);
+    if ((wParam & MK_XBUTTON2) == MK_XBUTTON2) rv.set(ControlKeyFlag::enum_type::xbutton2);
 
     return rv;
+}
+
+SystemKey transformSystemKey(uint64_t wParam, uint64_t lParam)
+{
+    bool isExtendedKey = (0x1000000 & lParam) != 0;
+
+    switch (wParam)
+    {
+    case VK_TAB:        return SystemKey::tab;
+    case VK_CAPITAL:    return SystemKey::caps;
+    case VK_LSHIFT:     return SystemKey::lshift;
+    case VK_LCONTROL:   return SystemKey::lctrl;
+    case VK_MENU:       return isExtendedKey ? SystemKey::ralt : SystemKey::lalt;
+    case VK_BACK:       return SystemKey::backspace;
+    case VK_RETURN:     return SystemKey::enter;
+    case VK_RSHIFT:     return SystemKey::rshift;
+    case VK_RCONTROL:   return SystemKey::rctrl;
+    case VK_ESCAPE:     return SystemKey::esc;
+
+    case VK_F1:
+    case VK_F2:
+    case VK_F3:
+    case VK_F4:
+    case VK_F5:
+    case VK_F6:
+    case VK_F7:
+    case VK_F8:
+    case VK_F9:
+    case VK_F10:
+    case VK_F11:
+    case VK_F12:
+        return static_cast<SystemKey>(static_cast<int>(SystemKey::f1) + wParam - VK_F1);
+
+    case VK_SNAPSHOT:   return SystemKey::print_screen;
+    case VK_SCROLL:     return SystemKey::scroll_lock;
+    case VK_NUMLOCK:    return SystemKey::num_lock;
+    case VK_PAUSE:      return SystemKey::pause;
+    case VK_INSERT:     return SystemKey::insert;
+    case VK_HOME:       return SystemKey::home;
+    case VK_PRIOR:      return SystemKey::page_up;
+    case VK_DELETE:     return SystemKey::_delete;
+    case VK_END:        return SystemKey::end;
+    case VK_NEXT:       return SystemKey::page_down;
+    case VK_LEFT:       return SystemKey::arrow_left;
+    case VK_RIGHT:      return SystemKey::arrow_right;
+    case VK_DOWN:       return SystemKey::arrow_down;
+    case VK_UP:         return SystemKey::arrow_up;
+    case VK_SPACE:      return SystemKey::space;
+
+    case VK_NUMPAD0:
+    case VK_NUMPAD1:
+    case VK_NUMPAD2:
+    case VK_NUMPAD3:
+    case VK_NUMPAD4:
+    case VK_NUMPAD5:
+    case VK_NUMPAD6:
+    case VK_NUMPAD7:
+    case VK_NUMPAD8:
+    case VK_NUMPAD9:
+        return static_cast<SystemKey>(static_cast<int>(SystemKey::num_0) + wParam - VK_NUMPAD0);
+
+    case VK_MULTIPLY:   return SystemKey::multiply;
+    case VK_DIVIDE:     return SystemKey::divide;
+    case VK_ADD:        return SystemKey::add;
+    case VK_SUBTRACT:   return SystemKey::subtract;
+    case VK_DECIMAL:    return SystemKey::decimal;
+
+
+        // keys from 0 to 9
+    case 0x30:
+    case 0x31:
+    case 0x32:
+    case 0x33:
+    case 0x34:
+    case 0x35:
+    case 0x36:
+    case 0x37:
+    case 0x38:
+    case 0x39:
+        return static_cast<SystemKey>(static_cast<int>(SystemKey::_0) + wParam - 0x30);
+
+
+        // keys from A to Z (case insensitive)
+    case 0x41:
+    case 0x42:
+    case 0x43:
+    case 0x44:
+    case 0x45:
+    case 0x46:
+    case 0x47:
+    case 0x48:
+    case 0x49:
+    case 0x4A:
+    case 0x4B:
+    case 0x4C:
+    case 0x4D:
+    case 0x4E:
+    case 0x4F:
+    case 0x50:
+    case 0x51:
+    case 0x52:
+    case 0x53:
+    case 0x54:
+    case 0x55:
+    case 0x56:
+    case 0x57:
+    case 0x58:
+    case 0x59:
+    case 0x5A:
+        return static_cast<SystemKey>(static_cast<int>(SystemKey::A) + wParam - 0x41);
+
+    case VK_LBUTTON: return SystemKey::mouse_left_button;
+    case VK_RBUTTON: return SystemKey::mouse_right_button;
+    case VK_MBUTTON: return SystemKey::mouse_middle_button;
+    case VK_XBUTTON1: return SystemKey::mouse_x_button_1;
+    case VK_XBUTTON2: return SystemKey::mouse_x_button_2;
+
+    default:
+        return SystemKey::unknown;
+    }
 }
 
 
@@ -36,219 +159,17 @@ template<> struct pointer_sized_int<8> { using type = uint64_t; };
 int64_t KeyInputListener::process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
     uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
-    bool isKeyDown = false;
+    bool is_key_down = false;
     bool success = false;    // 'true' if the message processing succeeds
 
     switch (message)
     {
     case WM_KEYDOWN:
-        isKeyDown = true;
+        is_key_down = true;
 
     case WM_KEYUP:
-    {
-        bool isExtendedKey = (0x1000000 & lParam) == 0x1000000;
-
-        switch (wParam)
-        {
-        case VK_TAB:
-            success = keyDownKeyUpSelector(*this, SystemKey::tab, isKeyDown);
-            break;
-
-        case VK_CAPITAL:
-            success = keyDownKeyUpSelector(*this, SystemKey::caps, isKeyDown);
-            break;
-
-        case VK_LSHIFT:
-            success = keyDownKeyUpSelector(*this, SystemKey::lshift, isKeyDown);
-            break;
-
-        case VK_LCONTROL:
-            success = keyDownKeyUpSelector(*this, SystemKey::lctrl, isKeyDown);
-            break;
-
-        case VK_MENU:
-            success = keyDownKeyUpSelector(*this, isExtendedKey ? SystemKey::ralt : SystemKey::lalt, isKeyDown);
-            break;
-
-        case VK_BACK:
-            success = keyDownKeyUpSelector(*this, SystemKey::backspace, isKeyDown);
-            break;
-
-        case VK_RETURN:
-            success = keyDownKeyUpSelector(*this, SystemKey::enter, isKeyDown);
-            break;
-
-        case VK_RSHIFT:
-            success = keyDownKeyUpSelector(*this, SystemKey::rshift, isKeyDown);
-            break;
-
-        case VK_RCONTROL:
-            success = keyDownKeyUpSelector(*this, SystemKey::rctrl, isKeyDown);
-            break;
-
-        case VK_ESCAPE:
-            success = keyDownKeyUpSelector(*this, SystemKey::esc, isKeyDown);
-            break;
-
-        case VK_F1:
-        case VK_F2:
-        case VK_F3:
-        case VK_F4:
-        case VK_F5:
-        case VK_F6:
-        case VK_F7:
-        case VK_F8:
-        case VK_F9:
-        case VK_F10:
-        case VK_F11:
-        case VK_F12:
-            success = keyDownKeyUpSelector(*this, static_cast<SystemKey>(static_cast<int>(SystemKey::f1) + wParam - VK_F1), isKeyDown);
-            break;
-
-        case VK_SNAPSHOT:
-            success = keyDownKeyUpSelector(*this, SystemKey::print_screen, isKeyDown);
-            break;
-
-        case VK_SCROLL:
-            success = keyDownKeyUpSelector(*this, SystemKey::scroll_lock, isKeyDown);
-            break;
-
-        case VK_NUMLOCK:
-            success = keyDownKeyUpSelector(*this, SystemKey::num_lock, isKeyDown);
-            break;
-
-        case VK_PAUSE:
-            success = keyDownKeyUpSelector(*this, SystemKey::pause, isKeyDown);
-            break;
-
-        case VK_INSERT:
-            success = keyDownKeyUpSelector(*this, SystemKey::insert, isKeyDown);
-            break;
-
-        case VK_HOME:
-            success = keyDownKeyUpSelector(*this, SystemKey::home, isKeyDown);
-            break;
-
-        case VK_PRIOR:
-            success = keyDownKeyUpSelector(*this, SystemKey::page_up, isKeyDown);
-            break;
-
-        case VK_DELETE:
-            success = keyDownKeyUpSelector(*this, SystemKey::_delete, isKeyDown);
-            break;
-
-        case VK_END:
-            success = keyDownKeyUpSelector(*this, SystemKey::end, isKeyDown);
-            break;
-
-        case VK_NEXT:
-            success = keyDownKeyUpSelector(*this, SystemKey::page_down, isKeyDown);
-            break;
-
-        case VK_LEFT:
-            success = keyDownKeyUpSelector(*this, SystemKey::arrow_left, isKeyDown);
-            break;
-
-        case VK_RIGHT:
-            success = keyDownKeyUpSelector(*this, SystemKey::arrow_right, isKeyDown);
-            break;
-
-        case VK_DOWN:
-            success = keyDownKeyUpSelector(*this, SystemKey::arrow_down, isKeyDown);
-            break;
-
-        case VK_UP:
-            success = keyDownKeyUpSelector(*this, SystemKey::arrow_up, isKeyDown);
-            break;
-
-        case VK_SPACE:
-            success = keyDownKeyUpSelector(*this, SystemKey::space, isKeyDown);
-            break;
-
-        case VK_NUMPAD0:
-        case VK_NUMPAD1:
-        case VK_NUMPAD2:
-        case VK_NUMPAD3:
-        case VK_NUMPAD4:
-        case VK_NUMPAD5:
-        case VK_NUMPAD6:
-        case VK_NUMPAD7:
-        case VK_NUMPAD8:
-        case VK_NUMPAD9:
-            success = keyDownKeyUpSelector(*this, static_cast<SystemKey>(static_cast<int>(SystemKey::num_0) + wParam - VK_NUMPAD0), isKeyDown);
-            break;
-
-        case VK_MULTIPLY:
-            success = keyDownKeyUpSelector(*this, SystemKey::multiply, isKeyDown);
-            break;
-
-        case VK_DIVIDE:
-            success = keyDownKeyUpSelector(*this, SystemKey::divide, isKeyDown);
-            break;
-
-        case VK_ADD:
-            success = keyDownKeyUpSelector(*this, SystemKey::add, isKeyDown);
-            break;
-
-        case VK_SUBTRACT:
-            success = keyDownKeyUpSelector(*this, SystemKey::subtract, isKeyDown);
-            break;
-
-        case VK_DECIMAL:
-            success = keyDownKeyUpSelector(*this, SystemKey::decimal, isKeyDown);
-            break;
-
-        // keys from 0 to 9
-        case 0x30:
-        case 0x31:
-        case 0x32:
-        case 0x33:
-        case 0x34:
-        case 0x35:
-        case 0x36:
-        case 0x37:
-        case 0x38:
-        case 0x39:
-            success = keyDownKeyUpSelector(*this, static_cast<SystemKey>(static_cast<int>(SystemKey::_0) + wParam - 0x30), isKeyDown);
-            break;
-
-        // keys from A to Z (case insensitive)
-        case 0x41:
-        case 0x42:
-        case 0x43:
-        case 0x44:
-        case 0x45:
-        case 0x46:
-        case 0x47:
-        case 0x48:
-        case 0x49:
-        case 0x4A:
-        case 0x4B:
-        case 0x4C:
-        case 0x4D:
-        case 0x4E:
-        case 0x4F:
-        case 0x50:
-        case 0x51:
-        case 0x52:
-        case 0x53:
-        case 0x54:
-        case 0x55:
-        case 0x56:
-        case 0x57:
-        case 0x58:
-        case 0x59:
-        case 0x5A:
-            success = keyDownKeyUpSelector(*this, static_cast<SystemKey>(static_cast<int>(SystemKey::A) + wParam - 0x41), isKeyDown);
-            break;
-
-        default:
-            break;
-        }
-
+        success = keyDownKeyUpSelector(*this, transformSystemKey(wParam, lParam), is_key_down);
         break;
-    }
-
 
     case WM_CHAR:
     {
@@ -256,6 +177,16 @@ int64_t KeyInputListener::process_message(uint64_t message, uint64_t p_window, u
         break;
     }
 
+    case WM_SYSKEYDOWN:
+        success = systemKeyDown(transformSystemKey(wParam, lParam));
+        break;
+
+    case WM_SYSKEYUP:
+        success = systemKeyUp(transformSystemKey(wParam, lParam));
+        break;
+
+    default:
+        __assume(0);
     }
 
     return success ? 0 : -1;
@@ -266,39 +197,79 @@ int64_t KeyInputListener::process_message(uint64_t message, uint64_t p_window, u
 int64_t MouseButtonListener::process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
     uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
-    uint16_t x = lParam & 0xFFFF;
-    uint16_t y = (lParam & 0xFFFF0000) >> 16;
+    uint16_t x = static_cast<uint16_t>(lParam & 0xFFFF);
+    uint16_t y = static_cast<uint16_t>(lParam >> 16);
     ControlKeyFlag control_key_flag = transformControlFlag(static_cast<WPARAM>(wParam));
 
     MouseButton button;
-    bool isButtonPressed = false;
+    bool is_button_pressed = false;
+    bool is_button_double_clicked = false;
+    bool is_horizontal_wheel_moved = false;
+    uint16_t x_button_id = 0xFF;
 
     switch (message)
     {
     case WM_LBUTTONDOWN:
-        isButtonPressed = true;
+        is_button_pressed = true;
 
     case WM_LBUTTONUP:
         button = MouseButton::left;
         break;
 
     case WM_MBUTTONDOWN:
-        isButtonPressed = true;
+        is_button_pressed = true;
     case WM_MBUTTONUP:
         button = MouseButton::middle;
         break;
 
     case WM_RBUTTONDOWN:
-        isButtonPressed = true;
+        is_button_pressed = true;
     case WM_RBUTTONUP:
         button = MouseButton::right;
         break;
 
+    case WM_XBUTTONDOWN:
+        is_button_pressed = true;
+    case WM_XBUTTONUP:
+        button = MouseButton::x;
+        x_button_id = static_cast<uint16_t>(wParam >> 16);
+        break;
+
+    case WM_LBUTTONDBLCLK:
+        is_button_double_clicked = true;
+        button = MouseButton::left;
+        break;
+
+    case WM_RBUTTONDBLCLK:
+        is_button_double_clicked = true;
+        button = MouseButton::right;
+        break;
+
+    case WM_XBUTTONDBLCLK:
+        is_button_double_clicked = true;
+        button = MouseButton::x;
+        x_button_id = static_cast<uint16_t>(wParam >> 16);
+        break;
+
+    case WM_MOUSEHWHEEL:
+        is_horizontal_wheel_moved = true;
     case WM_MOUSEWHEEL:
-        return wheelMove(static_cast<double>((wParam & 0xFFFF0000) >> 16) * WHEEL_DELTA, control_key_flag, x, y) ? 0 : -1;
+        return wheelMove(static_cast<double>(wParam >> 16) / WHEEL_DELTA, is_horizontal_wheel_moved, control_key_flag, x, y) ? 0 : -1;
+
+    default:
+        __assume(0);
     }
 
-    return (isButtonPressed ? buttonDown(button, control_key_flag, x, y) : buttonUp(button, control_key_flag, x, y)) ? 0 : -1;
+    if (is_button_double_clicked)
+    {
+        return doubleClick(button, x_button_id, control_key_flag, x, y) ? 0 : -1;
+    }
+    else
+    {
+        return (is_button_pressed 
+            ? buttonDown(button, x_button_id, control_key_flag, x, y) 
+            : buttonUp(button, x_button_id, control_key_flag, x, y)) ? 0 : -1;
+    }
 }
 
 

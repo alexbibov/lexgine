@@ -9,6 +9,8 @@
 #include "lexgine/core/dx/d3d12/resource_data_uploader.h"
 #include "lexgine/core/dx/d3d12/vertex_buffer.h"
 #include "lexgine/core/dx/d3d12/constant_buffer_data_mapper.h"
+#include "lexgine/core/dx/d3d12/descriptor_table_builders.h"
+
 
 namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
 
@@ -47,8 +49,11 @@ private:
     HLSLCompilationTask* m_ps = nullptr;
     GraphicsPSOCompilationTask* m_pso = nullptr;
 
-    std::array<float, 48> m_box_vertices;
+    std::array<float, 64> m_box_vertices;
     std::array<short, 36> m_box_indices;
+
+    ShaderResourceDescriptorTable m_srv_table;
+    ShaderResourceDescriptorTable m_sampler_table;
 };
 
 }

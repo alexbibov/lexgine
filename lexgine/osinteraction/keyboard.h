@@ -1,6 +1,7 @@
 #ifndef LEXGINE_OSINTERACTION_KEYBOARD_H
+#define LEXGINE_OSINTERACTION_KEYBOARD_H
 
-namespace lexgine { namespace osinteraction {
+namespace lexgine::osinteraction {
 
 //! Keyboard keys recognized by the engine
 enum class SystemKey
@@ -34,12 +35,15 @@ enum class SystemKey
     multiply, divide, add, subtract, decimal,
 
     _0, _1, _2, _3, _4, _5, _6, _7, _8, _9,
-    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+
+    mouse_left_button, mouse_right_button, mouse_middle_button,
+    mouse_x_button_1, mouse_x_button_2,
+
+    unknown
 };
 
 
-}}
+}
 
-
-#define LEXGINE_OSINTERACTION_KEYBOARD_H
 #endif
