@@ -187,7 +187,7 @@ public:
     RootSignature& addParameter(uint32_t slot, RootEntryDescriptorTable const& root_entry_descriptor_table_declaration, ShaderVisibility shader_visibility = ShaderVisibility::all);
 
     //! adds new static sampler into the root signature
-    RootSignature& addParameter(uint32_t slot, RootStaticSampler const& root_static_sampler_declaration, ShaderVisibility shader_visibility = ShaderVisibility::all);
+    RootSignature& addStaticSampler(RootStaticSampler const& root_static_sampler_declaration, ShaderVisibility shader_visibility = ShaderVisibility::all);
 
 private:
     std::unordered_map<uint32_t, D3D12_ROOT_PARAMETER> m_root_parameters;    //!< root signature parameters packed into a map with the key defining slot in the root signature

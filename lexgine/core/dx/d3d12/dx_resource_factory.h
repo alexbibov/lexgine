@@ -1,17 +1,22 @@
 #ifndef LEXGINE_CORE_DX_D3D12_DX_RESOURCE_FACTORY_H
 #define LEXGINE_CORE_DX_D3D12_DX_RESOURCE_FACTORY_H
 
+#include <vector>
+#include <unordered_map>
+#include <array>
+
 #include "lexgine/core/global_settings.h"
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
 #include "lexgine/core/dx/dxcompilation/dx_compiler_proxy.h"
 
-
-#include <vector>
-#include <map>
-#include <array>
-
 namespace lexgine::core::dx::d3d12 {
+
+struct UploadHeapPartition
+{
+    size_t offset;
+    size_t size;
+};
 
 //! Used to create and encapsulate reused Direct3D resources
 class DxResourceFactory final
@@ -33,17 +38,38 @@ public:
 
     dxgi::HwAdapter const* retrieveHwAdapterOwningDevicePtr(Device const& device) const;
 
+    /*! Attempts to allocate a new named section in the given upload heap.
+     Returns details of the new allocation in case of success or an empty misc::Optional<T>
+     container if a section with the desired name already existed in the upload heap.
+    */
+    misc::Optional<UploadHeapPartition> allocateSectionInUploadHeap(Heap const& upload_heap, std::string const& section_name, size_t section_size);
+
+    /*! Attempts to retrieve a named section from the given upload heap.
+     Returns the allocation details of the named section in case of success or an empty
+     misc::Optional<T> container if the section with the required name is not found within
+     the partitioning of the given upload heap.
+    */
+    misc::Optional<UploadHeapPartition> retrieveUploadHeapSection(Heap const& upload_heap, std::string const& section_name) const;
+
 private:
     using descriptor_heap_page_pool = std::array<std::vector<std::unique_ptr<DescriptorHeap>>, 4U>;
+    
+    struct upload_heap_partitioning
+    {
+        size_t partitioned_space_size = 0ULL;
+        std::unordered_map<misc::HashedString, UploadHeapPartition> partitioning;
+    };
 
 private:
     GlobalSettings const& m_global_settings;
     dx::d3d12::DebugInterface const* m_debug_interface;
     dxgi::HwAdapterEnumerator m_hw_adapter_enumerator;
     dxcompilation::DXCompilerProxy m_dxc_proxy;
-    std::map<Device const*, descriptor_heap_page_pool> m_descriptor_heaps;
-    std::map<Device const*, Heap> m_upload_heaps;
-    std::map<Device const*, FrameProgressTracker> m_frame_progress_trackers;
+    
+    std::unordered_map<Device const*, descriptor_heap_page_pool> m_descriptor_heaps;
+    std::unordered_map<Device const*, Heap> m_upload_heaps;
+    std::unordered_map<Device const*, FrameProgressTracker> m_frame_progress_trackers;
+    std::unordered_map<Heap const*, upload_heap_partitioning> m_upload_heap_partitions;
 };
 
 }

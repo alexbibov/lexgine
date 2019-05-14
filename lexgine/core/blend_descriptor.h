@@ -121,8 +121,8 @@ private:
 //! Describes blending state
 struct BlendState
 {
-    bool alphaToCoverageEnable;
-    bool independentBlendEnable;
+    bool alphaToCoverageEnable = false;
+    bool independentBlendEnable = false;
     BlendDescriptor render_target_blend_descriptor[8];    //!< blend descriptor for each enabled render target (if independent blending is disabled, only the first one is used)
 
     BlendState() = default;

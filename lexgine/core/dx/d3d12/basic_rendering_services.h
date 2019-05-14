@@ -30,6 +30,7 @@ public:
         float depth_clear_value = 1.f) const;
 
     ConstantBufferStream& constantDataStream() { return m_constant_data_stream; }
+    DedicatedUploadDataStreamAllocator& resourceUploadAllocator() { return m_resource_upload_allocator; }
 
 private:
     void defineRenderingTarget(RenderingTarget& rendering_target) { m_current_rendering_target_ptr = &rendering_target; }
@@ -55,6 +56,7 @@ private:
 
     misc::StaticVector<DescriptorHeap const*, 4U> m_page0_descriptor_heaps;
     ConstantBufferStream m_constant_data_stream;
+    DedicatedUploadDataStreamAllocator m_resource_upload_allocator;
 };
 
 template<> class BasicRenderingServicesAttorney<RenderingTasks>

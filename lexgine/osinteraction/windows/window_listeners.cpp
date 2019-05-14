@@ -189,7 +189,7 @@ int64_t KeyInputListener::process_message(uint64_t message, uint64_t p_window, u
         __assume(0);
     }
 
-    return success ? 0 : -1;
+    return static_cast<uint64_t>(success);
 }
 
 
@@ -254,7 +254,7 @@ int64_t MouseButtonListener::process_message(uint64_t message, uint64_t p_window
     case WM_MOUSEHWHEEL:
         is_horizontal_wheel_moved = true;
     case WM_MOUSEWHEEL:
-        return wheelMove(static_cast<double>(wParam >> 16) / WHEEL_DELTA, is_horizontal_wheel_moved, control_key_flag, x, y) ? 0 : -1;
+        return static_cast<uint64_t>(wheelMove(static_cast<double>(wParam >> 16) / WHEEL_DELTA, is_horizontal_wheel_moved, control_key_flag, x, y));
 
     default:
         __assume(0);
@@ -262,13 +262,13 @@ int64_t MouseButtonListener::process_message(uint64_t message, uint64_t p_window
 
     if (is_button_double_clicked)
     {
-        return doubleClick(button, x_button_id, control_key_flag, x, y) ? 0 : -1;
+        return static_cast<uint64_t>(doubleClick(button, x_button_id, control_key_flag, x, y));
     }
     else
     {
-        return (is_button_pressed 
+        return static_cast<uint64_t>(is_button_pressed
             ? buttonDown(button, x_button_id, control_key_flag, x, y) 
-            : buttonUp(button, x_button_id, control_key_flag, x, y)) ? 0 : -1;
+            : buttonUp(button, x_button_id, control_key_flag, x, y));
     }
 }
 
@@ -316,18 +316,44 @@ int64_t MouseMoveListener::process_message(uint64_t message, uint64_t p_window, 
 
     TrackMouseEvent(&track_mouse_event);
 
-    return success ? 0 : -1;
+    return static_cast<uint64_t>(success);
 }
+
+
+
+int64_t WindowSizeChangeListener::process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam,
+    uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
+{
+    uint16_t new_width = lParam & 0xFFFF;
+    uint16_t new_height = static_cast<uint16_t>(lParam >> 16);
+
+    switch (wParam)
+    {
+    case SIZE_MAXIMIZED:
+        return static_cast<uint64_t>(maximized(new_width, new_height));
+
+    case SIZE_MINIMIZED:
+        return static_cast<uint64_t>(minimized());
+
+    case SIZE_RESTORED:
+        return static_cast<uint64_t>(size_changed(new_width, new_height));
+
+    default:
+        __assume(0);
+    }
+}
+
 
 
 
 int64_t ClientAreaUpdateListener::process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
     uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
+    bool success = false;    // 'true' if the message processing succeeds
+
     core::math::Rectangle rect{ core::math::Vector2f{0}, 0, 0 };
     HWND hWnd = reinterpret_cast<Window*>(static_cast<pointer_sized_int<sizeof(Window*)>::type>(p_window))->native();
     RECT windows_rect;
-    bool success = false;    // 'true' if the message processing succeeds
 
     if (GetUpdateRect(hWnd, &windows_rect, FALSE))
     {
@@ -347,27 +373,13 @@ int64_t ClientAreaUpdateListener::process_message(uint64_t message, uint64_t p_w
         success = paint(rect);
     }
 
-    return success ? 0 : -1;
+    return static_cast<uint64_t>(success);
 }
 
-int64_t WindowSizeChangeListener::process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam,
-    uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
+
+
+int64_t CursorUpdateListener::process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
-    uint16_t new_width = lParam & 0xFFFF;
-    uint16_t new_height = static_cast<uint16_t>(lParam >> 16);
-
-    switch (wParam)
-    {
-    case SIZE_MAXIMIZED:
-        return maximized(new_width, new_height) ? 0 : -1;
-
-    case SIZE_MINIMIZED:
-        return minimized() ? 0 : -1;
-
-    case SIZE_RESTORED:
-        return size_changed(new_width, new_height) ? 0 : -1;
-
-    default:
-        return -1;
-    }
+    if ((lParam & 0xFFFF) == HTCLIENT) return static_cast<uint64_t>(setCursor());
+    return 0;
 }
