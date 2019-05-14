@@ -192,7 +192,7 @@ RootSignature& RootSignature::addParameter(uint32_t slot, RootEntryDescriptorTab
     return *this;
 }
 
-RootSignature& RootSignature::addParameter(uint32_t slot, RootStaticSampler const& root_static_sampler_declaration, ShaderVisibility shader_visibility)
+RootSignature& RootSignature::addStaticSampler(RootStaticSampler const& root_static_sampler_declaration, ShaderVisibility shader_visibility)
 {
     D3D12_STATIC_SAMPLER_DESC desc;
     desc.Filter = d3d12Convert(root_static_sampler_declaration.m_filter_pack.MinFilter(),

@@ -206,7 +206,6 @@ public:
         return true;
     }
 
-
 private:
     EngineSettings m_engine_settings;
     Initializer m_engine_initializer;

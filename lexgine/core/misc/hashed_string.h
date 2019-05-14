@@ -2,10 +2,11 @@
 #define LEXGINE_CORE_MISC_HASHED_STRING_H
 
 #include <string>
+#include <functional>
 
-#include "../../../3rd_party/SpookyHash/SpookyV2.h"
+#include "3rd_party/SpookyHash/SpookyV2.h"
 
-namespace lexgine {namespace core {namespace misc {
+namespace lexgine::core::misc{
 
 class HashedString
 {
@@ -33,6 +34,22 @@ public:
     char const* string() const;
 };
 
-}}}
+}
+
+
+// needed for simpler functioning of std::unordered_set and std::unordered_map
+namespace std {
+template<>
+struct hash<lexgine::core::misc::HashedString>
+{
+    using argument_type = lexgine::core::misc::HashedString;
+    using result_type = size_t;
+
+    result_type operator()(argument_type const& key) const
+    {
+        return key.hash();
+    }
+};
+}
 
 #endif

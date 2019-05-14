@@ -54,6 +54,8 @@ private:
 
     ShaderResourceDescriptorTable m_srv_table;
     ShaderResourceDescriptorTable m_sampler_table;
+
+    core::Allocator<UploadDataBlock>::address_type m_allocation;
 };
 
 }

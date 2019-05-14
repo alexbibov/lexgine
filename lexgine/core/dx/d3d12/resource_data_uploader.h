@@ -63,9 +63,9 @@ public:
     };
 
 
-    ResourceDataUploader(Globals& globals, uint64_t offset_in_upload_heap, size_t upload_section_size);
+    ResourceDataUploader(Globals& globals, DedicatedUploadDataStreamAllocator& upload_buffer_allocator);
     ResourceDataUploader(ResourceDataUploader const&) = delete;
-    ResourceDataUploader(ResourceDataUploader&&) = delete;
+    // ResourceDataUploader(ResourceDataUploader&&) = delete;
 
     //! Schedules new texture resource for upload
     void addResourceForUpload(DestinationDescriptor const& destination_descriptor,
@@ -93,7 +93,7 @@ private:
 private:
     Device& m_device;    //!< device object corresponding to the uploader
     bool m_is_async_copy_enabled;
-    DedicatedUploadDataStreamAllocator m_upload_buffer_allocator;    //!< upload buffer allocation manager
+    DedicatedUploadDataStreamAllocator& m_upload_buffer_allocator;    //!< upload buffer allocation manager
     CommandList m_upload_command_list;    //!< command list intended to contain upload commands
     bool m_upload_command_list_needs_reset;
     ResourceState m_copy_destination_resource_state;

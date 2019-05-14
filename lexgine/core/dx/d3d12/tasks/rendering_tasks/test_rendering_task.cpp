@@ -18,23 +18,11 @@ using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
 using namespace lexgine::core::dx::d3d12::task_caches;
 
-namespace {
-
-size_t getUploadDataSectionOffset(Globals& globals)
-{
-    auto& global_settings = *globals.get<GlobalSettings>();
-    size_t offset = static_cast<size_t>(std::ceilf(global_settings.getUploadHeapCapacity()
-        * global_settings.getStreamedConstantDataPartitioning()));
-    return misc::align(offset, 256);
-}
-
-}
-
 TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& rendering_services)
     : m_globals{ globals }
     , m_device{ *globals.get<Device>() }
     , m_basic_rendering_services{ rendering_services }
-    , m_data_uploader{ globals, getUploadDataSectionOffset(globals), 64 * 1024 * 1024 }
+    , m_data_uploader{ globals, rendering_services.resourceUploadAllocator() }
     , m_vb{ m_device }
     , m_ib{ m_device, IndexDataType::_16_bit, 32 * 1024 }
     , m_texture{ m_device, ResourceState::enum_type::pixel_shader, misc::makeEmptyOptional<ResourceOptimizedClearValue>(),
@@ -43,6 +31,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
     , m_cb_data_mapping{ m_cb_reflection }
     , m_timestamp{ std::chrono::high_resolution_clock::now().time_since_epoch().count() }
     , m_cmd_list{ m_device.createCommandList(CommandType::direct, 0x1) }
+    , m_allocation{ nullptr }
 {
     std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
         std::make_shared<VertexAttributeSpecification<float, 3>>(0, 0, "POSITION", 0, 0));
@@ -224,7 +213,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
 
         HLSLCompilationTaskCache& hlsl_compilation_task_cache = *globals.get<HLSLCompilationTaskCache>();
 
-        HLSLSourceTranslationUnit hlsl_translation_unit{ globals, "vertex_shader", hlsl_source };
+        HLSLSourceTranslationUnit hlsl_translation_unit{ globals, "test_rendering_shader", hlsl_source };
 
         m_vs = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit,
             dxcompilation::ShaderModel::model_60, dxcompilation::ShaderType::vertex, "VSMain");
@@ -297,11 +286,12 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
     m_box_rotation_angle += static_cast<float>(math::pi * duration * .5f);
     m_timestamp = new_timestamp;
 
-    auto allocation =
+    m_allocation =
         m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_cb_data_mapping);
+     
     m_cmd_list.setRootDescriptorTable(0, m_srv_table);
     m_cmd_list.setRootDescriptorTable(1, m_sampler_table);
-    m_cmd_list.setRootConstantBufferView(2, allocation->virtualGpuAddress());
+    m_cmd_list.setRootConstantBufferView(2, m_allocation->virtualGpuAddress());
 
     m_cmd_list.drawIndexedInstanced(36, 1, 0, 0, 0);
 

@@ -134,8 +134,8 @@ protected:
 };
 
 
-/*! Listener implementing handling of the system event, which notifies application that the client
-  area of the listening window can now be updated
+/*! Listener implementing handling of the system events, which notifies application that the client
+  area of the listening window can now be updated. This listener also handles the cursor properties of the window.
 */
 class ClientAreaUpdateListener : public ConcreteListener<WM_PAINT>
 {
@@ -145,6 +145,18 @@ public:
       The function should return 'true' on success and 'false' on failure.
     */
     virtual bool paint(core::math::Rectangle const& update_region) = 0;
+
+protected:
+    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
+        uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
+};
+
+
+//! Listener implementing handling of the events posted to window when it is about to set its cursor properties
+class CursorUpdateListener : public ConcreteListener<WM_SETCURSOR>
+{
+public:
+    virtual bool setCursor() = 0;
 
 protected:
     int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,

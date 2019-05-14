@@ -1,5 +1,7 @@
 #include <algorithm>
 
+#include "lexgine/core/exception.h"
+
 #include "debug_interface.h"
 #include "device.h"
 #include "descriptor_heap.h"
@@ -130,3 +132,58 @@ dxgi::HwAdapter const* DxResourceFactory::retrieveHwAdapterOwningDevicePtr(Devic
     else
         return nullptr;
 }
+
+
+misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHeap(Heap const& upload_heap, std::string const& section_name, size_t section_size)
+{
+    auto p = m_upload_heap_partitions.find(&upload_heap);
+    if (p == m_upload_heap_partitions.end())
+    {
+        upload_heap_partitioning new_partitioning{};
+        new_partitioning.partitioned_space_size = section_size;
+        auto q = new_partitioning.partitioning.insert(std::make_pair(
+            misc::HashedString{ section_name },
+            UploadHeapPartition{ 0ULL, section_size }
+        )).first;
+
+        m_upload_heap_partitions.insert(std::make_pair(&upload_heap, new_partitioning));
+        return q->second;
+    }
+    else
+    {
+        misc::HashedString section_hash{ section_name };
+        auto q = p->second.partitioning.find(section_hash);
+        if (q == p->second.partitioning.end())
+        {
+            size_t& offset = p->second.partitioned_space_size;
+
+            if(offset + section_size <= upload_heap.capacity())
+            {
+                auto r = p->second.partitioning.insert(std::make_pair(section_hash, UploadHeapPartition{ offset, section_size })).first;
+                offset += section_size;
+                return r->second;
+            }
+            else
+            {
+                LEXGINE_THROW_ERROR("Unable to allocated named section \"" + section_name
+                    + "\" in upload heap \"" + upload_heap.getStringName() + "\": the heap is exhausted");
+            }
+        }
+    }
+
+    return misc::makeEmptyOptional<UploadHeapPartition>();
+}
+
+misc::Optional<UploadHeapPartition> DxResourceFactory::retrieveUploadHeapSection(Heap const& upload_heap, std::string const& section_name) const
+{
+    auto p = m_upload_heap_partitions.find(&upload_heap);
+    if (p != m_upload_heap_partitions.end())
+    {
+        auto q = p->second.partitioning.find(misc::HashedString{ section_name });
+        if (q != p->second.partitioning.end())
+            return q->second;
+    }
+
+    return misc::makeEmptyOptional<UploadHeapPartition>();
+}
+

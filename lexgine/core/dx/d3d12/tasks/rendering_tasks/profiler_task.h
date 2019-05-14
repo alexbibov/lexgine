@@ -1,8 +1,15 @@
 #ifndef LEXGINE_CORE_DX_D3D12_TASKS_RENDERING_TASKS_PROFILER_TASK_H
 #define LEXGINE_CORE_DX_D3D12_TASKS_RENDERING_TASKS_PROFILER_TASK_H
 
+#include "3rd_party/imgui/imgui.h"
+
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
+#include "lexgine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
+
+#include "lexgine/core/dx/d3d12/resource_data_uploader.h"
+#include "lexgine/core/dx/d3d12/vertex_buffer_binding.h"
+#include "lexgine/core/concurrency/schedulable_task.h"
 #include "lexgine/osinteraction/windows/lexgine_osinteraction_windows_fwd.h"
 #include "lexgine/osinteraction/listener.h"
 #include "lexgine/osinteraction/windows/window_listeners.h"
@@ -10,15 +17,23 @@
 namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
 
 class ProfilerTask : 
+    public concurrency::SchedulableTask,
     public osinteraction::Listeners<
     osinteraction::windows::KeyInputListener, 
     osinteraction::windows::MouseButtonListener, 
-    osinteraction::windows::MouseMoveListener
+    osinteraction::windows::MouseMoveListener,
+    osinteraction::windows::CursorUpdateListener
     >
 {
+    using lexgine::core::Entity::getId;
+
 public:
     ProfilerTask(Globals& globals, BasicRenderingServices& basic_rendering_services,
         osinteraction::windows::Window& rendering_window);
+
+    ~ProfilerTask();
+
+    void updateBufferFormats(DXGI_FORMAT color_buffer_format, DXGI_FORMAT depth_buffer_format);
 
 public:    // KeyInputListener events
     bool keyDown(osinteraction::SystemKey key) override;
@@ -38,10 +53,37 @@ public:    // MouseMoveListener events
     bool enter_client_area() override;
     bool leave_client_area() override;
 
+public:    // CursorUpdateListener events
+    bool setCursor() override;
+
+private:    // required by AbstractTask interface
+    bool doTask(uint8_t worker_id, uint64_t user_data) override;
+    concurrency::TaskType type() const override { return concurrency::TaskType::gpu_draw; }
+
+private:
+    void processEvents() const;
+    void drawFrame() const;
+
 private:
     Globals& m_globals;
+    Device& m_device;
     BasicRenderingServices& m_basic_rendering_services;
     osinteraction::windows::Window& m_rendering_window;
+    mutable long long m_time_counter;
+    mutable ImGuiMouseCursor m_mouse_cursor;
+    ResourceDataUploader m_resource_uploader;
+
+    tasks::RootSignatureCompilationTask* m_rs = nullptr;
+    tasks::HLSLCompilationTask* m_vs = nullptr;
+    tasks::HLSLCompilationTask* m_ps = nullptr;
+    tasks::GraphicsPSOCompilationTask* m_pso = nullptr;
+    GraphicsPSODescriptor m_pso_desc;
+
+    std::unique_ptr<CommittedResource> m_fonts_texture;
+
+    std::unique_ptr<CommittedResource> m_vertex_data;
+
+    long long const m_ticks_per_second = 144;
 };
 
 }

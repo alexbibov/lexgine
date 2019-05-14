@@ -11,6 +11,24 @@
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
+namespace {
+
+size_t getUploadDataSectionOffset(Globals& globals)
+{
+    auto& global_settings = *globals.get<GlobalSettings>();
+    size_t offset = static_cast<size_t>(std::ceilf(global_settings.getUploadHeapCapacity()
+        * global_settings.getStreamedConstantDataPartitioning()));
+    return misc::align(offset, 256);
+}
+
+size_t getUploadDataSectionSize(Globals& globals)
+{
+    auto& global_settings = *globals.get<GlobalSettings>();
+    return global_settings.getUploadHeapCapacity() - getUploadDataSectionOffset(globals);
+}
+
+}
+
 
 BasicRenderingServices::BasicRenderingServices(Globals& globals)
     : m_device{ *globals.get<Device>() }
@@ -19,6 +37,7 @@ BasicRenderingServices::BasicRenderingServices(Globals& globals)
     , m_rendering_target_color_format{ DXGI_FORMAT_UNKNOWN }
     , m_rendering_target_depth_format{ DXGI_FORMAT_UNKNOWN }
     , m_constant_data_stream{ globals }
+    , m_resource_upload_allocator{ globals, getUploadDataSectionOffset(globals), getUploadDataSectionSize(globals) }
 {
     m_page0_descriptor_heaps.resize(2);
     for (size_t i = 0; i < 2; ++i)
