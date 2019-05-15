@@ -16,7 +16,7 @@ public:
     using task_type = TaskType;
 
     RingBufferTaskQueue(uint16_t num_consumers,
-        size_t ring_buffer_capacity = 64U,
+        size_t ring_buffer_capacity = 256U,
         uint32_t garbage_collection_threshold = 10U) :
         m_lock_free_queue{ (num_consumers + 1) * (std::max)(static_cast<size_t>(garbage_collection_threshold), ring_buffer_capacity) }
     {

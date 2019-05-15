@@ -157,7 +157,7 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
             
             if ((yield_counter & 63) == 0)
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(yield_counter < 1000 ? 0 : 5));
+                std::this_thread::sleep_for(std::chrono::milliseconds(yield_counter < 1000 ? 0 : 1));
             }
         }
     }

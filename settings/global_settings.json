@@ -9,7 +9,7 @@
 	"upload_heap_capacity" : 536870912,
 	"enable_async_compute" : false,
 	"enable_async_copy" : false,
-	"max_frames_in_flight" : 4,
+	"max_frames_in_flight" : 2,
 	"max_non_blocking_upload_buffer_allocation_timeout" : 30,
 	
 	"resource_view_descriptors_per_page" : 8192,

@@ -1,0 +1,859 @@
+{
+    "children": [
+        {
+            "cells": [
+                {
+                    "key": "Time",
+                    "width": 140,
+                    "x": 1
+                },
+                {
+                    "width": 469,
+                    "x": 141
+                }
+            ],
+            "flags": 296,
+            "height": 26,
+            "visible": true,
+            "y": 1
+        },
+        {
+            "cells": [
+                {
+                    "key": "Frames",
+                    "width": 140,
+                    "x": 1
+                },
+                {
+                    "width": 469,
+                    "x": 141
+                }
+            ],
+            "flags": 273,
+            "height": 25,
+            "visible": true,
+            "y": 27
+        },
+        {
+            "cells": [
+                {
+                    "key": "Q:0",
+                    "width": 140,
+                    "x": 1
+                },
+                {
+                    "width": 469,
+                    "x": 141
+                }
+            ],
+            "children": [
+                {
+                    "cells": [
+                        {
+                            "key": "Synchronization",
+                            "width": 140,
+                            "x": 1
+                        },
+                        {
+                            "width": 469,
+                            "x": 141
+                        }
+                    ],
+                    "flags": 273,
+                    "height": 25,
+                    "visible": true,
+                    "y": 77
+                },
+                {
+                    "cells": [
+                        {
+                            "key": "Command Lists",
+                            "width": 140,
+                            "x": 1
+                        },
+                        {
+                            "width": 469,
+                            "x": 141
+                        }
+                    ],
+                    "flags": 273,
+                    "height": 25,
+                    "visible": true,
+                    "y": 102
+                },
+                {
+                    "cells": [
+                        {
+                            "key": "Inc Actions",
+                            "width": 140,
+                            "x": 1
+                        },
+                        {
+                            "width": 469,
+                            "x": 141
+                        }
+                    ],
+                    "flags": 273,
+                    "height": 25,
+                    "visible": true,
+                    "y": 127
+                },
+                {
+                    "cells": [
+                        {
+                            "key": "All Actions",
+                            "width": 140,
+                            "x": 1
+                        },
+                        {
+                            "width": 469,
+                            "x": 141
+                        }
+                    ],
+                    "children": [
+                        {
+                            "cells": [
+                                {
+                                    "key": "Actions",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 273,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        }
+                    ],
+                    "flags": 401,
+                    "height": 25,
+                    "visible": true,
+                    "y": 152
+                },
+                {
+                    "cells": [
+                        {
+                            "key": "Markers",
+                            "width": 140,
+                            "x": 0
+                        },
+                        {
+                            "width": 20,
+                            "x": 0
+                        }
+                    ],
+                    "flags": 273,
+                    "height": 23,
+                    "visible": false,
+                    "y": 0
+                }
+            ],
+            "flags": 273,
+            "height": 25,
+            "visible": true,
+            "y": 52
+        },
+        {
+            "cells": [
+                {
+                    "key": "GPU",
+                    "width": 140,
+                    "x": 1
+                },
+                {
+                    "width": 469,
+                    "x": 141
+                }
+            ],
+            "children": [
+                {
+                    "cells": [
+                        {
+                            "key": "GPCxTPC0",
+                            "width": 140,
+                            "x": 0
+                        },
+                        {
+                            "width": 20,
+                            "x": 0
+                        }
+                    ],
+                    "children": [
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM0",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM1",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM2",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM3",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM10",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM11",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        }
+                    ],
+                    "flags": 401,
+                    "height": 25,
+                    "visible": false,
+                    "y": 0
+                },
+                {
+                    "cells": [
+                        {
+                            "key": "GPCxTPC1",
+                            "width": 140,
+                            "x": 0
+                        },
+                        {
+                            "width": 20,
+                            "x": 0
+                        }
+                    ],
+                    "children": [
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM4",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM5",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM18",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM19",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM20",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM21",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        }
+                    ],
+                    "flags": 401,
+                    "height": 25,
+                    "visible": false,
+                    "y": 0
+                },
+                {
+                    "cells": [
+                        {
+                            "key": "GPCxTPC2",
+                            "width": 140,
+                            "x": 0
+                        },
+                        {
+                            "width": 20,
+                            "x": 0
+                        }
+                    ],
+                    "children": [
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM6",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM7",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM8",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM9",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM22",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM23",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        }
+                    ],
+                    "flags": 401,
+                    "height": 25,
+                    "visible": false,
+                    "y": 0
+                },
+                {
+                    "cells": [
+                        {
+                            "key": "GPCxTPC3",
+                            "width": 140,
+                            "x": 0
+                        },
+                        {
+                            "width": 20,
+                            "x": 0
+                        }
+                    ],
+                    "children": [
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM16",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM17",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM24",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM25",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM26",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM27",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        }
+                    ],
+                    "flags": 401,
+                    "height": 25,
+                    "visible": false,
+                    "y": 0
+                },
+                {
+                    "cells": [
+                        {
+                            "key": "GPCxTPC4",
+                            "width": 140,
+                            "x": 0
+                        },
+                        {
+                            "width": 20,
+                            "x": 0
+                        }
+                    ],
+                    "children": [
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM12",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM13",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM14",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        },
+                        {
+                            "cells": [
+                                {
+                                    "key": "SM15",
+                                    "width": 140,
+                                    "x": 0
+                                },
+                                {
+                                    "width": 20,
+                                    "x": 0
+                                }
+                            ],
+                            "flags": 401,
+                            "height": 23,
+                            "visible": false,
+                            "y": 0
+                        }
+                    ],
+                    "flags": 401,
+                    "height": 25,
+                    "visible": false,
+                    "y": 0
+                }
+            ],
+            "flags": 401,
+            "height": 250,
+            "visible": true,
+            "y": 177
+        },
+        {
+            "cells": [
+                {
+                    "key": "SM Active",
+                    "width": 140,
+                    "x": 1
+                },
+                {
+                    "width": 469,
+                    "x": 141
+                }
+            ],
+            "flags": 273,
+            "height": 25,
+            "visible": true,
+            "y": 427
+        },
+        {
+            "cells": [
+                {
+                    "key": "Annotations",
+                    "width": 140,
+                    "x": 1
+                },
+                {
+                    "width": 469,
+                    "x": 141
+                }
+            ],
+            "flags": 2833,
+            "height": 25,
+            "visible": true,
+            "y": 452
+        },
+        {
+            "cells": [
+                {
+                    "key": "Graphics/Compute Busy",
+                    "width": 140,
+                    "x": 1
+                },
+                {
+                    "width": 469,
+                    "x": 141
+                }
+            ],
+            "flags": 401,
+            "height": 34,
+            "visible": true,
+            "y": 477
+        },
+        {
+            "cells": [
+                {
+                    "width": 140,
+                    "x": 1
+                },
+                {
+                    "width": 469,
+                    "x": 141
+                }
+            ],
+            "flags": 328,
+            "height": 25,
+            "visible": true,
+            "y": 499
+        }
+    ],
+    "row_memory": [
+        {
+            "before_rows": [
+                {
+                    "name": "Frames"
+                },
+                {
+                    "name": "Q:0"
+                },
+                {
+                    "name": "GPU"
+                },
+                {
+                    "name": "SM Active"
+                }
+            ],
+            "name": "Annotations"
+        },
+        {
+            "after_rows": [
+                {
+                    "name": "Annotations"
+                }
+            ],
+            "before_rows": [
+                {
+                    "name": "Frames"
+                },
+                {
+                    "name": "Q:0"
+                },
+                {
+                    "name": "GPU"
+                },
+                {
+                    "name": "SM Active"
+                }
+            ],
+            "name": "Graphics/Compute Busy"
+        }
+    ]
+}

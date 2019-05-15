@@ -3,7 +3,6 @@
 #ifndef LEXGINE_OSINTERACTION_WINDOWS_WINDOW_H
 #define LEXGINE_OSINTERACTION_WINDOWS_WINDOW_H
 
-#define OEMRESOURCE
 #include <windows.h>
 #include <dxgi1_5.h>
 #include <d3d12.h>
@@ -99,6 +98,9 @@ public:
     void processMessages() const;    //! retrieves messages addressed to the window from the message queue and dispatches them to the window
 
     bool update() const;    //! updates window and returns 'true' on success
+
+private:
+    void adjustClientAreaSize();    //! adjust window size to accomodate the requested client area
 
 private:
     // Window properties

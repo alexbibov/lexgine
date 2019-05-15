@@ -459,10 +459,18 @@
     <ClInclude Include="core\dx\d3d12\constant_buffer_stream.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\basic_rendering_services.h" />
-    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.h" />
-    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h" />
-    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\profiler_task.h" />
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\profiler_task.h">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.h">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\basic_rendering_services.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -732,9 +740,15 @@
     <ClCompile Include="core\dx\d3d12\constant_buffer_stream.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="core\dx\d3d12\basic_rendering_services.cpp" />
-    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.cpp" />
-    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\profiler_task.cpp" />
+    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\profiler_task.cpp">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.cpp">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\basic_rendering_services.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="core\dx\d3d12\constant_buffer_impl.inl">
