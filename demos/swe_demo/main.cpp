@@ -21,7 +21,7 @@ EngineSettings createEngineSettings()
 {
     EngineSettings settings;
 
-    settings.debug_mode = true;
+    settings.debug_mode = false;
     settings.adapter_enumeration_preference = HwAdapterEnumerator::DxgiGpuPreference::high_performance;
     settings.global_lookup_prefix = "";
     settings.settings_lookup_path = "../../settings/";
@@ -58,7 +58,9 @@ public:
         , m_rendering_tasks{ m_engine_initializer.createRenderingTasks() }
         , m_swap_chain_link{ m_engine_initializer.createSwapChainLink(m_swap_chain, lexgine::core::dx::d3d12::SwapChainDepthBufferFormat::d32float, *m_rendering_tasks) }
     {
+        m_rendering_window.setLocation(10, 10);
         m_rendering_window.setDimensions(lexgine::core::math::Vector2u{ 1280, 720 });
+        
         m_rendering_window.addListener(this);
         m_rendering_window.setVisibility(true);
 

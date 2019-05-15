@@ -1,6 +1,9 @@
 #include <algorithm>
 #include <map>
 
+#define OEMRESOURCE
+
+#include "lexgine/core/exception.h"
 #include "window.h"
 
 using namespace lexgine;
@@ -103,6 +106,8 @@ Window::Window(HINSTANCE hInstance /* = NULL */,
     m_is_visible{ false },
     m_should_close{ false }
 {
+    adjustClientAreaSize();
+
     if (!(m_hwnd = createWindow(this, m_atom, m_hinstance, m_pos_x, m_pos_y, m_width, m_height, m_window_style, m_window_ex_style, m_title, WindowProcedure)))
     {
         std::string error_string = getLastSystemError();
@@ -136,9 +141,7 @@ void Window::setTitle(std::wstring const& title)
     if (!SetWindowText(m_hwnd, title.c_str()))
     {
         std::string error_string = getLastSystemError();
-        logger().out(error_string, core::misc::LogMessageType::error);
-        raiseError(error_string);
-        throw;
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, error_string);
     }
 }
 
@@ -153,6 +156,8 @@ void Window::setDimensions(uint32_t width, uint32_t height)
     m_width = width;
     m_height = height;
 
+    adjustClientAreaSize();
+
     WINDOWPLACEMENT wndplacement;
     wndplacement.length = sizeof(WINDOWPLACEMENT);
     wndplacement.flags = WPF_ASYNCWINDOWPLACEMENT;
@@ -164,9 +169,7 @@ void Window::setDimensions(uint32_t width, uint32_t height)
     if (!SetWindowPlacement(m_hwnd, &wndplacement))
     {
         std::string error_string = getLastSystemError();
-        logger().out(error_string, core::misc::LogMessageType::error);
-        raiseError(error_string);
-        throw;
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, error_string);
     }
 }
 
@@ -245,6 +248,26 @@ bool Window::update() const
     BOOL res = InvalidateRect(m_hwnd, &rect, FALSE);
     res |= UpdateWindow(m_hwnd);
     return static_cast<bool>(res);
+}
+
+void Window::adjustClientAreaSize()
+{
+    RECT window_rectangle{};
+    window_rectangle.left = m_pos_x;
+    window_rectangle.top = m_pos_y;
+    window_rectangle.bottom = m_pos_x + m_width;
+    window_rectangle.right = m_pos_y + m_height;
+
+    if (!AdjustWindowRect(&window_rectangle, m_window_style.getValue(), FALSE))
+    {
+        std::string error_string = getLastSystemError();
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, error_string);
+    }
+
+    m_pos_x = window_rectangle.left;
+    m_pos_y = window_rectangle.top;
+    m_width = window_rectangle.right - window_rectangle.left;
+    m_height = window_rectangle.bottom - window_rectangle.top;
 }
 
 
