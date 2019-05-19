@@ -37,6 +37,8 @@ extern char const Dummy[];
 extern char const D3D12_RootSignatureCache[];
 extern char const D3D12_UploadBufferAllocator[];
 extern char const D3D12_RenderingTasks[];
+extern char const BasicRenderingServices[];
+extern char const ConstantBufferStream[];
 }
 
 #define LEXGINE_CORE_CLASS_NAMES_CLASS_NAMES_H

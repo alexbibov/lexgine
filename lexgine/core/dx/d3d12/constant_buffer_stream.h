@@ -1,13 +1,20 @@
 #ifndef LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_STREAM_H
 #define LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_STREAM_H
 
+#include <memory>
+
+#include "lexgine/core/entity.h"
+#include "lexgine/core/class_names.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "upload_buffer_allocator.h"
 
 namespace lexgine::core::dx::d3d12 {
 
-class ConstantBufferStream
+class ConstantBufferStream : public NamedEntity<class_names::ConstantBufferStream>
 {
+public:
+    static std::string const c_constant_section_name;
+
 public:
     ConstantBufferStream(Globals& globals);
 
@@ -20,7 +27,7 @@ public:
     PerFrameUploadDataStreamAllocator::address_type allocateAndUpdate(ConstantBufferDataMapper const& data_mapper);
 
 private:
-    PerFrameUploadDataStreamAllocator m_allocator;
+    std::unique_ptr<PerFrameUploadDataStreamAllocator> m_allocator;
 };
 
 }

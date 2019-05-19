@@ -2,6 +2,7 @@
 
 #include "lexgine/core/exception.h"
 #include "lexgine/core/globals.h"
+#include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 #include "lexgine/core/dx/d3d12/device.h"
 #include "lexgine/core/dx/d3d12/resource.h"
 #include "lexgine/core/dx/d3d12/basic_rendering_services.h"
@@ -9,13 +10,15 @@
 #include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
-#include "profiler_task.h"
+#include "ui_draw_task.h"
 
 
 using namespace lexgine;
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
+
+std::string const UIDrawTask::c_interface_update_section = "interface_update_section";
 
 namespace {
 
@@ -143,7 +146,7 @@ void updateMousePosition(HWND hwnd)
 }
 
 
-ProfilerTask::ProfilerTask(Globals& globals, BasicRenderingServices& basic_rendering_services,
+UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services,
     osinteraction::windows::Window& rendering_window)
     : m_globals{ globals }
     , m_device{ *globals.get<Device>() }
@@ -279,17 +282,53 @@ ProfilerTask::ProfilerTask(Globals& globals, BasicRenderingServices& basic_rende
 
         io.Fonts->TexID = reinterpret_cast<ImTextureID>(m_fonts_texture->getGPUVirtualAddress());
     }
+
+    // Create UI update section in upload heap
+    {
+        DxResourceFactory& dx_resource_factory = *globals.get<DxResourceFactory>();
+        Device& device = *globals.get<Device>();
+
+        auto ui_update_section = dx_resource_factory.allocateSectionInUploadHeap(dx_resource_factory.retrieveUploadHeap(device),
+            UIDrawTask::c_interface_update_section,
+            UIDrawTask::c_interface_update_section_size);
+
+        if (!ui_update_section.isValid())
+        {
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
+                "Unable to allocate UI update section \"" + UIDrawTask::c_interface_update_section
+                + "\" in data upload heap");
+        }
+
+        UploadHeapPartition const& ui_update_section_partition = static_cast<UploadHeapPartition const&>(ui_update_section);
+        m_ui_data_allocator = std::make_unique<PerFrameUploadDataStreamAllocator>(globals, ui_update_section_partition.offset, ui_update_section_partition.size,
+            dx_resource_factory.retrieveFrameProgressTracker(device));
+    }
+
+    // Create input layout
+    {
+        std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
+            std::make_shared<VertexAttributeSpecification<float, 2>>(0, IM_OFFSETOF(ImDrawVert, pos), "POSITION", 0, 0)
+            );
+        std::shared_ptr<AbstractVertexAttributeSpecification> uv = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
+            std::make_shared<VertexAttributeSpecification<float, 2>>(0, IM_OFFSETOF(ImDrawVert, uv), "TEXCOORD", 0, 0)
+            );
+        std::shared_ptr<AbstractVertexAttributeSpecification> color = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
+            std::make_shared<VertexAttributeSpecification<float, 4>>(0, IM_OFFSETOF(ImDrawVert, col), "COLOR", 0, 0)
+            );
+        m_va_list = VertexAttributeSpecificationList{ position, uv, color };
+    }
 }
 
-ProfilerTask::~ProfilerTask() = default;
+UIDrawTask::~UIDrawTask() = default;
 
-void ProfilerTask::updateBufferFormats(DXGI_FORMAT color_buffer_format, DXGI_FORMAT depth_buffer_format)
+void UIDrawTask::updateBufferFormats(DXGI_FORMAT color_buffer_format, DXGI_FORMAT depth_buffer_format)
 {
     task_caches::PSOCompilationTaskCache& pso_compilation_task_cache = *m_globals.get<task_caches::PSOCompilationTaskCache>();
 
     if(!m_pso)
     {
         m_pso_desc.node_mask = 0x1;
+        m_pso_desc.vertex_attributes = m_va_list;
         m_pso_desc.primitive_topology_type = PrimitiveTopologyType::triangle;
         m_pso_desc.num_render_targets = 1;
         m_pso_desc.rtv_formats[0] = color_buffer_format;
@@ -332,31 +371,31 @@ void ProfilerTask::updateBufferFormats(DXGI_FORMAT color_buffer_format, DXGI_FOR
     }
 }
 
-bool ProfilerTask::keyDown(osinteraction::SystemKey key)
+bool UIDrawTask::keyDown(osinteraction::SystemKey key)
 {
     return true;
 }
 
-bool ProfilerTask::keyUp(osinteraction::SystemKey key)
+bool UIDrawTask::keyUp(osinteraction::SystemKey key)
 {
     return true;
 }
 
-bool ProfilerTask::character(wchar_t char_key)
+bool UIDrawTask::character(wchar_t char_key)
 {
     ImGuiIO& io = ImGui::GetIO();
     io.AddInputCharacter(char_key);
     return true;
 }
 
-bool ProfilerTask::systemKeyDown(osinteraction::SystemKey key)
+bool UIDrawTask::systemKeyDown(osinteraction::SystemKey key)
 {
     ImGuiIO& io = ImGui::GetIO();
     io.KeysDown[static_cast<size_t>(key)] = 1;
     return true;
 }
 
-bool ProfilerTask::systemKeyUp(osinteraction::SystemKey key)
+bool UIDrawTask::systemKeyUp(osinteraction::SystemKey key)
 {
     ImGuiIO& io = ImGui::GetIO();
     io.KeysDown[static_cast<size_t>(key)] = 0;
@@ -364,22 +403,22 @@ bool ProfilerTask::systemKeyUp(osinteraction::SystemKey key)
 }
 
 
-bool ProfilerTask::buttonDown(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
+bool UIDrawTask::buttonDown(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
     return mouseButtonHandler(button, xbutton_id, m_rendering_window, true);
 }
 
-bool ProfilerTask::buttonUp(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
+bool UIDrawTask::buttonUp(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
     return mouseButtonHandler(button, xbutton_id, m_rendering_window, false);
 }
 
-bool ProfilerTask::doubleClick(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
+bool UIDrawTask::doubleClick(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
     return buttonDown(button, xbutton_id, control_key_flag, x, y);
 }
 
-bool ProfilerTask::wheelMove(double move_delta, bool is_horizontal_wheel, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
+bool UIDrawTask::wheelMove(double move_delta, bool is_horizontal_wheel, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -396,33 +435,35 @@ bool ProfilerTask::wheelMove(double move_delta, bool is_horizontal_wheel, osinte
 }
 
 
-bool ProfilerTask::move(uint16_t x, uint16_t y, osinteraction::windows::ControlKeyFlag const& control_key_flag)
+bool UIDrawTask::move(uint16_t x, uint16_t y, osinteraction::windows::ControlKeyFlag const& control_key_flag)
 {
     return true;
 }
 
-bool ProfilerTask::enter_client_area()
+bool UIDrawTask::enter_client_area()
 {
     return true;
 }
 
-bool ProfilerTask::leave_client_area()
+bool UIDrawTask::leave_client_area()
 {
     return true;
 }
 
-bool ProfilerTask::setCursor()
+bool UIDrawTask::setCursor()
 {
     return updateMouseCursor();
 }
 
-bool ProfilerTask::doTask(uint8_t worker_id, uint64_t user_data)
+bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
     processEvents();
+
+
     return true;
 }
 
-void ProfilerTask::processEvents() const
+void UIDrawTask::processEvents() const
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -439,7 +480,7 @@ void ProfilerTask::processEvents() const
     io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
 
     long long current_time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    io.DeltaTime = static_cast<float>(current_time - m_time_counter) / m_ticks_per_second;
+    io.DeltaTime = static_cast<float>(current_time - m_time_counter) / c_update_ticks_per_second;
     m_time_counter = current_time;
 
     // Read keyboard modifiers inputs

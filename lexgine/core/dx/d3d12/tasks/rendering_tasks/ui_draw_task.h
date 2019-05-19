@@ -1,5 +1,5 @@
-#ifndef LEXGINE_CORE_DX_D3D12_TASKS_RENDERING_TASKS_PROFILER_TASK_H
-#define LEXGINE_CORE_DX_D3D12_TASKS_RENDERING_TASKS_PROFILER_TASK_H
+#ifndef LEXGINE_CORE_DX_D3D12_TASKS_RENDERING_TASKS_UI_DRAW_TASK_H
+#define LEXGINE_CORE_DX_D3D12_TASKS_RENDERING_TASKS_UI_DRAW_TASK_H
 
 #include "3rd_party/imgui/imgui.h"
 
@@ -16,7 +16,7 @@
 
 namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
 
-class ProfilerTask : 
+class UIDrawTask :
     public concurrency::SchedulableTask,
     public osinteraction::Listeners<
     osinteraction::windows::KeyInputListener, 
@@ -28,11 +28,11 @@ class ProfilerTask :
     using lexgine::core::Entity::getId;
 
 public:
-    ProfilerTask(Globals& globals, BasicRenderingServices& basic_rendering_services,
+    UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services,
         osinteraction::windows::Window& rendering_window);
 
-    ~ProfilerTask();
-
+    ~UIDrawTask();
+    
     void updateBufferFormats(DXGI_FORMAT color_buffer_format, DXGI_FORMAT depth_buffer_format);
 
 public:    // KeyInputListener events
@@ -77,13 +77,18 @@ private:
     tasks::HLSLCompilationTask* m_vs = nullptr;
     tasks::HLSLCompilationTask* m_ps = nullptr;
     tasks::GraphicsPSOCompilationTask* m_pso = nullptr;
+    VertexAttributeSpecificationList m_va_list;
     GraphicsPSODescriptor m_pso_desc;
 
     std::unique_ptr<CommittedResource> m_fonts_texture;
+    std::unique_ptr<PerFrameUploadDataStreamAllocator> m_ui_data_allocator;
+    std::unique_ptr<VertexBufferBinding> m_ui_vertex_data_binding;
+    std::unique_ptr<IndexBufferBinding> m_ui_index_data_binding;
 
-    std::unique_ptr<CommittedResource> m_vertex_data;
-
-    long long const m_ticks_per_second = 144;
+private:
+    static long long const c_update_ticks_per_second = 144;
+    static std::string const c_interface_update_section;
+    static size_t const c_interface_update_section_size = 1024 * 1024 * 8;
 };
 
 }
