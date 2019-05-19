@@ -307,13 +307,13 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
     // Create input layout
     {
         std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
-            std::make_shared<VertexAttributeSpecification<float, 2>>(0, IM_OFFSETOF(ImDrawVert, pos), "POSITION", 0, 0)
+            std::make_shared<VertexAttributeSpecification<float, 2>>(0, static_cast<unsigned char>(IM_OFFSETOF(ImDrawVert, pos)), "POSITION", 0, 0)
             );
         std::shared_ptr<AbstractVertexAttributeSpecification> uv = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
-            std::make_shared<VertexAttributeSpecification<float, 2>>(0, IM_OFFSETOF(ImDrawVert, uv), "TEXCOORD", 0, 0)
+            std::make_shared<VertexAttributeSpecification<float, 2>>(0, static_cast<unsigned char>(IM_OFFSETOF(ImDrawVert, uv)), "TEXCOORD", 0, 0)
             );
         std::shared_ptr<AbstractVertexAttributeSpecification> color = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
-            std::make_shared<VertexAttributeSpecification<float, 4>>(0, IM_OFFSETOF(ImDrawVert, col), "COLOR", 0, 0)
+            std::make_shared<VertexAttributeSpecification<float, 4>>(0, static_cast<unsigned char>(IM_OFFSETOF(ImDrawVert, col)), "COLOR", 0, 0)
             );
         m_va_list = VertexAttributeSpecificationList{ position, uv, color };
     }
