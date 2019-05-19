@@ -459,9 +459,6 @@
     <ClInclude Include="core\dx\d3d12\constant_buffer_stream.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\profiler_task.h">
-      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
-    </ClInclude>
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.h">
       <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
     </ClInclude>
@@ -470,6 +467,9 @@
     </ClInclude>
     <ClInclude Include="core\dx\d3d12\basic_rendering_services.h">
       <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\ui_draw_task.h">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -740,14 +740,14 @@
     <ClCompile Include="core\dx\d3d12\constant_buffer_stream.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\profiler_task.cpp">
-      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
-    </ClCompile>
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.cpp">
       <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\basic_rendering_services.cpp">
       <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\ui_draw_task.cpp">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

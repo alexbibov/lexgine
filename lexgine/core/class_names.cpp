@@ -37,5 +37,6 @@ extern char const Dummy[] = "lexgine::core::Dummy";
 extern char const D3D12_RootSignatureCache[] = "lexgine::core::dx::d3d12::RootSignatureCache";
 extern char const D3D12_UploadBufferAllocator[] = "lexgine::core::dx::d3d12::UploadBufferAllocator";
 extern char const D3D12_RenderingTasks[] = "lexgine::core::dx::d3d12::RenderingTasks";
-
+extern char const BasicRenderingServices[] = "lexgine::core::dx::d3d12::BasicRenderingServices";
+extern char const ConstantBufferStream[] = "lexgine::core::dx::d3d12::ConstantBufferStream";
 }

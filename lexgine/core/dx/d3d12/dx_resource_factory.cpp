@@ -136,6 +136,8 @@ dxgi::HwAdapter const* DxResourceFactory::retrieveHwAdapterOwningDevicePtr(Devic
 
 misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHeap(Heap const& upload_heap, std::string const& section_name, size_t section_size)
 {
+    size_t aligned_section_size = misc::align(section_size, 256);
+
     auto p = m_upload_heap_partitions.find(&upload_heap);
     if (p == m_upload_heap_partitions.end())
     {
@@ -143,7 +145,7 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHe
         new_partitioning.partitioned_space_size = section_size;
         auto q = new_partitioning.partitioning.insert(std::make_pair(
             misc::HashedString{ section_name },
-            UploadHeapPartition{ 0ULL, section_size }
+            UploadHeapPartition{ 0ULL, aligned_section_size }
         )).first;
 
         m_upload_heap_partitions.insert(std::make_pair(&upload_heap, new_partitioning));
@@ -159,8 +161,8 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHe
 
             if(offset + section_size <= upload_heap.capacity())
             {
-                auto r = p->second.partitioning.insert(std::make_pair(section_hash, UploadHeapPartition{ offset, section_size })).first;
-                offset += section_size;
+                auto r = p->second.partitioning.insert(std::make_pair(section_hash, UploadHeapPartition{ offset, aligned_section_size })).first;
+                offset += aligned_section_size;
                 return r->second;
             }
             else

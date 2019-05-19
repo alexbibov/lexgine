@@ -1,4 +1,5 @@
 #include "lexgine/core/globals.h"
+#include "lexgine/core/exception.h"
 #include "lexgine/core/viewport.h"
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 #include "lexgine/core/dx/d3d12/constant_buffer_stream.h"
@@ -11,6 +12,9 @@
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
+std::string const BasicRenderingServices::c_upload_section_name = "data_upload_section";
+float const BasicRenderingServices::c_upload_section_fraction = .8f;
+
 namespace {
 
 size_t getUploadDataSectionOffset(Globals& globals)
@@ -19,12 +23,6 @@ size_t getUploadDataSectionOffset(Globals& globals)
     size_t offset = static_cast<size_t>(std::ceilf(global_settings.getUploadHeapCapacity()
         * global_settings.getStreamedConstantDataPartitioning()));
     return misc::align(offset, 256);
-}
-
-size_t getUploadDataSectionSize(Globals& globals)
-{
-    auto& global_settings = *globals.get<GlobalSettings>();
-    return global_settings.getUploadHeapCapacity() - getUploadDataSectionOffset(globals);
 }
 
 }
@@ -37,13 +35,36 @@ BasicRenderingServices::BasicRenderingServices(Globals& globals)
     , m_rendering_target_color_format{ DXGI_FORMAT_UNKNOWN }
     , m_rendering_target_depth_format{ DXGI_FORMAT_UNKNOWN }
     , m_constant_data_stream{ globals }
-    , m_resource_upload_allocator{ globals, getUploadDataSectionOffset(globals), getUploadDataSectionSize(globals) }
 {
-    m_page0_descriptor_heaps.resize(2);
-    for (size_t i = 0; i < 2; ++i)
-    {
-        DescriptorHeap const& descriptor_heap = m_dx_resources.retrieveDescriptorHeap(m_device, static_cast<DescriptorHeapType>(i), 0);
-        m_page0_descriptor_heaps[i] = &descriptor_heap;
+    {    // initialize descriptor heap pages
+        m_page0_descriptor_heaps.resize(2);
+        for (size_t i = 0; i < 2; ++i)
+        {
+            DescriptorHeap const& descriptor_heap = m_dx_resources.retrieveDescriptorHeap(m_device, static_cast<DescriptorHeapType>(i), 0);
+            m_page0_descriptor_heaps[i] = &descriptor_heap;
+        }
+    }
+
+    {    // initialize resource upload stream allocator
+        auto& global_settings = *globals.get<GlobalSettings>();
+        size_t upload_stream_capacity = static_cast<size_t>(
+            (global_settings.getUploadHeapCapacity() - getUploadDataSectionOffset(globals))
+            * static_cast<double>(BasicRenderingServices::c_upload_section_fraction)
+            );
+
+        auto& dx_resource_factory = *globals.get<DxResourceFactory>();
+        Device& device = *globals.get<Device>();
+        auto upload_heap_section = dx_resource_factory.allocateSectionInUploadHeap(dx_resource_factory.retrieveUploadHeap(device),
+            BasicRenderingServices::c_upload_section_name, upload_stream_capacity);
+
+        if (!upload_heap_section.isValid())
+        {
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
+                "Unable to allocate section \"" + BasicRenderingServices::c_upload_section_name + "\" in upload heap");
+        }
+
+        UploadHeapPartition const& upload_heap_partition = static_cast<UploadHeapPartition const&>(upload_heap_section);
+        m_resource_upload_allocator = std::make_unique<DedicatedUploadDataStreamAllocator>(globals, upload_heap_partition.offset, upload_heap_partition.size);
     }
 }
 

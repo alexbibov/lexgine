@@ -1,6 +1,8 @@
 #ifndef LEXGINE_CORE_DX_D3D12_BASIC_RENDERING_SERVICES_H
 #define LEXGINE_CORE_DX_D3D12_BASIC_RENDERING_SERVICES_H
 
+#include <memory>
+
 #include "lexgine/core/math/vector_types.h"
 #include "lexgine/core/misc/static_vector.h"
 #include "lexgine/core/viewport.h"
@@ -13,9 +15,13 @@ namespace lexgine::core::dx::d3d12 {
 
 template<typename T> class BasicRenderingServicesAttorney;
 
-class BasicRenderingServices final
+class BasicRenderingServices final : public NamedEntity<class_names::BasicRenderingServices>
 {
     friend class BasicRenderingServicesAttorney<RenderingTasks>;
+
+public:
+    static std::string const c_upload_section_name;
+    static float const c_upload_section_fraction;
 
 public:
     BasicRenderingServices(Globals& globals);
@@ -30,7 +36,7 @@ public:
         float depth_clear_value = 1.f) const;
 
     ConstantBufferStream& constantDataStream() { return m_constant_data_stream; }
-    DedicatedUploadDataStreamAllocator& resourceUploadAllocator() { return m_resource_upload_allocator; }
+    DedicatedUploadDataStreamAllocator& resourceUploadAllocator() { return *m_resource_upload_allocator; }
 
 private:
     void defineRenderingTarget(RenderingTarget& rendering_target) { m_current_rendering_target_ptr = &rendering_target; }
@@ -56,7 +62,9 @@ private:
 
     misc::StaticVector<DescriptorHeap const*, 4U> m_page0_descriptor_heaps;
     ConstantBufferStream m_constant_data_stream;
-    DedicatedUploadDataStreamAllocator m_resource_upload_allocator;
+    std::unique_ptr<DedicatedUploadDataStreamAllocator> m_resource_upload_allocator;
+
+    
 };
 
 template<> class BasicRenderingServicesAttorney<RenderingTasks>
