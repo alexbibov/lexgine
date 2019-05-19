@@ -88,13 +88,13 @@ public:
      parameter. Integer value @param name_index is needed when same string name is associated with more than one vertex attribute.
      One special example is a 4x4 matrix with string name "MyMatrix" on the shader side. Such matrix can be associated with up to 4 vertex attributes
      having string name "MyMatrix" and name indexes ranging from 0 to 3.
-     @param element_stride identifies the distance between two consequent elements defined in bytes.
+     @param element_offset determines the offset of the attribute within a vertex attribute pack.
      Finally, @param instancing_data_rate determines the number of instances to draw before advancing one element in the buffer, 
      from which the data related to this vertex attribute specification are getting fetched. Must be 0 if the data are specified per vertex.
      */
-    VertexAttributeSpecification(unsigned char primitive_assembler_input_slot, unsigned char element_stride,
+    VertexAttributeSpecification(unsigned char primitive_assembler_input_slot, unsigned char element_offset,
         char const* name, uint32_t name_index, uint32_t instancing_data_rate):
-        AbstractVertexAttributeSpecification{ primitive_assembler_input_slot, element_stride, name, name_index, instancing_data_rate }
+        AbstractVertexAttributeSpecification{ primitive_assembler_input_slot, element_offset, name, name_index, instancing_data_rate }
     {
 
     }
