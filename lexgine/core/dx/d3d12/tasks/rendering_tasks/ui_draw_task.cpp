@@ -10,6 +10,7 @@
 #include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
+#include "lexgine/core/math/utility.h"
 #include "ui_draw_task.h"
 
 
@@ -154,6 +155,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
     , m_rendering_window{ rendering_window }
     , m_time_counter{ std::chrono::high_resolution_clock::now().time_since_epoch().count() }
     , m_resource_uploader{ globals, basic_rendering_services.resourceUploadAllocator() }
+    , m_cb_data_mapping{ m_cb_reflection }
 {
     m_rendering_window.addListener(this);
 
@@ -302,6 +304,21 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
         UploadHeapPartition const& ui_update_section_partition = static_cast<UploadHeapPartition const&>(ui_update_section);
         m_ui_data_allocator = std::make_unique<PerFrameUploadDataStreamAllocator>(globals, ui_update_section_partition.offset, ui_update_section_partition.size,
             dx_resource_factory.retrieveFrameProgressTracker(device));
+    }
+
+
+    // Setup constant buffer data
+    {
+        auto const& viewport = m_basic_rendering_services.defaultViewport();
+        auto viewport_top_left_corner = viewport.topLeftCorner();
+
+        m_projection_transform = math::createOrthogonalProjectionMatrix(misc::EngineAPI::Direct3D12,
+            viewport_top_left_corner.x, viewport_top_left_corner.y, viewport.width(), viewport.height(), -1.f, 1.f);
+
+        m_cb_reflection.addElement("ProjectionMatrix",
+            ConstantBufferReflection::ReflectionEntryDesc{ ConstantBufferReflection::ReflectionEntryBaseType::float4x4, 1 });
+
+        m_cb_data_mapping.addDataBinding("ProjectionMatrix", m_projection_transform);
     }
 
     // Create input layout

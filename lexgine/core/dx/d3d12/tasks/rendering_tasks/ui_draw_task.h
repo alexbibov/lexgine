@@ -9,6 +9,7 @@
 
 #include "lexgine/core/dx/d3d12/resource_data_uploader.h"
 #include "lexgine/core/dx/d3d12/vertex_buffer_binding.h"
+#include "lexgine/core/dx/d3d12/constant_buffer_data_mapper.h"
 #include "lexgine/core/concurrency/schedulable_task.h"
 #include "lexgine/osinteraction/windows/lexgine_osinteraction_windows_fwd.h"
 #include "lexgine/osinteraction/listener.h"
@@ -79,6 +80,10 @@ private:
     tasks::GraphicsPSOCompilationTask* m_pso = nullptr;
     VertexAttributeSpecificationList m_va_list;
     GraphicsPSODescriptor m_pso_desc;
+
+    math::Matrix4f m_projection_transform;
+    ConstantBufferReflection m_cb_reflection;
+    ConstantBufferDataMapper m_cb_data_mapping;
 
     std::unique_ptr<CommittedResource> m_fonts_texture;
     std::unique_ptr<PerFrameUploadDataStreamAllocator> m_ui_data_allocator;

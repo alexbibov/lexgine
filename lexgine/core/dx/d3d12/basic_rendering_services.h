@@ -35,6 +35,7 @@ public:
         math::Vector4f const& color_clear_value = math::Vector4f{ 0.f, 0.f, 0.f, 0.f },
         float depth_clear_value = 1.f) const;
 
+    Viewport const& defaultViewport() const { return m_default_viewports[0]; }
     ConstantBufferStream& constantDataStream() { return m_constant_data_stream; }
     DedicatedUploadDataStreamAllocator& resourceUploadAllocator() { return *m_resource_upload_allocator; }
 
