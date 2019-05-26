@@ -18,7 +18,7 @@ CommandQueue const& SwapChain::defaultCommandQueue() const
     return m_default_command_queue;
 }
 
-osinteraction::windows::Window const& SwapChain::window() const
+osinteraction::windows::Window& SwapChain::window() const
 {
     return m_window;
 }
@@ -67,7 +67,7 @@ SwapChainDescriptor const& SwapChain::descriptor() const
 SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     Device& device,
     CommandQueue const& default_command_queue,
-    osinteraction::windows::Window const& window,
+    osinteraction::windows::Window& window,
     SwapChainDescriptor const& desc, SwapChainAdvancedParameters const& advanced_parameters)
     : m_dxgi_factory{ dxgi_factory }
     , m_device{ device }

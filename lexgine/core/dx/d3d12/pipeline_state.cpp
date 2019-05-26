@@ -118,13 +118,13 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
         {
             blend_desc.RenderTarget[i].BlendEnable = pso_descriptor.blend_state.render_target_blend_descriptor[i].isEnabled();
             blend_desc.RenderTarget[i].LogicOpEnable = pso_descriptor.blend_state.render_target_blend_descriptor[i].isLogicalOperationEnabled();
-            auto srt_blend_factors = pso_descriptor.blend_state.render_target_blend_descriptor[i].getSourceBlendFactors();
+            auto src_blend_factors = pso_descriptor.blend_state.render_target_blend_descriptor[i].getSourceBlendFactors();
             auto dst_blend_factors = pso_descriptor.blend_state.render_target_blend_descriptor[i].getDestinationBlendFactors();
             auto blend_op = pso_descriptor.blend_state.render_target_blend_descriptor[i].getBlendOperation();
-            blend_desc.RenderTarget[i].SrcBlend = d3d12Convert(srt_blend_factors.first);
+            blend_desc.RenderTarget[i].SrcBlend = d3d12Convert(src_blend_factors.first);
             blend_desc.RenderTarget[i].DestBlend = d3d12Convert(dst_blend_factors.first);
             blend_desc.RenderTarget[i].BlendOp = d3d12Convert(blend_op.first);
-            blend_desc.RenderTarget[i].SrcBlendAlpha = d3d12Convert(srt_blend_factors.second);
+            blend_desc.RenderTarget[i].SrcBlendAlpha = d3d12Convert(src_blend_factors.second);
             blend_desc.RenderTarget[i].DestBlendAlpha = d3d12Convert(dst_blend_factors.second);
             blend_desc.RenderTarget[i].BlendOpAlpha = d3d12Convert(blend_op.second);
             blend_desc.RenderTarget[i].LogicOp = d3d12Convert(pso_descriptor.blend_state.render_target_blend_descriptor[i].getBlendLogicalOperation());

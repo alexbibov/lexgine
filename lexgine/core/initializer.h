@@ -62,7 +62,7 @@ public:
     uint32_t getAdapterCount() const;    //! returns total number of adapters installed in the host system including the virtual WARP adapter
 
     //! helper function, which simplifies creation of a swap chain for the current device
-    dx::dxgi::SwapChain createSwapChainForCurrentDevice(osinteraction::windows::Window const& window, dx::dxgi::SwapChainDescriptor const& desc) const;
+    dx::dxgi::SwapChain createSwapChainForCurrentDevice(osinteraction::windows::Window& window, dx::dxgi::SwapChainDescriptor const& desc) const;
 
     //! hepler function creating the main rendering loop abstraction
     std::unique_ptr<dx::d3d12::RenderingTasks> createRenderingTasks() const;

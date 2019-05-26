@@ -5,12 +5,14 @@
 #include "lexgine/core/exception.h"
 
 #include "lexgine/core/dx/d3d12/tasks/rendering_tasks/test_rendering_task.h"
+#include "lexgine/core/dx/d3d12/tasks/rendering_tasks/ui_draw_task.h"
 
 #include "dx_resource_factory.h"
 #include "device.h"
 #include "frame_progress_tracker.h"
 
 
+using namespace lexgine;
 using namespace lexgine::core;
 using namespace lexgine::core::math;
 using namespace lexgine::core::concurrency;
@@ -46,7 +48,8 @@ RenderingTasks::~RenderingTasks()
 }
 
 void RenderingTasks::defineRenderingConfiguration(Viewport const& viewport,
-    DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format)
+    DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format,
+    osinteraction::windows::Window* p_rendering_window/* = nullptr*/)
 {
     cleanup();
 
@@ -60,9 +63,20 @@ void RenderingTasks::defineRenderingConfiguration(Viewport const& viewport,
     {
         // update rendering tasks
         m_test_rendering_task->updateBufferFormats(rendering_target_color_format, rendering_target_depth_format);
+
+        if (p_rendering_window == nullptr)
+            m_ui_draw_task.reset();
+        else
+            m_ui_draw_task = UIDrawTask::create(m_globals, m_basic_rendering_services, *p_rendering_window);
+
+        m_ui_draw_task->updateBufferFormats(rendering_target_color_format, rendering_target_depth_format);
     }
     
     m_task_graph.setRootNodes({ m_test_rendering_task.get() });
+
+    if (m_ui_draw_task)
+        m_test_rendering_task->addDependent(*m_ui_draw_task);
+
     m_task_sink.start();
 }
 

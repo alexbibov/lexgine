@@ -208,7 +208,7 @@ void CommandList::inputAssemblySetPrimitiveTopology(PrimitiveTopology primitive_
 
 void CommandList::inputAssemblySetVertexBuffers(VertexBufferBinding const& vb_binding)
 {
-    D3D12_VERTEX_BUFFER_VIEW native_vb_views[c_input_assemblers_count];
+    D3D12_VERTEX_BUFFER_VIEW native_vb_views[c_input_assembler_count];
 
     unsigned long index{ 0 };
     size_t offset{ 0 };
@@ -270,7 +270,7 @@ void CommandList::rasterizerStateSetViewports(misc::StaticVector<Viewport, c_max
     m_command_list->RSSetViewports(static_cast<UINT>(viewports.size()), native_viewports.data());
 }
 
-void CommandList::rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_viewport_count> const& rectangles) const
+void CommandList::rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_scissor_rectangle_count> const& rectangles) const
 {
     misc::StaticVector<D3D12_RECT, c_maximal_viewport_count> native_rects(rectangles.size());
     std::transform(rectangles.begin(), rectangles.end(), native_rects.begin(), convertRectangleToDXGINativeRECT);
@@ -329,13 +329,13 @@ void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable c
 void CommandList::clearDepthStencilView(DepthStencilViewDescriptorTable const& dsv_descriptor_table,
     uint32_t dsv_descriptor_table_offset, DSVClearFlags clear_flags, 
     float depth_clear_value, uint8_t stencil_clear_value, 
-    misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles) const
+    misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles) const
 {
     D3D12_CPU_DESCRIPTOR_HANDLE dsv_cpu_handle{ dsv_descriptor_table.cpu_pointer
             + dsv_descriptor_table.descriptor_size*dsv_descriptor_table_offset };
     D3D12_CLEAR_FLAGS flags = static_cast<D3D12_CLEAR_FLAGS>(clear_flags);
 
-    misc::StaticVector<RECT, c_maximal_clear_rectangles_count> native_clear_rectangles(clear_rectangles.size());
+    misc::StaticVector<RECT, c_maximal_clear_rectangle_count> native_clear_rectangles(clear_rectangles.size());
     std::transform(clear_rectangles.begin(), clear_rectangles.end(),
         native_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
 
@@ -345,12 +345,12 @@ void CommandList::clearDepthStencilView(DepthStencilViewDescriptorTable const& d
 
 void CommandList::clearRenderTargetView(RenderTargetViewDescriptorTable const& rtv_descriptor_table, 
     uint32_t rtv_descriptor_table_offset, math::Vector4f const& rgba_clear_value, 
-    misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles) const
+    misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles) const
 {
     D3D12_CPU_DESCRIPTOR_HANDLE rtv_cpu_descriptor{ rtv_descriptor_table.cpu_pointer
         + rtv_descriptor_table.descriptor_size*rtv_descriptor_table_offset };
 
-    misc::StaticVector<RECT, c_maximal_clear_rectangles_count> native_clear_rectangles(clear_rectangles.size());
+    misc::StaticVector<RECT, c_maximal_clear_rectangle_count> native_clear_rectangles(clear_rectangles.size());
     std::transform(clear_rectangles.begin(), clear_rectangles.end(),
         native_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
 
@@ -360,7 +360,7 @@ void CommandList::clearRenderTargetView(RenderTargetViewDescriptorTable const& r
 
 void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, 
     uint32_t uav_descriptor_table_offset, Resource const& resource_to_clear, math::Vector4u const& rgba_clear_value, 
-    misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles) const
+    misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles) const
 {
     D3D12_CPU_DESCRIPTOR_HANDLE uav_cpu_descriptor{ uav_descriptor_table.cpu_pointer
         + uav_descriptor_table.descriptor_size*uav_descriptor_table_offset };
@@ -368,7 +368,7 @@ void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& 
     D3D12_GPU_DESCRIPTOR_HANDLE uav_gpu_descriptor{ uav_descriptor_table.gpu_pointer
         + uav_descriptor_table.descriptor_size*uav_descriptor_table_offset };
 
-    misc::StaticVector<RECT, c_maximal_clear_rectangles_count> native_clear_rectangles(clear_rectangles.size());
+    misc::StaticVector<RECT, c_maximal_clear_rectangle_count> native_clear_rectangles(clear_rectangles.size());
     std::transform(clear_rectangles.begin(), clear_rectangles.end(),
         native_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
 
@@ -379,7 +379,7 @@ void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& 
 
 void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, 
     uint32_t uav_descriptor_table_offset, Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value, 
-    misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles) const
+    misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles) const
 {
     D3D12_CPU_DESCRIPTOR_HANDLE uav_cpu_descriptor{ uav_descriptor_table.cpu_pointer
         + uav_descriptor_table.descriptor_size*uav_descriptor_table_offset };
@@ -387,7 +387,7 @@ void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& 
     D3D12_GPU_DESCRIPTOR_HANDLE uav_gpu_descriptor{ uav_descriptor_table.gpu_pointer
         + uav_descriptor_table.descriptor_size*uav_descriptor_table_offset };
 
-    misc::StaticVector<RECT, c_maximal_clear_rectangles_count> native_clear_rectangles(clear_rectangles.size());
+    misc::StaticVector<RECT, c_maximal_clear_rectangle_count> native_clear_rectangles(clear_rectangles.size());
     std::transform(clear_rectangles.begin(), clear_rectangles.end(),
         native_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
 

@@ -27,23 +27,43 @@ D3D12_VERTEX_BUFFER_VIEW const& VertexBufferBinding::vertexBufferViewAtSlot(uint
 }
 
 IndexBufferBinding::IndexBufferBinding(Resource const& source_index_data_resource, uint64_t index_data_offset,
-    IndexDataType index_format, uint32_t indices_count)
+    IndexDataType index_format, uint32_t index_count)
+    : m_index_data_offset{ index_data_offset }
 {
-    m_native_ib_view.BufferLocation = static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(source_index_data_resource.getGPUVirtualAddress() + index_data_offset);
+    m_native_ib_view.BufferLocation = static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(source_index_data_resource.getGPUVirtualAddress() + m_index_data_offset);
 
     switch (index_format)
     {
     case IndexDataType::_16_bit:
         m_native_ib_view.Format = DXGI_FORMAT_R16_UINT;
-        m_native_ib_view.SizeInBytes = 2 * indices_count;
+        m_native_ib_view.SizeInBytes = 2 * index_count;
         break;
     case IndexDataType::_32_bit:
         m_native_ib_view.Format = DXGI_FORMAT_R32_UINT;
-        m_native_ib_view.SizeInBytes = 4 * indices_count;
+        m_native_ib_view.SizeInBytes = 4 * index_count;
         break;
     default:
-        assert(false);
+        __assume(0);
     }
+}
+
+void IndexBufferBinding::update(uint64_t new_index_data_offset, uint32_t new_index_count)
+{
+    switch (m_native_ib_view.Format)
+    {
+    case DXGI_FORMAT_R16_UINT:
+        m_native_ib_view.SizeInBytes = 2 * new_index_count;
+        break;
+
+    case DXGI_FORMAT_R32_UINT:
+        m_native_ib_view.SizeInBytes = 4 * new_index_count;
+        break;
+
+    default:
+        __assume(0);
+    }
+
+    m_native_ib_view.BufferLocation = m_native_ib_view.BufferLocation - m_index_data_offset + new_index_data_offset;
 }
 
 D3D12_INDEX_BUFFER_VIEW const& IndexBufferBinding::indexBufferView() const

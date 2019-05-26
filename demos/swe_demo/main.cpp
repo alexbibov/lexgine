@@ -21,7 +21,7 @@ EngineSettings createEngineSettings()
 {
     EngineSettings settings;
 
-    settings.debug_mode = false;
+    settings.debug_mode = true;
     settings.adapter_enumeration_preference = HwAdapterEnumerator::DxgiGpuPreference::high_performance;
     settings.global_lookup_prefix = "";
     settings.settings_lookup_path = "../../settings/";
@@ -51,20 +51,11 @@ class MainClass final :
     WindowSizeChangeListener, ClientAreaUpdateListener>
 {
 public:
-    MainClass()
-        : m_engine_settings{ createEngineSettings() }
-        , m_engine_initializer{ m_engine_settings }
-        , m_swap_chain{ m_engine_initializer.createSwapChainForCurrentDevice(m_rendering_window, createSwapChainSettings()) }
-        , m_rendering_tasks{ m_engine_initializer.createRenderingTasks() }
-        , m_swap_chain_link{ m_engine_initializer.createSwapChainLink(m_swap_chain, lexgine::core::dx::d3d12::SwapChainDepthBufferFormat::d32float, *m_rendering_tasks) }
+    static std::shared_ptr<MainClass> create()
     {
-        m_rendering_window.setLocation(10, 10);
-        m_rendering_window.setDimensions(lexgine::core::math::Vector2u{ 1280, 720 });
-        
-        m_rendering_window.addListener(this);
-        m_rendering_window.setVisibility(true);
-
-        Device& dev_ref = m_engine_initializer.getCurrentDevice();
+        auto rv = std::shared_ptr<MainClass>{new MainClass{}};
+        rv->m_rendering_window.addListener(rv);
+        return rv;
     }
 
     ~MainClass()
@@ -208,6 +199,22 @@ public:
         return true;
     }
 
+ private:
+     MainClass()
+         : m_engine_settings{ createEngineSettings() }
+         , m_engine_initializer{ m_engine_settings }
+         , m_swap_chain{ m_engine_initializer.createSwapChainForCurrentDevice(m_rendering_window, createSwapChainSettings()) }
+         , m_rendering_tasks{ m_engine_initializer.createRenderingTasks() }
+         , m_swap_chain_link{ m_engine_initializer.createSwapChainLink(m_swap_chain, lexgine::core::dx::d3d12::SwapChainDepthBufferFormat::d32float, *m_rendering_tasks) }
+     {
+         m_rendering_window.setLocation(10, 10);
+         m_rendering_window.setDimensions(lexgine::core::math::Vector2u{ 1280, 720 });
+
+         m_rendering_window.setVisibility(true);
+
+         Device& dev_ref = m_engine_initializer.getCurrentDevice();
+     }
+
 private:
     EngineSettings m_engine_settings;
     Initializer m_engine_initializer;
@@ -219,11 +226,11 @@ private:
 
 int main(int argc, char* argv[])
 {
-    MainClass main_class{};
-    while (!main_class.shouldClose())
+    auto main = MainClass::create();
+    while (!main->shouldClose())
     {
-        main_class.loop();
-        main_class.update();
+        main->loop();
+        main->update();
     }
 
     return 0;
