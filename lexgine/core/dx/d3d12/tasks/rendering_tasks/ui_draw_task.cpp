@@ -6,7 +6,7 @@
 #include "lexgine/core/dx/d3d12/device.h"
 #include "lexgine/core/dx/d3d12/resource.h"
 #include "lexgine/core/dx/d3d12/basic_rendering_services.h"
-#include "lexgine/core/dx/d3d12/srv_descriptor.h"
+#include "lexgine/core/dx/d3d12/descriptor_table_builders.h"
 #include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
@@ -146,196 +146,6 @@ void updateMousePosition(HWND hwnd)
 
 }
 
-
-UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services,
-    osinteraction::windows::Window& rendering_window)
-    : m_globals{ globals }
-    , m_device{ *globals.get<Device>() }
-    , m_basic_rendering_services{ basic_rendering_services }
-    , m_rendering_window{ rendering_window }
-    , m_time_counter{ std::chrono::high_resolution_clock::now().time_since_epoch().count() }
-    , m_resource_uploader{ globals, basic_rendering_services.resourceUploadAllocator() }
-    , m_cb_data_mapping{ m_cb_reflection }
-{
-    m_rendering_window.addListener(this);
-
-    defineImGUIKeyMap(m_rendering_window.native());
-
-    ImGuiIO& io = ImGui::GetIO();
-    m_mouse_cursor = io.MouseDrawCursor
-        ? ImGuiMouseCursor_None
-        : ImGui::GetMouseCursor();
-
-    // Setup UI device objects
-    {
-        // root signature
-        {
-            task_caches::RootSignatureCompilationTaskCache& rs_compilation_task_cache = *m_globals.get<task_caches::RootSignatureCompilationTaskCache>();
-            RootSignature rs{};
-
-            // parameter 0 (rendering constants, root constants)
-            {
-                RootEntryConstants root_constants{ 0, 0, 16 };
-                rs.addParameter(0, root_constants, ShaderVisibility::vertex);
-            }
-
-            // parameter 1 (font texture, root SRV)
-            {
-                RootEntrySRVDescriptor root_srv_descriptor{ 0, 0 };
-                rs.addParameter(1, root_srv_descriptor, ShaderVisibility::pixel);
-            }
-
-            // static bilinear sampler
-            {
-                FilterPack filtering_parameters{ MinificationFilter::linear_mipmap_linear, MagnificationFilter::linear, 0,
-                WrapMode::repeat, WrapMode::repeat, WrapMode::repeat, StaticBorderColor::transparent_black };
-                RootStaticSampler sampler{ 0, 0, filtering_parameters };
-                rs.addStaticSampler(sampler, ShaderVisibility::pixel);
-            }
-
-            RootSignatureFlags flags = RootSignatureFlags::enum_type::allow_input_assembler;
-            flags |= RootSignatureFlags::enum_type::deny_hull_shader;
-            flags |= RootSignatureFlags::enum_type::deny_domain_shader;
-            flags |= RootSignatureFlags::enum_type::deny_geometry_shader;
-
-            m_rs = rs_compilation_task_cache.findOrCreateTask(globals, std::move(rs), flags, "ui_rendering_rs", 0);
-        }
-
-        // shaders
-        {
-            static char const* const hlsl_source =
-                "struct ConstantBufferDataStruct\
-                {\
-                    float4x4 ProjectionMatrix; \
-                }; \
-                ConstantBuffer<ConstantBufferDataStruct> vertexBuffer : register(b0) \
-                {\
-                    float4x4 ProjectionMatrix; \
-                }; \
-                struct VS_INPUT\
-                {\
-                    float2 pos : POSITION; \
-                    float4 col : COLOR0; \
-                    float2 uv : TEXCOORD0; \
-                }; \
-                \
-                struct PS_INPUT\
-                {\
-                    float4 pos : SV_POSITION; \
-                    float4 col : COLOR0; \
-                    float2 uv : TEXCOORD0; \
-                }; \
-                \
-                PS_INPUT VSMain(VS_INPUT input)\
-                {\
-                    PS_INPUT output; \
-                    output.pos = mul(ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f)); \
-                    output.col = input.col; \
-                    output.uv = input.uv; \
-                    return output; \
-                }\
-                \
-                SamplerState sampler0 : register(s0);\
-                Texture2D<float4> texture0 : register(t0);\
-                \
-                float4 PSMain(PS_INPUT input) : SV_Target\
-                {\
-                    float4 out_col = input.col * texture0.Sample(sampler0, input.uv); \
-                    return out_col; \
-                }";
-
-            task_caches::HLSLCompilationTaskCache& hlsl_compilation_task_cache = *m_globals.get<task_caches::HLSLCompilationTaskCache>();
-            task_caches::HLSLSourceTranslationUnit hlsl_translation_unit{ m_globals, "ui_rendering_shader", hlsl_source };
-
-            m_vs = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, dxcompilation::ShaderModel::model_62, dxcompilation::ShaderType::vertex, "VSMain");
-            m_ps = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, dxcompilation::ShaderModel::model_62, dxcompilation::ShaderType::pixel, "PSMain");
-        }
-    }
-
-    // Fetch and upload UI font texture
-    {
-        unsigned char* pixels{ nullptr };
-        int width{}, height{};
-        io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-
-        ResourceDescriptor font_texture_descriptor = ResourceDescriptor::CreateTexture2D(width, height, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
-
-        m_fonts_texture = std::make_unique<CommittedResource>(m_device, ResourceState::enum_type::pixel_shader,
-            misc::makeEmptyOptional<ResourceOptimizedClearValue>(), font_texture_descriptor, AbstractHeapType::default,
-            HeapCreationFlags::enum_type::allow_all);
-
-        ResourceDataUploader::TextureSourceDescriptor source_descriptor{};
-        ResourceDataUploader::TextureSourceDescriptor::Subresource texture_subresource{ 
-            pixels, 
-            static_cast<size_t>(width) * 4ULL, 
-            static_cast<size_t>(width) * static_cast<size_t>(height) * 4ULL 
-        };
-        source_descriptor.subresources.emplace_back(texture_subresource);
-
-        ResourceDataUploader::DestinationDescriptor destination_descriptor{};
-        destination_descriptor.p_destination_resource = m_fonts_texture.get();
-        destination_descriptor.destination_resource_state = ResourceState::enum_type::pixel_shader;
-        destination_descriptor.segment.subresources.first_subresource = 0;
-        destination_descriptor.segment.subresources.num_subresources = 1;
-
-        m_resource_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
-        m_resource_uploader.upload();
-        m_resource_uploader.waitUntilUploadIsFinished();
-
-        io.Fonts->TexID = reinterpret_cast<ImTextureID>(m_fonts_texture->getGPUVirtualAddress());
-    }
-
-    // Create UI update section in upload heap
-    {
-        DxResourceFactory& dx_resource_factory = *globals.get<DxResourceFactory>();
-        Device& device = *globals.get<Device>();
-
-        auto ui_update_section = dx_resource_factory.allocateSectionInUploadHeap(dx_resource_factory.retrieveUploadHeap(device),
-            UIDrawTask::c_interface_update_section,
-            UIDrawTask::c_interface_update_section_size);
-
-        if (!ui_update_section.isValid())
-        {
-            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
-                "Unable to allocate UI update section \"" + UIDrawTask::c_interface_update_section
-                + "\" in data upload heap");
-        }
-
-        UploadHeapPartition const& ui_update_section_partition = static_cast<UploadHeapPartition const&>(ui_update_section);
-        m_ui_data_allocator = std::make_unique<PerFrameUploadDataStreamAllocator>(globals, ui_update_section_partition.offset, ui_update_section_partition.size,
-            dx_resource_factory.retrieveFrameProgressTracker(device));
-    }
-
-
-    // Setup constant buffer data
-    {
-        auto const& viewport = m_basic_rendering_services.defaultViewport();
-        auto viewport_top_left_corner = viewport.topLeftCorner();
-
-        m_projection_transform = math::createOrthogonalProjectionMatrix(misc::EngineAPI::Direct3D12,
-            viewport_top_left_corner.x, viewport_top_left_corner.y, viewport.width(), viewport.height(), -1.f, 1.f);
-
-        m_cb_reflection.addElement("ProjectionMatrix",
-            ConstantBufferReflection::ReflectionEntryDesc{ ConstantBufferReflection::ReflectionEntryBaseType::float4x4, 1 });
-
-        m_cb_data_mapping.addDataBinding("ProjectionMatrix", m_projection_transform);
-    }
-
-    // Create input layout
-    {
-        std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
-            std::make_shared<VertexAttributeSpecification<float, 2>>(0, static_cast<unsigned char>(IM_OFFSETOF(ImDrawVert, pos)), "POSITION", 0, 0)
-            );
-        std::shared_ptr<AbstractVertexAttributeSpecification> uv = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
-            std::make_shared<VertexAttributeSpecification<float, 2>>(0, static_cast<unsigned char>(IM_OFFSETOF(ImDrawVert, uv)), "TEXCOORD", 0, 0)
-            );
-        std::shared_ptr<AbstractVertexAttributeSpecification> color = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
-            std::make_shared<VertexAttributeSpecification<float, 4>>(0, static_cast<unsigned char>(IM_OFFSETOF(ImDrawVert, col)), "COLOR", 0, 0)
-            );
-        m_va_list = VertexAttributeSpecificationList{ position, uv, color };
-    }
-}
-
 UIDrawTask::~UIDrawTask() = default;
 
 void UIDrawTask::updateBufferFormats(DXGI_FORMAT color_buffer_format, DXGI_FORMAT depth_buffer_format)
@@ -386,6 +196,7 @@ void UIDrawTask::updateBufferFormats(DXGI_FORMAT color_buffer_format, DXGI_FORMA
         m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, m_pso_desc,
             "ui_rendering_pso__" + std::to_string(color_buffer_format) + "__" + std::to_string(depth_buffer_format), 0);
     }
+    m_pso->execute(0);
 }
 
 bool UIDrawTask::keyDown(osinteraction::SystemKey key)
@@ -472,10 +283,235 @@ bool UIDrawTask::setCursor()
     return updateMouseCursor();
 }
 
+UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services,
+    osinteraction::windows::Window& rendering_window)
+    : m_globals{ globals }
+    , m_device{ *globals.get<Device>() }
+    , m_basic_rendering_services{ basic_rendering_services }
+    , m_rendering_window{ rendering_window }
+    , m_time_counter{ std::chrono::high_resolution_clock::now().time_since_epoch().count() }
+    , m_resource_uploader{ globals, basic_rendering_services.resourceUploadAllocator() }
+    , m_projection_matrix_constants(16)
+    , m_cmd_list{ m_device.createCommandList(CommandType::direct, 0x1) }
+    , m_scissor_rectangles(1)
+{
+    IMGUI_CHECKVERSION();
+    m_gui_context = ImGui::CreateContext();
+
+    defineImGUIKeyMap(m_rendering_window.native());
+
+    ImGuiIO& io = ImGui::GetIO();
+    m_mouse_cursor = io.MouseDrawCursor
+        ? ImGuiMouseCursor_None
+        : ImGui::GetMouseCursor();
+
+    // Setup UI device objects
+    {
+        // root signature
+        {
+            task_caches::RootSignatureCompilationTaskCache& rs_compilation_task_cache = *m_globals.get<task_caches::RootSignatureCompilationTaskCache>();
+            RootSignature rs{};
+
+            // parameter 0 (rendering constants, root constants)
+            {
+                RootEntryConstants root_constants{ 0, 0, 16 };
+                rs.addParameter(0, root_constants, ShaderVisibility::vertex);
+            }
+
+            // parameter 1 (font texture, root SRV)
+            {
+                RootEntryDescriptorTable font_texture_srv_table{};
+                font_texture_srv_table.addRange(RootEntryDescriptorTable::RangeType::srv, 1, 0, 0, 0);
+                rs.addParameter(1, font_texture_srv_table, ShaderVisibility::pixel);
+            }
+
+            // static bilinear sampler
+            {
+                FilterPack filtering_parameters{ MinificationFilter::linear_mipmap_linear, MagnificationFilter::linear, 0,
+                WrapMode::repeat, WrapMode::repeat, WrapMode::repeat, StaticBorderColor::transparent_black };
+                RootStaticSampler sampler{ 0, 0, filtering_parameters };
+                rs.addStaticSampler(sampler, ShaderVisibility::pixel);
+            }
+
+            RootSignatureFlags flags = RootSignatureFlags::enum_type::allow_input_assembler;
+            flags |= RootSignatureFlags::enum_type::deny_hull_shader;
+            flags |= RootSignatureFlags::enum_type::deny_domain_shader;
+            flags |= RootSignatureFlags::enum_type::deny_geometry_shader;
+
+            m_rs = rs_compilation_task_cache.findOrCreateTask(globals, std::move(rs), flags, "ui_rendering_rs", 0);
+            m_rs->execute(0);
+        }
+
+        // shaders
+        {
+            static char const* const hlsl_source =
+                "struct ConstantBufferDataStruct\n\
+                {\n\
+                    float4x4 ProjectionMatrix;\n\
+                };\n \
+                ConstantBuffer<ConstantBufferDataStruct> constants : register(b0);\n\
+                \n\
+                struct VS_INPUT\n\
+                {\n\
+                    float2 pos : POSITION;\n\
+                    float4 col : COLOR0;\n\
+                    float2 uv : TEXCOORD0;\n\
+                };\n\
+                \n\
+                struct PS_INPUT\n\
+                {\n\
+                    float4 pos : SV_POSITION;\n\
+                    float4 col : COLOR0;\n\
+                    float2 uv : TEXCOORD0;\n\
+                };\n\
+                \n\
+                PS_INPUT VSMain(VS_INPUT input)\n\
+                {\n\
+                    PS_INPUT output;\n\
+                    output.pos = mul(constants.ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));\n\
+                    output.col = input.col;\n\
+                    output.uv = input.uv;\n\
+                    return output;\n\
+                }\n\
+                \n\
+                SamplerState sampler0 : register(s0);\n\
+                Texture2D<float4> texture0 : register(t0);\n\
+                \n\
+                float4 PSMain(PS_INPUT input) : SV_Target\n\
+                {\n\
+                    float4 out_col = input.col * texture0.Sample(sampler0, input.uv);\n\
+                    return out_col;\n\
+                }\n";
+
+            task_caches::HLSLCompilationTaskCache& hlsl_compilation_task_cache = *m_globals.get<task_caches::HLSLCompilationTaskCache>();
+            task_caches::HLSLSourceTranslationUnit hlsl_translation_unit{ m_globals, "ui_rendering_shader", hlsl_source };
+
+            m_vs = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, dxcompilation::ShaderModel::model_61, dxcompilation::ShaderType::vertex, "VSMain");
+            m_ps = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, dxcompilation::ShaderModel::model_61, dxcompilation::ShaderType::pixel, "PSMain");
+            m_vs->execute(0);
+            m_ps->execute(0);
+        }
+    }
+
+    // Fetch and upload UI font texture
+    {
+        unsigned char* pixels{ nullptr };
+        int width{}, height{};
+        io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+        ResourceDescriptor font_texture_descriptor = ResourceDescriptor::CreateTexture2D(width, height, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
+
+        m_fonts_texture = std::make_unique<CommittedResource>(m_device, ResourceState::enum_type::pixel_shader,
+            misc::makeEmptyOptional<ResourceOptimizedClearValue>(), font_texture_descriptor, AbstractHeapType::default,
+            HeapCreationFlags::enum_type::allow_all);
+
+        ResourceDataUploader::TextureSourceDescriptor source_descriptor{};
+        ResourceDataUploader::TextureSourceDescriptor::Subresource texture_subresource{
+            pixels,
+            static_cast<size_t>(width) * 4ULL,
+            static_cast<size_t>(width) * static_cast<size_t>(height) * 4ULL
+        };
+        source_descriptor.subresources.emplace_back(texture_subresource);
+
+        ResourceDataUploader::DestinationDescriptor destination_descriptor{};
+        destination_descriptor.p_destination_resource = m_fonts_texture.get();
+        destination_descriptor.destination_resource_state = ResourceState::enum_type::pixel_shader;
+        destination_descriptor.segment.subresources.first_subresource = 0;
+        destination_descriptor.segment.subresources.num_subresources = 1;
+
+        m_resource_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
+        m_resource_uploader.upload();
+        m_resource_uploader.waitUntilUploadIsFinished();
+
+        {
+            ResourceViewDescriptorTableBuilder builder{ globals, 0 };
+            builder.addDescriptor(SRVDescriptor{ *m_fonts_texture, SRVTextureInfo{} });
+
+            m_srv_table = builder.build();
+            io.Fonts->TexID = reinterpret_cast<ImTextureID>(m_srv_table.gpu_pointer);
+        }
+    }
+
+    // Create UI update section in upload heap
+    {
+        DxResourceFactory& dx_resource_factory = *globals.get<DxResourceFactory>();
+        Device& device = *globals.get<Device>();
+
+        auto ui_update_section = dx_resource_factory.allocateSectionInUploadHeap(dx_resource_factory.retrieveUploadHeap(device),
+            UIDrawTask::c_interface_update_section,
+            UIDrawTask::c_interface_update_section_size);
+
+        if (!ui_update_section.isValid())
+        {
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
+                "Unable to allocate UI update section \"" + UIDrawTask::c_interface_update_section
+                + "\" in data upload heap");
+        }
+
+        UploadHeapPartition const& ui_update_section_partition = static_cast<UploadHeapPartition const&>(ui_update_section);
+        m_ui_data_allocator = std::make_unique<PerFrameUploadDataStreamAllocator>(globals, ui_update_section_partition.offset, ui_update_section_partition.size,
+            dx_resource_factory.retrieveFrameProgressTracker(device));
+    }
+
+    // Initialize vertex and index data
+    {
+        m_ui_vertex_data_binding = std::make_unique<VertexBufferBinding>();
+
+        IndexDataType index_data_type{};
+        switch (sizeof(ImDrawIdx))
+        {
+        case 2:
+            index_data_type = IndexDataType::_16_bit;
+            break;
+
+        case 4:
+            index_data_type = IndexDataType::_32_bit;
+            break;
+
+        default:
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "The actual version of ImGui appears to use unsupported size for the index data");
+        }
+        m_ui_index_data_binding = std::make_unique<IndexBufferBinding>(m_ui_data_allocator->getUploadResource(), 0, index_data_type, 0);
+    }
+
+    // Setup constant data and the default set of viewports
+    {
+        auto const& viewport = m_basic_rendering_services.defaultViewport();
+        auto viewport_top_left_corner = viewport.topLeftCorner();
+
+        auto projection_matrix = math::createOrthogonalProjectionMatrix(misc::EngineAPI::Direct3D12,
+            viewport_top_left_corner.x, viewport_top_left_corner.y, viewport.width(), viewport.height(), -1.f, 1.f);
+
+        std::transform(projection_matrix.getRawData(), projection_matrix.getRawData() + 16,
+            m_projection_matrix_constants.begin(), [](float value) {return *reinterpret_cast<uint32_t*>(&value); });
+
+        m_viewports.emplace_back(viewport);
+    }
+
+    // Create input layout
+    {
+        std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
+            std::make_shared<VertexAttributeSpecification<float, 2>>(0, static_cast<unsigned char>(IM_OFFSETOF(ImDrawVert, pos)), "POSITION", 0, 0)
+            );
+        std::shared_ptr<AbstractVertexAttributeSpecification> uv = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
+            std::make_shared<VertexAttributeSpecification<float, 2>>(0, static_cast<unsigned char>(IM_OFFSETOF(ImDrawVert, uv)), "TEXCOORD", 0, 0)
+            );
+        std::shared_ptr<AbstractVertexAttributeSpecification> color = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
+            std::make_shared<VertexAttributeSpecification<float, 4>>(0, static_cast<unsigned char>(IM_OFFSETOF(ImDrawVert, col)), "COLOR", 0, 0)
+            );
+        m_va_list = VertexAttributeSpecificationList{ position, uv, color };
+    }
+}
+
 bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    processEvents();
+    if (!m_draw_data_ptr) return true;
 
+    processEvents();
+    drawFrame();
+
+    // command list execution should be removed from here and moved to dedicated command list execution task
+    m_device.defaultCommandQueue().executeCommandList(m_cmd_list);
 
     return true;
 }
@@ -521,4 +557,83 @@ void UIDrawTask::processEvents() const
     }
 
     // TODO: support gamepads
+}
+
+void UIDrawTask::drawFrame()
+{
+    auto setup_render_state_lambda = [this]()
+    {
+        m_cmd_list.rasterizerStateSetViewports(m_viewports);
+        m_cmd_list.inputAssemblySetVertexBuffers(*m_ui_vertex_data_binding);
+        m_cmd_list.inputAssemblySetIndexBuffer(*m_ui_index_data_binding);
+        m_cmd_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
+        m_cmd_list.setPipelineState(m_pso->getTaskData());
+        m_cmd_list.setRootSignature(m_rs->getCacheName());
+        m_cmd_list.setRoot32BitConstants(0, m_projection_matrix_constants, 0);
+        m_cmd_list.setRootDescriptorTable(1, m_srv_table);
+        m_cmd_list.outputMergerSetBlendFactor(math::Vector4f{ 0.f });
+    };
+
+    // upload vertex data and set rendering context state
+    {
+        if (m_draw_data_ptr->DisplaySize.x <= 0 || m_draw_data_ptr->DisplaySize.y <= 0)
+            return;
+
+        size_t total_vertex_count = m_draw_data_ptr->TotalVtxCount + 5000;
+        size_t total_index_count = m_draw_data_ptr->TotalIdxCount + 10000;
+        size_t index_buffer_offset = total_index_count * sizeof(ImDrawVert);
+        size_t required_draw_buffer_capacity = index_buffer_offset + total_index_count * sizeof(ImDrawIdx);
+        if (!m_vertex_and_index_data_allocation || m_vertex_and_index_data_allocation->capacity() < required_draw_buffer_capacity)
+        {
+            m_vertex_and_index_data_allocation = m_ui_data_allocator->allocate(required_draw_buffer_capacity);
+            m_ui_vertex_data_binding->setVertexBufferView(0, m_ui_data_allocator->getUploadResource(), 0, sizeof(ImDrawVert), static_cast<uint32_t>(total_vertex_count));
+            m_ui_index_data_binding->update(total_vertex_count * sizeof(ImDrawVert), static_cast<uint32_t>(total_index_count));
+        }
+
+        ImDrawVert* p_vertex_buffer = static_cast<ImDrawVert*>(m_vertex_and_index_data_allocation->cpuAddress());
+        ImDrawIdx* p_index_buffer = reinterpret_cast<ImDrawIdx*>(static_cast<unsigned char*>(m_vertex_and_index_data_allocation->cpuAddress()) + index_buffer_offset);
+        for (int i = 0; i < m_draw_data_ptr->CmdListsCount; ++i)
+        {
+            ImDrawList const* p_draw_list = m_draw_data_ptr->CmdLists[i];
+            memcpy(p_vertex_buffer, p_draw_list->VtxBuffer.Data, p_draw_list->VtxBuffer.Size * sizeof(ImDrawVert));
+            memcpy(p_index_buffer, p_draw_list->IdxBuffer.Data, p_draw_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+        }
+
+        setup_render_state_lambda();
+    }
+
+    // Render the UI
+    {
+        int offset_in_vertex_buffer{}, offset_in_index_buffer{};
+        ImVec2 clip_off = m_draw_data_ptr->DisplayPos;
+        for (int i = 0; i < m_draw_data_ptr->CmdListsCount; ++i)
+        {
+            ImDrawList const* p_draw_list = m_draw_data_ptr->CmdLists[i];
+            for (int cmd_idx = 0; cmd_idx < p_draw_list->CmdBuffer.Size; ++cmd_idx)
+            {
+                ImDrawCmd const* p_draw_command = &p_draw_list->CmdBuffer[cmd_idx];
+                if (p_draw_command->UserCallback != nullptr)
+                {
+                    if (p_draw_command->UserCallback == ImDrawCallback_ResetRenderState)
+                        setup_render_state_lambda();
+                    else
+                        p_draw_command->UserCallback(p_draw_list, p_draw_command);
+                }
+                else
+                {
+                    math::Rectangle& scissor_rectangle = m_scissor_rectangles[0];
+                    scissor_rectangle.setUpperLeft(math::Vector2f{ p_draw_command->ClipRect.x - clip_off.x, 
+                        p_draw_command->ClipRect.y - clip_off.y });
+                    scissor_rectangle.setSize(p_draw_command->ClipRect.z - p_draw_command->ClipRect.x,
+                        p_draw_command->ClipRect.w - p_draw_command->ClipRect.y);
+
+                    m_cmd_list.rasterizerStateSetScissorRectangles(m_scissor_rectangles);
+                    m_cmd_list.drawIndexedInstanced(p_draw_command->ElemCount, 1, offset_in_index_buffer, offset_in_vertex_buffer, 0);
+                }
+
+                offset_in_index_buffer += p_draw_command->ElemCount;
+            }
+            offset_in_vertex_buffer += p_draw_list->VtxBuffer.Size;
+        }
+    }
 }

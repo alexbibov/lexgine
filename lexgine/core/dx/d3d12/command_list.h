@@ -75,9 +75,10 @@ class CommandList: public NamedEntity<class_names::D3D12_CommandList>
 
 public:
     static constexpr uint32_t c_maximal_simultaneous_render_targets_count = 8U;
-    static constexpr uint32_t c_maximal_clear_rectangles_count = 128U;
+    static constexpr uint32_t c_maximal_clear_rectangle_count = 128U;
     static constexpr uint32_t c_maximal_viewport_count = 64U;
-    static constexpr uint8_t  c_input_assemblers_count = 16U;
+    static constexpr uint32_t c_maximal_scissor_rectangle_count = 64U;
+    static constexpr uint8_t  c_input_assembler_count = 16U;
     static constexpr uint32_t c_maximal_rtv_descriptor_table_length = 64U;
     
 public:
@@ -125,7 +126,7 @@ public:
     
     void rasterizerStateSetViewports(misc::StaticVector<Viewport, c_maximal_viewport_count> const& viewports) const;
 
-    void rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_viewport_count> const& rectangles) const;
+    void rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_scissor_rectangle_count> const& rectangles) const;
 
     void outputMergerSetBlendFactor(math::Vector4f const& blend_factor) const;
 
@@ -141,18 +142,18 @@ public:
 
     void clearDepthStencilView(DepthStencilViewDescriptorTable const& dsv_descriptor_table, uint32_t dsv_descriptor_table_offset,
         DSVClearFlags clear_flags, float depth_clear_value, uint8_t stencil_clear_value, 
-        misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles = {}) const;
+        misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles = {}) const;
 
     void clearRenderTargetView(RenderTargetViewDescriptorTable const& rtv_descriptor_table, uint32_t rtv_descriptor_table_offset,
-        math::Vector4f const& rgba_clear_value, misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles = {}) const;
+        math::Vector4f const& rgba_clear_value, misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles = {}) const;
 
     void clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
         Resource const& resource_to_clear, math::Vector4u const& rgba_clear_value, 
-        misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles = {}) const;
+        misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles = {}) const;
 
     void clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
         Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value, 
-        misc::StaticVector<math::Rectangle, c_maximal_clear_rectangles_count> const& clear_rectangles = {}) const;
+        misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles = {}) const;
 
 
     //! Data binding routines

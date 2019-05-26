@@ -34,7 +34,8 @@ public:
      depth formats for correct initialization of their associated pipeline state objects
     */
     void defineRenderingConfiguration(Viewport const& viewport,
-        DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format);
+        DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format,
+        osinteraction::windows::Window* p_rendering_window = nullptr);
 
     void render(RenderingTarget& rendering_target, 
         std::function<void(RenderingTarget const&)> const& presentation_routine);
@@ -58,6 +59,7 @@ private:
     BasicRenderingServices m_basic_rendering_services;
 
 private:    // rendering tasks
+    std::shared_ptr<tasks::rendering_tasks::UIDrawTask> m_ui_draw_task;
     std::unique_ptr<tasks::rendering_tasks::TestRenderingTask> m_test_rendering_task;
 };
 

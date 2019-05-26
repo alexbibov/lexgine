@@ -110,7 +110,7 @@ public:
     HwOutputEnumerator const& getOutputEnumerator() const;
 
     //! Creates swap chain for this adapter (or adapter link) and associates it with the given window
-    SwapChain createSwapChain(osinteraction::windows::Window const& window, SwapChainDescriptor const& desc,
+    SwapChain createSwapChain(osinteraction::windows::Window& window, SwapChainDescriptor const& desc,
         SwapChainAdvancedParameters const& advanced_parameters) const;
 
     d3d12::Device& device() const;

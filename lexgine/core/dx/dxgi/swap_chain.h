@@ -66,7 +66,7 @@ public:
     d3d12::CommandQueue const& defaultCommandQueue() const;
 
     //! Retrieves Window object to which the swap chain is attached
-    osinteraction::windows::Window const& window() const;
+    osinteraction::windows::Window& window() const;
 
     //! Retrieves current width and height of the swap chain packed into a 2D vector
     math::Vector2u getDimensions() const;
@@ -90,14 +90,14 @@ private:
     SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory, 
         d3d12::Device& device, 
         d3d12::CommandQueue const& default_command_queue,
-        osinteraction::windows::Window const& window, 
+        osinteraction::windows::Window& window, 
         SwapChainDescriptor const& desc,
         SwapChainAdvancedParameters const& advanced_parameters);
 
 private:
     ComPtr<IDXGIFactory6> m_dxgi_factory;   //!< DXGI factory used to create the swap chain
     d3d12::Device& m_device;    //!< Direct3D12 device interface
-    osinteraction::windows::Window const& m_window;    //!< window, which holds the swap chain
+    osinteraction::windows::Window& m_window;    //!< window, which holds the swap chain
     d3d12::CommandQueue const& m_default_command_queue;    //!< graphics command queue associated with the swap chain
     SwapChainDescriptor m_descriptor;    //!< Descriptor of the swap chain
     SwapChainAdvancedParameters m_advanced_parameters;    //!< advanced parameters of the swap chain
@@ -113,7 +113,7 @@ private:
     static SwapChain makeSwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
         d3d12::Device& device,
         d3d12::CommandQueue const& default_command_queue,
-        osinteraction::windows::Window const& window,
+        osinteraction::windows::Window& window,
         SwapChainDescriptor const& desc, SwapChainAdvancedParameters const& advanced_parameters)
     {
         return SwapChain{ dxgi_factory, device, default_command_queue, window, desc, advanced_parameters };

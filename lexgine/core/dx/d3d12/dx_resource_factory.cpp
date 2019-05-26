@@ -136,7 +136,7 @@ dxgi::HwAdapter const* DxResourceFactory::retrieveHwAdapterOwningDevicePtr(Devic
 
 misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHeap(Heap const& upload_heap, std::string const& section_name, size_t section_size)
 {
-    size_t aligned_section_size = misc::align(section_size, 256);
+    size_t aligned_section_size = misc::align(section_size, 1 << 16);
 
     auto p = m_upload_heap_partitions.find(&upload_heap);
     if (p == m_upload_heap_partitions.end())

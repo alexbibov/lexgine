@@ -222,7 +222,7 @@ bool Window::shouldClose() const { return m_should_close; }
 HWND Window::native() const { return m_hwnd; }
 
 
-void Window::addListener(AbstractListener* listener)
+void Window::addListener(std::weak_ptr<AbstractListener> const& listener)
 {
     m_listener_list.push_back(listener);
 }
@@ -307,10 +307,13 @@ LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wPar
 
         for (auto listener : p_window->m_listener_list)
         {
-            int64_t status = listener->handle(uMsg, reinterpret_cast<uint64_t>(p_window), wParam, lParam, 0, 0, 0, 0, 0);
+            if(auto ptr = listener.lock())
+            {
+                int64_t status = ptr->handle(uMsg, reinterpret_cast<uint64_t>(p_window), wParam, lParam, 0, 0, 0, 0, 0);
 
-            if (status != AbstractListener::not_supported && status != success_status)
-                return static_cast<LRESULT>(status);
+                if (status != AbstractListener::not_supported && status != success_status)
+                    return static_cast<LRESULT>(status);
+            }
         }
 
         return static_cast<LRESULT>(success_status);

@@ -2,10 +2,17 @@
 
 using namespace lexgine::core;
 
-BlendDescriptor::BlendDescriptor():
-    m_enable{ false },
-    m_logic_op_enable{ false },
-    m_color_write_mask{ ColorWriteMask{} | ColorWriteMask::enum_type::red | ColorWriteMask::enum_type::green | ColorWriteMask::enum_type::blue | ColorWriteMask::enum_type::alpha }
+BlendDescriptor::BlendDescriptor()
+    : m_enable{ false }
+    , m_logic_op_enable{ false }
+    , m_src_blend{ BlendFactor::one }
+    , m_dst_blend{ BlendFactor::zero }
+    , m_blend_op{ BlendOperation::add }
+    , m_src_alpha_blend{ BlendFactor::one }
+    , m_dst_alpha_blend{ BlendFactor::zero }
+    , m_alpha_blend_op{ BlendOperation::add }
+    , m_logical_operation{ BlendLogicalOperation::no_operation }
+    , m_color_write_mask{ ColorWriteMask{} | ColorWriteMask::enum_type::red | ColorWriteMask::enum_type::green | ColorWriteMask::enum_type::blue | ColorWriteMask::enum_type::alpha }
 {
 
 }
