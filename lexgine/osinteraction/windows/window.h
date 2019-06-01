@@ -82,6 +82,8 @@ public:
     void setDimensions(core::math::Vector2u const& dimensions);    //! sets new dimensions for the window. The new dimensions are packed into two-dimensional vector (width, height) in this order
     core::math::Vector2u getDimensions() const;    //! returns current dimensions of the window
 
+    core::math::Rectangle getClientArea() const;    //! returns client area of the window
+
     void setLocation(uint32_t x, uint32_t y);    //! sets new location of the top-left corner of the window
     void setLocation(core::math::Vector2u const& location);    //! sets new location of the top-left corner of the window. The new location (x, y) in this order is packed into two-dimensional vector
     core::math::Vector2u getLocation() const;    //! returns current location of the top-left corner of the window represented in screen space coordinates
@@ -114,7 +116,7 @@ private:
     WindowExStyle m_window_ex_style;	//!< extended window style description
     std::wstring m_title;	//!< string title of the window
     uint32_t m_pos_x, m_pos_y;	//!< position of the upper-left corner of the window represented in screen coordinates
-    uint32_t m_width, m_height;	//!< width and height of the window in pixels
+    uint32_t m_width, m_height;	//!< width and height of the window defined in pixels
     bool m_is_visible;	//!< equals 'true' if the window is visible. Equals 'false' otherwise
     bool m_should_close;	//!< equals 'true' if the window is ready to close. Equals 'false' otherwise
     std::list<std::weak_ptr<AbstractListener>> m_listener_list;    //!< list of window listeners

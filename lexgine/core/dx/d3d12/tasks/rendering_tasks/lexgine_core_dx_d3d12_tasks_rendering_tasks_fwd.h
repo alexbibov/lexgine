@@ -5,6 +5,7 @@ namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
 
 class TestRenderingTask;
 class UIDrawTask;
+class Profiler;
 
 }
 

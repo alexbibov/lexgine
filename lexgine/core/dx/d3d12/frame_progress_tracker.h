@@ -3,7 +3,7 @@
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "signal.h"
-#include "profiler.h"
+#include "lexgine/core/dx/d3d12/tasks/rendering_tasks/profiler.h"
 
 namespace lexgine::core::dx::d3d12 {
 

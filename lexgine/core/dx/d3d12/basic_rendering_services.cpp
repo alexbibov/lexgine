@@ -70,13 +70,17 @@ BasicRenderingServices::BasicRenderingServices(Globals& globals)
 
 void BasicRenderingServices::beginRendering(CommandList& command_list) const
 {
-    command_list.setDescriptorHeaps(m_page0_descriptor_heaps);
     m_current_rendering_target_ptr->switchToRenderAccessState(command_list);
 }
 
 void BasicRenderingServices::endRendering(CommandList& command_list) const
 {
     m_current_rendering_target_ptr->switchToInitialState(command_list);
+}
+
+void BasicRenderingServices::setDefaultResources(CommandList& command_list) const
+{
+    command_list.setDescriptorHeaps(m_page0_descriptor_heaps);
 }
 
 void BasicRenderingServices::setDefaultViewport(CommandList& command_list) const

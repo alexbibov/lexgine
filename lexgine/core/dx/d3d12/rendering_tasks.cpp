@@ -6,6 +6,7 @@
 
 #include "lexgine/core/dx/d3d12/tasks/rendering_tasks/test_rendering_task.h"
 #include "lexgine/core/dx/d3d12/tasks/rendering_tasks/ui_draw_task.h"
+#include "lexgine/core/dx/d3d12/tasks/rendering_tasks/profiler.h"
 
 #include "dx_resource_factory.h"
 #include "device.h"
@@ -65,17 +66,27 @@ void RenderingTasks::defineRenderingConfiguration(Viewport const& viewport,
         m_test_rendering_task->updateBufferFormats(rendering_target_color_format, rendering_target_depth_format);
 
         if (p_rendering_window == nullptr)
+        {
             m_ui_draw_task.reset();
+
+        }
         else
+        {
             m_ui_draw_task = UIDrawTask::create(m_globals, m_basic_rendering_services, *p_rendering_window);
+            m_profiler = tasks::rendering_tasks::Profiler::create();
+            m_ui_draw_task->addUIProvider(m_profiler);
+        }
 
         m_ui_draw_task->updateBufferFormats(rendering_target_color_format, rendering_target_depth_format);
     }
     
     m_task_graph.setRootNodes({ m_test_rendering_task.get() });
 
-    if (m_ui_draw_task)
+    if (p_rendering_window)
+    {
         m_test_rendering_task->addDependent(*m_ui_draw_task);
+        m_ui_draw_task->addDependent(*m_profiler);
+    }
 
     m_task_sink.start();
 }

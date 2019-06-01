@@ -90,8 +90,9 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 {
     m_linked_rendering_tasks_ptr = p_rendering_loop_to_link;
 
-    math::Vector2u window_dimensions = m_linked_swap_chain.getDimensions();
-    Viewport viewport{ math::Vector2f{0.f, 0.f}, math::Vector2f{ static_cast<float>(window_dimensions.x), static_cast<float>(window_dimensions.y)},
+    math::Vector2u swap_chain_dimensions = m_linked_swap_chain.getDimensions();
+    Viewport viewport{ math::Vector2f{0.f, 0.f}, math::Vector2f{ static_cast<float>(swap_chain_dimensions.x), 
+        static_cast<float>(swap_chain_dimensions.y)},
     math::Vector2f{0, 1.f} };
 
     

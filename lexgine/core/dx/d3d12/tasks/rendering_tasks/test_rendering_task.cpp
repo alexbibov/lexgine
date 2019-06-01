@@ -266,6 +266,7 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
     m_cmd_list.reset();
 
+    m_basic_rendering_services.setDefaultResources(m_cmd_list);
     m_basic_rendering_services.beginRendering(m_cmd_list);
 
     m_cmd_list.setPipelineState(m_pso->getTaskData());
@@ -295,7 +296,7 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
 
     m_cmd_list.drawIndexedInstanced(36, 1, 0, 0, 0);
 
-    m_basic_rendering_services.endRendering(m_cmd_list);
+    // m_basic_rendering_services.endRendering(m_cmd_list);
 
     m_cmd_list.close();
 
