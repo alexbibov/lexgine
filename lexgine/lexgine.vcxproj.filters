@@ -405,9 +405,6 @@
     <ClInclude Include="core\dx\d3d12\resource_barrier_pack.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\profiler.h">
-      <Filter>core\dx\d3d12</Filter>
-    </ClInclude>
     <ClInclude Include="core\dx\d3d12\rendering_target.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
@@ -470,6 +467,12 @@
     </ClInclude>
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\ui_draw_task.h">
       <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\profiler.h">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="core\ui.h">
+      <Filter>core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -689,9 +692,6 @@
     <ClCompile Include="core\dx\d3d12\resource_barrier_pack.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
-    <ClCompile Include="core\dx\d3d12\profiler.cpp">
-      <Filter>core\dx\d3d12</Filter>
-    </ClCompile>
     <ClCompile Include="core\dx\d3d12\rendering_tasks.cpp">
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
@@ -747,6 +747,9 @@
       <Filter>core\dx\d3d12</Filter>
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\ui_draw_task.cpp">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\profiler.cpp">
       <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
     </ClCompile>
   </ItemGroup>

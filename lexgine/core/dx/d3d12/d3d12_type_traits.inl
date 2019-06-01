@@ -104,6 +104,7 @@ struct d3d12_type_traits<int32_t, 1U, false>
     static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R32_SINT;
 };
 
+
 template<>
 struct d3d12_type_traits<uint16_t, 1U, false>
 {
@@ -138,6 +139,43 @@ struct d3d12_type_traits<int16_t, 1U, true>
     static unsigned char const num_components = 1U;
     static unsigned char const total_size_in_bytes = 2U;
     static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R16_SNORM;
+};
+
+
+template<>
+struct d3d12_type_traits<uint8_t, 1U, false>
+{
+    using iso_c_type = uint8_t;
+    static unsigned char const num_components = 1U;
+    static unsigned char const total_size_in_bytes = 1U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8_UINT;
+};
+
+template<>
+struct d3d12_type_traits<uint8_t, 1U, true>
+{
+    using iso_c_type = uint8_t;
+    static unsigned char const num_components = 1U;
+    static unsigned char const total_size_in_bytes = 1U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8_UNORM;
+};
+
+template<>
+struct d3d12_type_traits<int8_t, 1U, false>
+{
+    using iso_c_type = uint8_t;
+    static unsigned char const num_components = 1U;
+    static unsigned char const total_size_in_bytes = 1U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8_SINT;
+};
+
+template<>
+struct d3d12_type_traits<int8_t, 1U, true>
+{
+    using iso_c_type = uint8_t;
+    static unsigned char const num_components = 1U;
+    static unsigned char const total_size_in_bytes = 1U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8_SNORM;
 };
 
 
@@ -194,6 +232,43 @@ struct d3d12_type_traits<int16_t, 2U, true>
     static unsigned char const num_components = 2U;
     static unsigned char const total_size_in_bytes = 4U;
     static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R16G16_SNORM;
+};
+
+
+template<>
+struct d3d12_type_traits<uint8_t, 2U, false>
+{
+    using iso_c_type = uint8_t;
+    static unsigned char const num_components = 2U;
+    static unsigned char const total_size_in_bytes = 2U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8G8_UINT;
+};
+
+template<>
+struct d3d12_type_traits<uint8_t, 2U, true>
+{
+    using iso_c_type = uint8_t;
+    static unsigned char const num_components = 2U;
+    static unsigned char const total_size_in_bytes = 2U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8G8_UNORM;
+};
+
+template<>
+struct d3d12_type_traits<int8_t, 2U, false>
+{
+    using iso_c_type = uint8_t;
+    static unsigned char const num_components = 2U;
+    static unsigned char const total_size_in_bytes = 2U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8G8_SINT;
+};
+
+template<>
+struct d3d12_type_traits<int8_t, 2U, true>
+{
+    using iso_c_type = uint8_t;
+    static unsigned char const num_components = 2U;
+    static unsigned char const total_size_in_bytes = 2U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8G8_SNORM;
 };
 
 
@@ -270,6 +345,43 @@ struct d3d12_type_traits<int16_t, 4U, true>
     static unsigned char const num_components = 4U;
     static unsigned char const total_size_in_bytes = 8U;
     static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R16G16B16A16_SNORM;
+};
+
+
+template<>
+struct d3d12_type_traits<uint8_t, 4U, false>
+{
+    using iso_c_type = uint8_t;
+    static unsigned char const num_components = 4U;
+    static unsigned char const total_size_in_bytes = 4U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8G8B8A8_UINT;
+};
+
+template<>
+struct d3d12_type_traits<uint8_t, 4U, true>
+{
+    using iso_c_type = uint8_t;
+    static unsigned char const num_components = 4U;
+    static unsigned char const total_size_in_bytes = 4U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8G8B8A8_UNORM;
+};
+
+template<>
+struct d3d12_type_traits<int8_t, 4U, false>
+{
+    using iso_c_type = uint8_t;
+    static unsigned char const num_components = 4U;
+    static unsigned char const total_size_in_bytes = 4U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8G8B8A8_SINT;
+};
+
+template<>
+struct d3d12_type_traits<int8_t, 4U, true>
+{
+    using iso_c_type = uint8_t;
+    static unsigned char const num_components = 4U;
+    static unsigned char const total_size_in_bytes = 4U;
+    static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8G8B8A8_SNORM;
 };
 // ********************************************
 

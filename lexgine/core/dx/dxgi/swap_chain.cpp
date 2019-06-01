@@ -79,9 +79,9 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc1{};
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC swap_chain_fs_desc{};
 
-    math::Vector2u output_window_dimensions = m_window.getDimensions();
-    swap_chain_desc1.Width = output_window_dimensions.x;
-    swap_chain_desc1.Height = output_window_dimensions.y;
+    math::Vector2f client_area_size = m_window.getClientArea().size();
+    swap_chain_desc1.Width = static_cast<UINT>(client_area_size.x);
+    swap_chain_desc1.Height = static_cast<UINT>(client_area_size.y);
     swap_chain_desc1.Format = desc.format;
     swap_chain_desc1.Stereo = desc.stereo;
     swap_chain_desc1.SampleDesc = DXGI_SAMPLE_DESC{ 1, 0 };

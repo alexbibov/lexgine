@@ -2,9 +2,11 @@
 
 #include "lexgine/core/exception.h"
 #include "lexgine/core/globals.h"
+#include "lexgine/core/ui.h"
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 #include "lexgine/core/dx/d3d12/device.h"
 #include "lexgine/core/dx/d3d12/resource.h"
+#include "lexgine/core/dx/d3d12/resource_barrier_pack.h"
 #include "lexgine/core/dx/d3d12/basic_rendering_services.h"
 #include "lexgine/core/dx/d3d12/descriptor_table_builders.h"
 #include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
@@ -146,7 +148,10 @@ void updateMousePosition(HWND hwnd)
 
 }
 
-UIDrawTask::~UIDrawTask() = default;
+UIDrawTask::~UIDrawTask()
+{
+    ImGui::DestroyContext();
+}
 
 void UIDrawTask::updateBufferFormats(DXGI_FORMAT color_buffer_format, DXGI_FORMAT depth_buffer_format)
 {
@@ -265,6 +270,8 @@ bool UIDrawTask::wheelMove(double move_delta, bool is_horizontal_wheel, osintera
 
 bool UIDrawTask::move(uint16_t x, uint16_t y, osinteraction::windows::ControlKeyFlag const& control_key_flag)
 {
+    ImGuiIO& io = ImGui::GetIO();
+    io.MousePos = ImVec2{ static_cast<float>(x), static_cast<float>(y) };
     return true;
 }
 
@@ -295,8 +302,11 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
     , m_cmd_list{ m_device.createCommandList(CommandType::direct, 0x1) }
     , m_scissor_rectangles(1)
 {
+    m_viewports.emplace_back(math::Vector2f{ 0.f }, math::Vector2f{ 0.f }, math::Vector2f{ 0.f });
+
     IMGUI_CHECKVERSION();
     m_gui_context = ImGui::CreateContext();
+    ImGui::StyleColorsDark();
 
     defineImGUIKeyMap(m_rendering_window.native());
 
@@ -474,20 +484,6 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
         m_ui_index_data_binding = std::make_unique<IndexBufferBinding>(m_ui_data_allocator->getUploadResource(), 0, index_data_type, 0);
     }
 
-    // Setup constant data and the default set of viewports
-    {
-        auto const& viewport = m_basic_rendering_services.defaultViewport();
-        auto viewport_top_left_corner = viewport.topLeftCorner();
-
-        auto projection_matrix = math::createOrthogonalProjectionMatrix(misc::EngineAPI::Direct3D12,
-            viewport_top_left_corner.x, viewport_top_left_corner.y, viewport.width(), viewport.height(), -1.f, 1.f);
-
-        std::transform(projection_matrix.getRawData(), projection_matrix.getRawData() + 16,
-            m_projection_matrix_constants.begin(), [](float value) {return *reinterpret_cast<uint32_t*>(&value); });
-
-        m_viewports.emplace_back(viewport);
-    }
-
     // Create input layout
     {
         std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
@@ -497,7 +493,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
             std::make_shared<VertexAttributeSpecification<float, 2>>(0, static_cast<unsigned char>(IM_OFFSETOF(ImDrawVert, uv)), "TEXCOORD", 0, 0)
             );
         std::shared_ptr<AbstractVertexAttributeSpecification> color = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
-            std::make_shared<VertexAttributeSpecification<float, 4>>(0, static_cast<unsigned char>(IM_OFFSETOF(ImDrawVert, col)), "COLOR", 0, 0)
+            std::make_shared<VertexAttributeSpecification<uint8_t, 4>>(0, static_cast<unsigned char>(IM_OFFSETOF(ImDrawVert, col)), "COLOR", 0, 0)
             );
         m_va_list = VertexAttributeSpecificationList{ position, uv, color };
     }
@@ -505,9 +501,21 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
 
 bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    if (!m_draw_data_ptr) return true;
-
     processEvents();
+    ImGui::NewFrame();
+
+    for (auto& ui_provider : m_ui_providers)
+    {
+        if (auto ui = ui_provider.lock())
+        {
+            if (ui->isEnabled())
+            {
+                ui->constructUI();
+            }
+        }
+    }
+
+    ImGui::Render();
     drawFrame();
 
     // command list execution should be removed from here and moved to dedicated command list execution task
@@ -533,7 +541,8 @@ void UIDrawTask::processEvents() const
     io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
 
     long long current_time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    io.DeltaTime = static_cast<float>(current_time - m_time_counter) / c_update_ticks_per_second;
+    io.DeltaTime = static_cast<float>(current_time - m_time_counter) 
+        * std::chrono::nanoseconds::period::num / std::chrono::nanoseconds::period::den;
     m_time_counter = current_time;
 
     // Read keyboard modifiers inputs
@@ -561,79 +570,105 @@ void UIDrawTask::processEvents() const
 
 void UIDrawTask::drawFrame()
 {
-    auto setup_render_state_lambda = [this]()
+    if(ImDrawData* p_draw_data = ImGui::GetDrawData())
     {
-        m_cmd_list.rasterizerStateSetViewports(m_viewports);
-        m_cmd_list.inputAssemblySetVertexBuffers(*m_ui_vertex_data_binding);
-        m_cmd_list.inputAssemblySetIndexBuffer(*m_ui_index_data_binding);
-        m_cmd_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
-        m_cmd_list.setPipelineState(m_pso->getTaskData());
-        m_cmd_list.setRootSignature(m_rs->getCacheName());
-        m_cmd_list.setRoot32BitConstants(0, m_projection_matrix_constants, 0);
-        m_cmd_list.setRootDescriptorTable(1, m_srv_table);
-        m_cmd_list.outputMergerSetBlendFactor(math::Vector4f{ 0.f });
-    };
+        m_cmd_list.reset();
+        m_basic_rendering_services.setDefaultResources(m_cmd_list);
+        // m_basic_rendering_services.beginRendering(m_cmd_list);
 
-    // upload vertex data and set rendering context state
-    {
-        if (m_draw_data_ptr->DisplaySize.x <= 0 || m_draw_data_ptr->DisplaySize.y <= 0)
-            return;
-
-        size_t total_vertex_count = m_draw_data_ptr->TotalVtxCount + 5000;
-        size_t total_index_count = m_draw_data_ptr->TotalIdxCount + 10000;
-        size_t index_buffer_offset = total_index_count * sizeof(ImDrawVert);
-        size_t required_draw_buffer_capacity = index_buffer_offset + total_index_count * sizeof(ImDrawIdx);
-        if (!m_vertex_and_index_data_allocation || m_vertex_and_index_data_allocation->capacity() < required_draw_buffer_capacity)
+        auto setup_render_state_lambda = [this, p_draw_data]()
         {
+            Viewport viewport{ math::Vector2f{0.f},
+                math::Vector2f{p_draw_data->DisplaySize.x, p_draw_data->DisplaySize.y},
+            math::Vector2f{0.f, 1.f} };
+            m_viewports[0] = viewport;
+
+            auto projection_matrix = math::createOrthogonalProjectionMatrix(misc::EngineAPI::Direct3D12,
+                p_draw_data->DisplayPos.x, p_draw_data->DisplayPos.y, 
+                p_draw_data->DisplaySize.x, p_draw_data->DisplaySize.y, -1.f, 1.f);
+
+            std::transform(projection_matrix.getRawData(), projection_matrix.getRawData() + 16,
+                m_projection_matrix_constants.begin(), [](float value) {return *reinterpret_cast<uint32_t*>(&value); });
+
+            m_cmd_list.setPipelineState(m_pso->getTaskData());
+            m_cmd_list.setRootSignature(m_rs->getCacheName());
+            m_cmd_list.setRoot32BitConstants(0, m_projection_matrix_constants, 0);
+            m_cmd_list.rasterizerStateSetViewports(m_viewports);
+            m_cmd_list.inputAssemblySetVertexBuffers(*m_ui_vertex_data_binding);
+            m_cmd_list.inputAssemblySetIndexBuffer(*m_ui_index_data_binding);
+            m_cmd_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
+            m_cmd_list.outputMergerSetBlendFactor(math::Vector4f{ 0.f });
+            m_basic_rendering_services.setDefaultRenderingTarget(m_cmd_list);
+        };
+
+        // upload vertex data and set rendering context state
+        {
+            if (p_draw_data->DisplaySize.x <= 0 || p_draw_data->DisplaySize.y <= 0)
+                return;
+
+            size_t total_vertex_count = p_draw_data->TotalVtxCount + 5000;
+            size_t total_index_count = p_draw_data->TotalIdxCount + 10000;
+            size_t index_buffer_offset = total_vertex_count * sizeof(ImDrawVert);
+            size_t required_draw_buffer_capacity = index_buffer_offset + total_index_count * sizeof(ImDrawIdx);
+            
             m_vertex_and_index_data_allocation = m_ui_data_allocator->allocate(required_draw_buffer_capacity);
-            m_ui_vertex_data_binding->setVertexBufferView(0, m_ui_data_allocator->getUploadResource(), 0, sizeof(ImDrawVert), static_cast<uint32_t>(total_vertex_count));
-            m_ui_index_data_binding->update(total_vertex_count * sizeof(ImDrawVert), static_cast<uint32_t>(total_index_count));
-        }
+            m_ui_vertex_data_binding->setVertexBufferView(0, m_ui_data_allocator->getUploadResource(), m_vertex_and_index_data_allocation->offset(),
+                sizeof(ImDrawVert), static_cast<uint32_t>(p_draw_data->TotalVtxCount));
+            m_ui_index_data_binding->update(m_vertex_and_index_data_allocation->offset() + total_vertex_count * sizeof(ImDrawVert),
+                static_cast<uint32_t>(p_draw_data->TotalIdxCount));
 
-        ImDrawVert* p_vertex_buffer = static_cast<ImDrawVert*>(m_vertex_and_index_data_allocation->cpuAddress());
-        ImDrawIdx* p_index_buffer = reinterpret_cast<ImDrawIdx*>(static_cast<unsigned char*>(m_vertex_and_index_data_allocation->cpuAddress()) + index_buffer_offset);
-        for (int i = 0; i < m_draw_data_ptr->CmdListsCount; ++i)
-        {
-            ImDrawList const* p_draw_list = m_draw_data_ptr->CmdLists[i];
-            memcpy(p_vertex_buffer, p_draw_list->VtxBuffer.Data, p_draw_list->VtxBuffer.Size * sizeof(ImDrawVert));
-            memcpy(p_index_buffer, p_draw_list->IdxBuffer.Data, p_draw_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-        }
-
-        setup_render_state_lambda();
-    }
-
-    // Render the UI
-    {
-        int offset_in_vertex_buffer{}, offset_in_index_buffer{};
-        ImVec2 clip_off = m_draw_data_ptr->DisplayPos;
-        for (int i = 0; i < m_draw_data_ptr->CmdListsCount; ++i)
-        {
-            ImDrawList const* p_draw_list = m_draw_data_ptr->CmdLists[i];
-            for (int cmd_idx = 0; cmd_idx < p_draw_list->CmdBuffer.Size; ++cmd_idx)
+            ImDrawVert* p_vertex_buffer = static_cast<ImDrawVert*>(m_vertex_and_index_data_allocation->cpuAddress());
+            ImDrawIdx* p_index_buffer = reinterpret_cast<ImDrawIdx*>(static_cast<unsigned char*>(m_vertex_and_index_data_allocation->cpuAddress()) + index_buffer_offset);
+            for (int i = 0; i < p_draw_data->CmdListsCount; ++i)
             {
-                ImDrawCmd const* p_draw_command = &p_draw_list->CmdBuffer[cmd_idx];
-                if (p_draw_command->UserCallback != nullptr)
-                {
-                    if (p_draw_command->UserCallback == ImDrawCallback_ResetRenderState)
-                        setup_render_state_lambda();
-                    else
-                        p_draw_command->UserCallback(p_draw_list, p_draw_command);
-                }
-                else
-                {
-                    math::Rectangle& scissor_rectangle = m_scissor_rectangles[0];
-                    scissor_rectangle.setUpperLeft(math::Vector2f{ p_draw_command->ClipRect.x - clip_off.x, 
-                        p_draw_command->ClipRect.y - clip_off.y });
-                    scissor_rectangle.setSize(p_draw_command->ClipRect.z - p_draw_command->ClipRect.x,
-                        p_draw_command->ClipRect.w - p_draw_command->ClipRect.y);
-
-                    m_cmd_list.rasterizerStateSetScissorRectangles(m_scissor_rectangles);
-                    m_cmd_list.drawIndexedInstanced(p_draw_command->ElemCount, 1, offset_in_index_buffer, offset_in_vertex_buffer, 0);
-                }
-
-                offset_in_index_buffer += p_draw_command->ElemCount;
+                ImDrawList const* p_draw_list = p_draw_data->CmdLists[i];
+                memcpy(p_vertex_buffer, p_draw_list->VtxBuffer.Data, p_draw_list->VtxBuffer.Size * sizeof(ImDrawVert));
+                memcpy(p_index_buffer, p_draw_list->IdxBuffer.Data, p_draw_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+                p_vertex_buffer += p_draw_list->VtxBuffer.Size;
+                p_index_buffer += p_draw_list->IdxBuffer.Size;
             }
-            offset_in_vertex_buffer += p_draw_list->VtxBuffer.Size;
         }
+
+        // Render the UI
+        {
+            setup_render_state_lambda();
+
+            int offset_in_vertex_buffer{ 0 }, offset_in_index_buffer{ 0 };
+            ImVec2 clip_off = p_draw_data->DisplayPos;
+            for (int i = 0; i < p_draw_data->CmdListsCount; ++i)
+            {
+                ImDrawList const* p_draw_list = p_draw_data->CmdLists[i];
+                for (int cmd_idx = 0; cmd_idx < p_draw_list->CmdBuffer.Size; ++cmd_idx)
+                {
+                    ImDrawCmd const* p_draw_command = &p_draw_list->CmdBuffer[cmd_idx];
+                    if (p_draw_command->UserCallback != nullptr)
+                    {
+                        if (p_draw_command->UserCallback == ImDrawCallback_ResetRenderState)
+                            setup_render_state_lambda();
+                        else
+                            p_draw_command->UserCallback(p_draw_list, p_draw_command);
+                    }
+                    else
+                    {
+                        math::Rectangle& scissor_rectangle = m_scissor_rectangles[0];
+                        scissor_rectangle.setUpperLeft(math::Vector2f{ p_draw_command->ClipRect.x - clip_off.x,
+                            p_draw_command->ClipRect.y - clip_off.y });
+                        scissor_rectangle.setSize(p_draw_command->ClipRect.z - p_draw_command->ClipRect.x,
+                            p_draw_command->ClipRect.w - p_draw_command->ClipRect.y);
+                        ShaderResourceDescriptorTable srv_table{};
+                        srv_table.gpu_pointer = reinterpret_cast<uint64_t>(p_draw_command->TextureId);
+                        m_cmd_list.setRootDescriptorTable(1, srv_table);
+                        m_cmd_list.rasterizerStateSetScissorRectangles(m_scissor_rectangles);
+                        m_cmd_list.drawIndexedInstanced(p_draw_command->ElemCount, 1, offset_in_index_buffer, offset_in_vertex_buffer, 0);
+                    }
+
+                    offset_in_index_buffer += p_draw_command->ElemCount;
+                }
+                offset_in_vertex_buffer += p_draw_list->VtxBuffer.Size;
+            }
+        }
+
+        m_basic_rendering_services.endRendering(m_cmd_list);
+        m_cmd_list.close();
     }
 }

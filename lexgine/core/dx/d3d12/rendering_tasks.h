@@ -60,6 +60,7 @@ private:
 
 private:    // rendering tasks
     std::shared_ptr<tasks::rendering_tasks::UIDrawTask> m_ui_draw_task;
+    std::shared_ptr<tasks::rendering_tasks::Profiler> m_profiler;
     std::unique_ptr<tasks::rendering_tasks::TestRenderingTask> m_test_rendering_task;
 };
 

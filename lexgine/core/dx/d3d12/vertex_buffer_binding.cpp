@@ -64,6 +64,7 @@ void IndexBufferBinding::update(uint64_t new_index_data_offset, uint32_t new_ind
     }
 
     m_native_ib_view.BufferLocation = m_native_ib_view.BufferLocation - m_index_data_offset + new_index_data_offset;
+    m_index_data_offset = new_index_data_offset;
 }
 
 D3D12_INDEX_BUFFER_VIEW const& IndexBufferBinding::indexBufferView() const

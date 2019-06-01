@@ -101,8 +101,8 @@ Window::Window(HINSTANCE hInstance /* = NULL */,
     m_title(L"LexgineDXWindow"),
     m_pos_x{ 0 },
     m_pos_y{ 0 },
-    m_width{ 640 },
-    m_height{ 480 },
+    m_width{ 1280 },
+    m_height{ 1024 },
     m_is_visible{ false },
     m_should_close{ false }
 {
@@ -182,6 +182,20 @@ void Window::setDimensions(core::math::Vector2u const& dimensions)
 
 lexgine::core::math::Vector2u Window::getDimensions() const{ return core::math::Vector2u{ m_width, m_height }; }
 
+lexgine::core::math::Rectangle Window::getClientArea() const
+{
+    RECT rect{};
+    if (!GetClientRect(m_hwnd, &rect))
+    {
+        std::string error_string = getLastSystemError();
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, error_string);
+    }
+
+    return lexgine::core::math::Rectangle{ 
+        lexgine::core::math::Vector2f{static_cast<float>(rect.left), static_cast<float>(rect.top)},
+        static_cast<float>(rect.right - rect.left), static_cast<float>(rect.bottom - rect.top) 
+    };
+}
 
 void Window::setLocation(uint32_t x, uint32_t y)
 {
@@ -255,8 +269,8 @@ void Window::adjustClientAreaSize()
     RECT window_rectangle{};
     window_rectangle.left = m_pos_x;
     window_rectangle.top = m_pos_y;
-    window_rectangle.bottom = m_pos_x + m_width;
-    window_rectangle.right = m_pos_y + m_height;
+    window_rectangle.right = m_pos_x + m_width;
+    window_rectangle.bottom = m_pos_y + m_height;
 
     if (!AdjustWindowRect(&window_rectangle, m_window_style.getValue(), FALSE))
     {

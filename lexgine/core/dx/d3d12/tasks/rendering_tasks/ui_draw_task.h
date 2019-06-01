@@ -44,7 +44,8 @@ public:
     ~UIDrawTask();
     
     void updateBufferFormats(DXGI_FORMAT color_buffer_format, DXGI_FORMAT depth_buffer_format);
-    void setInputs(ImDrawData* gui_draw_data) { m_draw_data_ptr = gui_draw_data; }
+
+    void addUIProvider(std::weak_ptr<UIProvider> const& ui_provider) { m_ui_providers.push_back(ui_provider); }
 
 public:    // KeyInputListener events
     bool keyDown(osinteraction::SystemKey key) override;
@@ -98,11 +99,10 @@ private:
     std::vector<uint32_t> m_projection_matrix_constants;
 
     CommandList m_cmd_list;
-    ImDrawData* m_draw_data_ptr = nullptr;
     ImGuiContext* m_gui_context = nullptr;
 
     std::unique_ptr<CommittedResource> m_fonts_texture;
-    ShaderResourceDescriptorTable m_srv_table;x
+    ShaderResourceDescriptorTable m_srv_table;
 
     std::unique_ptr<PerFrameUploadDataStreamAllocator> m_ui_data_allocator;
     std::unique_ptr<VertexBufferBinding> m_ui_vertex_data_binding;
@@ -113,8 +113,9 @@ private:
     misc::StaticVector<Viewport, CommandList::c_maximal_viewport_count> m_viewports;
     misc::StaticVector<math::Rectangle, CommandList::c_maximal_scissor_rectangle_count> m_scissor_rectangles;
 
+    std::list<std::weak_ptr<UIProvider>> m_ui_providers;
+
 private:
-    static long long const c_update_ticks_per_second = 144;
     static std::string const c_interface_update_section;
     static size_t const c_interface_update_section_size = 1024 * 1024 * 8;
 };

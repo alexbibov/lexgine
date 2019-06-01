@@ -58,7 +58,7 @@ Matrix4f createOrthogonalProjectionMatrix(EngineAPI target_api, float position_x
     float width, float height, float near_cutoff_distance, float far_cutoff_distance)
 {
     float l{ position_x }, r{ position_x + width };
-    float b{ position_y }, t{ position_y + height };
+    float b{ position_y + height }, t{ position_y };
     float n{ near_cutoff_distance }, f{ far_cutoff_distance };
     Vector4f row0{ 2.f / (r - l), 0.f, 0.f, (l + r) / (l - r) };
     Vector4f row1{ 0.f, 2.f / (t - b), 0.f, (b + t) / (b - t) };

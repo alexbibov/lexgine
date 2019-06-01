@@ -29,6 +29,7 @@ public:
     void beginRendering(CommandList& command_list) const;
     void endRendering(CommandList& command_list) const;
 
+    void setDefaultResources(CommandList& command_list) const;
     void setDefaultViewport(CommandList& command_list) const;
     void setDefaultRenderingTarget(CommandList& command_list) const;
     void clearDefaultRenderingTarget(CommandList& command_list,
