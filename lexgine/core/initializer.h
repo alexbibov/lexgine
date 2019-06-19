@@ -68,7 +68,7 @@ public:
     std::unique_ptr<dx::d3d12::RenderingTasks> createRenderingTasks() const;
 
     //! helper function that simplifies linking swap chain to rendering tasks
-    dx::d3d12::SwapChainLink createSwapChainLink(dx::dxgi::SwapChain const& target_swap_chain,
+    std::shared_ptr<dx::d3d12::SwapChainLink> createSwapChainLink(dx::dxgi::SwapChain& target_swap_chain,
         dx::d3d12::SwapChainDepthBufferFormat depth_buffer_format, dx::d3d12::RenderingTasks& source_rendering_tasks) const;
 
     //! creates main rendering loop

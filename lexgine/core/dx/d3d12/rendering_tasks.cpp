@@ -48,18 +48,14 @@ RenderingTasks::~RenderingTasks()
     cleanup();
 }
 
-void RenderingTasks::defineRenderingConfiguration(Viewport const& viewport,
-    DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format,
-    osinteraction::windows::Window* p_rendering_window/* = nullptr*/)
+void RenderingTasks::defineRenderingConfiguration(Viewport const& viewport, DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format,
+    osinteraction::windows::Window* p_rendering_window)
 {
     cleanup();
 
-    BasicRenderingServicesAttorney<RenderingTasks>
-        ::defineRenderingTargetFormat(m_basic_rendering_services,
-            rendering_target_color_format, rendering_target_depth_format);
-
-    BasicRenderingServicesAttorney<RenderingTasks>
-        ::defineRenderingViewport(m_basic_rendering_services, viewport);
+    BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingTargetFormat(m_basic_rendering_services, rendering_target_color_format, rendering_target_depth_format);
+    BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingViewport(m_basic_rendering_services, viewport);
+    BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingWindow(m_basic_rendering_services, p_rendering_window);
 
     {
         // update rendering tasks
@@ -68,13 +64,21 @@ void RenderingTasks::defineRenderingConfiguration(Viewport const& viewport,
         if (p_rendering_window == nullptr)
         {
             m_ui_draw_task.reset();
-
+            m_profiler.reset();
         }
         else
         {
-            m_ui_draw_task = UIDrawTask::create(m_globals, m_basic_rendering_services, *p_rendering_window);
-            m_profiler = tasks::rendering_tasks::Profiler::create();
-            m_ui_draw_task->addUIProvider(m_profiler);
+            if(!m_ui_draw_task)
+            {
+                m_ui_draw_task = UIDrawTask::create(m_globals, m_basic_rendering_services, *p_rendering_window);
+                p_rendering_window->addListener(m_ui_draw_task);
+            }
+
+            if(!m_profiler)
+            {
+                m_profiler = tasks::rendering_tasks::Profiler::create();
+                m_ui_draw_task->addUIProvider(m_profiler);
+            }
         }
 
         m_ui_draw_task->updateBufferFormats(rendering_target_color_format, rendering_target_depth_format);

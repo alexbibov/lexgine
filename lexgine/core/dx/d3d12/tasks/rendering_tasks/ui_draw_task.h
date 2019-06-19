@@ -29,18 +29,9 @@ class UIDrawTask :
     using lexgine::core::Entity::getId;
 
 public:
-    static std::shared_ptr<UIDrawTask> create(Globals& globals, 
-        BasicRenderingServices& basic_rendering_services,
-        osinteraction::windows::Window& rendering_window)
-    {
-        auto rv = std::shared_ptr<UIDrawTask>{ 
-            new UIDrawTask{ globals, basic_rendering_services, rendering_window }
-        };
+    static std::shared_ptr<UIDrawTask> create(Globals& globals, BasicRenderingServices& basic_rendering_services, osinteraction::windows::Window& rendering_window);
 
-        rv->m_rendering_window.addListener(rv);
-        return rv;
-    }
-
+public:
     ~UIDrawTask();
     
     void updateBufferFormats(DXGI_FORMAT color_buffer_format, DXGI_FORMAT depth_buffer_format);

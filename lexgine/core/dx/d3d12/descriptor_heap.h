@@ -37,6 +37,8 @@ public:
     DescriptorHeap(DescriptorHeap const&) = delete;
     DescriptorHeap(DescriptorHeap&&) = default;
 
+    void reset();    // resets the descriptor heap
+
     uint32_t capacity() const;
 
     

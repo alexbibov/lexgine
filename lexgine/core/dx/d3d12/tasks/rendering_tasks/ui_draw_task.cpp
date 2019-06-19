@@ -148,6 +148,13 @@ void updateMousePosition(HWND hwnd)
 
 }
 
+std::shared_ptr<UIDrawTask> UIDrawTask::create(Globals& globals, BasicRenderingServices& basic_rendering_services, osinteraction::windows::Window& rendering_window)
+{
+    std::shared_ptr<UIDrawTask> rv{ new UIDrawTask{globals, basic_rendering_services, rendering_window} };
+    rendering_window.addListener(rv);
+    return rv;
+}
+
 UIDrawTask::~UIDrawTask()
 {
     ImGui::DestroyContext();
