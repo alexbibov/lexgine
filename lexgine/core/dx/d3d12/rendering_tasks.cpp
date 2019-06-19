@@ -39,6 +39,7 @@ RenderingTasks::RenderingTasks(Globals& globals)
     , m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" }
     , m_task_sink{ m_task_graph, convertFileStreamsToGenericStreams(globals.get<LoggingStreams>()->worker_logging_streams), "RenderingTasksSink" }
     , m_basic_rendering_services{ globals }
+    , m_rendering_window_ptr{ nullptr }
 {
     m_test_rendering_task.reset(new TestRenderingTask{ m_globals, m_basic_rendering_services });
 }
