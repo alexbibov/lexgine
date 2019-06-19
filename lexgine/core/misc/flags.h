@@ -3,8 +3,13 @@
 
 #include <utility>
 #include <string>
+#include <type_traits>
 
-namespace lexgine {namespace core {namespace misc {
+namespace lexgine::core::misc {
+
+template<typename BaseFlagType>
+using is_scoped_enum = std::integral_constant<bool, 
+    std::is_enum<BaseFlagType>::value && !std::is_convertible<BaseFlagType, int>::value>;
 
 //! Template class that allows to implement "enumeration" types that could be OR'ed just like normal flags
 template<typename BaseFlagType, typename BaseIntegralType = int>
@@ -95,7 +100,26 @@ private:
     BaseIntegralType m_value;
 };
 
+}
 
-}}}
+namespace lexgine 
+{
+
+template<typename BaseIntegralType,
+    typename T0 = std::enable_if<core::misc::is_scoped_enum<BaseIntegralType>::value>::value
+    //typename T1 = decltype(BaseIntegralType::_tag_flag_enumeration)
+>
+    core::misc::Flags<BaseIntegralType> operator | (BaseIntegralType a, BaseIntegralType b)
+{
+    return Flags<BaseIntegralType>{a} | b;
+}
+
+}
+
+#define BEGIN_FLAGS_DECLARATION(name) enum class _tag##name : int {
+#define FLAG(name, value) name = value,
+#define END_FLAGS_DECLARATION(name) \
+_tag_flag_enumeration = -1 };\
+using name = lexgine::core::misc::Flags<_tag##name>;
 
 #endif

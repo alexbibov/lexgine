@@ -46,21 +46,16 @@ enum class TextureLayout
 };
 
 
-namespace __tag {
-enum class tagResourceFlags
-{
-    none = 0,
-    render_target = 0x1,
-    depth_stencil = 0x2,
-    unordered_access = 0x4,
-    deny_shader_resource = 0x8,
-    allow_cross_adapter = 0x10,    // note that this precludes usage of mip-maps
-    allow_simultaneous_access = 0x20
-};
-}
-
-
-using ResourceFlags = misc::Flags<__tag::tagResourceFlags>;    //! resource creation flags
+//! Resource flags
+BEGIN_FLAGS_DECLARATION(ResourceFlags)
+FLAG(none, 0)
+FLAG(render_target, 0x1)
+FLAG(depth_stencil, 0x2)
+FLAG(unordered_access, 0x4)
+FLAG(deny_shader_resource, 0x8)
+FLAG(allow_cross_adapter, 0x10)
+FLAG(allow_simultaneous_access, 0x20)
+END_FLAGS_DECLARATION(ResourceFlags)
 
 
 //! Thin class wrapper over D3D12_RESOURCE_DESC to simplify its creation
@@ -85,48 +80,41 @@ struct ResourceDescriptor
 
     static ResourceDescriptor CreateBuffer(uint64_t size, ResourceFlags flags = ResourceFlags{ ResourceFlags::enum_type::none });    //! fills out the fields of the structure as required for buffers
 
-    static ResourceDescriptor CreateTexture1D(uint64_t width, uint16_t array_size, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags{ ResourceFlags::enum_type::none },
+    static ResourceDescriptor CreateTexture1D(uint64_t width, uint16_t array_size, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags::enum_type::none,
         MultiSamplingFormat ms_format = MultiSamplingFormat{ 1, 0 }, ResourceAlignment alignment = ResourceAlignment::default,
         TextureLayout layout = TextureLayout::unknown);    //! fills out the fields of the structure as required for 1D textures
 
-    static ResourceDescriptor CreateTexture2D(uint64_t width, uint32_t height, uint16_t array_size, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags{ ResourceFlags::enum_type::none },
+    static ResourceDescriptor CreateTexture2D(uint64_t width, uint32_t height, uint16_t array_size, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags::enum_type::none,
         MultiSamplingFormat ms_format = MultiSamplingFormat{ 1, 0 }, ResourceAlignment alignment = ResourceAlignment::default,
         TextureLayout layout = TextureLayout::unknown);    //! fills out the fields of the structure as required for 2D textures
 
-    static ResourceDescriptor CreateTexture3D(uint64_t width, uint32_t height, uint16_t depth, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags{ ResourceFlags::enum_type::none },
+    static ResourceDescriptor CreateTexture3D(uint64_t width, uint32_t height, uint16_t depth, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags::enum_type::none,
         MultiSamplingFormat ms_format = MultiSamplingFormat{ 1, 0 }, ResourceAlignment alignment = ResourceAlignment::default,
         TextureLayout layout = TextureLayout::unknown);    //! fills out the fields of the structure as required for 3D textures
 };
 
 
 //! Resource states
-namespace __tag
-{
-enum class tagResourceState
-{
-    common = D3D12_RESOURCE_STATE_COMMON,
-    vertex_and_constant_buffer = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
-    index_buffer = D3D12_RESOURCE_STATE_INDEX_BUFFER,
-    render_target = D3D12_RESOURCE_STATE_RENDER_TARGET,
-    unordered_access = D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-    depth_write = D3D12_RESOURCE_STATE_DEPTH_WRITE,
-    depth_read = D3D12_RESOURCE_STATE_DEPTH_READ,
-    non_pixel_shader = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
-    pixel_shader = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-    stream_out = D3D12_RESOURCE_STATE_STREAM_OUT,
-    indirect_argument = D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT,
-    copy_destination = D3D12_RESOURCE_STATE_COPY_DEST,
-    copy_source = D3D12_RESOURCE_STATE_COPY_SOURCE,
-    resolve_destination = D3D12_RESOURCE_STATE_RESOLVE_DEST,
-    resolve_source = D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
-    generic_read = D3D12_RESOURCE_STATE_GENERIC_READ,
-    present = D3D12_RESOURCE_STATE_PRESENT,
-    predication = D3D12_RESOURCE_STATE_PREDICATION
-};
-}
-
-
-using ResourceState = misc::Flags<__tag::tagResourceState>;
+BEGIN_FLAGS_DECLARATION(ResourceState)
+FLAG(common, D3D12_RESOURCE_STATE_COMMON)
+FLAG(vertex_and_constant_buffer, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER)
+FLAG(index_buffer, D3D12_RESOURCE_STATE_INDEX_BUFFER)
+FLAG(render_target, D3D12_RESOURCE_STATE_RENDER_TARGET)
+FLAG(unordered_access, D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+FLAG(depth_write, D3D12_RESOURCE_STATE_DEPTH_WRITE)
+FLAG(depth_read, D3D12_RESOURCE_STATE_DEPTH_READ)
+FLAG(non_pixel_shader, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
+FLAG(pixel_shader, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+FLAG(stream_out, D3D12_RESOURCE_STATE_STREAM_OUT)
+FLAG(indirect_argument, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT)
+FLAG(copy_destination, D3D12_RESOURCE_STATE_COPY_DEST)
+FLAG(copy_source, D3D12_RESOURCE_STATE_COPY_SOURCE)
+FLAG(resolve_destination, D3D12_RESOURCE_STATE_RESOLVE_DEST)
+FLAG(resolve_source, D3D12_RESOURCE_STATE_RESOLVE_SOURCE)
+FLAG(generic_read, D3D12_RESOURCE_STATE_GENERIC_READ)
+FLAG(present, D3D12_RESOURCE_STATE_PRESENT)
+FLAG(predication, D3D12_RESOURCE_STATE_PREDICATION)
+END_FLAGS_DECLARATION(ResourceState)
 
 
 struct DepthStencilValue final

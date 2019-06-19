@@ -350,10 +350,10 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
                 rs.addStaticSampler(sampler, ShaderVisibility::pixel);
             }
 
-            RootSignatureFlags flags = RootSignatureFlags::enum_type::allow_input_assembler;
-            flags |= RootSignatureFlags::enum_type::deny_hull_shader;
+            RootSignatureFlags flags = lexgine::operator|(RootSignatureFlags::enum_type::allow_input_assembler, RootSignatureFlags::enum_type::deny_hull_shader);
+            /*flags |= RootSignatureFlags::enum_type::deny_hull_shader;
             flags |= RootSignatureFlags::enum_type::deny_domain_shader;
-            flags |= RootSignatureFlags::enum_type::deny_geometry_shader;
+            flags |= RootSignatureFlags::enum_type::deny_geometry_shader;*/
 
             m_rs = rs_compilation_task_cache.findOrCreateTask(globals, std::move(rs), flags, "ui_rendering_rs", 0);
             m_rs->execute(0);

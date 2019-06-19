@@ -24,19 +24,15 @@ namespace lexgine::core::dx::d3d12 {
 class RenderingTask : public concurrency::SchedulableTask
 {
 private:
-    enum class tagRenderingConfigurationUpdateFlags : int
-    {
-        VIEWPORT_CHANGED = 0x1,
-        COLOR_FORMAT_CHANGED = 0x2,
-        DEPTH_FORMAT_CHANGED = 0x4,
-        RENDERING_WINDOW_CHANGED = 0x8
-    };
+    BEGIN_FLAGS_DECLARATION(RenderingConfigurationUpdateFlags)
+    FLAG(VIEWPORT_CHANGED, 0x1)
+    FLAG(COLOR_FORMAT_CHANGED, 0x2)
+    FLAG(DEPTH_FORMAT_CHANGED, 0x4)
+    FLAG(RENDERING_WINDOW_CHANGED, 0x8)
+    END_FLAGS_DECLARATION(RenderingConfigurationUpdateFlags)
 
 public:
-    using renderingConfigurationUpdatedFlags = misc::Flags<tagRenderingConfigurationUpdateFlags>;
-
-public:
-    virtual void renderingConfigurationUpdated(renderingConfigurationUpdatedFlags update_flags);
+    virtual void renderingConfigurationUpdated(RenderingConfigurationUpdateFlags update_flags) = 0;
 };
 
 class RenderingTaskFactory final
