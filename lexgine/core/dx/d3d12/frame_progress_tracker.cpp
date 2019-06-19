@@ -32,3 +32,4 @@ void FrameProgressTracker::waitForFrameCompletion(uint64_t frame_index, uint32_t
 {
     m_gpu_wall_signal.waitUntilValue(frame_index + 1, timeout_in_milliseconds);
 }
+

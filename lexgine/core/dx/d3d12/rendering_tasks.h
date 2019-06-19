@@ -10,6 +10,7 @@
 #include "lexgine/core/class_names.h"
 #include "lexgine/core/viewport.h"
 #include "lexgine/core/concurrency/task_sink.h"
+#include "lexgine/core/concurrency/schedulable_task.h"
 #include "lexgine/core/misc/static_vector.h"
 #include "lexgine/core/dx/d3d12/tasks/rendering_tasks/lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h"
 
@@ -20,7 +21,36 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-class RenderingTasks final : public NamedEntity<class_names::D3D12_RenderingTasks>
+class RenderingTask : public concurrency::SchedulableTask
+{
+private:
+    enum class tagRenderingConfigurationUpdateFlags : int
+    {
+        VIEWPORT_CHANGED = 0x1,
+        COLOR_FORMAT_CHANGED = 0x2,
+        DEPTH_FORMAT_CHANGED = 0x4,
+        RENDERING_WINDOW_CHANGED = 0x8
+    };
+
+public:
+    using renderingConfigurationUpdatedFlags = misc::Flags<tagRenderingConfigurationUpdateFlags>;
+
+public:
+    virtual void renderingConfigurationUpdated(renderingConfigurationUpdatedFlags update_flags);
+};
+
+class RenderingTaskFactory final
+{
+public:
+    template<typename TaskType, typename ... Args>
+    static std::shared_ptr<TaskType> create(Args ... args)
+    {
+        return TaskType::create(std::forward<Args>(args)...);
+    }
+};
+
+
+class RenderingTasks : public NamedEntity<class_names::D3D12_RenderingTasks>
 {
 public:
     class GPURenderingServices;
@@ -35,7 +65,7 @@ public:
     */
     void defineRenderingConfiguration(Viewport const& viewport,
         DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format,
-        osinteraction::windows::Window* p_rendering_window = nullptr);
+        osinteraction::windows::Window* p_rendering_window);
 
     void render(RenderingTarget& rendering_target, 
         std::function<void(RenderingTarget const&)> const& presentation_routine);
@@ -57,6 +87,7 @@ private:
     concurrency::TaskSink m_task_sink;
 
     BasicRenderingServices m_basic_rendering_services;
+    osinteraction::windows::Window* m_rendering_window_ptr;
 
 private:    // rendering tasks
     std::shared_ptr<tasks::rendering_tasks::UIDrawTask> m_ui_draw_task;

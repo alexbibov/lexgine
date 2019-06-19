@@ -25,6 +25,9 @@ public:
     void waitForFrameCompletion(uint64_t frame_index) const;
     void waitForFrameCompletion(uint64_t frame_index, uint32_t timeout_in_milliseconds) const;
    
+    void synchronize() const { waitForFrameCompletion(lastScheduledFrameIndex()); }
+    void synchronize(uint32_t timeout_in_milliseconds) const { waitForFrameCompletion(lastScheduledFrameIndex(), timeout_in_milliseconds); }
+
 private:
     Signal m_cpu_wall_signal;
     Signal m_gpu_wall_signal;

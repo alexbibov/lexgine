@@ -47,13 +47,18 @@ SwapChainDescriptor createSwapChainSettings()
 }
 
 class MainClass final :
-    public Listeners<KeyInputListener, MouseButtonListener, MouseMoveListener,
-    WindowSizeChangeListener, ClientAreaUpdateListener>
+    public Listeners<
+    KeyInputListener, 
+    MouseButtonListener,
+    MouseMoveListener,
+    WindowSizeChangeListener, 
+    ClientAreaUpdateListener
+    >
 {
 public:
     static std::shared_ptr<MainClass> create()
     {
-        auto rv = std::shared_ptr<MainClass>{new MainClass{}};
+        std::shared_ptr<MainClass> rv = std::shared_ptr<MainClass>{ new MainClass{} };
         rv->m_rendering_window.addListener(rv);
         return rv;
     }
@@ -68,7 +73,7 @@ public:
         return m_rendering_window.update();
     }
 
-    bool shouldClose()
+    bool shouldClose() const
     {
         return m_rendering_window.shouldClose();
     }
@@ -173,8 +178,6 @@ public:
         return true;
     }
 
-
-
     bool minimized() override
     {
         // std::cout << "window has been minimized" << std::endl;
@@ -196,25 +199,25 @@ public:
 
     bool paint(lexgine::core::math::Rectangle const& update_region) override
     {
-        m_swap_chain_link.render();
+        m_swap_chain_link->render();
         return true;
     }
 
- private:
-     MainClass()
-         : m_engine_settings{ createEngineSettings() }
-         , m_engine_initializer{ m_engine_settings }
-         , m_swap_chain{ m_engine_initializer.createSwapChainForCurrentDevice(m_rendering_window, createSwapChainSettings()) }
-         , m_rendering_tasks{ m_engine_initializer.createRenderingTasks() }
-         , m_swap_chain_link{ m_engine_initializer.createSwapChainLink(m_swap_chain, lexgine::core::dx::d3d12::SwapChainDepthBufferFormat::d32float, *m_rendering_tasks) }
-     {
-         m_rendering_window.setLocation(10, 10);
-         //m_rendering_window.setDimensions(lexgine::core::math::Vector2u{ 1280, 720 });
+private:
+    MainClass()
+        : m_engine_settings{ createEngineSettings() }
+        , m_engine_initializer{ m_engine_settings }
+        , m_swap_chain{ m_engine_initializer.createSwapChainForCurrentDevice(m_rendering_window, createSwapChainSettings()) }
+        , m_rendering_tasks{ m_engine_initializer.createRenderingTasks() }
+        , m_swap_chain_link{ m_engine_initializer.createSwapChainLink(m_swap_chain, lexgine::core::dx::d3d12::SwapChainDepthBufferFormat::d32float, *m_rendering_tasks) }
+    {
+        m_rendering_window.setLocation(10, 10);
+        //m_rendering_window.setDimensions(lexgine::core::math::Vector2u{ 1280, 720 });
 
-         m_rendering_window.setVisibility(true);
+        m_rendering_window.setVisibility(true);
 
-         Device& dev_ref = m_engine_initializer.getCurrentDevice();
-     }
+        Device& dev_ref = m_engine_initializer.getCurrentDevice();
+    }
 
 private:
     EngineSettings m_engine_settings;
@@ -222,7 +225,7 @@ private:
     Window m_rendering_window;
     SwapChain m_swap_chain;
     std::unique_ptr<RenderingTasks> m_rendering_tasks;
-    SwapChainLink m_swap_chain_link;
+    std::shared_ptr<SwapChainLink> m_swap_chain_link;
 };
 
 int main(int argc, char* argv[])

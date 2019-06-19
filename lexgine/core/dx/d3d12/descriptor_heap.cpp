@@ -43,6 +43,11 @@ uint64_t DescriptorHeap::getBaseGPUPointer() const
     return m_descriptor_heap->GetGPUDescriptorHandleForHeapStart().ptr;
 }
 
+void DescriptorHeap::reset()
+{
+    m_num_descriptors_allocated.store(0, std::memory_order_release);
+}
+
 uint32_t DescriptorHeap::capacity() const
 {
     return m_descriptor_capacity;

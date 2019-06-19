@@ -86,6 +86,9 @@ public:
     //! Retrieves descriptor of the swap chain
     SwapChainDescriptor const& descriptor() const;
 
+    //! Resizes the swap chain 
+    void resizeBuffers(math::Vector2u const& new_dimensions);
+
 private:
     SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory, 
         d3d12::Device& device, 

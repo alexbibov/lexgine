@@ -9,6 +9,9 @@
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
 
+#include "lexgine/osinteraction/listener.h"
+#include "lexgine/osinteraction/windows/window_listeners.h"
+
 #include "resource.h"
 #include "rendering_target.h"
 
@@ -24,11 +27,14 @@ enum class SwapChainDepthBufferFormat
 };
 
 //! Implements link between swap chain and main rendering loop
-class SwapChainLink final
+class SwapChainLink final : 
+    public osinteraction::Listeners<osinteraction::windows::WindowSizeChangeListener>
 {
 public:
-    SwapChainLink(Globals& globals, dxgi::SwapChain const& swap_chain_to_link,
+    static std::shared_ptr<SwapChainLink> create(Globals& globals, dxgi::SwapChain& swap_chain_to_link,
         SwapChainDepthBufferFormat depth_buffer_format);
+
+public:
     ~SwapChainLink();
 
     SwapChainLink(SwapChainLink const&) = delete;
@@ -38,20 +44,35 @@ public:
 
     void render();
 
+public:    // WindowSizeChangeListener events
+    bool minimized() override;
+    bool maximized(uint16_t new_width, uint16_t new_height) override;
+    bool size_changed(uint16_t new_width, uint16_t new_height) override;
+
+private:
+    SwapChainLink(Globals& globals, dxgi::SwapChain& swap_chain_to_link,
+        SwapChainDepthBufferFormat depth_buffer_format);
+
+
+    void updateRenderingConfiguration() const;
+    void releaseBuffers();
+    void acquireBuffers(uint32_t width, uint32_t height);
+
+
 private:
     Globals& m_globals;
     GlobalSettings const& m_global_settings;
     Device& m_device;
-    dxgi::SwapChain const& m_linked_swap_chain;
+    dxgi::SwapChain& m_linked_swap_chain;
     RenderingTasks* m_linked_rendering_tasks_ptr;
+    bool m_suspend_rendering = false;
 
     std::vector<Resource> m_color_buffers;
+    std::unique_ptr<CommittedResource> m_depth_buffer;
 
-    std::unique_ptr<Heap> m_depth_buffer_heap;
     DXGI_FORMAT m_depth_buffer_native_format;
     ResourceOptimizedClearValue m_depth_optimized_clear_value;
-    Resource m_depth_buffer;
-
+    
     std::vector<RenderingTarget> m_targets;
 
     std::function<void(RenderingTarget const&)> m_presenter;

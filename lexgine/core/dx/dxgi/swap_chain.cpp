@@ -64,6 +64,22 @@ SwapChainDescriptor const& SwapChain::descriptor() const
     return m_descriptor;
 }
 
+void SwapChain::resizeBuffers(math::Vector2u const& new_dimensions)
+{
+    // TODO: AFR support
+    
+    std::vector<UINT> node_masks(m_advanced_parameters.queued_buffer_count, 0x1);
+    std::vector<IUnknown*> queues(m_advanced_parameters.queued_buffer_count, m_default_command_queue.native().Get());
+
+    LEXGINE_THROW_ERROR_IF_FAILED(
+        this,
+        m_dxgi_swap_chain->ResizeBuffers1(0,
+            static_cast<UINT>(new_dimensions.x), static_cast<UINT>(new_dimensions.y),
+            DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH, node_masks.data(), queues.data()),
+        S_OK
+    );
+}
+
 SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     Device& device,
     CommandQueue const& default_command_queue,
