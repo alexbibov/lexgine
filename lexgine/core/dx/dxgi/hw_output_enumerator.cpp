@@ -107,14 +107,14 @@ std::vector<HwOutput::DisplayMode> HwOutput::getDisplayModes(DXGI_FORMAT format,
     UINT num_modes;
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        m_output->GetDisplayModeList1(format, static_cast<DisplayModeEnumerationOptions::base_int_type>(options), &num_modes, NULL),
+        m_output->GetDisplayModeList1(format, static_cast<DisplayModeEnumerationOptions::int_type>(options), &num_modes, NULL),
         S_OK
     );
 
     DXGI_MODE_DESC1* p_descs = new DXGI_MODE_DESC1[num_modes];
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        m_output->GetDisplayModeList1(format, static_cast<DisplayModeEnumerationOptions::base_int_type>(options), &num_modes, p_descs),
+        m_output->GetDisplayModeList1(format, static_cast<DisplayModeEnumerationOptions::int_type>(options), &num_modes, p_descs),
         S_OK
     );
 

@@ -46,15 +46,15 @@ HWND createWindow(Window* p_window, ATOM& atom, HINSTANCE hInstance, uint32_t x,
     Window::WindowStyle const& window_style, Window::WindowExStyle const& window_extended_style, std::wstring const& title, WNDPROC window_procedure)
 {
     // Check consistency of the window styles
-    Window::WindowStyle::base_int_type window_style_flags{};
-    Window::WindowExStyle::base_int_type window_ex_style_flags = static_cast<Window::WindowExStyle::base_int_type>(window_extended_style);
+    Window::WindowStyle::int_type window_style_flags{};
+    Window::WindowExStyle::int_type window_ex_style_flags = static_cast<Window::WindowExStyle::int_type>(window_extended_style);
 
     if (window_style.isSet(Window::WindowStyle::base_values::has_maximize_box) ||
         window_style.isSet(Window::WindowStyle::base_values::has_minimize_box))
-        window_style_flags = static_cast<Window::WindowStyle::base_int_type>(window_style | Window::WindowStyle::base_values::has_system_menu);
+        window_style_flags = static_cast<Window::WindowStyle::int_type>(window_style | Window::WindowStyle::base_values::has_system_menu);
 
     if (window_style.isSet(Window::WindowStyle::base_values::has_system_menu))
-        window_style_flags |= static_cast<Window::WindowStyle::base_int_type>(Window::WindowStyle::base_values::has_title_bar);
+        window_style_flags |= static_cast<Window::WindowStyle::int_type>(Window::WindowStyle::base_values::has_title_bar);
 
 
     // Create window class if it has not been provided by the caller
