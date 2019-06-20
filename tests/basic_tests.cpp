@@ -323,6 +323,7 @@ public:
 
         TEST_METHOD(TestTaskScheuling)
         {
+            using namespace lexgine;
             using namespace lexgine::core::concurrency;
             using namespace lexgine::core::misc;
 
@@ -465,6 +466,7 @@ public:
         
         TEST_METHOD(TestD3D12PSOXMLParser)
         {
+            using namespace lexgine;
             using namespace lexgine::core::dx::d3d12;
             using namespace lexgine::core::misc;
             using namespace lexgine::core;
@@ -490,8 +492,7 @@ public:
 
                     auto& rs_compilation_tasks_cache = *globals.get<task_caches::RootSignatureCompilationTaskCache>();
                     
-                    RootSignatureFlags flags{ RootSignatureFlags::enum_type::allow_input_assembler };
-                    flags |= RootSignatureFlags::enum_type::allow_stream_output;
+                    auto flags = RootSignatureFlags::base_values::allow_input_assembler | RootSignatureFlags::base_values::allow_stream_output;
                     rs_compilation_tasks_cache.findOrCreateTask(globals, std::move(rs),
                         flags, "SampleRootSignature", 0);
                 }

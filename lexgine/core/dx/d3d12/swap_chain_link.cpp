@@ -146,11 +146,11 @@ void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
 
     auto descriptor =
         ResourceDescriptor::CreateTexture2D(width, height, queued_frames_count, 
-            m_depth_buffer_native_format, 1, ResourceFlags::enum_type::depth_stencil);
+            m_depth_buffer_native_format, 1, ResourceFlags::base_values::depth_stencil);
 
-    m_depth_buffer = std::make_unique<CommittedResource>(m_device, ResourceState::enum_type::depth_read, 
+    m_depth_buffer = std::make_unique<CommittedResource>(m_device, ResourceState::base_values::depth_read, 
         m_depth_optimized_clear_value, descriptor, AbstractHeapType::default, 
-        HeapCreationFlags::enum_type::allow_all, 0x1, 0x1);
+        HeapCreationFlags::base_values::allow_all, 0x1, 0x1);
 
 
     for (uint16_t i = 0U; i < queued_frames_count; ++i)
@@ -158,13 +158,13 @@ void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
         m_color_buffers.emplace_back(m_linked_swap_chain.getBackBuffer(i));
 
         RTVTextureInfo rtv_texture_info{};
-        ColorTarget color_target{ m_color_buffers.back(), ResourceState::enum_type::common, rtv_texture_info };
+        ColorTarget color_target{ m_color_buffers.back(), ResourceState::base_values::common, rtv_texture_info };
 
         DSVTextureArrayInfo dsv_texture_array_info{};
         dsv_texture_array_info.mip_level_slice = 0;
         dsv_texture_array_info.first_array_element = i;
         dsv_texture_array_info.num_array_elements = 1;
-        DepthTarget depth_target{ *m_depth_buffer, ResourceState::enum_type::depth_read, dsv_texture_array_info };
+        DepthTarget depth_target{ *m_depth_buffer, ResourceState::base_values::depth_read, dsv_texture_array_info };
 
         m_targets.emplace_back(m_globals, std::vector<ColorTarget>{ color_target }, misc::makeOptional<DepthTarget>(depth_target));
     }

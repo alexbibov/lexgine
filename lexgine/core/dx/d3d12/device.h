@@ -30,20 +30,14 @@ namespace lexgine::core::dx::d3d12 {
 
 template<typename T> class DeviceAttorney;
 
-namespace __tag {
-enum class tagShaderPrecisionMode {
-    _32_bit = D3D12_SHADER_MIN_PRECISION_SUPPORT_NONE,    //!< no less than 32-bit precision is supported for all shader stages
-    _10_bit = D3D12_SHADER_MIN_PRECISION_SUPPORT_10_BIT,  //!< 10 bit precision is supported by the driver
-    _16_bit = D3D12_SHADER_MIN_PRECISION_SUPPORT_16_BIT   //!< 16 bit precision is supported by the driver
-};
 
-enum class tagMultisampleQualityLevels {
-    none = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE,
-    tiled_resource = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_TILED_RESOURCE
-};
-}
+//! Shader precision modes that can be supported by the graphics hardware
+BEGIN_FLAGS_DECLARATION(ShaderPrecisionMode)
+FLAG(_32_bit, D3D12_SHADER_MIN_PRECISION_SUPPORT_NONE)
+FLAG(_10_bit, D3D12_SHADER_MIN_PRECISION_SUPPORT_10_BIT)
+FLAG(_16_bit, D3D12_SHADER_MIN_PRECISION_SUPPORT_16_BIT)
+END_FLAGS_DECLARATION(ShaderPrecisionMode) 
 
-using ShaderPrecisionMode = misc::Flags<__tag::tagShaderPrecisionMode>;    //! Shader precision modes that can be supported by the graphics hardware
 
 //! Specifies whether the hardware and driver support tiled resources
 enum class D3D12TiledResourceTier
@@ -128,7 +122,10 @@ struct FeatureFormatSupport final
 };
 
 //! Specifies options for determining quality levels
-using MultisampleQualityLevels = misc::Flags<__tag::tagMultisampleQualityLevels>;
+BEGIN_FLAGS_DECLARATION(MultisampleQualityLevels)
+FLAG(none, D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE)
+FLAG(tiled_resource, D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_TILED_RESOURCE)
+END_FLAGS_DECLARATION(MultisampleQualityLevels)
 
 //! Thin wrapper over D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS
 struct FeatureMultisampleQualityLevels final
@@ -184,14 +181,14 @@ public:
     /*! creates heap of one of the abstract types. Here parameter node_mask identifies the node where the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
      and node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
      */
-    Heap createHeap(AbstractHeapType type, uint64_t size, HeapCreationFlags flags = HeapCreationFlags{ HeapCreationFlags::enum_type::allow_all },
+    Heap createHeap(AbstractHeapType type, uint64_t size, HeapCreationFlags flags = HeapCreationFlags{ HeapCreationFlags::base_values::allow_all },
         bool is_msaa_supported = false, uint32_t node_mask = 0, uint32_t node_exposure_mask = 0);
 
     /*! creates custom heap with requested CPU memory page properties and allocated from the given GPU memory pool. Here @param node_mask identifies the node where
      the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
      and node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
      */
-    Heap createHeap(CPUPageProperty cpu_page_property, GPUMemoryPool gpu_memory_pool, uint64_t size, HeapCreationFlags flags = HeapCreationFlags{ HeapCreationFlags::enum_type::allow_all },
+    Heap createHeap(CPUPageProperty cpu_page_property, GPUMemoryPool gpu_memory_pool, uint64_t size, HeapCreationFlags flags = HeapCreationFlags{ HeapCreationFlags::base_values::allow_all },
         bool is_msaa_supported = false, uint32_t node_mask = 0, uint32_t node_exposure_mask = 0);
 
     uint32_t maxFramesInFlight() const;    //! maximal number of frames allowed to be simultaneously rendered on this device

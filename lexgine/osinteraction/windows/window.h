@@ -20,58 +20,39 @@
 
 #include "lexgine/osinteraction/listener.h"
 
-
-
 namespace lexgine::osinteraction::windows {
-
-namespace __tag {
-
-//! Base windows styles
-enum class tagWindowStyle : uint32_t
-{
-    ThinBorder = WS_BORDER,    //!< the window has a thin-line border
-    HasTitleBar = WS_CAPTION,    //!< the window has a title bar
-    DialogBoxFrame = WS_DLGFRAME,    //!< the window has a border of style typically used with dialog boxes. A window with this style cannot have a title bar
-    InitiallyMinimized = WS_MINIMIZE,    //!< the window is initially minimized
-    InitiallyMaximized = WS_MAXIMIZE,    //!< the window is initially maximized
-    HasMaximizeButton = WS_MAXIMIZEBOX,    //!< the window has a maximize button (HasSystemMenu and HasTitleBar are automatically added)
-    HasMinimizeButton = WS_MINIMIZEBOX,    //!< the window has a minimize button (HasSystemMenu and HasTitleBar are automatically added)
-    SupportsSizing = WS_THICKFRAME,    //!< the window supports resizing
-    HasSystemMenu = WS_SYSMENU,    //!< the window has a system menu on its title bar (HasTitleBar is automatically added)
-    Tiled = WS_OVERLAPPED,    //!< the window has a title bar and a border
-    Visible = WS_VISIBLE    //!< the window is initially visible
-
-};
-
-//! Base extended window styles
-enum class tagWindowExStyle : uint32_t
-{
-    ClientEdge = WS_EX_CLIENTEDGE,    //the window has a border with a sunken edge
-    DoubleBorder = WS_EX_DLGMODALFRAME,    //the window has double border
-    _3DBorder = WS_EX_STATICEDGE,    //the window has three-dimensional looking border style
-    RaisedBorderEdge = WS_EX_WINDOWEDGE,    //the window has a border with raised edge
-    Topmost = WS_EX_TOPMOST    //the window should be put on top of all windows that were created without this flag set
-};
-
-}
-
 
 
 class Window final : public core::NamedEntity<lexgine::core::class_names::OSWindows_Window>
 {
 public:
-    using WindowStyle = core::misc::Flags<__tag::tagWindowStyle, uint32_t>;    //! Window style flags
-    using WindowExStyle = core::misc::Flags<__tag::tagWindowExStyle, uint32_t>;    //! Window extended style flags
+    BEGIN_FLAGS_DECLARATION(WindowStyle)    //! Window style flags
+    FLAG(thin_border, WS_BORDER)    //!< the window has a thin-line border
+    FLAG(has_title_bar, WS_CAPTION)    //!< the window has a title bar
+    FLAG(dialog_box_frame, WS_DLGFRAME)    //!< the window has a border of style typically used with dialog boxes. A window with this style cannot have a title bar
+    FLAG(initially_minimized, WS_MINIMIZE)    //!< the window is initially minimized
+    FLAG(initially_maximized, WS_MAXIMIZE)    //!< the window is initially maximized
+    FLAG(has_minimize_box, WS_MINIMIZEBOX)    //!< the window has a minimize button (HasSystemMenu and HasTitleBar are automatically added)
+    FLAG(has_maximize_box, WS_MAXIMIZEBOX)    //!< the window has a maximize button (HasSystemMenu and HasTitleBar are automatically added)
+    FLAG(supports_sizing, WS_THICKFRAME)    //!< the window supports resizing
+    FLAG(has_system_menu, WS_SYSMENU)    //!< the window has a system menu on its title bar (HasTitleBar is automatically added)
+    FLAG(tiled, WS_OVERLAPPED)    //!< the window has a title bar and a border
+    FLAG(visible, WS_VISIBLE)    //!< the window is initially visible
+    END_FLAGS_DECLARATION(WindowStyle)
+
+    BEGIN_FLAGS_DECLARATION(WindowExStyle)    //! Window extended style flags
+    FLAG(client_edge, WS_EX_CLIENTEDGE)    //!< the window has a border with a sunken edge
+    FLAG(double_border, WS_EX_DLGMODALFRAME)    //!< the window has double border
+    FLAG(_3d_border, WS_EX_STATICEDGE)    //!< the window has three-dimensional looking border style
+    FLAG(raise_border_edge, WS_EX_WINDOWEDGE)    //!< the window has a border with raised edge
+    FLAG(topmost, WS_EX_TOPMOST)    //!< the window should be put on top of all windows that were created without this flag set
+    END_FLAGS_DECLARATION(WindowExStyle)
 
 
     Window(HINSTANCE hInstance = NULL,
-        WindowStyle window_style =
-        WindowStyle{}
-        | WindowStyle::enum_type::HasSystemMenu
-        | WindowStyle::enum_type::HasMinimizeButton
-        | WindowStyle::enum_type::HasMaximizeButton
-        | WindowStyle::enum_type::SupportsSizing,
-        WindowExStyle window_ex_style = WindowExStyle::enum_type::RaisedBorderEdge);
+        WindowStyle window_style = WindowStyle::base_values::has_system_menu | WindowStyle::base_values::has_minimize_box
+        | WindowStyle::base_values::has_maximize_box | WindowStyle::base_values::supports_sizing,
+        WindowExStyle window_ex_style = WindowExStyle::base_values::raise_border_edge);
 
     ~Window();
 

@@ -26,15 +26,6 @@ class HwOutput final : public NamedEntity<class_names::DXGI_HwOutput>
 {
     friend class HwOutputEnumerator;    // HwOutput objects can only be created by the corresponding enumerators, which is just logical
 
-private:
-    enum class tagDisplayModeEnumerationOptions
-    {
-        IncludeInterlaced = DXGI_ENUM_MODES_INTERLACED,    //!< enumerate interlaced modes
-        IncludeScaling = DXGI_ENUM_MODES_SCALING,    //!< enumerate scaled display modes
-        IncludeStereo = DXGI_ENUM_MODES_STEREO,    //!< enumerate stereo display modes
-        IncludeDisabledStereo = DXGI_ENUM_MODES_DISABLED_STEREO    //!< enumerate stereo display modes that has been disabled via control panel
-    };
-
 public:
     enum class DxgiRotation
     {
@@ -127,8 +118,14 @@ public:
         bool is_stereo; //!< Equals 'true' if the display mode is a stereo mode
     };
 
-
-    using DisplayModeEnumerationOptions = misc::Flags<tagDisplayModeEnumerationOptions, UINT>;    //!< options taken into account when enumerating display modes
+    
+    //!< options taken into account when enumerating display modes
+    BEGIN_FLAGS_DECLARATION(DisplayModeEnumerationOptions)
+    FLAG(include_interlaced, DXGI_ENUM_MODES_INTERLACED)    //!< enumerate interlaced modes
+    FLAG(include_scaling, DXGI_ENUM_MODES_SCALING)    //!< enumerate scaled display modes
+    FLAG(include_stereo, DXGI_ENUM_MODES_STEREO)    //!< enumerate stereo display modes
+    FLAG(include_disabled_stereo, DXGI_ENUM_MODES_DISABLED_STEREO)    //!< enumerate stereo display modes that has been disabled via control panel
+    END_FLAGS_DECLARATION(DisplayModeEnumerationOptions)
 
 
     Description getDescription() const; //! Returns description of DXGI output

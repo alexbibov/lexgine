@@ -46,12 +46,12 @@ void VertexBuffer::build()
         ++counter;
     }
 
-    ResourceFlags vb_resource_flags = ResourceFlags::enum_type::deny_shader_resource;
-    HeapCreationFlags vb_heap_flags = HeapCreationFlags::enum_type::allow_all;
+    ResourceFlags vb_resource_flags = ResourceFlags::base_values::deny_shader_resource;
+    HeapCreationFlags vb_heap_flags = HeapCreationFlags::base_values::allow_all;
     if (m_allow_cross_adapter)
     {
-        vb_resource_flags |= ResourceFlags::enum_type::allow_cross_adapter;
-        vb_heap_flags |= HeapCreationFlags::enum_type::shared_cross_adapter;
+        vb_resource_flags |= ResourceFlags::base_values::allow_cross_adapter;
+        vb_heap_flags |= HeapCreationFlags::base_values::shared_cross_adapter;
     }
     ResourceDescriptor vb_descritptor = ResourceDescriptor::CreateBuffer(segment_offsets.back(), vb_resource_flags);
 
@@ -100,12 +100,12 @@ IndexBuffer::IndexBuffer(Device const& device, IndexDataType index_type, uint32_
         index_buffer_size *= indices_count;
     }
 
-    ResourceFlags resource_flags = ResourceFlags::enum_type::deny_shader_resource;
-    HeapCreationFlags heap_flags = HeapCreationFlags::enum_type::allow_all;
+    ResourceFlags resource_flags = ResourceFlags::base_values::deny_shader_resource;
+    HeapCreationFlags heap_flags = HeapCreationFlags::base_values::allow_all;
     if (allow_cross_adapter)
     {
-        resource_flags |= ResourceFlags::enum_type::allow_cross_adapter;
-        heap_flags |= HeapCreationFlags::enum_type::shared_cross_adapter;
+        resource_flags |= ResourceFlags::base_values::allow_cross_adapter;
+        heap_flags |= HeapCreationFlags::base_values::shared_cross_adapter;
     }
     ResourceDescriptor index_buffer_descriptor = ResourceDescriptor::CreateBuffer(index_buffer_size, resource_flags);
 

@@ -21,7 +21,7 @@ public:
 
     void build();    //! builds the vertex buffer with given segments
 
-    static ResourceState defaultState() { return ResourceState::enum_type::vertex_and_constant_buffer; }
+    static ResourceState defaultState() { return ResourceState::base_values::vertex_and_constant_buffer; }
     CommittedResource const& resource() const;
 
     void bind(CommandList& command_list) const;    //! records vertex buffer binding into the given command list
@@ -54,7 +54,7 @@ public:
     IndexBuffer(Device const& device, IndexDataType index_type, uint32_t indices_count,
         uint32_t node_mask = 0x1, uint32_t node_exposure_mask = 0x1, bool allow_cross_adapter = false);
 
-    static ResourceState defaultState(){ return ResourceState::enum_type::index_buffer; }
+    static ResourceState defaultState(){ return ResourceState::base_values::index_buffer; }
     CommittedResource const& resource() const;
 
     void bind(CommandList& command_list);    //! records index buffer binding into the given command list

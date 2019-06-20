@@ -61,15 +61,13 @@ enum class BlendLogicalOperation: uint8_t
 };
 
 
-namespace __tag {
-enum class tagColorWriteEnable {
-    red = 1, green = 2, blue = 4, alpha = 8
-};
-}
-
-
 //! Color write mask (same at least for Direct3D12 and Vulkan. Check if same applies to Metal)
-using ColorWriteMask = ::lexgine::core::misc::Flags<__tag::tagColorWriteEnable>;
+BEGIN_FLAGS_DECLARATION(ColorWriteMask)
+FLAG(red, 1)
+FLAG(green, 2)
+FLAG(blue, 4)
+FLAG(alpha, 8)
+END_FLAGS_DECLARATION(ColorWriteMask)
 
 
 //! Encapsulates description of the blending stage. This class is API and OS-agnostic.
@@ -85,12 +83,12 @@ public:
         BlendOperation color_blend_operation, BlendOperation alpha_blend_operation,
         bool enable_logic_operations_on_destination = false, BlendLogicalOperation logical_operation_on_destination = BlendLogicalOperation::clear,
         ColorWriteMask const& color_write_mask = ColorWriteMask{}
-        | ColorWriteMask::enum_type::red | ColorWriteMask::enum_type::green | ColorWriteMask::enum_type::blue | ColorWriteMask::enum_type::alpha);
+        | ColorWriteMask::base_values::red | ColorWriteMask::base_values::green | ColorWriteMask::base_values::blue | ColorWriteMask::base_values::alpha);
 
     //! Initialized blend state descriptor with disabled blending and enabled logical operations
     BlendDescriptor(BlendLogicalOperation logical_operation_on_destination,
         ColorWriteMask const& color_write_mask = ColorWriteMask{}
-        | ColorWriteMask::enum_type::red | ColorWriteMask::enum_type::green | ColorWriteMask::enum_type::blue | ColorWriteMask::enum_type::alpha);
+        | ColorWriteMask::base_values::red | ColorWriteMask::base_values::green | ColorWriteMask::base_values::blue | ColorWriteMask::base_values::alpha);
 
     bool isEnabled() const;    //! returns 'true' if the blend descriptor describes state with enabled blending
     bool isLogicalOperationEnabled() const;    //! returns 'true' if logical operation on target is enabled during the blending stage

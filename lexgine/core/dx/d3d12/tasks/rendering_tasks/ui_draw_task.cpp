@@ -297,6 +297,12 @@ bool UIDrawTask::setCursor()
     return updateMouseCursor();
 }
 
+
+enum class Test
+{
+    a0, a1, a2
+};
+
 UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services,
     osinteraction::windows::Window& rendering_window)
     : m_globals{ globals }
@@ -350,10 +356,10 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
                 rs.addStaticSampler(sampler, ShaderVisibility::pixel);
             }
 
-            RootSignatureFlags flags = lexgine::operator|(RootSignatureFlags::enum_type::allow_input_assembler, RootSignatureFlags::enum_type::deny_hull_shader);
-            /*flags |= RootSignatureFlags::enum_type::deny_hull_shader;
-            flags |= RootSignatureFlags::enum_type::deny_domain_shader;
-            flags |= RootSignatureFlags::enum_type::deny_geometry_shader;*/
+            auto flags = RootSignatureFlags::base_values::allow_input_assembler 
+                | RootSignatureFlags::base_values::deny_hull_shader
+                | RootSignatureFlags::base_values::deny_domain_shader
+                | RootSignatureFlags::base_values::deny_geometry_shader;
 
             m_rs = rs_compilation_task_cache.findOrCreateTask(globals, std::move(rs), flags, "ui_rendering_rs", 0);
             m_rs->execute(0);
@@ -418,9 +424,9 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
 
         ResourceDescriptor font_texture_descriptor = ResourceDescriptor::CreateTexture2D(width, height, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
 
-        m_fonts_texture = std::make_unique<CommittedResource>(m_device, ResourceState::enum_type::pixel_shader,
+        m_fonts_texture = std::make_unique<CommittedResource>(m_device, ResourceState::base_values::pixel_shader,
             misc::makeEmptyOptional<ResourceOptimizedClearValue>(), font_texture_descriptor, AbstractHeapType::default,
-            HeapCreationFlags::enum_type::allow_all);
+            HeapCreationFlags::base_values::allow_all);
 
         ResourceDataUploader::TextureSourceDescriptor source_descriptor{};
         ResourceDataUploader::TextureSourceDescriptor::Subresource texture_subresource{
@@ -432,7 +438,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
 
         ResourceDataUploader::DestinationDescriptor destination_descriptor{};
         destination_descriptor.p_destination_resource = m_fonts_texture.get();
-        destination_descriptor.destination_resource_state = ResourceState::enum_type::pixel_shader;
+        destination_descriptor.destination_resource_state = ResourceState::base_values::pixel_shader;
         destination_descriptor.segment.subresources.first_subresource = 0;
         destination_descriptor.segment.subresources.num_subresources = 1;
 

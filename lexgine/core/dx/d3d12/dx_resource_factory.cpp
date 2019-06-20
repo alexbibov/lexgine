@@ -63,7 +63,7 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
         // initialize upload heaps
         {
             Heap upload_heap = dev_ref.createHeap(AbstractHeapType::upload, global_settings.getUploadHeapCapacity(),
-                HeapCreationFlags::enum_type::allow_only_buffers);
+                HeapCreationFlags::base_values::allow_only_buffers);
             upload_heap.setStringName(dev_ref.getStringName() + "__upload_heap");
 
             m_upload_heaps.emplace(&dev_ref, std::move(upload_heap));

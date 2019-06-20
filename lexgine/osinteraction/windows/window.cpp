@@ -46,15 +46,15 @@ HWND createWindow(Window* p_window, ATOM& atom, HINSTANCE hInstance, uint32_t x,
     Window::WindowStyle const& window_style, Window::WindowExStyle const& window_extended_style, std::wstring const& title, WNDPROC window_procedure)
 {
     // Check consistency of the window styles
-    Window::WindowStyle::base_int_type window_style_flags;
+    Window::WindowStyle::base_int_type window_style_flags{};
     Window::WindowExStyle::base_int_type window_ex_style_flags = static_cast<Window::WindowExStyle::base_int_type>(window_extended_style);
 
-    if (window_style.isSet(Window::WindowStyle::enum_type::HasMaximizeButton) ||
-        window_style.isSet(Window::WindowStyle::enum_type::HasMinimizeButton))
-        window_style_flags = static_cast<Window::WindowStyle::base_int_type>(window_style | Window::WindowStyle::enum_type::HasSystemMenu);
+    if (window_style.isSet(Window::WindowStyle::base_values::has_maximize_box) ||
+        window_style.isSet(Window::WindowStyle::base_values::has_minimize_box))
+        window_style_flags = static_cast<Window::WindowStyle::base_int_type>(window_style | Window::WindowStyle::base_values::has_system_menu);
 
-    if (window_style.isSet(Window::WindowStyle::enum_type::HasSystemMenu))
-        window_style_flags |= static_cast<Window::WindowStyle::base_int_type>(Window::WindowStyle::enum_type::HasTitleBar);
+    if (window_style.isSet(Window::WindowStyle::base_values::has_system_menu))
+        window_style_flags |= static_cast<Window::WindowStyle::base_int_type>(Window::WindowStyle::base_values::has_title_bar);
 
 
     // Create window class if it has not been provided by the caller
@@ -77,8 +77,8 @@ HWND createWindow(Window* p_window, ATOM& atom, HINSTANCE hInstance, uint32_t x,
         if (!(atom = RegisterClassEx(&wndclassex))) return NULL;
     }
 
-    return CreateWindowEx(window_ex_style_flags, const_cast<wchar_t*>(window_class_name), title.c_str(), window_style_flags, x, y, width, height, NULL, NULL, hInstance,
-        static_cast<LPVOID>(p_window));
+    return CreateWindowEx(window_ex_style_flags, const_cast<wchar_t*>(window_class_name), title.c_str(), window_style_flags, x, y, width, height, 
+        NULL, NULL, hInstance, static_cast<LPVOID>(p_window));
 }
 
 
@@ -89,11 +89,11 @@ HWND createWindow(Window* p_window, ATOM& atom, HINSTANCE hInstance, uint32_t x,
 
 Window::Window(HINSTANCE hInstance /* = NULL */,
     WindowStyle window_style /* = WindowStyle
-                             | WindowStyle::enum_type::HasSystemMenu
-                             | WindowStyle::enum_type::HasMinimizeButton
-                             | WindowStyle::enum_type::HasMaximizeButton
-                             | WindowStyle::enum_type::SupportsSizing */,
-    WindowExStyle window_ex_style /* = WindowExStyle::enum_type::RaisedBorderEdge */) :
+                             | WindowStyle::base_values::HasSystemMenu
+                             | WindowStyle::base_values::HasMinimizeButton
+                             | WindowStyle::base_values::HasMaximizeButton
+                             | WindowStyle::base_values::SupportsSizing */,
+    WindowExStyle window_ex_style /* = WindowExStyle::base_values::RaisedBorderEdge */) :
     m_hinstance{ hInstance ? hInstance : GetModuleHandle(NULL) },
     m_hwnd{ NULL },
     m_window_style{ window_style },
