@@ -25,9 +25,9 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
     , m_data_uploader{ globals, rendering_services.resourceUploadAllocator() }
     , m_vb{ m_device }
     , m_ib{ m_device, IndexDataType::_16_bit, 32 * 1024 }
-    , m_texture{ m_device, ResourceState::enum_type::pixel_shader, misc::makeEmptyOptional<ResourceOptimizedClearValue>(),
+    , m_texture{ m_device, ResourceState::base_values::pixel_shader, misc::makeEmptyOptional<ResourceOptimizedClearValue>(),
                 ResourceDescriptor::CreateTexture2D(256, 256, 1, DXGI_FORMAT_R8G8B8A8_UNORM), AbstractHeapType::default,
-                HeapCreationFlags::enum_type::allow_all }
+                HeapCreationFlags::base_values::allow_all }
     , m_cb_data_mapping{ m_cb_reflection }
     , m_timestamp{ std::chrono::high_resolution_clock::now().time_since_epoch().count() }
     , m_cmd_list{ m_device.createCommandList(CommandType::direct, 0x1) }
@@ -50,7 +50,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
 
         ResourceDataUploader::DestinationDescriptor destination_descriptor;
         destination_descriptor.p_destination_resource = &m_vb.resource();
-        destination_descriptor.destination_resource_state = ResourceState::enum_type::vertex_and_constant_buffer;
+        destination_descriptor.destination_resource_state = ResourceState::base_values::vertex_and_constant_buffer;
         destination_descriptor.segment.base_offset = 0U;
 
         m_box_vertices = std::array<float, 64>{
@@ -134,9 +134,9 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         rs.addParameter(1, sampler_table);
         rs.addParameter(2, RootEntryCBVDescriptor{ 0, 0 });
 
-        RootSignatureFlags rs_flags = RootSignatureFlags::enum_type::allow_input_assembler;
-        // rs_flags |= RootSignatureFlags::enum_type::deny_domain_shader;
-        // rs_flags |= RootSignatureFlags::enum_type::deny_hull_shader;
+        RootSignatureFlags rs_flags = RootSignatureFlags::base_values::allow_input_assembler;
+        // rs_flags |= RootSignatureFlags::base_values::deny_domain_shader;
+        // rs_flags |= RootSignatureFlags::base_values::deny_hull_shader;
 
         m_rs = rs_compilation_task_cache.findOrCreateTask(globals, std::move(rs), rs_flags, "test_rendering_rs", 0);
         m_rs->execute(0);

@@ -20,7 +20,7 @@ ResourceDataUploader::ResourceDataUploader(Globals& globals, DedicatedUploadData
     , m_upload_buffer_allocator{ upload_buffer_allocator }
     , m_upload_command_list{ m_device.createCommandList(m_is_async_copy_enabled ? CommandType::copy : CommandType::direct, 0x1) }
     , m_upload_command_list_needs_reset{ true }
-    , m_copy_destination_resource_state{ m_is_async_copy_enabled ? ResourceState::enum_type::common : ResourceState::enum_type::copy_destination }
+    , m_copy_destination_resource_state{ m_is_async_copy_enabled ? ResourceState::base_values::common : ResourceState::base_values::copy_destination }
 {
 
 }

@@ -16,13 +16,13 @@ ControlKeyFlag transformControlFlag(WPARAM wParam)
 {
     ControlKeyFlag rv{ 0 };
 
-    if ((wParam & MK_CONTROL) == MK_CONTROL) rv.set(ControlKeyFlag::enum_type::ctrl);
-    if ((wParam & MK_LBUTTON) == MK_LBUTTON) rv.set(ControlKeyFlag::enum_type::left_mouse_button);
-    if ((wParam & MK_MBUTTON) == MK_MBUTTON) rv.set(ControlKeyFlag::enum_type::middle_mouse_button);
-    if ((wParam & MK_RBUTTON) == MK_RBUTTON) rv.set(ControlKeyFlag::enum_type::right_mouse_button);
-    if ((wParam & MK_SHIFT) == MK_SHIFT) rv.set(ControlKeyFlag::enum_type::shift);
-    if ((wParam & MK_XBUTTON1) == MK_XBUTTON1) rv.set(ControlKeyFlag::enum_type::xbutton1);
-    if ((wParam & MK_XBUTTON2) == MK_XBUTTON2) rv.set(ControlKeyFlag::enum_type::xbutton2);
+    if ((wParam & MK_CONTROL) == MK_CONTROL) rv.set(ControlKeyFlag::base_values::ctrl);
+    if ((wParam & MK_LBUTTON) == MK_LBUTTON) rv.set(ControlKeyFlag::base_values::left_mouse_button);
+    if ((wParam & MK_MBUTTON) == MK_MBUTTON) rv.set(ControlKeyFlag::base_values::middle_mouse_button);
+    if ((wParam & MK_RBUTTON) == MK_RBUTTON) rv.set(ControlKeyFlag::base_values::right_mouse_button);
+    if ((wParam & MK_SHIFT) == MK_SHIFT) rv.set(ControlKeyFlag::base_values::shift);
+    if ((wParam & MK_XBUTTON1) == MK_XBUTTON1) rv.set(ControlKeyFlag::base_values::xbutton1);
+    if ((wParam & MK_XBUTTON2) == MK_XBUTTON2) rv.set(ControlKeyFlag::base_values::xbutton2);
 
     return rv;
 }

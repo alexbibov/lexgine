@@ -12,7 +12,7 @@ BlendDescriptor::BlendDescriptor()
     , m_dst_alpha_blend{ BlendFactor::zero }
     , m_alpha_blend_op{ BlendOperation::add }
     , m_logical_operation{ BlendLogicalOperation::no_operation }
-    , m_color_write_mask{ ColorWriteMask{} | ColorWriteMask::enum_type::red | ColorWriteMask::enum_type::green | ColorWriteMask::enum_type::blue | ColorWriteMask::enum_type::alpha }
+    , m_color_write_mask{ ColorWriteMask{} | ColorWriteMask::base_values::red | ColorWriteMask::base_values::green | ColorWriteMask::base_values::blue | ColorWriteMask::base_values::alpha }
 {
 
 }

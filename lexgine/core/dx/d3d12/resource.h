@@ -78,17 +78,17 @@ struct ResourceDescriptor
 
     D3D12_RESOURCE_DESC native() const;    // returns native D3D12 resource descriptor struct
 
-    static ResourceDescriptor CreateBuffer(uint64_t size, ResourceFlags flags = ResourceFlags{ ResourceFlags::enum_type::none });    //! fills out the fields of the structure as required for buffers
+    static ResourceDescriptor CreateBuffer(uint64_t size, ResourceFlags flags = ResourceFlags::base_values::none);    //! fills out the fields of the structure as required for buffers
 
-    static ResourceDescriptor CreateTexture1D(uint64_t width, uint16_t array_size, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags::enum_type::none,
+    static ResourceDescriptor CreateTexture1D(uint64_t width, uint16_t array_size, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags::base_values::none,
         MultiSamplingFormat ms_format = MultiSamplingFormat{ 1, 0 }, ResourceAlignment alignment = ResourceAlignment::default,
         TextureLayout layout = TextureLayout::unknown);    //! fills out the fields of the structure as required for 1D textures
 
-    static ResourceDescriptor CreateTexture2D(uint64_t width, uint32_t height, uint16_t array_size, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags::enum_type::none,
+    static ResourceDescriptor CreateTexture2D(uint64_t width, uint32_t height, uint16_t array_size, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags::base_values::none,
         MultiSamplingFormat ms_format = MultiSamplingFormat{ 1, 0 }, ResourceAlignment alignment = ResourceAlignment::default,
         TextureLayout layout = TextureLayout::unknown);    //! fills out the fields of the structure as required for 2D textures
 
-    static ResourceDescriptor CreateTexture3D(uint64_t width, uint32_t height, uint16_t depth, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags::enum_type::none,
+    static ResourceDescriptor CreateTexture3D(uint64_t width, uint32_t height, uint16_t depth, DXGI_FORMAT format, uint16_t num_mipmaps = 1, ResourceFlags flags = ResourceFlags::base_values::none,
         MultiSamplingFormat ms_format = MultiSamplingFormat{ 1, 0 }, ResourceAlignment alignment = ResourceAlignment::default,
         TextureLayout layout = TextureLayout::unknown);    //! fills out the fields of the structure as required for 3D textures
 };

@@ -19,14 +19,6 @@ namespace lexgine::core::dx::d3d12 {
 
 template<typename T> class CommandQueueAttorney;
 
-namespace __tag {
-enum class tagCommandQueueFlags
-{
-    none = D3D12_COMMAND_QUEUE_FLAG_NONE,
-    disable_gpu_timeout = D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT
-};
-}
-
 
 //! Enlists types of the command queues
 enum class WorkloadType
@@ -43,8 +35,13 @@ enum class CommandQueuePriority
     high = D3D12_COMMAND_QUEUE_PRIORITY_HIGH
 };
 
+
 //! Command queue behavioral flags
-using CommandQueueFlags = misc::Flags<__tag::tagCommandQueueFlags>;
+BEGIN_FLAGS_DECLARATION(CommandQueueFlags)
+FLAG(none, D3D12_COMMAND_QUEUE_FLAG_NONE)
+FLAG(disable_gpu_timeout, D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT)
+END_FLAGS_DECLARATION(CommandQueueFlags)
+
 
 //! Thin wrapper over Direct3D 12 command queue
 class CommandQueue final : public NamedEntity<class_names::D3D12_CommandQueue>
@@ -86,7 +83,7 @@ private:
         WorkloadType type = WorkloadType::direct,
         uint32_t node_mask = 0,
         CommandQueuePriority priority = CommandQueuePriority::normal,
-        CommandQueueFlags flags = CommandQueueFlags::enum_type::none);
+        CommandQueueFlags flags = CommandQueueFlags::base_values::none);
 
 private:
     ComPtr<ID3D12CommandQueue> m_command_queue;    //!< COM pointer to the native Direct3D12 command queue interface
@@ -105,7 +102,7 @@ template<> class CommandQueueAttorney<Device>
 private:
     static CommandQueue makeCommandQueue(Device& device, WorkloadType command_queue_type = WorkloadType::direct,
         uint32_t node_mask = 0, CommandQueuePriority command_queue_priority = CommandQueuePriority::normal,
-        CommandQueueFlags flags = CommandQueueFlags::enum_type::none)
+        CommandQueueFlags flags = CommandQueueFlags::base_values::none)
     {
         return CommandQueue{ device, command_queue_type, node_mask, command_queue_priority, flags };
     }

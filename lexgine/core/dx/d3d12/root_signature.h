@@ -164,7 +164,7 @@ public:
     void reset();     //! erases current root signature declaration. After calling this function the root signature is empty as if it was just initialized
 
     //! compiles root signature and returns it packed into a data blob
-    D3DDataBlob compile(RootSignatureFlags const& flags = RootSignatureFlags{ RootSignatureFlags::enum_type::allow_input_assembler }) const;
+    D3DDataBlob compile(RootSignatureFlags const& flags = RootSignatureFlags::base_values::allow_input_assembler) const;
 
     //! adds new root CBV descriptor into the given slot of the root signature
     RootSignature& addParameter(uint32_t slot, RootEntryCBVDescriptor const& root_entry_cbv_descriptor_declaration, ShaderVisibility shader_visibility = ShaderVisibility::all);

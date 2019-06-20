@@ -35,24 +35,16 @@ protected:
 };
 
 
-
-namespace __tag
-{
-//! Base flags corresponding to the virtual control keys that may affect mouse actions
-enum class tagControlKey
-{
-    ctrl = 1,
-    left_mouse_button = 2,
-    middle_mouse_button = 4,
-    right_mouse_button = 8,
-    shift = 0x10,
-    xbutton1 = 0x20,
-    xbutton2 = 0x40
-};
-}
-
 //! Flags representing virtual control keys that may affect mouse actions when pressed
-using ControlKeyFlag = core::misc::Flags<__tag::tagControlKey>;
+BEGIN_FLAGS_DECLARATION(ControlKeyFlag)
+FLAG(ctrl, 1)
+FLAG(left_mouse_button, 2)
+FLAG(middle_mouse_button, 4)
+FLAG(right_mouse_button, 8)
+FLAG(shift, 0x10)
+FLAG(xbutton1, 0x20)
+FLAG(xbutton2, 0x40)
+END_FLAGS_DECLARATION(ControlKeyFlag)
 
 //! Listener implementing handling of the basic mouse button actions that are present on the most mouse models
 class MouseButtonListener : public ConcreteListener<

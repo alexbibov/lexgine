@@ -13,22 +13,19 @@ using namespace Microsoft::WRL;
 
 namespace lexgine::core::dx::d3d12 {
 
-namespace __tag {
-enum class tagHeapCreationFlags
-{
-    shared = 0x1,    //!< the heap can be shared between multiple processes
-    deny_buffers = 0x4,    //!< the heap does not allow to store buffer resources
-    shared_cross_adapter = 0x20,    //!< the heap is shared between adapters (avoids CPU marshaling of the heap)
-    deny_rt_ds = 0x40,    //!< denies all texture render target and depth-stencil resources
-    deny_non_rt_ds = 0x80,    //!< denies all textures that are not either render target or depth-stencil resources. Buffers are allowed.
-    allow_all = 0,    //!< allows all kind of resources to be stored in the heap. Requires Heap tier 2.
-    allow_only_buffers = 0xc0,    //!< allows only buffers
-    allow_only_non_rt_ds_textures = 0x44,    //!< allows only textures (not buffers!) that are not render targets and not depth-stencil resources
-    allow_only_rt_ds = 0x84    //!< allows to store only textures (not buffers!) that are either render target or depth-stencil resources
-};
-}
+//! flags determining which resources may be located within the heap
+BEGIN_FLAGS_DECLARATION(HeapCreationFlags)
+FLAG(shared, 0x1)    //!< the heap can be shared between multiple processes
+FLAG(deny_buffers, 0x4)    //!< the heap does not allow to store buffer resources
+FLAG(shared_cross_adapter, 0x20)    //!< the heap is shared between adapters (avoids CPU marshaling of the heap)
+FLAG(deny_rt_ds, 0x40)    //!< denies all texture render target and depth-stencil resources
+FLAG(deny_non_rt_ds, 0x80)    //!< denies all textures that are not either render target or depth-stencil resources. Buffers are allowed.
+FLAG(allow_all, 0)    //!< allows all kind of resources to be stored in the heap. Requires Heap tier 2.
+FLAG(allow_only_buffers, 0xc0)    //!< allows only buffers
+FLAG(allow_only_non_rt_ds_textures, 0x44)    //!< allows only textures (not buffers!) that are not render targets and not depth-stencil resources
+FLAG(allow_only_rt_ds, 0x84)    //!< allows to store only textures (not buffers!) that are either render target or depth-stencil resources
+END_FLAGS_DECLARATION(HeapCreationFlags)
 
-using HeapCreationFlags = misc::Flags<__tag::tagHeapCreationFlags>;    //! flags determining which resources may be located within the heap
 
 //! Determines abstract adapter-agnostic type of the heap
 enum class AbstractHeapType

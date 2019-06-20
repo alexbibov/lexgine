@@ -16,7 +16,7 @@ template<typename BaseFlagType, typename BaseIntegralType = int>
 class Flags
 {
 public:
-    using enum_type = BaseFlagType;    //!< base flag values to be OR'ed
+    using base_values = BaseFlagType;    //!< base flag values to be OR'ed
     using base_int_type = BaseIntegralType;    //!< base integral type used to store flag values
 
     //! Default initialization
@@ -90,7 +90,7 @@ public:
     }
 
     //! Creates flag from provided base flag value
-    static Flags create(enum_type base_flag)
+    static Flags create(base_values base_flag)
     {
         return Flags{ base_flag };
     }
@@ -106,12 +106,11 @@ namespace lexgine
 {
 
 template<typename BaseIntegralType,
-    typename T0 = std::enable_if<core::misc::is_scoped_enum<BaseIntegralType>::value>::value
-    //typename T1 = decltype(BaseIntegralType::_tag_flag_enumeration)
->
+    typename T0 = std::enable_if<core::misc::is_scoped_enum<BaseIntegralType>::value>::type,
+    typename T1 = decltype(BaseIntegralType::_tag_flag_enumeration)>
     core::misc::Flags<BaseIntegralType> operator | (BaseIntegralType a, BaseIntegralType b)
 {
-    return Flags<BaseIntegralType>{a} | b;
+    return core::misc::Flags<BaseIntegralType>{a} | b;
 }
 
 }

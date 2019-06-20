@@ -60,11 +60,11 @@ RenderingTarget::RenderingTarget(Globals& globals,
         {
             m_forward_barriers.addTransitionBarrier(&target.target_view.associatedResource(),
                 target.target_view.mipmapLevel(), static_cast<uint16_t>(viewed_array.first + j),
-                target.target_default_state, ResourceState::enum_type::render_target);
+                target.target_default_state, ResourceState::base_values::render_target);
 
             m_backward_barriers.addTransitionBarrier(&target.target_view.associatedResource(),
                 target.target_view.mipmapLevel(), static_cast<uint16_t>(viewed_array.first + j),
-                ResourceState::enum_type::render_target, target.target_default_state);
+                ResourceState::base_values::render_target, target.target_default_state);
         }
 
         
@@ -86,11 +86,11 @@ RenderingTarget::RenderingTarget(Globals& globals,
         {
             m_forward_barriers.addTransitionBarrier(&target.target_view.associatedResource(),
                 target.target_view.mipmapLevel(), static_cast<uint16_t>(viewed_array.first + j),
-                target.target_default_state, ResourceState::enum_type::depth_write);
+                target.target_default_state, ResourceState::base_values::depth_write);
 
             m_backward_barriers.addTransitionBarrier(&target.target_view.associatedResource(),
                 target.target_view.mipmapLevel(), static_cast<uint16_t>(viewed_array.first + j),
-                ResourceState::enum_type::depth_write, target.target_default_state);
+                ResourceState::base_values::depth_write, target.target_default_state);
         }
     }
 }
