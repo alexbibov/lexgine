@@ -30,6 +30,25 @@ std::vector<std::ostream*> convertFileStreamsToGenericStreams(std::vector<std::o
     return res;
 }
 
+RenderingWork::RenderingConfigurationUpdateFlags getRenderingConfigurationUpdateFlags(RenderingConfiguration const& old_configuration,
+    RenderingConfiguration const& new_configuration)
+{
+    RenderingWork::RenderingConfigurationUpdateFlags flags{};
+    if (old_configuration.viewport != new_configuration.viewport)
+        flags |= RenderingWork::RenderingConfigurationUpdateFlags::base_values::viewport_changed;
+
+    if (old_configuration.color_buffer_format != new_configuration.color_buffer_format)
+        flags |= RenderingWork::RenderingConfigurationUpdateFlags::base_values::color_format_changed;
+
+    if (old_configuration.depth_buffer_format != new_configuration.depth_buffer_format)
+        flags |= RenderingWork::RenderingConfigurationUpdateFlags::base_values::depth_format_changed;
+
+    if (old_configuration.p_rendering_window != new_configuration.p_rendering_window)
+        flags |= RenderingWork::RenderingConfigurationUpdateFlags::base_values::rendering_window_changed;
+
+    return flags;
+}
+
 }
 
 RenderingTasks::RenderingTasks(Globals& globals)
@@ -39,9 +58,20 @@ RenderingTasks::RenderingTasks(Globals& globals)
     , m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" }
     , m_task_sink{ m_task_graph, convertFileStreamsToGenericStreams(globals.get<LoggingStreams>()->worker_logging_streams), "RenderingTasksSink" }
     , m_basic_rendering_services{ globals }
-    , m_rendering_window_ptr{ nullptr }
+    , m_rendering_configuration{ Viewport{math::Vector2f{}, math::Vector2f{}, math::Vector2f{}}, 
+                                 DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, nullptr}
 {
     m_test_rendering_task.reset(new TestRenderingTask{ m_globals, m_basic_rendering_services });
+
+    m_ui_draw_task = RenderingTaskFactory::create<UIDrawTask>(globals, m_basic_rendering_services);
+    m_profiler = RenderingTaskFactory::create<Profiler>();
+
+    m_ui_draw_task->addUIProvider(m_profiler);
+
+    m_task_graph.setRootNodes({ m_test_rendering_task.get() });
+    m_test_rendering_task->addDependent(*m_ui_draw_task);
+
+    // m_task_sink.start();
 }
 
 RenderingTasks::~RenderingTasks()
@@ -49,51 +79,43 @@ RenderingTasks::~RenderingTasks()
     cleanup();
 }
 
-void RenderingTasks::defineRenderingConfiguration(Viewport const& viewport, DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format,
-    osinteraction::windows::Window* p_rendering_window)
+void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& rendering_configuration)
 {
-    cleanup();
+    auto flags = getRenderingConfigurationUpdateFlags(m_rendering_configuration, rendering_configuration);
 
-    BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingTargetFormat(m_basic_rendering_services, rendering_target_color_format, rendering_target_depth_format);
-    BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingViewport(m_basic_rendering_services, viewport);
-    BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingWindow(m_basic_rendering_services, p_rendering_window);
-
+    if (flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::color_format_changed)
+        || flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
-        // update rendering tasks
-        m_test_rendering_task->updateBufferFormats(rendering_target_color_format, rendering_target_depth_format);
-
-        if (p_rendering_window == nullptr)
-        {
-            m_ui_draw_task.reset();
-            m_profiler.reset();
-        }
-        else
-        {
-            if(!m_ui_draw_task)
-            {
-                m_ui_draw_task = UIDrawTask::create(m_globals, m_basic_rendering_services, *p_rendering_window);
-                p_rendering_window->addListener(m_ui_draw_task);
-            }
-
-            if(!m_profiler)
-            {
-                m_profiler = tasks::rendering_tasks::Profiler::create();
-                m_ui_draw_task->addUIProvider(m_profiler);
-            }
-        }
-
-        m_ui_draw_task->updateBufferFormats(rendering_target_color_format, rendering_target_depth_format);
+        BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingTargetFormat(m_basic_rendering_services, 
+            rendering_configuration.color_buffer_format, rendering_configuration.depth_buffer_format);
     }
     
-    m_task_graph.setRootNodes({ m_test_rendering_task.get() });
-
-    if (p_rendering_window)
+    if (flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::viewport_changed))
     {
-        m_test_rendering_task->addDependent(*m_ui_draw_task);
-        m_ui_draw_task->addDependent(*m_profiler);
+        BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingViewport(m_basic_rendering_services, rendering_configuration.viewport);
     }
+    
 
-    m_task_sink.start();
+    if (flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::rendering_window_changed))
+    {
+        BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingWindow(m_basic_rendering_services, rendering_configuration.p_rendering_window);
+    }
+    
+
+    if(flags.getValue())
+    {
+        cleanup();
+
+        m_rendering_configuration = rendering_configuration;
+
+        // update rendering tasks
+        m_test_rendering_task->updateBufferFormats(m_rendering_configuration.color_buffer_format, 
+            m_rendering_configuration.depth_buffer_format);
+
+        m_ui_draw_task->updateRenderingConfiguration(flags, m_rendering_configuration);
+        
+        m_task_sink.start();
+    }
 }
 
 void RenderingTasks::render(RenderingTarget& rendering_target,

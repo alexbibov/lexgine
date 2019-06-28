@@ -5,6 +5,7 @@
 
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/dx/d3d12/pipeline_state.h"
+#include "lexgine/core/dx/d3d12/rendering_work.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
 
@@ -15,28 +16,32 @@
 #include "lexgine/osinteraction/listener.h"
 #include "lexgine/osinteraction/windows/window_listeners.h"
 
+
 namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
 
 class UIDrawTask :
-    public concurrency::SchedulableTask,
+    public RenderingWork,
     public osinteraction::Listeners<
     osinteraction::windows::KeyInputListener, 
     osinteraction::windows::MouseButtonListener, 
     osinteraction::windows::MouseMoveListener,
     osinteraction::windows::CursorUpdateListener
-    >
+    >,
+    public std::enable_shared_from_this<UIDrawTask>
 {
     using lexgine::core::Entity::getId;
 
 public:
-    static std::shared_ptr<UIDrawTask> create(Globals& globals, BasicRenderingServices& basic_rendering_services, osinteraction::windows::Window& rendering_window);
+    static std::shared_ptr<UIDrawTask> create(Globals& globals, BasicRenderingServices& basic_rendering_services);
 
 public:
     ~UIDrawTask();
-    
-    void updateBufferFormats(DXGI_FORMAT color_buffer_format, DXGI_FORMAT depth_buffer_format);
 
     void addUIProvider(std::weak_ptr<UIProvider> const& ui_provider) { m_ui_providers.push_back(ui_provider); }
+
+public:    // RenderingWork interface
+    void updateRenderingConfiguration(RenderingConfigurationUpdateFlags update_flags,
+        RenderingConfiguration const& rendering_configuration) override;
 
 public:    // KeyInputListener events
     bool keyDown(osinteraction::SystemKey key) override;
@@ -60,12 +65,11 @@ public:    // CursorUpdateListener events
     bool setCursor() override;
 
 private:
-    UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services,
-        osinteraction::windows::Window& rendering_window);
+    UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services);
 
 private:    // required by AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t user_data) override;
-    concurrency::TaskType type() const override { return concurrency::TaskType::gpu_draw; }
+    concurrency::TaskType type() const override { return concurrency::TaskType::cpu; }
 
 private:
     void processEvents() const;
@@ -75,7 +79,7 @@ private:
     Globals& m_globals;
     Device& m_device;
     BasicRenderingServices& m_basic_rendering_services;
-    osinteraction::windows::Window& m_rendering_window;
+    osinteraction::windows::Window* m_rendering_window_ptr = nullptr;
     mutable long long m_time_counter;
     mutable ImGuiMouseCursor m_mouse_cursor;
     ResourceDataUploader m_resource_uploader;

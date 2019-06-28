@@ -148,10 +148,9 @@ void updateMousePosition(HWND hwnd)
 
 }
 
-std::shared_ptr<UIDrawTask> UIDrawTask::create(Globals& globals, BasicRenderingServices& basic_rendering_services, osinteraction::windows::Window& rendering_window)
+std::shared_ptr<UIDrawTask> UIDrawTask::create(Globals& globals, BasicRenderingServices& basic_rendering_services)
 {
-    std::shared_ptr<UIDrawTask> rv{ new UIDrawTask{globals, basic_rendering_services, rendering_window} };
-    rendering_window.addListener(rv);
+    std::shared_ptr<UIDrawTask> rv{ new UIDrawTask{globals, basic_rendering_services} };
     return rv;
 }
 
@@ -160,55 +159,70 @@ UIDrawTask::~UIDrawTask()
     ImGui::DestroyContext();
 }
 
-void UIDrawTask::updateBufferFormats(DXGI_FORMAT color_buffer_format, DXGI_FORMAT depth_buffer_format)
+
+void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags update_flags,
+    RenderingConfiguration const& rendering_configuration)
 {
-    task_caches::PSOCompilationTaskCache& pso_compilation_task_cache = *m_globals.get<task_caches::PSOCompilationTaskCache>();
-
-    if(!m_pso)
+    if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::rendering_window_changed))
     {
-        m_pso_desc.node_mask = 0x1;
-        m_pso_desc.vertex_attributes = m_va_list;
-        m_pso_desc.primitive_topology_type = PrimitiveTopologyType::triangle;
-        m_pso_desc.num_render_targets = 1;
-        m_pso_desc.rtv_formats[0] = color_buffer_format;
-        m_pso_desc.dsv_format = depth_buffer_format;
-
-        // blending state
-        {
-            BlendState blending_state;
-            BlendDescriptor blending_descriptor{ BlendFactor::source_alpha, BlendFactor::one_minus_source_alpha,
-            BlendFactor::one_minus_source_alpha, BlendFactor::zero, BlendOperation::add, BlendOperation::add };
-            blending_state.render_target_blend_descriptor[0] = blending_descriptor;
-
-            m_pso_desc.blend_state = blending_state;
-        }
-
-        // rasterizer state
-        {
-            RasterizerDescriptor rasterizer_descriptor{ FillMode::solid, CullMode::none, FrontFaceWinding::clockwise };
-            m_pso_desc.rasterization_descriptor = rasterizer_descriptor;
-        }
-
-        // depth-stencil state
-        {
-            DepthStencilDescriptor depth_stencil_descriptor{ false, true, ComparisonFunction::always };
-            m_pso_desc.depth_stencil_descriptor = depth_stencil_descriptor;
-        }
-
-        m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, m_pso_desc, 
-            "ui_rendering_pso__" + std::to_string(color_buffer_format) + "__" + std::to_string(depth_buffer_format), 0);
-        m_pso->setVertexShaderCompilationTask(m_vs);
-        m_pso->setPixelShaderCompilationTask(m_ps);
-        m_pso->setRootSignatureCompilationTask(m_rs);
+        m_rendering_window_ptr = rendering_configuration.p_rendering_window;
+        m_rendering_window_ptr->addListener(shared_from_this());
+        defineImGUIKeyMap(m_rendering_window_ptr->native());
     }
-    else
+
+    if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::color_format_changed)
+        || update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
-        m_pso_desc.rtv_formats[0] = color_buffer_format;
-        m_pso_desc.dsv_format = depth_buffer_format;
-        m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, m_pso_desc,
-            "ui_rendering_pso__" + std::to_string(color_buffer_format) + "__" + std::to_string(depth_buffer_format), 0);
+        task_caches::PSOCompilationTaskCache& pso_compilation_task_cache = *m_globals.get<task_caches::PSOCompilationTaskCache>();
+
+        if (!m_pso)
+        {
+            m_pso_desc.node_mask = 0x1;
+            m_pso_desc.vertex_attributes = m_va_list;
+            m_pso_desc.primitive_topology_type = PrimitiveTopologyType::triangle;
+            m_pso_desc.num_render_targets = 1;
+            m_pso_desc.rtv_formats[0] = rendering_configuration.color_buffer_format;
+            m_pso_desc.dsv_format = rendering_configuration.depth_buffer_format;
+
+            // blending state
+            {
+                BlendState blending_state;
+                BlendDescriptor blending_descriptor{ BlendFactor::source_alpha, BlendFactor::one_minus_source_alpha,
+                BlendFactor::one_minus_source_alpha, BlendFactor::zero, BlendOperation::add, BlendOperation::add };
+                blending_state.render_target_blend_descriptor[0] = blending_descriptor;
+
+                m_pso_desc.blend_state = blending_state;
+            }
+
+            // rasterizer state
+            {
+                RasterizerDescriptor rasterizer_descriptor{ FillMode::solid, CullMode::none, FrontFaceWinding::clockwise };
+                m_pso_desc.rasterization_descriptor = rasterizer_descriptor;
+            }
+
+            // depth-stencil state
+            {
+                DepthStencilDescriptor depth_stencil_descriptor{ false, true, ComparisonFunction::always };
+                m_pso_desc.depth_stencil_descriptor = depth_stencil_descriptor;
+            }
+
+            m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, m_pso_desc,
+                "ui_rendering_pso__" + std::to_string(rendering_configuration.color_buffer_format) 
+                + "__" + std::to_string(rendering_configuration.depth_buffer_format), 0);
+            m_pso->setVertexShaderCompilationTask(m_vs);
+            m_pso->setPixelShaderCompilationTask(m_ps);
+            m_pso->setRootSignatureCompilationTask(m_rs);
+        }
+        else
+        {
+            m_pso_desc.rtv_formats[0] = rendering_configuration.color_buffer_format;
+            m_pso_desc.dsv_format = rendering_configuration.depth_buffer_format;
+            m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, m_pso_desc,
+                "ui_rendering_pso__" + std::to_string(rendering_configuration.color_buffer_format) 
+                + "__" + std::to_string(rendering_configuration.depth_buffer_format), 0);
+        }
+        m_pso->execute(0);
     }
-    m_pso->execute(0);
 }
 
 bool UIDrawTask::keyDown(osinteraction::SystemKey key)
@@ -245,12 +259,12 @@ bool UIDrawTask::systemKeyUp(osinteraction::SystemKey key)
 
 bool UIDrawTask::buttonDown(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
-    return mouseButtonHandler(button, xbutton_id, m_rendering_window, true);
+    return mouseButtonHandler(button, xbutton_id, *m_rendering_window_ptr, true);
 }
 
 bool UIDrawTask::buttonUp(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
-    return mouseButtonHandler(button, xbutton_id, m_rendering_window, false);
+    return mouseButtonHandler(button, xbutton_id, *m_rendering_window_ptr, false);
 }
 
 bool UIDrawTask::doubleClick(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
@@ -303,12 +317,10 @@ enum class Test
     a0, a1, a2
 };
 
-UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services,
-    osinteraction::windows::Window& rendering_window)
+UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services)
     : m_globals{ globals }
     , m_device{ *globals.get<Device>() }
     , m_basic_rendering_services{ basic_rendering_services }
-    , m_rendering_window{ rendering_window }
     , m_time_counter{ std::chrono::high_resolution_clock::now().time_since_epoch().count() }
     , m_resource_uploader{ globals, basic_rendering_services.resourceUploadAllocator() }
     , m_projection_matrix_constants(16)
@@ -320,8 +332,6 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
     IMGUI_CHECKVERSION();
     m_gui_context = ImGui::CreateContext();
     ImGui::StyleColorsDark();
-
-    defineImGUIKeyMap(m_rendering_window.native());
 
     ImGuiIO& io = ImGui::GetIO();
     m_mouse_cursor = io.MouseDrawCursor
@@ -514,6 +524,8 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
 
 bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
+    if (!m_rendering_window_ptr) return true;
+
     processEvents();
     ImGui::NewFrame();
 
@@ -550,7 +562,7 @@ void UIDrawTask::processEvents() const
 
     // Setup display size (every frame to accommodate for window resizing)
     RECT rect;
-    GetClientRect(m_rendering_window.native(), &rect);
+    GetClientRect(m_rendering_window_ptr->native(), &rect);
     io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
 
     long long current_time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
@@ -566,7 +578,7 @@ void UIDrawTask::processEvents() const
     // io.KeysDown[], io.MousePos, io.MouseDown[], io.MouseWheel: filled by the WndProc handler below.
 
     // Update OS mouse position
-    updateMousePosition(m_rendering_window.native());
+    updateMousePosition(m_rendering_window_ptr->native());
 
     // Update OS mouse cursor with the cursor requested by imgui
     ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor 

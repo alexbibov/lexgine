@@ -164,6 +164,16 @@ inline decltype(T1{} % T2{}) align(T1 value, T2 alignment)
     return value + (alignment - value % alignment) % alignment;
 }
 
+}
+
+namespace lexgine {
+
+//! Implements operator != for all types that support operator ==
+template<typename T>
+bool operator!=(T const& a, T const& b)
+{
+    return !(a == b);
+}
 
 }
 

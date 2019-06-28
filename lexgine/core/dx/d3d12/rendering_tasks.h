@@ -15,31 +15,16 @@
 #include "lexgine/core/dx/d3d12/tasks/rendering_tasks/lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h"
 
 #include "lexgine_core_dx_d3d12_fwd.h"
-#include "signal.h"
-#include "constant_buffer_stream.h"
 #include "basic_rendering_services.h"
+#include "rendering_work.h"
 
 namespace lexgine::core::dx::d3d12 {
-
-class RenderingTask : public concurrency::SchedulableTask
-{
-private:
-    BEGIN_FLAGS_DECLARATION(RenderingConfigurationUpdateFlags)
-    FLAG(VIEWPORT_CHANGED, 0x1)
-    FLAG(COLOR_FORMAT_CHANGED, 0x2)
-    FLAG(DEPTH_FORMAT_CHANGED, 0x4)
-    FLAG(RENDERING_WINDOW_CHANGED, 0x8)
-    END_FLAGS_DECLARATION(RenderingConfigurationUpdateFlags)
-
-public:
-    virtual void renderingConfigurationUpdated(RenderingConfigurationUpdateFlags update_flags) = 0;
-};
 
 class RenderingTaskFactory final
 {
 public:
     template<typename TaskType, typename ... Args>
-    static std::shared_ptr<TaskType> create(Args ... args)
+    static std::shared_ptr<TaskType> create(Args&& ... args)
     {
         return TaskType::create(std::forward<Args>(args)...);
     }
@@ -59,9 +44,7 @@ public:
      This may be used by some rendering tasks that need to assume certain color and
      depth formats for correct initialization of their associated pipeline state objects
     */
-    void defineRenderingConfiguration(Viewport const& viewport,
-        DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format,
-        osinteraction::windows::Window* p_rendering_window);
+    void defineRenderingConfiguration(RenderingConfiguration const& rendering_configuration);
 
     void render(RenderingTarget& rendering_target, 
         std::function<void(RenderingTarget const&)> const& presentation_routine);
@@ -83,7 +66,7 @@ private:
     concurrency::TaskSink m_task_sink;
 
     BasicRenderingServices m_basic_rendering_services;
-    osinteraction::windows::Window* m_rendering_window_ptr;
+    RenderingConfiguration m_rendering_configuration;
 
 private:    // rendering tasks
     std::shared_ptr<tasks::rendering_tasks::UIDrawTask> m_ui_draw_task;
