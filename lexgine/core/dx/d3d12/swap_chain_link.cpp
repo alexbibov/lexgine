@@ -119,9 +119,10 @@ void SwapChainLink::updateRenderingConfiguration() const
         static_cast<float>(swap_chain_dimensions.y)},
     math::Vector2f{0, 1.f} };
 
-
-    m_linked_rendering_tasks_ptr->defineRenderingConfiguration(viewport, m_linked_swap_chain.descriptor().format, m_depth_buffer_native_format,
-        &m_linked_swap_chain.window());
+    m_linked_rendering_tasks_ptr->defineRenderingConfiguration(RenderingConfiguration{
+        viewport,
+        m_linked_swap_chain.descriptor().format, m_depth_buffer_native_format,
+        &m_linked_swap_chain.window() });
 }
 
 void SwapChainLink::releaseBuffers()

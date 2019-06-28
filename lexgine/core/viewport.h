@@ -16,6 +16,8 @@ public:
     float height() const;
     math::Vector2f depthRange() const;
 
+    bool operator == (Viewport const& other) const;
+
 private:
     math::Vector2f m_top_left_corner;
     math::Vector2f m_dimensions;

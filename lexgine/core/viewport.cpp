@@ -29,3 +29,10 @@ math::Vector2f Viewport::depthRange() const
 {
     return m_depth_range;
 }
+
+bool Viewport::operator==(Viewport const& other) const
+{
+    return m_top_left_corner == other.m_top_left_corner
+        && m_dimensions == other.m_depth_range
+        && m_depth_range == other.m_depth_range;
+}

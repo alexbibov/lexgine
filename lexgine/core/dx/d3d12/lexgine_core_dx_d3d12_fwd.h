@@ -71,6 +71,7 @@ class RenderTargetViewTableBuilder;
 class DepthStencilViewTableBuilder;
 
 class RenderingTasks;
+class RenderingWork;
 class BasicRenderingServices;
 
 class RenderingTarget;
