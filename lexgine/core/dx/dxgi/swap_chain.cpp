@@ -51,12 +51,12 @@ uint32_t SwapChain::getCurrentBackBufferIndex() const
 
 void SwapChain::present() const
 {
-    LEXGINE_THROW_ERROR_IF_FAILED(this, m_dxgi_swap_chain->Present(1, 0), S_OK);
+    LEXGINE_THROW_ERROR_IF_FAILED(this, m_dxgi_swap_chain->Present(m_descriptor.enable_vsync ? 1 : 0, 0), S_OK);
 }
 
 uint32_t SwapChain::backBufferCount() const
 {
-    return m_advanced_parameters.queued_buffer_count;
+    return m_descriptor.back_buffer_count;
 }
 
 SwapChainDescriptor const& SwapChain::descriptor() const
@@ -68,8 +68,8 @@ void SwapChain::resizeBuffers(math::Vector2u const& new_dimensions)
 {
     // TODO: AFR support
     
-    std::vector<UINT> node_masks(m_advanced_parameters.queued_buffer_count, 0x1);
-    std::vector<IUnknown*> queues(m_advanced_parameters.queued_buffer_count, m_default_command_queue.native().Get());
+    std::vector<UINT> node_masks(m_descriptor.back_buffer_count, 0x1);
+    std::vector<IUnknown*> queues(m_descriptor.back_buffer_count, m_default_command_queue.native().Get());
 
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
@@ -84,13 +84,12 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     Device& device,
     CommandQueue const& default_command_queue,
     osinteraction::windows::Window& window,
-    SwapChainDescriptor const& desc, SwapChainAdvancedParameters const& advanced_parameters)
+    SwapChainDescriptor const& desc)
     : m_dxgi_factory{ dxgi_factory }
     , m_device{ device }
     , m_window{ window }
     , m_default_command_queue{ default_command_queue }
     , m_descriptor{ desc }
-    , m_advanced_parameters{ advanced_parameters }
 {
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc1{};
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC swap_chain_fs_desc{};
@@ -101,8 +100,8 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     swap_chain_desc1.Format = desc.format;
     swap_chain_desc1.Stereo = desc.stereo;
     swap_chain_desc1.SampleDesc = DXGI_SAMPLE_DESC{ 1, 0 };
-    swap_chain_desc1.BufferUsage = advanced_parameters.back_buffer_usage_scenario;
-    swap_chain_desc1.BufferCount = advanced_parameters.queued_buffer_count;
+    swap_chain_desc1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swap_chain_desc1.BufferCount = static_cast<UINT>(desc.back_buffer_count);
     swap_chain_desc1.Scaling = static_cast<DXGI_SCALING>(desc.scaling);
     swap_chain_desc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swap_chain_desc1.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;

@@ -76,7 +76,7 @@ void SwapChainLink::render()
         uint64_t frame_idx = frame_progress_tracker.currentFrameIndex();
         uint64_t competing_frame_idx = frame_idx - m_linked_swap_chain.backBufferCount();
 
-        if (frame_idx >= m_linked_swap_chain.backBufferCount()
+        if (frame_idx >= m_global_settings.getMaxFramesInFlight()
             && frame_progress_tracker.lastCompletedFrameIndex() < competing_frame_idx)
         {
             frame_progress_tracker.waitForFrameCompletion(competing_frame_idx);
@@ -141,12 +141,12 @@ void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
     dx_resource_factory->retrieveDescriptorHeap(m_device, DescriptorHeapType::rtv, 0).reset();
     dx_resource_factory->retrieveDescriptorHeap(m_device, DescriptorHeapType::dsv, 0).reset();
 
-    uint16_t queued_frames_count = m_global_settings.getMaxFramesInFlight();
-    m_color_buffers.reserve(queued_frames_count);
-    m_targets.reserve(queued_frames_count);
+    uint16_t back_buffers_count = m_linked_swap_chain.backBufferCount();
+    m_color_buffers.reserve(back_buffers_count);
+    m_targets.reserve(back_buffers_count);
 
     auto descriptor =
-        ResourceDescriptor::CreateTexture2D(width, height, queued_frames_count, 
+        ResourceDescriptor::CreateTexture2D(width, height, back_buffers_count, 
             m_depth_buffer_native_format, 1, ResourceFlags::base_values::depth_stencil);
 
     m_depth_buffer = std::make_unique<CommittedResource>(m_device, ResourceState::base_values::depth_read, 
@@ -154,7 +154,7 @@ void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
         HeapCreationFlags::base_values::allow_all, 0x1, 0x1);
 
 
-    for (uint16_t i = 0U; i < queued_frames_count; ++i)
+    for (uint16_t i = 0U; i < m_linked_swap_chain.backBufferCount(); ++i)
     {
         m_color_buffers.emplace_back(m_linked_swap_chain.getBackBuffer(i));
 

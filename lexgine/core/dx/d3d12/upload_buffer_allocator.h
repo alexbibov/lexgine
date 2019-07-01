@@ -61,7 +61,7 @@ public:
     Resource const& getUploadResource() const;
 
 private:
-    using list_of_allocations = std::list<memory_block_type>;
+    using list_of_allocations = std::vector<memory_block_type>;
 
 private:
     virtual void waitUntilControllingSignalValue(uint64_t value) const = 0;

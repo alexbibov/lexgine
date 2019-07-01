@@ -50,7 +50,7 @@ class CommandQueue final : public NamedEntity<class_names::D3D12_CommandQueue>
 
 public:
 
-    void executeCommandLists(CommandList* command_list_array, size_t num_command_lists) const;   //! sends set of command lists into the command queue for execution
+    void executeCommandLists(CommandList** command_list_array, size_t num_command_lists) const;   //! sends set of command lists into the command queue for execution
 
     void executeCommandList(CommandList& command_list) const;    //! executes the command list on this command queue
 

@@ -43,6 +43,9 @@
 TestResults/*
 TestLogging/*
 
+# Visual Studio diagnostic sessions
+*.diagsession
+
 # Auxiliary files
 *.pdf
 
@@ -57,3 +60,8 @@ TestLogging/*
 
 # Engine-generated caches
 *.thread*
+
+# Logs 
+*.log.html
+*.log
+*.log*.html

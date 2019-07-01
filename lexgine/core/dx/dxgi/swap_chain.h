@@ -38,16 +38,9 @@ struct SwapChainDescriptor
     SwapChainScaling scaling;
     uint32_t refreshRate;
     bool windowed;
+    bool enable_vsync;
+    uint32_t back_buffer_count;
 };
-
-
-//! Extra parameters used when creating swap chains and not exposed by the APIs accessed by the client
-struct SwapChainAdvancedParameters
-{
-    uint32_t queued_buffer_count;
-    DXGI_USAGE back_buffer_usage_scenario;
-};
-
 
 class SwapChain final : public NamedEntity<class_names::DXGI_SwapChain>
 {
@@ -94,8 +87,7 @@ private:
         d3d12::Device& device, 
         d3d12::CommandQueue const& default_command_queue,
         osinteraction::windows::Window& window, 
-        SwapChainDescriptor const& desc,
-        SwapChainAdvancedParameters const& advanced_parameters);
+        SwapChainDescriptor const& desc);
 
 private:
     ComPtr<IDXGIFactory6> m_dxgi_factory;   //!< DXGI factory used to create the swap chain
@@ -103,7 +95,6 @@ private:
     osinteraction::windows::Window& m_window;    //!< window, which holds the swap chain
     d3d12::CommandQueue const& m_default_command_queue;    //!< graphics command queue associated with the swap chain
     SwapChainDescriptor m_descriptor;    //!< Descriptor of the swap chain
-    SwapChainAdvancedParameters m_advanced_parameters;    //!< advanced parameters of the swap chain
     ComPtr<IDXGISwapChain4> m_dxgi_swap_chain;   //!< DXGI interface representing the swap chain
 };
 
@@ -117,9 +108,9 @@ private:
         d3d12::Device& device,
         d3d12::CommandQueue const& default_command_queue,
         osinteraction::windows::Window& window,
-        SwapChainDescriptor const& desc, SwapChainAdvancedParameters const& advanced_parameters)
+        SwapChainDescriptor const& desc)
     {
-        return SwapChain{ dxgi_factory, device, default_command_queue, window, desc, advanced_parameters };
+        return SwapChain{ dxgi_factory, device, default_command_queue, window, desc };
     }
 };
 

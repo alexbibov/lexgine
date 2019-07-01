@@ -74,6 +74,8 @@ UploadDataAllocator::UploadDataAllocator(Globals& globals,
 
     m_upload_buffer_mapping = m_upload_buffer.map();
     m_upload_buffer_gpu_virtual_address = m_upload_buffer.getGPUVirtualAddress();
+
+    m_blocks.reserve(200);
 }
 
 UploadDataAllocator::~UploadDataAllocator()

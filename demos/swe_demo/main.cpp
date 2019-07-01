@@ -21,7 +21,7 @@ EngineSettings createEngineSettings()
 {
     EngineSettings settings;
 
-    settings.debug_mode = true;
+    settings.debug_mode = false;
     settings.adapter_enumeration_preference = HwAdapterEnumerator::DxgiGpuPreference::high_performance;
     settings.global_lookup_prefix = "";
     settings.settings_lookup_path = "../../settings/";
@@ -37,10 +37,11 @@ SwapChainDescriptor createSwapChainSettings()
     SwapChainDescriptor swap_chain_desc{};
     swap_chain_desc.format = DXGI_FORMAT_R8G8B8A8_UNORM;
     swap_chain_desc.refreshRate = 60;
-    swap_chain_desc.scaling = SwapChainScaling::stretch;
+    swap_chain_desc.scaling = SwapChainScaling::none;
     swap_chain_desc.stereo = false;
     swap_chain_desc.windowed = true;
-
+    swap_chain_desc.back_buffer_count = 2;
+    swap_chain_desc.enable_vsync = false;
     return swap_chain_desc;
 }
 
