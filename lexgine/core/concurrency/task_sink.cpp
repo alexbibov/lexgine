@@ -69,6 +69,7 @@ void TaskSink::submit(uint64_t user_data)
         && !(error_status = m_error_watchdog.load(std::memory_order_acquire)))
     {
         bool some_tasks_were_dispatched{ false };
+        uint32_t yield_counter{ 0U };
 
         // try to put more tasks into the task queue
         for (auto& task : *m_patched_task_graph)
@@ -77,10 +78,18 @@ void TaskSink::submit(uint64_t user_data)
             {
                 task.schedule(m_task_queue);
                 some_tasks_were_dispatched = true;
+                yield_counter = 0;
             }
         }
 
-        if (!some_tasks_were_dispatched) std::this_thread::yield();
+        if (!some_tasks_were_dispatched)
+        {
+            std::this_thread::yield();
+            ++yield_counter;
+
+            if ((yield_counter & 63) == 0)
+                std::this_thread::sleep_for(std::chrono::milliseconds(yield_counter < 1000 ? 0 : 1));
+        }
     }
 
     // errors may occur at any time during execution

@@ -43,16 +43,16 @@ uint64_t Signal::nextValueOfSignal() const
 
 void Signal::waitUntilValue(uint64_t signal_value) const
 {
-    m_event.reset();
     m_fence.setEvent(signal_value, m_event);
     m_event.wait();
+    m_event.reset();
 }
 
 bool Signal::waitUntilValue(uint64_t signal_value, uint32_t milliseconds) const
 {
-    m_event.reset();
     m_fence.setEvent(signal_value, m_event);
     return m_event.wait(milliseconds);
+    m_event.reset();
 }
 
 void Signal::waitOnGPUQueue(CommandQueue const& waiting_queue, uint64_t signal_value)

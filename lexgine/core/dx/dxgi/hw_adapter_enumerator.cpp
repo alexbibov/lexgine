@@ -290,11 +290,10 @@ HwOutputEnumerator const& HwAdapter::getOutputEnumerator() const
     return m_impl->getOutputEnumeratorForThisAdapter();
 }
 
-SwapChain HwAdapter::createSwapChain(osinteraction::windows::Window& window, SwapChainDescriptor const& desc,
-    SwapChainAdvancedParameters const& advanced_parameters) const
+SwapChain HwAdapter::createSwapChain(osinteraction::windows::Window& window, SwapChainDescriptor const& desc) const
 {
     return SwapChainAttorney<HwAdapter>::makeSwapChain(m_dxgi_adapter_factory, *m_device,
-        m_device->defaultCommandQueue(), window, desc, advanced_parameters);
+        m_device->defaultCommandQueue(), window, desc);
 }
 
 dx::d3d12::Device& HwAdapter::device() const
