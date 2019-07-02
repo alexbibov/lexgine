@@ -40,7 +40,7 @@ SwapChainDescriptor createSwapChainSettings()
     swap_chain_desc.scaling = SwapChainScaling::none;
     swap_chain_desc.stereo = false;
     swap_chain_desc.windowed = true;
-    swap_chain_desc.back_buffer_count = 2;
+    swap_chain_desc.back_buffer_count = 3;
     swap_chain_desc.enable_vsync = false;
     return swap_chain_desc;
 }
@@ -69,9 +69,9 @@ public:
 
     }
 
-    bool update() const
+    void update() const
     {
-        return m_rendering_window.update();
+        m_rendering_window.update();
     }
 
     bool shouldClose() const
@@ -194,7 +194,6 @@ public:
     bool size_changed(uint16_t new_width, uint16_t new_height) override
     {
         // std::cout << "window  size has been changed. The new size is (" << new_width << ", " << new_height << ")" << std::endl;
-
         return true;
     }
 
@@ -213,8 +212,6 @@ private:
         , m_swap_chain_link{ m_engine_initializer.createSwapChainLink(m_swap_chain, lexgine::core::dx::d3d12::SwapChainDepthBufferFormat::d32float, *m_rendering_tasks) }
     {
         m_rendering_window.setLocation(10, 10);
-        //m_rendering_window.setDimensions(lexgine::core::math::Vector2u{ 1280, 720 });
-
         m_rendering_window.setVisibility(true);
 
         Device& dev_ref = m_engine_initializer.getCurrentDevice();
