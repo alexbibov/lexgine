@@ -72,18 +72,20 @@ public:
     void setVisibility(bool visibility_flag);    //! sets visibility of the window
     bool getVisibility() const;    //! returns visibility flag of the window
 
-    bool shouldClose() const;    //! returns 'true' when user attempts to close the window
+    bool shouldClose() const { return  m_should_close; }    //! returns 'true' when user attempts to close the window
 
-    HWND native() const;    //! returns native window handler (HWND)
+    HWND native() const { return m_hwnd; }    //! returns native window handler (HWND)
 
     void addListener(std::weak_ptr<AbstractListener> const& listener);    //! adds new event listener to the window. For design simplicity the listeners once added can never be removed without re-initialization of the Window object
 
     void processMessages() const;    //! retrieves messages addressed to the window from the message queue and dispatches them to the window
 
-    bool update() const;    //! updates window and returns 'true' on success
+    void update() const;    //! updates the window
 
 private:
-    void adjustClientAreaSize();    //! adjust window size to accomodate the requested client area
+    void adjustClientAreaSize(core::math::Vector2u const& desired_position, core::math::Vector2u const& desired_dimensions,
+        core::math::Vector2u& adjusted_position, core::math::Vector2u& adjusted_dimensions);    //! adjusts window size to accommodate the requested client area
+    inline void checkSystemCall(bool result) const;    //! if the value of result is 'false', puts the window to erroneous state and logs the corresponding system error
 
 private:
     // Window properties
@@ -95,10 +97,6 @@ private:
     HWND m_hwnd;	//!< handle of the window
     WindowStyle m_window_style;	//!< window style bitset
     WindowExStyle m_window_ex_style;	//!< extended window style description
-    std::wstring m_title;	//!< string title of the window
-    uint32_t m_pos_x, m_pos_y;	//!< position of the upper-left corner of the window represented in screen coordinates
-    uint32_t m_width, m_height;	//!< width and height of the window defined in pixels
-    bool m_is_visible;	//!< equals 'true' if the window is visible. Equals 'false' otherwise
     bool m_should_close;	//!< equals 'true' if the window is ready to close. Equals 'false' otherwise
     std::list<std::weak_ptr<AbstractListener>> m_listener_list;    //!< list of window listeners
 

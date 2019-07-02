@@ -15,8 +15,8 @@ ATOM Window::m_atom = 0;
 uint32_t Window::m_window_counter = 0;
 
 
-namespace
-{
+namespace {
+
 static wchar_t const window_class_name[] = L"LexgineWindow"; //!< string name of Lexgine window class
 static std::map<HWND, Window*> window_pool{};    //!< pool of windows managed by this window callback procedure
 
@@ -85,8 +85,6 @@ HWND createWindow(Window* p_window, ATOM& atom, HINSTANCE hInstance, uint32_t x,
 }
 
 
-
-
 Window::Window(HINSTANCE hInstance /* = NULL */,
     WindowStyle window_style /* = WindowStyle
                              | WindowStyle::base_values::HasSystemMenu
@@ -98,79 +96,65 @@ Window::Window(HINSTANCE hInstance /* = NULL */,
     m_hwnd{ NULL },
     m_window_style{ window_style },
     m_window_ex_style{ window_ex_style },
-    m_title(L"LexgineDXWindow"),
-    m_pos_x{ 0 },
-    m_pos_y{ 0 },
-    m_width{ 1280 },
-    m_height{ 1024 },
-    m_is_visible{ false },
     m_should_close{ false }
 {
-    adjustClientAreaSize();
+    core::math::Vector2u const default_position{ 0U, 0U };
+    core::math::Vector2u const default_dimensions{ 1280U, 1024U };
 
-    if (!(m_hwnd = createWindow(this, m_atom, m_hinstance, m_pos_x, m_pos_y, m_width, m_height, m_window_style, m_window_ex_style, m_title, WindowProcedure)))
-    {
-        std::string error_string = getLastSystemError();
-        logger().out(error_string, core::misc::LogMessageType::error);
-        raiseError(error_string);
-        throw;
-    }
-    else
-    {
-        ++m_window_counter;
-    }
+    core::math::Vector2u adjusted_position{}, adjusted_dimensions{};
+    
+    adjustClientAreaSize(default_position, default_dimensions, adjusted_position, adjusted_dimensions);
+
+    m_hwnd = createWindow(this, m_atom, m_hinstance, 
+        adjusted_position.x, adjusted_position.y, 
+        adjusted_dimensions.x, adjusted_dimensions.y, 
+        m_window_style, m_window_ex_style, L"LexgineDXWindow", WindowProcedure);
+
+    checkSystemCall(m_hwnd != 0);
+    
+    ++m_window_counter;
 }
 
 Window::~Window()
 {
-    if (m_hwnd)
-        DestroyWindow(m_hwnd);
+    checkSystemCall(DestroyWindow(m_hwnd));
 
     if (!m_window_counter && m_atom)
     {
-        UnregisterClass(const_cast<wchar_t*>(window_class_name), m_hinstance);
-        m_atom = 0;
+        checkSystemCall(UnregisterClass(const_cast<wchar_t*>(window_class_name), m_hinstance));
     }
 }
 
 void Window::setTitle(std::wstring const& title)
 {
-    if (!m_hwnd) return;
-
-    m_title = title;
-    if (!SetWindowText(m_hwnd, title.c_str()))
-    {
-        std::string error_string = getLastSystemError();
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, error_string);
-    }
+    checkSystemCall(SetWindowText(m_hwnd, title.c_str()));
 }
 
 
-std::wstring Window::getTitle() const { return m_title; }
+std::wstring Window::getTitle() const 
+{ 
+    int title_length = GetWindowTextLength(m_hwnd);
+    checkSystemCall(title_length != 0);
+
+    std::vector<wchar_t> text(title_length);
+    checkSystemCall(GetWindowText(m_hwnd, text.data(), title_length));
+
+    return std::wstring{ text.data() };
+}
 
 
 void Window::setDimensions(uint32_t width, uint32_t height)
 {
     if (!m_hwnd) return;
-
-    m_width = width;
-    m_height = height;
-
-    adjustClientAreaSize();
-
-    WINDOWPLACEMENT wndplacement;
-    wndplacement.length = sizeof(WINDOWPLACEMENT);
-    wndplacement.flags = WPF_ASYNCWINDOWPLACEMENT;
-    wndplacement.showCmd = m_is_visible ? SW_SHOW : SW_HIDE;
-    wndplacement.ptMaxPosition = POINT{ 0, 0 };
-    wndplacement.rcNormalPosition = RECT{ static_cast<LONG>(m_pos_x), static_cast<LONG>(m_pos_y),
-        static_cast<LONG>(m_pos_x + width), static_cast<LONG>(m_pos_y + height) };
-
-    if (!SetWindowPlacement(m_hwnd, &wndplacement))
-    {
-        std::string error_string = getLastSystemError();
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, error_string);
-    }
+    RECT wndrect{};
+    checkSystemCall(GetWindowRect(m_hwnd, &wndrect));
+    
+    core::math::Vector2u adjusted_position{}, adjusted_dimension{};
+    adjustClientAreaSize(core::math::Vector2u{ static_cast<uint32_t>(wndrect.left), static_cast<uint32_t>(wndrect.top) },
+        core::math::Vector2u{ width, height }, adjusted_position, adjusted_dimension);
+    
+    checkSystemCall(SetWindowPos(m_hwnd, NULL, static_cast<int>(adjusted_position.x), static_cast<int>(adjusted_position.y),
+        static_cast<int>(adjusted_dimension.x), static_cast<int>(adjusted_dimension.y), SWP_ASYNCWINDOWPOS | SWP_NOZORDER));
 }
 
 
@@ -179,30 +163,34 @@ void Window::setDimensions(core::math::Vector2u const& dimensions)
     setDimensions(dimensions.x, dimensions.y);
 }
 
+core::math::Vector2u Window::getDimensions() const
+{ 
+    RECT wndrect{};
+    checkSystemCall(GetWindowRect(m_hwnd, &wndrect));
+    return core::math::Vector2u{
+        static_cast<uint32_t>(wndrect.right - wndrect.left),
+        static_cast<uint32_t>(wndrect.bottom - wndrect.top)
+    };
+}
 
-lexgine::core::math::Vector2u Window::getDimensions() const{ return core::math::Vector2u{ m_width, m_height }; }
-
-lexgine::core::math::Rectangle Window::getClientArea() const
+core::math::Rectangle Window::getClientArea() const
 {
     RECT rect{};
-    if (!GetClientRect(m_hwnd, &rect))
-    {
-        std::string error_string = getLastSystemError();
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, error_string);
-    }
+    checkSystemCall(GetClientRect(m_hwnd, &rect));
 
-    return lexgine::core::math::Rectangle{ 
-        lexgine::core::math::Vector2f{static_cast<float>(rect.left), static_cast<float>(rect.top)},
+    return core::math::Rectangle{ 
+        core::math::Vector2f{static_cast<float>(rect.left), static_cast<float>(rect.top)},
         static_cast<float>(rect.right - rect.left), static_cast<float>(rect.bottom - rect.top) 
     };
 }
 
 void Window::setLocation(uint32_t x, uint32_t y)
 {
-    if (!m_hwnd) return;
-
-    m_pos_x = x; m_pos_y = y;
-    setDimensions(m_width, m_height);
+    RECT rect{};
+    checkSystemCall(GetWindowRect(m_hwnd, &rect));
+    checkSystemCall(SetWindowPos(m_hwnd, NULL, static_cast<int>(x), static_cast<int>(y),
+        static_cast<int>(rect.right - rect.left), static_cast<int>(rect.bottom - rect.top),
+        SWP_ASYNCWINDOWPOS | SWP_NOZORDER));
 }
 
 
@@ -212,28 +200,24 @@ void Window::setLocation(core::math::Vector2u const& location)
 }
 
 
-lexgine::core::math::Vector2u Window::getLocation() const { return core::math::Vector2u{ m_pos_x, m_pos_y }; }
+core::math::Vector2u Window::getLocation() const 
+{ 
+    RECT rect{};
+    checkSystemCall(GetWindowRect(m_hwnd, &rect));
+    return core::math::Vector2u{ static_cast<uint32_t>(rect.left), static_cast<uint32_t>(rect.top) };
+}
 
 
 void Window::setVisibility(bool visibility_flag)
 {
-    if (!m_hwnd) return;
-
-    m_is_visible = visibility_flag;
     ShowWindow(m_hwnd, visibility_flag ? SW_SHOW : SW_HIDE);
 }
 
 
 bool Window::getVisibility() const
 {
-    return m_is_visible;
+    return IsWindowVisible(m_hwnd);
 }
-
-
-bool Window::shouldClose() const { return m_should_close; }
-
-
-HWND Window::native() const { return m_hwnd; }
 
 
 void Window::addListener(std::weak_ptr<AbstractListener> const& listener)
@@ -256,32 +240,43 @@ void Window::processMessages() const
     }
 }
 
-bool Window::update() const
+void Window::update() const
 {
-    RECT rect{ 0, 0, static_cast<LONG>(m_width), static_cast<LONG>(m_height) };
-    BOOL res = InvalidateRect(m_hwnd, &rect, FALSE);
-    res |= UpdateWindow(m_hwnd);
-    return static_cast<bool>(res);
+    RECT rect{};
+    checkSystemCall(GetClientRect(m_hwnd, &rect));
+    checkSystemCall(InvalidateRect(m_hwnd, &rect, FALSE));
+    checkSystemCall(UpdateWindow(m_hwnd));
 }
 
-void Window::adjustClientAreaSize()
+void Window::adjustClientAreaSize(core::math::Vector2u const& desired_position, core::math::Vector2u const& desired_dimensions, 
+    core::math::Vector2u& adjusted_position, core::math::Vector2u& adjusted_dimensions)
 {
     RECT window_rectangle{};
-    window_rectangle.left = m_pos_x;
-    window_rectangle.top = m_pos_y;
-    window_rectangle.right = m_pos_x + m_width;
-    window_rectangle.bottom = m_pos_y + m_height;
+    window_rectangle.left = static_cast<LONG>(desired_position.x);
+    window_rectangle.top = static_cast<LONG>(desired_position.y);
+    window_rectangle.right = static_cast<LONG>(desired_position.x + desired_dimensions.x);
+    window_rectangle.bottom = static_cast<LONG>(desired_position.y + desired_dimensions.y);
 
-    if (!AdjustWindowRect(&window_rectangle, m_window_style.getValue(), FALSE))
+    checkSystemCall(AdjustWindowRect(&window_rectangle, m_window_style.getValue(), FALSE));
+
+    adjusted_position = core::math::Vector2u{ 
+        static_cast<unsigned>(window_rectangle.left), 
+        static_cast<unsigned>(window_rectangle.top) 
+    };
+
+    adjusted_dimensions = core::math::Vector2u{ 
+        static_cast<unsigned>(window_rectangle.right - window_rectangle.left),
+        static_cast<unsigned>(window_rectangle.bottom - window_rectangle.top) 
+    };
+}
+
+inline void Window::checkSystemCall(bool result) const
+{
+    if (!result)
     {
         std::string error_string = getLastSystemError();
         LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, error_string);
     }
-
-    m_pos_x = window_rectangle.left;
-    m_pos_y = window_rectangle.top;
-    m_width = window_rectangle.right - window_rectangle.left;
-    m_height = window_rectangle.bottom - window_rectangle.top;
 }
 
 
