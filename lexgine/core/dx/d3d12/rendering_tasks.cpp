@@ -61,15 +61,22 @@ RenderingTasks::RenderingTasks(Globals& globals)
     , m_rendering_configuration{ Viewport{math::Vector2f{}, math::Vector2f{}, math::Vector2f{}}, 
                                  DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, nullptr}
 {
-    m_test_rendering_task.reset(new TestRenderingTask{ m_globals, m_basic_rendering_services });
-
+    m_test_rendering_task = RenderingTaskFactory::create<TestRenderingTask>(m_globals, m_basic_rendering_services);
     m_ui_draw_task = RenderingTaskFactory::create<UIDrawTask>(globals, m_basic_rendering_services);
     m_profiler = RenderingTaskFactory::create<Profiler>();
 
+    m_post_rendering_gpu_tasks = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device, m_frame_progress_tracker, m_basic_rendering_services);
+    m_post_rendering_gpu_tasks->addSource(*m_test_rendering_task);
+    m_post_rendering_gpu_tasks->addSource(*m_ui_draw_task);
+
     m_ui_draw_task->addUIProvider(m_profiler);
 
-    m_task_graph.setRootNodes({ m_test_rendering_task.get() });
-    m_test_rendering_task->addDependent(*m_ui_draw_task);
+    m_task_graph.setRootNodes({ 
+        ROOT_NODE_CAST(m_test_rendering_task.get()), 
+        ROOT_NODE_CAST(m_ui_draw_task.get()) 
+        });
+    m_test_rendering_task->addDependent(*m_post_rendering_gpu_tasks);
+    m_ui_draw_task->addDependent(*m_post_rendering_gpu_tasks);
 
     // m_task_sink.start();
 }
@@ -109,9 +116,7 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
         m_rendering_configuration = rendering_configuration;
 
         // update rendering tasks
-        m_test_rendering_task->updateBufferFormats(m_rendering_configuration.color_buffer_format, 
-            m_rendering_configuration.depth_buffer_format);
-
+        m_test_rendering_task->updateRenderingConfiguration(flags, m_rendering_configuration);
         m_ui_draw_task->updateRenderingConfiguration(flags, m_rendering_configuration);
         
         m_task_sink.start();

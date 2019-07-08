@@ -1,5 +1,5 @@
+#include "lexgine/core/exception.h"
 #include "lexgine/core/dx/d3d12/device.h"
-
 #include "gpu_work_execution_task.h"
 
 
@@ -7,61 +7,60 @@ using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
 
-namespace {
-
-CommandType commandTypeFromGPUWorkType(GpuWorkType gpu_work_type)
-{
-    switch (gpu_work_type)
-    {
-    case GpuWorkType::graphics:
-        return CommandType::direct;
-
-    case GpuWorkType::compute:
-        return CommandType::compute;
-
-    case GpuWorkType::copy:
-        return CommandType::copy;
-
-    default:
-        __assume(0);
-    }
-}
-
-}
-
 GpuWorkExecutionTask::GpuWorkExecutionTask(Device& device, FrameProgressTracker const& frame_progress_tracker, 
-    BasicRenderingServices const& basic_rendering_services, GpuWorkType work_type)
+    BasicRenderingServices const& basic_rendering_services)
     : m_device{ device }
     , m_frame_progress_tracker{ &frame_progress_tracker }
-    , m_gpu_work_type{ work_type }
 {
 }
 
-GpuWorkExecutionTask::GpuWorkExecutionTask(Device& device, BasicRenderingServices const& basic_rendering_services, GpuWorkType work_type)
+GpuWorkExecutionTask::GpuWorkExecutionTask(Device& device, BasicRenderingServices const& basic_rendering_services)
     : m_device{ device }
-    , m_gpu_work_type{ work_type }
 {
+}
+
+std::shared_ptr<GpuWorkExecutionTask> GpuWorkExecutionTask::create(Device& device, 
+    FrameProgressTracker const& frame_progress_tracker, 
+    BasicRenderingServices const& basic_rendering_services)
+{
+    return std::shared_ptr<GpuWorkExecutionTask>{ new GpuWorkExecutionTask{ device, frame_progress_tracker, basic_rendering_services } };
+}
+
+std::shared_ptr<GpuWorkExecutionTask> GpuWorkExecutionTask::create(Device& device, 
+    BasicRenderingServices const& basic_rendering_services)
+{
+    return std::shared_ptr<GpuWorkExecutionTask>{ new GpuWorkExecutionTask{ device, basic_rendering_services } };
 }
 
 void GpuWorkExecutionTask::addSource(GpuWorkSource& source)
 {
     CommandList& cmd_list = source.gpuWorkPackage();
+    assert(m_gpu_work_sources.empty() 
+        || m_gpu_work_sources[0]->commandType() == cmd_list.commandType());
+
     m_gpu_work_sources.push_back(&cmd_list);
 }
 
 bool GpuWorkExecutionTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    switch (m_gpu_work_type)
+    if (m_gpu_work_sources.empty()) return true;
+
+    switch (m_gpu_work_sources[0]->commandType())
     {
-    case GpuWorkType::graphics:
+    case CommandType::direct:
         m_device.defaultCommandQueue().executeCommandLists(m_gpu_work_sources.data(), m_gpu_work_sources.size());
         break;
 
-    case GpuWorkType::compute:
+    case CommandType::compute:
+        m_device.asyncCommandQueue().executeCommandLists(m_gpu_work_sources.data(), m_gpu_work_sources.size());
         break;
 
-    case GpuWorkType::copy:
+    case CommandType::copy:
+        m_device.copyCommandQueue().executeCommandLists(m_gpu_work_sources.data(), m_gpu_work_sources.size());
         break;
+
+    case CommandType::bundle:
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "Command bundles cannot be added as GPU work packages");
 
     default:
         __assume(0);
@@ -72,20 +71,23 @@ bool GpuWorkExecutionTask::doTask(uint8_t worker_id, uint64_t user_data)
 
 concurrency::TaskType GpuWorkExecutionTask::type() const
 {
-    switch (m_gpu_work_type)
+    if (m_gpu_work_sources.empty()) return concurrency::TaskType::other;
+
+    switch (m_gpu_work_sources[0]->commandType())
     {
-    case GpuWorkType::graphics:
+    case CommandType::direct:
         return concurrency::TaskType::gpu_draw;
-    case GpuWorkType::compute:
+    case CommandType::compute:
         return concurrency::TaskType::gpu_compute;
-    case GpuWorkType::copy:
+    case CommandType::copy:
         return concurrency::TaskType::gpu_copy;
+
     default:
         __assume(0);
     }
 }
 
-GpuWorkSource::GpuWorkSource(Device& device, GpuWorkType work_type)
-    : m_cmd_list{ device.createCommandList(commandTypeFromGPUWorkType(work_type), 0x1) }
+GpuWorkSource::GpuWorkSource(Device& device, CommandType work_type)
+    : m_cmd_list{ device.createCommandList(work_type, 0x1) }
 {
 }
