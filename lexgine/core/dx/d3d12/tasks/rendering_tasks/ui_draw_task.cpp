@@ -227,11 +227,13 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
 
 bool UIDrawTask::keyDown(osinteraction::SystemKey key)
 {
+    systemKeyDown(key);
     return true;
 }
 
 bool UIDrawTask::keyUp(osinteraction::SystemKey key)
 {
+    systemKeyUp(key);
     return true;
 }
 
