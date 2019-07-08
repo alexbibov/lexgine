@@ -254,7 +254,7 @@ int64_t MouseButtonListener::process_message(uint64_t message, uint64_t p_window
     case WM_MOUSEHWHEEL:
         is_horizontal_wheel_moved = true;
     case WM_MOUSEWHEEL:
-        return static_cast<uint64_t>(wheelMove(static_cast<double>(wParam >> 16) / WHEEL_DELTA, is_horizontal_wheel_moved, control_key_flag, x, y));
+        return static_cast<uint64_t>(wheelMove(static_cast<double>(GET_WHEEL_DELTA_WPARAM(wParam)) / WHEEL_DELTA, is_horizontal_wheel_moved, control_key_flag, x, y));
 
     default:
         __assume(0);
