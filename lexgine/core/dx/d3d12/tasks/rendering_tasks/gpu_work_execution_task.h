@@ -7,17 +7,10 @@
 
 namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
 
-enum class GpuWorkType
-{
-    graphics,
-    compute,
-    copy
-};
-
 class GpuWorkSource
 {
 public:
-    GpuWorkSource(Device& device, GpuWorkType work_type);
+    GpuWorkSource(Device& device, CommandType work_type);
     CommandList& gpuWorkPackage() { return m_cmd_list; }
 
 private:
@@ -26,12 +19,22 @@ private:
 
 class GpuWorkExecutionTask : public concurrency::SchedulableTask
 {
+    using Entity::getId;
+
 public:
-    GpuWorkExecutionTask(Device& device, FrameProgressTracker const& frame_progress_tracker, 
-        BasicRenderingServices const& basic_rendering_services, GpuWorkType work_type);
-    GpuWorkExecutionTask(Device& device, BasicRenderingServices const& basic_rendering_services, GpuWorkType work_type);
+    static std::shared_ptr<GpuWorkExecutionTask> create(Device& device,
+        FrameProgressTracker const& frame_progress_tracker,
+        BasicRenderingServices const& basic_rendering_services);
+
+    static std::shared_ptr<GpuWorkExecutionTask> create(Device& device,
+        BasicRenderingServices const& basic_rendering_services);
     
     void addSource(GpuWorkSource& source);
+
+private:
+    GpuWorkExecutionTask(Device& device, FrameProgressTracker const& frame_progress_tracker,
+        BasicRenderingServices const& basic_rendering_services);
+    GpuWorkExecutionTask(Device& device, BasicRenderingServices const& basic_rendering_services);
 
 private:    // required by AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t user_data) override;
@@ -40,7 +43,6 @@ private:    // required by AbstractTask interface
 private:
     Device& m_device;
     FrameProgressTracker const* m_frame_progress_tracker = nullptr;
-    GpuWorkType m_gpu_work_type;
     std::vector<CommandList*> m_gpu_work_sources;
 };
 

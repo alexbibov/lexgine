@@ -318,13 +318,13 @@ enum class Test
 };
 
 UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services)
-    : m_globals{ globals }
+    : GpuWorkSource{ *globals.get<Device>(), CommandType::direct }
+    , m_globals{ globals }
     , m_device{ *globals.get<Device>() }
     , m_basic_rendering_services{ basic_rendering_services }
     , m_time_counter{ std::chrono::high_resolution_clock::now().time_since_epoch().count() }
     , m_resource_uploader{ globals, basic_rendering_services.resourceUploadAllocator() }
     , m_projection_matrix_constants(16)
-    , m_cmd_list{ m_device.createCommandList(CommandType::direct, 0x1) }
     , m_scissor_rectangles(1)
 {
     m_viewports.emplace_back(math::Vector2f{ 0.f }, math::Vector2f{ 0.f }, math::Vector2f{ 0.f });
@@ -543,9 +543,6 @@ bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
     ImGui::Render();
     drawFrame();
 
-    // command list execution should be removed from here and moved to dedicated command list execution task
-    m_device.defaultCommandQueue().executeCommandList(m_cmd_list);
-
     return true;
 }
 
@@ -597,15 +594,18 @@ void UIDrawTask::drawFrame()
 {
     if(ImDrawData* p_draw_data = ImGui::GetDrawData())
     {
-        m_cmd_list.reset();
-        m_basic_rendering_services.setDefaultResources(m_cmd_list);
+        auto& cmd_list = gpuWorkPackage();
+        cmd_list.reset();
+        m_basic_rendering_services.setDefaultResources(cmd_list);
         // m_basic_rendering_services.beginRendering(m_cmd_list);
 
-        auto setup_render_state_lambda = [this, p_draw_data]()
+        auto setup_render_state_lambda = [this, p_draw_data, &cmd_list]()
         {
-            Viewport viewport{ math::Vector2f{0.f},
+            Viewport viewport{ 
+                math::Vector2f{0.f},
                 math::Vector2f{p_draw_data->DisplaySize.x, p_draw_data->DisplaySize.y},
-            math::Vector2f{0.f, 1.f} };
+                math::Vector2f{0.f, 1.f} 
+            };
             m_viewports[0] = viewport;
 
             auto projection_matrix = math::createOrthogonalProjectionMatrix(misc::EngineAPI::Direct3D12,
@@ -615,15 +615,15 @@ void UIDrawTask::drawFrame()
             std::transform(projection_matrix.getRawData(), projection_matrix.getRawData() + 16,
                 m_projection_matrix_constants.begin(), [](float value) {return *reinterpret_cast<uint32_t*>(&value); });
 
-            m_cmd_list.setPipelineState(m_pso->getTaskData());
-            m_cmd_list.setRootSignature(m_rs->getCacheName());
-            m_cmd_list.setRoot32BitConstants(0, m_projection_matrix_constants, 0);
-            m_cmd_list.rasterizerStateSetViewports(m_viewports);
-            m_cmd_list.inputAssemblySetVertexBuffers(*m_ui_vertex_data_binding);
-            m_cmd_list.inputAssemblySetIndexBuffer(*m_ui_index_data_binding);
-            m_cmd_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
-            m_cmd_list.outputMergerSetBlendFactor(math::Vector4f{ 0.f });
-            m_basic_rendering_services.setDefaultRenderingTarget(m_cmd_list);
+            cmd_list.setPipelineState(m_pso->getTaskData());
+            cmd_list.setRootSignature(m_rs->getCacheName());
+            cmd_list.setRoot32BitConstants(0, m_projection_matrix_constants, 0);
+            cmd_list.rasterizerStateSetViewports(m_viewports);
+            cmd_list.inputAssemblySetVertexBuffers(*m_ui_vertex_data_binding);
+            cmd_list.inputAssemblySetIndexBuffer(*m_ui_index_data_binding);
+            cmd_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
+            cmd_list.outputMergerSetBlendFactor(math::Vector4f{ 0.f });
+            m_basic_rendering_services.setDefaultRenderingTarget(cmd_list);
         };
 
         // upload vertex data and set rendering context state
@@ -682,9 +682,9 @@ void UIDrawTask::drawFrame()
                             p_draw_command->ClipRect.w - p_draw_command->ClipRect.y);
                         ShaderResourceDescriptorTable srv_table{};
                         srv_table.gpu_pointer = reinterpret_cast<uint64_t>(p_draw_command->TextureId);
-                        m_cmd_list.setRootDescriptorTable(1, srv_table);
-                        m_cmd_list.rasterizerStateSetScissorRectangles(m_scissor_rectangles);
-                        m_cmd_list.drawIndexedInstanced(p_draw_command->ElemCount, 1, offset_in_index_buffer, offset_in_vertex_buffer, 0);
+                        cmd_list.setRootDescriptorTable(1, srv_table);
+                        cmd_list.rasterizerStateSetScissorRectangles(m_scissor_rectangles);
+                        cmd_list.drawIndexedInstanced(p_draw_command->ElemCount, 1, offset_in_index_buffer, offset_in_vertex_buffer, 0);
                     }
 
                     offset_in_index_buffer += p_draw_command->ElemCount;
@@ -693,7 +693,7 @@ void UIDrawTask::drawFrame()
             }
         }
 
-        m_basic_rendering_services.endRendering(m_cmd_list);
-        m_cmd_list.close();
+        m_basic_rendering_services.endRendering(cmd_list);
+        cmd_list.close();
     }
 }

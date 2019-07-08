@@ -19,7 +19,8 @@ using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
 using namespace lexgine::core::dx::d3d12::task_caches;
 
 TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& rendering_services)
-    : m_globals{ globals }
+    : GpuWorkSource{ *globals.get<Device>(), CommandType::direct }
+    , m_globals{ globals }
     , m_device{ *globals.get<Device>() }
     , m_basic_rendering_services{ rendering_services }
     , m_data_uploader{ globals, rendering_services.resourceUploadAllocator() }
@@ -30,7 +31,6 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
                 HeapCreationFlags::base_values::allow_all }
     , m_cb_data_mapping{ m_cb_reflection }
     , m_timestamp{ std::chrono::high_resolution_clock::now().time_since_epoch().count() }
-    , m_cmd_list{ m_device.createCommandList(CommandType::direct, 0x1) }
     , m_allocation{ nullptr }
 {
     std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
@@ -240,47 +240,52 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
     }
 }
 
-void TestRenderingTask::updateBufferFormats(DXGI_FORMAT color_target_format, DXGI_FORMAT depth_target_format)
+void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags update_flags, RenderingConfiguration const& rendering_configuration)
 {
-    PSOCompilationTaskCache& pso_compilation_task_cache = *m_globals.get<PSOCompilationTaskCache>();
+    if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::color_format_changed)
+        || update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
+    {
+        PSOCompilationTaskCache& pso_compilation_task_cache = *m_globals.get<PSOCompilationTaskCache>();
 
-    GraphicsPSODescriptor pso_descriptor{};
-    pso_descriptor.vertex_attributes = m_va_list;
-    pso_descriptor.rtv_formats[0] = color_target_format;
-    pso_descriptor.num_render_targets = 1;
-    pso_descriptor.dsv_format = depth_target_format;
-    pso_descriptor.primitive_topology_type = PrimitiveTopologyType::triangle;
-    pso_descriptor.node_mask = 1;
-    pso_descriptor.primitive_restart = true;
+        GraphicsPSODescriptor pso_descriptor{};
+        pso_descriptor.vertex_attributes = m_va_list;
+        pso_descriptor.rtv_formats[0] = rendering_configuration.color_buffer_format;
+        pso_descriptor.num_render_targets = 1;
+        pso_descriptor.dsv_format = rendering_configuration.depth_buffer_format;
+        pso_descriptor.primitive_topology_type = PrimitiveTopologyType::triangle;
+        pso_descriptor.node_mask = 1;
+        pso_descriptor.primitive_restart = true;
 
-    m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, pso_descriptor,
-        "test_rendering_pso_" + std::to_string(color_target_format) + "_" + std::to_string(depth_target_format), 0);
-    m_pso->setVertexShaderCompilationTask(m_vs);
-    m_pso->setPixelShaderCompilationTask(m_ps);
-    m_pso->setRootSignatureCompilationTask(m_rs);
+        m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, pso_descriptor,
+            "test_rendering_pso_" + std::to_string(rendering_configuration.color_buffer_format) 
+            + "_" + std::to_string(rendering_configuration.depth_buffer_format), 0);
+        m_pso->setVertexShaderCompilationTask(m_vs);
+        m_pso->setPixelShaderCompilationTask(m_ps);
+        m_pso->setRootSignatureCompilationTask(m_rs);
 
-    m_pso->execute(0);
+        m_pso->execute(0);
+    }
 }
 
 bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    m_cmd_list.reset();
+    auto& cmd_list = gpuWorkPackage();
 
-    m_basic_rendering_services.setDefaultResources(m_cmd_list);
-    m_basic_rendering_services.beginRendering(m_cmd_list);
+    cmd_list.reset();
 
-    m_cmd_list.setPipelineState(m_pso->getTaskData());
+    m_basic_rendering_services.beginRendering(cmd_list);
 
-    m_cmd_list.setRootSignature(m_rs->getCacheName());
-    m_basic_rendering_services.setDefaultViewport(m_cmd_list);
+    m_basic_rendering_services.setDefaultResources(cmd_list);
+    cmd_list.setPipelineState(m_pso->getTaskData());
+    cmd_list.setRootSignature(m_rs->getCacheName());
+    m_basic_rendering_services.setDefaultViewport(cmd_list);
 
+    cmd_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
+    m_vb.bind(cmd_list);
+    m_ib.bind(cmd_list);
 
-    m_cmd_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
-    m_vb.bind(m_cmd_list);
-    m_ib.bind(m_cmd_list);
-
-    m_basic_rendering_services.setDefaultRenderingTarget(m_cmd_list);
-    m_basic_rendering_services.clearDefaultRenderingTarget(m_cmd_list);
+    m_basic_rendering_services.setDefaultRenderingTarget(cmd_list);
+    m_basic_rendering_services.clearDefaultRenderingTarget(cmd_list);
 
     long long new_timestamp = std::chrono::high_resolution_clock::now().time_since_epoch().count();
     float duration = (new_timestamp - m_timestamp) / 1e9f;
@@ -290,17 +295,13 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
     m_allocation =
         m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_cb_data_mapping);
      
-    m_cmd_list.setRootDescriptorTable(0, m_srv_table);
-    m_cmd_list.setRootDescriptorTable(1, m_sampler_table);
-    m_cmd_list.setRootConstantBufferView(2, m_allocation->virtualGpuAddress());
+    cmd_list.setRootDescriptorTable(0, m_srv_table);
+    cmd_list.setRootDescriptorTable(1, m_sampler_table);
+    cmd_list.setRootConstantBufferView(2, m_allocation->virtualGpuAddress());
 
-    m_cmd_list.drawIndexedInstanced(36, 1, 0, 0, 0);
+    cmd_list.drawIndexedInstanced(36, 1, 0, 0, 0);
 
-    // m_basic_rendering_services.endRendering(m_cmd_list);
-
-    m_cmd_list.close();
-
-    m_device.defaultCommandQueue().executeCommandList(m_cmd_list);
+    cmd_list.close();
 
     return true;
 }

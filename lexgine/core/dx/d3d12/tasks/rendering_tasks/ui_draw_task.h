@@ -16,11 +16,14 @@
 #include "lexgine/osinteraction/listener.h"
 #include "lexgine/osinteraction/windows/window_listeners.h"
 
+#include "gpu_work_execution_task.h"
+
 
 namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
 
 class UIDrawTask :
     public RenderingWork,
+    public GpuWorkSource,
     public osinteraction::Listeners<
     osinteraction::windows::KeyInputListener, 
     osinteraction::windows::MouseButtonListener, 
@@ -93,7 +96,6 @@ private:
 
     std::vector<uint32_t> m_projection_matrix_constants;
 
-    CommandList m_cmd_list;
     ImGuiContext* m_gui_context = nullptr;
 
     std::unique_ptr<CommittedResource> m_fonts_texture;
