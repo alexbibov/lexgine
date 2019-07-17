@@ -85,13 +85,9 @@ template<> class TaskGraphAttorney<TaskSink>
 {
     friend TaskSink;
 
-    static TaskGraph compileTaskGraph(TaskGraph const& source_task_graph)
+    static void compileTaskGraph(TaskGraph& source_task_graph)
     {
-        TaskGraph rv{ source_task_graph.m_num_workers, source_task_graph.getStringName() };
-        rv.m_root_nodes = source_task_graph.m_root_nodes;
-        rv.compile();
-
-        return rv;
+        source_task_graph.compile();
     }
 
     static bool isTaskGraphCompleted(TaskGraph const& compiled_task_graph)

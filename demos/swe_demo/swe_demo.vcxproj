@@ -19,14 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\lexgine\core\dx\d3d12\tasks\ui_draw_task.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\lexgine\core\dx\d3d12\tasks\ui_draw_task.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B8B8490D-8614-4D11-9985-FAD365069DBC}</ProjectGuid>

@@ -39,7 +39,6 @@ private:
     
 private:
     TaskGraph& m_source_task_graph;    //!< the task graph executed by the sink
-    std::unique_ptr<TaskGraph> m_patched_task_graph;    //!< copy of the source task graph patched to include synchronization barrier
 
     std::list<worker_thread_context> m_workers_list;    //!< list of work threads
     RingBufferTaskQueue<TaskGraphNode*> m_task_queue;    //!< concurrent task queue

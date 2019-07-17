@@ -38,9 +38,8 @@ void TaskSink::start()
     assert(m_stop_signal.load(std::memory_order_acquire));
 
     logger().out(misc::formatString("Starting task sink %s", getStringName().c_str()), LogMessageType::information);
-
-    
-    m_patched_task_graph.reset(new TaskGraph{ TaskGraphAttorney<TaskSink>::compileTaskGraph(m_source_task_graph) });
+        
+    TaskGraphAttorney<TaskSink>::compileTaskGraph(m_source_task_graph);
 
     m_num_threads_finished.store(0, std::memory_order_release);
     m_stop_signal.store(false, std::memory_order_release);
@@ -63,16 +62,16 @@ void TaskSink::submit(uint64_t user_data)
     assert(!m_stop_signal.load(std::memory_order_acquire));
 
     uint64_t error_status{ 0x0 };
-    m_patched_task_graph->setUserData(user_data);
+    m_source_task_graph.setUserData(user_data);
 
-    while(!TaskGraphAttorney<TaskSink>::isTaskGraphCompleted(*m_patched_task_graph) 
+    while(!TaskGraphAttorney<TaskSink>::isTaskGraphCompleted(m_source_task_graph) 
         && !(error_status = m_error_watchdog.load(std::memory_order_acquire)))
     {
         bool some_tasks_were_dispatched{ false };
         uint32_t yield_counter{ 0U };
 
         // try to put more tasks into the task queue
-        for (auto& task : *m_patched_task_graph)
+        for (auto& task : m_source_task_graph)
         {
             if (!task.isCompleted() && task.isReadyToLaunch())
             {
@@ -102,7 +101,7 @@ void TaskSink::submit(uint64_t user_data)
     }
 
     // reset task graph completion status
-    m_patched_task_graph->resetExecutionStatus();
+    m_source_task_graph.resetExecutionStatus();
 }
 
 void TaskSink::shutdown()

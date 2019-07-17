@@ -1,16 +1,33 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_ABSTRACT_TASK_H
 #define LEXGINE_CORE_CONCURRENCY_ABSTRACT_TASK_H
 
+#include <array>
+
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
 #include "lexgine/core/concurrency/lexgine_core_concurrency_fwd.h"
 
 namespace lexgine::core::concurrency {
 
-struct TaskExecutionStatistics final
+class ExecutionStatistics final
 {
-    uint8_t worker_id;    //!< identifier of the worker thread that has executed the task. Primarily for debug purposes.
-    uint64_t execution_time;    //!< time of execution of the related task provided in milliseconds.
+public:
+    using time_resolution_t = std::chrono::microseconds;
+    using statistics_t = std::array<time_resolution_t, 10>;
+
+public:
+    ExecutionStatistics();
+
+    void tick(uint8_t worker_id);
+    void tock();
+    statistics_t const& getStatistics() const { return m_statistics; }
+    uint8_t lastWorkerId() const { return m_worker_id; }
+
+private:
+    time_resolution_t m_last_tick;
+    int m_spin_up_counter;
+    statistics_t m_statistics;
+    uint8_t m_worker_id;
 };
 
 //! task type enumeration
@@ -41,7 +58,7 @@ public:
     AbstractTask& operator=(AbstractTask const&) = delete;
     AbstractTask& operator=(AbstractTask&&) = delete;
 
-    TaskExecutionStatistics const& getExecutionStatistics() const;    //! returns execution statistics of the task
+    virtual ExecutionStatistics const& getExecutionStatistics() const;    //! returns execution statistics of the task
 
     bool execute(uint8_t worker_id, uint64_t user_data);    //! executes the task and returns 'true' if the task has been completed or 'false' if it has to be rescheduled to be executed later
 
@@ -61,7 +78,7 @@ public:
     virtual TaskType type() const = 0;    //! returns type of the task
 
 private:
-    TaskExecutionStatistics m_execution_statistics;    //!< execution statistics of the task
+    ExecutionStatistics m_execution_statistics;    //!< execution statistics of the task
     bool m_exposed_in_task_graph;    //!< 'true' if the task should be included into DOT representation of the task graph for debugging purposes, 'false' otherwise. Default is 'true'.
 };
 

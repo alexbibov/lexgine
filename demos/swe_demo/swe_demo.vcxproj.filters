@@ -2,12 +2,8 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="..\..\lexgine\core\dx\d3d12\tasks\ui_draw_task.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\lexgine\core\dx\d3d12\tasks\ui_draw_task.h" />
   </ItemGroup>
 </Project>

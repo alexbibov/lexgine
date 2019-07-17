@@ -320,7 +320,8 @@ enum class Test
 };
 
 UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services)
-    : GpuWorkSource{ *globals.get<Device>(), CommandType::direct }
+    : RenderingWork{"UI draw task"}
+    , GpuWorkSource{ *globals.get<Device>(), CommandType::direct }
     , m_globals{ globals }
     , m_device{ *globals.get<Device>() }
     , m_basic_rendering_services{ basic_rendering_services }

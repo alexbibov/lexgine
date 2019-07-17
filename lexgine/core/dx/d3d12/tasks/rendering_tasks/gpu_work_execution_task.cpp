@@ -7,29 +7,33 @@ using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
 
-GpuWorkExecutionTask::GpuWorkExecutionTask(Device& device, FrameProgressTracker const& frame_progress_tracker, 
+GpuWorkExecutionTask::GpuWorkExecutionTask(Device& device, std::string const& debug_name, FrameProgressTracker const& frame_progress_tracker,
     BasicRenderingServices const& basic_rendering_services)
-    : m_device{ device }
+    : SchedulableTask{ debug_name }
+    , m_device{ device }
     , m_frame_progress_tracker{ &frame_progress_tracker }
 {
 }
 
-GpuWorkExecutionTask::GpuWorkExecutionTask(Device& device, BasicRenderingServices const& basic_rendering_services)
-    : m_device{ device }
+GpuWorkExecutionTask::GpuWorkExecutionTask(Device& device, std::string const& debug_name, BasicRenderingServices const& basic_rendering_services)
+    : SchedulableTask{ debug_name }
+    , m_device{ device }
 {
 }
 
 std::shared_ptr<GpuWorkExecutionTask> GpuWorkExecutionTask::create(Device& device, 
+    std::string const& debug_name,
     FrameProgressTracker const& frame_progress_tracker, 
     BasicRenderingServices const& basic_rendering_services)
 {
-    return std::shared_ptr<GpuWorkExecutionTask>{ new GpuWorkExecutionTask{ device, frame_progress_tracker, basic_rendering_services } };
+    return std::shared_ptr<GpuWorkExecutionTask>{ new GpuWorkExecutionTask{ device, debug_name, frame_progress_tracker, basic_rendering_services } };
 }
 
 std::shared_ptr<GpuWorkExecutionTask> GpuWorkExecutionTask::create(Device& device, 
+    std::string const& debug_name,
     BasicRenderingServices const& basic_rendering_services)
 {
-    return std::shared_ptr<GpuWorkExecutionTask>{ new GpuWorkExecutionTask{ device, basic_rendering_services } };
+    return std::shared_ptr<GpuWorkExecutionTask>{ new GpuWorkExecutionTask{ device, debug_name, basic_rendering_services } };
 }
 
 void GpuWorkExecutionTask::addSource(GpuWorkSource& source)
