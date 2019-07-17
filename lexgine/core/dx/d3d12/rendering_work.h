@@ -28,6 +28,12 @@ public:
     END_FLAGS_DECLARATION(RenderingConfigurationUpdateFlags)
 
 public:
+    RenderingWork(std::string const& debug_name)
+        : SchedulableTask{ debug_name }
+    {
+
+    }
+
     virtual void updateRenderingConfiguration(RenderingConfigurationUpdateFlags update_flags, 
         RenderingConfiguration const& rendering_configuration) = 0;
 };

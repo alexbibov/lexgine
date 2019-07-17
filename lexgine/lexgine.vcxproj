@@ -185,6 +185,7 @@
     <ClCompile Include="core\dx\d3d12\fence.cpp" />
     <ClCompile Include="core\dx\d3d12\frame_progress_tracker.cpp" />
     <ClCompile Include="core\dx\d3d12\heap.cpp" />
+    <ClCompile Include="core\dx\d3d12\pix_support.cpp" />
     <ClCompile Include="core\dx\d3d12\rendering_target.cpp" />
     <ClCompile Include="core\dx\d3d12\rendering_tasks.cpp" />
     <ClCompile Include="core\dx\d3d12\resource_barrier_pack.cpp" />
@@ -281,6 +282,7 @@
     <ClInclude Include="core\dx\d3d12\dsv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\descriptor_table_builders.h" />
     <ClInclude Include="core\dx\d3d12\frame_progress_tracker.h" />
+    <ClInclude Include="core\dx\d3d12\pix_support.h" />
     <ClInclude Include="core\dx\d3d12\rendering_target.h" />
     <ClInclude Include="core\dx\d3d12\rendering_work.h" />
     <ClInclude Include="core\dx\d3d12\rendering_tasks.h" />

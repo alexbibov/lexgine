@@ -30,7 +30,7 @@ public:
     
 private:    // required by AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t user_data) override;
-    concurrency::TaskType type() const override { return concurrency::TaskType::gpu_draw; }
+    concurrency::TaskType type() const override { return concurrency::TaskType::cpu; }
 
 private:
     TestRenderingTask(Globals& globals, BasicRenderingServices& rendering_services);

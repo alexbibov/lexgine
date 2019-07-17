@@ -5,6 +5,8 @@
 #include "signal.h"
 #include "lexgine/core/dx/d3d12/tasks/rendering_tasks/profiler.h"
 
+#include "pix_support.h"
+
 namespace lexgine::core::dx::d3d12 {
 
 template<typename T> class FrameProgressTrackerAttorney;

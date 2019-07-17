@@ -14,7 +14,7 @@ public:
 
     std::shared_ptr<UIProvider const> getPointer() const { return shared_from_this(); }
 
-    virtual void constructUI() const = 0;
+    virtual void constructUI() = 0;
 
 private:
     bool m_is_enabled = true;
