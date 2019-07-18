@@ -42,6 +42,7 @@ public:
 
     bool isAsyncComputeEnabled() const;
     bool isAsyncCopyEnabled() const;
+    bool isProfilingEnabled() const;
 
     uint16_t getMaxFramesInFlight() const;
 
@@ -60,6 +61,7 @@ public:
     void setCacheName(std::string const& name);
     void setIsAsyncComputeEnabled(bool is_enabled);
     void setIsAsyncCopyEnabled(bool is_enabled);
+    void setIsProfilingEnabled(bool is_enabled);
 
 
 private:
@@ -80,6 +82,7 @@ private:
     bool m_enable_async_copy;
     uint16_t m_max_frames_in_flight;
     uint32_t m_max_non_blocking_upload_buffer_allocation_timeout;
+    bool m_enable_profiling;
 
     std::array<uint32_t, static_cast<size_t>(dx::d3d12::DescriptorHeapType::count)> m_descriptors_per_page;
     std::array<uint32_t, static_cast<size_t>(dx::d3d12::DescriptorHeapType::count)> m_descriptor_heap_page_count;

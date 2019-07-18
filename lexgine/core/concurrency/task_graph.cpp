@@ -14,7 +14,7 @@ using namespace lexgine::core::concurrency;
 class TaskGraph::BarrierSyncTask : public AbstractTask
 {
 public:
-    BarrierSyncTask() : AbstractTask{ "", false } {}
+    BarrierSyncTask() : AbstractTask{ false, "", false } {}
 
 public:    // AbstractTask interface implementation
     bool doTask(uint8_t worker_id, uint64_t user_data) override { return true; }

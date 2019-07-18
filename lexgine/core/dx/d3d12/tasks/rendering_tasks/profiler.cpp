@@ -25,16 +25,14 @@ void constructPerformanceViewTreeNode(TaskGraphNode const& node)
 {
     AbstractTask* p_task = node.task();
 
-    if(ImGui::TreeNode(p_task->getStringName().c_str()))
+    if (ImGui::TreeNode(p_task->getStringName().c_str()))
     {
-
-        auto& statistics = p_task->getExecutionStatistics();
-        auto& data = statistics.getStatistics();
+        auto& data = p_task->getExecutionStatistics().statistics;
         float average_execution_time =
             std::accumulate(data.begin(), data.end(), 0.f,
-                [&data](float accumulated, ExecutionStatistics::time_resolution_t current) -> float
+                [&data](float accumulated, AbstractTask::profiler_timer_resolution_t current) -> float
                 {
-                    return accumulated + std::chrono::duration_cast<std::chrono::nanoseconds>(current).count() / static_cast<float>(data.size());
+                    return accumulated + std::chrono::duration_cast<std::chrono::milliseconds>(current).count() / static_cast<float>(data.size());
                 }
         );
 
@@ -63,7 +61,7 @@ void constructPerformanceViewTreeNode(TaskGraphNode const& node)
             break;
         }
 
-        ImGui::TextColored(color, "Average execution time:  %f ns", average_execution_time);
+        ImGui::TextColored(color, "Average execution time:  %fms", average_execution_time);
 
         ImGui::TreePop();
     }
@@ -73,27 +71,29 @@ void constructPerformanceViewTreeNode(TaskGraphNode const& node)
 }
 
 Profiler::Profiler(Globals const& globals, TaskGraph const& task_graph)
-    : m_globals{ globals }
+    : SchedulableTask{ false, "Profiler" }
+    , m_globals{ globals }
     , m_task_graph{ task_graph }
     , m_show_profiler{ true }
 {
-    setStringName("Profiler");
+
 }
 
 void Profiler::constructUI()
 {
     ImGui::SetNextWindowPos(ImVec2{ 0.f, 0.f }, ImGuiCond_Once);
     ImGui::SetNextWindowSize(ImVec2{ 320.f, 240.f }, ImGuiCond_Once);
-    if (!ImGui::Begin(getStringName().c_str(), &m_show_profiler, 
+    if (!ImGui::Begin(getStringName().c_str(), &m_show_profiler,
         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
     {
         ImGui::End();
         return;
     }
-    
+
     for (auto& node : m_task_graph)
     {
-        constructPerformanceViewTreeNode(node);
+        if (node.task()->isProfilingEnabled())
+            constructPerformanceViewTreeNode(node);
     }
 
     ImGui::End();
@@ -139,6 +139,6 @@ void Profiler::constructUI()
 
 bool Profiler::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    
+
     return true;
 }

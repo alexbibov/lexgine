@@ -181,7 +181,7 @@ public:
             {
             public:
                 CPUTask(std::string const& name) :
-                    SchedulableTask{ name }
+                    SchedulableTask{ false, name }
                 {
 
                 }
@@ -202,7 +202,7 @@ public:
             {
             public:
                 GPUDrawTask(std::string const& name) :
-                    SchedulableTask{ name }
+                    SchedulableTask{ false, name }
                 {
 
                 }
@@ -223,7 +223,7 @@ public:
             {
             public:
                 GPUComputeTask(std::string const& name) :
-                    SchedulableTask{ name }
+                    SchedulableTask{ false, name }
                 {
 
                 }
@@ -245,7 +245,7 @@ public:
             {
             public:
                 GPUCopyTask(std::string const& name) :
-                    SchedulableTask{ name }
+                    SchedulableTask{ false, name }
                 {
 
                 }
@@ -266,7 +266,7 @@ public:
             {
             public:
                 OtherTask(std::string const& name) :
-                    SchedulableTask{ name }
+                    SchedulableTask{ false, name }
                 {
 
                 }
@@ -349,7 +349,7 @@ public:
                 {
                 public:
                     ArithmeticOp(std::string const& debug_name, float& a, float& b, float &result, operation_type op) :
-                        SchedulableTask{ debug_name },
+                        SchedulableTask{ false, debug_name },
                         m_a{ a },
                         m_b{ b },
                         m_result{ result },

@@ -22,6 +22,7 @@ EngineSettings createEngineSettings()
     EngineSettings settings;
 
     settings.debug_mode = false;
+    settings.enable_profiling = true;
     settings.adapter_enumeration_preference = HwAdapterEnumerator::DxgiGpuPreference::high_performance;
     settings.global_lookup_prefix = "";
     settings.settings_lookup_path = "../../settings/";

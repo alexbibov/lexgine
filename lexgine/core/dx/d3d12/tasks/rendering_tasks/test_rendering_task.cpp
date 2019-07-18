@@ -18,8 +18,8 @@ using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
 using namespace lexgine::core::dx::d3d12::task_caches;
 
-TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& rendering_services)
-    : RenderingWork{ "Test rendering task" }
+TestRenderingTask::TestRenderingTask(Globals& globals, bool enable_profiling, BasicRenderingServices& rendering_services)
+    : RenderingWork{ enable_profiling, "Test rendering task" }
     , GpuWorkSource{ *globals.get<Device>(), CommandType::direct }
     , m_globals{ globals }
     , m_device{ *globals.get<Device>() }

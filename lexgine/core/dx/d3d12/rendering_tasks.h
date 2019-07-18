@@ -62,6 +62,8 @@ private:
     Device& m_device;
     FrameProgressTracker& m_frame_progress_tracker;
 
+    bool m_enable_task_profiling;
+
     concurrency::TaskGraph m_task_graph;
     concurrency::TaskSink m_task_sink;
 

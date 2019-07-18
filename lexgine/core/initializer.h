@@ -22,6 +22,7 @@ namespace lexgine { namespace core {
 struct EngineSettings
 {
     bool debug_mode;
+    bool enable_profiling;
     dx::dxgi::HwAdapterEnumerator::DxgiGpuPreference adapter_enumeration_preference;
     std::string global_lookup_prefix;
     std::string settings_lookup_path;

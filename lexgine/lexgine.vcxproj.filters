@@ -345,9 +345,6 @@
     <ClInclude Include="core\concurrency\lexgine_core_concurrency_fwd.h">
       <Filter>core\concurrency</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\tasks\data_uploading_task.h">
-      <Filter>core\dx\d3d12\tasks</Filter>
-    </ClInclude>
     <ClInclude Include="core\dx\d3d12\command_allocator_ring.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
@@ -655,9 +652,6 @@
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\root_signature_cache.cpp">
       <Filter>core\dx\d3d12</Filter>
-    </ClCompile>
-    <ClCompile Include="core\dx\d3d12\tasks\data_uploading_task.cpp">
-      <Filter>core\dx\d3d12\tasks</Filter>
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\command_allocator_ring.cpp">
       <Filter>core\dx\d3d12</Filter>
