@@ -46,7 +46,7 @@ class AbstractTask : public NamedEntity<class_names::Task>
 {
     friend class AbstractTaskAttorney<TaskGraph>;
 public:
-    AbstractTask(std::string const& debug_name = "", bool expose_in_task_graph = true);
+    AbstractTask(bool enable_profiling, std::string const& debug_name = "", bool expose_in_task_graph = true);
     AbstractTask(AbstractTask const&) = delete;    // copying tasks doesn't make much sense and complicates things
 
     // moving ownership of tasks is not allowed either since task graph nodes refer to their corresponding
@@ -78,8 +78,9 @@ public:
     virtual TaskType type() const = 0;    //! returns type of the task
 
 private:
+    bool m_enable_profiling;    //!< 'true' if profiling is enabled
+    bool m_exposed_in_task_graph;    //!< 'true' if the task1 should be included into DOT representation of the task graph for debugging purposes, 'false' otherwise. Default is 'true'.
     ExecutionStatistics m_execution_statistics;    //!< execution statistics of the task
-    bool m_exposed_in_task_graph;    //!< 'true' if the task should be included into DOT representation of the task graph for debugging purposes, 'false' otherwise. Default is 'true'.
 };
 
 template<> class AbstractTaskAttorney<TaskGraph>

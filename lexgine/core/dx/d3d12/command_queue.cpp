@@ -70,6 +70,14 @@ ComPtr<ID3D12CommandQueue> CommandQueue::native() const
     return m_command_queue;
 }
 
+uint64_t CommandQueue::getTimeStampFrequency() const
+{
+    UINT64 frequency{ 0ULL };
+    if (m_command_queue->GetTimestampFrequency(&frequency) != E_FAIL)
+        return static_cast<uint64_t>(frequency);
+    else return 0;
+}
+
 void CommandQueue::setStringName(std::string const& entity_string_name)
 {
     Entity::setStringName(entity_string_name);
@@ -93,3 +101,5 @@ void CommandQueue::wait(Fence const& fence, uint64_t num_crosses) const
         S_OK
     );
 }
+
+
