@@ -64,7 +64,10 @@ public:
 
     // getDesc: could be replaced by bunch of local getters. Can be done immediately
 
-    // getTimeStampFrequency: could be implemented at any time
+    /*! returns frequency (in Hz) of the GPU hardware performance counter associated with this queue
+     returns 0 if the queue does not support performance counting
+    */
+    uint64_t getTimeStampFrequency() const;    
 
     // updateTileMappings: implement interface API for this at certain point: when decide to support tiled resources
 

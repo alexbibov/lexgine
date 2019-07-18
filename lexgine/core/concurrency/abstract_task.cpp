@@ -47,8 +47,9 @@ void ExecutionStatistics::tock()
 
 
 
-AbstractTask::AbstractTask(std::string const& debug_name, bool expose_in_task_graph) :
-    m_exposed_in_task_graph{ expose_in_task_graph }
+AbstractTask::AbstractTask(bool enable_profiling, std::string const& debug_name, bool expose_in_task_graph)
+    : m_enable_profiling{ enable_profiling }
+    , m_exposed_in_task_graph{ expose_in_task_graph }
 {
     if(debug_name.length())
         setStringName(debug_name);
@@ -61,14 +62,19 @@ ExecutionStatistics const& AbstractTask::getExecutionStatistics() const
 
 bool AbstractTask::execute(uint8_t worker_id, uint64_t user_data)
 {
-    
-    PIXBeginEvent(pix_marker_colors::PixCPUJobMarkerColor, getStringName().c_str());
-    m_execution_statistics.tick(worker_id);
+    if (m_enable_profiling)
+    {
+        PIXBeginEvent(pix_marker_colors::PixCPUJobMarkerColor, getStringName().c_str());
+        m_execution_statistics.tick(worker_id);
+    }
 
     bool result = doTask(worker_id, user_data);
 
-    m_execution_statistics.tock();
-    PIXEndEvent();
+    if(m_enable_profiling) 
+    {
+        m_execution_statistics.tock();
+        PIXEndEvent();
+    }
 
     return result;
 }
