@@ -148,9 +148,9 @@ void updateMousePosition(HWND hwnd)
 
 }
 
-std::shared_ptr<UIDrawTask> UIDrawTask::create(Globals& globals, BasicRenderingServices& basic_rendering_services)
+std::shared_ptr<UIDrawTask> UIDrawTask::create(Globals& globals, bool enable_profiling, BasicRenderingServices& basic_rendering_services)
 {
-    std::shared_ptr<UIDrawTask> rv{ new UIDrawTask{globals, basic_rendering_services} };
+    std::shared_ptr<UIDrawTask> rv{ new UIDrawTask{globals, enable_profiling, basic_rendering_services} };
     return rv;
 }
 
@@ -319,8 +319,8 @@ enum class Test
     a0, a1, a2
 };
 
-UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services)
-    : RenderingWork{"UI draw task"}
+UIDrawTask::UIDrawTask(Globals& globals, bool enable_profiling, BasicRenderingServices& basic_rendering_services)
+    : RenderingWork{ enable_profiling, "UI draw task" }
     , GpuWorkSource{ *globals.get<Device>(), CommandType::direct }
     , m_globals{ globals }
     , m_device{ *globals.get<Device>() }

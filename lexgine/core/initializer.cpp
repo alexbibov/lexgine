@@ -47,11 +47,12 @@ std::string correct_path(std::string const& original_path)
 }
 
 
-EngineSettings::EngineSettings() :
-    debug_mode{ false },
-    adapter_enumeration_preference{ dx::dxgi::HwAdapterEnumerator::DxgiGpuPreference::high_performance },
-    global_settings_json_file{ "global_settings.json" },
-    log_name{ "lexgine.log" }
+EngineSettings::EngineSettings()
+    : debug_mode{ false }
+    , enable_profiling{ false }
+    , adapter_enumeration_preference{ dx::dxgi::HwAdapterEnumerator::DxgiGpuPreference::high_performance }
+    , global_settings_json_file{ "global_settings.json" }
+    , log_name{ "lexgine.log" }
 {
 
 }
@@ -144,6 +145,9 @@ Initializer::Initializer(EngineSettings const& settings)
                 "may deteriorate performance of the system", misc::LogMessageType::exclamation);
         }
     }
+
+    // Set profiling enable state
+    m_global_settings->setIsProfilingEnabled(settings.enable_profiling);
 
     builder.defineGlobalSettings(*m_global_settings);
 

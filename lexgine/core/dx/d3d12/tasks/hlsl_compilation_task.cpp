@@ -79,7 +79,7 @@ HLSLCompilationTask::HLSLCompilationTask(task_caches::CombinedCacheKey const& ke
     bool strict_mode/* = true*/, bool force_all_resources_be_bound/* = false*/,
     bool force_ieee_standard/* = true*/, bool treat_warnings_as_errors/* = true*/, bool enable_validation/* = true*/,
     bool enable_debug_information/* = false*/, bool enable_16bit_types/* = false*/)
-    : SchedulableTask{ source_name }
+    : SchedulableTask{ false, source_name }
     , m_key{ key }
     , m_time_stamp{ time_stamp }
     , m_global_settings{ *globals.get<GlobalSettings>() }

@@ -517,6 +517,11 @@ bool GlobalSettings::isAsyncCopyEnabled() const
     return m_enable_async_copy;
 }
 
+bool GlobalSettings::isProfilingEnabled() const
+{
+    return m_enable_profiling;
+}
+
 uint16_t GlobalSettings::getMaxFramesInFlight() const
 {
     return m_max_frames_in_flight;
@@ -588,4 +593,9 @@ void GlobalSettings::setIsAsyncComputeEnabled(bool is_enabled)
 void GlobalSettings::setIsAsyncCopyEnabled(bool is_enabled)
 {
     m_enable_async_copy = is_enabled;
+}
+
+void GlobalSettings::setIsProfilingEnabled(bool is_enabled)
+{
+    m_enable_profiling = is_enabled;
 }

@@ -200,7 +200,6 @@
     <ClCompile Include="core\dx\d3d12\srv_descriptor.cpp" />
     <ClCompile Include="core\dx\d3d12\signal.cpp" />
     <ClCompile Include="core\dx\d3d12\swap_chain_link.cpp" />
-    <ClCompile Include="core\dx\d3d12\tasks\data_uploading_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\hlsl_compilation_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\pso_compilation_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\gpu_work_execution_task.cpp" />
@@ -311,7 +310,6 @@
     <ClInclude Include="core\dx\d3d12\srv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\signal.h" />
     <ClInclude Include="core\dx\d3d12\swap_chain_link.h" />
-    <ClInclude Include="core\dx\d3d12\tasks\data_uploading_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\hlsl_compilation_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\lexgine_core_dx_d3d12_tasks_fwd.h" />
     <ClInclude Include="core\dx\d3d12\tasks\pso_compilation_task.h" />
