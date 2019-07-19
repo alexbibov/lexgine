@@ -203,7 +203,6 @@
     <ClCompile Include="core\dx\d3d12\tasks\hlsl_compilation_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\pso_compilation_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\gpu_work_execution_task.cpp" />
-    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\profiler.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\ui_draw_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\root_signature_compilation_task.cpp" />
@@ -239,6 +238,7 @@
     <ClCompile Include="core\rasterizer_descriptor.cpp" />
     <ClCompile Include="core\shader_source_code_preprocessor.cpp" />
     <ClCompile Include="core\stream_output.cpp" />
+    <ClCompile Include="core\ui\profiler.cpp" />
     <ClCompile Include="core\viewport.cpp" />
     <ClCompile Include="osinteraction\listener.cpp" />
     <ClCompile Include="osinteraction\windows\fence_event.cpp" />
@@ -315,7 +315,6 @@
     <ClInclude Include="core\dx\d3d12\tasks\pso_compilation_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\gpu_work_execution_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h" />
-    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\profiler.h" />
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\ui_draw_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\root_signature_compilation_task.h" />
@@ -370,7 +369,9 @@
     <ClInclude Include="core\ring_buffer_allocator.h" />
     <ClInclude Include="core\shader_source_code_preprocessor.h" />
     <ClInclude Include="core\stream_output.h" />
-    <ClInclude Include="core\ui.h" />
+    <ClInclude Include="core\ui\lexgine_core_ui_fwd.h" />
+    <ClInclude Include="core\ui\profiler.h" />
+    <ClInclude Include="core\ui\ui_provider.h" />
     <ClInclude Include="core\vertex_attributes.h" />
     <ClInclude Include="core\viewport.h" />
     <ClInclude Include="core\vulkan\vulkan_tools.h" />

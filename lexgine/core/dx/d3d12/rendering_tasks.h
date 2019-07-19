@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "lexgine/core/lexgine_core_fwd.h"
+#include "lexgine/core/ui/lexgine_core_ui_fwd.h"
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
 #include "lexgine/core/viewport.h"
@@ -46,7 +47,7 @@ public:
     */
     void defineRenderingConfiguration(RenderingConfiguration const& rendering_configuration);
 
-    void render(RenderingTarget& rendering_target, 
+    void render(RenderingTarget& rendering_target,
         std::function<void(RenderingTarget const&)> const& presentation_routine);
 
     BasicRenderingServices& basicRenderingServices() { return m_basic_rendering_services; }
@@ -72,7 +73,7 @@ private:
 
 private:    // rendering tasks
     std::shared_ptr<tasks::rendering_tasks::UIDrawTask> m_ui_draw_task;
-    std::shared_ptr<tasks::rendering_tasks::Profiler> m_profiler;
+    std::shared_ptr<ui::Profiler> m_profiler;
     std::shared_ptr<tasks::rendering_tasks::TestRenderingTask> m_test_rendering_task;
     std::shared_ptr<tasks::rendering_tasks::GpuWorkExecutionTask> m_post_rendering_gpu_tasks;
 };

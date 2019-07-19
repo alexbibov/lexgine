@@ -2,7 +2,7 @@
 
 #include "lexgine/core/exception.h"
 #include "lexgine/core/globals.h"
-#include "lexgine/core/ui.h"
+#include "lexgine/core/ui/ui_provider.h"
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 #include "lexgine/core/dx/d3d12/device.h"
 #include "lexgine/core/dx/d3d12/resource.h"
@@ -57,7 +57,7 @@ void defineImGUIKeyMap(HWND hwnd)
     io.KeyMap[ImGuiKey_Z] = static_cast<int>(osinteraction::SystemKey::Z);
 }
 
-bool mouseButtonHandler(osinteraction::windows::MouseButtonListener::MouseButton button, uint16_t xbutton_id, 
+bool mouseButtonHandler(osinteraction::windows::MouseButtonListener::MouseButton button, uint16_t xbutton_id,
     osinteraction::windows::Window const& window, bool acquire_capture)
 {
     ImGuiIO& io = ImGui::GetIO();
@@ -207,7 +207,7 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
             }
 
             m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, m_pso_desc,
-                "ui_rendering_pso__" + std::to_string(rendering_configuration.color_buffer_format) 
+                "ui_rendering_pso__" + std::to_string(rendering_configuration.color_buffer_format)
                 + "__" + std::to_string(rendering_configuration.depth_buffer_format), 0);
             m_pso->setVertexShaderCompilationTask(m_vs);
             m_pso->setPixelShaderCompilationTask(m_ps);
@@ -218,7 +218,7 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
             m_pso_desc.rtv_formats[0] = rendering_configuration.color_buffer_format;
             m_pso_desc.dsv_format = rendering_configuration.depth_buffer_format;
             m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, m_pso_desc,
-                "ui_rendering_pso__" + std::to_string(rendering_configuration.color_buffer_format) 
+                "ui_rendering_pso__" + std::to_string(rendering_configuration.color_buffer_format)
                 + "__" + std::to_string(rendering_configuration.depth_buffer_format), 0);
         }
         m_pso->execute(0);
@@ -369,7 +369,7 @@ UIDrawTask::UIDrawTask(Globals& globals, bool enable_profiling, BasicRenderingSe
                 rs.addStaticSampler(sampler, ShaderVisibility::pixel);
             }
 
-            auto flags = RootSignatureFlags::base_values::allow_input_assembler 
+            auto flags = RootSignatureFlags::base_values::allow_input_assembler
                 | RootSignatureFlags::base_values::deny_hull_shader
                 | RootSignatureFlags::base_values::deny_domain_shader
                 | RootSignatureFlags::base_values::deny_geometry_shader;
@@ -566,7 +566,7 @@ void UIDrawTask::processEvents() const
     io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
 
     long long current_time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    io.DeltaTime = static_cast<float>(current_time - m_time_counter) 
+    io.DeltaTime = static_cast<float>(current_time - m_time_counter)
         * std::chrono::nanoseconds::period::num / std::chrono::nanoseconds::period::den;
     m_time_counter = current_time;
 
@@ -581,8 +581,8 @@ void UIDrawTask::processEvents() const
     updateMousePosition(m_rendering_window_ptr->native());
 
     // Update OS mouse cursor with the cursor requested by imgui
-    ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor 
-        ? ImGuiMouseCursor_None 
+    ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor
+        ? ImGuiMouseCursor_None
         : ImGui::GetMouseCursor();
     if (m_mouse_cursor != mouse_cursor)
     {
@@ -595,7 +595,7 @@ void UIDrawTask::processEvents() const
 
 void UIDrawTask::drawFrame()
 {
-    if(ImDrawData* p_draw_data = ImGui::GetDrawData())
+    if (ImDrawData * p_draw_data = ImGui::GetDrawData())
     {
         auto& cmd_list = gpuWorkPackage();
         cmd_list.reset();
@@ -604,15 +604,15 @@ void UIDrawTask::drawFrame()
 
         auto setup_render_state_lambda = [this, p_draw_data, &cmd_list]()
         {
-            Viewport viewport{ 
+            Viewport viewport{
                 math::Vector2f{0.f},
                 math::Vector2f{p_draw_data->DisplaySize.x, p_draw_data->DisplaySize.y},
-                math::Vector2f{0.f, 1.f} 
+                math::Vector2f{0.f, 1.f}
             };
             m_viewports[0] = viewport;
 
             auto projection_matrix = math::createOrthogonalProjectionMatrix(misc::EngineAPI::Direct3D12,
-                p_draw_data->DisplayPos.x, p_draw_data->DisplayPos.y, 
+                p_draw_data->DisplayPos.x, p_draw_data->DisplayPos.y,
                 p_draw_data->DisplaySize.x, p_draw_data->DisplaySize.y, -1.f, 1.f);
 
             std::transform(projection_matrix.getRawData(), projection_matrix.getRawData() + 16,
@@ -638,7 +638,7 @@ void UIDrawTask::drawFrame()
             size_t total_index_count = p_draw_data->TotalIdxCount + 10000;
             size_t index_buffer_offset = total_vertex_count * sizeof(ImDrawVert);
             size_t required_draw_buffer_capacity = index_buffer_offset + total_index_count * sizeof(ImDrawIdx);
-            
+
             m_vertex_and_index_data_allocation = m_ui_data_allocator->allocate(required_draw_buffer_capacity);
             m_ui_vertex_data_binding->setVertexBufferView(0, m_ui_data_allocator->getUploadResource(), m_vertex_and_index_data_allocation->offset(),
                 sizeof(ImDrawVert), static_cast<uint32_t>(p_draw_data->TotalVtxCount));
