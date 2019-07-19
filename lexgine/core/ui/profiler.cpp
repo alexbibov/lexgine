@@ -6,8 +6,8 @@
 
 using namespace lexgine::core;
 using namespace lexgine::core::concurrency;
+using namespace lexgine::core::ui;
 using namespace lexgine::core::dx::d3d12;
-using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
 
 namespace {
 

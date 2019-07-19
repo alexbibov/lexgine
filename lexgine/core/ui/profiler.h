@@ -1,5 +1,5 @@
-#ifndef LEXGINE_CORE_DX_D3D12_TASK_RENDERING_TASKS_PROFILER_H
-#define LEXGINE_CORE_DX_D3D12_TASK_RENDERING_TASKS_PROFILER_H
+#ifndef LEXGINE_CORE_UI_PROFILER_H
+#define LEXGINE_CORE_UI_PROFILER_H
 
 #include <chrono>
 #include <array>
@@ -9,10 +9,10 @@
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
 #include "lexgine/core/concurrency/schedulable_task.h"
-#include "lexgine/core/ui.h"
+#include "lexgine/core/ui/ui_provider.h"
 
 
-namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
+namespace lexgine::core::ui {
 
 class Profiler : public concurrency::SchedulableTask, public UIProvider
 {
@@ -40,7 +40,7 @@ private:
     concurrency::TaskGraph const& m_task_graph;
     bool m_show_profiler;
 
-    
+
 };
 
 }

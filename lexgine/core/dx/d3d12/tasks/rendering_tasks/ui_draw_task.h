@@ -4,6 +4,7 @@
 #include "3rd_party/imgui/imgui.h"
 
 #include "lexgine/core/lexgine_core_fwd.h"
+#include "lexgine/core/ui/lexgine_core_ui_fwd.h"
 #include "lexgine/core/dx/d3d12/pipeline_state.h"
 #include "lexgine/core/dx/d3d12/rendering_work.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
@@ -25,8 +26,8 @@ class UIDrawTask :
     public RenderingWork,
     public GpuWorkSource,
     public osinteraction::Listeners<
-    osinteraction::windows::KeyInputListener, 
-    osinteraction::windows::MouseButtonListener, 
+    osinteraction::windows::KeyInputListener,
+    osinteraction::windows::MouseButtonListener,
     osinteraction::windows::MouseMoveListener,
     osinteraction::windows::CursorUpdateListener
     >,
@@ -40,7 +41,7 @@ public:
 public:
     ~UIDrawTask();
 
-    void addUIProvider(std::weak_ptr<UIProvider> const& ui_provider) { m_ui_providers.push_back(ui_provider); }
+    void addUIProvider(std::weak_ptr<ui::UIProvider> const& ui_provider) { m_ui_providers.push_back(ui_provider); }
 
 public:    // RenderingWork interface
     void updateRenderingConfiguration(RenderingConfigurationUpdateFlags update_flags,
@@ -106,11 +107,11 @@ private:
     std::unique_ptr<IndexBufferBinding> m_ui_index_data_binding;
 
     PerFrameUploadDataStreamAllocator::address_type m_vertex_and_index_data_allocation = nullptr;
-    
+
     misc::StaticVector<Viewport, CommandList::c_maximal_viewport_count> m_viewports;
     misc::StaticVector<math::Rectangle, CommandList::c_maximal_scissor_rectangle_count> m_scissor_rectangles;
 
-    std::list<std::weak_ptr<UIProvider>> m_ui_providers;
+    std::list<std::weak_ptr<ui::UIProvider>> m_ui_providers;
 
 private:
     static std::string const c_interface_update_section;

@@ -1,10 +1,10 @@
-#ifndef LEXGINE_CORE_UI_H
-#define LEXGINE_CORE_UI_H
+#ifndef LEXGINE_CORE_UI_UI_PROVIDER_H
+#define LEXGINE_CORE_UI_UI_PROVIDER_H
 
 #include <memory>
 #include <utility>
 
-namespace lexgine::core {
+namespace lexgine::core::ui {
 
 class UIProvider : public std::enable_shared_from_this<UIProvider>
 {

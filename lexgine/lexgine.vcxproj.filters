@@ -73,6 +73,9 @@
     <Filter Include="core\dx\d3d12\tasks\rendering_tasks">
       <UniqueIdentifier>{8998d6ee-8249-4683-b7c6-ee7780180351}</UniqueIdentifier>
     </Filter>
+    <Filter Include="core\ui">
+      <UniqueIdentifier>{20002003-3e14-4de0-8f83-815e99e73467}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="osinteraction\keyboard.h">
@@ -462,12 +465,6 @@
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\ui_draw_task.h">
       <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\profiler.h">
-      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
-    </ClInclude>
-    <ClInclude Include="core\ui.h">
-      <Filter>core</Filter>
-    </ClInclude>
     <ClInclude Include="core\dx\d3d12\rendering_tasks.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
@@ -479,6 +476,15 @@
     </ClInclude>
     <ClInclude Include="core\dx\d3d12\pix_support.h">
       <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\ui\profiler.h">
+      <Filter>core\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="core\ui\lexgine_core_ui_fwd.h">
+      <Filter>core\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="core\ui\ui_provider.h">
+      <Filter>core\ui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -752,14 +758,14 @@
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\ui_draw_task.cpp">
       <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
     </ClCompile>
-    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\profiler.cpp">
-      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
-    </ClCompile>
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\gpu_work_execution_task.cpp">
       <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
     </ClCompile>
     <ClCompile Include="core\dx\d3d12\pix_support.cpp">
       <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\ui\profiler.cpp">
+      <Filter>core\ui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

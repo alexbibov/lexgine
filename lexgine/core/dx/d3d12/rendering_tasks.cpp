@@ -6,7 +6,7 @@
 
 #include "lexgine/core/dx/d3d12/tasks/rendering_tasks/test_rendering_task.h"
 #include "lexgine/core/dx/d3d12/tasks/rendering_tasks/ui_draw_task.h"
-#include "lexgine/core/dx/d3d12/tasks/rendering_tasks/profiler.h"
+#include "lexgine/core/ui/profiler.h"
 
 #include "dx_resource_factory.h"
 #include "device.h"
@@ -15,6 +15,7 @@
 
 using namespace lexgine;
 using namespace lexgine::core;
+using namespace lexgine::core::ui;
 using namespace lexgine::core::math;
 using namespace lexgine::core::concurrency;
 using namespace lexgine::core::dx::d3d12;
@@ -26,7 +27,7 @@ namespace {
 std::vector<std::ostream*> convertFileStreamsToGenericStreams(std::vector<std::ofstream>& fstreams)
 {
     std::vector<std::ostream*> res(fstreams.size());
-    std::transform(fstreams.begin(), fstreams.end(), res.begin(), [](std::ofstream & fs)->std::ostream * { return &fs; });
+    std::transform(fstreams.begin(), fstreams.end(), res.begin(), [](std::ofstream& fs)->std::ostream * { return &fs; });
     return res;
 }
 
@@ -59,8 +60,8 @@ RenderingTasks::RenderingTasks(Globals& globals)
     , m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" }
     , m_task_sink{ m_task_graph, convertFileStreamsToGenericStreams(globals.get<LoggingStreams>()->worker_logging_streams), "RenderingTasksSink" }
     , m_basic_rendering_services{ globals }
-    , m_rendering_configuration{ Viewport{math::Vector2f{}, math::Vector2f{}, math::Vector2f{}}, 
-                                 DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, nullptr}
+    , m_rendering_configuration{ Viewport{math::Vector2f{}, math::Vector2f{}, math::Vector2f{}},
+                                 DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, nullptr }
 {
     m_test_rendering_task = RenderingTaskFactory::create<TestRenderingTask>(m_globals, m_enable_task_profiling, m_basic_rendering_services);
     m_ui_draw_task = RenderingTaskFactory::create<UIDrawTask>(globals, m_enable_task_profiling, m_basic_rendering_services);
@@ -72,9 +73,9 @@ RenderingTasks::RenderingTasks(Globals& globals)
 
     m_ui_draw_task->addUIProvider(m_profiler);
 
-    m_task_graph.setRootNodes({ 
-        ROOT_NODE_CAST(m_test_rendering_task.get()), 
-        ROOT_NODE_CAST(m_ui_draw_task.get()) 
+    m_task_graph.setRootNodes({
+        ROOT_NODE_CAST(m_test_rendering_task.get()),
+        ROOT_NODE_CAST(m_ui_draw_task.get())
         });
     m_test_rendering_task->addDependent(*m_post_rendering_gpu_tasks);
     m_ui_draw_task->addDependent(*m_post_rendering_gpu_tasks);
@@ -94,23 +95,23 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
     if (flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::color_format_changed)
         || flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
-        BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingTargetFormat(m_basic_rendering_services, 
+        BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingTargetFormat(m_basic_rendering_services,
             rendering_configuration.color_buffer_format, rendering_configuration.depth_buffer_format);
     }
-    
+
     if (flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::viewport_changed))
     {
         BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingViewport(m_basic_rendering_services, rendering_configuration.viewport);
     }
-    
+
 
     if (flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::rendering_window_changed))
     {
         BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingWindow(m_basic_rendering_services, rendering_configuration.p_rendering_window);
     }
-    
 
-    if(flags.getValue())
+
+    if (flags.getValue())
     {
         cleanup();
 
@@ -119,7 +120,7 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
         // update rendering tasks
         m_test_rendering_task->updateRenderingConfiguration(flags, m_rendering_configuration);
         m_ui_draw_task->updateRenderingConfiguration(flags, m_rendering_configuration);
-        
+
         m_task_sink.start();
     }
 }
@@ -134,7 +135,7 @@ void RenderingTasks::render(RenderingTarget& rendering_target,
         FrameProgressTrackerAttorney<RenderingTasks>::signalGPUBeginFrame(m_frame_progress_tracker,
             m_device.defaultCommandQueue());
     }
-    
+
     {
         // Submit and present frame
 

@@ -20,7 +20,6 @@ class RasterizerDescriptor;
 class ShaderSourceCodePreprocessor;
 class Viewport;
 template<typename Key, size_t cluster_size> class StreamedCache;
-class UIProvider;
 
 }
 
