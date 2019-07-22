@@ -28,8 +28,8 @@ public:
     END_FLAGS_DECLARATION(RenderingConfigurationUpdateFlags)
 
 public:
-    RenderingWork(bool enable_profiling, std::string const& debug_name)
-        : SchedulableTask{ enable_profiling, debug_name }
+    RenderingWork(ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name)
+        : SchedulableTask{ p_profiling_service_provider, debug_name }
     {
 
     }

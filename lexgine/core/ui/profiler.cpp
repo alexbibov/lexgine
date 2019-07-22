@@ -1,5 +1,6 @@
 #include <numeric>
 
+#include "lexgine/core/profiling_service_provider.h"
 #include "lexgine/core/concurrency/task_graph.h"
 #include "lexgine/core/dx/d3d12/pix_support.h"
 #include "profiler.h"
@@ -24,43 +25,21 @@ ImVec4 convertPixColorMarkerToImGuiColor(uint32_t pix_color_marker)
 void constructPerformanceViewTreeNode(TaskGraphNode const& node)
 {
     AbstractTask* p_task = node.task();
+    ProfilingService const* p_task_profiling_service = p_task->profilingService();
 
-    if (ImGui::TreeNode(p_task->getStringName().c_str()))
+    if (p_task_profiling_service 
+        && ImGui::TreeNode(p_task_profiling_service->name().c_str()))
     {
-        auto& data = p_task->getExecutionStatistics().statistics;
+        auto& data = p_task_profiling_service->statistics();
         float average_execution_time =
             std::accumulate(data.begin(), data.end(), 0.f,
-                [&data](float accumulated, AbstractTask::profiler_timer_resolution_t current) -> float
+                [p_task_profiling_service](float accumulated, float current) -> float
                 {
-                    return accumulated + std::chrono::duration_cast<std::chrono::milliseconds>(current).count() / static_cast<float>(data.size());
+                    return accumulated + current / p_task_profiling_service->timingFrequency();
                 }
         );
 
-        ImVec4 color{};
-        switch (p_task->type())
-        {
-        case TaskType::cpu:
-            color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixCPUJobMarkerColor);
-            break;
-
-        case TaskType::gpu_draw:
-            color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixGPUGraphicsJobMarkerColor);
-            break;
-
-        case TaskType::gpu_compute:
-            color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixGPUComputeJobMarkerColor);
-            break;
-
-        case TaskType::gpu_copy:
-            color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixGPUCopyJobMarkerColor);
-            break;
-
-        case TaskType::other:
-        default:
-            color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixGPUGeneralJobColor);
-            break;
-        }
-
+        ImVec4 color = convertPixColorMarkerToImGuiColor(p_task_profiling_service->colorUID());
         ImGui::TextColored(color, "Average execution time:  %fms", average_execution_time);
 
         ImGui::TreePop();
@@ -92,8 +71,7 @@ void Profiler::constructUI()
 
     for (auto& node : m_task_graph)
     {
-        if (node.task()->isProfilingEnabled())
-            constructPerformanceViewTreeNode(node);
+        constructPerformanceViewTreeNode(node);
     }
 
     ImGui::End();

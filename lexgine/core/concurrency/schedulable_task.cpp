@@ -1,15 +1,16 @@
 #include "schedulable_task.h"
 
+using namespace lexgine::core;
 using namespace lexgine::core::concurrency;
 
-SchedulableTask::SchedulableTask(bool enable_profiling, std::string const& debug_name, bool expose_in_task_graph):
-    AbstractTask{ enable_profiling, debug_name, expose_in_task_graph },
+SchedulableTask::SchedulableTask(ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name, bool expose_in_task_graph):
+    AbstractTask{ p_profiling_service_provider, debug_name, expose_in_task_graph },
     TaskGraphNode{ static_cast<AbstractTask&>(*this) }
 {
 }
 
-SchedulableTaskWithoutConcurrency::SchedulableTaskWithoutConcurrency(bool enable_profiling, std::string const& debug_name, bool expose_in_task_graph):
-    SchedulableTask{ enable_profiling, debug_name, expose_in_task_graph }
+SchedulableTaskWithoutConcurrency::SchedulableTaskWithoutConcurrency(ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name, bool expose_in_task_graph):
+    SchedulableTask{ p_profiling_service_provider, debug_name, expose_in_task_graph }
 {
 }
 
@@ -32,8 +33,8 @@ bool lexgine::core::concurrency::checkConcurrentExecutionAbility(AbstractTask co
     return dynamic_cast<SchedulableTaskWithoutConcurrency const*>(&task) == nullptr;
 }
 
-RootSchedulableTask::RootSchedulableTask(bool enable_profiling, std::string const& debug_name):
-    AbstractTask{ enable_profiling, debug_name },
+RootSchedulableTask::RootSchedulableTask(ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name):
+    AbstractTask{ p_profiling_service_provider, debug_name },
     TaskGraphRootNode{ static_cast<AbstractTask&>(*this) }
 {
 }

@@ -4,6 +4,7 @@
 
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
+#include "lexgine/core/profiling_service_provider.h"
 #include "lexgine/core/math/utility.h"
 #include "lexgine/core/dx/d3d12/device.h"
 #include "lexgine/core/dx/d3d12/basic_rendering_services.h"
@@ -18,8 +19,8 @@ using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
 using namespace lexgine::core::dx::d3d12::task_caches;
 
-TestRenderingTask::TestRenderingTask(Globals& globals, bool enable_profiling, BasicRenderingServices& rendering_services)
-    : RenderingWork{ enable_profiling, "Test rendering task" }
+TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& rendering_services)
+    : RenderingWork{ globals.get<ProfilingServiceProvider>(), "Test rendering task" }
     , GpuWorkSource{ *globals.get<Device>(), CommandType::direct }
     , m_globals{ globals }
     , m_device{ *globals.get<Device>() }

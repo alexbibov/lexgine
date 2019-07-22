@@ -13,6 +13,7 @@
 #include "lexgine/core/misc/misc.h"
 #include "lexgine/core/misc/log.h"
 #include "lexgine/core/global_settings.h"
+#include "lexgine/core/profiling_service_provider.h"
 
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 #include "lexgine/core/dx/d3d12/device.h"
@@ -152,7 +153,6 @@ Initializer::Initializer(EngineSettings const& settings)
     builder.defineGlobalSettings(*m_global_settings);
 
     // Initialize resource factory
-
     m_resource_factory.reset(new dx::d3d12::DxResourceFactory{ *m_global_settings, settings.debug_mode, settings.adapter_enumeration_preference });
     builder.registerDxResourceFactory(*m_resource_factory);
 
@@ -171,6 +171,10 @@ Initializer::Initializer(EngineSettings const& settings)
     *m_globals = builder.build();
 
     setCurrentDevice(0);
+
+    // Initialize profiling service
+    m_profiling_service_provider.reset(new ProfilingServiceProvider{ *m_globals->get<dx::d3d12::Device>(), settings.enable_profiling });
+    m_globals->put(m_profiling_service_provider.get());
 }
 
 Initializer::~Initializer()

@@ -1,11 +1,11 @@
-#include "root_signature_compilation_task_cache.h"
 #include "lexgine/core/exception.h"
 #include "lexgine/core/globals.h"
-#include "lexgine/core/global_settings.h"
 #include "lexgine/core/misc/strict_weak_ordering.h"
 #include "lexgine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 
 #include "combined_cache_key.h"
+
+#include "root_signature_compilation_task_cache.h"
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
@@ -66,8 +66,7 @@ tasks::RootSignatureCompilationTask* RootSignatureCompilationTaskCache::findOrCr
             m_task_keys.insert(std::make_pair(combined_key, cache_storage::iterator{})).first;
 
         m_rs_compilation_tasks.emplace_back(rs_cache_keys_insertion_position->first,
-            *globals.get<GlobalSettings>(),
-             versioned_root_signature.root_signature(), flags, versioned_root_signature.timestamp());
+            globals, versioned_root_signature.root_signature(), flags, versioned_root_signature.timestamp());
 
         cache_storage::iterator p = --m_rs_compilation_tasks.end();
         rs_cache_keys_insertion_position->second = p;

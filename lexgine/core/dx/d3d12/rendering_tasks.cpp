@@ -1,6 +1,7 @@
 #include "rendering_tasks.h"
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
+#include "lexgine/core/profiling_service_provider.h"
 #include "lexgine/core/logging_streams.h"
 #include "lexgine/core/exception.h"
 
@@ -56,18 +57,17 @@ RenderingTasks::RenderingTasks(Globals& globals)
     : m_globals{ globals }
     , m_device{ *globals.get<Device>() }
     , m_frame_progress_tracker{ globals.get<DxResourceFactory>()->retrieveFrameProgressTracker(m_device) }
-    , m_enable_task_profiling{ globals.get<GlobalSettings>()->isProfilingEnabled() }
     , m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" }
     , m_task_sink{ m_task_graph, convertFileStreamsToGenericStreams(globals.get<LoggingStreams>()->worker_logging_streams), "RenderingTasksSink" }
     , m_basic_rendering_services{ globals }
     , m_rendering_configuration{ Viewport{math::Vector2f{}, math::Vector2f{}, math::Vector2f{}},
                                  DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, nullptr }
 {
-    m_test_rendering_task = RenderingTaskFactory::create<TestRenderingTask>(m_globals, m_enable_task_profiling, m_basic_rendering_services);
-    m_ui_draw_task = RenderingTaskFactory::create<UIDrawTask>(globals, m_enable_task_profiling, m_basic_rendering_services);
+    m_test_rendering_task = RenderingTaskFactory::create<TestRenderingTask>(m_globals, m_basic_rendering_services);
+    m_ui_draw_task = RenderingTaskFactory::create<UIDrawTask>(globals, m_basic_rendering_services);
     m_profiler = RenderingTaskFactory::create<Profiler>(globals, m_task_graph);
 
-    m_post_rendering_gpu_tasks = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device, m_enable_task_profiling, "GPU draw tasks", m_frame_progress_tracker, m_basic_rendering_services);
+    m_post_rendering_gpu_tasks = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device, globals.get<ProfilingServiceProvider>(), "GPU draw tasks", m_frame_progress_tracker, m_basic_rendering_services);
     m_post_rendering_gpu_tasks->addSource(*m_test_rendering_task);
     m_post_rendering_gpu_tasks->addSource(*m_ui_draw_task);
 
