@@ -20,6 +20,10 @@ class RasterizerDescriptor;
 class ShaderSourceCodePreprocessor;
 class Viewport;
 template<typename Key, size_t cluster_size> class StreamedCache;
+class ProfilingServiceProvider;
+class ProfilingService;
+class CPUTaskProfilingService;
+class GPUTaskProfilingService;
 
 }
 

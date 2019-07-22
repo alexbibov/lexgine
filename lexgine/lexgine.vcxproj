@@ -235,6 +235,7 @@
     <ClCompile Include="core\misc\log.cpp" />
     <ClCompile Include="core\misc\misc.cpp" />
     <ClCompile Include="core\multisampling.cpp" />
+    <ClCompile Include="core\profiling_service_provider.cpp" />
     <ClCompile Include="core\rasterizer_descriptor.cpp" />
     <ClCompile Include="core\shader_source_code_preprocessor.cpp" />
     <ClCompile Include="core\stream_output.cpp" />
@@ -362,6 +363,7 @@
     <ClInclude Include="core\misc\template_argument_iterator.h" />
     <ClInclude Include="core\misc\strict_weak_ordering.h" />
     <ClInclude Include="core\multisampling.h" />
+    <ClInclude Include="core\profiling_service_provider.h" />
     <ClInclude Include="core\streamed_cache.h" />
     <ClInclude Include="core\opengl45\opengl45_tools.h" />
     <ClInclude Include="core\primitive_topology.h" />

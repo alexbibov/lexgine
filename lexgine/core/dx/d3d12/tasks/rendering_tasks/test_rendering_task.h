@@ -21,9 +21,9 @@ class TestRenderingTask final :
     public GpuWorkSource
 {
 public:
-    static std::shared_ptr<TestRenderingTask> create(Globals& globals, bool enable_profiling, BasicRenderingServices& rendering_services)
+    static std::shared_ptr<TestRenderingTask> create(Globals& globals, BasicRenderingServices& rendering_services)
     {
-        return std::shared_ptr<TestRenderingTask>{ new TestRenderingTask{ globals, enable_profiling, rendering_services } };
+        return std::shared_ptr<TestRenderingTask>{ new TestRenderingTask{ globals, rendering_services } };
     }
 
     void updateRenderingConfiguration(RenderingConfigurationUpdateFlags update_flags, RenderingConfiguration const& rendering_configuration) override;
@@ -33,7 +33,7 @@ private:    // required by AbstractTask interface
     concurrency::TaskType type() const override { return concurrency::TaskType::cpu; }
 
 private:
-    TestRenderingTask(Globals& globals, bool enable_profiling, BasicRenderingServices& rendering_services);
+    TestRenderingTask(Globals& globals, BasicRenderingServices& rendering_services);
 
 private:
     Globals& m_globals;

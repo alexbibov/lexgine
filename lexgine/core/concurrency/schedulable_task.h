@@ -15,7 +15,7 @@ namespace lexgine::core::concurrency {
 class SchedulableTask : public AbstractTask, public TaskGraphNode
 {
 public:
-    SchedulableTask(bool enable_profiling, std::string const& debug_name = "", bool expose_in_task_graph = true);
+    SchedulableTask(ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name = "", bool expose_in_task_graph = true);
 
 };
 
@@ -24,7 +24,7 @@ public:
 class RootSchedulableTask : public AbstractTask, public TaskGraphRootNode
 {
 public:
-    RootSchedulableTask(bool enable_profiling, std::string const& debug_name = "");
+    RootSchedulableTask(ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name = "");
 };
 
 /*! Convenience class, which allows to define tasks that cannot be executed concurrently.
@@ -35,7 +35,7 @@ public:
 class SchedulableTaskWithoutConcurrency : public SchedulableTask
 {
 public:
-    SchedulableTaskWithoutConcurrency(bool enable_profiling, std::string const& debug_name = "", bool expose_in_task_graph = true);
+    SchedulableTaskWithoutConcurrency(ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name = "", bool expose_in_task_graph = true);
 
     bool execute(uint8_t worker_id, uint16_t frame_index);
 

@@ -23,20 +23,23 @@ class GpuWorkExecutionTask : public concurrency::SchedulableTask
 
 public:
     static std::shared_ptr<GpuWorkExecutionTask> create(Device& device,
-        bool enable_profiling, std::string const& debug_name,
+        ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name,
         FrameProgressTracker const& frame_progress_tracker,
         BasicRenderingServices const& basic_rendering_services);
 
     static std::shared_ptr<GpuWorkExecutionTask> create(Device& device,
-        bool enable_profiling, std::string const& debug_name,
+        ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name,
         BasicRenderingServices const& basic_rendering_services);
     
     void addSource(GpuWorkSource& source);
 
 private:
-    GpuWorkExecutionTask(Device& device, bool enable_profiling, std::string const& debug_name, FrameProgressTracker const& frame_progress_tracker,
+    GpuWorkExecutionTask(Device& device, ProfilingServiceProvider const* p_profiling_service_provider,
+        std::string const& debug_name, FrameProgressTracker const& frame_progress_tracker,
         BasicRenderingServices const& basic_rendering_services);
-    GpuWorkExecutionTask(Device& device, bool enable_profiling, std::string const& debug_name,  BasicRenderingServices const& basic_rendering_services);
+
+    GpuWorkExecutionTask(Device& device, ProfilingServiceProvider const* p_profiling_service_provider, 
+        std::string const& debug_name,  BasicRenderingServices const& basic_rendering_services);
 
 private:    // required by AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t user_data) override;
@@ -44,6 +47,7 @@ private:    // required by AbstractTask interface
 
 private:
     Device& m_device;
+    Microsoft::WRL::ComPtr<ID3D12QueryHeap> m_timestamp_query_heap;
     FrameProgressTracker const* m_frame_progress_tracker = nullptr;
     std::vector<CommandList*> m_gpu_work_sources;
 };

@@ -78,8 +78,7 @@ class ComputePSOCompilationTask final : public concurrency::SchedulableTask
 {
 public:
     ComputePSOCompilationTask(task_caches::CombinedCacheKey const& key,
-        Globals& globals,
-        ComputePSODescriptor const& descriptor, misc::DateTime const& timestamp);
+        Globals& globals, ComputePSODescriptor const& descriptor, misc::DateTime const& timestamp);
 
     PipelineState const& getTaskData() const;    //! returns blob containing compiled PSO data
     bool wasSuccessful() const;    //! returns 'true' if the task has completed successfully

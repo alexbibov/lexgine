@@ -5,16 +5,10 @@
 
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
+#include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/concurrency/lexgine_core_concurrency_fwd.h"
 
 namespace lexgine::core::concurrency {
-
-template<typename T, size_t single_package_length>
-struct ExecutionStatistics final
-{
-    std::array<typename T::profiler_timer_resolution_t, T::c_profiler_statistics_package_length> statistics;
-    ExecutionStatistics* p_next_package;
-};
 
 //! task type enumeration
 enum class TaskType
@@ -31,13 +25,9 @@ template<typename T> class AbstractTaskAttorney;
 class AbstractTask : public NamedEntity<class_names::Task>
 {
     friend class AbstractTaskAttorney<TaskGraph>;
-public:
-    using profiler_timer_resolution_t = std::chrono::microseconds;
-    static size_t constexpr c_profiler_statistics_package_length = 10;
-    using execution_statistics_t = ExecutionStatistics<AbstractTask, c_profiler_statistics_package_length>;
 
 public:
-    AbstractTask(bool enable_profiling, std::string const& debug_name = "", bool expose_in_task_graph = true);
+    AbstractTask(ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name = "", bool expose_in_task_graph = true);
     AbstractTask(AbstractTask const&) = delete;    // copying tasks doesn't make much sense and complicates things
 
     // moving ownership of tasks is not allowed either since task graph nodes refer to their corresponding
@@ -45,14 +35,12 @@ public:
     // get moved to new containing object, while the task graph node was still referring to the old object
     AbstractTask(AbstractTask&&) = delete;
 
-    virtual ~AbstractTask() = default;
+    virtual ~AbstractTask();
     AbstractTask& operator=(AbstractTask const&) = delete;
     AbstractTask& operator=(AbstractTask&&) = delete;
 
-    bool isProfilingEnabled() const { return m_enable_profiling; };    //! returns 'true' if profiling is enabled for this task
-    virtual execution_statistics_t const& getExecutionStatistics() const;    //! returns execution statistics of the task
-
     bool execute(uint8_t worker_id, uint64_t user_data);    //! executes the task and returns 'true' if the task has been completed or 'false' if it has to be rescheduled to be executed later
+    ProfilingService const* profilingService() const { return m_profiling_service.get(); }
 
 public:
     /*! Calls the actual implementation of the task.
@@ -69,13 +57,15 @@ public:
 
     virtual TaskType type() const = 0;    //! returns type of the task
 
-private:
-    bool m_enable_profiling;    //!< 'true' if profiling is enabled
-    bool m_exposed_in_task_graph;    //!< 'true' if the task1 should be included into DOT representation of the task graph for debugging purposes, 'false' otherwise. Default is 'true'.
+protected:
+    virtual std::unique_ptr<ProfilingService> createProfilingService() const;
 
-    profiler_timer_resolution_t m_task_cpu_profiling_last_tick;    //!< last tick of the CPU profiler of the task
-    int m_task_cpu_profiler_spin_counter;    //!< used by the burn-in period when gathering profiler statistics
-    execution_statistics_t m_execution_statistics;    //!< execution statistics of the task
+protected:
+    ProfilingServiceProvider const* m_profiling_service_provider_ptr;    //!< provider of profiling services
+
+private:
+    std::unique_ptr<ProfilingService> m_profiling_service;    //!< profiling service employed by this task
+    bool m_exposed_in_task_graph;    //!< 'true' if the task1 should be included into DOT representation of the task graph for debugging purposes, 'false' otherwise. Default is 'true'.
 };
 
 template<> class AbstractTaskAttorney<TaskGraph>

@@ -1,5 +1,8 @@
 #include "root_signature_compilation_task.h"
 #include "lexgine/core/exception.h"
+#include "lexgine/core/globals.h"
+#include "lexgine/core/global_settings.h"
+#include "lexgine/core/profiling_service_provider.h"
 
 #include "lexgine/core/dx/d3d12/task_caches/cache_utilities.h"
 
@@ -14,11 +17,10 @@ using namespace lexgine::core::dx::d3d12::task_caches;
 
 RootSignatureCompilationTask::RootSignatureCompilationTask(
     task_caches::CombinedCacheKey const& key, 
-    GlobalSettings const& global_settings,
-    RootSignature&& root_signature, RootSignatureFlags const& flags, misc::DateTime const& timestamp)
-    : SchedulableTask{ static_cast<RootSignatureCompilationTaskCache::Key const&>(key).rs_cache_name }
+    Globals const& globals, RootSignature&& root_signature, RootSignatureFlags const& flags, misc::DateTime const& timestamp)
+    : SchedulableTask{ globals.get<ProfilingServiceProvider>(), static_cast<RootSignatureCompilationTaskCache::Key const&>(key).rs_cache_name }
     , m_key{ key }
-    , m_global_settings{ global_settings }
+    , m_global_settings{ *globals.get<GlobalSettings>() }
     , m_rs{ std::move(root_signature) }
     , m_rs_flags{ flags }
     , m_was_successful{ false }

@@ -142,6 +142,15 @@ struct FeatureGPUVirtualAddressSupport final
 };
 
 
+//! Enumerates available device query types
+enum class DeviceQueryType
+{
+    occlusion = 0,
+    timestamp = 1,
+    pipeline_statistics = 2,
+    stream_output_statistics = 3
+};
+
 
 /*! Thin wrapper over ID3D12Device interface.
  Note that this class is subject for continuous changing: new functionality may be added at any time
@@ -201,6 +210,9 @@ public:
     CommandList createCommandList(CommandType command_list_workload_type, uint32_t node_mask,
         FenceSharing command_list_sync_mode = FenceSharing::none, PipelineState const* initial_pipeline_state = nullptr);
 
+    //! Creates query heap
+    
+
     Device(Device const&) = delete;
     Device(Device&&) = delete;
 
@@ -210,6 +222,7 @@ private:
 private:
     ComPtr<ID3D12Device> m_device;    //!< encapsulated pointer to Direct3D12 device interface
     RootSignatureCache m_rs_cache;    //!< cached root signatures
+    std::vector<ComPtr<ID3D12QueryHeap>> m_query_heap_cache;    //!< cached query heaps
     uint32_t m_max_frames_in_flight;
     CommandQueue m_default_command_queue;
     CommandQueue m_async_command_queue;

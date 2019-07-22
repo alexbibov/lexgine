@@ -4,6 +4,7 @@
 #include "lexgine/core/exception.h"
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
+#include "lexgine/core/profiling_service_provider.h"
 #include "lexgine/core/dx/d3d12/task_caches/cache_utilities.h"
 
 #include <d3dcompiler.h>
@@ -54,7 +55,7 @@ GraphicsPSOCompilationTask::GraphicsPSOCompilationTask(
     task_caches::CombinedCacheKey const& key, 
     Globals& globals,
     GraphicsPSODescriptor const& descriptor, misc::DateTime const& timestamp)
-    : SchedulableTask{ static_cast<PSOCompilationTaskCache::Key const&>(key).pso_cache_name }
+    : SchedulableTask{ globals.get<ProfilingServiceProvider>(), static_cast<PSOCompilationTaskCache::Key const&>(key).pso_cache_name }
     , m_key{ key }
     , m_globals{ globals }
     , m_descriptor{ descriptor }
@@ -209,7 +210,7 @@ ComputePSOCompilationTask::ComputePSOCompilationTask(
     task_caches::CombinedCacheKey const& key,
     Globals& globals,
     ComputePSODescriptor const& descriptor, misc::DateTime const& timestamp)
-    : SchedulableTask{ static_cast<PSOCompilationTaskCache::Key const&>(key).pso_cache_name }
+    : SchedulableTask{ globals.get<ProfilingServiceProvider>(), static_cast<PSOCompilationTaskCache::Key const&>(key).pso_cache_name }
     , m_key{ key }
     , m_globals{ globals }
     , m_descriptor{ descriptor }

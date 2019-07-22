@@ -486,6 +486,9 @@
     <ClInclude Include="core\ui\ui_provider.h">
       <Filter>core\ui</Filter>
     </ClInclude>
+    <ClInclude Include="core\profiling_service_provider.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osinteraction\listener.cpp">
@@ -766,6 +769,9 @@
     </ClCompile>
     <ClCompile Include="core\ui\profiler.cpp">
       <Filter>core\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="core\profiling_service_provider.cpp">
+      <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

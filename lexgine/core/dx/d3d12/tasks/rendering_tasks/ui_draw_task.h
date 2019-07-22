@@ -36,7 +36,7 @@ class UIDrawTask :
     using lexgine::core::Entity::getId;
 
 public:
-    static std::shared_ptr<UIDrawTask> create(Globals& globals, bool enable_profiling, BasicRenderingServices& basic_rendering_services);
+    static std::shared_ptr<UIDrawTask> create(Globals& globals, BasicRenderingServices& basic_rendering_services);
 
 public:
     ~UIDrawTask();
@@ -69,7 +69,7 @@ public:    // CursorUpdateListener events
     bool setCursor() override;
 
 private:
-    UIDrawTask(Globals& globals, bool enable_profiling, BasicRenderingServices& basic_rendering_services);
+    UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services);
 
 private:    // required by AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t user_data) override;
