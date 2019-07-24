@@ -37,7 +37,7 @@ BEGIN_FLAGS_DECLARATION(ShaderPrecisionMode)
 FLAG(_32_bit, D3D12_SHADER_MIN_PRECISION_SUPPORT_NONE)
 FLAG(_10_bit, D3D12_SHADER_MIN_PRECISION_SUPPORT_10_BIT)
 FLAG(_16_bit, D3D12_SHADER_MIN_PRECISION_SUPPORT_16_BIT)
-END_FLAGS_DECLARATION(ShaderPrecisionMode) 
+END_FLAGS_DECLARATION(ShaderPrecisionMode)
 
 
 //! Specifies whether the hardware and driver support tiled resources
@@ -153,9 +153,6 @@ class Device final : public NamedEntity<class_names::D3D12_Device>
     friend class DeviceAttorney<dxgi::HwAdapter>;
 
 public:
-    using QueryHandle = std::pair<uint32_t, uint32_t>;
-
-public:
     FeatureD3D12Options queryFeatureD3D12Options() const;    //! queries Direc3D12 feature options in the current graphics driver
 
     //! queries details about adapter's architecture for the physical adapter corresponding to provided @param node_index
@@ -169,14 +166,14 @@ public:
     FeatureGPUVirtualAddressSupport queryFeatureGPUVirtualAddressSupport() const;    //! queries details on the adapter's GPU virtual address space limitations, including maximum address bits per resource and per process
 
     uint32_t getNodeCount() const;
-    
+
     ComPtr<ID3D12Device> native() const;    //! returns native IDirect3D12 interface for the device
 
     void setStringName(std::string const& entity_string_name) override;	//! sets new user-friendly string name for the Direct3D 12 device
 
     ComPtr<ID3D12RootSignature> createRootSignature(D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name, uint32_t node_mask = 1);    //! creates native Direct3D 12 root signature interface based on serialized root signature data
     ComPtr<ID3D12RootSignature> retrieveRootSignature(std::string const& root_signature_friendly_name, uint32_t node_mask = 1);
-    
+
     Fence createFence(FenceSharing sharing = FenceSharing::none);    //! creates synchronization fence
 
     std::unique_ptr<DescriptorHeap> createDescriptorHeap(DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask = 0);    //! creates descriptor heap
@@ -221,22 +218,24 @@ public:
 
     //! (re-)Initializes the query heaps 
     void initializeQueryHeaps();
-    
+
     Device(Device const&) = delete;
     Device(Device&&) = delete;
+
+    ~Device();
 
 private:
     class QueryCache;
 
 private:
-    Device(ComPtr<ID3D12Device> const& native_device, lexgine::core::GlobalSettings const& global_settings);    
+    Device(ComPtr<ID3D12Device> const& native_device, lexgine::core::GlobalSettings const& global_settings);
 
 private:
     ComPtr<ID3D12Device> m_device;    //!< encapsulated pointer to Direct3D12 device interface
     RootSignatureCache m_rs_cache;    //!< cached root signatures
 
     std::unique_ptr<QueryCache> m_query_cache;    //!< cache structure containing device query data
-    
+
     uint32_t m_max_frames_in_flight;
     CommandQueue m_default_command_queue;
     CommandQueue m_async_command_queue;

@@ -33,11 +33,11 @@ public:
 
 public:
     template<QueryType A, D3D12_QUERY_TYPE B>
-    Device::QueryHandle registerQuery(uint32_t capacity)
+    QueryHandle registerQuery(uint32_t capacity)
     {
         uint32_t constexpr query_heap_id = static_cast<uint32_t>(A);
         uint32_t constexpr query_desc = (query_heap_id << 8) | B;
-        QueryHandle rv{ m_query_heap_capacities[query_heap_id], query_desc };
+        QueryHandle rv{ (static_cast<uint64_t>(m_query_heap_capacities[query_heap_id]) << 32) | capacity, query_desc };
         m_query_heap_capacities[query_heap_id] += capacity;
         return rv;
     }
@@ -276,7 +276,7 @@ CommandList Device::createCommandList(CommandType command_list_workload_type, ui
         node_mask, command_list_sync_mode, initial_pipeline_state);
 }
 
-Device::QueryHandle Device::registerOcclusionQuery(uint32_t capacity, bool is_binary_occlusion)
+QueryHandle Device::registerOcclusionQuery(uint32_t capacity, bool is_binary_occlusion)
 {
     if (is_binary_occlusion)
         return m_query_cache->registerQuery<QueryCache::QueryType::occlusion, D3D12_QUERY_TYPE_BINARY_OCCLUSION>(capacity);
@@ -284,22 +284,22 @@ Device::QueryHandle Device::registerOcclusionQuery(uint32_t capacity, bool is_bi
         return m_query_cache->registerQuery<QueryCache::QueryType::occlusion, D3D12_QUERY_TYPE_OCCLUSION>(capacity);
 }
 
-Device::QueryHandle Device::registerTimestampQuery(uint32_t capacity)
+QueryHandle Device::registerTimestampQuery(uint32_t capacity)
 {
     return m_query_cache->registerQuery<QueryCache::QueryType::timestamp, D3D12_QUERY_TYPE_TIMESTAMP>(capacity);
 }
 
-Device::QueryHandle Device::registerCopyQueueTimestampQuery(uint32_t capacity)
+QueryHandle Device::registerCopyQueueTimestampQuery(uint32_t capacity)
 {
     return m_query_cache->registerQuery<QueryCache::QueryType::copy_queue_timestamp, D3D12_QUERY_TYPE_TIMESTAMP>(capacity);
 }
 
-Device::QueryHandle Device::registerPipelineStatisticsQuery(uint32_t capacity)
+QueryHandle Device::registerPipelineStatisticsQuery(uint32_t capacity)
 {
     return m_query_cache->registerQuery<QueryCache::QueryType::pipeline_statistics, D3D12_QUERY_TYPE_PIPELINE_STATISTICS>(capacity);
 }
 
-Device::QueryHandle Device::registerStreamOutputQuery(uint32_t capacity, uint8_t stream_output_id)
+QueryHandle Device::registerStreamOutputQuery(uint32_t capacity, uint8_t stream_output_id)
 {
     switch (stream_output_id)
     {
@@ -309,7 +309,7 @@ Device::QueryHandle Device::registerStreamOutputQuery(uint32_t capacity, uint8_t
     case 1:
         return m_query_cache->registerQuery<QueryCache::QueryType::stream_output_statistics, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM1>(capacity);
 
-    case 2: 
+    case 2:
         return m_query_cache->registerQuery<QueryCache::QueryType::stream_output_statistics, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM2>(capacity);
 
     case 3:
@@ -324,6 +324,8 @@ void Device::initializeQueryHeaps()
 {
     m_query_cache->initQueryHeaps(*this);
 }
+
+Device::~Device() = default;
 
 
 
