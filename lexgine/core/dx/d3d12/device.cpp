@@ -8,8 +8,79 @@
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
+namespace {
+
+
+
+
+
+
+}
+
+
+class Device::QueryCache final
+{
+public:
+    enum class QueryType
+    {
+        occlusion,
+        timestamp,
+        copy_queue_timestamp,
+        pipeline_statistics,
+        stream_output_statistics,
+        count
+    };
+
+public:
+    template<QueryType A, D3D12_QUERY_TYPE B>
+    Device::QueryHandle registerQuery(uint32_t capacity)
+    {
+        uint32_t constexpr query_heap_id = static_cast<uint32_t>(A);
+        uint32_t constexpr query_desc = (query_heap_id << 8) | B;
+        QueryHandle rv{ m_query_heap_capacities[query_heap_id], query_desc };
+        m_query_heap_capacities[query_heap_id] += capacity;
+        return rv;
+    }
+
+    void initQueryHeaps(Device const& device)
+    {
+        for (size_t heap_id = 0; heap_id < static_cast<size_t>(QueryType::count); ++heap_id)
+        {
+            D3D12_QUERY_HEAP_DESC desc;
+            desc.Type = toNativeQueryHeapType(static_cast<QueryType>(heap_id));
+            desc.Count = m_query_heap_capacities[heap_id];
+            desc.NodeMask = 0x1;
+
+            LEXGINE_THROW_ERROR_IF_FAILED(device,
+                device.native()->CreateQueryHeap(&desc, IID_PPV_ARGS(&m_query_heaps[heap_id])),
+                S_OK);
+        }
+    }
+
+private:
+    static D3D12_QUERY_HEAP_TYPE toNativeQueryHeapType(QueryType query_type)
+    {
+        switch (query_type)
+        {
+        case QueryType::occlusion: return D3D12_QUERY_HEAP_TYPE_OCCLUSION;
+        case QueryType::timestamp: return D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+        case QueryType::copy_queue_timestamp: return D3D12_QUERY_HEAP_TYPE_COPY_QUEUE_TIMESTAMP;
+        case QueryType::pipeline_statistics: return D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS;
+        case QueryType::stream_output_statistics: return D3D12_QUERY_HEAP_TYPE_SO_STATISTICS;
+        default:
+            __assume(0);
+        }
+    }
+
+private:
+    std::array<uint32_t, static_cast<size_t>(QueryType::count)> m_query_heap_capacities;    //!< capacities of the query heaps
+    std::array<ComPtr<ID3D12QueryHeap>, static_cast<size_t>(QueryType::count)> m_query_heaps;    //!< cached query heaps
+};
+
+
 Device::Device(ComPtr<ID3D12Device> const& device, lexgine::core::GlobalSettings const& global_settings) :
     m_device{ device },
+    m_query_cache{ new QueryCache{} },
     m_max_frames_in_flight{ global_settings.getMaxFramesInFlight() },
     m_default_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::base_values::none) },
     m_async_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, global_settings.isAsyncComputeEnabled() ? WorkloadType::compute : WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::base_values::none) },
@@ -203,6 +274,55 @@ CommandList Device::createCommandList(CommandType command_list_workload_type, ui
 {
     return CommandListAttorney<Device>::makeCommandList(*this, command_list_workload_type,
         node_mask, command_list_sync_mode, initial_pipeline_state);
+}
+
+Device::QueryHandle Device::registerOcclusionQuery(uint32_t capacity, bool is_binary_occlusion)
+{
+    if (is_binary_occlusion)
+        return m_query_cache->registerQuery<QueryCache::QueryType::occlusion, D3D12_QUERY_TYPE_BINARY_OCCLUSION>(capacity);
+    else
+        return m_query_cache->registerQuery<QueryCache::QueryType::occlusion, D3D12_QUERY_TYPE_OCCLUSION>(capacity);
+}
+
+Device::QueryHandle Device::registerTimestampQuery(uint32_t capacity)
+{
+    return m_query_cache->registerQuery<QueryCache::QueryType::timestamp, D3D12_QUERY_TYPE_TIMESTAMP>(capacity);
+}
+
+Device::QueryHandle Device::registerCopyQueueTimestampQuery(uint32_t capacity)
+{
+    return m_query_cache->registerQuery<QueryCache::QueryType::copy_queue_timestamp, D3D12_QUERY_TYPE_TIMESTAMP>(capacity);
+}
+
+Device::QueryHandle Device::registerPipelineStatisticsQuery(uint32_t capacity)
+{
+    return m_query_cache->registerQuery<QueryCache::QueryType::pipeline_statistics, D3D12_QUERY_TYPE_PIPELINE_STATISTICS>(capacity);
+}
+
+Device::QueryHandle Device::registerStreamOutputQuery(uint32_t capacity, uint8_t stream_output_id)
+{
+    switch (stream_output_id)
+    {
+    case 0:
+        return m_query_cache->registerQuery<QueryCache::QueryType::stream_output_statistics, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0>(capacity);
+
+    case 1:
+        return m_query_cache->registerQuery<QueryCache::QueryType::stream_output_statistics, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM1>(capacity);
+
+    case 2: 
+        return m_query_cache->registerQuery<QueryCache::QueryType::stream_output_statistics, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM2>(capacity);
+
+    case 3:
+        return m_query_cache->registerQuery<QueryCache::QueryType::stream_output_statistics, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM3>(capacity);
+
+    default:
+        __assume(0);
+    }
+}
+
+void Device::initializeQueryHeaps()
+{
+    m_query_cache->initQueryHeaps(*this);
 }
 
 

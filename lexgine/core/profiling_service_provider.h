@@ -56,10 +56,10 @@ private:
     int m_spin_up_period_counter{ 0 };
 };
 
-class GPUTaskProfilingService : public ProfilingService
+class GPUTaskProfilingServiceTimestamp : public ProfilingService
 {
 public:
-
+    GPUTaskProfilingServiceTimestamp(dx::d3d12::Device& device, dx::d3d12::CommandList& command_list);
 };
 
 
