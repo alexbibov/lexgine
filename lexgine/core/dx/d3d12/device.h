@@ -1,10 +1,11 @@
 #ifndef LEXGINE_CORE_DX_D3D12_DEVICE_H
 #define LEXGINE_CORE_DX_D3D12_DEVICE_H
 
+#include <memory>
+#include <array>
+
 #include <wrl.h>
 #include <d3d12.h>
-
-#include <memory>
 
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/misc/flags.h"
@@ -142,16 +143,6 @@ struct FeatureGPUVirtualAddressSupport final
 };
 
 
-//! Enumerates available device query types
-enum class DeviceQueryType
-{
-    occlusion = 0,
-    timestamp = 1,
-    pipeline_statistics = 2,
-    stream_output_statistics = 3
-};
-
-
 /*! Thin wrapper over ID3D12Device interface.
  Note that this class is subject for continuous changing: new functionality may be added at any time
  in order to provide convenience APIs for the basic Direc3D12 functionality. All features provided by this
@@ -160,6 +151,9 @@ enum class DeviceQueryType
 class Device final : public NamedEntity<class_names::D3D12_Device>
 {
     friend class DeviceAttorney<dxgi::HwAdapter>;
+
+public:
+    using QueryHandle = std::pair<uint32_t, uint32_t>;
 
 public:
     FeatureD3D12Options queryFeatureD3D12Options() const;    //! queries Direc3D12 feature options in the current graphics driver
@@ -210,19 +204,39 @@ public:
     CommandList createCommandList(CommandType command_list_workload_type, uint32_t node_mask,
         FenceSharing command_list_sync_mode = FenceSharing::none, PipelineState const* initial_pipeline_state = nullptr);
 
-    //! Creates query heap
-    
+    //! Registers occlusion query
+    QueryHandle registerOcclusionQuery(uint32_t capacity, bool is_binary_occlusion);
 
+    //! Registers new timestamp query, which can be used on direct and compute command queues
+    QueryHandle registerTimestampQuery(uint32_t capacity);
+
+    //! Registers new timestamp query, which can be used on copy command queues only
+    QueryHandle registerCopyQueueTimestampQuery(uint32_t capacity);
+
+    //! Registers new pipeline statistics query
+    QueryHandle registerPipelineStatisticsQuery(uint32_t capacity);
+
+    //! Registers new stream output query
+    QueryHandle registerStreamOutputQuery(uint32_t capacity, uint8_t stream_output_id);
+
+    //! (re-)Initializes the query heaps 
+    void initializeQueryHeaps();
+    
     Device(Device const&) = delete;
     Device(Device&&) = delete;
 
 private:
-    Device(ComPtr<ID3D12Device> const& native_device, lexgine::core::GlobalSettings const& global_settings);
+    class QueryCache;
+
+private:
+    Device(ComPtr<ID3D12Device> const& native_device, lexgine::core::GlobalSettings const& global_settings);    
 
 private:
     ComPtr<ID3D12Device> m_device;    //!< encapsulated pointer to Direct3D12 device interface
     RootSignatureCache m_rs_cache;    //!< cached root signatures
-    std::vector<ComPtr<ID3D12QueryHeap>> m_query_heap_cache;    //!< cached query heaps
+
+    std::unique_ptr<QueryCache> m_query_cache;    //!< cache structure containing device query data
+    
     uint32_t m_max_frames_in_flight;
     CommandQueue m_default_command_queue;
     CommandQueue m_async_command_queue;
@@ -241,7 +255,6 @@ private:
         return std::unique_ptr<Device>{new Device{ native_device_interface, global_settings }};
     }
 };
-
 
 }
 
