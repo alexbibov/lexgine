@@ -85,6 +85,8 @@ class FrameProgressTracker;
 class UploadBufferAllocator;
 class DedicatedUploadDataStreamAllocator;
 class PerFrameUploadDataStreamAllocator;
+
+using QueryHandle = std::pair<uint64_t, uint32_t>;
 }
 
 #endif

@@ -43,7 +43,7 @@ public:
     TextureCopyLocation(Resource const& copy_location_resource, uint32_t subresource_index);
 
     TextureCopyLocation(Resource const& copy_location_resource, uint64_t resource_offset,
-        DXGI_FORMAT resource_format, uint32_t resource_width, uint32_t resource_height, uint32_t resource_depth, 
+        DXGI_FORMAT resource_format, uint32_t resource_width, uint32_t resource_height, uint32_t resource_depth,
         uint32_t resource_row_pitch);
 
 private:
@@ -68,7 +68,7 @@ enum class BundleInvocationContext
 };
 
 
-class CommandList: public NamedEntity<class_names::D3D12_CommandList>
+class CommandList : public NamedEntity<class_names::D3D12_CommandList>
 {
     friend class CommandListAttorney<Device>;
     friend class CommandListAttorney<CommandQueue>;
@@ -80,7 +80,7 @@ public:
     static constexpr uint32_t c_maximal_scissor_rectangle_count = 64U;
     static constexpr uint8_t  c_input_assembler_count = 16U;
     static constexpr uint32_t c_maximal_rtv_descriptor_table_length = 64U;
-    
+
 public:
     uint32_t getNodeMask() const;    //! returns the node mask determining which node on the adapter link owns the command list
     ComPtr<ID3D12GraphicsCommandList> native() const;    //! returns pointer to the native ID3D12GraphicsCommandList interface
@@ -108,7 +108,7 @@ public:
     void copyBufferRegion(Resource const& dst_buffer, uint64_t dst_buffer_offset,
         Resource const& src_buffer, uint64_t src_buffer_offset, uint64_t num_bytes);
 
-    void copyTextureRegion(TextureCopyLocation const& dst, misc::Optional<math::Vector3u> const& dst_offset, 
+    void copyTextureRegion(TextureCopyLocation const& dst, misc::Optional<math::Vector3u> const& dst_offset,
         TextureCopyLocation const& src, misc::Optional<math::Box> const& src_box);
 
     void copyResource(Resource const& dst_resource, Resource const& src_resource) const;
@@ -118,12 +118,12 @@ public:
 
 
     //! Pipeline state settings routines not contained in PSO
-    
+
     void inputAssemblySetPrimitiveTopology(PrimitiveTopology primitive_topology) const;
 
     void inputAssemblySetVertexBuffers(VertexBufferBinding const& vb_binding);
     void inputAssemblySetIndexBuffer(IndexBufferBinding const& ib_binding);
-    
+
     void rasterizerStateSetViewports(misc::StaticVector<Viewport, c_maximal_viewport_count> const& viewports) const;
 
     void rasterizerStateSetScissorRectangles(misc::StaticVector<math::Rectangle, c_maximal_scissor_rectangle_count> const& rectangles) const;
@@ -141,18 +141,18 @@ public:
     //! Clear view routines
 
     void clearDepthStencilView(DepthStencilViewDescriptorTable const& dsv_descriptor_table, uint32_t dsv_descriptor_table_offset,
-        DSVClearFlags clear_flags, float depth_clear_value, uint8_t stencil_clear_value, 
+        DSVClearFlags clear_flags, float depth_clear_value, uint8_t stencil_clear_value,
         misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles = {}) const;
 
     void clearRenderTargetView(RenderTargetViewDescriptorTable const& rtv_descriptor_table, uint32_t rtv_descriptor_table_offset,
         math::Vector4f const& rgba_clear_value, misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles = {}) const;
 
     void clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
-        Resource const& resource_to_clear, math::Vector4u const& rgba_clear_value, 
+        Resource const& resource_to_clear, math::Vector4u const& rgba_clear_value,
         misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles = {}) const;
 
     void clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
-        Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value, 
+        Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value,
         misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles = {}) const;
 
 
@@ -160,7 +160,7 @@ public:
 
     void setDescriptorHeaps(misc::StaticVector<DescriptorHeap const*, static_cast<size_t>(DescriptorHeapType::count)> const& descriptor_heaps) const;
 
-    void setRootSignature(std::string const& cached_root_signature_friendly_name, 
+    void setRootSignature(std::string const& cached_root_signature_friendly_name,
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
 
     void setRootDescriptorTable(uint32_t root_signature_slot, ShaderResourceDescriptorTable const& cbv_srv_uav_table,
@@ -168,13 +168,13 @@ public:
 
     void setRoot32BitConstant(uint32_t root_signature_slot, uint32_t data, uint32_t offset_in_32_bit_values,
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
-    
+
     void setRoot32BitConstants(uint32_t root_signature_slot, std::vector<uint32_t> const& data, uint32_t offset_in_32_bit_values,
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
 
-    void setRootConstantBufferView(uint32_t root_signature_slot, uint64_t gpu_virtual_address, 
+    void setRootConstantBufferView(uint32_t root_signature_slot, uint64_t gpu_virtual_address,
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
-    
+
     void setRootShaderResourceView(uint32_t root_signature_slot, uint64_t gpu_virtual_address,
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
 
@@ -182,8 +182,16 @@ public:
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
 
 
+    //! Device queries
+    void beginQuery(QueryHandle const& query_handle, uint32_t query_id) const;
+
+    void endQuery(QueryHandle const& query_handle, uint32_t query_id) const;
+
+    void resolveQueryData(QueryHandle const& query_handle, Resource const& resolve_buffer, uint64_t resolve_buffer_offset) const;
+
+
     //! Miscellaneous routines
-    
+
     void setStringName(std::string const& entity_string_name) override;	//! sets new user-friendly string name for the command list
 
     CommandType commandType() const;    //! returns type of the command list
@@ -195,7 +203,7 @@ public:
     CommandList(CommandList&&) = default;
 
 private:
-    CommandList(Device& device, CommandType command_workload_type, uint32_t node_mask, 
+    CommandList(Device& device, CommandType command_workload_type, uint32_t node_mask,
         FenceSharing command_list_sync_mode = FenceSharing::none, PipelineState const* initial_pipeline_state = nullptr);
 
     void defineSignalingCommandList(CommandList& signaling_command_list);
@@ -215,7 +223,7 @@ template<> class CommandListAttorney<Device>
     friend class Device;
 
 private:
-    static CommandList makeCommandList(Device& device, CommandType command_workload_type, 
+    static CommandList makeCommandList(Device& device, CommandType command_workload_type,
         uint32_t node_mask, FenceSharing command_list_sync_mode = FenceSharing::none,
         PipelineState const* initial_pipeline_state = nullptr)
     {
