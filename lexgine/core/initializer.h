@@ -16,7 +16,8 @@
 
 #include "lexgine/core/dx/dxgi/swap_chain.h"
 
-namespace lexgine { namespace core {
+namespace lexgine {
+namespace core {
 
 
 struct EngineSettings
@@ -83,9 +84,9 @@ private:
     std::unique_ptr<dx::d3d12::task_caches::HLSLCompilationTaskCache> m_shader_cache;
     std::unique_ptr<dx::d3d12::task_caches::PSOCompilationTaskCache> m_pso_cache;
     std::unique_ptr<dx::d3d12::task_caches::RootSignatureCompilationTaskCache> m_rs_cache;
-    std::unique_ptr<ProfilingServiceProvider> m_profiling_service_provider;
 };
 
-}}
+}
+}
 
 #endif

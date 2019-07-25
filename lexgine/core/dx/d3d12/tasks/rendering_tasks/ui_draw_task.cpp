@@ -2,7 +2,7 @@
 
 #include "lexgine/core/exception.h"
 #include "lexgine/core/globals.h"
-#include "lexgine/core/profiling_service_provider.h"
+#include "lexgine/core/profiling_services.h"
 #include "lexgine/core/ui/ui_provider.h"
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 #include "lexgine/core/dx/d3d12/device.h"
@@ -321,7 +321,7 @@ enum class Test
 };
 
 UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services)
-    : RenderingWork{ globals.get<ProfilingServiceProvider>(), "UI draw task" }
+    : RenderingWork{ "UI draw task", std::make_unique<CPUTaskProfilingService>(*globals.get<GlobalSettings>(), "UI draw task (CPU execution time)") }
     , GpuWorkSource{ *globals.get<Device>(), CommandType::direct }
     , m_globals{ globals }
     , m_device{ *globals.get<Device>() }

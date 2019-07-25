@@ -4,7 +4,7 @@
 #include "lexgine/core/exception.h"
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
-#include "lexgine/core/profiling_service_provider.h"
+#include "lexgine/core/profiling_services.h"
 #include "lexgine/core/dx/d3d12/task_caches/cache_utilities.h"
 
 #include <d3dcompiler.h>
@@ -27,7 +27,7 @@ D3DDataBlob loadPrecachedPSOBlob(GlobalSettings const& global_settings, task_cac
 
     D3DDataBlob rv{ nullptr };
 
-    if (pso_cache_containinig_requested_pso.isValid() && 
+    if (pso_cache_containinig_requested_pso.isValid() &&
         static_cast<task_caches::StreamedCacheConnection&>(pso_cache_containinig_requested_pso).cache().getEntryTimestamp(key) >= timestamp)
     {
         SharedDataChunk blob =
@@ -52,10 +52,10 @@ D3DDataBlob loadPrecachedPSOBlob(GlobalSettings const& global_settings, task_cac
 
 
 GraphicsPSOCompilationTask::GraphicsPSOCompilationTask(
-    task_caches::CombinedCacheKey const& key, 
+    task_caches::CombinedCacheKey const& key,
     Globals& globals,
     GraphicsPSODescriptor const& descriptor, misc::DateTime const& timestamp)
-    : SchedulableTask{ globals.get<ProfilingServiceProvider>(), static_cast<PSOCompilationTaskCache::Key const&>(key).pso_cache_name }
+    : SchedulableTask{ key.toString(), true, makeProfilingService(globals, key) }
     , m_key{ key }
     , m_globals{ globals }
     , m_descriptor{ descriptor }
@@ -161,13 +161,13 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
         m_descriptor.vertex_shader = m_associated_shader_compilation_tasks[0]->getTaskData();
 
-        if(m_associated_shader_compilation_tasks[1])
+        if (m_associated_shader_compilation_tasks[1])
             m_descriptor.hull_shader = m_associated_shader_compilation_tasks[1]->getTaskData();
 
-        if(m_associated_shader_compilation_tasks[2])
+        if (m_associated_shader_compilation_tasks[2])
             m_descriptor.domain_shader = m_associated_shader_compilation_tasks[2]->getTaskData();
 
-        if(m_associated_shader_compilation_tasks[3])
+        if (m_associated_shader_compilation_tasks[3])
             m_descriptor.geometry_shader = m_associated_shader_compilation_tasks[3]->getTaskData();
 
         m_descriptor.pixel_shader = m_associated_shader_compilation_tasks[4]->getTaskData();
@@ -210,7 +210,7 @@ ComputePSOCompilationTask::ComputePSOCompilationTask(
     task_caches::CombinedCacheKey const& key,
     Globals& globals,
     ComputePSODescriptor const& descriptor, misc::DateTime const& timestamp)
-    : SchedulableTask{ globals.get<ProfilingServiceProvider>(), static_cast<PSOCompilationTaskCache::Key const&>(key).pso_cache_name }
+    : SchedulableTask{ key.toString(), true, makeProfilingService(globals, key) }
     , m_key{ key }
     , m_globals{ globals }
     , m_descriptor{ descriptor }

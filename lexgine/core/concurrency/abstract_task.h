@@ -27,7 +27,7 @@ class AbstractTask : public NamedEntity<class_names::Task>
     friend class AbstractTaskAttorney<TaskGraph>;
 
 public:
-    AbstractTask(ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name = "", bool expose_in_task_graph = true);
+    AbstractTask(std::string const& debug_name = "", bool expose_in_task_graph = true, std::unique_ptr<ProfilingService>&& profiling_service = nullptr);
     AbstractTask(AbstractTask const&) = delete;    // copying tasks doesn't make much sense and complicates things
 
     // moving ownership of tasks is not allowed either since task graph nodes refer to their corresponding
@@ -56,12 +56,6 @@ public:
     virtual bool doTask(uint8_t worker_id, uint64_t user_data) = 0;
 
     virtual TaskType type() const = 0;    //! returns type of the task
-
-protected:
-    virtual std::unique_ptr<ProfilingService> createProfilingService() const;
-
-protected:
-    ProfilingServiceProvider const* m_profiling_service_provider_ptr;    //!< provider of profiling services
 
 private:
     std::unique_ptr<ProfilingService> m_profiling_service;    //!< profiling service employed by this task

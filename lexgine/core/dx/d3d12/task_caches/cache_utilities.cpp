@@ -1,10 +1,12 @@
+#include <list>
+#include <fstream>
+#include <utility>
+
 #include "cache_utilities.h"
+#include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
 #include "lexgine/core/exception.h"
 #include "lexgine/core/misc/misc.h"
-
-#include <list>
-#include <fstream>
 
 
 using namespace lexgine::core;
@@ -48,8 +50,8 @@ misc::Optional<StreamedCacheConnection> lexgine::core::dx::d3d12::task_caches::f
 
 
 
-StreamedCacheConnection::StreamedCacheConnection(GlobalSettings const& global_settings, std::string const& path_to_cache, 
-    bool is_read_only, bool allow_overwrites/* = true*/):
+StreamedCacheConnection::StreamedCacheConnection(GlobalSettings const& global_settings, std::string const& path_to_cache,
+    bool is_read_only, bool allow_overwrites/* = true*/) :
     m_stream{ nullptr },
     m_cache{ nullptr }
 {
@@ -97,11 +99,11 @@ StreamedCacheConnection::StreamedCacheConnection(GlobalSettings const& global_se
     }
 }
 
-StreamedCacheConnection::StreamedCacheConnection(StreamedCacheConnection&& other):
+StreamedCacheConnection::StreamedCacheConnection(StreamedCacheConnection&& other) :
     m_stream{ std::move(other.m_stream) },
     m_cache{ std::move(other.m_cache) }
 {
-    
+
 }
 
 StreamedCacheConnection::~StreamedCacheConnection()
@@ -119,7 +121,7 @@ StreamedCacheConnection& StreamedCacheConnection::operator=(StreamedCacheConnect
 
     m_stream = std::move(other.m_stream);
     m_cache = std::move(other.m_cache);
-    
+
     return *this;
 }
 
@@ -132,4 +134,9 @@ StreamedCacheConnection::operator bool() const
 CombinedCache& StreamedCacheConnection::cache()
 {
     return *m_cache;
+}
+
+std::unique_ptr<CPUTaskProfilingService> lexgine::core::dx::d3d12::task_caches::makeProfilingService(Globals const& globals, CombinedCacheKey const& key)
+{
+    return std::make_unique<CPUTaskProfilingService>(*globals.get<GlobalSettings>(), key.toString() + " (CPU execution time)");
 }

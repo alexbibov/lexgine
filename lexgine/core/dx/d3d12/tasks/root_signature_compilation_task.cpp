@@ -2,23 +2,21 @@
 #include "lexgine/core/exception.h"
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
-#include "lexgine/core/profiling_service_provider.h"
+#include "lexgine/core/profiling_services.h"
 
 #include "lexgine/core/dx/d3d12/task_caches/cache_utilities.h"
 
 #include <d3dcompiler.h>
-
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks;
 using namespace lexgine::core::dx::d3d12::task_caches;
 
-
 RootSignatureCompilationTask::RootSignatureCompilationTask(
-    task_caches::CombinedCacheKey const& key, 
+    task_caches::CombinedCacheKey const& key,
     Globals const& globals, RootSignature&& root_signature, RootSignatureFlags const& flags, misc::DateTime const& timestamp)
-    : SchedulableTask{ globals.get<ProfilingServiceProvider>(), static_cast<RootSignatureCompilationTaskCache::Key const&>(key).rs_cache_name }
+    : SchedulableTask{ key.toString(), true, makeProfilingService(globals, key) }
     , m_key{ key }
     , m_global_settings{ *globals.get<GlobalSettings>() }
     , m_rs{ std::move(root_signature) }
@@ -57,11 +55,11 @@ bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
 
         D3DDataBlob rs_blob{ nullptr };
-        if (rs_cache_with_requested_root_signature.isValid() 
+        if (rs_cache_with_requested_root_signature.isValid()
             && static_cast<task_caches::StreamedCacheConnection&>(rs_cache_with_requested_root_signature)
             .cache().getEntryTimestamp(m_key) >= m_timestamp)
         {
-            SharedDataChunk blob = 
+            SharedDataChunk blob =
                 static_cast<task_caches::StreamedCacheConnection&>(rs_cache_with_requested_root_signature)
                 .cache().retrieveEntry(m_key);
 
@@ -76,7 +74,7 @@ bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
                 }
             }
         }
-        
+
         if (!rs_blob)
         {
             m_compiled_rs_blob = m_rs.compile(m_rs_flags);
@@ -96,11 +94,11 @@ bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
             m_compiled_rs_blob = rs_blob;
             m_was_successful = true;
         }
-        
+
     }
     catch (Exception const& e)
     {
-        LEXGINE_LOG_ERROR(this, std::string{ "LEXGINE has thrown exception: " } + e.what());
+        LEXGINE_LOG_ERROR(this, std::string{ "LEXGINE has thrown exception: " } +e.what());
         m_was_successful = false;
     }
     catch (...)

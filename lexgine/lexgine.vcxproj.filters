@@ -486,7 +486,7 @@
     <ClInclude Include="core\ui\ui_provider.h">
       <Filter>core\ui</Filter>
     </ClInclude>
-    <ClInclude Include="core\profiling_service_provider.h">
+    <ClInclude Include="core\profiling_services.h">
       <Filter>core</Filter>
     </ClInclude>
   </ItemGroup>
@@ -770,7 +770,7 @@
     <ClCompile Include="core\ui\profiler.cpp">
       <Filter>core\ui</Filter>
     </ClCompile>
-    <ClCompile Include="core\profiling_service_provider.cpp">
+    <ClCompile Include="core\profiling_services.cpp">
       <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
