@@ -65,7 +65,7 @@ Initializer::Initializer(EngineSettings const& settings)
     std::string corrected_global_lookup_prefix = correct_path(settings.global_lookup_prefix);
     std::string corrected_settings_lookup_path = correct_path(settings.settings_lookup_path);
 
-    
+
     m_logging_streams.reset(new LoggingStreams{});
 
     // Initialize main logging stream (must be done first)
@@ -118,7 +118,7 @@ Initializer::Initializer(EngineSettings const& settings)
     }
 
     builder.defineLoggingStreams(*m_logging_streams);
-    
+
     // Correct shader lookup directories
     {
         std::vector<std::string> new_shader_lookup_directories;
@@ -171,10 +171,6 @@ Initializer::Initializer(EngineSettings const& settings)
     *m_globals = builder.build();
 
     setCurrentDevice(0);
-
-    // Initialize profiling service
-    m_profiling_service_provider.reset(new ProfilingServiceProvider{ *m_globals->get<dx::d3d12::Device>(), settings.enable_profiling });
-    m_globals->put(m_profiling_service_provider.get());
 }
 
 Initializer::~Initializer()
@@ -185,7 +181,7 @@ Initializer::~Initializer()
     m_resource_factory.reset();
     m_globals.reset();
     m_global_settings.reset();
-   
+
     misc::Log::retrieve()->out("Alive engine objects: " + std::to_string(Entity::aliveEntities()), misc::LogMessageType::information);
 
     // Logger must be shutdown the last since many objects may still log stuff on destruction
@@ -247,7 +243,7 @@ std::unique_ptr<dx::d3d12::RenderingTasks> Initializer::createRenderingTasks() c
 }
 
 std::shared_ptr<dx::d3d12::SwapChainLink> Initializer::createSwapChainLink(dx::dxgi::SwapChain& target_swap_chain,
-    dx::d3d12::SwapChainDepthBufferFormat depth_buffer_format, 
+    dx::d3d12::SwapChainDepthBufferFormat depth_buffer_format,
     dx::d3d12::RenderingTasks& source_rendering_tasks) const
 {
     auto rv = dx::d3d12::SwapChainLink::create(*m_globals, target_swap_chain, depth_buffer_format);

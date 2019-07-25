@@ -23,23 +23,23 @@ class GpuWorkExecutionTask : public concurrency::SchedulableTask
 
 public:
     static std::shared_ptr<GpuWorkExecutionTask> create(Device& device,
-        ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name,
+        std::string const& debug_name,
         FrameProgressTracker const& frame_progress_tracker,
         BasicRenderingServices const& basic_rendering_services);
 
     static std::shared_ptr<GpuWorkExecutionTask> create(Device& device,
-        ProfilingServiceProvider const* p_profiling_service_provider, std::string const& debug_name,
+        std::string const& debug_name,
         BasicRenderingServices const& basic_rendering_services);
-    
+
     void addSource(GpuWorkSource& source);
 
 private:
-    GpuWorkExecutionTask(Device& device, ProfilingServiceProvider const* p_profiling_service_provider,
+    GpuWorkExecutionTask(Device& device,
         std::string const& debug_name, FrameProgressTracker const& frame_progress_tracker,
         BasicRenderingServices const& basic_rendering_services);
 
-    GpuWorkExecutionTask(Device& device, ProfilingServiceProvider const* p_profiling_service_provider, 
-        std::string const& debug_name,  BasicRenderingServices const& basic_rendering_services);
+    GpuWorkExecutionTask(Device& device,
+        std::string const& debug_name, BasicRenderingServices const& basic_rendering_services);
 
 private:    // required by AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t user_data) override;

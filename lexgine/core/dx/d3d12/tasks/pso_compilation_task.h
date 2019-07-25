@@ -26,30 +26,30 @@ public:
     bool wasSuccessful() const;    //! returns 'true' if the task has completed successfully
     bool execute(uint8_t worker_id);    //! executes the task manually and returns 'true' if the task does not require rescheduling
 
-    void setVertexShaderCompilationTask(HLSLCompilationTask* vs_compilation_task);  
-    HLSLCompilationTask* getVertexShaderCompilationTask() const;    
-    
-    void setHullShaderCompilationTask(HLSLCompilationTask* hs_compilation_task);   
+    void setVertexShaderCompilationTask(HLSLCompilationTask* vs_compilation_task);
+    HLSLCompilationTask* getVertexShaderCompilationTask() const;
+
+    void setHullShaderCompilationTask(HLSLCompilationTask* hs_compilation_task);
     HLSLCompilationTask* getHullShaderCompilationTask() const;
 
-    void setDomainShaderCompilationTask(HLSLCompilationTask* ds_compilation_task);  
+    void setDomainShaderCompilationTask(HLSLCompilationTask* ds_compilation_task);
     HLSLCompilationTask* getDomainShaderCompilationTask() const;
 
-    void setGeometryShaderCompilationTask(HLSLCompilationTask* gs_compilation_task); 
+    void setGeometryShaderCompilationTask(HLSLCompilationTask* gs_compilation_task);
     HLSLCompilationTask* getGeometryShaderCompilationTask() const;
 
     void setPixelShaderCompilationTask(HLSLCompilationTask* ps_compilation_task);
     HLSLCompilationTask* getPixelShaderCompilationTask() const;
-    
+
     void setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task);
     RootSignatureCompilationTask* getRootSignatureCompilationTask() const;
 
     /*!
         Returns string name as appears in PSO compilation task cache. The names for graphics PSOs
         always abide by the following naming convention (note the '__GRAPHICSPSO' suffix in the end):
-        
+
             <user_defined_string_name><user_defined_numeric_id>__GRAPHICSPSO
-        
+
         For example, "deferred_gbuffer_rendering_plastic15__GRAPHICSPSO"
     */
     std::string getCacheName() const;
@@ -62,12 +62,14 @@ private:
     concurrency::TaskType type() const override;
 
 private:
+
+private:
     task_caches::CombinedCacheKey const& m_key;
     Globals& m_globals;
     GraphicsPSODescriptor m_descriptor;
     misc::StaticVector<HLSLCompilationTask*, 5> m_associated_shader_compilation_tasks;
     RootSignatureCompilationTask* m_associated_root_signature_compilation_task;;
-    bool m_was_successful; 
+    bool m_was_successful;
     std::unique_ptr<PipelineState> m_resulting_pipeline_state;
     misc::DateTime m_timestamp;
 };
@@ -94,9 +96,9 @@ public:
     /*!
         Returns string name as appears in PSO compilation task cache. The names for compute PSOs
         always abide by the following naming convention (note the '__COMPUTEPSO' suffix in the end):
-        
+
             <user_defined_string_name><user_defined_numeric_id>__COMPUTEPSO
-        
+
         For example, "deferred_tiled_illumination_pass00__COMPUTEPSO"
     */
     std::string getCacheName() const;

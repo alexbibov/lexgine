@@ -17,7 +17,7 @@ using CombinedCache = StreamedCache<CombinedCacheKey, global_constants::combined
 class StreamedCacheConnection
 {
 public:
-    StreamedCacheConnection(GlobalSettings const& global_settings, std::string const& path_to_cache, 
+    StreamedCacheConnection(GlobalSettings const& global_settings, std::string const& path_to_cache,
         bool is_read_only, bool allow_overwrites = true);
     StreamedCacheConnection(StreamedCacheConnection&& other);
     ~StreamedCacheConnection();
@@ -44,10 +44,13 @@ StreamedCacheConnection establishConnectionWithCombinedCache(GlobalSettings cons
 StreamedCacheConnection establishConnectionWithCombinedCache(GlobalSettings const& global_settings, std::string const& path_to_combined_cache, bool readonly_mode, bool allow_overwrites = true);
 
 /*! locates combined cache containing requested key and establishes connection with it.
- Returns invalid Optional<> object in case if connection cannot be established (the most common reason is 
+ Returns invalid Optional<> object in case if connection cannot be established (the most common reason is
  that the key does not exist in any of the combined caches)
 */
 misc::Optional<StreamedCacheConnection> findCombinedCacheContainingKey(CombinedCacheKey const& key, GlobalSettings const& global_settings);
+
+//! Creates profiling service based on the string representation of the combined cache key
+std::unique_ptr<CPUTaskProfilingService> makeProfilingService(Globals const& globals, CombinedCacheKey const& key);
 
 }
 

@@ -14,7 +14,7 @@ using namespace lexgine::core::concurrency;
 class TaskGraph::BarrierSyncTask : public AbstractTask
 {
 public:
-    BarrierSyncTask() : AbstractTask{ nullptr, "", false } {}
+    BarrierSyncTask() : AbstractTask{ "", false } {}
 
 public:    // AbstractTask interface implementation
     bool doTask(uint8_t worker_id, uint64_t user_data) override { return true; }
@@ -22,21 +22,21 @@ public:    // AbstractTask interface implementation
 };
 
 
-TaskGraph::TaskGraph(uint8_t num_workers, std::string const& name):
+TaskGraph::TaskGraph(uint8_t num_workers, std::string const& name) :
     m_num_workers{ num_workers },
     m_barrier_sync_task{ new BarrierSyncTask{} }
 {
     setStringName(name);
 }
 
-TaskGraph::TaskGraph(std::set<TaskGraphRootNode const*> const& root_nodes, 
-    uint8_t num_workers, std::string const& name):
+TaskGraph::TaskGraph(std::set<TaskGraphRootNode const*> const& root_nodes,
+    uint8_t num_workers, std::string const& name) :
     TaskGraph{ num_workers, name }
 {
     setRootNodes(root_nodes);
 }
 
-TaskGraph::TaskGraph(TaskGraph&& other):
+TaskGraph::TaskGraph(TaskGraph&& other) :
     NamedEntity<class_names::TaskGraph>{ std::move(other) },
     m_num_workers{ other.m_num_workers },
     m_root_nodes{ std::move(other.m_root_nodes) },
@@ -111,16 +111,16 @@ void TaskGraph::createDotRepresentation(std::string const& destination_path)
     for (auto& t : m_compiled_task_graph)
     {
         AbstractTask* dependency_task = t.task();
-        
+
         if (!AbstractTaskAttorney<TaskGraph>::isTaskExposedInDebugInformation(*dependency_task)) continue;
 
         std::string task_string_id = "task" + dependency_task->getId().toString();
         for (auto dependent : t.getDependents())
         {
-            
+
             AbstractTask* dependent_task = dependent->task();
             if (!AbstractTaskAttorney<TaskGraph>::isTaskExposedInDebugInformation(*dependent_task)) continue;
-            
+
             dot_graph_representation += task_string_id + "->" + "task"
                 + dependent_task->getId().toString() + ";\n";
         }
@@ -174,7 +174,7 @@ void TaskGraph::compile()
             {
                 if (node_visit_perm_tlb.find(n.getId()) != node_visit_perm_tlb.end()) return;
 
-                auto[p, insertion_result] = node_visit_temp_tlb.insert(n.getId());
+                auto [p, insertion_result] = node_visit_temp_tlb.insert(n.getId());
 
                 if (!insertion_result)
                 {

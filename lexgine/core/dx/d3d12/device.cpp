@@ -36,6 +36,8 @@ public:
     {
         for (size_t heap_id = 0; heap_id < static_cast<size_t>(QueryType::count); ++heap_id)
         {
+            m_query_heaps[heap_id].Reset();
+
             D3D12_QUERY_HEAP_DESC desc;
             desc.Type = toNativeQueryHeapType(static_cast<QueryType>(heap_id));
             desc.Count = m_query_heap_capacities[heap_id];
