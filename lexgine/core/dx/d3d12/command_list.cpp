@@ -15,8 +15,6 @@
 #include "lexgine/core/math/box.h"
 
 
-
-
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
@@ -530,6 +528,22 @@ void CommandList::setRootUnorderedAccessView(uint32_t root_signature_slot,
             static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(gpu_virtual_address))
         : m_command_list->SetComputeRootUnorderedAccessView(static_cast<UINT>(root_signature_slot),
             static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(gpu_virtual_address));
+}
+
+void CommandList::beginQuery(QueryHandle const& query_handle, uint32_t query_id) const
+{
+    m_command_list->BeginQuery(*query_handle.pp_native_query_heap, query_handle.query_type, query_handle.first_query_index);
+}
+
+void CommandList::endQuery(QueryHandle const& query_handle, uint32_t query_id) const
+{
+    m_command_list->EndQuery(*query_handle.pp_native_query_heap, query_handle.query_type, query_handle.first_query_index);
+}
+
+void CommandList::resolveQueryData(QueryHandle const& query_handle, Resource const& resolve_buffer, uint64_t resolve_buffer_offset) const
+{
+    m_command_list->ResolveQueryData(*query_handle.pp_native_query_heap, query_handle.query_type,
+        query_handle.first_query_index, query_handle.query_count, resolve_buffer.native().Get(), static_cast<UINT64>(resolve_buffer_offset));
 }
 
 void CommandList::setRootConstantBufferView(uint32_t root_signature_slot, 

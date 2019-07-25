@@ -143,6 +143,16 @@ struct FeatureGPUVirtualAddressSupport final
 };
 
 
+//! Descriptor fully identifying a device query
+struct QueryHandle
+{
+    ID3D12QueryHeap** pp_native_query_heap;
+    uint32_t first_query_index;
+    uint32_t query_count;
+    D3D12_QUERY_TYPE query_type;
+};
+
+
 /*! Thin wrapper over ID3D12Device interface.
  Note that this class is subject for continuous changing: new functionality may be added at any time
  in order to provide convenience APIs for the basic Direc3D12 functionality. All features provided by this
