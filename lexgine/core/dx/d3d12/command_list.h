@@ -28,6 +28,7 @@ using namespace Microsoft::WRL;
 
 namespace lexgine::core::dx::d3d12 {
 
+
 template<typename T> class CommandListAttorney;
 
 

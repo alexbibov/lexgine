@@ -8,15 +8,6 @@
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
-namespace {
-
-
-
-
-
-
-}
-
 
 class Device::QueryCache final
 {
@@ -36,8 +27,7 @@ public:
     QueryHandle registerQuery(uint32_t capacity)
     {
         uint32_t constexpr query_heap_id = static_cast<uint32_t>(A);
-        uint32_t constexpr query_desc = (query_heap_id << 8) | B;
-        QueryHandle rv{ (static_cast<uint64_t>(m_query_heap_capacities[query_heap_id]) << 32) | capacity, query_desc };
+        QueryHandle rv{ m_query_heaps[query_heap_id].GetAddressOf(), m_query_heap_capacities[query_heap_id], capacity, B };
         m_query_heap_capacities[query_heap_id] += capacity;
         return rv;
     }
