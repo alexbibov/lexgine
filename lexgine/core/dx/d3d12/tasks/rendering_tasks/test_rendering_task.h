@@ -4,7 +4,6 @@
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
-#include "lexgine/core/dx/d3d12/rendering_work.h"
 #include "lexgine/core/concurrency/schedulable_task.h"
 
 #include "lexgine/core/dx/d3d12/resource_data_uploader.h"
@@ -12,13 +11,11 @@
 #include "lexgine/core/dx/d3d12/constant_buffer_data_mapper.h"
 #include "lexgine/core/dx/d3d12/descriptor_table_builders.h"
 
-#include "gpu_work_execution_task.h"
+#include "rendering_work.h"
 
 namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
 
-class TestRenderingTask final : 
-    public RenderingWork,
-    public GpuWorkSource
+class TestRenderingTask final : public RenderingWork
 {
 public:
     static std::shared_ptr<TestRenderingTask> create(Globals& globals, BasicRenderingServices& rendering_services)
@@ -27,7 +24,7 @@ public:
     }
 
     void updateRenderingConfiguration(RenderingConfigurationUpdateFlags update_flags, RenderingConfiguration const& rendering_configuration) override;
-    
+
 private:    // required by AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t user_data) override;
     concurrency::TaskType type() const override { return concurrency::TaskType::cpu; }
@@ -64,6 +61,8 @@ private:
     ShaderResourceDescriptorTable m_sampler_table;
 
     core::Allocator<UploadDataBlock>::address_type m_allocation;
+
+    CommandList* m_cmd_list_ptr = nullptr;
 };
 
 }

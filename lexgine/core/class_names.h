@@ -9,6 +9,7 @@ extern char const DXGI_HwAdapter[];
 extern char const DXGI_HwAdapterEnumerator[];
 extern char const DXGI_SwapChain[];
 extern char const D3D12_Device[];
+extern char const D3D12_QueryCache[];
 extern char const D3D12_CommandQueue[];
 extern char const D3D12_CommandList[];
 extern char const D3D12_DebugInterface[];

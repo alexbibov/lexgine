@@ -1,7 +1,8 @@
 #include <numeric>
 
-#include "lexgine/core/profiling_service_provider.h"
+#include "lexgine/core/profiling_services.h"
 #include "lexgine/core/concurrency/task_graph.h"
+#include "lexgine/core/concurrency/abstract_task.h"
 #include "lexgine/core/dx/d3d12/pix_support.h"
 #include "profiler.h"
 
@@ -25,33 +26,35 @@ ImVec4 convertPixColorMarkerToImGuiColor(uint32_t pix_color_marker)
 void constructPerformanceViewTreeNode(TaskGraphNode const& node)
 {
     AbstractTask* p_task = node.task();
-    ProfilingService const* p_task_profiling_service = p_task->profilingService();
 
-    if (p_task_profiling_service 
-        && ImGui::TreeNode(p_task_profiling_service->name().c_str()))
+    if (!p_task->profilingServices().empty())
     {
-        auto& data = p_task_profiling_service->statistics();
-        float average_execution_time =
-            std::accumulate(data.begin(), data.end(), 0.f,
-                [p_task_profiling_service](float accumulated, float current) -> float
-                {
-                    return accumulated + current / p_task_profiling_service->timingFrequency();
-                }
-        );
+        if (ImGui::TreeNode(p_task->getStringName().c_str()))
+        {
+            for (auto& profiling_service : p_task->profilingServices())
+            {
+                auto& data = profiling_service->statistics();
+                float average_execution_time =
+                    std::accumulate(data.begin(), data.end(), 0.f,
+                        [](float accumulated, float current) -> float
+                        {
+                            return accumulated + current;
+                        }
+                ) / data.size();
 
-        ImVec4 color = convertPixColorMarkerToImGuiColor(p_task_profiling_service->colorUID());
-        ImGui::TextColored(color, "Average execution time:  %fms", average_execution_time);
+                ImVec4 color = convertPixColorMarkerToImGuiColor(profiling_service->colorUID());
+                ImGui::TextColored(color, (profiling_service->name() + ":  %fms").c_str(), average_execution_time);
+            }
 
-        ImGui::TreePop();
+            ImGui::TreePop();
+        }
     }
-
 }
 
 }
 
 Profiler::Profiler(Globals const& globals, TaskGraph const& task_graph)
-    : SchedulableTask{ false, "Profiler" }
-    , m_globals{ globals }
+    : m_globals{ globals }
     , m_task_graph{ task_graph }
     , m_show_profiler{ true }
 {
@@ -62,8 +65,7 @@ void Profiler::constructUI()
 {
     ImGui::SetNextWindowPos(ImVec2{ 0.f, 0.f }, ImGuiCond_Once);
     ImGui::SetNextWindowSize(ImVec2{ 320.f, 240.f }, ImGuiCond_Once);
-    if (!ImGui::Begin(getStringName().c_str(), &m_show_profiler,
-        ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
+    if (!ImGui::Begin("Profiler", &m_show_profiler, ImGuiWindowFlags_AlwaysAutoResize))
     {
         ImGui::End();
         return;
@@ -113,10 +115,4 @@ void Profiler::constructUI()
         ImGui::End();
     }
     */
-}
-
-bool Profiler::doTask(uint8_t worker_id, uint64_t user_data)
-{
-
-    return true;
 }

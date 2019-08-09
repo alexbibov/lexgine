@@ -1,9 +1,6 @@
 #ifndef LEXGINE_CORE_DX_DXGI_HW_OUTPUT_ENUMERATOR_H
 #define LEXGINE_CORE_DX_DXGI_HW_OUTPUT_ENUMERATOR_H
 
-#include <dxgi1_6.h>
-#include <wrl.h>
-
 #include <list>
 #include <vector>
 #include <ratio>
@@ -13,6 +10,8 @@
 #include "lexgine/core/misc/flags.h"
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
+
+#include "common.h"
 
 namespace lexgine::core::dx::dxgi {
 
@@ -56,7 +55,7 @@ public:
      <color space>_<range>_<gamma correction exponent>_<siting>_<primaries>_<transfer_matrix>.
      For example rgb_full_g22_none_p709 stays for sRGB color space with full range,
      gamma correction exponent of 2.2, no specific siting, and primary colors as defined by the BT.709 standard.
-     The transfer matrix is not used in this example. For more details refer to the sources documenting the 
+     The transfer matrix is not used in this example. For more details refer to the sources documenting the
      color spaces in question (e.g. https://docs.microsoft.com/en-us/windows/desktop/api/dxgicommon/ne-dxgicommon-dxgi_color_space_type)
     */
     enum class DxgiColorSpaceType
@@ -118,17 +117,17 @@ public:
         bool is_stereo; //!< Equals 'true' if the display mode is a stereo mode
     };
 
-    
+
     //!< options taken into account when enumerating display modes
     BEGIN_FLAGS_DECLARATION(DisplayModeEnumerationOptions)
-    FLAG(include_interlaced, DXGI_ENUM_MODES_INTERLACED)    //!< enumerate interlaced modes
-    FLAG(include_scaling, DXGI_ENUM_MODES_SCALING)    //!< enumerate scaled display modes
-    FLAG(include_stereo, DXGI_ENUM_MODES_STEREO)    //!< enumerate stereo display modes
-    FLAG(include_disabled_stereo, DXGI_ENUM_MODES_DISABLED_STEREO)    //!< enumerate stereo display modes that has been disabled via control panel
-    END_FLAGS_DECLARATION(DisplayModeEnumerationOptions)
+        FLAG(include_interlaced, DXGI_ENUM_MODES_INTERLACED)    //!< enumerate interlaced modes
+        FLAG(include_scaling, DXGI_ENUM_MODES_SCALING)    //!< enumerate scaled display modes
+        FLAG(include_stereo, DXGI_ENUM_MODES_STEREO)    //!< enumerate stereo display modes
+        FLAG(include_disabled_stereo, DXGI_ENUM_MODES_DISABLED_STEREO)    //!< enumerate stereo display modes that has been disabled via control panel
+        END_FLAGS_DECLARATION(DisplayModeEnumerationOptions)
 
 
-    Description getDescription() const; //! Returns description of DXGI output
+        Description getDescription() const; //! Returns description of DXGI output
 
     std::vector<DisplayMode> getDisplayModes(DXGI_FORMAT format, DisplayModeEnumerationOptions const& options) const;   //! Enumerates display modes meeting requested DXGI color format.
 

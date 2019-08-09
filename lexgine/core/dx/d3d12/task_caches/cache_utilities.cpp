@@ -135,8 +135,3 @@ CombinedCache& StreamedCacheConnection::cache()
 {
     return *m_cache;
 }
-
-std::unique_ptr<CPUTaskProfilingService> lexgine::core::dx::d3d12::task_caches::makeProfilingService(Globals const& globals, CombinedCacheKey const& key)
-{
-    return std::make_unique<CPUTaskProfilingService>(*globals.get<GlobalSettings>(), key.toString() + " (CPU execution time)");
-}

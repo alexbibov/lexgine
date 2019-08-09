@@ -23,6 +23,7 @@ template<typename Key, size_t cluster_size> class StreamedCache;
 class ProfilingService;
 class CPUTaskProfilingService;
 class GPUTaskProfilingService;
+struct RenderingConfiguration;
 
 }
 

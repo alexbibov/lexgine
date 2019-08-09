@@ -49,9 +49,6 @@ StreamedCacheConnection establishConnectionWithCombinedCache(GlobalSettings cons
 */
 misc::Optional<StreamedCacheConnection> findCombinedCacheContainingKey(CombinedCacheKey const& key, GlobalSettings const& global_settings);
 
-//! Creates profiling service based on the string representation of the combined cache key
-std::unique_ptr<CPUTaskProfilingService> makeProfilingService(Globals const& globals, CombinedCacheKey const& key);
-
 }
 
 #endif

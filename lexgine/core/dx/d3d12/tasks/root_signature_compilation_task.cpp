@@ -16,7 +16,7 @@ using namespace lexgine::core::dx::d3d12::task_caches;
 RootSignatureCompilationTask::RootSignatureCompilationTask(
     task_caches::CombinedCacheKey const& key,
     Globals const& globals, RootSignature&& root_signature, RootSignatureFlags const& flags, misc::DateTime const& timestamp)
-    : SchedulableTask{ key.toString(), true, makeProfilingService(globals, key) }
+    : SchedulableTask{ static_cast<RootSignatureCompilationTaskCache::Key>(key).rs_cache_name, true }
     , m_key{ key }
     , m_global_settings{ *globals.get<GlobalSettings>() }
     , m_rs{ std::move(root_signature) }
@@ -24,6 +24,7 @@ RootSignatureCompilationTask::RootSignatureCompilationTask(
     , m_was_successful{ false }
     , m_timestamp{ timestamp }
 {
+    addProfilingService(std::make_unique<CPUTaskProfilingService>(*globals.get<GlobalSettings>(), getStringName()));
 }
 
 D3DDataBlob const& RootSignatureCompilationTask::getTaskData() const

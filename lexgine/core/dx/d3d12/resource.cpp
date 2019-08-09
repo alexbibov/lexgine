@@ -130,7 +130,7 @@ void* Resource::map(unsigned int subresource/* = 0U */,
     ComPtr<ID3D12Device> native_device;
     m_resource->GetDevice(IID_PPV_ARGS(&native_device));
 
-    D3D12_RESOURCE_DESC desc = static_cast<ResourceDescriptor&>(m_descriptor).native();
+    D3D12_RESOURCE_DESC desc = descriptor().native();
     uint64_t total_resource_size_in_bytes{ 0 };
     native_device->GetCopyableFootprints(&desc, subresource, 1, 0UI64, nullptr, nullptr, nullptr, &total_resource_size_in_bytes);
 

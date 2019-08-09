@@ -9,6 +9,7 @@ extern char const DXGI_HwAdapter[] = "lexgine::core::dx::dxgi::HwAdapter";
 extern char const DXGI_HwAdapterEnumerator[] = "lexgine::core::dx::dxgi::HwAdapterEnumerator";
 extern char const DXGI_SwapChain[] = "lexgine::core::dx::dxgi::SwapChain";
 extern char const D3D12_Device[] = "lexgine::core::dx::d3d12::Device";
+extern char const D3D12_QueryCache[] = "lexgine::core::dx::d3d12::QueryCache";
 extern char const D3D12_CommandQueue[] = "lexgine::core::dx::d3d12::CommandQueue";
 extern char const D3D12_CommandList[] = "lexgine::core::dx::d3d12::CommandList";
 extern char const D3D12_DebugInterface[] = "lexgine::core::dx::d3d12::DebugInterface";

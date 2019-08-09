@@ -55,7 +55,7 @@ GraphicsPSOCompilationTask::GraphicsPSOCompilationTask(
     task_caches::CombinedCacheKey const& key,
     Globals& globals,
     GraphicsPSODescriptor const& descriptor, misc::DateTime const& timestamp)
-    : SchedulableTask{ key.toString(), true, makeProfilingService(globals, key) }
+    : SchedulableTask{ static_cast<PSOCompilationTaskCache::Key>(key).pso_cache_name, true }
     , m_key{ key }
     , m_globals{ globals }
     , m_descriptor{ descriptor }
@@ -65,6 +65,7 @@ GraphicsPSOCompilationTask::GraphicsPSOCompilationTask(
     , m_resulting_pipeline_state{ nullptr }
     , m_timestamp{ timestamp }
 {
+    addProfilingService(std::make_unique<CPUTaskProfilingService>(*globals.get<GlobalSettings>(), getStringName()));
 }
 
 PipelineState const& GraphicsPSOCompilationTask::getTaskData() const
@@ -210,7 +211,7 @@ ComputePSOCompilationTask::ComputePSOCompilationTask(
     task_caches::CombinedCacheKey const& key,
     Globals& globals,
     ComputePSODescriptor const& descriptor, misc::DateTime const& timestamp)
-    : SchedulableTask{ key.toString(), true, makeProfilingService(globals, key) }
+    : SchedulableTask{ static_cast<PSOCompilationTaskCache::Key>(key).pso_cache_name, true }
     , m_key{ key }
     , m_globals{ globals }
     , m_descriptor{ descriptor }
@@ -220,7 +221,7 @@ ComputePSOCompilationTask::ComputePSOCompilationTask(
     , m_resulting_pipeline_state{ nullptr }
     , m_timestamp{ timestamp }
 {
-
+    addProfilingService(std::make_unique<CPUTaskProfilingService>(*globals.get<GlobalSettings>(), getStringName()));
 }
 
 PipelineState const& ComputePSOCompilationTask::getTaskData() const

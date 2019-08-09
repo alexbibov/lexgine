@@ -1,12 +1,14 @@
 #include "rendering_tasks.h"
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
-#include "lexgine/core/profiling_service_provider.h"
+#include "lexgine/core/profiling_services.h"
 #include "lexgine/core/logging_streams.h"
 #include "lexgine/core/exception.h"
 
 #include "lexgine/core/dx/d3d12/tasks/rendering_tasks/test_rendering_task.h"
 #include "lexgine/core/dx/d3d12/tasks/rendering_tasks/ui_draw_task.h"
+#include "lexgine/core/dx/d3d12/tasks/rendering_tasks/gpu_profiling_queries_flush_task.h"
+#include "lexgine/core/dx/d3d12/tasks/rendering_tasks/gpu_work_execution_task.h"
 #include "lexgine/core/ui/profiler.h"
 
 #include "dx_resource_factory.h"
@@ -63,24 +65,33 @@ RenderingTasks::RenderingTasks(Globals& globals)
     , m_rendering_configuration{ Viewport{math::Vector2f{}, math::Vector2f{}, math::Vector2f{}},
                                  DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, nullptr }
 {
-    m_test_rendering_task = RenderingTaskFactory::create<TestRenderingTask>(m_globals, m_basic_rendering_services);
-    m_ui_draw_task = RenderingTaskFactory::create<UIDrawTask>(globals, m_basic_rendering_services);
-    m_profiler = RenderingTaskFactory::create<Profiler>(globals, m_task_graph);
+    m_test_rendering_task_build_cmd_list = RenderingTaskFactory::create<TestRenderingTask>(m_globals, m_basic_rendering_services);
+    m_ui_draw_build_cmd_list = RenderingTaskFactory::create<UIDrawTask>(globals, m_basic_rendering_services);
+    m_gpu_profiling_queries_flush_build_cmd_list = RenderingTaskFactory::create<GpuProfilingQueriesFlushTask>(globals);
+    m_profiler_ui_builder = RenderingTaskFactory::create<Profiler>(globals, m_task_graph);
 
-    m_post_rendering_gpu_tasks = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device, globals.get<ProfilingServiceProvider>(), "GPU draw tasks", m_frame_progress_tracker, m_basic_rendering_services);
-    m_post_rendering_gpu_tasks->addSource(*m_test_rendering_task);
-    m_post_rendering_gpu_tasks->addSource(*m_ui_draw_task);
+    m_post_rendering_gpu_tasks = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device,
+        "GPU draw tasks", m_basic_rendering_services);
+    m_post_rendering_gpu_tasks->addSource(*m_test_rendering_task_build_cmd_list);
+    m_post_rendering_gpu_tasks->addSource(*m_ui_draw_build_cmd_list);
 
-    m_ui_draw_task->addUIProvider(m_profiler);
+    m_gpu_profiling_queries_flush_task = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device,
+        "Flush profiling events", m_basic_rendering_services, false);
+    m_gpu_profiling_queries_flush_task->addSource(*m_gpu_profiling_queries_flush_build_cmd_list);
+
+    m_ui_draw_build_cmd_list->addUIProvider(m_profiler_ui_builder);
 
     m_task_graph.setRootNodes({
-        ROOT_NODE_CAST(m_test_rendering_task.get()),
-        ROOT_NODE_CAST(m_ui_draw_task.get())
+        ROOT_NODE_CAST(m_test_rendering_task_build_cmd_list.get()),
+        ROOT_NODE_CAST(m_ui_draw_build_cmd_list.get()),
+        ROOT_NODE_CAST(m_gpu_profiling_queries_flush_build_cmd_list.get())
         });
-    m_test_rendering_task->addDependent(*m_post_rendering_gpu_tasks);
-    m_ui_draw_task->addDependent(*m_post_rendering_gpu_tasks);
+    m_test_rendering_task_build_cmd_list->addDependent(*m_post_rendering_gpu_tasks);
+    m_ui_draw_build_cmd_list->addDependent(*m_post_rendering_gpu_tasks);
+    m_gpu_profiling_queries_flush_build_cmd_list->addDependent(*m_gpu_profiling_queries_flush_task.get());
+    m_post_rendering_gpu_tasks->addDependent(*m_gpu_profiling_queries_flush_task.get());
 
-    // m_task_sink.start();
+    ProfilingService::initializeProfilingServices(globals);
 }
 
 RenderingTasks::~RenderingTasks()
@@ -118,8 +129,8 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
         m_rendering_configuration = rendering_configuration;
 
         // update rendering tasks
-        m_test_rendering_task->updateRenderingConfiguration(flags, m_rendering_configuration);
-        m_ui_draw_task->updateRenderingConfiguration(flags, m_rendering_configuration);
+        m_test_rendering_task_build_cmd_list->updateRenderingConfiguration(flags, m_rendering_configuration);
+        m_ui_draw_build_cmd_list->updateRenderingConfiguration(flags, m_rendering_configuration);
 
         m_task_sink.start();
     }
@@ -148,7 +159,6 @@ void RenderingTasks::render(RenderingTarget& rendering_target,
 
     {
         // End frame
-
         FrameProgressTrackerAttorney<RenderingTasks>::signalGPUEndFrame(m_frame_progress_tracker, m_device.defaultCommandQueue());
         FrameProgressTrackerAttorney<RenderingTasks>::signalCPUEndFrame(m_frame_progress_tracker);
     }

@@ -184,11 +184,9 @@ public:
 
 
     //! Device queries
-    void beginQuery(QueryHandle const& query_handle, uint32_t query_id) const;
+    void beginQuery(QueryHandle const& query_handle) const;
 
-    void endQuery(QueryHandle const& query_handle, uint32_t query_id) const;
-
-    void resolveQueryData(QueryHandle const& query_handle, Resource const& resolve_buffer, uint64_t resolve_buffer_offset) const;
+    void endQuery(QueryHandle const& query_handle) const;
 
 
     //! Miscellaneous routines

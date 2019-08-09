@@ -4,8 +4,7 @@
 #include <memory>
 #include <array>
 
-#include <wrl.h>
-#include <d3d12.h>
+#include "common.h"
 
 #include "lexgine/core/lexgine_core_fwd.h"
 #include "lexgine/core/misc/flags.h"
@@ -143,16 +142,6 @@ struct FeatureGPUVirtualAddressSupport final
 };
 
 
-//! Descriptor fully identifying a device query
-struct QueryHandle
-{
-    ID3D12QueryHeap** pp_native_query_heap;
-    uint32_t first_query_index;
-    uint32_t query_count;
-    D3D12_QUERY_TYPE query_type;
-};
-
-
 /*! Thin wrapper over ID3D12Device interface.
  Note that this class is subject for continuous changing: new functionality may be added at any time
  in order to provide convenience APIs for the basic Direc3D12 functionality. All features provided by this
@@ -211,31 +200,12 @@ public:
     CommandList createCommandList(CommandType command_list_workload_type, uint32_t node_mask,
         FenceSharing command_list_sync_mode = FenceSharing::none, PipelineState const* initial_pipeline_state = nullptr);
 
-    //! Registers occlusion query
-    QueryHandle registerOcclusionQuery(uint32_t capacity, bool is_binary_occlusion);
-
-    //! Registers new timestamp query, which can be used on direct and compute command queues
-    QueryHandle registerTimestampQuery(uint32_t capacity);
-
-    //! Registers new timestamp query, which can be used on copy command queues only
-    QueryHandle registerCopyQueueTimestampQuery(uint32_t capacity);
-
-    //! Registers new pipeline statistics query
-    QueryHandle registerPipelineStatisticsQuery(uint32_t capacity);
-
-    //! Registers new stream output query
-    QueryHandle registerStreamOutputQuery(uint32_t capacity, uint8_t stream_output_id);
-
-    //! (re-)Initializes the query heaps 
-    void initializeQueryHeaps();
+    QueryCache* queryCache() const { return m_query_cache.get(); }
 
     Device(Device const&) = delete;
     Device(Device&&) = delete;
 
     ~Device();
-
-private:
-    class QueryCache;
 
 private:
     Device(ComPtr<ID3D12Device> const& native_device, lexgine::core::GlobalSettings const& global_settings);

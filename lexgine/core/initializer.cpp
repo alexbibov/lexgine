@@ -13,7 +13,6 @@
 #include "lexgine/core/misc/misc.h"
 #include "lexgine/core/misc/log.h"
 #include "lexgine/core/global_settings.h"
-#include "lexgine/core/profiling_service_provider.h"
 
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 #include "lexgine/core/dx/d3d12/device.h"
