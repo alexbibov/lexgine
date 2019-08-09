@@ -27,7 +27,7 @@ class AbstractTask : public NamedEntity<class_names::Task>
     friend class AbstractTaskAttorney<TaskGraph>;
 
 public:
-    AbstractTask(std::string const& debug_name = "", bool expose_in_task_graph = true, std::unique_ptr<ProfilingService>&& profiling_service = nullptr);
+    AbstractTask(std::string const& debug_name = "", bool expose_in_task_graph = true);
     AbstractTask(AbstractTask const&) = delete;    // copying tasks doesn't make much sense and complicates things
 
     // moving ownership of tasks is not allowed either since task graph nodes refer to their corresponding
@@ -40,7 +40,17 @@ public:
     AbstractTask& operator=(AbstractTask&&) = delete;
 
     bool execute(uint8_t worker_id, uint64_t user_data);    //! executes the task and returns 'true' if the task has been completed or 'false' if it has to be rescheduled to be executed later
-    ProfilingService const* profilingService() const { return m_profiling_service.get(); }
+    
+    //! adds profiling service for the task
+    template<typename T>
+    T* addProfilingService(std::unique_ptr<T>&& profiling_service)
+    {
+        T* rv = profiling_service.get();
+        m_profiling_services.emplace_back(std::move(profiling_service));
+        return rv;
+    }
+
+    std::list<std::unique_ptr<ProfilingService>> const& profilingServices() const { return m_profiling_services; }
 
 public:
     /*! Calls the actual implementation of the task.
@@ -58,8 +68,8 @@ public:
     virtual TaskType type() const = 0;    //! returns type of the task
 
 private:
-    std::unique_ptr<ProfilingService> m_profiling_service;    //!< profiling service employed by this task
-    bool m_exposed_in_task_graph;    //!< 'true' if the task1 should be included into DOT representation of the task graph for debugging purposes, 'false' otherwise. Default is 'true'.
+    bool m_exposed_in_task_graph;    //!< 'true' if the task1 should be included into DOT representation of the task graph for debugging purposes, 'false' otherwise. Default is 'true'
+    std::list<std::unique_ptr<ProfilingService>> m_profiling_services;    //!< profiling services employed by the task
 };
 
 template<> class AbstractTaskAttorney<TaskGraph>

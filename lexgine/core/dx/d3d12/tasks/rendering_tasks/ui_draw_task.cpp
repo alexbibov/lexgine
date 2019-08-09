@@ -3,6 +3,7 @@
 #include "lexgine/core/exception.h"
 #include "lexgine/core/globals.h"
 #include "lexgine/core/profiling_services.h"
+#include "lexgine/core/rendering_configuration.h"
 #include "lexgine/core/ui/ui_provider.h"
 #include "lexgine/core/dx/d3d12/dx_resource_factory.h"
 #include "lexgine/core/dx/d3d12/device.h"
@@ -321,8 +322,7 @@ enum class Test
 };
 
 UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services)
-    : RenderingWork{ "UI draw task", std::make_unique<CPUTaskProfilingService>(*globals.get<GlobalSettings>(), "UI draw task (CPU execution time)") }
-    , GpuWorkSource{ *globals.get<Device>(), CommandType::direct }
+    : RenderingWork{ globals, "UI draw task", CommandType::direct }
     , m_globals{ globals }
     , m_device{ *globals.get<Device>() }
     , m_basic_rendering_services{ basic_rendering_services }
@@ -330,6 +330,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
     , m_resource_uploader{ globals, basic_rendering_services.resourceUploadAllocator() }
     , m_projection_matrix_constants(16)
     , m_scissor_rectangles(1)
+    , m_cmd_list_ptr{ addCommandList() }
 {
     m_viewports.emplace_back(math::Vector2f{ 0.f }, math::Vector2f{ 0.f }, math::Vector2f{ 0.f });
 
@@ -598,12 +599,11 @@ void UIDrawTask::drawFrame()
 {
     if (ImDrawData * p_draw_data = ImGui::GetDrawData())
     {
-        auto& cmd_list = gpuWorkPackage();
-        cmd_list.reset();
-        m_basic_rendering_services.setDefaultResources(cmd_list);
+        //cmd_list.reset();
+        m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
         // m_basic_rendering_services.beginRendering(m_cmd_list);
 
-        auto setup_render_state_lambda = [this, p_draw_data, &cmd_list]()
+        auto setup_render_state_lambda = [this, p_draw_data]()
         {
             Viewport viewport{
                 math::Vector2f{0.f},
@@ -619,15 +619,15 @@ void UIDrawTask::drawFrame()
             std::transform(projection_matrix.getRawData(), projection_matrix.getRawData() + 16,
                 m_projection_matrix_constants.begin(), [](float value) {return *reinterpret_cast<uint32_t*>(&value); });
 
-            cmd_list.setPipelineState(m_pso->getTaskData());
-            cmd_list.setRootSignature(m_rs->getCacheName());
-            cmd_list.setRoot32BitConstants(0, m_projection_matrix_constants, 0);
-            cmd_list.rasterizerStateSetViewports(m_viewports);
-            cmd_list.inputAssemblySetVertexBuffers(*m_ui_vertex_data_binding);
-            cmd_list.inputAssemblySetIndexBuffer(*m_ui_index_data_binding);
-            cmd_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
-            cmd_list.outputMergerSetBlendFactor(math::Vector4f{ 0.f });
-            m_basic_rendering_services.setDefaultRenderingTarget(cmd_list);
+            m_cmd_list_ptr->setPipelineState(m_pso->getTaskData());
+            m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());
+            m_cmd_list_ptr->setRoot32BitConstants(0, m_projection_matrix_constants, 0);
+            m_cmd_list_ptr->rasterizerStateSetViewports(m_viewports);
+            m_cmd_list_ptr->inputAssemblySetVertexBuffers(*m_ui_vertex_data_binding);
+            m_cmd_list_ptr->inputAssemblySetIndexBuffer(*m_ui_index_data_binding);
+            m_cmd_list_ptr->inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
+            m_cmd_list_ptr->outputMergerSetBlendFactor(math::Vector4f{ 0.f });
+            m_basic_rendering_services.setDefaultRenderingTarget(*m_cmd_list_ptr);
         };
 
         // upload vertex data and set rendering context state
@@ -686,9 +686,9 @@ void UIDrawTask::drawFrame()
                             p_draw_command->ClipRect.w - p_draw_command->ClipRect.y);
                         ShaderResourceDescriptorTable srv_table{};
                         srv_table.gpu_pointer = reinterpret_cast<uint64_t>(p_draw_command->TextureId);
-                        cmd_list.setRootDescriptorTable(1, srv_table);
-                        cmd_list.rasterizerStateSetScissorRectangles(m_scissor_rectangles);
-                        cmd_list.drawIndexedInstanced(p_draw_command->ElemCount, 1, offset_in_index_buffer, offset_in_vertex_buffer, 0);
+                        m_cmd_list_ptr->setRootDescriptorTable(1, srv_table);
+                        m_cmd_list_ptr->rasterizerStateSetScissorRectangles(m_scissor_rectangles);
+                        m_cmd_list_ptr->drawIndexedInstanced(p_draw_command->ElemCount, 1, offset_in_index_buffer, offset_in_vertex_buffer, 0);
                     }
 
                     offset_in_index_buffer += p_draw_command->ElemCount;
@@ -697,7 +697,7 @@ void UIDrawTask::drawFrame()
             }
         }
 
-        m_basic_rendering_services.endRendering(cmd_list);
-        cmd_list.close();
+        m_basic_rendering_services.endRendering(*m_cmd_list_ptr);
+        //cmd_list.close();
     }
 }

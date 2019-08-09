@@ -5,41 +5,27 @@
 #include "lexgine/core/dx/d3d12/command_list.h"
 #include "lexgine/core/concurrency/schedulable_task.h"
 
+#include "lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h"
+
 namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
-
-class GpuWorkSource
-{
-public:
-    GpuWorkSource(Device& device, CommandType work_type);
-    CommandList& gpuWorkPackage() { return m_cmd_list; }
-
-private:
-    CommandList m_cmd_list;
-};
 
 class GpuWorkExecutionTask : public concurrency::SchedulableTask
 {
     using Entity::getId;
 
 public:
-    static std::shared_ptr<GpuWorkExecutionTask> create(Device& device,
-        std::string const& debug_name,
-        FrameProgressTracker const& frame_progress_tracker,
-        BasicRenderingServices const& basic_rendering_services);
 
-    static std::shared_ptr<GpuWorkExecutionTask> create(Device& device,
-        std::string const& debug_name,
-        BasicRenderingServices const& basic_rendering_services);
+    static std::shared_ptr<GpuWorkExecutionTask> create(
+        Device& device, std::string const& debug_name,
+        BasicRenderingServices const& basic_rendering_services, bool enable_profiling = true);
 
-    void addSource(GpuWorkSource& source);
+    void addSource(RenderingWork& source);
 
 private:
-    GpuWorkExecutionTask(Device& device,
-        std::string const& debug_name, FrameProgressTracker const& frame_progress_tracker,
-        BasicRenderingServices const& basic_rendering_services);
 
     GpuWorkExecutionTask(Device& device,
-        std::string const& debug_name, BasicRenderingServices const& basic_rendering_services);
+        std::string const& debug_name, BasicRenderingServices const& basic_rendering_services,
+        bool enable_profiling = true);
 
 private:    // required by AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t user_data) override;
@@ -47,9 +33,8 @@ private:    // required by AbstractTask interface
 
 private:
     Device& m_device;
-    Microsoft::WRL::ComPtr<ID3D12QueryHeap> m_timestamp_query_heap;
-    FrameProgressTracker const* m_frame_progress_tracker = nullptr;
-    std::vector<CommandList*> m_gpu_work_sources;
+    std::list<RenderingWork*> m_gpu_work_sources;
+    std::vector<CommandList*> m_packed_gpu_work;
 };
 
 }

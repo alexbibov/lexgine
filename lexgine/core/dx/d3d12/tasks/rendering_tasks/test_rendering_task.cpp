@@ -1,10 +1,9 @@
 #include <chrono>
 
-#include "test_rendering_task.h"
-
 #include "lexgine/core/globals.h"
 #include "lexgine/core/global_settings.h"
-#include "lexgine/core/profiling_service_provider.h"
+#include "lexgine/core/profiling_services.h"
+#include "lexgine/core/rendering_configuration.h"
 #include "lexgine/core/math/utility.h"
 #include "lexgine/core/dx/d3d12/device.h"
 #include "lexgine/core/dx/d3d12/basic_rendering_services.h"
@@ -13,15 +12,17 @@
 #include "lexgine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "lexgine/core/dx/d3d12/tasks/pso_compilation_task.h"
 
+#include "test_rendering_task.h"
+
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
 using namespace lexgine::core::dx::d3d12::task_caches;
 
+
 TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& rendering_services)
-    : RenderingWork{ globals.get<ProfilingServiceProvider>(), "Test rendering task" }
-    , GpuWorkSource{ *globals.get<Device>(), CommandType::direct }
+    : RenderingWork{ globals, "Test rendering task", CommandType::direct }
     , m_globals{ globals }
     , m_device{ *globals.get<Device>() }
     , m_basic_rendering_services{ rendering_services }
@@ -34,6 +35,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
     , m_cb_data_mapping{ m_cb_reflection }
     , m_timestamp{ std::chrono::high_resolution_clock::now().time_since_epoch().count() }
     , m_allocation{ nullptr }
+    , m_cmd_list_ptr{ addCommandList() }
 {
     std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
         std::make_shared<VertexAttributeSpecification<float, 3>>(0, 0, "POSITION", 0, 0));
@@ -259,7 +261,7 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
         pso_descriptor.primitive_restart = true;
 
         m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, pso_descriptor,
-            "test_rendering_pso_" + std::to_string(rendering_configuration.color_buffer_format) 
+            "test_rendering_pso_" + std::to_string(rendering_configuration.color_buffer_format)
             + "_" + std::to_string(rendering_configuration.depth_buffer_format), 0);
         m_pso->setVertexShaderCompilationTask(m_vs);
         m_pso->setPixelShaderCompilationTask(m_ps);
@@ -271,23 +273,21 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
 
 bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    auto& cmd_list = gpuWorkPackage();
+    //cmd_list.reset();
 
-    cmd_list.reset();
+    m_basic_rendering_services.beginRendering(*m_cmd_list_ptr);
 
-    m_basic_rendering_services.beginRendering(cmd_list);
+    m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
+    m_cmd_list_ptr->setPipelineState(m_pso->getTaskData());
+    m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());
+    m_basic_rendering_services.setDefaultViewport(*m_cmd_list_ptr);
 
-    m_basic_rendering_services.setDefaultResources(cmd_list);
-    cmd_list.setPipelineState(m_pso->getTaskData());
-    cmd_list.setRootSignature(m_rs->getCacheName());
-    m_basic_rendering_services.setDefaultViewport(cmd_list);
+    m_cmd_list_ptr->inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
+    m_vb.bind(*m_cmd_list_ptr);
+    m_ib.bind(*m_cmd_list_ptr);
 
-    cmd_list.inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
-    m_vb.bind(cmd_list);
-    m_ib.bind(cmd_list);
-
-    m_basic_rendering_services.setDefaultRenderingTarget(cmd_list);
-    m_basic_rendering_services.clearDefaultRenderingTarget(cmd_list);
+    m_basic_rendering_services.setDefaultRenderingTarget(*m_cmd_list_ptr);
+    m_basic_rendering_services.clearDefaultRenderingTarget(*m_cmd_list_ptr);
 
     long long new_timestamp = std::chrono::high_resolution_clock::now().time_since_epoch().count();
     float duration = (new_timestamp - m_timestamp) / 1e9f;
@@ -296,14 +296,14 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
 
     m_allocation =
         m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_cb_data_mapping);
-     
-    cmd_list.setRootDescriptorTable(0, m_srv_table);
-    cmd_list.setRootDescriptorTable(1, m_sampler_table);
-    cmd_list.setRootConstantBufferView(2, m_allocation->virtualGpuAddress());
 
-    cmd_list.drawIndexedInstanced(36, 1, 0, 0, 0);
+    m_cmd_list_ptr->setRootDescriptorTable(0, m_srv_table);
+    m_cmd_list_ptr->setRootDescriptorTable(1, m_sampler_table);
+    m_cmd_list_ptr->setRootConstantBufferView(2, m_allocation->virtualGpuAddress());
 
-    cmd_list.close();
+    m_cmd_list_ptr->drawIndexedInstanced(36, 1, 0, 0, 0);
+
+    //cmd_list.close();
 
     return true;
 }

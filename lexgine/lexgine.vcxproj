@@ -31,26 +31,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -186,6 +186,7 @@
     <ClCompile Include="core\dx\d3d12\frame_progress_tracker.cpp" />
     <ClCompile Include="core\dx\d3d12\heap.cpp" />
     <ClCompile Include="core\dx\d3d12\pix_support.cpp" />
+    <ClCompile Include="core\dx\d3d12\query_cache.cpp" />
     <ClCompile Include="core\dx\d3d12\rendering_target.cpp" />
     <ClCompile Include="core\dx\d3d12\rendering_tasks.cpp" />
     <ClCompile Include="core\dx\d3d12\resource_barrier_pack.cpp" />
@@ -202,7 +203,9 @@
     <ClCompile Include="core\dx\d3d12\swap_chain_link.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\hlsl_compilation_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\pso_compilation_task.cpp" />
+    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\gpu_profiling_queries_flush_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\gpu_work_execution_task.cpp" />
+    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\rendering_work.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\ui_draw_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.cpp" />
     <ClCompile Include="core\dx\d3d12\tasks\root_signature_compilation_task.cpp" />
@@ -276,6 +279,7 @@
     <ClInclude Include="core\depth_stencil_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\basic_rendering_services.h" />
     <ClInclude Include="core\dx\d3d12\cbv_descriptor.h" />
+    <ClInclude Include="core\dx\d3d12\common.h" />
     <ClInclude Include="core\dx\d3d12\constant_buffer.h" />
     <ClInclude Include="core\dx\d3d12\constant_buffer_data_mapper.h" />
     <ClInclude Include="core\dx\d3d12\constant_buffer_stream.h" />
@@ -283,8 +287,8 @@
     <ClInclude Include="core\dx\d3d12\descriptor_table_builders.h" />
     <ClInclude Include="core\dx\d3d12\frame_progress_tracker.h" />
     <ClInclude Include="core\dx\d3d12\pix_support.h" />
+    <ClInclude Include="core\dx\d3d12\query_cache.h" />
     <ClInclude Include="core\dx\d3d12\rendering_target.h" />
-    <ClInclude Include="core\dx\d3d12\rendering_work.h" />
     <ClInclude Include="core\dx\d3d12\rendering_tasks.h" />
     <ClInclude Include="core\dx\d3d12\rtv_descriptor.h" />
     <ClInclude Include="core\dx\d3d12\root_signature_cache.h" />
@@ -314,8 +318,10 @@
     <ClInclude Include="core\dx\d3d12\tasks\hlsl_compilation_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\lexgine_core_dx_d3d12_tasks_fwd.h" />
     <ClInclude Include="core\dx\d3d12\tasks\pso_compilation_task.h" />
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\gpu_profiling_queries_flush_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\gpu_work_execution_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h" />
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\rendering_work.h" />
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\ui_draw_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\test_rendering_task.h" />
     <ClInclude Include="core\dx\d3d12\tasks\root_signature_compilation_task.h" />
@@ -331,6 +337,7 @@
     <ClInclude Include="core\dx\d3d12\vertex_buffer_binding.h" />
     <ClInclude Include="core\dx\dxcompilation\common.h" />
     <ClInclude Include="core\dx\dxcompilation\dx_compiler_proxy.h" />
+    <ClInclude Include="core\dx\dxgi\common.h" />
     <ClInclude Include="core\dx\dxgi\hw_adapter_enumerator.h" />
     <ClInclude Include="core\dx\dxgi\hw_output_enumerator.h" />
     <ClInclude Include="core\dx\dxgi\lexgine_core_dx_dxgi_fwd.h" />
@@ -364,6 +371,7 @@
     <ClInclude Include="core\misc\strict_weak_ordering.h" />
     <ClInclude Include="core\multisampling.h" />
     <ClInclude Include="core\profiling_services.h" />
+    <ClInclude Include="core\rendering_configuration.h" />
     <ClInclude Include="core\streamed_cache.h" />
     <ClInclude Include="core\opengl45\opengl45_tools.h" />
     <ClInclude Include="core\primitive_topology.h" />

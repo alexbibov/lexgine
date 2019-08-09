@@ -1,69 +1,82 @@
+#include <numeric>
+
 #include "lexgine/core/exception.h"
 #include "lexgine/core/dx/d3d12/device.h"
+
+#include "rendering_work.h"
 #include "gpu_work_execution_task.h"
 
 
 using namespace lexgine::core;
+using namespace lexgine::core::misc;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
 
-GpuWorkExecutionTask::GpuWorkExecutionTask(Device& device,
-    std::string const& debug_name, FrameProgressTracker const& frame_progress_tracker,
-    BasicRenderingServices const& basic_rendering_services)
-    : SchedulableTask{ p_profiling_service_provider, debug_name }
-    , m_device{ device }
-    , m_frame_progress_tracker{ &frame_progress_tracker }
-{
 
+std::shared_ptr<GpuWorkExecutionTask> GpuWorkExecutionTask::create(
+    Device& device, std::string const& debug_name,
+    BasicRenderingServices const& basic_rendering_services, bool enable_profiling/* = true*/)
+{
+    return std::shared_ptr<GpuWorkExecutionTask>{ new GpuWorkExecutionTask{ device, debug_name, basic_rendering_services, enable_profiling } };
 }
 
 GpuWorkExecutionTask::GpuWorkExecutionTask(Device& device,
-    std::string const& debug_name, BasicRenderingServices const& basic_rendering_services)
-    : SchedulableTask{ p_profiling_service_provider, debug_name }
+    std::string const& debug_name, BasicRenderingServices const& basic_rendering_services, bool enable_profiling/* = true*/)
+    : SchedulableTask{ debug_name }
     , m_device{ device }
 {
+
 }
 
-std::shared_ptr<GpuWorkExecutionTask> GpuWorkExecutionTask::create(Device& device,
-    std::string const& debug_name,
-    FrameProgressTracker const& frame_progress_tracker,
-    BasicRenderingServices const& basic_rendering_services)
+void GpuWorkExecutionTask::addSource(RenderingWork& source)
 {
-    return std::shared_ptr<GpuWorkExecutionTask>{ new GpuWorkExecutionTask{ device, p_profiling_service_provider, debug_name, frame_progress_tracker, basic_rendering_services } };
-}
-
-std::shared_ptr<GpuWorkExecutionTask> GpuWorkExecutionTask::create(Device& device,
-    std::string const& debug_name,
-    BasicRenderingServices const& basic_rendering_services)
-{
-    return std::shared_ptr<GpuWorkExecutionTask>{ new GpuWorkExecutionTask{ device, p_profiling_service_provider, debug_name, basic_rendering_services } };
-}
-
-void GpuWorkExecutionTask::addSource(GpuWorkSource& source)
-{
-    CommandList& cmd_list = source.gpuWorkPackage();
     assert(m_gpu_work_sources.empty()
-        || m_gpu_work_sources[0]->commandType() == cmd_list.commandType());
-
-    m_gpu_work_sources.push_back(&cmd_list);
+        || RenderingWorkAttorney<GpuWorkExecutionTask>::renderingWorkCommandType(*m_gpu_work_sources.back())
+        == RenderingWorkAttorney<GpuWorkExecutionTask>::renderingWorkCommandType(source));
+    m_gpu_work_sources.push_back(&source);
 }
 
 bool GpuWorkExecutionTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
     if (m_gpu_work_sources.empty()) return true;
 
-    switch (m_gpu_work_sources[0]->commandType())
+    if (m_packed_gpu_work.empty())    // prepare GPU work package on first invocation
+    {
+        size_t total_command_list_count = std::accumulate(m_gpu_work_sources.begin(),
+            m_gpu_work_sources.end(), 0ULL,
+            [](size_t current, RenderingWork* next)
+            {
+                return current
+                    + RenderingWorkAttorney<GpuWorkExecutionTask>::renderingWorkCommands(*next).size();
+            }
+        );
+
+        if (total_command_list_count > 32)
+        {
+            logger().out("GPU work package " + getStringName() + " contains over 32 command lists, which may "
+                "lead to performance degradation. Consider refactoring", LogMessageType::exclamation);
+        }
+
+        m_packed_gpu_work.reserve(total_command_list_count);
+        for (RenderingWork* work : m_gpu_work_sources)
+        {
+            for (auto& cmd_list : RenderingWorkAttorney<GpuWorkExecutionTask>::renderingWorkCommands(*work))
+                m_packed_gpu_work.push_back(&cmd_list);
+        }
+    }
+
+    switch (RenderingWorkAttorney<GpuWorkExecutionTask>::renderingWorkCommandType(*m_gpu_work_sources.back()))
     {
     case CommandType::direct:
-        m_device.defaultCommandQueue().executeCommandLists(m_gpu_work_sources.data(), m_gpu_work_sources.size());
+        m_device.defaultCommandQueue().executeCommandLists(m_packed_gpu_work.data(), m_gpu_work_sources.size());
         break;
 
     case CommandType::compute:
-        m_device.asyncCommandQueue().executeCommandLists(m_gpu_work_sources.data(), m_gpu_work_sources.size());
+        m_device.asyncCommandQueue().executeCommandLists(m_packed_gpu_work.data(), m_gpu_work_sources.size());
         break;
 
     case CommandType::copy:
-        m_device.copyCommandQueue().executeCommandLists(m_gpu_work_sources.data(), m_gpu_work_sources.size());
+        m_device.copyCommandQueue().executeCommandLists(m_packed_gpu_work.data(), m_gpu_work_sources.size());
         break;
 
     case CommandType::bundle:
@@ -80,7 +93,7 @@ concurrency::TaskType GpuWorkExecutionTask::type() const
 {
     if (m_gpu_work_sources.empty()) return concurrency::TaskType::other;
 
-    switch (m_gpu_work_sources[0]->commandType())
+    switch (RenderingWorkAttorney<GpuWorkExecutionTask>::renderingWorkCommandType(*m_gpu_work_sources.back()))
     {
     case CommandType::direct:
         return concurrency::TaskType::gpu_draw;
@@ -92,9 +105,4 @@ concurrency::TaskType GpuWorkExecutionTask::type() const
     default:
         __assume(0);
     }
-}
-
-GpuWorkSource::GpuWorkSource(Device& device, CommandType work_type)
-    : m_cmd_list{ device.createCommandList(work_type, 0x1) }
-{
 }

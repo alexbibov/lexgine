@@ -12,7 +12,8 @@
 #include "lexgine/core/concurrency/lexgine_core_concurrency_fwd.h"
 #include "lexgine/core/dx/d3d12/tasks/rendering_tasks/lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h"
 #include "lexgine/core/dx/d3d12/pix_support.h"
-
+#include "lexgine/core/dx/d3d12/query_cache.h"
+#include "lexgine/core/dx/d3d12/command_allocator_ring.h"
 
 namespace lexgine::core {
 
@@ -27,16 +28,21 @@ public:
     ProfilingService(GlobalSettings const& settings, std::string const& service_string_name);
 
     std::string name() const { return m_name; };    //! user-friendly name of the profiling event
+    statistics_t const& statistics();    //! statistics associated with the event
+
     virtual uint32_t colorUID() const = 0;    //! 4-byte UID of profiling event, which can be also used for color coding in UI
     virtual float timingFrequency() const = 0;    //! retrieves timing frequency of the profiling service
-    virtual statistics_t const& statistics() const = 0;    //! statistics associated with the event
 
     void beginProfilingEvent();    //! starts new profiling event
     void endProfilingEvent();    //! ends the last profiling event started and updates the profiling statistics
 
+    //! Initializes all profiling services created so far. This function must be called before any actual interaction with the services.
+    static void initializeProfilingServices(Globals& globals);
+
 private:
-    virtual void beginProfilingEventImpl() = 0;
-    virtual void endProfilingEventImpl() = 0;
+    virtual void beginProfilingEventImpl(bool profiler_enabled) = 0;
+    virtual void endProfilingEventImpl(bool profiler_enabled) = 0;
+    virtual statistics_t const& statisticsImpl() { return m_statistics; }
 
 protected:
     GlobalSettings const& m_settings;
@@ -50,12 +56,11 @@ public:
     CPUTaskProfilingService(GlobalSettings const& settings, std::string const& profiling_service_name);
 
     virtual uint32_t colorUID() const override { return dx::d3d12::pix_marker_colors::PixCPUJobMarkerColor; }
-    virtual statistics_t const& statistics() const override { return m_statistics; }
     virtual float timingFrequency() const override { return m_frequency; }
 
 private:
-    virtual void beginProfilingEventImpl() override;
-    virtual void endProfilingEventImpl() override;
+    void beginProfilingEventImpl(bool profiler_enabled) override;
+    void endProfilingEventImpl(bool profiler_enabled) override;
 
 private:
     static float constexpr m_frequency{ 1e6f };
@@ -63,10 +68,32 @@ private:
     int m_spin_up_period_counter{ 0 };
 };
 
-class GPUTaskProfilingServiceTimestamp : public ProfilingService
+
+
+class GPUTaskProfilingService : public ProfilingService
 {
 public:
-    GPUTaskProfilingServiceTimestamp(Globals const& globals, dx::d3d12::CommandList& command_list);
+    GPUTaskProfilingService(GlobalSettings const& settings, std::string const& service_string_name);
+
+    virtual uint32_t colorUID() const override;
+    virtual float timingFrequency() const override;
+
+    void assignCommandLists(std::list<dx::d3d12::CommandList>& command_lists_to_patch,
+        dx::d3d12::Device const& device, dx::d3d12::CommandType gpu_work_type);
+
+private:
+    void beginProfilingEventImpl(bool profiler_enabled) override;
+    void endProfilingEventImpl(bool profiler_enabled) override;
+    virtual statistics_t const& statisticsImpl() override;
+
+private:
+    dx::d3d12::Device const* m_device_ptr{ nullptr };
+    dx::d3d12::QueryCache* m_query_cache_ptr{ nullptr };
+    int m_spin_up_period_counter{ -1 };
+    std::list<dx::d3d12::CommandList>* m_command_lists_to_patch_ptr{ nullptr };
+    dx::d3d12::CommandType m_gpu_work_pack_type;
+
+    dx::d3d12::QueryHandle m_timestamp_query;
 };
 
 

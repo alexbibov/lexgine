@@ -8,6 +8,7 @@
 #include "d3d12_tools.h"
 #include "descriptor_table_builders.h"
 #include "vertex_buffer_binding.h"
+#include "query_cache.h"
 
 
 #include "lexgine/core/exception.h"
@@ -530,20 +531,18 @@ void CommandList::setRootUnorderedAccessView(uint32_t root_signature_slot,
             static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(gpu_virtual_address));
 }
 
-void CommandList::beginQuery(QueryHandle const& query_handle, uint32_t query_id) const
+void CommandList::beginQuery(QueryHandle const& query_handle) const
 {
-    m_command_list->BeginQuery(*query_handle.pp_native_query_heap, query_handle.query_type, query_handle.first_query_index);
+    m_command_list->BeginQuery(QueryCacheAttorney<CommandList>::getNativeQueryHeap(*device().queryCache(), query_handle.heap_id),
+        query_handle.query_type, query_handle.query_id);
 }
 
-void CommandList::endQuery(QueryHandle const& query_handle, uint32_t query_id) const
+void CommandList::endQuery(QueryHandle const& query_handle) const
 {
-    m_command_list->EndQuery(*query_handle.pp_native_query_heap, query_handle.query_type, query_handle.first_query_index);
-}
+    m_command_list->EndQuery(QueryCacheAttorney<CommandList>::getNativeQueryHeap(*device().queryCache(), query_handle.heap_id),
+        query_handle.query_type, query_handle.query_id + query_handle.offset);
 
-void CommandList::resolveQueryData(QueryHandle const& query_handle, Resource const& resolve_buffer, uint64_t resolve_buffer_offset) const
-{
-    m_command_list->ResolveQueryData(*query_handle.pp_native_query_heap, query_handle.query_type,
-        query_handle.first_query_index, query_handle.query_count, resolve_buffer.native().Get(), static_cast<UINT64>(resolve_buffer_offset));
+    query_handle.offset = (query_handle.offset + 1) % query_handle.query_count;
 }
 
 void CommandList::setRootConstantBufferView(uint32_t root_signature_slot, 

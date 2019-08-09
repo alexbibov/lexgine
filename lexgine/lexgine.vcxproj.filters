@@ -468,9 +468,6 @@
     <ClInclude Include="core\dx\d3d12\rendering_tasks.h">
       <Filter>core\dx\d3d12</Filter>
     </ClInclude>
-    <ClInclude Include="core\dx\d3d12\rendering_work.h">
-      <Filter>core\dx\d3d12</Filter>
-    </ClInclude>
     <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\gpu_work_execution_task.h">
       <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
     </ClInclude>
@@ -488,6 +485,24 @@
     </ClInclude>
     <ClInclude Include="core\profiling_services.h">
       <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\query_cache.h">
+      <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\gpu_profiling_queries_flush_task.h">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\tasks\rendering_tasks\rendering_work.h">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="core\rendering_configuration.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\dxgi\common.h">
+      <Filter>core\dx\dxgi</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dx\d3d12\common.h">
+      <Filter>core\dx\d3d12</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -772,6 +787,15 @@
     </ClCompile>
     <ClCompile Include="core\profiling_services.cpp">
       <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\query_cache.cpp">
+      <Filter>core\dx\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\gpu_profiling_queries_flush_task.cpp">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dx\d3d12\tasks\rendering_tasks\rendering_work.cpp">
+      <Filter>core\dx\d3d12\tasks\rendering_tasks</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

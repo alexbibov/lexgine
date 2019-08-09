@@ -1,6 +1,9 @@
 #ifndef LEXGINE_CORE_DX_D3D12_LEXGINE_CORE_DX_D3D12_FWD_H
 #define LEXGINE_CORE_DX_D3D12_LEXGINE_CORE_DX_D3D12_FWD_H
 
+#include <d3d12.h>
+#include <wrl.h>
+
 namespace lexgine::core::dx::d3d12 {
 
 class CommandAllocatorRing;
@@ -71,7 +74,6 @@ class RenderTargetViewTableBuilder;
 class DepthStencilViewTableBuilder;
 
 class RenderingTasks;
-class RenderingWork;
 class BasicRenderingServices;
 
 class RenderingTarget;
@@ -86,6 +88,7 @@ class UploadBufferAllocator;
 class DedicatedUploadDataStreamAllocator;
 class PerFrameUploadDataStreamAllocator;
 
+class QueryCache;
 struct QueryHandle;
 
 }

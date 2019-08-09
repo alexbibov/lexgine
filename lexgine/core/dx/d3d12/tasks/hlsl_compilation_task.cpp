@@ -80,7 +80,7 @@ HLSLCompilationTask::HLSLCompilationTask(task_caches::CombinedCacheKey const& ke
     bool strict_mode/* = true*/, bool force_all_resources_be_bound/* = false*/,
     bool force_ieee_standard/* = true*/, bool treat_warnings_as_errors/* = true*/, bool enable_validation/* = true*/,
     bool enable_debug_information/* = false*/, bool enable_16bit_types/* = false*/)
-    : SchedulableTask{ source_name, true, makeProfilingService(globals, key) }
+    : SchedulableTask{ source_name, true }
     , m_key{ key }
     , m_time_stamp{ time_stamp }
     , m_global_settings{ *globals.get<GlobalSettings>() }
@@ -104,6 +104,8 @@ HLSLCompilationTask::HLSLCompilationTask(task_caches::CombinedCacheKey const& ke
     , m_should_recompile{ true }
     , m_is_completed{ false }
 {
+    addProfilingService(std::make_unique<CPUTaskProfilingService>(*globals.get<GlobalSettings>(), getStringName()));
+
     std::pair<uint8_t, uint8_t> shader_model_version = unpackShaderModelVersion(m_shader_model);
 
     if (shader_model_version.first < 6)
