@@ -9,11 +9,11 @@ namespace lexgine::core::dx::d3d12 {
 
 namespace pix_marker_colors {
 
-extern uint32_t const PixCPUJobMarkerColor;    // dark blue
-extern uint32_t const PixGPUGeneralJobColor;    // purple
-extern uint32_t const PixGPUGraphicsJobMarkerColor;    // yellow
-extern uint32_t const PixGPUComputeJobMarkerColor;    // dark red
-extern uint32_t const PixGPUCopyJobMarkerColor;    // gray
+uint32_t constexpr PixCPUJobMarkerColor = 0xFF3333FF;    // dark blue
+uint32_t constexpr PixGPUGeneralJobColor = 0xFFCC00CC;    // purple
+uint32_t constexpr PixGPUGraphicsJobMarkerColor = 0xFFFFFF33;    // yellow
+uint32_t constexpr PixGPUComputeJobMarkerColor = 0xFFCC0000;    // dark red
+uint32_t constexpr PixGPUCopyJobMarkerColor = 0xFF606060;    // gray
 
 }
 

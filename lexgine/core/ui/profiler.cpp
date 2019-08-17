@@ -23,34 +23,6 @@ ImVec4 convertPixColorMarkerToImGuiColor(uint32_t pix_color_marker)
     return ImVec4{ r, g, b, a };
 }
 
-void constructPerformanceViewTreeNode(TaskGraphNode const& node)
-{
-    AbstractTask* p_task = node.task();
-
-    if (!p_task->profilingServices().empty())
-    {
-        if (ImGui::TreeNode(p_task->getStringName().c_str()))
-        {
-            for (auto& profiling_service : p_task->profilingServices())
-            {
-                auto& data = profiling_service->statistics();
-                float average_execution_time =
-                    std::accumulate(data.begin(), data.end(), 0.f,
-                        [](float accumulated, float current) -> float
-                        {
-                            return accumulated + current;
-                        }
-                ) / data.size();
-
-                ImVec4 color = convertPixColorMarkerToImGuiColor(profiling_service->colorUID());
-                ImGui::TextColored(color, (profiling_service->name() + ":  %fms").c_str(), average_execution_time);
-            }
-
-            ImGui::TreePop();
-        }
-    }
-}
-
 }
 
 Profiler::Profiler(Globals const& globals, TaskGraph const& task_graph)
@@ -63,56 +35,73 @@ Profiler::Profiler(Globals const& globals, TaskGraph const& task_graph)
 
 void Profiler::constructUI()
 {
-    ImGui::SetNextWindowPos(ImVec2{ 0.f, 0.f }, ImGuiCond_Once);
-    ImGui::SetNextWindowSize(ImVec2{ 320.f, 240.f }, ImGuiCond_Once);
-    if (!ImGui::Begin("Profiler", &m_show_profiler, ImGuiWindowFlags_AlwaysAutoResize))
-    {
-        ImGui::End();
-        return;
-    }
-
+    // Update values used by the UI
     for (auto& node : m_task_graph)
     {
-        constructPerformanceViewTreeNode(node);
+        AbstractTask* p_task = node.task();
+
+        auto p = m_profiling_summaries.find(p_task);
+        if (p == m_profiling_summaries.end() && !p_task->profilingServices().empty())
+        {
+            p = m_profiling_summaries.emplace(std::make_pair(p_task, std::vector<ProfilingSummary>(p_task->profilingServices().size()))).first;
+
+            int c{ 0 };
+            for (auto& profiling_service : p_task->profilingServices())
+            {
+                p->second[c].name = profiling_service->name();
+                p->second[c].group_id = profiling_service->uid();
+                ++c;
+            }
+        }
+
+        int c{ 0 };
+        for (auto& profiling_service : p_task->profilingServices())
+        {
+            auto& stats = profiling_service->statistics();
+            p->second[c].average_execution_time_ms = std::accumulate(stats.begin(), stats.end(), 0.0,
+                [&stats](double c, double n) { return c + n / stats.size(); }) / profiling_service->timingFrequency() * 1e3;
+            ++c;
+        }
+    }
+
+
+    // Draw UI when required
+    ImGui::SetNextWindowPos(ImVec2{ 0.f, 0.f }, ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2{ 320.f, 240.f }, ImGuiCond_Once);
+    if (ImGui::Begin("Profiler", &m_show_profiler, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        {
+            ImVec4 const cpu_legend_color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixCPUJobMarkerColor);
+            ImVec4 const gpu_general_legend_color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixGPUGeneralJobColor);
+            ImVec4 const gpu_graphics_legend_color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixGPUGraphicsJobMarkerColor);
+            ImVec4 const gpu_compute_legend_color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixGPUComputeJobMarkerColor);
+            ImVec4 const gpu_copy_legend_color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixGPUCopyJobMarkerColor);
+
+
+            ImGui::BeginGroup();
+            ImGui::Text("Legend");
+            ImGui::TextColored(cpu_legend_color, "CPU job");
+            ImGui::TextColored(gpu_graphics_legend_color, "GPU graphics job");
+            ImGui::TextColored(gpu_compute_legend_color, "GPU compute job");
+            ImGui::TextColored(gpu_copy_legend_color, "GPU copy job");
+            ImGui::TextColored(gpu_general_legend_color, "GPU general job");
+            ImGui::EndGroup();
+        }
+
+        for (auto& [p_task, summaries] : m_profiling_summaries)
+        {
+            if (ImGui::TreeNode(p_task->getStringName().c_str()))
+            {
+                for (ProfilingSummary const& s : summaries)
+                {
+                    ImVec4 color = convertPixColorMarkerToImGuiColor(s.group_id);
+                    ImGui::TextColored(color, (s.name + ":  %fms").c_str(), s.average_execution_time_ms);
+                }
+
+                ImGui::TreePop();
+            }
+        }
     }
 
     ImGui::End();
-    /*
-    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-    if (m_show_demo_window)
-        ImGui::ShowDemoWindow(&m_show_demo_window);
-
-    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-    {
-        static float f = 0.0f;
-        static int counter = 0;
-
-        ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-        ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-        ImGui::Checkbox("Demo Window", &m_show_demo_window);      // Edit bools storing our window open/close state
-        ImGui::Checkbox("Another Window", &m_show_another_window);
-
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-        ImGui::ColorEdit3("clear color", (float*)&m_clear_color); // Edit 3 floats representing a color
-
-        if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-            counter++;
-        ImGui::SameLine();
-        ImGui::Text("counter = %d", counter);
-
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-        ImGui::End();
-    }
-
-    // 3. Show another simple window.
-    if (m_show_another_window)
-    {
-        ImGui::Begin("Another Window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::Text("Hello from another window!");
-        if (ImGui::Button("Close Me"))
-            m_show_another_window = false;
-        ImGui::End();
-    }
-    */
 }

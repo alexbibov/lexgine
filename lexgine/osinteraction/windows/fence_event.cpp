@@ -93,7 +93,7 @@ void FenceEvent::waitAsync(void* data_to_pass_to_callback) const
                 (*p_callback_message->callback)(p_callback_message->user_data);
             },
             &m_callback_message,
-            INFINITE, WT_EXECUTEDEFAULT))
+                INFINITE, WT_EXECUTEDEFAULT))
         {
             DWORD error_code = GetLastError();
             LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, convertWindowsErrorCodeToString(error_code));
@@ -114,7 +114,7 @@ void FenceEvent::registerHandler(std::function<void(void*)> const& callback)
             }
         }
     }
-    
+
     m_callback = callback;
 }
 
