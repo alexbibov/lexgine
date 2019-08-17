@@ -69,6 +69,7 @@ RenderingTasks::RenderingTasks(Globals& globals)
     m_ui_draw_build_cmd_list = RenderingTaskFactory::create<UIDrawTask>(globals, m_basic_rendering_services);
     m_gpu_profiling_queries_flush_build_cmd_list = RenderingTaskFactory::create<GpuProfilingQueriesFlushTask>(globals);
     m_profiler_ui_builder = RenderingTaskFactory::create<Profiler>(globals, m_task_graph);
+    m_ui_draw_build_cmd_list->addUIProvider(m_profiler_ui_builder);
 
     m_post_rendering_gpu_tasks = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device,
         "GPU draw tasks", m_basic_rendering_services);
@@ -79,7 +80,6 @@ RenderingTasks::RenderingTasks(Globals& globals)
         "Flush profiling events", m_basic_rendering_services, false);
     m_gpu_profiling_queries_flush_task->addSource(*m_gpu_profiling_queries_flush_build_cmd_list);
 
-    m_ui_draw_build_cmd_list->addUIProvider(m_profiler_ui_builder);
 
     m_task_graph.setRootNodes({
         ROOT_NODE_CAST(m_test_rendering_task_build_cmd_list.get()),

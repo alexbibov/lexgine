@@ -10,7 +10,7 @@ class UIProvider : public std::enable_shared_from_this<UIProvider>
 {
 public:
     bool isEnabled() const { return m_is_enabled; }
-    void setEnablingStatus(bool enabling) { m_is_enabled = enabling; }
+    void setEnabledState(bool enabled) { m_is_enabled = enabled; }
 
     std::shared_ptr<UIProvider const> getPointer() const { return shared_from_this(); }
 

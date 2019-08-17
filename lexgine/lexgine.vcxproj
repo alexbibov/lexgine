@@ -185,7 +185,6 @@
     <ClCompile Include="core\dx\d3d12\fence.cpp" />
     <ClCompile Include="core\dx\d3d12\frame_progress_tracker.cpp" />
     <ClCompile Include="core\dx\d3d12\heap.cpp" />
-    <ClCompile Include="core\dx\d3d12\pix_support.cpp" />
     <ClCompile Include="core\dx\d3d12\query_cache.cpp" />
     <ClCompile Include="core\dx\d3d12\rendering_target.cpp" />
     <ClCompile Include="core\dx\d3d12\rendering_tasks.cpp" />

@@ -63,7 +63,7 @@ void CPUTaskProfilingService::beginProfilingEventImpl(bool profiler_enabled)
 {
     if (profiler_enabled)
     {
-        PIXBeginEvent(colorUID(), m_name.c_str());
+        PIXBeginEvent(uid(), m_name.c_str());
         m_last_tick = getCurrentTime();
     }
 }
@@ -72,7 +72,7 @@ void CPUTaskProfilingService::endProfilingEventImpl(bool profiler_enabled)
 {
     if (profiler_enabled)
     {
-        float conversion_coefficient = std::nano::num * m_frequency / std::nano::den;
+        double conversion_coefficient = std::nano::num * m_frequency / std::nano::den;
 
         auto time_delta = getCurrentTime() - m_last_tick;
 
@@ -112,24 +112,22 @@ ProfilingService::statistics_t const& GPUTaskProfilingService::statisticsImpl()
         uint64_t end = *(p_query_data + 1);
         uint64_t tick_count = begin <= end ? end - begin : 0;
 
-        float time_delta = tick_count / timingFrequency() * 1e3f;
-
         if (m_spin_up_period_counter < c_statistics_package_length)
         {
-            m_statistics[m_spin_up_period_counter++] = time_delta;
+            m_statistics[m_spin_up_period_counter++] = static_cast<double>(tick_count);
         }
         else
         {
             for (int i = 0; i < c_statistics_package_length - 1; ++i)
                 m_statistics[i] = m_statistics[i + 1];
-            m_statistics[c_statistics_package_length - 1] = time_delta;
+            m_statistics[c_statistics_package_length - 1] = static_cast<double>(tick_count);
         }
     }
 
     return m_statistics;
 }
 
-uint32_t GPUTaskProfilingService::colorUID() const
+uint32_t GPUTaskProfilingService::uid() const
 {
     if (!m_command_lists_to_patch_ptr) return dx::d3d12::pix_marker_colors::PixGPUGeneralJobColor;
 
@@ -150,20 +148,20 @@ uint32_t GPUTaskProfilingService::colorUID() const
     }
 }
 
-float GPUTaskProfilingService::timingFrequency() const
+double GPUTaskProfilingService::timingFrequency() const
 {
-    if (!m_command_lists_to_patch_ptr) return 0.f;
+    if (!m_command_lists_to_patch_ptr) return 0.;
 
     switch (m_gpu_work_pack_type)
     {
     case dx::d3d12::CommandType::direct:
-        return static_cast<float>(m_device_ptr->defaultCommandQueue().getTimeStampFrequency());
+        return static_cast<double>(m_device_ptr->defaultCommandQueue().getTimeStampFrequency());
 
     case dx::d3d12::CommandType::compute:
-        return static_cast<float>(m_device_ptr->asyncCommandQueue().getTimeStampFrequency());
+        return static_cast<double>(m_device_ptr->asyncCommandQueue().getTimeStampFrequency());
 
     case dx::d3d12::CommandType::copy:
-        return static_cast<float>(m_device_ptr->copyCommandQueue().getTimeStampFrequency());
+        return static_cast<double>(m_device_ptr->copyCommandQueue().getTimeStampFrequency());
 
     default:
         assert(false);
@@ -204,7 +202,7 @@ void GPUTaskProfilingService::beginProfilingEventImpl(bool profiler_enabled)
 
     if (profiler_enabled)
     {
-        PIXBeginEvent(m_command_lists_to_patch_ptr->front().native().Get(), colorUID(), name().c_str());
+        PIXBeginEvent(m_command_lists_to_patch_ptr->front().native().Get(), uid(), name().c_str());
         m_command_lists_to_patch_ptr->front().endQuery(m_timestamp_query);
     }
 }

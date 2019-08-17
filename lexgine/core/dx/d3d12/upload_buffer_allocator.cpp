@@ -61,7 +61,7 @@ UploadDataBlock::UploadDataBlock(UploadDataAllocator const& allocator,
 
 
 
-UploadDataAllocator::UploadDataAllocator(Globals& globals, 
+UploadDataAllocator::UploadDataAllocator(Globals& globals,
     uint64_t offset_from_heap_start, size_t upload_buffer_size)
     : m_upload_heap{ globals.get<DxResourceFactory>()->retrieveUploadHeap(*globals.get<Device>()) }
     , m_upload_buffer{ m_upload_heap, offset_from_heap_start, ResourceState::base_values::generic_read,
@@ -119,13 +119,13 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
     }
 
     // attempt to allocate space after the last allocation (the wrap-around mode)
-    if(!allocation_successful)
+    if (!allocation_successful)
     {
         size_t requested_space_counter{ 0U };
         uint32_t trailing_end_allocation_addr{ (*m_last_allocation)->m_allocation_end };
         uint64_t controlling_signal_value{ 0U };
 
-        auto q = std::next(m_last_allocation); 
+        auto q = std::next(m_last_allocation);
         while (q != m_blocks.end() && requested_space_counter < size_in_bytes)
         {
             requested_space_counter += (*q)->m_allocation_end - trailing_end_allocation_addr;
@@ -143,7 +143,7 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
 
             auto next_allocation = std::next(m_last_allocation);
             (*next_allocation)->m_allocation_begin = (*m_last_allocation)->m_allocation_end;
-            end_of_new_allocation = (*next_allocation)->m_allocation_end = 
+            end_of_new_allocation = (*next_allocation)->m_allocation_end =
                 static_cast<uint32_t>(misc::align((*next_allocation)->m_allocation_begin + size_in_bytes, 256));
             (*next_allocation)->m_controlling_signal_value = nextValueOfControllingSignal();
 
@@ -154,9 +154,9 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
             allocation_successful = true;
         }
     }
-    
+
     // attempt to allocate space before the last allocation
-    if(!allocation_successful)
+    if (!allocation_successful)
     {
         size_t requested_space_counter{ 0U };
         uint32_t trailing_end_allocation_addr{ 0U };
@@ -202,7 +202,7 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
         one_past_last_allocation_block_to_invalidate = m_blocks.end();
         allocation_successful = true;
     }
-    
+
     assert(allocation_successful);
 
     // invalidate unused allocation blocks
@@ -214,7 +214,7 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
     );
 
     m_unpartitioned_chunk_size = m_upload_buffer.descriptor().width - m_blocks.back()->m_allocation_end;
-    
+
     memory_block_type& mem_block_ref = *m_last_allocation;
     return address_type{ &mem_block_ref };
 
@@ -273,7 +273,7 @@ uint64_t DedicatedUploadDataStreamAllocator::lastSignaledValueOfControllingSigna
     return m_progress_tracking_signal.lastValueSignaled();
 }
 
-PerFrameUploadDataStreamAllocator::PerFrameUploadDataStreamAllocator(Globals& globals, uint64_t offset_from_heap_start, uint64_t upload_buffer_size, 
+PerFrameUploadDataStreamAllocator::PerFrameUploadDataStreamAllocator(Globals& globals, uint64_t offset_from_heap_start, uint64_t upload_buffer_size,
     FrameProgressTracker const& frame_progress_tracker)
     : UploadDataAllocator{ globals, offset_from_heap_start, upload_buffer_size }
     , m_frame_progress_tracker{ frame_progress_tracker }
@@ -287,11 +287,13 @@ FrameProgressTracker const& PerFrameUploadDataStreamAllocator::frameProgressTrac
 
 void PerFrameUploadDataStreamAllocator::waitUntilControllingSignalValue(uint64_t value) const
 {
+    if (value <= m_frame_progress_tracker.completedFramesCount()) return;
     m_frame_progress_tracker.waitForFrameCompletion(value - 1);
 }
 
 void PerFrameUploadDataStreamAllocator::waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const
 {
+    if (value <= m_frame_progress_tracker.completedFramesCount()) return;
     m_frame_progress_tracker.waitForFrameCompletion(value - 1, timeout_in_milliseconds);
 }
 

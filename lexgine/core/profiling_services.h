@@ -22,7 +22,7 @@ class ProfilingService
 {
 public:
     static size_t constexpr c_statistics_package_length = 10;
-    using statistics_t = std::array<float, c_statistics_package_length>;
+    using statistics_t = std::array<double, c_statistics_package_length>;
 
 public:
     ProfilingService(GlobalSettings const& settings, std::string const& service_string_name);
@@ -30,8 +30,8 @@ public:
     std::string name() const { return m_name; };    //! user-friendly name of the profiling event
     statistics_t const& statistics();    //! statistics associated with the event
 
-    virtual uint32_t colorUID() const = 0;    //! 4-byte UID of profiling event, which can be also used for color coding in UI
-    virtual float timingFrequency() const = 0;    //! retrieves timing frequency of the profiling service
+    virtual uint32_t uid() const = 0;    //! 4-byte UID of profiling event, which can be also used for color coding in UI
+    virtual double timingFrequency() const = 0;    //! retrieves timing frequency of the profiling service
 
     void beginProfilingEvent();    //! starts new profiling event
     void endProfilingEvent();    //! ends the last profiling event started and updates the profiling statistics
@@ -55,15 +55,15 @@ class CPUTaskProfilingService : public ProfilingService
 public:
     CPUTaskProfilingService(GlobalSettings const& settings, std::string const& profiling_service_name);
 
-    virtual uint32_t colorUID() const override { return dx::d3d12::pix_marker_colors::PixCPUJobMarkerColor; }
-    virtual float timingFrequency() const override { return m_frequency; }
+    virtual uint32_t uid() const override { return dx::d3d12::pix_marker_colors::PixCPUJobMarkerColor; }
+    virtual double timingFrequency() const override { return m_frequency; }
 
 private:
     void beginProfilingEventImpl(bool profiler_enabled) override;
     void endProfilingEventImpl(bool profiler_enabled) override;
 
 private:
-    static float constexpr m_frequency{ 1e6f };
+    static double constexpr m_frequency{ 1e6 };
     std::chrono::nanoseconds m_last_tick;
     int m_spin_up_period_counter{ 0 };
 };
@@ -75,8 +75,8 @@ class GPUTaskProfilingService : public ProfilingService
 public:
     GPUTaskProfilingService(GlobalSettings const& settings, std::string const& service_string_name);
 
-    virtual uint32_t colorUID() const override;
-    virtual float timingFrequency() const override;
+    uint32_t uid() const override;
+    double timingFrequency() const override;
 
     void assignCommandLists(std::list<dx::d3d12::CommandList>& command_lists_to_patch,
         dx::d3d12::Device const& device, dx::d3d12::CommandType gpu_work_type);
