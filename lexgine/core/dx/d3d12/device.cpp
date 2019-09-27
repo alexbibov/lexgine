@@ -15,12 +15,13 @@ using namespace lexgine::core::dx::d3d12;
 
 
 Device::Device(ComPtr<ID3D12Device> const& device, lexgine::core::GlobalSettings const& global_settings) :
-    m_device{ device },
-    m_query_cache{ new QueryCache{ global_settings, *this } },
-    m_max_frames_in_flight{ global_settings.getMaxFramesInFlight() },
-    m_default_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::base_values::none) },
-    m_async_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, global_settings.isAsyncComputeEnabled() ? WorkloadType::compute : WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::base_values::none) },
-    m_copy_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, global_settings.isAsyncCopyEnabled() ? WorkloadType::copy : WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::base_values::none) }
+    m_device{ device }
+    , m_frame_progress_tracker{ *this }
+    , m_query_cache{ new QueryCache{ global_settings, *this } }
+    , m_max_frames_in_flight{ global_settings.getMaxFramesInFlight() }
+    , m_default_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::base_values::none) }
+    , m_async_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, global_settings.isAsyncComputeEnabled() ? WorkloadType::compute : WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::base_values::none) }
+    , m_copy_command_queue{ CommandQueueAttorney<Device>::makeCommandQueue(*this, global_settings.isAsyncCopyEnabled() ? WorkloadType::copy : WorkloadType::direct, 0x1, CommandQueuePriority::normal, CommandQueueFlags::base_values::none) }
 {
     m_default_command_queue.setStringName("default_command_queue");
     m_async_command_queue.setStringName("async_command_queue");

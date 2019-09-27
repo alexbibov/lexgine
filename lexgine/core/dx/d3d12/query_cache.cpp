@@ -208,6 +208,7 @@ void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
         if(!native_query_heap) continue;
 
         QueryHeapType heap_type = static_cast<QueryHeapType>(heap_id);
+        size_t resolve_destination_base_offset = getHeapSegmentOffset(heap_id);
 
         switch (heap_type)
         {

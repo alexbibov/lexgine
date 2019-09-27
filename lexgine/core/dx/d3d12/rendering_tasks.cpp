@@ -58,7 +58,7 @@ RenderingWork::RenderingConfigurationUpdateFlags getRenderingConfigurationUpdate
 RenderingTasks::RenderingTasks(Globals& globals)
     : m_globals{ globals }
     , m_device{ *globals.get<Device>() }
-    , m_frame_progress_tracker{ globals.get<DxResourceFactory>()->retrieveFrameProgressTracker(m_device) }
+    , m_frame_progress_tracker{ m_device.frameProgressTracker() }
     , m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" }
     , m_task_sink{ m_task_graph, convertFileStreamsToGenericStreams(globals.get<LoggingStreams>()->worker_logging_streams), "RenderingTasksSink" }
     , m_basic_rendering_services{ globals }
