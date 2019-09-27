@@ -34,7 +34,6 @@ public:
 
     DescriptorHeap& retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id);
     Heap& retrieveUploadHeap(Device const& device);
-    FrameProgressTracker& retrieveFrameProgressTracker(Device const& device);
 
     dxgi::HwAdapter const* retrieveHwAdapterOwningDevicePtr(Device const& device) const;
 
@@ -68,7 +67,6 @@ private:
     
     std::unordered_map<Device const*, descriptor_heap_page_pool> m_descriptor_heaps;
     std::unordered_map<Device const*, Heap> m_upload_heaps;
-    std::unordered_map<Device const*, FrameProgressTracker> m_frame_progress_trackers;
     std::unordered_map<Heap const*, upload_heap_partitioning> m_upload_heap_partitions;
 };
 

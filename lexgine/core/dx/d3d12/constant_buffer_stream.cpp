@@ -35,8 +35,7 @@ ConstantBufferStream::ConstantBufferStream(Globals& globals)
 
     UploadHeapPartition const& partition = static_cast<UploadHeapPartition const&>(section_in_upload_heap);
 
-    m_allocator = std::make_unique<PerFrameUploadDataStreamAllocator>(globals, partition.offset, partition.size, 
-        dx_resources.retrieveFrameProgressTracker(device));
+    m_allocator = std::make_unique<PerFrameUploadDataStreamAllocator>(globals, partition.offset, partition.size, device.frameProgressTracker());
 }
 
 uint64_t ConstantBufferStream::totalCapacity() const

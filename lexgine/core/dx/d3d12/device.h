@@ -17,9 +17,9 @@
 #include "root_signature_cache.h"
 #include "heap.h"
 #include "descriptor_heap.h"
-#include "fence.h"
 #include "command_queue.h"
 #include "command_allocator_ring.h"
+#include "frame_progress_tracker.h"
 
 
 
@@ -200,6 +200,9 @@ public:
     CommandList createCommandList(CommandType command_list_workload_type, uint32_t node_mask,
         FenceSharing command_list_sync_mode = FenceSharing::none, PipelineState const* initial_pipeline_state = nullptr);
 
+    FrameProgressTracker& frameProgressTracker() { return m_frame_progress_tracker; }
+    FrameProgressTracker const& frameProgressTracker() const { return frameProgressTracker(); }
+
     QueryCache* queryCache() const { return m_query_cache.get(); }
 
     Device(Device const&) = delete;
@@ -214,6 +217,7 @@ private:
     ComPtr<ID3D12Device> m_device;    //!< encapsulated pointer to Direct3D12 device interface
     RootSignatureCache m_rs_cache;    //!< cached root signatures
 
+    FrameProgressTracker m_frame_progress_tracker;
     std::unique_ptr<QueryCache> m_query_cache;    //!< cache structure containing device query data
 
     uint32_t m_max_frames_in_flight;
