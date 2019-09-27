@@ -17,6 +17,16 @@
 
 namespace lexgine::core {
 
+enum class ProfilingServiceType
+{
+    cpu_work_timestamp, 
+    gpu_graphics_work_timestamp,
+    gpu_compute_work_timestamp,
+    gpu_copy_work_timestamp,
+    gpu_general_work_timestamp,
+    other,
+    count
+};
 
 class ProfilingService
 {
@@ -38,6 +48,9 @@ public:
 
     //! Initializes all profiling services created so far. This function must be called before any actual interaction with the services.
     static void initializeProfilingServices(Globals& globals);
+
+    //! Converts profiling service UID to profiling service type enumeration
+    ProfilingServiceType serviceType() const;
 
 private:
     virtual void beginProfilingEventImpl(bool profiler_enabled) = 0;

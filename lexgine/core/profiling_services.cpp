@@ -51,6 +51,30 @@ void ProfilingService::initializeProfilingServices(Globals& globals)
     globals.get<dx::d3d12::Device>()->queryCache()->initQueryCache();
 }
 
+ProfilingServiceType ProfilingService::serviceType() const
+{
+    switch (uid())
+    {
+    case dx::d3d12::pix_marker_colors::PixCPUJobMarkerColor:
+        return ProfilingServiceType::cpu_work_timestamp;
+
+    case dx::d3d12::pix_marker_colors::PixGPUGraphicsJobMarkerColor:
+        return ProfilingServiceType::gpu_graphics_work_timestamp;
+
+    case dx::d3d12::pix_marker_colors::PixGPUComputeJobMarkerColor:
+        return ProfilingServiceType::gpu_compute_work_timestamp;
+
+    case dx::d3d12::pix_marker_colors::PixGPUCopyJobMarkerColor:
+        return ProfilingServiceType::gpu_copy_work_timestamp;
+
+    case dx::d3d12::pix_marker_colors::PixGPUGeneralJobColor:
+        return ProfilingServiceType::gpu_general_work_timestamp;
+
+    default:
+        return ProfilingServiceType::other;
+    }
+}
+
 
 
 CPUTaskProfilingService::CPUTaskProfilingService(GlobalSettings const& settings, std::string const& profiling_service_name)

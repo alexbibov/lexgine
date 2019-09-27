@@ -1,5 +1,7 @@
 #include <numeric>
 
+#include "lexgine/core/globals.h"
+#include "lexgine/core/global_settings.h"
 #include "lexgine/core/profiling_services.h"
 #include "lexgine/core/concurrency/task_graph.h"
 #include "lexgine/core/concurrency/abstract_task.h"
@@ -29,12 +31,52 @@ Profiler::Profiler(Globals const& globals, TaskGraph const& task_graph)
     : m_globals{ globals }
     , m_task_graph{ task_graph }
     , m_show_profiler{ true }
+    , m_total_times(static_cast<size_t>(ProfilingServiceType::count))
 {
 
 }
 
+double Profiler::getWorkloadTimePerFrame(ProfilingServiceType workload_type) const
+{
+    return m_total_times[static_cast<size_t>(workload_type)];
+}
+
+double Profiler::getCPUTimePerFrame() const
+{
+    return m_total_times[static_cast<size_t>(ProfilingServiceType::cpu_work_timestamp)];
+}
+
+double Profiler::getGPUTimePerFrame() const
+{
+    GlobalSettings const& settings = *m_globals.get<GlobalSettings>();
+    double result{ m_total_times[static_cast<size_t>(ProfilingServiceType::gpu_graphics_work_timestamp)] };
+    
+    double const gpu_compute_work_time = m_total_times[static_cast<size_t>(ProfilingServiceType::gpu_compute_work_timestamp)];
+    double const gpu_copy_work_time = m_total_times[static_cast<size_t>(ProfilingServiceType::gpu_copy_work_timestamp)];
+
+    if (settings.isAsyncComputeEnabled()) result = (std::max)(result, gpu_compute_work_time);
+    else result += gpu_compute_work_time;
+
+    if (settings.isAsyncCopyEnabled()) result = (std::max)(result, gpu_copy_work_time);
+    else result += gpu_copy_work_time;
+
+    return (std::max)(result, m_total_times[static_cast<size_t>(ProfilingServiceType::gpu_general_work_timestamp)]);
+}
+
+double Profiler::getFrameTime() const
+{
+    return (std::max)(getCPUTimePerFrame(), getGPUTimePerFrame());
+}
+
+double Profiler::getFPS() const
+{
+    return 1. / getFrameTime() * 1e3;
+}
+
 void Profiler::constructUI()
 {
+    std::fill(m_total_times.begin(), m_total_times.end(), 0.);
+
     // Update values used by the UI
     for (auto& node : m_task_graph)
     {
@@ -58,8 +100,10 @@ void Profiler::constructUI()
         for (auto& profiling_service : p_task->profilingServices())
         {
             auto& stats = profiling_service->statistics();
-            p->second[c].average_execution_time_ms = std::accumulate(stats.begin(), stats.end(), 0.0,
+            double profiled_task_time = std::accumulate(stats.begin(), stats.end(), 0.0,
                 [&stats](double c, double n) { return c + n / stats.size(); }) / profiling_service->timingFrequency() * 1e3;
+            p->second[c].average_execution_time_ms = profiled_task_time;
+            m_total_times[static_cast<size_t>(profiling_service->serviceType())] += profiled_task_time;
             ++c;
         }
     }
@@ -100,6 +144,14 @@ void Profiler::constructUI()
 
                 ImGui::TreePop();
             }
+        }
+
+        {
+            ImGui::BeginGroup();
+            ImGui::Text("Frame CPU time: %fms", getCPUTimePerFrame());
+            ImGui::Text("Frame GPU time: %fms", getGPUTimePerFrame());
+            ImGui::Text("FPS: %f", getFPS());
+            ImGui::EndGroup();
         }
     }
 

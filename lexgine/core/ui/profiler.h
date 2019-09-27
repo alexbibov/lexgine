@@ -9,6 +9,8 @@
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
 #include "lexgine/core/ui/ui_provider.h"
+#include "lexgine/core/misc/static_vector.h"
+
 
 namespace lexgine::core::ui {
 
@@ -36,11 +38,18 @@ private:
 private:
     Profiler(Globals const& globals, concurrency::TaskGraph const& task_graph);
 
+    double getWorkloadTimePerFrame(ProfilingServiceType workload_type) const;
+    double getCPUTimePerFrame() const;
+    double getGPUTimePerFrame() const;
+    double getFrameTime() const;
+    double getFPS() const;
+
 private:
     Globals const& m_globals;
     concurrency::TaskGraph const& m_task_graph;
     bool m_show_profiler;
     std::unordered_map<concurrency::AbstractTask*, std::vector<ProfilingSummary>> m_profiling_summaries;
+    misc::StaticVector<double, static_cast<size_t>(ProfilingServiceType::count)> m_total_times;
 };
 
 }
