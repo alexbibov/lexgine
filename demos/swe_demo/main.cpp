@@ -21,7 +21,7 @@ EngineSettings createEngineSettings()
 {
     EngineSettings settings;
 
-    settings.debug_mode = false;
+    settings.debug_mode = true;
     settings.enable_profiling = true;
     settings.adapter_enumeration_preference = HwAdapterEnumerator::DxgiGpuPreference::high_performance;
     settings.global_lookup_prefix = "";

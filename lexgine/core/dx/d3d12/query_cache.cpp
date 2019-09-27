@@ -183,7 +183,9 @@ void QueryCache::initQueryCache()
         }
     }
 
-    size_t query_buffer_required_capacity{ misc::align(getHeapSegmentOffset(c_query_heap_count), 256U) };
+    size_t query_buffer_required_capacity{ 
+        misc::align(getHeapSegmentOffset(c_query_heap_count) * m_settings.getMaxFramesInFlight(), 256U) 
+    };
     bool need_reinitialize_query_resolve_buffer = m_query_resolve_buffer
         ? m_query_resolve_buffer->descriptor().width < query_buffer_required_capacity
         : true;

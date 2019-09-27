@@ -17,7 +17,7 @@ std::shared_ptr<GpuProfilingQueriesFlushTask> GpuProfilingQueriesFlushTask::crea
 
 bool GpuProfilingQueriesFlushTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    m_cmd_list_ptr->device().queryCache()->writeFlushCommandList(*m_cmd_list_ptr);
+    //m_cmd_list_ptr->device().queryCache()->writeFlushCommandList(*m_cmd_list_ptr);
     return true;
 }
 
