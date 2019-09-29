@@ -72,12 +72,12 @@ private:
 
 private:    // rendering tasks
     std::shared_ptr<tasks::rendering_tasks::UIDrawTask> m_ui_draw_build_cmd_list;
-    std::shared_ptr<ui::Profiler> m_profiler_ui_builder;
+    std::shared_ptr<ui::Profiler> m_profiler;
     std::shared_ptr<tasks::rendering_tasks::TestRenderingTask> m_test_rendering_task_build_cmd_list;
     std::shared_ptr<tasks::rendering_tasks::GpuProfilingQueriesFlushTask> m_gpu_profiling_queries_flush_build_cmd_list;
 
     std::shared_ptr<tasks::rendering_tasks::GpuWorkExecutionTask> m_post_rendering_gpu_tasks;
-    std::shared_ptr<tasks::rendering_tasks::GpuWorkExecutionTask> m_gpu_profiling_queries_flush_task;
+    std::shared_ptr<tasks::rendering_tasks::GpuWorkExecutionTaskWithExtraChecks> m_gpu_profiling_queries_flush_task;
 };
 
 }

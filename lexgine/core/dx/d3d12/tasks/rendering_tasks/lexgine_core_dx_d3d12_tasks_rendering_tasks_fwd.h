@@ -8,6 +8,7 @@ class TestRenderingTask;
 class UIDrawTask;
 class RenderingWork;
 class GpuProfilingQueriesFlushTask;
+class GpuWorkExecutionTaskWithExtraChecks;
 
 }
 

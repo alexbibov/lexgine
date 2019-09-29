@@ -74,9 +74,9 @@ void SwapChainLink::render()
         FrameProgressTracker const& frame_progress_tracker = m_linked_rendering_tasks_ptr->frameProgressTracker();
 
         uint64_t frame_idx = frame_progress_tracker.currentFrameIndex();
-        uint64_t competing_frame_idx = frame_idx - m_linked_swap_chain.backBufferCount();
+        uint64_t competing_frame_idx = frame_idx - m_global_settings.getMaxFramesInFlight();
 
-        if (frame_idx >= m_linked_swap_chain.backBufferCount()
+        if (frame_idx >= m_global_settings.getMaxFramesInFlight()
             && frame_progress_tracker.lastCompletedFrameIndex() < competing_frame_idx)
         {
             frame_progress_tracker.waitForFrameCompletion(competing_frame_idx);

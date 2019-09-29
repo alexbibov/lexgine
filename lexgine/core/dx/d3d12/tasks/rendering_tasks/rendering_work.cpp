@@ -17,13 +17,18 @@ RenderingWork::RenderingWork(Globals& globals, std::string const& debug_name,
     , m_device{ *globals.get<Device>() }
     , m_command_type{ command_type }
 {
+    GlobalSettings& global_settings = *globals.get<GlobalSettings>();
     if (enable_profiling)
     {
-        GlobalSettings& global_settings = *globals.get<GlobalSettings>();
         addProfilingService(std::make_unique<CPUTaskProfilingService>(global_settings, debug_name + " CPU execution time"));
         addProfilingService(std::make_unique<GPUTaskProfilingService>(global_settings, debug_name + " GPU execution time"))
             ->assignCommandLists(m_cmd_lists, m_device, m_command_type);
     }
+    else
+    {
+
+    }
+    
 }
 
 CommandList* RenderingWork::addCommandList(uint32_t node_mask/* = 0x1*/,

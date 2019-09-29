@@ -21,13 +21,12 @@ public:
 
     void addSource(RenderingWork& source);
 
-private:
-
+protected:
     GpuWorkExecutionTask(Device& device,
         std::string const& debug_name, BasicRenderingServices const& basic_rendering_services,
         bool enable_profiling = true);
 
-private:    // required by AbstractTask interface
+protected:    // required by AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t user_data) override;
     concurrency::TaskType type() const override;
 
@@ -35,6 +34,48 @@ private:
     Device& m_device;
     std::list<RenderingWork*> m_gpu_work_sources;
     std::vector<CommandList*> m_packed_gpu_work;
+};
+
+class GpuWorkExecutionTaskWithExtraChecks : public GpuWorkExecutionTask
+{
+    using Entity::getId;
+
+public:
+    static std::shared_ptr<GpuWorkExecutionTaskWithExtraChecks> create(
+        Device& device, std::string const& debug_name,
+        BasicRenderingServices const& basic_rendering_services, bool enable_profiling = true
+    )
+    {
+        return std::shared_ptr<GpuWorkExecutionTaskWithExtraChecks>{ 
+            new GpuWorkExecutionTaskWithExtraChecks{ device, debug_name,
+                basic_rendering_services, enable_profiling }
+        };
+    }
+
+    void injectCheck(std::function<void()> const& check)
+    {
+        m_checks.push_back(check);
+    }
+
+protected:
+    GpuWorkExecutionTaskWithExtraChecks(Device& device, std::string const& debug_name,
+        BasicRenderingServices const& basic_rendering_services, bool enable_profiling = true)
+        : GpuWorkExecutionTask{ device, debug_name, basic_rendering_services, enable_profiling }
+    {
+
+    }
+
+protected:
+    bool doTask(uint8_t worker_id, uint64_t user_data) override
+    {
+        for (auto const& check : m_checks)
+            check();
+
+        return GpuWorkExecutionTask::doTask(worker_id, user_data);
+    }
+
+private:
+    std::list<std::function<void()>> m_checks;
 };
 
 }

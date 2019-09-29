@@ -117,6 +117,12 @@ Resource::Resource(ResourceState const& initial_state, ComPtr<ID3D12Resource> co
 {
 }
 
+void Resource::setStringName(std::string const& entity_string_name)
+{
+    Entity::setStringName(entity_string_name);
+    m_resource->SetName(misc::asciiStringToWstring(entity_string_name).c_str());
+}
+
 ComPtr<ID3D12Resource> Resource::native() const
 {
     return m_resource;
@@ -144,11 +150,11 @@ void* Resource::map(unsigned int subresource/* = 0U */,
     return rv;
 }
 
-void Resource::unmap(unsigned int subresource/* = 0U */) const
+void Resource::unmap(unsigned int subresource/* = 0U */, bool mapped_data_was_modified/* = true*/) const
 {
     assert(m_resource != nullptr);
-
-    m_resource->Unmap(static_cast<UINT>(subresource), nullptr);
+    D3D12_RANGE no_modification_range{};
+    m_resource->Unmap(static_cast<UINT>(subresource), mapped_data_was_modified ? nullptr : &no_modification_range);
 }
 
 uint64_t Resource::getGPUVirtualAddress() const
