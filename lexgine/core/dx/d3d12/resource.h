@@ -1,6 +1,8 @@
 #ifndef LEXGINE_CORE_DX_D3D12_RESOURCE_H
 #define LEXGINE_CORE_DX_D3D12_RESOURCE_H
 
+#include <variant>
+
 #include "lexgine/core/entity.h"
 #include "lexgine/core/class_names.h"
 #include "lexgine/core/multisampling.h"
@@ -8,8 +10,6 @@
 #include "lexgine/core/misc/optional.h"
 #include "lexgine/core/math/vector_types.h"
 #include "heap.h"
-
-#include <variant>
 
 
 namespace lexgine::core::dx::d3d12 {
@@ -146,13 +146,15 @@ public:
     Resource(ResourceState const& initial_state, ComPtr<ID3D12Resource> const& native = nullptr);
     virtual ~Resource() = default;
 
+    void setStringName(std::string const& entity_string_name) override;
+
     ComPtr<ID3D12Resource> native() const;    //! returns encapsulated native Direct3D12 interface representing the resource
 
     //! maps resource to the CPU-memory. Call to this function will fail if the resource's heap does not support CPU access
     void* map(unsigned int subresource = 0U,
         size_t offset = 0U, size_t mapping_range = static_cast<size_t>(-1)) const;
 
-    void unmap(unsigned int subresource = 0U) const;    //! unmaps resource from the CPU memory
+    void unmap(unsigned int subresource = 0U, bool mapped_data_was_modified = true) const;    //! unmaps resource from the CPU memory
 
     uint64_t getGPUVirtualAddress() const;
 

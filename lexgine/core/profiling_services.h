@@ -53,8 +53,8 @@ public:
     ProfilingServiceType serviceType() const;
 
 private:
-    virtual void beginProfilingEventImpl(bool profiler_enabled) = 0;
-    virtual void endProfilingEventImpl(bool profiler_enabled) = 0;
+    virtual void beginProfilingEventImpl(bool global_profiling_enabled) = 0;
+    virtual void endProfilingEventImpl(bool global_profiling_enabled) = 0;
     virtual statistics_t const& statisticsImpl() { return m_statistics; }
 
 protected:
@@ -72,8 +72,8 @@ public:
     virtual double timingFrequency() const override { return m_frequency; }
 
 private:
-    void beginProfilingEventImpl(bool profiler_enabled) override;
-    void endProfilingEventImpl(bool profiler_enabled) override;
+    void beginProfilingEventImpl(bool global_profiling_enabled) override;
+    void endProfilingEventImpl(bool global_profiling_enabled) override;
 
 private:
     static double constexpr m_frequency{ 1e6 };
@@ -95,8 +95,8 @@ public:
         dx::d3d12::Device const& device, dx::d3d12::CommandType gpu_work_type);
 
 private:
-    void beginProfilingEventImpl(bool profiler_enabled) override;
-    void endProfilingEventImpl(bool profiler_enabled) override;
+    void beginProfilingEventImpl(bool global_profiling_enabled) override;
+    void endProfilingEventImpl(bool global_profiling_enabled) override;
     virtual statistics_t const& statisticsImpl() override;
 
 private:

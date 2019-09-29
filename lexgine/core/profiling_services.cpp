@@ -11,6 +11,7 @@
 #include "profiling_services.h"
 
 using namespace lexgine::core;
+using namespace lexgine::core::dx::d3d12;
 
 namespace {
 
@@ -83,18 +84,18 @@ CPUTaskProfilingService::CPUTaskProfilingService(GlobalSettings const& settings,
 {
 }
 
-void CPUTaskProfilingService::beginProfilingEventImpl(bool profiler_enabled)
+void CPUTaskProfilingService::beginProfilingEventImpl(bool global_profiling_enabled)
 {
-    if (profiler_enabled)
+    if (global_profiling_enabled)
     {
         PIXBeginEvent(uid(), m_name.c_str());
         m_last_tick = getCurrentTime();
     }
 }
 
-void CPUTaskProfilingService::endProfilingEventImpl(bool profiler_enabled)
+void CPUTaskProfilingService::endProfilingEventImpl(bool global_profiling_enabled)
 {
-    if (profiler_enabled)
+    if (global_profiling_enabled)
     {
         double conversion_coefficient = std::nano::num * m_frequency / std::nano::den;
 
@@ -131,9 +132,11 @@ ProfilingService::statistics_t const& GPUTaskProfilingService::statisticsImpl()
     }
     else
     {
-        uint64_t const* p_query_data = static_cast<uint64_t const*>(m_query_cache_ptr->fetchQuery(m_timestamp_query));
-        uint64_t begin = *p_query_data;
-        uint64_t end = *(p_query_data + 1);
+        auto query_data = m_query_cache_ptr->fetchQuery(m_timestamp_query);
+        
+        uint64_t begin{}, end{};
+        query_data.get(begin, 0);
+        query_data.get(end, 1);
         uint64_t tick_count = begin <= end ? end - begin : 0;
 
         if (m_spin_up_period_counter < c_statistics_package_length)
@@ -217,23 +220,23 @@ void GPUTaskProfilingService::assignCommandLists(std::list<dx::d3d12::CommandLis
 }
 
 
-void GPUTaskProfilingService::beginProfilingEventImpl(bool profiler_enabled)
+void GPUTaskProfilingService::beginProfilingEventImpl(bool global_profiling_enabled)
 {
     for (auto& cmd_list : *m_command_lists_to_patch_ptr)
     {
         cmd_list.reset();
     }
 
-    if (profiler_enabled)
+    if (global_profiling_enabled)
     {
         PIXBeginEvent(m_command_lists_to_patch_ptr->front().native().Get(), uid(), name().c_str());
         m_command_lists_to_patch_ptr->front().endQuery(m_timestamp_query);
     }
 }
 
-void GPUTaskProfilingService::endProfilingEventImpl(bool profiler_enabled)
+void GPUTaskProfilingService::endProfilingEventImpl(bool global_profiling_enabled)
 {
-    if (profiler_enabled)
+    if (global_profiling_enabled)
     {
         m_command_lists_to_patch_ptr->back().endQuery(m_timestamp_query);
         PIXEndEvent(m_command_lists_to_patch_ptr->back().native().Get());

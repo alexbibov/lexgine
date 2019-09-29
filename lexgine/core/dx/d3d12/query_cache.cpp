@@ -65,20 +65,42 @@ size_t getRequiredStoragePerQuery(uint8_t heap_id)
 
 }
 
+
+QueryData::QueryData(CommittedResource const& query_resolve_buffer, size_t data_offset, size_t data_range, 
+    std::atomic_bool& checker)
+    : m_query_resolve_buffer{ query_resolve_buffer }
+    , m_checker{ checker }
+{
+    m_mapped_addr = query_resolve_buffer.map(0, data_offset, data_range);
+    m_checker.store(true, std::memory_order_release);
+}
+
+QueryData::QueryData(QueryData&& other) noexcept
+    : m_query_resolve_buffer{ other.m_query_resolve_buffer }
+    , m_checker{ other.m_checker }
+    , m_mapped_addr{ other.m_mapped_addr }
+{
+    other.m_mapped_addr = nullptr;
+}
+
+QueryData::~QueryData()
+{
+    if (m_mapped_addr)
+    {
+        m_query_resolve_buffer.unmap(0, false);
+        m_checker.store(false, std::memory_order_release);
+    }
+}
+
+
 QueryCache::QueryCache(GlobalSettings const& settings, Device& device)
     : m_settings{ settings }
     , m_device{ device }
+    , m_frame_progress_tracker{ device.frameProgressTracker() }
 {
     static_assert(static_cast<uint8_t>(QueryHeapType::count) == c_query_heap_count);
     static_assert(c_query_heap_count + 4 == c_query_type_count);
 }
-
-QueryCache::~QueryCache()
-{
-    if (m_query_resolve_buffer)
-        m_query_resolve_buffer->unmap();
-}
-
 
 QueryHandle QueryCache::registerOcclusionQuery(bool is_binary_occlusion, uint32_t query_count/* = 1*/)
 {
@@ -127,13 +149,13 @@ QueryHandle QueryCache::registerStreamOutputQuery(uint8_t stream_output_id, uint
     return rv;
 }
 
-void const* QueryCache::fetchQuery(QueryHandle const& query_handle) const
+QueryData QueryCache::fetchQuery(QueryHandle const& query_handle) const
 {
-    size_t offset = getHeapSegmentOffset(query_handle.heap_id);
+    uint64_t frame_id = m_frame_progress_tracker.lastCompletedFrameIndex() % m_settings.getMaxFramesInFlight();
+    size_t offset = frame_id * m_per_frame_resolve_buffer_capacity + getHeapSegmentOffset(query_handle.heap_id);
     size_t stride = getRequiredStoragePerQuery(query_handle.heap_id);
 
     auto& maps = query_heap_type_to_capacity_cache_map[query_handle.heap_id];
-
     switch (query_handle.query_type)
     {
     case D3D12_QUERY_TYPE_OCCLUSION:
@@ -160,8 +182,8 @@ void const* QueryCache::fetchQuery(QueryHandle const& query_handle) const
     default:
         __assume(0);
     }
-
-    return static_cast<char const*>(m_query_resolve_buffer_mapped_addr) + offset;
+    
+    return QueryData{ *m_query_resolve_buffer, offset, stride * query_handle.query_count, m_resolve_buffer_mapped };
 }
   
 void QueryCache::initQueryCache()
@@ -183,9 +205,8 @@ void QueryCache::initQueryCache()
         }
     }
 
-    size_t query_buffer_required_capacity{ 
-        misc::align(getHeapSegmentOffset(c_query_heap_count) * m_settings.getMaxFramesInFlight(), 256U) 
-    };
+    m_per_frame_resolve_buffer_capacity = misc::align(getHeapSegmentOffset(c_query_heap_count), 256U);
+    size_t query_buffer_required_capacity = m_per_frame_resolve_buffer_capacity * m_settings.getMaxFramesInFlight();
     bool need_reinitialize_query_resolve_buffer = m_query_resolve_buffer
         ? m_query_resolve_buffer->descriptor().width < query_buffer_required_capacity
         : true;
@@ -195,12 +216,14 @@ void QueryCache::initQueryCache()
         m_query_resolve_buffer.reset(new CommittedResource{ m_device, ResourceState::base_values::copy_destination,
             misc::makeEmptyOptional<ResourceOptimizedClearValue>(), desc, AbstractHeapType::readback,
             HeapCreationFlags::base_values::allow_all });
-        m_query_resolve_buffer_mapped_addr = m_query_resolve_buffer->map(0);
+        m_query_resolve_buffer->setStringName("query_resolve_buffer");
     }
 }
 
 void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
 {
+    if (!m_query_resolve_buffer) return;
+
     auto native_command_list = cmd_list.native();
     for (uint32_t heap_id = 0; heap_id < c_query_heap_count; ++heap_id)
     {
@@ -208,7 +231,8 @@ void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
         if(!native_query_heap) continue;
 
         QueryHeapType heap_type = static_cast<QueryHeapType>(heap_id);
-        size_t resolve_destination_base_offset = getHeapSegmentOffset(heap_id);
+        size_t resolve_destination_base_offset = getHeapSegmentOffset(heap_id) +
+            m_per_frame_resolve_buffer_capacity * (m_frame_progress_tracker.currentFrameIndex() % m_settings.getMaxFramesInFlight());
 
         switch (heap_type)
         {
@@ -219,11 +243,11 @@ void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
             uint32_t q1_offset = m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][1]];
 
             native_command_list->ResolveQueryData(native_query_heap, native_query_type, 0, q0_offset,
-                m_query_resolve_buffer->native().Get(), getHeapSegmentOffset(heap_id));
+                m_query_resolve_buffer->native().Get(), resolve_destination_base_offset);
 
             native_command_list->ResolveQueryData(native_query_heap, static_cast<D3D12_QUERY_TYPE>(native_query_type + 1), static_cast<UINT>(q0_offset),
                 static_cast<UINT>(q1_offset), m_query_resolve_buffer->native().Get(), 
-                getHeapSegmentOffset(heap_id) + q0_offset * getRequiredStoragePerQuery(heap_id));
+                resolve_destination_base_offset + q0_offset * getRequiredStoragePerQuery(heap_id));
             break;
         }
 
@@ -231,13 +255,13 @@ void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
         case QueryHeapType::copy_queue_timestamp:
             native_command_list->ResolveQueryData(native_query_heap, D3D12_QUERY_TYPE_TIMESTAMP, 0,
                 m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][0]], m_query_resolve_buffer->native().Get(),
-                getHeapSegmentOffset(heap_id));
+                resolve_destination_base_offset);
             break;
         
         case QueryHeapType::pipeline_statistics:
             native_command_list->ResolveQueryData(native_query_heap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS, 0,
                 m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][0]], m_query_resolve_buffer->native().Get(),
-                getHeapSegmentOffset(heap_id));
+                resolve_destination_base_offset);
             break;
 
         case QueryHeapType::so_statistics:
@@ -250,7 +274,7 @@ void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
                 UINT num_queries = static_cast<UINT>(m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][i]]);
                 native_command_list->ResolveQueryData(native_query_heap, native_query_type, start_query_index,
                     num_queries, m_query_resolve_buffer->native().Get(),
-                    getHeapSegmentOffset(heap_id) + start_query_index * getRequiredStoragePerQuery(heap_id));
+                    resolve_destination_base_offset + start_query_index * getRequiredStoragePerQuery(heap_id));
                 start_query_index += num_queries;
             }
             break;

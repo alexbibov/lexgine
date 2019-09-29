@@ -17,12 +17,14 @@ std::shared_ptr<GpuProfilingQueriesFlushTask> GpuProfilingQueriesFlushTask::crea
 
 bool GpuProfilingQueriesFlushTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    //m_cmd_list_ptr->device().queryCache()->writeFlushCommandList(*m_cmd_list_ptr);
+    m_cmd_list_ptr->reset();
+    m_cmd_list_ptr->device().queryCache()->writeFlushCommandList(*m_cmd_list_ptr);
+    m_cmd_list_ptr->close();
     return true;
 }
 
 GpuProfilingQueriesFlushTask::GpuProfilingQueriesFlushTask(Globals& globals)
-    : RenderingWork{ globals, "Flush GPU profiling queries", CommandType::direct }
+    : RenderingWork{ globals, "Flush GPU profiling queries", CommandType::direct, false }
     , m_cmd_list_ptr{ addCommandList() }
 {
 

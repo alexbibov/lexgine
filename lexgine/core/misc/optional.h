@@ -11,6 +11,9 @@ template<typename T>
 class Optional final
 {
 public:
+    using value_type = T;
+
+public:
     Optional() noexcept : m_is_valid{ false } {}    //! initializes invalidated wrapper
 
     //! initializes wrapper containing provided value

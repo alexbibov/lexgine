@@ -68,18 +68,27 @@ RenderingTasks::RenderingTasks(Globals& globals)
     m_test_rendering_task_build_cmd_list = RenderingTaskFactory::create<TestRenderingTask>(m_globals, m_basic_rendering_services);
     m_ui_draw_build_cmd_list = RenderingTaskFactory::create<UIDrawTask>(globals, m_basic_rendering_services);
     m_gpu_profiling_queries_flush_build_cmd_list = RenderingTaskFactory::create<GpuProfilingQueriesFlushTask>(globals);
-    m_profiler_ui_builder = RenderingTaskFactory::create<Profiler>(globals, m_task_graph);
-    m_ui_draw_build_cmd_list->addUIProvider(m_profiler_ui_builder);
+    m_profiler = RenderingTaskFactory::create<Profiler>(globals, m_task_graph);
+    m_ui_draw_build_cmd_list->addUIProvider(m_profiler);
 
     m_post_rendering_gpu_tasks = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device,
         "GPU draw tasks", m_basic_rendering_services);
     m_post_rendering_gpu_tasks->addSource(*m_test_rendering_task_build_cmd_list);
     m_post_rendering_gpu_tasks->addSource(*m_ui_draw_build_cmd_list);
 
-    m_gpu_profiling_queries_flush_task = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device,
+    m_gpu_profiling_queries_flush_task = RenderingTaskFactory::create<GpuWorkExecutionTaskWithExtraChecks>(m_device,
         "Flush profiling events", m_basic_rendering_services, false);
-    m_gpu_profiling_queries_flush_task->addSource(*m_gpu_profiling_queries_flush_build_cmd_list);
 
+    m_gpu_profiling_queries_flush_task->addSource(*m_gpu_profiling_queries_flush_build_cmd_list);
+    m_gpu_profiling_queries_flush_task->injectCheck(
+        [this]()
+        {
+            if (m_device.queryCache()->isResolveBufferStillMapped())
+            {
+                OutputDebugStringA("resolve buffer is still mapped\n");
+            }
+        }
+    );
 
     m_task_graph.setRootNodes({
         ROOT_NODE_CAST(m_test_rendering_task_build_cmd_list.get()),
