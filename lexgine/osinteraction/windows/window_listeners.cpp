@@ -370,7 +370,10 @@ int64_t ClientAreaUpdateListener::process_message(uint64_t message, uint64_t p_w
     }
     else
     {
+        PAINTSTRUCT ps{};
+        BeginPaint(hWnd, &ps);
         success = paint(rect);
+        EndPaint(hWnd, &ps);
     }
 
     return static_cast<uint64_t>(success);

@@ -9,6 +9,7 @@
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/dx/dxgi/hw_adapter_enumerator.h"
 #include "lexgine/core/dx/dxcompilation/dx_compiler_proxy.h"
+#include "debug_interface.h"
 
 namespace lexgine::core::dx::d3d12 {
 
@@ -18,19 +19,20 @@ struct UploadHeapPartition
     size_t size;
 };
 
+
+
 //! Used to create and encapsulate reused Direct3D resources
 class DxResourceFactory final
 {
 public:
     DxResourceFactory(GlobalSettings const& global_settings,
-        bool enable_debug_mode,
+        bool enable_debug_mode, GpuBasedValidationSettings const& gpu_based_validation_settings,
         dxgi::HwAdapterEnumerator::DxgiGpuPreference enumeration_preference);
 
     ~DxResourceFactory();
 
     dxgi::HwAdapterEnumerator const& hardwareAdapterEnumerator() const;
     dxcompilation::DXCompilerProxy& shaderModel6xDxCompilerProxy();
-    DebugInterface const* debugInterface() const;
 
     DescriptorHeap& retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id);
     Heap& retrieveUploadHeap(Device const& device);
@@ -61,7 +63,6 @@ private:
 
 private:
     GlobalSettings const& m_global_settings;
-    dx::d3d12::DebugInterface const* m_debug_interface;
     dxgi::HwAdapterEnumerator m_hw_adapter_enumerator;
     dxcompilation::DXCompilerProxy m_dxc_proxy;
     

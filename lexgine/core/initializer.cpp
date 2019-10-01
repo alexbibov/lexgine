@@ -152,7 +152,8 @@ Initializer::Initializer(EngineSettings const& settings)
     builder.defineGlobalSettings(*m_global_settings);
 
     // Initialize resource factory
-    m_resource_factory.reset(new dx::d3d12::DxResourceFactory{ *m_global_settings, settings.debug_mode, settings.adapter_enumeration_preference });
+    m_resource_factory.reset(new dx::d3d12::DxResourceFactory{ *m_global_settings, settings.debug_mode, settings.gpu_based_validation_settings,
+        settings.adapter_enumeration_preference });
     builder.registerDxResourceFactory(*m_resource_factory);
 
     // Initialize caches

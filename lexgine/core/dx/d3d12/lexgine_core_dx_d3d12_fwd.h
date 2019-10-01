@@ -6,6 +6,8 @@
 
 namespace lexgine::core::dx::d3d12 {
 
+class DebugInterface;
+
 class CommandAllocatorRing;
 class CommandList;
 class CommandQueue;

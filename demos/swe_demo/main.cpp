@@ -30,6 +30,8 @@ EngineSettings createEngineSettings()
     settings.logging_output_path = "";
     settings.log_name = "swe_demo.log";
 
+    settings.gpu_based_validation_settings.enableGpuBasedValidation = false;
+
     return settings;
 }
 
@@ -41,7 +43,7 @@ SwapChainDescriptor createSwapChainSettings()
     swap_chain_desc.scaling = SwapChainScaling::none;
     swap_chain_desc.stereo = false;
     swap_chain_desc.windowed = true;
-    swap_chain_desc.back_buffer_count = 2;
+    swap_chain_desc.back_buffer_count = 3;
     swap_chain_desc.enable_vsync = false;
     return swap_chain_desc;
 }

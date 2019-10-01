@@ -140,7 +140,7 @@ void* Resource::map(unsigned int subresource/* = 0U */,
     uint64_t total_resource_size_in_bytes{ 0 };
     native_device->GetCopyableFootprints(&desc, subresource, 1, 0UI64, nullptr, nullptr, nullptr, &total_resource_size_in_bytes);
 
-    D3D12_RANGE read_range{ offset, (std::min<uint64_t>)(total_resource_size_in_bytes, mapping_range) };
+    D3D12_RANGE read_range{ offset, offset + (std::min<uint64_t>)(total_resource_size_in_bytes - offset, mapping_range) };
     void* rv{ nullptr };
     LEXGINE_THROW_ERROR_IF_FAILED(this,
         m_resource->Map(static_cast<UINT>(subresource), &read_range, &rv),

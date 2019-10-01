@@ -25,7 +25,7 @@ bool isWARPAdapterCurrentlySelected(Globals const& globals)
 bool isDebugModeEnabled(Globals const& globals)
 {
     DxResourceFactory const& dx_resource_factory_ref = *globals.get<DxResourceFactory>();
-    return dx_resource_factory_ref.debugInterface() != nullptr;
+    return DebugInterface::retrieve() != nullptr;
 }
 
 }

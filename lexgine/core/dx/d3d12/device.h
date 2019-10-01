@@ -211,10 +211,11 @@ public:
     ~Device();
 
 private:
-    Device(ComPtr<ID3D12Device> const& native_device, lexgine::core::GlobalSettings const& global_settings);
+    Device(ComPtr<ID3D12Device6> const& native_device, lexgine::core::GlobalSettings const& global_settings);
 
 private:
-    ComPtr<ID3D12Device> m_device;    //!< encapsulated pointer to Direct3D12 device interface
+    ComPtr<ID3D12Device6> m_device;    //!< encapsulated pointer to Direct3D12 device interface
+    ComPtr<ID3D12DebugDevice2> m_debug_device;    //!< interface used by GPU based validation
     RootSignatureCache m_rs_cache;    //!< cached root signatures
 
     FrameProgressTracker m_frame_progress_tracker;
@@ -233,7 +234,7 @@ template<> class DeviceAttorney<dxgi::HwAdapter>
 
 private:
 
-    static std::unique_ptr<Device> makeDevice(ComPtr<ID3D12Device> const& native_device_interface, lexgine::core::GlobalSettings const& global_settings)
+    static std::unique_ptr<Device> makeDevice(ComPtr<ID3D12Device6> const& native_device_interface, lexgine::core::GlobalSettings const& global_settings)
     {
         return std::unique_ptr<Device>{new Device{ native_device_interface, global_settings }};
     }

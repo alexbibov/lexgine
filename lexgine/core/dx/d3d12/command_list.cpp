@@ -534,7 +534,7 @@ void CommandList::setRootUnorderedAccessView(uint32_t root_signature_slot,
 void CommandList::beginQuery(QueryHandle const& query_handle) const
 {
     m_command_list->BeginQuery(QueryCacheAttorney<CommandList>::getNativeQueryHeap(*device().queryCache(), query_handle.heap_id),
-        query_handle.query_type, query_handle.query_id);
+        query_handle.query_type, query_handle.query_id + query_handle.offset);
 }
 
 void CommandList::endQuery(QueryHandle const& query_handle) const
