@@ -13,16 +13,16 @@
 
 #include "lexgine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h"
 
-
+#include "lexgine/core/dx/d3d12/debug_interface.h"
 #include "lexgine/core/dx/dxgi/swap_chain.h"
 
-namespace lexgine {
-namespace core {
+namespace lexgine::core {
 
 
 struct EngineSettings
 {
     bool debug_mode;
+    dx::d3d12::GpuBasedValidationSettings gpu_based_validation_settings;
     bool enable_profiling;
     dx::dxgi::HwAdapterEnumerator::DxgiGpuPreference adapter_enumeration_preference;
     std::string global_lookup_prefix;
@@ -86,7 +86,6 @@ private:
     std::unique_ptr<dx::d3d12::task_caches::RootSignatureCompilationTaskCache> m_rs_cache;
 };
 
-}
 }
 
 #endif

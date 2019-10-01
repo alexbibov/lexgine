@@ -2,7 +2,6 @@
 
 #include "lexgine/core/exception.h"
 
-#include "debug_interface.h"
 #include "device.h"
 #include "descriptor_heap.h"
 
@@ -15,11 +14,10 @@ using namespace lexgine::core::dx::d3d12;
 
 
 DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
-    bool enable_debug_mode,
+    bool enable_debug_mode, GpuBasedValidationSettings const& gpu_based_validation_settings,
     dxgi::HwAdapterEnumerator::DxgiGpuPreference enumeration_preference)
-    : m_global_settings{ global_settings }
-    , m_debug_interface{ enable_debug_mode ? DebugInterface::retrieve() : nullptr }
-    , m_hw_adapter_enumerator{ global_settings, enable_debug_mode, enumeration_preference }
+    : m_global_settings{ (enable_debug_mode ? DebugInterface::create(gpu_based_validation_settings) : nullptr, global_settings) }
+    , m_hw_adapter_enumerator{ global_settings, enumeration_preference }
     , m_dxc_proxy(m_global_settings)
 {
     m_hw_adapter_enumerator.setStringName("Hardware adapter enumerator");
@@ -73,8 +71,7 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
 
 DxResourceFactory::~DxResourceFactory()
 {
-    if (m_debug_interface)
-        m_debug_interface->shutdown();
+    DebugInterface::shutdown();
 }
 
 dxgi::HwAdapterEnumerator const& DxResourceFactory::hardwareAdapterEnumerator() const
@@ -85,11 +82,6 @@ dxgi::HwAdapterEnumerator const& DxResourceFactory::hardwareAdapterEnumerator() 
 dxcompilation::DXCompilerProxy& DxResourceFactory::shaderModel6xDxCompilerProxy()
 {
     return m_dxc_proxy;
-}
-
-DebugInterface const* lexgine::core::dx::d3d12::DxResourceFactory::debugInterface() const
-{
-    return m_debug_interface;
 }
 
 DescriptorHeap& DxResourceFactory::retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id)

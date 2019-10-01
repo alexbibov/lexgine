@@ -82,6 +82,9 @@ public:
     //! Resizes the swap chain 
     void resizeBuffers(math::Vector2u const& new_dimensions);
 
+    //! Checks if the swap chain is in idle state
+    bool isIdle() const { return m_swapChainIsIdle; }
+
 private:
     SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory, 
         d3d12::Device& device, 
@@ -96,6 +99,7 @@ private:
     d3d12::CommandQueue const& m_default_command_queue;    //!< graphics command queue associated with the swap chain
     SwapChainDescriptor m_descriptor;    //!< Descriptor of the swap chain
     ComPtr<IDXGISwapChain4> m_dxgi_swap_chain;   //!< DXGI interface representing the swap chain
+    mutable bool m_swapChainIsIdle{ false };    //!< determines if swap chain is in idle state
 };
 
 

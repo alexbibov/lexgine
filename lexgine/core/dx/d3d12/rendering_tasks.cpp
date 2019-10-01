@@ -168,7 +168,8 @@ void RenderingTasks::render(RenderingTarget& rendering_target,
 
     {
         // End frame
-        FrameProgressTrackerAttorney<RenderingTasks>::signalGPUEndFrame(m_frame_progress_tracker, m_device.defaultCommandQueue());
+        FrameProgressTrackerAttorney<RenderingTasks>::signalGPUEndFrame(m_frame_progress_tracker, 
+            m_device.defaultCommandQueue());
         FrameProgressTrackerAttorney<RenderingTasks>::signalCPUEndFrame(m_frame_progress_tracker);
     }
 }

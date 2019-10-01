@@ -14,7 +14,7 @@ using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
 
-Device::Device(ComPtr<ID3D12Device> const& device, lexgine::core::GlobalSettings const& global_settings) :
+Device::Device(ComPtr<ID3D12Device6> const& device, lexgine::core::GlobalSettings const& global_settings) :
     m_device{ device }
     , m_frame_progress_tracker{ *this }
     , m_query_cache{ new QueryCache{ global_settings, *this } }
@@ -26,6 +26,16 @@ Device::Device(ComPtr<ID3D12Device> const& device, lexgine::core::GlobalSettings
     m_default_command_queue.setStringName("default_command_queue");
     m_async_command_queue.setStringName("async_command_queue");
     m_copy_command_queue.setStringName("copy_command_queue");
+
+    DebugInterface const* p_debug_interface = DebugInterface::retrieve();
+    if (p_debug_interface)
+    {
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->QueryInterface(IID_PPV_ARGS(&m_debug_device)),
+            S_OK
+        );
+    }
 }
 
 FeatureD3D12Options Device::queryFeatureD3D12Options() const

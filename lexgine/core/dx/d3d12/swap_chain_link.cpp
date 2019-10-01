@@ -42,7 +42,7 @@ SwapChainLink::SwapChainLink(SwapChainLink&& other)
     , m_depth_buffer_native_format{ other.m_depth_buffer_native_format }
     , m_depth_optimized_clear_value{ std::move(other.m_depth_optimized_clear_value) }
     , m_targets{ std::move(other.m_targets) }
-, m_presenter{ [this](RenderingTarget const&) {m_linked_swap_chain.present(); } }
+, m_presenter{ [this](RenderingTarget const&) { m_linked_swap_chain.present(); } }
 {
 
 }
@@ -67,7 +67,11 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 
 void SwapChainLink::render()
 {
-    if (!m_suspend_rendering && m_linked_rendering_tasks_ptr)
+    if (m_linked_swap_chain.isIdle()) {
+
+        m_linked_swap_chain.present();    // check if we should exit idle presentation state
+
+    } else if (!m_suspend_rendering && m_linked_rendering_tasks_ptr)
     {
         uint32_t current_back_buffer_index = m_linked_swap_chain.getCurrentBackBufferIndex();
         RenderingTarget& target = m_targets[current_back_buffer_index];
@@ -84,7 +88,6 @@ void SwapChainLink::render()
 
         m_linked_rendering_tasks_ptr->render(target, m_presenter);
     }
-
 }
 
 bool SwapChainLink::minimized()

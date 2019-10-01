@@ -118,7 +118,7 @@ private:
     //! Constructs wrapper around DXGI adapter. This is normally done only by HwAdapterEnumerator
     HwAdapter(GlobalSettings const& global_settings,
         ComPtr<IDXGIFactory6> const& adapter_factory,
-        ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode);
+        ComPtr<IDXGIAdapter4> const& adapter);
 
 private:
     GlobalSettings const& m_global_settings;
@@ -140,9 +140,9 @@ template<> class HwAdapterAttorney<HwAdapterEnumerator>
 private:
     static HwAdapter makeHwAdapter(GlobalSettings const& global_settings,
         ComPtr<IDXGIFactory6> const& adapter_factory,
-        ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode)
+        ComPtr<IDXGIAdapter4> const& adapter)
     {
-        return HwAdapter{ global_settings, adapter_factory, adapter, enable_debug_mode };
+        return HwAdapter{ global_settings, adapter_factory, adapter };
     }
 };
 
@@ -164,7 +164,6 @@ public:
 
 public:
     HwAdapterEnumerator(GlobalSettings const& global_settings,
-        bool enable_debug_mode = false, 
         DxgiGpuPreference enumeration_preference = DxgiGpuPreference::high_performance);
 
     HwAdapterEnumerator(HwAdapterEnumerator const&) = delete;
@@ -191,7 +190,6 @@ public:
 
 private:
     GlobalSettings const& m_global_settings;
-    bool m_enable_debug_mode;
     ComPtr<IDXGIFactory6> m_dxgi_factory6;
     adapter_list_type m_adapter_list;
 };

@@ -4,17 +4,18 @@
 #include "lexgine/core/misc/log.h"
 #include "lexgine/core/misc/misc.h"
 #include "lexgine/core/dx/d3d12/device.h"
+#include "lexgine/core/dx/d3d12/debug_interface.h"
 
 using namespace lexgine;
 using namespace lexgine::core;
+using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::dxgi;
 using namespace lexgine::core::misc;
 
 
 HwAdapterEnumerator::HwAdapterEnumerator(GlobalSettings const& global_settings,
-    bool enable_debug_mode, DxgiGpuPreference enumeration_preference) :
-    m_global_settings{ global_settings },
-    m_enable_debug_mode{ enable_debug_mode }
+    DxgiGpuPreference enumeration_preference) :
+    m_global_settings{ global_settings }
 {
     ComPtr<IDXGIFactory2> dxgi_factory2;
 
@@ -22,7 +23,7 @@ HwAdapterEnumerator::HwAdapterEnumerator(GlobalSettings const& global_settings,
 
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        CreateDXGIFactory2(enable_debug_mode ? DXGI_CREATE_FACTORY_DEBUG : 0, IID_PPV_ARGS(&dxgi_factory2)),
+        CreateDXGIFactory2(DebugInterface::retrieve() ? DXGI_CREATE_FACTORY_DEBUG : 0, IID_PPV_ARGS(&dxgi_factory2)),
         S_OK
     );
 
@@ -95,7 +96,7 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 
         HRESULT res;
         if ((res = D3D12CreateDevice(dxgi_adapter4.Get(), static_cast<D3D_FEATURE_LEVEL>(D3D12FeatureLevel::_11_0), __uuidof(ID3D12Device), nullptr)) == S_OK || res == S_FALSE)
-            m_adapter_list.emplace_back(HwAdapterAttorney<HwAdapterEnumerator>::makeHwAdapter(m_global_settings, m_dxgi_factory6, dxgi_adapter4, m_enable_debug_mode));
+            m_adapter_list.emplace_back(HwAdapterAttorney<HwAdapterEnumerator>::makeHwAdapter(m_global_settings, m_dxgi_factory6, dxgi_adapter4));
         else
         {
             DXGI_ADAPTER_DESC3 desc;
@@ -195,7 +196,7 @@ private:
 
 HwAdapter::HwAdapter(GlobalSettings const& global_settings,
     ComPtr<IDXGIFactory6> const& adapter_factory,
-    ComPtr<IDXGIAdapter4> const& adapter, bool enable_debug_mode) :
+    ComPtr<IDXGIAdapter4> const& adapter) :
     m_global_settings{ global_settings },
     m_dxgi_adapter{ adapter },
     m_dxgi_adapter_factory{ adapter_factory },
@@ -224,7 +225,7 @@ HwAdapter::HwAdapter(GlobalSettings const& global_settings,
 
     // attempt to create D3D12 device in order to determine feature level of the hardware and receive information regarding the memory budgets
 
-    ComPtr<ID3D12Device> d3d12_device{ nullptr };
+    ComPtr<ID3D12Device6> d3d12_device{ nullptr };
     for (auto feature_level : { std::make_pair(D3D12FeatureLevel::_12_1, "12.1"), std::make_pair(D3D12FeatureLevel::_12_0, "12.0"),
         std::make_pair(D3D12FeatureLevel::_11_1, "11.1"), std::make_pair(D3D12FeatureLevel::_11_0, "11.0") })
     {

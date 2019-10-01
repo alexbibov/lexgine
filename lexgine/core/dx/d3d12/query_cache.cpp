@@ -72,6 +72,7 @@ QueryData::QueryData(CommittedResource const& query_resolve_buffer, size_t data_
     , m_checker{ checker }
 {
     m_mapped_addr = query_resolve_buffer.map(0, data_offset, data_range);
+    m_mapped_addr = static_cast<char const*>(m_mapped_addr) + data_offset;
     m_checker.store(true, std::memory_order_release);
 }
 
@@ -151,8 +152,11 @@ QueryHandle QueryCache::registerStreamOutputQuery(uint8_t stream_output_id, uint
 
 QueryData QueryCache::fetchQuery(QueryHandle const& query_handle) const
 {
-    uint64_t frame_id = m_frame_progress_tracker.lastCompletedFrameIndex() % m_settings.getMaxFramesInFlight();
-    size_t offset = frame_id * m_per_frame_resolve_buffer_capacity + getHeapSegmentOffset(query_handle.heap_id);
+    size_t frames_in_flight = m_settings.getMaxFramesInFlight();
+    size_t current_frame_index = m_frame_progress_tracker.currentFrameIndex();
+
+    uint64_t read_frame_id = current_frame_index >= frames_in_flight ? (current_frame_index - frames_in_flight) % frames_in_flight : 0;
+    size_t offset = read_frame_id * m_per_frame_resolve_buffer_capacity + getHeapSegmentOffset(query_handle.heap_id);
     size_t stride = getRequiredStoragePerQuery(query_handle.heap_id);
 
     auto& maps = query_heap_type_to_capacity_cache_map[query_handle.heap_id];
@@ -166,17 +170,17 @@ QueryData QueryCache::fetchQuery(QueryHandle const& query_handle) const
         break;
 
     case D3D12_QUERY_TYPE_BINARY_OCCLUSION:
-        offset += (maps[1] + query_handle.query_id) * stride;
+        offset += (m_query_heap_capacities[maps[0]] + query_handle.query_id) * stride;
         break;
 
     case D3D12_QUERY_TYPE_SO_STATISTICS_STREAM3:
-        offset += (maps[2] + query_handle.query_id) * stride;
+        offset += (m_query_heap_capacities[maps[2]] + query_handle.query_id) * stride;
 
     case D3D12_QUERY_TYPE_SO_STATISTICS_STREAM2:
-        offset += (maps[1] + query_handle.query_id) * stride;
+        offset += (m_query_heap_capacities[maps[1]] + query_handle.query_id) * stride;
 
     case D3D12_QUERY_TYPE_SO_STATISTICS_STREAM1:
-        offset += (maps[0] + query_handle.query_id) * stride;
+        offset += (m_query_heap_capacities[maps[0]] + query_handle.query_id) * stride;
         break;
 
     default:

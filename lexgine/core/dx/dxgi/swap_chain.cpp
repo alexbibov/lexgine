@@ -51,7 +51,30 @@ uint32_t SwapChain::getCurrentBackBufferIndex() const
 
 void SwapChain::present() const
 {
-    LEXGINE_THROW_ERROR_IF_FAILED(this, m_dxgi_swap_chain->Present(m_descriptor.enable_vsync ? 1 : 0, 0), S_OK);
+    if(!m_swapChainIsIdle)
+    {
+        HRESULT rv = m_dxgi_swap_chain->Present(m_descriptor.enable_vsync ? 1 : 0, 0);
+
+        if (rv == DXGI_STATUS_OCCLUDED)
+        {
+            m_swapChainIsIdle = true;
+        }
+        else if (rv != S_OK)
+        {
+            std::stringstream err{};
+            err << "Present failed with error " << std::hex << rv << std::endl;
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, err.str().c_str());
+        }
+    }
+    else
+    {
+        HRESULT rv = m_dxgi_swap_chain->Present(m_descriptor.enable_vsync ? 1 : 0, DXGI_PRESENT_TEST);
+
+        if (rv == S_OK)
+        {
+            m_swapChainIsIdle = false;
+        }
+    }
 }
 
 uint32_t SwapChain::backBufferCount() const
