@@ -31,7 +31,7 @@ enum class ProfilingServiceType
 class ProfilingService
 {
 public:
-    static size_t constexpr c_statistics_package_length = 10;
+    static size_t constexpr c_statistics_package_length = dx::d3d12::QueryCache::c_statistics_package_length;
     using statistics_t = std::array<double, c_statistics_package_length>;
 
 public:

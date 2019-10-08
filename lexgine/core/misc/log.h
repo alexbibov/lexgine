@@ -9,7 +9,7 @@
 #include "datetime.h"
 #include "misc.h"
 
-namespace lexgine {namespace core {namespace misc {
+namespace lexgine::core::misc {
 
 enum class LogMessageType
 {
@@ -67,7 +67,7 @@ private:
     std::list<std::ostream*> m_out_streams;	//!< list of output streams used by the logging system
 };
 
-}}}
+}
 
 
 /*! Helper macro that outputs error message to the logger and sets the context object to erroneous state when expr

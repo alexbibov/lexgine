@@ -5,6 +5,7 @@
 #include "lexgine/core/profiling_services.h"
 #include "lexgine/core/concurrency/task_graph.h"
 #include "lexgine/core/concurrency/abstract_task.h"
+#include "lexgine/core/dx/d3d12/device.h"
 #include "lexgine/core/dx/d3d12/pix_support.h"
 #include "profiler.h"
 
@@ -30,6 +31,7 @@ ImVec4 convertPixColorMarkerToImGuiColor(uint32_t pix_color_marker)
 Profiler::Profiler(Globals const& globals, TaskGraph const& task_graph)
     : m_globals{ globals }
     , m_task_graph{ task_graph }
+    , m_query_cache{ *globals.get<Device>()->queryCache() }
     , m_show_profiler{ true }
     , m_total_times(static_cast<size_t>(ProfilingServiceType::count))
 {
@@ -65,12 +67,12 @@ double Profiler::getGPUTimePerFrame() const
 
 double Profiler::getFrameTime() const
 {
-    return (std::max)(getCPUTimePerFrame(), getGPUTimePerFrame());
+    return m_query_cache.averageFrameTime();
 }
 
 double Profiler::getFPS() const
 {
-    return 1. / getFrameTime() * 1e3;
+    return m_query_cache.averageFPS();
 }
 
 void Profiler::constructUI()

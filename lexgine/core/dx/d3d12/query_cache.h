@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <array>
 #include <mutex>
+#include <chrono>
 
 #include <wrl.h>
 #include <d3d12.h>
@@ -12,7 +13,6 @@
 #include "lexgine/core/class_names.h"
 #include "lexgine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "lexgine/core/misc/optional.h"
-
 
 
 namespace lexgine::core::dx::d3d12 {
@@ -47,38 +47,14 @@ struct QueryHandle final
     uint32_t mutable offset;
 };
 
-class QueryData final
-{
-    friend class QueryCache;
-
-public:
-    QueryData(QueryData const&) = delete;
-
-    QueryData(QueryData&& other) noexcept;
-
-    ~QueryData();
-
-    template<typename T>
-    void get(T& value, size_t index)
-    {
-        value = *(static_cast<T const*>(m_mapped_addr) + index);
-    }
-
-private:
-    QueryData(CommittedResource const& query_resolve_buffer,
-        size_t data_offset, size_t data_range, std::atomic_bool& checker);
-
-private:
-    CommittedResource const& m_query_resolve_buffer;
-    std::atomic_bool& m_checker;
-    void const* m_mapped_addr;
-};
 
 template<typename T> class QueryCacheAttorney;
 
 class QueryCache final : public NamedEntity<class_names::D3D12_QueryCache>
 {
     friend class QueryCacheAttorney<CommandList>;
+public:
+    static constexpr size_t c_statistics_package_length = 10;
 public:
     QueryCache(GlobalSettings const& settings, Device& device);
 
@@ -97,15 +73,25 @@ public:
     //! Registers new stream output query
     QueryHandle registerStreamOutputQuery(uint8_t stream_output_id, uint32_t query_count = 1);
 
-    QueryData fetchQuery(QueryHandle const& query_handle) const;
+    void const* fetchQuery(QueryHandle const& query_handle) const;
 
     //! Initializes query cache
     void initQueryCache();
 
+    //! Marks beginning of the frame
+    void markFrameBegin();
+
+    //! Marks end of frame 
+    void markFrameEnd();
+
+    //! Returns average frame time represented in milliseconds
+    float averageFrameTime() const;
+
+    //! Returns average frames per second value
+    float averageFPS() const;
+
     //! Write query flush commands into supplied command list
     void writeFlushCommandList(CommandList const& cmd_list) const;
-
-    bool isResolveBufferStillMapped() const { return m_resolve_buffer_mapped.load(std::memory_order_acquire); }
 
 private:
     static uint8_t constexpr c_query_heap_count = 5;
@@ -115,17 +101,23 @@ private:
     inline size_t getHeapQueryCount(uint8_t heap_id) const;
     inline size_t getHeapSize(uint8_t heap_id) const;
     inline size_t getHeapSegmentOffset(uint8_t heap_id) const;
-    
+    inline size_t getOldestQueryResolveBufferIndex() const;
+
 private:
-    GlobalSettings const& m_settings;    //! global engine settings
-    Device& m_device;    //! device, for which to create the query heap cache
-    FrameProgressTracker const& m_frame_progress_tracker;
+    GlobalSettings const& m_settings;    //!< global engine settings
+    Device& m_device;    //!< device, for which to create the query heap cache
+    FrameProgressTracker& m_frame_progress_tracker;
     std::array<uint32_t, c_query_type_count> m_query_heap_capacities;    //!< capacities of the query heaps
     std::array<Microsoft::WRL::ComPtr<ID3D12QueryHeap>, c_query_heap_count> m_query_heaps;    //!< cached query heaps
-    std::unique_ptr<CommittedResource> m_query_resolve_buffer;    //! resolution buffer employed by the queries
-    size_t m_per_frame_resolve_buffer_capacity;    //! resolve buffer capacity reserved for each frame
-
-    mutable std::atomic_bool m_resolve_buffer_mapped{ false };
+    std::vector<std::unique_ptr<CommittedResource>> m_query_resolve_buffers;    //!< resolution buffers employed by the queries
+    size_t m_per_frame_resolve_buffer_capacity;    //!< resolve buffer capacity reserved for each frame
+    
+    std::array<std::chrono::microseconds, c_statistics_package_length> m_frame_times;    //!< frame times measured on the CPU side
+    size_t m_frame_time_measurement_index{ 0ULL };
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_last_measured_time_point;   
+    
+    mutable std::mutex m_resolve_buffer_mapping_mutex;    //!< mutex guarding resolve buffer mapping
+    mutable void const* volatile m_query_resolve_buffer_mapped_addr{ nullptr };
 };
 
 template<> class QueryCacheAttorney<CommandList>

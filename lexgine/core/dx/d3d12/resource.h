@@ -152,7 +152,7 @@ public:
 
     //! maps resource to the CPU-memory. Call to this function will fail if the resource's heap does not support CPU access
     void* map(unsigned int subresource = 0U,
-        size_t offset = 0U, size_t mapping_range = static_cast<size_t>(-1)) const;
+        size_t read_range_offset = 0U, size_t read_range_size = static_cast<size_t>(-1)) const;
 
     void unmap(unsigned int subresource = 0U, bool mapped_data_was_modified = true) const;    //! unmaps resource from the CPU memory
 

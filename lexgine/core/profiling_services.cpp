@@ -132,12 +132,16 @@ ProfilingService::statistics_t const& GPUTaskProfilingService::statisticsImpl()
     }
     else
     {
-        auto query_data = m_query_cache_ptr->fetchQuery(m_timestamp_query);
-        
         uint64_t begin{}, end{};
-        query_data.get(begin, 0);
-        query_data.get(end, 1);
-        uint64_t tick_count = begin <= end ? end - begin : 0;
+
+        {
+            uint64_t const* query_data = static_cast<uint64_t const*>(m_query_cache_ptr->fetchQuery(m_timestamp_query));
+            begin = *query_data;
+            end = *(query_data + 1);
+        }
+
+        uint64_t tick_count = end - begin;
+
 
         if (m_spin_up_period_counter < c_statistics_package_length)
         {

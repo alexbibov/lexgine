@@ -1,5 +1,6 @@
 #include <vector>
 #include <numeric>
+#include <chrono>
 
 #include "lexgine/core/exception.h"
 #include "lexgine/core/global_settings.h"
@@ -66,38 +67,11 @@ size_t getRequiredStoragePerQuery(uint8_t heap_id)
 }
 
 
-QueryData::QueryData(CommittedResource const& query_resolve_buffer, size_t data_offset, size_t data_range, 
-    std::atomic_bool& checker)
-    : m_query_resolve_buffer{ query_resolve_buffer }
-    , m_checker{ checker }
-{
-    m_mapped_addr = query_resolve_buffer.map(0, data_offset, data_range);
-    m_mapped_addr = static_cast<char const*>(m_mapped_addr) + data_offset;
-    m_checker.store(true, std::memory_order_release);
-}
-
-QueryData::QueryData(QueryData&& other) noexcept
-    : m_query_resolve_buffer{ other.m_query_resolve_buffer }
-    , m_checker{ other.m_checker }
-    , m_mapped_addr{ other.m_mapped_addr }
-{
-    other.m_mapped_addr = nullptr;
-}
-
-QueryData::~QueryData()
-{
-    if (m_mapped_addr)
-    {
-        m_query_resolve_buffer.unmap(0, false);
-        m_checker.store(false, std::memory_order_release);
-    }
-}
-
-
 QueryCache::QueryCache(GlobalSettings const& settings, Device& device)
     : m_settings{ settings }
     , m_device{ device }
     , m_frame_progress_tracker{ device.frameProgressTracker() }
+    , m_query_resolve_buffers(settings.getMaxFramesInFlight())
 {
     static_assert(static_cast<uint8_t>(QueryHeapType::count) == c_query_heap_count);
     static_assert(c_query_heap_count + 4 == c_query_type_count);
@@ -150,14 +124,20 @@ QueryHandle QueryCache::registerStreamOutputQuery(uint8_t stream_output_id, uint
     return rv;
 }
 
-QueryData QueryCache::fetchQuery(QueryHandle const& query_handle) const
-{
-    size_t frames_in_flight = m_settings.getMaxFramesInFlight();
-    size_t current_frame_index = m_frame_progress_tracker.currentFrameIndex();
+void const* QueryCache::fetchQuery(QueryHandle const& query_handle) const
+{   
+    size_t const stride = getRequiredStoragePerQuery(query_handle.heap_id);
+    size_t offset = getHeapSegmentOffset(query_handle.heap_id);
 
-    uint64_t read_frame_id = current_frame_index >= frames_in_flight ? (current_frame_index - frames_in_flight) % frames_in_flight : 0;
-    size_t offset = read_frame_id * m_per_frame_resolve_buffer_capacity + getHeapSegmentOffset(query_handle.heap_id);
-    size_t stride = getRequiredStoragePerQuery(query_handle.heap_id);
+    // Note the following will only work on a cache-coherent system. On systems without cache-coherency,
+    // m_query_resolve_buffer_mapped_addr should be atomic
+    if (!m_query_resolve_buffer_mapped_addr && m_resolve_buffer_mapping_mutex.try_lock())
+    {
+        m_query_resolve_buffer_mapped_addr = m_query_resolve_buffers[getOldestQueryResolveBufferIndex()]->map(0);
+        m_resolve_buffer_mapping_mutex.unlock();
+    }
+    else while (!m_query_resolve_buffer_mapped_addr);
+    
 
     auto& maps = query_heap_type_to_capacity_cache_map[query_handle.heap_id];
     switch (query_handle.query_type)
@@ -187,7 +167,7 @@ QueryData QueryCache::fetchQuery(QueryHandle const& query_handle) const
         __assume(0);
     }
     
-    return QueryData{ *m_query_resolve_buffer, offset, stride * query_handle.query_count, m_resolve_buffer_mapped };
+    return static_cast<char const*>(m_query_resolve_buffer_mapped_addr) + offset;
 }
   
 void QueryCache::initQueryCache()
@@ -201,7 +181,7 @@ void QueryCache::initQueryCache()
         desc.Count = static_cast<UINT>(getHeapQueryCount(heap_id));
         desc.NodeMask = 0x1;
 
-        if(desc.Count)
+        if (desc.Count)
         {
             LEXGINE_THROW_ERROR_IF_FAILED(this,
                 m_device.native()->CreateQueryHeap(&desc, IID_PPV_ARGS(&m_query_heaps[heap_id])),
@@ -209,24 +189,83 @@ void QueryCache::initQueryCache()
         }
     }
 
+
     m_per_frame_resolve_buffer_capacity = misc::align(getHeapSegmentOffset(c_query_heap_count), 256U);
-    size_t query_buffer_required_capacity = m_per_frame_resolve_buffer_capacity * m_settings.getMaxFramesInFlight();
-    bool need_reinitialize_query_resolve_buffer = m_query_resolve_buffer
-        ? m_query_resolve_buffer->descriptor().width < query_buffer_required_capacity
-        : true;
-    if (need_reinitialize_query_resolve_buffer)
     {
-        ResourceDescriptor desc = ResourceDescriptor::CreateBuffer(query_buffer_required_capacity);
-        m_query_resolve_buffer.reset(new CommittedResource{ m_device, ResourceState::base_values::copy_destination,
-            misc::makeEmptyOptional<ResourceOptimizedClearValue>(), desc, AbstractHeapType::readback,
-            HeapCreationFlags::base_values::allow_all });
-        m_query_resolve_buffer->setStringName("query_resolve_buffer");
+        bool need_reinitialize_query_resolve_buffer{ false };
+        size_t const max_frames_in_flight{ m_settings.getMaxFramesInFlight() };
+        for (int i = 0; i < max_frames_in_flight; ++i)
+        {
+            need_reinitialize_query_resolve_buffer = need_reinitialize_query_resolve_buffer
+                || (m_query_resolve_buffers[i]
+                    ? m_query_resolve_buffers[i]->descriptor().width < m_per_frame_resolve_buffer_capacity
+                    : true);
+
+            if (need_reinitialize_query_resolve_buffer)
+            {
+                ResourceDescriptor desc = ResourceDescriptor::CreateBuffer(m_per_frame_resolve_buffer_capacity, ResourceFlags::base_values::deny_shader_resource);
+                m_query_resolve_buffers[i].reset(new CommittedResource{ m_device, ResourceState::base_values::copy_destination,
+                    misc::makeEmptyOptional<ResourceOptimizedClearValue>(), desc, AbstractHeapType::readback,
+                    HeapCreationFlags::base_values::allow_all });
+                m_query_resolve_buffers[i]->setStringName("query_resolve_buffer_frame_" + std::to_string(i));
+            }
+        }
     }
 }
 
+void QueryCache::markFrameBegin()
+{
+    FrameProgressTrackerAttorney<QueryCache>::signalCPUBeginFrame(m_frame_progress_tracker);
+    FrameProgressTrackerAttorney<QueryCache>::signalGPUBeginFrame(m_frame_progress_tracker,
+        m_device.defaultCommandQueue());
+}
+
+void QueryCache::markFrameEnd()
+{
+    FrameProgressTrackerAttorney<QueryCache>::signalGPUEndFrame(m_frame_progress_tracker,
+        m_device.defaultCommandQueue());
+    FrameProgressTrackerAttorney<QueryCache>::signalCPUEndFrame(m_frame_progress_tracker);
+
+    {
+        static bool first_call{ true };
+        if (first_call)
+        {
+            first_call = false;
+        }
+        else
+        {
+            m_frame_times[m_frame_time_measurement_index] =
+                std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now()
+                    - m_last_measured_time_point);
+            m_frame_time_measurement_index = (m_frame_time_measurement_index + 1) % c_statistics_package_length;
+        }
+
+        m_last_measured_time_point = std::chrono::high_resolution_clock::now();
+    }
+}
+
+float QueryCache::averageFrameTime() const
+{
+    return std::accumulate(m_frame_times.begin(), m_frame_times.end(), 0.f,
+        [](float current, std::chrono::microseconds const& next)
+        {
+            return current + next.count();
+        }) / static_cast<float>(c_statistics_package_length) / 1e3f;
+}
+
+float QueryCache::averageFPS() const { return 1.f / averageFrameTime() * 1e3f; }
+
 void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
 {
-    if (!m_query_resolve_buffer) return;
+    auto& oldest_query_resolve_buffer = m_query_resolve_buffers[getOldestQueryResolveBufferIndex()];
+    if (m_query_resolve_buffer_mapped_addr && oldest_query_resolve_buffer)
+    {
+        oldest_query_resolve_buffer->unmap(0, false);
+        m_query_resolve_buffer_mapped_addr = nullptr;
+    }
+
+    auto& current_query_resolve_buffer = m_query_resolve_buffers[m_frame_progress_tracker.currentFrameIndex() % m_settings.getMaxFramesInFlight()];
+    if (!current_query_resolve_buffer) return;
 
     auto native_command_list = cmd_list.native();
     for (uint32_t heap_id = 0; heap_id < c_query_heap_count; ++heap_id)
@@ -235,8 +274,7 @@ void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
         if(!native_query_heap) continue;
 
         QueryHeapType heap_type = static_cast<QueryHeapType>(heap_id);
-        size_t resolve_destination_base_offset = getHeapSegmentOffset(heap_id) +
-            m_per_frame_resolve_buffer_capacity * (m_frame_progress_tracker.currentFrameIndex() % m_settings.getMaxFramesInFlight());
+        size_t resolve_destination_base_offset = getHeapSegmentOffset(heap_id);
 
         switch (heap_type)
         {
@@ -247,10 +285,10 @@ void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
             uint32_t q1_offset = m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][1]];
 
             native_command_list->ResolveQueryData(native_query_heap, native_query_type, 0, q0_offset,
-                m_query_resolve_buffer->native().Get(), resolve_destination_base_offset);
+                current_query_resolve_buffer->native().Get(), resolve_destination_base_offset);
 
             native_command_list->ResolveQueryData(native_query_heap, static_cast<D3D12_QUERY_TYPE>(native_query_type + 1), static_cast<UINT>(q0_offset),
-                static_cast<UINT>(q1_offset), m_query_resolve_buffer->native().Get(), 
+                static_cast<UINT>(q1_offset), current_query_resolve_buffer->native().Get(),
                 resolve_destination_base_offset + q0_offset * getRequiredStoragePerQuery(heap_id));
             break;
         }
@@ -258,13 +296,13 @@ void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
         case QueryHeapType::timestamp:
         case QueryHeapType::copy_queue_timestamp:
             native_command_list->ResolveQueryData(native_query_heap, D3D12_QUERY_TYPE_TIMESTAMP, 0,
-                m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][0]], m_query_resolve_buffer->native().Get(),
+                m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][0]], current_query_resolve_buffer->native().Get(),
                 resolve_destination_base_offset);
             break;
         
         case QueryHeapType::pipeline_statistics:
             native_command_list->ResolveQueryData(native_query_heap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS, 0,
-                m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][0]], m_query_resolve_buffer->native().Get(),
+                m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][0]], current_query_resolve_buffer->native().Get(),
                 resolve_destination_base_offset);
             break;
 
@@ -277,7 +315,7 @@ void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
                 native_query_type = static_cast<D3D12_QUERY_TYPE>(native_query_type + i);
                 UINT num_queries = static_cast<UINT>(m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][i]]);
                 native_command_list->ResolveQueryData(native_query_heap, native_query_type, start_query_index,
-                    num_queries, m_query_resolve_buffer->native().Get(),
+                    num_queries, current_query_resolve_buffer->native().Get(),
                     resolve_destination_base_offset + start_query_index * getRequiredStoragePerQuery(heap_id));
                 start_query_index += num_queries;
             }
@@ -307,6 +345,14 @@ size_t QueryCache::getHeapSegmentOffset(uint8_t heap_id) const
 {
     if (heap_id == 0) return 0;
     return getHeapSize(heap_id - 1) + getHeapSegmentOffset(heap_id - 1);
+}
+
+size_t QueryCache::getOldestQueryResolveBufferIndex() const
+{
+    size_t const current_frame_idx = m_frame_progress_tracker.currentFrameIndex();
+    size_t const max_frames_in_flight = m_settings.getMaxFramesInFlight();
+    size_t const oldest_frame_idx = current_frame_idx < max_frames_in_flight ? 0 : current_frame_idx - max_frames_in_flight;
+    return oldest_frame_idx % max_frames_in_flight;
 }
 
 
