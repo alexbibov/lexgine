@@ -12,7 +12,7 @@ template<typename T> class FrameProgressTrackerAttorney;
 
 class FrameProgressTracker
 {
-    friend class FrameProgressTrackerAttorney<RenderingTasks>;
+    friend class FrameProgressTrackerAttorney<QueryCache>;
 
 public:
     FrameProgressTracker(Device& device);
@@ -35,9 +35,9 @@ private:
 };
 
 
-template<> class FrameProgressTrackerAttorney<RenderingTasks>
+template<> class FrameProgressTrackerAttorney<QueryCache>
 {
-    friend class RenderingTasks;
+    friend class QueryCache;
 
     static void signalCPUBeginFrame(FrameProgressTracker& progress_tracker)
     {

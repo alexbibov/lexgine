@@ -129,7 +129,7 @@ ComPtr<ID3D12Resource> Resource::native() const
 }
 
 void* Resource::map(unsigned int subresource/* = 0U */,
-    size_t offset/* = 0U */, size_t mapping_range/* = static_cast<size_t>(-1) */) const
+    size_t read_range_offset/* = 0U */, size_t read_range_size/* = static_cast<size_t>(-1) */) const
 {
     assert(m_resource != nullptr);
 
@@ -140,7 +140,11 @@ void* Resource::map(unsigned int subresource/* = 0U */,
     uint64_t total_resource_size_in_bytes{ 0 };
     native_device->GetCopyableFootprints(&desc, subresource, 1, 0UI64, nullptr, nullptr, nullptr, &total_resource_size_in_bytes);
 
-    D3D12_RANGE read_range{ offset, offset + (std::min<uint64_t>)(total_resource_size_in_bytes - offset, mapping_range) };
+    D3D12_RANGE read_range{ 
+        read_range_offset, 
+        read_range_offset + (std::min<uint64_t>)(total_resource_size_in_bytes - read_range_offset, read_range_size) 
+    };
+
     void* rv{ nullptr };
     LEXGINE_THROW_ERROR_IF_FAILED(this,
         m_resource->Map(static_cast<UINT>(subresource), &read_range, &rv),

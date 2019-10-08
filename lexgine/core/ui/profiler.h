@@ -47,6 +47,7 @@ private:
 private:
     Globals const& m_globals;
     concurrency::TaskGraph const& m_task_graph;
+    dx::d3d12::QueryCache const& m_query_cache;
     bool m_show_profiler;
     std::unordered_map<concurrency::AbstractTask*, std::vector<ProfilingSummary>> m_profiling_summaries;
     misc::StaticVector<double, static_cast<size_t>(ProfilingServiceType::count)> m_total_times;

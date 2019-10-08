@@ -76,29 +76,20 @@ RenderingTasks::RenderingTasks(Globals& globals)
     m_post_rendering_gpu_tasks->addSource(*m_test_rendering_task_build_cmd_list);
     m_post_rendering_gpu_tasks->addSource(*m_ui_draw_build_cmd_list);
 
-    m_gpu_profiling_queries_flush_task = RenderingTaskFactory::create<GpuWorkExecutionTaskWithExtraChecks>(m_device,
+    m_gpu_profiling_queries_flush_task = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device,
         "Flush profiling events", m_basic_rendering_services, false);
 
     m_gpu_profiling_queries_flush_task->addSource(*m_gpu_profiling_queries_flush_build_cmd_list);
-    m_gpu_profiling_queries_flush_task->injectCheck(
-        [this]()
-        {
-            if (m_device.queryCache()->isResolveBufferStillMapped())
-            {
-                OutputDebugStringA("resolve buffer is still mapped\n");
-            }
-        }
-    );
 
     m_task_graph.setRootNodes({
         ROOT_NODE_CAST(m_test_rendering_task_build_cmd_list.get()),
-        ROOT_NODE_CAST(m_ui_draw_build_cmd_list.get()),
-        ROOT_NODE_CAST(m_gpu_profiling_queries_flush_build_cmd_list.get())
+        ROOT_NODE_CAST(m_ui_draw_build_cmd_list.get())
         });
     m_test_rendering_task_build_cmd_list->addDependent(*m_post_rendering_gpu_tasks);
     m_ui_draw_build_cmd_list->addDependent(*m_post_rendering_gpu_tasks);
-    m_gpu_profiling_queries_flush_build_cmd_list->addDependent(*m_gpu_profiling_queries_flush_task.get());
-    m_post_rendering_gpu_tasks->addDependent(*m_gpu_profiling_queries_flush_task.get());
+    m_ui_draw_build_cmd_list->addDependent(*m_gpu_profiling_queries_flush_build_cmd_list);
+    m_gpu_profiling_queries_flush_build_cmd_list->addDependent(*m_gpu_profiling_queries_flush_task);
+    m_post_rendering_gpu_tasks->addDependent(*m_gpu_profiling_queries_flush_task);
 
     ProfilingService::initializeProfilingServices(globals);
 }
@@ -141,20 +132,14 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
         m_test_rendering_task_build_cmd_list->updateRenderingConfiguration(flags, m_rendering_configuration);
         m_ui_draw_build_cmd_list->updateRenderingConfiguration(flags, m_rendering_configuration);
 
-        m_task_sink.start();
+        m_task_sink.start(); 
     }
 }
 
 void RenderingTasks::render(RenderingTarget& rendering_target,
     std::function<void(RenderingTarget const&)> const& presentation_routine)
 {
-    {
-        // Begin frame
-
-        FrameProgressTrackerAttorney<RenderingTasks>::signalCPUBeginFrame(m_frame_progress_tracker);
-        FrameProgressTrackerAttorney<RenderingTasks>::signalGPUBeginFrame(m_frame_progress_tracker,
-            m_device.defaultCommandQueue());
-    }
+    m_device.queryCache()->markFrameBegin();
 
     {
         // Submit and present frame
@@ -166,12 +151,7 @@ void RenderingTasks::render(RenderingTarget& rendering_target,
         presentation_routine(rendering_target);
     }
 
-    {
-        // End frame
-        FrameProgressTrackerAttorney<RenderingTasks>::signalGPUEndFrame(m_frame_progress_tracker, 
-            m_device.defaultCommandQueue());
-        FrameProgressTrackerAttorney<RenderingTasks>::signalCPUEndFrame(m_frame_progress_tracker);
-    }
+    m_device.queryCache()->markFrameEnd();
 }
 
 void RenderingTasks::flush()
