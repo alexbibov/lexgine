@@ -97,6 +97,8 @@ private:
     static uint8_t constexpr c_query_heap_count = 5;
     static uint8_t constexpr c_query_type_count = 9;
 
+    using frame_time_resolution = std::chrono::nanoseconds;
+
 private:
     inline size_t getHeapQueryCount(uint8_t heap_id) const;
     inline size_t getHeapSize(uint8_t heap_id) const;
@@ -112,7 +114,7 @@ private:
     std::vector<std::unique_ptr<CommittedResource>> m_query_resolve_buffers;    //!< resolution buffers employed by the queries
     size_t m_per_frame_resolve_buffer_capacity;    //!< resolve buffer capacity reserved for each frame
     
-    std::array<std::chrono::microseconds, c_statistics_package_length> m_frame_times;    //!< frame times measured on the CPU side
+    std::array<frame_time_resolution, c_statistics_package_length> m_frame_times;    //!< frame times measured on the CPU side
     size_t m_frame_time_measurement_index{ 0ULL };
     std::chrono::time_point<std::chrono::high_resolution_clock> m_last_measured_time_point;   
     

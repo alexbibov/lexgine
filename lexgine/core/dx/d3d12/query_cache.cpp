@@ -235,7 +235,7 @@ void QueryCache::markFrameEnd()
         else
         {
             m_frame_times[m_frame_time_measurement_index] =
-                std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now()
+                std::chrono::duration_cast<frame_time_resolution>(std::chrono::high_resolution_clock::now()
                     - m_last_measured_time_point);
             m_frame_time_measurement_index = (m_frame_time_measurement_index + 1) % c_statistics_package_length;
         }
@@ -246,11 +246,14 @@ void QueryCache::markFrameEnd()
 
 float QueryCache::averageFrameTime() const
 {
+    static float constexpr to_milliseconds_conversion_coefficient = (static_cast<float>(frame_time_resolution::period::num) / frame_time_resolution::period::den)
+        * (static_cast<float>(std::milli::den) / std::milli::num);
+
     return std::accumulate(m_frame_times.begin(), m_frame_times.end(), 0.f,
-        [](float current, std::chrono::microseconds const& next)
+        [](float current, frame_time_resolution const& next)
         {
-            return current + next.count();
-        }) / static_cast<float>(c_statistics_package_length) / 1e3f;
+            return current + next.count() / static_cast<float>(c_statistics_package_length);
+        }) * to_milliseconds_conversion_coefficient;
 }
 
 float QueryCache::averageFPS() const { return 1.f / averageFrameTime() * 1e3f; }
