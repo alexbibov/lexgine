@@ -121,6 +121,7 @@ QueryHandle QueryCache::registerStreamOutputQuery(uint8_t stream_output_id, uint
     auto& current_capacity = m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][stream_output_id]];
     QueryHandle rv{ heap_id, current_capacity, query_count, static_cast<D3D12_QUERY_TYPE>(D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0 + stream_output_id) };
     current_capacity += query_count;
+    
     return rv;
 }
 
