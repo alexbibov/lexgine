@@ -76,6 +76,12 @@
     <Filter Include="core\ui">
       <UniqueIdentifier>{20002003-3e14-4de0-8f83-815e99e73467}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd_party\tinygltf">
+      <UniqueIdentifier>{b80d34c2-c5bb-43aa-9855-5425a51b9fb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="geometry">
+      <UniqueIdentifier>{4d1d19dd-1b11-46b5-85c3-064098c2a01a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="osinteraction\keyboard.h">
@@ -503,6 +509,15 @@
     </ClInclude>
     <ClInclude Include="core\dx\d3d12\common.h">
       <Filter>core\dx\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\tinygltf\stb_image.h">
+      <Filter>3rd_party\tinygltf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\tinygltf\stb_image_write.h">
+      <Filter>3rd_party\tinygltf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\3rd_party\tinygltf\tiny_gltf.h">
+      <Filter>3rd_party\tinygltf</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
