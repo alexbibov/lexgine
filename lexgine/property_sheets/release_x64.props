@@ -11,7 +11,7 @@
       <AdditionalDependencies>zlib.lib;lua.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <Link>
-      <AdditionalDependencies>d3dcompiler.lib;dxgi.lib;d3d12.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3dcompiler.lib;dxgi.lib;d3d12.lib;glm_static.lib%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>XCOPY $(SolutionDir)3rd_party\dxcompiler\bin\dxcompiler.dll $(TargetDir) /F /Y

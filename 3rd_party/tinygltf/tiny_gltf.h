@@ -1626,7 +1626,7 @@ class TinyGLTF {
 
 #ifndef TINYGLTF_NO_INCLUDE_JSON
 #ifndef TINYGLTF_USE_RAPIDJSON
-#include "json.hpp"
+#include "3rd_party/json/json.hpp"
 #else
 #include "document.h"
 #include "prettywriter.h"

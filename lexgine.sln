@@ -35,6 +35,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3rd_party", "3rd_party", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "texture_converter", "texture_converter\texture_converter.vcxproj", "{1E855A00-2DFE-47AE-A890-2FD887CBBC60}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glm_static", "3rd_party\glm\glm_static.vcxproj", "{82711AE2-0EEF-3B09-B6BD-3BE84368AE1E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -99,6 +101,12 @@ Global
 		{1E855A00-2DFE-47AE-A890-2FD887CBBC60}.Release|x64.Build.0 = Release|x64
 		{1E855A00-2DFE-47AE-A890-2FD887CBBC60}.Release|x86.ActiveCfg = Release|Win32
 		{1E855A00-2DFE-47AE-A890-2FD887CBBC60}.Release|x86.Build.0 = Release|Win32
+		{82711AE2-0EEF-3B09-B6BD-3BE84368AE1E}.Debug|x64.ActiveCfg = Debug|x64
+		{82711AE2-0EEF-3B09-B6BD-3BE84368AE1E}.Debug|x64.Build.0 = Debug|x64
+		{82711AE2-0EEF-3B09-B6BD-3BE84368AE1E}.Debug|x86.ActiveCfg = Debug|x64
+		{82711AE2-0EEF-3B09-B6BD-3BE84368AE1E}.Release|x64.ActiveCfg = Release|x64
+		{82711AE2-0EEF-3B09-B6BD-3BE84368AE1E}.Release|x64.Build.0 = Release|x64
+		{82711AE2-0EEF-3B09-B6BD-3BE84368AE1E}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -109,6 +117,7 @@ Global
 		{B5A17086-98F8-4BA8-8DA9-352399BCA4A5} = {D6B5F646-9963-45EB-BEB9-A49106F00646}
 		{36F390F1-9DBA-4785-9B15-046B6C761258} = {00FC0530-0CC9-476D-8DC9-17FC061C4516}
 		{BA5147B4-8629-4A36-A89D-821A0AAD4D1E} = {00FC0530-0CC9-476D-8DC9-17FC061C4516}
+		{82711AE2-0EEF-3B09-B6BD-3BE84368AE1E} = {00FC0530-0CC9-476D-8DC9-17FC061C4516}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1C75400B-E3B6-452D-B08F-380F3B915F4B}
