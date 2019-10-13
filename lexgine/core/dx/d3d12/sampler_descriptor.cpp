@@ -13,7 +13,7 @@ SamplerDescriptor::SamplerDescriptor(FilterPack const& filter, math::Vector4f co
     m_native.AddressV = d3d12Convert(uv_address.second);
     m_native.AddressW = d3d12Convert(filter.getWrapModeW());
 
-    memcpy(m_native.BorderColor, border_color.getDataAsArray(), sizeof(float) * 4);
+    memcpy(m_native.BorderColor, border_color.getRawData(), sizeof(float) * 4);
 
     m_native.ComparisonFunc = d3d12Convert(filter.getComparisonFunction());
     m_native.Filter = d3d12Convert(filter.MinFilter(), filter.MagFilter(), filter.isComparison());

@@ -830,5 +830,6 @@
       <Filter>core\dx\d3d12</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="core\math\linear_algebra_types.inl" />
   </ItemGroup>
 </Project>

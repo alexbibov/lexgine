@@ -402,6 +402,7 @@
     <None Include="core\dx\d3d12\constant_buffer_impl_converters_vector_types.inl" />
     <None Include="core\dx\d3d12\d3d12_min_mag_filter_converter.inl" />
     <None Include="core\dx\d3d12\d3d12_type_traits.inl" />
+    <None Include="core\math\linear_algebra_types.inl" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
