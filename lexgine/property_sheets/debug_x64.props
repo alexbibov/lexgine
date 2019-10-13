@@ -8,7 +8,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Lib>
-      <AdditionalDependencies>lua.lib;zlib.lib%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua.lib;zlib.lib;glm_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <Link>
       <AdditionalDependencies>d3dcompiler.lib;dxgi.lib;d3d12.lib;%(AdditionalDependencies)</AdditionalDependencies>

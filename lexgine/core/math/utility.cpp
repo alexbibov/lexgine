@@ -2,6 +2,8 @@
 #include "utility.h"
 #include "lexgine/core/exception.h"
 #include "lexgine/core/class_names.h"
+#include "lexgine/core/math/vector_types.h"
+#include "lexgine/core/math/matrix_types.h"
 
 using namespace lexgine::core;
 using namespace lexgine::core::math;
@@ -44,7 +46,7 @@ Matrix4f createProjectionMatrix(EngineAPI target_api, float width, float height,
 
     case EngineAPI::OpenGL45:
         row2 = Vector4f{ 0.f, 0.f, -(f + n)*Q, -2 * n*f*Q };
-        if (invert_depth) row2 *= -1;
+        if (invert_depth) row2 *= -1.f;
         break;
 
     default:

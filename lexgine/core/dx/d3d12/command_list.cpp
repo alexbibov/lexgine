@@ -278,7 +278,7 @@ void CommandList::rasterizerStateSetScissorRectangles(misc::StaticVector<math::R
 
 void CommandList::outputMergerSetBlendFactor(math::Vector4f const& blend_factor) const
 {
-    m_command_list->OMSetBlendFactor(blend_factor.getDataAsArray());
+    m_command_list->OMSetBlendFactor(blend_factor.getRawData());
 }
 
 void CommandList::outputMergerSetStencilReference(uint32_t reference_value) const
@@ -353,7 +353,7 @@ void CommandList::clearRenderTargetView(RenderTargetViewDescriptorTable const& r
     std::transform(clear_rectangles.begin(), clear_rectangles.end(),
         native_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
 
-    m_command_list->ClearRenderTargetView(rtv_cpu_descriptor, rgba_clear_value.getDataAsArray(),
+    m_command_list->ClearRenderTargetView(rtv_cpu_descriptor, rgba_clear_value.getRawData(),
         static_cast<UINT>(clear_rectangles.size()), clear_rectangles.size() ? native_clear_rectangles.data() : NULL);
 }
 
@@ -372,7 +372,7 @@ void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& 
         native_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
 
     m_command_list->ClearUnorderedAccessViewUint(uav_gpu_descriptor, uav_cpu_descriptor,
-        resource_to_clear.native().Get(), rgba_clear_value.getDataAsArray(),
+        resource_to_clear.native().Get(), rgba_clear_value.getRawData(),
         static_cast<UINT>(clear_rectangles.size()), clear_rectangles.size() ? native_clear_rectangles.data() : NULL);
 }
 
@@ -391,7 +391,7 @@ void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& 
         native_clear_rectangles.begin(), convertRectangleToDXGINativeRECT);
 
     m_command_list->ClearUnorderedAccessViewFloat(uav_gpu_descriptor, uav_cpu_descriptor,
-        resource_to_clear.native().Get(), rgba_clear_value.getDataAsArray(),
+        resource_to_clear.native().Get(), rgba_clear_value.getRawData(),
         static_cast<UINT>(clear_rectangles.size()), clear_rectangles.size() ? native_clear_rectangles.data() : NULL);
 }
 

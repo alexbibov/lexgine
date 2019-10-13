@@ -269,7 +269,7 @@ D3D12_CLEAR_VALUE ResourceOptimizedClearValue::native() const
     rv.Format = format;
 
     if (std::holds_alternative<math::Vector4f>(value))
-        memcpy(rv.Color, std::get<math::Vector4f>(value).getDataAsArray(), sizeof(float) * 4);
+        memcpy(rv.Color, std::get<math::Vector4f>(value).getRawData(), sizeof(float) * 4);
     else
         rv.DepthStencil = std::get<DepthStencilValue>(value).native();
 

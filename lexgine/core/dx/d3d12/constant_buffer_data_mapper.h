@@ -18,31 +18,19 @@ struct ConstantElementProvider final
     static void const* fetch(T const& element) { return &element; }
 };
 
-template<typename T, uint32_t nrows, uint32_t ncolumns>
-struct ConstantElementProvider<math::shader_matrix_type<T, nrows, ncolumns>> final
+template<typename T, uint32_t nrows, uint32_t ncolumns, glm::qualifier Q>
+struct ConstantElementProvider<math::matrix<T, nrows, ncolumns, Q>> final
 {
-    static void const* fetch(math::shader_matrix_type<T, nrows, ncolumns> const& element) 
+    static void const* fetch(math::matrix<T, nrows, ncolumns, Q> const& element)
     { 
-        return element.getRawData(); 
+        return element.getRawData();
     }
 };
 
-template<typename T>
-struct ConstantElementProvider<math::tagVector2<T>> final
+template<typename T, uint32_t nelements, glm::qualifier Q>
+struct ConstantElementProvider<math::vector<T, nelements, Q>> final
 {
-    static void const* fetch(math::tagVector2<T> const& element) { return element.data(); }
-};
-
-template<typename T>
-struct ConstantElementProvider<math::tagVector3<T>> final
-{
-    static void const* fetch(math::tagVector3<T> const& element) { return element.data(); }
-};
-
-template<typename T>
-struct ConstantElementProvider<math::tagVector4<T>> final
-{
-    static void const* fetch(math::tagVector4<T> const& element) { return element.data(); }
+    static void const* fetch(math::vector<T, nelements, Q> const& element) { return element.getRawData(); }
 };
 
 
