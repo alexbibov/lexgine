@@ -2,9 +2,9 @@
 #include <iostream>
 #include <sstream>
 
-#include "lexgine/core/initializer.h"
-#include "lexgine/osinteraction/windows/window.h"
-#include "lexgine/osinteraction/windows/window_listeners.h"
+#include "engine/core/initializer.h"
+#include "engine/osinteraction/windows/window.h"
+#include "engine/osinteraction/windows/window_listeners.h"
 
 using namespace lexgine;
 using namespace lexgine::osinteraction;

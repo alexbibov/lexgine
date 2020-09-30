@@ -1,1 +1,0 @@
-<Playlist Version="1.0"><Add Test="TestSpooky::UnitTest1::TestSpookyHashV2" /><Add Test="TestSpooky::UnitTest1::TestSpookyHashV2_Results" /><Add Test="TestSpooky::UnitTest1::TestSpookyHashV2_Deltas" /><Add Test="TestSpooky::UnitTest1::TestSpookyHashV2_Alignment" /><Add Test="TestSpooky::UnitTest1::TestSpookyHashV2_Pieces" /></Playlist>
