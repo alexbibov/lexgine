@@ -57,6 +57,7 @@ TestLogging/*
 !3rd_party/**/*.exe
 !3rd_party/**/*.lib
 !3rd_party/dxcompiler/*.dll
+!nuget.exe
 
 # Engine-generated caches
 *.thread*
