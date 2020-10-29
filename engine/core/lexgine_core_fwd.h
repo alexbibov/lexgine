@@ -24,6 +24,7 @@ class ProfilingService;
 class CPUTaskProfilingService;
 class GPUTaskProfilingService;
 struct RenderingConfiguration;
+class Initializer;
 
 }
 

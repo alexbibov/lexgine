@@ -12,6 +12,7 @@
 #include <vector>
 
 
+#include "engine/runtime/external_parser_tokens.h"
 #include "engine/core/math/vector_types.h"
 #include "engine/core/math/rectangle.h"
 #include "engine/core/misc/flags.h"
@@ -23,7 +24,8 @@
 namespace lexgine::osinteraction::windows {
 
 
-class Window final : public core::NamedEntity<lexgine::core::class_names::OSWindows_Window>
+
+class LEXGINE_CPP_API Window final : public core::NamedEntity<lexgine::core::class_names::OSWindows_Window>
 {
 public:
     BEGIN_FLAGS_DECLARATION(WindowStyle)    //! Window style flags
@@ -56,21 +58,22 @@ public:
 
     ~Window();
 
-    void setTitle(std::wstring const& title);    //! sets new title for the window
-    std::wstring getTitle() const;    //! gets current title of the window
 
-    void setDimensions(uint32_t width, uint32_t height);    //! sets new dimensions for the window
-    void setDimensions(core::math::Vector2u const& dimensions);    //! sets new dimensions for the window. The new dimensions are packed into two-dimensional vector (width, height) in this order
-    core::math::Vector2u getDimensions() const;    //! returns current dimensions of the window
+    LEXGINE_CPP_API void setTitle(std::wstring const& title);    //! sets new title for the window
+    LEXGINE_CPP_API std::wstring getTitle() const;    //! gets current title of the window
 
-    core::math::Rectangle getClientArea() const;    //! returns client area of the window
+    LEXGINE_CPP_API void setDimensions(uint32_t width, uint32_t height);    //! sets new dimensions for the window
+    LEXGINE_CPP_API void setDimensions(core::math::Vector2u const& dimensions);    //! sets new dimensions for the window. The new dimensions are packed into two-dimensional vector (width, height) in this order
+    LEXGINE_CPP_API core::math::Vector2u getDimensions() const;    //! returns current dimensions of the window
 
-    void setLocation(uint32_t x, uint32_t y);    //! sets new location of the top-left corner of the window
-    void setLocation(core::math::Vector2u const& location);    //! sets new location of the top-left corner of the window. The new location (x, y) in this order is packed into two-dimensional vector
-    core::math::Vector2u getLocation() const;    //! returns current location of the top-left corner of the window represented in screen space coordinates
+    LEXGINE_CPP_API core::math::Rectangle getClientArea() const;    //! returns client area of the window
 
-    void setVisibility(bool visibility_flag);    //! sets visibility of the window
-    bool getVisibility() const;    //! returns visibility flag of the window
+    LEXGINE_CPP_API void setLocation(uint32_t x, uint32_t y);    //! sets new location of the top-left corner of the window
+    LEXGINE_CPP_API void setLocation(core::math::Vector2u const& location);    //! sets new location of the top-left corner of the window. The new location (x, y) in this order is packed into two-dimensional vector
+    LEXGINE_CPP_API core::math::Vector2u getLocation() const;    //! returns current location of the top-left corner of the window represented in screen space coordinates
+
+    LEXGINE_CPP_API void setVisibility(bool visibility_flag);    //! sets visibility of the window
+    LEXGINE_CPP_API bool getVisibility() const;    //! returns visibility flag of the window
 
     bool shouldClose() const { return  m_should_close; }    //! returns 'true' when user attempts to close the window
 

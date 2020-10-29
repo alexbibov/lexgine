@@ -16,7 +16,7 @@
 namespace lexgine::osinteraction::windows {
 
 //! Listener implementing handling of the basic key hits
-class __declspec(dllexport) KeyInputListener : public ConcreteListener<WM_KEYDOWN, WM_KEYUP, WM_CHAR, WM_SYSKEYDOWN, WM_SYSKEYUP>
+class KeyInputListener : public ConcreteListener<WM_KEYDOWN, WM_KEYUP, WM_CHAR, WM_SYSKEYDOWN, WM_SYSKEYUP>
 {
 public:
     virtual bool keyDown(SystemKey key) = 0;    //! called when a system key is pressed; must be implemented by derived classes. The function should return 'true' on success
@@ -47,7 +47,7 @@ FLAG(xbutton2, 0x40)
 END_FLAGS_DECLARATION(ControlKeyFlag)
 
 //! Listener implementing handling of the basic mouse button actions that are present on the most mouse models
-class __declspec(dllexport) MouseButtonListener : public ConcreteListener<
+class MouseButtonListener : public ConcreteListener<
     WM_LBUTTONDOWN, WM_LBUTTONUP, 
     WM_MBUTTONDOWN, WM_MBUTTONUP, 
     WM_RBUTTONDOWN, WM_RBUTTONUP, 
@@ -87,7 +87,7 @@ protected:
 
 
 //! Listener implementing handling of the basic mouse move actions
-class __declspec(dllexport) MouseMoveListener : public ConcreteListener<WM_MOUSEMOVE, WM_MOUSELEAVE, WM_MOUSEHOVER>
+class MouseMoveListener : public ConcreteListener<WM_MOUSEMOVE, WM_MOUSELEAVE, WM_MOUSEHOVER>
 {
 public:
     /*! called when mouse cursor moves over client area of the listening window.
@@ -113,7 +113,7 @@ private:
 
 
 //! Listener that monitors window size change events
-class __declspec(dllexport) WindowSizeChangeListener : public ConcreteListener<WM_SIZE>
+class WindowSizeChangeListener : public ConcreteListener<WM_SIZE>
 {
 public:
     virtual bool minimized() = 0;    //! called when the window has been minimized
@@ -129,7 +129,7 @@ protected:
 /*! Listener implementing handling of the system events, which notifies application that the client
   area of the listening window can now be updated. This listener also handles the cursor properties of the window.
 */
-class __declspec(dllexport) ClientAreaUpdateListener : public ConcreteListener<WM_PAINT>
+class ClientAreaUpdateListener : public ConcreteListener<WM_PAINT>
 {
 public:
     /*! Called when all or part of client area of the listening window is invalidated.
@@ -145,7 +145,7 @@ protected:
 
 
 //! Listener implementing handling of the events posted to window when it is about to set its cursor properties
-class __declspec(dllexport) CursorUpdateListener : public ConcreteListener<WM_SETCURSOR>
+class CursorUpdateListener : public ConcreteListener<WM_SETCURSOR>
 {
 public:
     virtual bool setCursor() = 0;

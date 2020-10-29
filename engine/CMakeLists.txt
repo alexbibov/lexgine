@@ -59,3 +59,12 @@ if (MSVC)
 endif()
 
 set_property(TARGET ${_target} PROPERTY OUTPUT_NAME "lexgine")
+
+
+find_package(Python COMPONENTS Interpreter REQUIRED)
+add_custom_command(
+    TARGET ${_target}
+    PRE_BUILD
+    COMMAND ${Python_EXECUTABLE} "${_src_root_path}/preprocessing/generate_dll_interfaces.py" --headers "\"${_headers_list}\"" --output "\"${_src_root_path}/runtime\"" 
+    COMMENT "Generating Runtime Interfaces"
+)
