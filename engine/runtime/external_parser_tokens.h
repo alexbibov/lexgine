@@ -1,0 +1,10 @@
+#ifndef LEXGINE_EXTERNAL_PARSER_TOKENS_H
+
+#define LEXGINE_CPP_API
+#define LEXGINE_LUA_API
+
+#define LEXGINE_API __declspec(dllexport)
+
+#define LEXGINE_EXTERNAL_PARSER_TOKENS_H
+
+#endif

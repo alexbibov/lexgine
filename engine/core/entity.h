@@ -3,11 +3,12 @@
 #include <thread>
 #include <string>
 #include <atomic>
+#include <guiddef.h>
 
 #include "error_behavioral.h"
 #include "class_names.h"
 
-namespace lexgine { namespace core {
+namespace lexgine::core {
 
 
 //! Implements identifier of the engine objects, which is guaranteed to remain unique for each object
@@ -29,6 +30,9 @@ public:
 
     //! Returns string representation of the identifier
     std::string toString() const;
+
+    //! Returns UUID representation of the identifier
+    UUID asUUID() const;
 
 private:
     static thread_local uint64_t m_id_counter;    //!< identifier counter local to each thread
@@ -118,7 +122,7 @@ public:
 class Dummy : public NamedEntity<class_names::Dummy> {};
 
 
-}}
+}
 
 #define LEXGINE_CORE_ENTITY_H
 #endif
