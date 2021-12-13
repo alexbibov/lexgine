@@ -44,13 +44,13 @@ FLAG(right_mouse_button, 8)
 FLAG(shift, 0x10)
 FLAG(xbutton1, 0x20)
 FLAG(xbutton2, 0x40)
-END_FLAGS_DECLARATION(ControlKeyFlag)
+END_FLAGS_DECLARATION(ControlKeyFlag);
 
 //! Listener implementing handling of the basic mouse button actions that are present on the most mouse models
 class MouseButtonListener : public ConcreteListener<
-    WM_LBUTTONDOWN, WM_LBUTTONUP, 
-    WM_MBUTTONDOWN, WM_MBUTTONUP, 
-    WM_RBUTTONDOWN, WM_RBUTTONUP, 
+    WM_LBUTTONDOWN, WM_LBUTTONUP,
+    WM_MBUTTONDOWN, WM_MBUTTONUP,
+    WM_RBUTTONDOWN, WM_RBUTTONUP,
     WM_XBUTTONDOWN, WM_XBUTTONUP,
 
     WM_LBUTTONDBLCLK, WM_RBUTTONDBLCLK, WM_XBUTTONDBLCLK,
@@ -69,8 +69,8 @@ public:
     };
 
     //! called when one of the mouse buttons is pressed. The function should return 'true' on success
-    virtual bool buttonDown(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;    
-    
+    virtual bool buttonDown(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
+
     //! called when one of the mouse buttons is released. The function should return 'true' on success
     virtual bool buttonUp(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
 
@@ -78,7 +78,7 @@ public:
     virtual bool doubleClick(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
 
     //! called when mouse wheel is moved. The function should return 'true' on success
-    virtual bool wheelMove(double move_delta, bool is_horizontal_wheel, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;    
+    virtual bool wheelMove(double move_delta, bool is_horizontal_wheel, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
 
 protected:
     int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,

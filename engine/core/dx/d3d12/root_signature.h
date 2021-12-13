@@ -17,7 +17,7 @@
 
 using namespace Microsoft::WRL;
 
-namespace lexgine::core::dx::d3d12{
+namespace lexgine::core::dx::d3d12 {
 
 //! Root constant buffer view descriptor
 class RootEntryCBVDescriptor final
@@ -147,7 +147,7 @@ FLAG(deny_domain_shader, D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCES
 FLAG(deny_geometry_shader, D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS)
 FLAG(deny_pixel_shader, D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS)
 FLAG(allow_stream_output, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT)
-END_FLAGS_DECLARATION(RootSignatureFlags)
+END_FLAGS_DECLARATION(RootSignatureFlags);
 
 
 //! Wrapper that simplifies procedural creation of root signatures

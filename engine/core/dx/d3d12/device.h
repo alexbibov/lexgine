@@ -36,7 +36,7 @@ BEGIN_FLAGS_DECLARATION(ShaderPrecisionMode)
 FLAG(_32_bit, D3D12_SHADER_MIN_PRECISION_SUPPORT_NONE)
 FLAG(_10_bit, D3D12_SHADER_MIN_PRECISION_SUPPORT_10_BIT)
 FLAG(_16_bit, D3D12_SHADER_MIN_PRECISION_SUPPORT_16_BIT)
-END_FLAGS_DECLARATION(ShaderPrecisionMode)
+END_FLAGS_DECLARATION(ShaderPrecisionMode);
 
 
 //! Specifies whether the hardware and driver support tiled resources
@@ -125,7 +125,7 @@ struct FeatureFormatSupport final
 BEGIN_FLAGS_DECLARATION(MultisampleQualityLevels)
 FLAG(none, D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE)
 FLAG(tiled_resource, D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_TILED_RESOURCE)
-END_FLAGS_DECLARATION(MultisampleQualityLevels)
+END_FLAGS_DECLARATION(MultisampleQualityLevels);
 
 //! Thin wrapper over D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS
 struct FeatureMultisampleQualityLevels final

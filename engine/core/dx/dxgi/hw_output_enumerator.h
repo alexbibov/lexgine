@@ -11,7 +11,7 @@
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
 
-#include "common.h"
+#include "engine/core/dx/dxgi/common.h"
 
 namespace lexgine::core::dx::dxgi {
 
@@ -124,10 +124,10 @@ public:
         FLAG(include_scaling, DXGI_ENUM_MODES_SCALING)    //!< enumerate scaled display modes
         FLAG(include_stereo, DXGI_ENUM_MODES_STEREO)    //!< enumerate stereo display modes
         FLAG(include_disabled_stereo, DXGI_ENUM_MODES_DISABLED_STEREO)    //!< enumerate stereo display modes that has been disabled via control panel
-        END_FLAGS_DECLARATION(DisplayModeEnumerationOptions)
+        END_FLAGS_DECLARATION(DisplayModeEnumerationOptions);
 
 
-        Description getDescription() const; //! Returns description of DXGI output
+    Description getDescription() const; //! Returns description of DXGI output
 
     std::vector<DisplayMode> getDisplayModes(DXGI_FORMAT format, DisplayModeEnumerationOptions const& options) const;   //! Enumerates display modes meeting requested DXGI color format.
 

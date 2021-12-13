@@ -1,0 +1,21 @@
+{
+	"ignored_headers": [
+    "engine/core/concurrency/lock_free_queue.h",
+	"engine/core/concurrency/hazard_pointer_pool.h",
+	"engine/core/dx/d3d12/command_queue.h",
+	"engine/core/dx/d3d12/root_signature.h",
+	"engine/core/dx/d3d12/tasks/rendering_tasks/rendering_work.h",
+	"engine/osinteraction/windows/window_listeners.h",
+	"engine/api/"
+	],
+	"forced_includes": 
+	[
+		"api/preprocessor_tokens.h",
+		"api/lexgine_object.h",
+		"api/link_result.h"
+	],
+	"inherited_types_api_mapping": 
+	{
+		"lexgine::core::NamedEntity": "LexgineObject"
+	}
+}

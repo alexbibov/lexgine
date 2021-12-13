@@ -8,7 +8,7 @@
 namespace lexgine::core {
 
 //! Encapsulates blending factors
-enum class BlendFactor: uint8_t
+enum class BlendFactor : uint8_t
 {
     zero,
     one,
@@ -40,7 +40,7 @@ enum class BlendOperation : uint8_t
 };
 
 //! Encapsulates logical operations that can be performed on render target
-enum class BlendLogicalOperation: uint8_t
+enum class BlendLogicalOperation : uint8_t
 {
     clear,
     set,
@@ -50,7 +50,7 @@ enum class BlendLogicalOperation: uint8_t
     invert,
     and,
     nand, // logical "not and"
-    or,
+    or ,
     nor, // logical "not or"
     xor,
     equiv, // logical "equality" (true iff both operands have same logical value)
@@ -67,7 +67,7 @@ FLAG(red, 1)
 FLAG(green, 2)
 FLAG(blue, 4)
 FLAG(alpha, 8)
-END_FLAGS_DECLARATION(ColorWriteMask)
+END_FLAGS_DECLARATION(ColorWriteMask);
 
 
 //! Encapsulates description of the blending stage. This class is API and OS-agnostic.
@@ -83,12 +83,12 @@ public:
         BlendOperation color_blend_operation, BlendOperation alpha_blend_operation,
         bool enable_logic_operations_on_destination = false, BlendLogicalOperation logical_operation_on_destination = BlendLogicalOperation::clear,
         ColorWriteMask const& color_write_mask = ColorWriteMask{}
-        | ColorWriteMask::base_values::red | ColorWriteMask::base_values::green | ColorWriteMask::base_values::blue | ColorWriteMask::base_values::alpha);
+    | ColorWriteMask::base_values::red | ColorWriteMask::base_values::green | ColorWriteMask::base_values::blue | ColorWriteMask::base_values::alpha);
 
     //! Initialized blend state descriptor with disabled blending and enabled logical operations
     BlendDescriptor(BlendLogicalOperation logical_operation_on_destination,
         ColorWriteMask const& color_write_mask = ColorWriteMask{}
-        | ColorWriteMask::base_values::red | ColorWriteMask::base_values::green | ColorWriteMask::base_values::blue | ColorWriteMask::base_values::alpha);
+    | ColorWriteMask::base_values::red | ColorWriteMask::base_values::green | ColorWriteMask::base_values::blue | ColorWriteMask::base_values::alpha);
 
     bool isEnabled() const;    //! returns 'true' if the blend descriptor describes state with enabled blending
     bool isLogicalOperationEnabled() const;    //! returns 'true' if logical operation on target is enabled during the blending stage

@@ -24,7 +24,7 @@ FLAG(allow_all, 0)    //!< allows all kind of resources to be stored in the heap
 FLAG(allow_only_buffers, 0xc0)    //!< allows only buffers
 FLAG(allow_only_non_rt_ds_textures, 0x44)    //!< allows only textures (not buffers!) that are not render targets and not depth-stencil resources
 FLAG(allow_only_rt_ds, 0x84)    //!< allows to store only textures (not buffers!) that are either render target or depth-stencil resources
-END_FLAGS_DECLARATION(HeapCreationFlags)
+END_FLAGS_DECLARATION(HeapCreationFlags);
 
 
 //! Determines abstract adapter-agnostic type of the heap

@@ -66,3 +66,6 @@ TestLogging/*
 *.log.html
 *.log
 *.log*.html
+
+# Pycharm IDE caches
+**/.idea

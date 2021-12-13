@@ -12,21 +12,15 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/osinteraction/windows/window.h"
 
-#include "hw_output_enumerator.h"
-#include "swap_chain.h"
+#include "engine/core/dx/dxgi/hw_output_enumerator.h"
+#include "engine/core/dx/dxgi/swap_chain.h"
+#include "engine/core/dx/dxgi/interface.h"
+
 
 namespace lexgine::core::dx::dxgi {
 
 using namespace Microsoft::WRL;
 
-//Direct3D 12 feature levels
-enum class D3D12FeatureLevel : int
-{
-    _11_0 = D3D_FEATURE_LEVEL_11_0,
-    _11_1 = D3D_FEATURE_LEVEL_11_1,
-    _12_0 = D3D_FEATURE_LEVEL_12_0,
-    _12_1 = D3D_FEATURE_LEVEL_12_1
-};
 
 template<typename T> class HwAdapterAttorney;
 
@@ -49,7 +43,7 @@ public:
 
     enum class DxgiComputePreemptionGranularity
     {
-        dma_buffer = DXGI_COMPUTE_PREEMPTION_DMA_BUFFER_BOUNDARY, 
+        dma_buffer = DXGI_COMPUTE_PREEMPTION_DMA_BUFFER_BOUNDARY,
         dispatch = DXGI_COMPUTE_PREEMPTION_DISPATCH_BOUNDARY,
         thread_group = DXGI_COMPUTE_PREEMPTION_THREAD_GROUP_BOUNDARY,
         thread = DXGI_COMPUTE_PREEMPTION_THREAD_BOUNDARY,
@@ -129,7 +123,7 @@ private:
 
     class impl;
     std::unique_ptr<impl> m_impl;    //!< various properties of the adapter encapsulated in the details class
-    
+
     std::unique_ptr<d3d12::Device> m_device;    //!< d3d12 device associated with the adapter
 };
 
@@ -154,13 +148,6 @@ public:
     using adapter_list_type = std::list<HwAdapter>;
     using iterator = adapter_list_type::iterator;
     using const_iterator = adapter_list_type::const_iterator;
-
-    enum class DxgiGpuPreference
-    {
-        unspecified = DXGI_GPU_PREFERENCE_UNSPECIFIED,
-        minimum_power = DXGI_GPU_PREFERENCE_MINIMUM_POWER,
-        high_performance = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE
-    };
 
 public:
     HwAdapterEnumerator(GlobalSettings const& global_settings,
