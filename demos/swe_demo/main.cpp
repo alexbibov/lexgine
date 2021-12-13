@@ -3,8 +3,9 @@
 #include <sstream>
 
 #include "engine/core/initializer.h"
-#include "engine/osinteraction/windows/window.h"
-#include "engine/osinteraction/windows/window_listeners.h"
+#include "engine/runtime/window.h"
+//#include "engine/osinteraction/windows/window.h"
+//#include "engine/osinteraction/windows/window_listeners.h"
 
 using namespace lexgine;
 using namespace lexgine::osinteraction;
@@ -23,7 +24,7 @@ EngineSettings createEngineSettings()
 
     settings.debug_mode = true;
     settings.enable_profiling = true;
-    settings.adapter_enumeration_preference = HwAdapterEnumerator::DxgiGpuPreference::high_performance;
+    settings.adapter_enumeration_preference = DxgiGpuPreference::high_performance;
     settings.global_lookup_prefix = "";
     settings.settings_lookup_path = "../../settings/";
     settings.global_settings_json_file = "global_settings.json";
@@ -52,10 +53,10 @@ SwapChainDescriptor createSwapChainSettings()
 
 class MainClass final :
     public Listeners<
-    KeyInputListener, 
+    KeyInputListener,
     MouseButtonListener,
     MouseMoveListener,
-    WindowSizeChangeListener, 
+    WindowSizeChangeListener,
     ClientAreaUpdateListener
     >
 {

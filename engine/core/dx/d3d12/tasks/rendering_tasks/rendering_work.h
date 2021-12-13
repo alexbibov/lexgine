@@ -28,7 +28,7 @@ public:
         FLAG(color_format_changed, 0x2)
         FLAG(depth_format_changed, 0x4)
         FLAG(rendering_window_changed, 0x8)
-        END_FLAGS_DECLARATION(RenderingConfigurationUpdateFlags)
+        END_FLAGS_DECLARATION(RenderingConfigurationUpdateFlags);
 
 public:
     RenderingWork(Globals& globals, std::string const& debug_name,

@@ -6,17 +6,12 @@
 
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
+#include "engine/core/dx/d3d12/interface.h"
+
 
 using namespace Microsoft::WRL;
 
 namespace lexgine::core::dx::d3d12 {
-
-struct GpuBasedValidationSettings
-{
-    bool enableGpuBasedValidation{ false };
-    bool enableSynchronizedCommandQueueValidation{ false };
-    bool disableResourceStateChecks{ false };
-};
 
 /*! Implements debug features for Direct3D 12. The proper usage assumes that application should have only
  one instance of this class maintained in the application's main thread.

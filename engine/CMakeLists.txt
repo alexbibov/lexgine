@@ -24,6 +24,7 @@ source_group(TREE ${_src_root_path} PREFIX "Header files" FILES ${_headers_list}
 add_library(${_target} SHARED ${_sources_list} ${_headers_list})
 
 target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}"
+                                              "${CMAKE_SOURCE_DIR}/api"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/half/"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/pugixml/"
@@ -65,6 +66,6 @@ find_package(Python COMPONENTS Interpreter REQUIRED)
 add_custom_command(
     TARGET ${_target}
     PRE_BUILD
-    COMMAND ${Python_EXECUTABLE} "${_src_root_path}/preprocessing/generate_dll_interfaces.py" --headers "\"${_headers_list}\"" --output "\"${_src_root_path}/runtime\"" 
+    COMMAND ${Python_EXECUTABLE} "${_src_root_path}/preprocessing/generate_dll_interfaces.py" --headers "\"${_headers_list}\"" --output "\"${_src_root_path}/runtime\"" --config "\"${_src_root_path}/preprocessing/config.json\""
     COMMENT "Generating Runtime Interfaces"
 )

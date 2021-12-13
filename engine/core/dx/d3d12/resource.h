@@ -55,7 +55,7 @@ FLAG(unordered_access, 0x4)
 FLAG(deny_shader_resource, 0x8)
 FLAG(allow_cross_adapter, 0x10)
 FLAG(allow_simultaneous_access, 0x20)
-END_FLAGS_DECLARATION(ResourceFlags)
+END_FLAGS_DECLARATION(ResourceFlags);
 
 
 //! Thin class wrapper over D3D12_RESOURCE_DESC to simplify its creation
@@ -114,7 +114,7 @@ FLAG(resolve_source, D3D12_RESOURCE_STATE_RESOLVE_SOURCE)
 FLAG(generic_read, D3D12_RESOURCE_STATE_GENERIC_READ)
 FLAG(present, D3D12_RESOURCE_STATE_PRESENT)
 FLAG(predication, D3D12_RESOURCE_STATE_PREDICATION)
-END_FLAGS_DECLARATION(ResourceState)
+END_FLAGS_DECLARATION(ResourceState);
 
 
 struct DepthStencilValue final

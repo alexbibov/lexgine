@@ -8,7 +8,7 @@
 namespace lexgine::core::misc {
 
 template<typename BaseFlagsType>
-using is_scoped_enum = std::integral_constant<bool, 
+using is_scoped_enum = std::integral_constant<bool,
     std::is_enum<BaseFlagsType>::value && !std::is_convertible<BaseFlagsType, int>::value>;
 
 //! Template class that allows to implement "enumeration" types that could be OR'ed just like normal flags
@@ -102,7 +102,7 @@ private:
 
 }
 
-namespace lexgine 
+namespace lexgine
 {
 
 template<typename BaseFlagsType,
@@ -119,6 +119,6 @@ template<typename BaseFlagsType,
 #define FLAG(name, value) name = value,
 #define END_FLAGS_DECLARATION(name) \
 _tag_flag_enumeration = -1 };\
-using name = lexgine::core::misc::Flags<_tag##name>;
+using name = lexgine::core::misc::Flags<_tag##name>
 
 #endif

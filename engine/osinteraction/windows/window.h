@@ -12,7 +12,7 @@
 #include <vector>
 
 
-#include "engine/runtime/external_parser_tokens.h"
+#include "preprocessor_tokens.h"
 #include "engine/core/math/vector_types.h"
 #include "engine/core/math/rectangle.h"
 #include "engine/core/misc/flags.h"
@@ -28,7 +28,7 @@ namespace lexgine::osinteraction::windows {
 class LEXGINE_CPP_API Window final : public core::NamedEntity<lexgine::core::class_names::OSWindows_Window>
 {
 public:
-    BEGIN_FLAGS_DECLARATION(WindowStyle)    //! Window style flags
+    LEXGINE_CPP_API BEGIN_FLAGS_DECLARATION(WindowStyle)    //! Window style flags
     FLAG(thin_border, WS_BORDER)    //!< the window has a thin-line border
     FLAG(has_title_bar, WS_CAPTION)    //!< the window has a title bar
     FLAG(dialog_box_frame, WS_DLGFRAME)    //!< the window has a border of style typically used with dialog boxes. A window with this style cannot have a title bar
@@ -40,21 +40,21 @@ public:
     FLAG(has_system_menu, WS_SYSMENU)    //!< the window has a system menu on its title bar (HasTitleBar is automatically added)
     FLAG(tiled, WS_OVERLAPPED)    //!< the window has a title bar and a border
     FLAG(visible, WS_VISIBLE)    //!< the window is initially visible
-    END_FLAGS_DECLARATION(WindowStyle)
+    END_FLAGS_DECLARATION(WindowStyle);
 
-    BEGIN_FLAGS_DECLARATION(WindowExStyle)    //! Window extended style flags
+    LEXGINE_CPP_API BEGIN_FLAGS_DECLARATION(WindowExStyle)    //! Window extended style flags
     FLAG(client_edge, WS_EX_CLIENTEDGE)    //!< the window has a border with a sunken edge
     FLAG(double_border, WS_EX_DLGMODALFRAME)    //!< the window has double border
     FLAG(_3d_border, WS_EX_STATICEDGE)    //!< the window has three-dimensional looking border style
     FLAG(raise_border_edge, WS_EX_WINDOWEDGE)    //!< the window has a border with raised edge
     FLAG(topmost, WS_EX_TOPMOST)    //!< the window should be put on top of all windows that were created without this flag set
-    END_FLAGS_DECLARATION(WindowExStyle)
-
+    END_FLAGS_DECLARATION(WindowExStyle);
 
     Window(HINSTANCE hInstance = NULL,
         WindowStyle window_style = WindowStyle::base_values::has_system_menu | WindowStyle::base_values::has_minimize_box
         | WindowStyle::base_values::has_maximize_box | WindowStyle::base_values::supports_sizing,
         WindowExStyle window_ex_style = WindowExStyle::base_values::raise_border_edge);
+
 
     ~Window();
 

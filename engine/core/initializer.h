@@ -22,9 +22,9 @@ namespace lexgine::core {
 struct EngineSettings
 {
     bool debug_mode;
-    dx::d3d12::GpuBasedValidationSettings gpu_based_validation_settings;
+    lexgine::core::dx::d3d12::GpuBasedValidationSettings gpu_based_validation_settings;
     bool enable_profiling;
-    dx::dxgi::HwAdapterEnumerator::DxgiGpuPreference adapter_enumeration_preference;
+    lexgine::core::dx::dxgi::DxgiGpuPreference adapter_enumeration_preference;
     std::string global_lookup_prefix;
     std::string settings_lookup_path;
     std::string global_settings_json_file;

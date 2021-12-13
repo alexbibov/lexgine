@@ -15,7 +15,7 @@ using namespace lexgine::core::dx::d3d12;
 
 DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
     bool enable_debug_mode, GpuBasedValidationSettings const& gpu_based_validation_settings,
-    dxgi::HwAdapterEnumerator::DxgiGpuPreference enumeration_preference)
+    dxgi::DxgiGpuPreference enumeration_preference)
     : m_global_settings{ (enable_debug_mode ? DebugInterface::create(gpu_based_validation_settings) : nullptr, global_settings) }
     , m_hw_adapter_enumerator{ global_settings, enumeration_preference }
     , m_dxc_proxy(m_global_settings)
@@ -139,7 +139,7 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHe
         {
             size_t& offset = p->second.partitioned_space_size;
 
-            if(offset + section_size <= upload_heap.capacity())
+            if (offset + section_size <= upload_heap.capacity())
             {
                 auto r = p->second.partitioning.insert(std::make_pair(section_hash, UploadHeapPartition{ offset, aligned_section_size })).first;
                 offset += aligned_section_size;

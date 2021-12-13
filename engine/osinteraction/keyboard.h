@@ -1,10 +1,12 @@
 #ifndef LEXGINE_OSINTERACTION_KEYBOARD_H
 #define LEXGINE_OSINTERACTION_KEYBOARD_H
 
+#include "engine/runtime/preprocessor_tokens.h"
+
 namespace lexgine::osinteraction {
 
 //! Keyboard keys recognized by the engine
-enum class SystemKey
+enum class LEXGINE_CPP_API SystemKey
 {
     tab,
     caps,

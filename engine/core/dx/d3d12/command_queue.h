@@ -40,7 +40,7 @@ enum class CommandQueuePriority
 BEGIN_FLAGS_DECLARATION(CommandQueueFlags)
 FLAG(none, D3D12_COMMAND_QUEUE_FLAG_NONE)
 FLAG(disable_gpu_timeout, D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT)
-END_FLAGS_DECLARATION(CommandQueueFlags)
+END_FLAGS_DECLARATION(CommandQueueFlags);
 
 
 //! Thin wrapper over Direct3D 12 command queue
@@ -67,7 +67,7 @@ public:
     /*! returns frequency (in Hz) of the GPU hardware performance counter associated with this queue
      returns 0 if the queue does not support performance counting
     */
-    uint64_t getTimeStampFrequency() const;    
+    uint64_t getTimeStampFrequency() const;
 
     // updateTileMappings: implement interface API for this at certain point: when decide to support tiled resources
 

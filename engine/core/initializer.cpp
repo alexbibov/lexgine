@@ -50,7 +50,7 @@ std::string correct_path(std::string const& original_path)
 EngineSettings::EngineSettings()
     : debug_mode{ false }
     , enable_profiling{ false }
-    , adapter_enumeration_preference{ dx::dxgi::HwAdapterEnumerator::DxgiGpuPreference::high_performance }
+    , adapter_enumeration_preference{ dx::dxgi::DxgiGpuPreference::high_performance }
     , global_settings_json_file{ "global_settings.json" }
     , log_name{ "lexgine.log" }
 {
@@ -87,7 +87,7 @@ Initializer::Initializer(EngineSettings const& settings)
         if (!GetComputerName(host_computer_name, &host_computer_name_length))
             wcscpy_s(host_computer_name, L"UNKNOWN_HOST");
 
-        std::string log_name{ std::string{ PROJECT_CODE_NAME } +" v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
+        std::string log_name{ std::string{ PROJECT_CODE_NAME } + " v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
         + std::to_string(PROJECT_VERSION_MINOR) + " rev." + std::to_string(PROJECT_VERSION_REVISION)
         + "(" + PROJECT_VERSION_STAGE + ")" + " (" + misc::wstringToAsciiString(host_computer_name) + ")" };
 

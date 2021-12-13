@@ -27,7 +27,7 @@ class DxResourceFactory final
 public:
     DxResourceFactory(GlobalSettings const& global_settings,
         bool enable_debug_mode, GpuBasedValidationSettings const& gpu_based_validation_settings,
-        dxgi::HwAdapterEnumerator::DxgiGpuPreference enumeration_preference);
+        dxgi::DxgiGpuPreference enumeration_preference);
 
     ~DxResourceFactory();
 
@@ -54,7 +54,7 @@ public:
 
 private:
     using descriptor_heap_page_pool = std::array<std::vector<std::unique_ptr<DescriptorHeap>>, 4U>;
-    
+
     struct upload_heap_partitioning
     {
         size_t partitioned_space_size = 0ULL;
@@ -65,7 +65,7 @@ private:
     GlobalSettings const& m_global_settings;
     dxgi::HwAdapterEnumerator m_hw_adapter_enumerator;
     dxcompilation::DXCompilerProxy m_dxc_proxy;
-    
+
     std::unordered_map<Device const*, descriptor_heap_page_pool> m_descriptor_heaps;
     std::unordered_map<Device const*, Heap> m_upload_heaps;
     std::unordered_map<Heap const*, upload_heap_partitioning> m_upload_heap_partitions;

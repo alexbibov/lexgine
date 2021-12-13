@@ -49,4 +49,4 @@ add_subproject(SpookyHash 3rd_party)
 add_subproject(engine)
 add_subproject(texture_converter)
 add_subproject(swe_demo demos)
-
+add_subproject(api)
