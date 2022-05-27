@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string>
 #include <algorithm>
+#include <cstdint>
 
 // not portable, must be put between guarding defines
 #include <windows.h>

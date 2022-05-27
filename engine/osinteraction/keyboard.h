@@ -1,7 +1,7 @@
 #ifndef LEXGINE_OSINTERACTION_KEYBOARD_H
 #define LEXGINE_OSINTERACTION_KEYBOARD_H
 
-#include "engine/runtime/preprocessor_tokens.h"
+#include "engine/preprocessing/preprocessor_tokens.h"
 
 namespace lexgine::osinteraction {
 

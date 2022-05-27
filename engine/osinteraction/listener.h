@@ -8,7 +8,7 @@
 namespace lexgine::osinteraction {
 
 //! OS-agnostic abstract listener object
-class __declspec(dllexport) AbstractListener
+class AbstractListener
 {
 public:
     static const int64_t not_supported = static_cast<int64_t>(0xFFFFFFFFFFFFFFFF);

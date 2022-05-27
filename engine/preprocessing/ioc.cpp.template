@@ -1,0 +1,11 @@
+#include <${exporting_header}>
+
+namespace $exporting_namespace::_shared_symbols{
+
+extern "C" {
+	
+	
+$source_body
+}
+
+}

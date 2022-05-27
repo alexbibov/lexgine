@@ -1,8 +1,8 @@
 #ifndef LEXGINE_API_LINK_LEXGINE_API_H
 #define LEXGINE_API_LINK_LEXGINE_API_H
 
+#include <unordered_map>
 #include <string>
-#include <pair>
 #include <link_result.h>
 
 namespace lexgine::api{

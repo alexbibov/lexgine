@@ -1,0 +1,13 @@
+#ifndef LEXGINE_COMMON_IOC_TRAITS_H
+#define LEXGINE_COMMON_IOC_TRAITS_H
+
+namespace lexgine::common{
+	
+enum class ImportedOpaqueClass
+{
+$ioc_names_list
+};
+	
+}
+
+#endif

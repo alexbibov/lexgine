@@ -1,0 +1,22 @@
+#include <cstdint>
+#include <engine/preprocessing/preprocessor_tokens.h>
+#include <common/ioc_traits.h>
+
+$includes_list
+
+namespace lexgine::ioc_traits {
+	
+extern "C" {
+	
+	LEXGINE_API size_t LEXGINE_CALL lexgineIocTraitsGetImportedOpaqueClassSize(lexgine::common::ImportedOpaqueClass ioc_name)
+	{
+		switch (ioc_name)
+		{
+		$ioc_name_switch_clauses
+		default: return 0;
+		}
+	}
+	
+}
+	
+}

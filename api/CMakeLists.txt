@@ -10,15 +10,16 @@ file(
     CONFIGURE_DEPENDS
     "${_src_root_path}/*.c" "${_src_root_path}/*.cpp"
 )
-
-source_group(TREE ${_src_root_path} PREFIX "Source files" FILES ${_sources_list})
-
 file(
     GLOB_RECURSE _headers_list
     CONFIGURE_DEPENDS
     "${_src_root_path}/*.h" "${_src_root_path}/*.hpp"
 )
 
+source_group(TREE ${_src_root_path} PREFIX "Source files" FILES ${_sources_list})
 source_group(TREE ${_src_root_path} PREFIX "Header files" FILES ${_headers_list})
 
 add_library(${_target} STATIC ${_sources_list} ${_headers_list})
+
+target_include_directories(${_target} PUBLIC "${CMAKE_SOURCE_DIR}/" "${CMAKE_SOURCE_DIR}/api")
+target_compile_definitions(${_target} PUBLIC LEXGINE_API_LIB)

@@ -7,53 +7,51 @@
 #define LEXGINE_CALL __cdecl
 
 #ifdef LEXGINE_API_LIB
-#define LEXGINE_API __declspec(dllimport)
-
-#include <engine/api/is_call_possible.h>
+#include <api/is_call_possible.h>
 namespace lexgine::api {
 
 DECLARE_IS_CALL_SUPPORTED_REFLEXION(getNative);
 
-template<typename T, typename = std::enable_if_t<is_api_get_native_supported<T, void* (void)>::value>>
+template<typename T, typename = std::enable_if_t<is_api_getNative_supported<T, void* (void)>::value>>
 T& unfold(T& obj)
 {
     T& temp = *static_cast<T*>(obj.getNative());
     return temp;
 }
 
-template<typename T, typename = std::enable_if_t<is_api_get_native_supported_const<T, void const* (void)>::value>>
+template<typename T, typename = std::enable_if_t<is_api_getNative_supported_const<T, void const* (void)>::value>>
 T const& unfold(T const& obj) { return *static_cast<T const*>(obj.getNative()); }
 
 
-template<typename T, typename = std::enable_if_t<is_api_get_native_supported<T, void* (void)>::value>>
+template<typename T, typename = std::enable_if_t<is_api_getNative_supported<T, void* (void)>::value>>
 T* unfold(T* obj) { return static_cast<T*>(obj->getNative()); }
 
-template<typename T, typename = std::enable_if_t<is_api_get_native_supported_const<T, void const* (void)>::value>>
+template<typename T, typename = std::enable_if_t<is_api_getNative_supported_const<T, void const* (void)>::value>>
 T const* unfold(T const* obj) { return static_cast<T const*>(obj->getNative()); }
 
-template<typename T, typename = std::enable_if_t<is_api_get_native_supported<T, void* (void)>::value>>
+template<typename T, typename = std::enable_if_t<is_api_getNative_supported<T, void* (void)>::value>>
 T&& unfold(T&& obj) { return std::move(*static_cast<T*>(obj.getNative())); }
 
 
 
 
-template<typename T, typename = std::enable_if_t<!is_api_get_native_supported<T, void* (void)>::value>, typename = void>
+template<typename T, typename = std::enable_if_t<!is_api_getNative_supported<T, void* (void)>::value>, typename = void>
 inline T* unfold(T* obj) { return obj; }
 
-template<typename T, typename = std::enable_if_t<!is_api_get_native_supported_const<T, void const* (void)>::value>, typename = void>
+template<typename T, typename = std::enable_if_t<!is_api_getNative_supported_const<T, void const* (void)>::value>, typename = void>
 inline T const* unfold(T const* obj) { return obj; }
 
-template<typename T, typename = std::enable_if_t<!is_api_get_native_supported<T, void* (void)>::value>, typename = void>
+template<typename T, typename = std::enable_if_t<!is_api_getNative_supported<T, void* (void)>::value>, typename = void>
 inline T& unfold(T& obj)
 {
     T& temp = obj;
-    return obj;
+    return temp;
 }
 
-template<typename T, typename = std::enable_if_t<!is_api_get_native_supported_const<T, void const* (void)>::value>, typename = void>
+template<typename T, typename = std::enable_if_t<!is_api_getNative_supported_const<T, void const* (void)>::value>, typename = void>
 inline T const& unfold(T const& obj) { return obj; }
 
-template<typename T, typename = std::enable_if_t<!is_api_get_native_supported<T, void* (void)>::value>, typename = void>
+template<typename T, typename = std::enable_if_t<!is_api_getNative_supported<T, void* (void)>::value>, typename = void>
 inline T&& unfold(T&& obj) { return std::move(obj); }
 
 }

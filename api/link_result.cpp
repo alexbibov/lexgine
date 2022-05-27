@@ -19,7 +19,7 @@ namespace{
 }
 
 LinkResult::LinkResult(HMODULE module)
-  : m_module{module};
+  : m_module{module}
 {
 }
 
