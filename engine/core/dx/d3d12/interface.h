@@ -1,7 +1,7 @@
 #ifndef LEXGINE_CORE_DX_D3D12_INTERFACE_H
 #define LEXGINE_CORE_DX_D3D12_INTERFACE_H
 
-#include "preprocessor_tokens.h"
+#include "engine/preprocessing/preprocessor_tokens.h"
 
 namespace lexgine::core::dx::d3d12 {
 

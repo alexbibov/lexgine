@@ -1,0 +1,33 @@
+#include "${api_name}.h"
+
+namespace $namespace{
+
+namespace{
+
+$public_properties_memory_layout_declaration
+
+$flags_using_declarations
+
+$api_function_pointers_declarations
+
+}
+
+lexgine::api::LinkResult ${class_name}::link(HMODULE module)
+{
+    lexgine::api::LinkResult linker{module};
+
+$link_methods_call_list
+    
+    return linker;
+}
+
+${class_name}* ${class_name}::getNative() const
+{
+    return reinterpret_cast<${class_name}*>(LexgineObject::getNative());
+}
+
+$public_properties_setters_getters_definitions
+
+$api_methods_definitions
+
+}

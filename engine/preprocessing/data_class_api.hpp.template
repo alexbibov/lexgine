@@ -1,0 +1,10 @@
+#ifndef $hpp_guard
+#define $hpp_guard
+
+namespace $parent_namespace{
+
+$token_type $data_class_definition;
+
+}
+
+#endif $hpp_guard  

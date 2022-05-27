@@ -19,7 +19,7 @@
 
 #include "engine/core/concurrency/task_sink.h"
 
-#include "pugixml.hpp"
+#include <3rd_party/pugixml/pugixml.hpp>
 
 using namespace lexgine;
 using namespace lexgine::core;

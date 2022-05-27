@@ -1,0 +1,21 @@
+#include "runtime.h"
+#include "lexgine_object.h"
+$includes_list
+
+namespace lexgine::api{
+
+std::unordered_map<std::string, LinkResult> linkLexgineApi(std::wstring const& path_to_engine)
+{
+    std::unordered_map<std::string, LinkResult> rv{};
+    HMODULE module = LoadLibraryW(path_to_engine.c_str());
+    if(!module)
+    {
+        return rv;
+    }
+    
+	rv.emplace(std::make_pair(std::string{"lexgine::api::LexgineObject"}, LexgineObject::link(module)));
+$link_calls_list
+    return rv;
+}
+
+}

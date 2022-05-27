@@ -1,0 +1,3 @@
+F:/Repos/lexgine/engine/core/math/box.cpp
+F:/Repos/lexgine/engine/core/math/rectangle.cpp
+F:/Repos/lexgine/engine/core/math/utility.cpp

@@ -4,7 +4,7 @@
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
-#include "preprocessor_tokens.h"
+#include "engine/preprocessing/preprocessor_tokens.h"
 
 
 namespace lexgine::core::dx::dxgi {

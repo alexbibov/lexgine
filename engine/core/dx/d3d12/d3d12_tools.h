@@ -574,7 +574,7 @@ inline D3D12_DESCRIPTOR_HEAP_TYPE d3d12Convert(DescriptorHeapType descriptor_hea
 }
 
 
-#include "half.h"
+#include <3rd_party/half/half.h>
 #include "d3d12_min_mag_filter_converter.inl"
 #include "d3d12_type_traits.inl"
 
