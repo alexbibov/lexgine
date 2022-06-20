@@ -49,7 +49,7 @@ public:
     //! constructs wrapped type "in-place" without copy overhead
     template<typename A, typename... Args,
         typename = std::enable_if<std::is_constructible<T, A, Args...>::value
-        && !(std::is_same<std::decay<A>::type, T>::value && sizeof...(Args) == 0)>::value>
+        && !(std::is_same<typename std::decay<A>::type, T>::value && sizeof...(Args) == 0)>::value>
     explicit Optional(A&& a0, Args&&... args) :
         m_is_valid{ true }
     {

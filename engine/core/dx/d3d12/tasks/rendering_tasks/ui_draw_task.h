@@ -52,13 +52,13 @@ public:    // KeyInputListener events
     bool systemKeyUp(osinteraction::SystemKey key) override;
 
 public:    // MouseButtonListener events
-    bool buttonDown(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override;
-    bool buttonUp(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override;
-    bool doubleClick(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override;
-    bool wheelMove(double move_delta, bool is_horizontal_wheel, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override;
+    bool buttonDown(osinteraction::MouseButton button, uint16_t xbutton_id, osinteraction::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override;
+    bool buttonUp(osinteraction::MouseButton button, uint16_t xbutton_id, osinteraction::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override;
+    bool doubleClick(osinteraction::MouseButton button, uint16_t xbutton_id, osinteraction::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override;
+    bool wheelMove(double move_delta, bool is_horizontal_wheel, osinteraction::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override;
 
 public:    // MouseMoveListener events
-    bool move(uint16_t x, uint16_t y, osinteraction::windows::ControlKeyFlag const& control_key_flag) override;
+    bool move(uint16_t x, uint16_t y, osinteraction::ControlKeyFlag const& control_key_flag) override;
     bool enter_client_area() override;
     bool leave_client_area() override;
 

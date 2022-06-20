@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "lexgine_core_fwd.h"
+#include "engine/core/lexgine_core_fwd.h"
 
 #include "engine/core/dx/dxgi/hw_adapter_enumerator.h"
 
@@ -13,13 +13,17 @@
 
 #include "engine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h"
 
+#include "engine/core/dx/d3d12/interface.h"
+#include "engine/core/dx/dxgi/interface.h"
 #include "engine/core/dx/d3d12/debug_interface.h"
 #include "engine/core/dx/dxgi/swap_chain.h"
+
+#include "engine/preprocessing/preprocessor_tokens.h"
 
 namespace lexgine::core {
 
 
-struct EngineSettings
+struct LEXGINE_CPP_API EngineSettings
 {
     bool debug_mode;
     lexgine::core::dx::d3d12::GpuBasedValidationSettings gpu_based_validation_settings;

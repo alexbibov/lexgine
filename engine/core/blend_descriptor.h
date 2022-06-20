@@ -48,11 +48,11 @@ enum class BlendLogicalOperation : uint8_t
     copy_inverted,
     no_operation,
     invert,
-    and,
+    _and,
     nand, // logical "not and"
-    or ,
+    _or ,
     nor, // logical "not or"
-    xor,
+    _xor,
     equiv, // logical "equality" (true iff both operands have same logical value)
     and_then_reverse,   // performs logical "and" and then reverses the result (i.e. computes 1 - result)
     and_then_invert,    // performs logical "and" and then inverts the bit order of the result

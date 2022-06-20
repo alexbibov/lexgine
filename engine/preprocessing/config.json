@@ -5,20 +5,24 @@
 	"engine/core/dx/d3d12/command_queue.h",
 	"engine/core/dx/d3d12/root_signature.h",
 	"engine/core/dx/d3d12/tasks/rendering_tasks/rendering_work.h",
-	"engine/osinteraction/windows/window_listeners.h",
 	"engine/api/",
 	"engine/preprocessing/preprocessor_tokens.h"
 	],
 	"forced_includes": 
 	[
-		"api/lexgine_object.h",
+		"api/ioc.h",
 		"api/link_result.h",
 		"engine/preprocessing/preprocessor_tokens.h",
 		"common/ioc_traits.h"
 	],
 	"inherited_types_api_mapping": 
 	{
-		"lexgine::core::NamedEntity": "lexgine::api::LexgineObject"
+		"lexgine::core::NamedEntity": 
+		{
+			"mapped_object_name": "lexgine::api::LexgineObject",
+			"source_object_header_path": "engine/core/entity.h", 
+			"mapped_object_header_path": "api/lexgine_object.h"
+		}
 	},
 	"export_interfaces":
 	{
@@ -27,10 +31,12 @@
 	},
 	"import_interfaces":
 	{
-		"imported_opaque_class": {"source": "ioc_api.cpp.template", "header": "ioc_api.hpp.template"},
+		"imported_opaque_class": {"source": "ioc_api.cpp.template", "header": "ioc_api.hpp.template", "helper": "ioc_api_nested.hpp.template"},
 		"imported_opaque_class_traits": {"header": "ioc_traits_api.hpp.template"},
 		"data_class": {"header": "data_class_api.hpp.template"},
-		"api_linker": {"source": "runtime_api.cpp.template", "header": "runtime_api.hpp.template"}
+		"api_linker": {"source": "runtime_api.cpp.template", "header": "runtime_api.hpp.template"},
+		"enumeration": {"header": "enum_api_hpp.template"},
+		"flags": {"header": "flags_api.hpp.template"}
 	},
 	"common_resources":
 	[

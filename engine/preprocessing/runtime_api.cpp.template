@@ -13,6 +13,7 @@ std::unordered_map<std::string, LinkResult> linkLexgineApi(std::wstring const& p
         return rv;
     }
     
+	rv.emplace(std::make_pair(std::string{"lexgine::api::Ioc"}, Ioc::link(module)));
 	rv.emplace(std::make_pair(std::string{"lexgine::api::LexgineObject"}, LexgineObject::link(module)));
 $link_calls_list
     return rv;

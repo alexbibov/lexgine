@@ -75,14 +75,9 @@ public:
     template<typename T>
     bool put(T* obj)
     {
+        static_assert(!std::is_const<T>::value, "constant objects cannot be put into object pool \"Globals\"");
         misc::HashedString hashed_type_name{ typeid(T).name() };
         return put(hashed_type_name, obj);
-    }
-
-    template<typename T>
-    bool put(T const*)
-    {
-        static_assert(false, "constant objects cannot be put into object pool \"Globals\"");
     }
 };
 

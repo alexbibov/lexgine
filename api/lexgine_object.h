@@ -3,15 +3,12 @@
 
 #include <cstdint>
 #include <string>
-#include <memory>
 #include <guiddef.h>
-#include <api/link_result.h>
-#include <api/preprocessing/preprocessor_tokens.h>
-#include <common/ioc_traits.h>
+#include <api/ioc.h>
 
 namespace lexgine::api {
 
-class LexgineObject
+class LexgineObject: public Ioc
 {
 public:    // runtime linking infrastructure
     static LinkResult link(HMODULE module);    //! Runtime link interface
@@ -24,10 +21,6 @@ public:
         
 protected:
     LexgineObject(lexgine::common::ImportedOpaqueClass ioc_name);
-    void* getNative() const;
-    
-private:
-    std::unique_ptr<uint8_t[]> m_impl_buf;
 };
 
 }

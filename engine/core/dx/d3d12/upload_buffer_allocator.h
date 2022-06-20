@@ -1,15 +1,15 @@
 #ifndef LEXGINE_CORE_DX_D3D12_UPLOAD_BUFFER_ALLOCATOR
 #define LEXGINE_CORE_DX_D3D12_UPLOAD_BUFFER_ALLOCATOR
 
-#include "signal.h"
+#include <list>
+#include <mutex>
+
 #include "engine/core/entity.h"
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/allocator.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/resource.h"
-
-#include <list>
-#include <mutex>
+#include "engine/core/dx/d3d12/signal.h"
 
 
 namespace lexgine::core::dx::d3d12

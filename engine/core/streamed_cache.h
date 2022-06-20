@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <memory>
-#include <iostream>
+#include <fstream>
 #include <vector>
 #include <mutex>
 #include <iterator>
@@ -1243,7 +1243,7 @@ inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterato
 template<typename Key, size_t cluster_size>
 inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterator StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterator::operator++(int)
 {
-    StreamedCacheIndexIterator<Key> rv{ *this };
+    typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterator rv{ *this };
     ++(*this);
     return rv;
 }
@@ -1332,7 +1332,7 @@ inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterato
 template<typename Key, size_t cluster_size>
 inline typename StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterator StreamedCacheIndex<Key, cluster_size>::StreamedCacheIndexIterator::operator--(int)
 {
-    StreamedCacheIndexIterator<Key> rv{ *this };
+    StreamedCacheIndexIterator rv{ *this };
     --(*this);
     return rv;
 }
@@ -1621,11 +1621,8 @@ inline std::pair<size_t, bool> StreamedCache<Key, cluster_size>::serialize_entry
             std::pair<size_t, size_t> extra_space_allocation_desc = allocate_space_in_cache(extra_space_requirement);
             if (!extra_space_allocation_desc.second) return std::make_pair(0U, false);
 
-            cache_allocation_desc = 
-                optimize_reservation(
-                    std::list<std::pair<size_t, size_t>>{ existing_entry_sequence_allocation_desc, extra_space_allocation_desc }, 
-                    extra_space_requirement
-                );
+            std::list<std::pair<size_t, size_t>> reserved_seq_list{ existing_entry_sequence_allocation_desc, extra_space_allocation_desc };
+            cache_allocation_desc = optimize_reservation(reserved_seq_list, extra_space_requirement);
         }
         else
         {
@@ -2198,7 +2195,7 @@ inline size_t StreamedCache<Key, cluster_size>::usedSpace() const
 
     size_t unpartitioned_cache_size = m_max_cache_size - m_cache_body_size;
     size_t cluster_reservation_overhead = unpartitioned_cache_size / (cluster_size + m_cluster_overhead) * m_cluster_overhead;
-    return std::min(m_max_cache_size,
+    return (std::min)(m_max_cache_size,
         m_cache_body_size - emptied_cluster_sequences_total_capacity
         + cluster_reservation_overhead + m_sequence_overhead + m_entry_record_overhead);
 }

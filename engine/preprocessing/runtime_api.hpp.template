@@ -3,7 +3,7 @@
 
 #include <unordered_map>
 #include <string>
-#include <link_result.h>
+#include "api/link_result.h"
 
 namespace lexgine::api{
 

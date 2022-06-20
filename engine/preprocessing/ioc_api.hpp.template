@@ -5,21 +5,7 @@ $includes_list
 
 namespace $namespace{
 
-$class_token $class_name $class_qualifier: $inheritance_list
-{
-public:    // public properties
-$public_properties_setters_and_getters_declarations
-    
-public:    // flags
-$exported_flags
-    
-public:    // runtime linking infrastructure
-    static lexgine::api::LinkResult link(HMODULE module);    //! Runtime link interface
-    ${class_name}* getNative() const;    //! Returns opaque pointer to the native runtime class
-    
-public:    // API methods
-$api_methods
-};
+$class_declaration
 
 }
 

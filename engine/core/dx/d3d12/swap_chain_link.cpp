@@ -153,7 +153,7 @@ void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
             m_depth_buffer_native_format, 1, ResourceFlags::base_values::depth_stencil);
 
     m_depth_buffer = std::make_unique<CommittedResource>(m_device, ResourceState::base_values::depth_read,
-        m_depth_optimized_clear_value, descriptor, AbstractHeapType::default,
+        m_depth_optimized_clear_value, descriptor, AbstractHeapType::_default,
         HeapCreationFlags::base_values::allow_all, 0x1, 0x1);
 
 

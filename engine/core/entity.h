@@ -5,8 +5,8 @@
 #include <atomic>
 #include <guiddef.h>
 
-#include "error_behavioral.h"
-#include "class_names.h"
+#include "engine/core/error_behavioral.h"
+#include "engine/core/class_names.h"
 
 namespace lexgine::core {
 

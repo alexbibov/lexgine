@@ -5,7 +5,7 @@
 #include <sstream>
 #include <functional>
 
-#include "misc/log.h"
+#include "engine/core/misc/log.h"
 
 
 namespace lexgine::core {

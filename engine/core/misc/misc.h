@@ -71,6 +71,11 @@ template<typename T1, typename T2, typename T3> struct triplet
 #define TW_INVALID_RETURN_VALUE 0xFFFFFFFF	//constant encoding an invalid value returned by some functions on failure
 
 
+// Case of empty comparison list, always assumed to have negative yield
+template<typename T>
+bool equalsAny(T const& reference_expression) { return false; }
+
+
 //! Helper template function that allows to check if provided value equals to any of values from the given list.
 //! Note that all types from the list must be comparable with the reference value (i.e. must implement the corresponding == operators)
 template<typename T1, typename T2, typename ... Rest>
@@ -79,10 +84,6 @@ bool equalsAny(T1 const& reference_expression, T2 const& val0, Rest ... tail)
     if (reference_expression == val0) return true;
     else return equalsAny(reference_expression, tail...);
 }
-
-// Case of empty comparison list, always assumed to have negative yield
-template<typename T>
-bool equalsAny(T const& reference_expression) { return false; }
 
 
 //! Helper: generic dereference. Works correctly regardless of whether the underlying type is an actualpointer

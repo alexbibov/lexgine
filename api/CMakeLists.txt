@@ -22,4 +22,8 @@ source_group(TREE ${_src_root_path} PREFIX "Header files" FILES ${_headers_list}
 add_library(${_target} STATIC ${_sources_list} ${_headers_list})
 
 target_include_directories(${_target} PUBLIC "${CMAKE_SOURCE_DIR}/" "${CMAKE_SOURCE_DIR}/api")
+target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
+target_link_libraries(${_target} PRIVATE  "glm_static.lib" "lua.lib" "zlib.lib" "pugixml.lib")
+
 target_compile_definitions(${_target} PUBLIC LEXGINE_API_LIB)
+add_dependencies(${_target} engine)

@@ -2,11 +2,13 @@
 #define LEXGINE_API_EXTERNAL_PARSER_TOKENS_H
 
 #define LEXGINE_CPP_API
+#define DEPENDS_ON(...)
 #define LEXGINE_LUA_API
 
 #define LEXGINE_CALL __cdecl
 
 #ifdef LEXGINE_API_LIB
+#include <type_traits>
 #include <api/is_call_possible.h>
 namespace lexgine::api {
 

@@ -9,6 +9,8 @@ template<typename T>
 class DefaultAllocator : public Allocator<T>
 {
 public:
+    using Allocator<T>::address_type;
+
     //! Allocates new object of type T from the heap memory using default constructor
     address_type allocate()
     {
@@ -30,7 +32,7 @@ public:
     }
 
 private:
-    struct DefaultAllocatorMemoryBlock : public MemoryBlock<T>
+    struct DefaultAllocatorMemoryBlock : public Allocator<T>::MemoryBlock<T>
     {
         size_t size;    //!< size of the allocated block
     };

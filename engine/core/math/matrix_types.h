@@ -13,6 +13,12 @@ class matrix : public glm::mat<ncolumns, nrows, T, Q>
 public:
     using glm::mat<ncolumns, nrows, T, Q>::mat;
 
+    matrix(glm::mat<ncolumns, nrows, T, Q> const& m)
+        : glm::mat<ncolumns, nrows, T, Q>{ m }
+    {
+
+    }
+
 public:
     typename glm::mat<ncolumns, nrows, T, Q>::transpose_type transpose() const
     {
@@ -21,7 +27,7 @@ public:
 
     T* getRawData()
     {
-        glm::mat<ncolumns, nrows, T, Q>::col_type& data = (*this)[0];
+        typename glm::mat<ncolumns, nrows, T, Q>::col_type& data = (*this)[0];
         return reinterpret_cast<T*>(&data);
     }
 
@@ -37,6 +43,12 @@ class matrix<T, order, order, Q> : public glm::mat<order, order, T, Q>
 public:
     using glm::mat<order, order, T, Q>::mat;
 
+    matrix(glm::mat<order, order, T, Q> const& m)
+        : glm::mat<order, order, T, Q>{ m }
+    {
+
+    }
+
 public:
     typename glm::mat<order, order, T, Q>::transpose_type transpose() const
     {
@@ -45,7 +57,7 @@ public:
 
     T* getRawData()
     {
-        glm::mat<order, order, T, Q>::col_type& data = (*this)[0];
+        typename glm::mat<order, order, T, Q>::col_type& data = (*this)[0];
         return reinterpret_cast<T*>(&data);
     }
 

@@ -38,7 +38,7 @@ public:
     //! Inserts new value into the queue
     void enqueue(T const& value)
     {
-        allocator_type::address_type p_new_node = nullptr;
+        typename allocator_type::address_type p_new_node = nullptr;
         
         while (!p_new_node)
         {
@@ -49,9 +49,9 @@ public:
 
         while (true)
         {
-            hpp_type::HazardPointerRecord hp_tail = m_hp_pool.acquire(allocator_type::address_type{ m_tail.load(std::memory_order::memory_order_acquire) });
+            typename hpp_type::HazardPointerRecord hp_tail = m_hp_pool.acquire(typename allocator_type::address_type{ m_tail.load(std::memory_order::memory_order_acquire) });
 
-            allocator_type::address_type p_tail = hp_tail.get();
+            typename allocator_type::address_type p_tail = hp_tail.get();
 
 
             if (static_cast<size_t>(p_tail) == m_tail.load(std::memory_order::memory_order_consume))    // check if p_tail is still related to the queue...
@@ -92,19 +92,19 @@ public:
     {
         while (true)
         {
-            hpp_type::HazardPointerRecord hp_head = m_hp_pool.acquire(allocator_type::address_type{ m_head.load(std::memory_order::memory_order_acquire) });
-            allocator_type::address_type p_head = hp_head.get();
+            typename hpp_type::HazardPointerRecord hp_head = m_hp_pool.acquire(typename allocator_type::address_type{ m_head.load(std::memory_order::memory_order_acquire) });
+            typename allocator_type::address_type p_head = hp_head.get();
 
-            hpp_type::HazardPointerRecord hp_head_next{};
-            allocator_type::address_type p_head_next{ nullptr };
+            typename hpp_type::HazardPointerRecord hp_head_next{};
+            typename allocator_type::address_type p_head_next{ nullptr };
 
-            hpp_type::HazardPointerRecord hp_tail = m_hp_pool.acquire(allocator_type::address_type{ m_tail.load(std::memory_order::memory_order_acquire) });
-            allocator_type::address_type p_tail = hp_tail.get();
+            typename hpp_type::HazardPointerRecord hp_tail = m_hp_pool.acquire(typename allocator_type::address_type{ m_tail.load(std::memory_order::memory_order_acquire) });
+            typename allocator_type::address_type p_tail = hp_tail.get();
 
             if (static_cast<size_t>(p_head) == m_head.load(std::memory_order::memory_order_consume))    // check if p_head is still related to the queue
             {
                 // Now we can be sure that we can access the node that follows the head node...
-                hp_head_next = m_hp_pool.acquire(allocator_type::address_type{ p_head->next.load(std::memory_order::memory_order_acquire) });
+                hp_head_next = m_hp_pool.acquire(typename allocator_type::address_type{ p_head->next.load(std::memory_order::memory_order_acquire) });
                 p_head_next = hp_head_next.get();
 
                 if (p_head == p_tail)
@@ -131,7 +131,7 @@ public:
                         misc::Optional<T> rv = p_head_next->data;
 
                         size_t p_head_addr = static_cast<size_t>(p_head);
-                        if (m_head.compare_exchange_strong(static_cast<size_t>(p_head_addr), static_cast<size_t>(p_head_next), std::memory_order::memory_order_acq_rel))
+                        if (m_head.compare_exchange_strong(p_head_addr, static_cast<size_t>(p_head_next), std::memory_order::memory_order_acq_rel))
                         {
                             m_hp_pool.retire(hp_head);
 
@@ -178,7 +178,7 @@ public:
 
     ~LockFreeQueue()
     {
-        allocator_type::address_type p_last_node_to_destruct{ m_head.load(std::memory_order::memory_order_consume) };
+        typename allocator_type::address_type p_last_node_to_destruct{ m_head.load(std::memory_order::memory_order_consume) };
         assert(static_cast<size_t>(p_last_node_to_destruct) == m_tail.load(std::memory_order::memory_order_consume));    // the queue must be empty when getting destructed
 
 #ifdef _DEBUG
