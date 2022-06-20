@@ -12,7 +12,7 @@ extern "C" {
 	{
 		switch (ioc_name)
 		{
-		$ioc_name_switch_clauses
+$ioc_name_switch_clauses
 		default: return 0;
 		}
 	}

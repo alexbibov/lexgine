@@ -93,7 +93,7 @@ public:
     void addDataBinding(std::string const& target_variable_name, T const& data_source)
     {
         m_writers.emplace_back(misc::HashedString{ target_variable_name },
-            std::unique_ptr<AbstractConstantDataProvider>{new ConstantDataProvider<std::remove_const<std::remove_reference<T>::type>::type>{ data_source }});
+            std::unique_ptr<AbstractConstantDataProvider>{new ConstantDataProvider<typename std::remove_const<typename std::remove_reference<T>::type>::type>{ data_source }});
     }
 
     void writeAllBoundData(uint64_t constant_buffer_allocation_base_address) const;

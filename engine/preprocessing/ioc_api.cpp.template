@@ -1,3 +1,4 @@
+#include <cstddef>
 #include "${api_name}.h"
 
 namespace $namespace{
@@ -5,9 +6,11 @@ namespace $namespace{
 namespace{
 
 $public_properties_memory_layout_declaration
-
 $flags_using_declarations
-
+$enums_using_declarations
+$unions_using_declarations
+$nested_classes_using_declarations
+$fp_using_declarations
 $api_function_pointers_declarations
 
 }
@@ -23,7 +26,7 @@ $link_methods_call_list
 
 ${class_name}* ${class_name}::getNative() const
 {
-    return reinterpret_cast<${class_name}*>(LexgineObject::getNative());
+    return reinterpret_cast<${class_name}*>(Ioc::getNative());
 }
 
 $public_properties_setters_getters_definitions

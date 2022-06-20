@@ -15,6 +15,12 @@ class vector : public glm::vec<nelements, T, Q>
 public:
     using glm::vec<nelements, T, Q>::vec;
 
+    vector(glm::vec<nelements, T, Q> const& v):
+        glm::vec<nelements, T, Q>{ v }
+    {
+
+    }
+
     T* getRawData()
     {
         T& data = this->x;

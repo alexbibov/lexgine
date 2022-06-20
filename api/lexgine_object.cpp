@@ -1,18 +1,15 @@
 #include <cassert>
-
+#include <api/preprocessing/preprocessor_tokens.h>
 #include "lexgine_object.h"
-#include <engine/core/entity.h>
 
 using namespace lexgine::api;
-using namespace lexgine::core;
 
 namespace{
     
-void (LEXGINE_CALL *api__lexgineCoreObjectGetUUID)(void const*, UUID&) = nullptr;
+void (LEXGINE_CALL *api__lexgineCoreObjectGetUUID)(void const*, GUID&) = nullptr;
 void (LEXGINE_CALL *api__lexgineCoreObjectGetStringName)(void const*, std::string&) = nullptr;
 void (LEXGINE_CALL *api__lexgineCoreObjectSetStringName)(void*, std::string const&) = nullptr;
-uint32_t (LEXGINE_CALL *api__lexgineCoreGetAliveEntitiesCount)() = nullptr;
-size_t (LEXGINE_CALL *api__lexgineIocTraitsGetImportedOpaqueClassSize)(lexgine::common::ImportedOpaqueClass) = nullptr;
+uint64_t (LEXGINE_CALL *api__lexgineCoreGetAliveEntitiesCount)() = nullptr;
     
 }
 
@@ -23,20 +20,13 @@ LinkResult LexgineObject::link(HMODULE module)
     api__lexgineCoreObjectGetStringName = reinterpret_cast<decltype(api__lexgineCoreObjectGetStringName)>(rv.attemptLink("lexgineCoreObjectGetStringName"));
     api__lexgineCoreObjectSetStringName = reinterpret_cast<decltype(api__lexgineCoreObjectSetStringName)>(rv.attemptLink("lexgineCoreObjectSetStringName"));
     api__lexgineCoreGetAliveEntitiesCount = reinterpret_cast<decltype(api__lexgineCoreGetAliveEntitiesCount)>(rv.attemptLink("lexgineCoreGetAliveEntitiesCount"));
-    api__lexgineIocTraitsGetImportedOpaqueClassSize = reinterpret_cast<decltype(api__lexgineIocTraitsGetImportedOpaqueClassSize)>(rv.attemptLink("lexgineIocTraitsGetImportedOpaqueClassSize"));
     return rv;
 }
 
 LexgineObject::LexgineObject(lexgine::common::ImportedOpaqueClass ioc_name)
+	: Ioc{ioc_name}
 {
-    assert(api__lexgineIocTraitsGetImportedOpaqueClassSize);
-    size_t ioc_size = api__lexgineIocTraitsGetImportedOpaqueClassSize(ioc_name);
-    m_impl_buf = std::make_unique<uint8_t[]>(ioc_size);
 }
-
-
-void* LexgineObject::getNative() const { return m_impl_buf.get(); }
-
 
 GUID LexgineObject::asUUID() const
 {

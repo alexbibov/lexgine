@@ -16,7 +16,7 @@ list(APPEND _headers_list "${PROJECT_SOURCE_DIR}/ioc_traits.h")
 add_library(${_target} STATIC ${_sources_list} ${_headers_list})
 
 target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/")
-target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/")
+target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
 target_link_libraries(${_target} PRIVATE  "glm_static.lib" "lua.lib" "zlib.lib" "pugixml.lib")
 
 

@@ -30,7 +30,7 @@ END_FLAGS_DECLARATION(HeapCreationFlags);
 //! Determines abstract adapter-agnostic type of the heap
 enum class AbstractHeapType
 {
-    default = 1,    //<! default heap. The heap allocated from this pool will experience the most bandwidth for the GPU, but would not allow CPU access
+    _default = 1,    //<! default heap. The heap allocated from this pool will experience the most bandwidth for the GPU, but would not allow CPU access
     upload = 2,    //<! upload heap optimized for uploading data to the GPU-side. The best usage scenario is CPU-write-once & GPU-read-once cases
     readback = 3    //!< optimized for reading data back from the GPU-side
 };

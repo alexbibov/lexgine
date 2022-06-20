@@ -85,7 +85,8 @@ uint64_t DescriptorHeap::createConstantBufferViewDescriptors(size_t offset, std:
     D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ m_heap_start_cpu_address + offset * m_descriptor_size };
     for (auto const& cbv_desc : cbv_descriptors)
     {
-        m_device.native()->CreateConstantBufferView(&cbv_desc.nativeDescriptor(), cpu_handle);
+        auto cbv_desc_native = cbv_desc.nativeDescriptor();
+        m_device.native()->CreateConstantBufferView(&cbv_desc_native, cpu_handle);
         cpu_handle.ptr += m_descriptor_size;
     }
 
@@ -99,7 +100,8 @@ uint64_t DescriptorHeap::createShaderResourceViewDescriptors(size_t offset, std:
     D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ m_heap_start_cpu_address + offset * m_descriptor_size };
     for (auto const& srv_desc : srv_descriptors)
     {
-        m_device.native()->CreateShaderResourceView(srv_desc.associatedResource().native().Get(), &srv_desc.nativeDescriptor(), cpu_handle);
+        auto srv_desc_native = srv_desc.nativeDescriptor();
+        m_device.native()->CreateShaderResourceView(srv_desc.associatedResource().native().Get(), &srv_desc_native, cpu_handle);
         cpu_handle.ptr += m_descriptor_size;
     }
 
@@ -115,9 +117,10 @@ uint64_t DescriptorHeap::createUnorderedAccessViewDescriptors(size_t offset, std
     {
         auto p_counter_resource = uav_desc.associatedCounterResourcePtr();
 
+        auto uav_desc_native = uav_desc.nativeDescriptor();
         m_device.native()->CreateUnorderedAccessView(uav_desc.associatedResource().native().Get(),
             p_counter_resource ? p_counter_resource->native().Get() : nullptr,
-            &uav_desc.nativeDescriptor(), cpu_handle);
+            &uav_desc_native, cpu_handle);
         cpu_handle.ptr += m_descriptor_size;
     }
 
@@ -131,7 +134,8 @@ uint64_t DescriptorHeap::createSamplerDescriptors(size_t offset, std::vector<Sam
     D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ m_heap_start_cpu_address + offset * m_descriptor_size };
     for (auto const& sampler_desc : sampler_descriptors)
     {
-        m_device.native()->CreateSampler(&sampler_desc.nativeDescriptor(), cpu_handle);
+        auto sampler_desc_native = sampler_desc.nativeDescriptor();
+        m_device.native()->CreateSampler(&sampler_desc_native, cpu_handle);
         cpu_handle.ptr += m_descriptor_size;
     }
 
@@ -145,7 +149,8 @@ uint64_t DescriptorHeap::createRenderTargetViewDescriptors(size_t offset, std::v
     D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ m_heap_start_cpu_address + offset * m_descriptor_size };
     for (auto const& rtv_desc : rtv_descriptors)
     {
-        m_device.native()->CreateRenderTargetView(rtv_desc.associatedResource().native().Get(), &rtv_desc.nativeDescriptor(), cpu_handle);
+        auto rtv_desc_native = rtv_desc.nativeDescriptor();
+        m_device.native()->CreateRenderTargetView(rtv_desc.associatedResource().native().Get(), &rtv_desc_native, cpu_handle);
         cpu_handle.ptr += m_descriptor_size;
     }
 
@@ -159,7 +164,8 @@ uint64_t DescriptorHeap::createDepthStencilViewDescriptors(size_t offset, std::v
     D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ m_heap_start_cpu_address + offset * m_descriptor_size };
     for (auto const& dsv_desc : dsv_descriptors)
     {
-        m_device.native()->CreateDepthStencilView(dsv_desc.associatedResource().native().Get(), &dsv_desc.nativeDescriptor(), cpu_handle);
+        auto dsv_desc_native = dsv_desc.nativeDescriptor();
+        m_device.native()->CreateDepthStencilView(dsv_desc.associatedResource().native().Get(), &dsv_desc_native, cpu_handle);
         cpu_handle.ptr += m_descriptor_size;
     }
 

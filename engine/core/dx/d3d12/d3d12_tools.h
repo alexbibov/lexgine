@@ -1,6 +1,7 @@
 #ifndef LEXGINE_CORE_DX_D3D12_D3D12_TOOLS_H
 #define LEXGINE_CORE_DX_D3D12_D3D12_TOOLS_H
 
+#include <cassert>
 #include "engine/core/misc/constant_converter.h"
 
 namespace lexgine::core::misc {
@@ -213,7 +214,7 @@ inline D3D12_BLEND_OP d3d12Convert(BlendOperation blend_op)
 
 //! Converts API-agnostic blend logical operation to the corresponding Direc3D 12 enumeration
 inline D3D12_LOGIC_OP d3d12Convert(BlendLogicalOperation blend_logical_op)
-{
+{ 
     switch (blend_logical_op)
     {
     case BlendLogicalOperation::clear:
@@ -228,16 +229,16 @@ inline D3D12_LOGIC_OP d3d12Convert(BlendLogicalOperation blend_logical_op)
         return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::no_operation>::value());
     case BlendLogicalOperation::invert:
         return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::invert>::value());
-    case BlendLogicalOperation::and:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::and>::value());
+    case BlendLogicalOperation::_and:
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::_and>::value());
     case BlendLogicalOperation::nand:
         return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::nand>::value());
-    case BlendLogicalOperation:: or :
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation:: or >::value());
+    case BlendLogicalOperation::_or:
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::_or >::value());
     case BlendLogicalOperation::nor:
         return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::nor>::value());
-    case BlendLogicalOperation::xor:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::xor>::value());
+    case BlendLogicalOperation::_xor:
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::_xor>::value());
     case BlendLogicalOperation::equiv:
         return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::equiv>::value());
     case BlendLogicalOperation::and_then_reverse:

@@ -2,9 +2,15 @@
 
 namespace $exporting_namespace::_shared_symbols{
 
+namespace{
+$flags_using_declarations
+$enums_using_declarations
+$unions_using_declarations
+$nested_classes_using_declarations
+$fp_using_declarations
+}
+
 extern "C" {
-	
-	
 $source_body
 }
 

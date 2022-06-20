@@ -31,7 +31,7 @@ StreamedCacheConnection lexgine::core::dx::d3d12::task_caches::establishConnecti
 
 misc::Optional<StreamedCacheConnection> lexgine::core::dx::d3d12::task_caches::findCombinedCacheContainingKey(CombinedCacheKey const& key, GlobalSettings const& global_settings)
 {
-    auto& cache_directory = global_settings.getCacheDirectory();
+    auto cache_directory = global_settings.getCacheDirectory();
     auto combined_caches = getFilesInDirectory(cache_directory,
         global_settings.getCombinedCacheName() + "." + global_constants::combined_cache_extra_extension + "*");
 

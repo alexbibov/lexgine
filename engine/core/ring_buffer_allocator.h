@@ -2,7 +2,7 @@
 #define LEXGINE_CORE_RING_BUFFER_H
 
 #include <atomic>
-#include "allocator.h"
+#include "engine/core/allocator.h"
 
 namespace lexgine::core {
 
@@ -43,7 +43,7 @@ public:
     }
 
     //! Allocates new object of type T from the ring buffer
-    address_type allocate()
+    typename Allocator<T>::address_type allocate()
     {
         RingBufferCell* p_current_cell = m_buffer_ptr;
         uint32_t num_parsed_count{ 0U };
@@ -62,16 +62,16 @@ public:
             if (p_current_cell->is_used.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) break;
         }
 
-        return address_type{ p_current_cell };
+        return typename Allocator<T>::address_type{ p_current_cell };
     }
 
 
     /*! Removes object having provided address from the ring buffer. If the input address does not point to a valid
      object of type T currently residing in the ring buffer the behavior is undefined.
     */
-    void free(address_type const& memory_block_addr)
+    void free(typename Allocator<T>::address_type const& memory_block_addr)
     {
-        RingBufferCell* p_cell = static_cast<RingBufferCell*>(pointerCast(memory_block_addr));
+        RingBufferCell* p_cell = static_cast<RingBufferCell*>(Allocator<T>::pointerCast(memory_block_addr));
         p_cell->is_used.store(false, std::memory_order_release);
     }
 
@@ -79,7 +79,7 @@ public:
     size_t getCapacity() const { return m_num_of_cells; }
 
 private:
-    struct RingBufferCell : public MemoryBlock<T>
+    struct RingBufferCell : public Allocator<T>::memory_block_type
     {
         std::atomic_bool is_used;    //!< 'true' if the cell is currently in use, 'false' otherwise
         RingBufferCell* p_next;    //!< pointer to the next cell in the ring buffer

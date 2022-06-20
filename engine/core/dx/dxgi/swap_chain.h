@@ -22,7 +22,7 @@ namespace lexgine::core::dx::dxgi {
 template<typename T> class SwapChainAttorney;
 
 //! Describes swap chain scaling modes
-enum class SwapChainScaling
+enum class LEXGINE_CPP_API SwapChainScaling
 {
     stretch = DXGI_SCALING_STRETCH,
     none = DXGI_SCALING_NONE,
@@ -31,7 +31,7 @@ enum class SwapChainScaling
 
 
 //! Describes parameters of the swap chain
-struct SwapChainDescriptor
+struct LEXGINE_CPP_API DEPENDS_ON(SwapChainScaling) SwapChainDescriptor
 {
     DXGI_FORMAT format;    //!< display format
     bool stereo;
@@ -42,7 +42,7 @@ struct SwapChainDescriptor
     uint32_t back_buffer_count;
 };
 
-class SwapChain final : public NamedEntity<class_names::DXGI_SwapChain>
+class LEXGINE_CPP_API DEPENDS_ON(SwapChainDescriptor, SwapChainScaling) SwapChain final : public NamedEntity<class_names::DXGI_SwapChain>
 {
     friend class SwapChainAttorney<HwAdapter>;
 
@@ -59,31 +59,31 @@ public:
     d3d12::CommandQueue const& defaultCommandQueue() const;
 
     //! Retrieves Window object to which the swap chain is attached
-    osinteraction::windows::Window& window() const;
+    LEXGINE_CPP_API osinteraction::windows::Window& window() const;
 
     //! Retrieves current width and height of the swap chain packed into a 2D vector
-    math::Vector2u getDimensions() const;
+    LEXGINE_CPP_API math::Vector2u getDimensions() const;
 
-    //! Retrieves one of the back buffers of the swap chain and wrappes it into a Resource object
+    //! Retrieves one of the back buffers of the swap chain and wraps it into a Resource object
     dx::d3d12::Resource getBackBuffer(uint32_t buffer_index) const;
 
     //! Returns index of the current back buffer of the swap chain
-    uint32_t getCurrentBackBufferIndex() const;
+    LEXGINE_CPP_API uint32_t getCurrentBackBufferIndex() const;
 
     //! Puts contents of the back buffer into the front buffer.
-    void present() const;
+    LEXGINE_CPP_API void present() const;
 
     //! Total back buffer count
-    uint32_t backBufferCount() const;
+    LEXGINE_CPP_API uint32_t backBufferCount() const;
 
     //! Retrieves descriptor of the swap chain
     SwapChainDescriptor const& descriptor() const;
 
     //! Resizes the swap chain 
-    void resizeBuffers(math::Vector2u const& new_dimensions);
+    LEXGINE_CPP_API void resizeBuffers(math::Vector2u const& new_dimensions);
 
     //! Checks if the swap chain is in idle state
-    bool isIdle() const { return m_swapChainIsIdle; }
+    LEXGINE_CPP_API bool isIdle() const { return m_swapChainIsIdle; }
 
 private:
     SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory, 

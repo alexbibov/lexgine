@@ -1,6 +1,8 @@
 #ifndef $hpp_guard
 #define $hpp_guard
 
+$includes_list
+
 namespace $parent_namespace{
 
 $token_type $data_class_definition;

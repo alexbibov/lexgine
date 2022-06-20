@@ -36,8 +36,8 @@ Matrix4f createProjectionMatrix(EngineAPI target_api, float width, float height,
     case EngineAPI::Direct3D12:
     case EngineAPI::Vulkan:
         row2 = invert_depth
-            ? Vector4f{ 0.f, 0.f, n*Q, n*f*Q, }
-        : Vector4f{ 0.f, 0.f, -f * Q, -n * f*Q };
+            ? Vector4f{ 0.f, 0.f, n * Q, n * f * Q, }
+        : Vector4f{ 0.f, 0.f, -f * Q, -n * f * Q };
         break;
 
     case EngineAPI::Metal:
@@ -45,7 +45,7 @@ Matrix4f createProjectionMatrix(EngineAPI target_api, float width, float height,
         break;
 
     case EngineAPI::OpenGL45:
-        row2 = Vector4f{ 0.f, 0.f, -(f + n)*Q, -2 * n*f*Q };
+        row2 = Vector4f{ 0.f, 0.f, -(f + n) * Q, -2 * n * f * Q };
         if (invert_depth) row2 *= -1.f;
         break;
 
@@ -77,7 +77,7 @@ Matrix4f createOrthogonalProjectionMatrix(EngineAPI target_api, float position_x
         break;
 
     case EngineAPI::Metal:
-        LEXGINE_THROW_ERROR("not implemented");
+        // LEXGINE_THROW_ERROR("not implemented");
         break;
 
     case EngineAPI::OpenGL45:

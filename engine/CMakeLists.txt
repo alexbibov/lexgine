@@ -18,6 +18,7 @@ file(
 )
 
 find_package(Python COMPONENTS Interpreter REQUIRED)
+
 execute_process(
     COMMAND ${Python_EXECUTABLE} "${_src_root_path}/preprocessing/generate_dll_interfaces.py" --headers "${_headers_list}" --common-lib "${CMAKE_SOURCE_DIR}/common" --output "\"${CMAKE_SOURCE_DIR}/api\"" --config "${_src_root_path}/preprocessing/config.json"
 	WORKING_DIRECTORY "${_src_root_path}/preprocessing"
@@ -43,7 +44,6 @@ target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}"
 target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib")
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/bin/x64/")
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
-target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/common")
 target_link_libraries(${_target} PRIVATE 
                       "glm_static.lib" "lua.lib" "imgui.lib" "zlib.lib" "pugixml.lib" "spookyhashv2.lib"
                       "d3dcompiler.lib" "dxgi.lib" "d3d12.lib" "dxcompiler.lib" "WinPixEventRuntime.lib" "common.lib")
@@ -67,6 +67,8 @@ if (MSVC)
     # Run Nuget to install any missing dependencies using packages.config
     execute_process(COMMAND ${NUGET} restore packages.config -SolutionDirectory ${CMAKE_BINARY_DIR}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+		
+	file(COPY ${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/bin/${CMAKE_VS_PLATFORM_NAME}/WinPixEventRuntime.dll DESTINATION ${_build_runtime_output_directory})
 endif()
 
 set_property(TARGET ${_target} PROPERTY OUTPUT_NAME "lexgine")

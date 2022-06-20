@@ -59,23 +59,23 @@ void defineImGUIKeyMap(HWND hwnd)
     io.KeyMap[ImGuiKey_Z] = static_cast<int>(osinteraction::SystemKey::Z);
 }
 
-bool mouseButtonHandler(osinteraction::windows::MouseButtonListener::MouseButton button, uint16_t xbutton_id,
+bool mouseButtonHandler(osinteraction::MouseButton button, uint16_t xbutton_id,
     osinteraction::windows::Window const& window, bool acquire_capture)
 {
     ImGuiIO& io = ImGui::GetIO();
 
     switch (button)
     {
-    case osinteraction::windows::MouseButtonListener::MouseButton::left:
+    case osinteraction::MouseButton::left:
         io.MouseDown[0] = acquire_capture;
         break;
-    case osinteraction::windows::MouseButtonListener::MouseButton::middle:
+    case osinteraction::MouseButton::middle:
         io.MouseDown[2] = acquire_capture;
         break;
-    case osinteraction::windows::MouseButtonListener::MouseButton::right:
+    case osinteraction::MouseButton::right:
         io.MouseDown[1] = acquire_capture;
         break;
-    case osinteraction::windows::MouseButtonListener::MouseButton::x:
+    case osinteraction::MouseButton::x:
         io.MouseDown[xbutton_id + 2] = acquire_capture;
         break;
     default:
@@ -261,22 +261,22 @@ bool UIDrawTask::systemKeyUp(osinteraction::SystemKey key)
 }
 
 
-bool UIDrawTask::buttonDown(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
+bool UIDrawTask::buttonDown(osinteraction::MouseButton button, uint16_t xbutton_id, osinteraction::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
     return mouseButtonHandler(button, xbutton_id, *m_rendering_window_ptr, true);
 }
 
-bool UIDrawTask::buttonUp(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
+bool UIDrawTask::buttonUp(osinteraction::MouseButton button, uint16_t xbutton_id, osinteraction::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
     return mouseButtonHandler(button, xbutton_id, *m_rendering_window_ptr, false);
 }
 
-bool UIDrawTask::doubleClick(MouseButton button, uint16_t xbutton_id, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
+bool UIDrawTask::doubleClick(osinteraction::MouseButton button, uint16_t xbutton_id, osinteraction::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
     return buttonDown(button, xbutton_id, control_key_flag, x, y);
 }
 
-bool UIDrawTask::wheelMove(double move_delta, bool is_horizontal_wheel, osinteraction::windows::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
+bool UIDrawTask::wheelMove(double move_delta, bool is_horizontal_wheel, osinteraction::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -293,7 +293,7 @@ bool UIDrawTask::wheelMove(double move_delta, bool is_horizontal_wheel, osintera
 }
 
 
-bool UIDrawTask::move(uint16_t x, uint16_t y, osinteraction::windows::ControlKeyFlag const& control_key_flag)
+bool UIDrawTask::move(uint16_t x, uint16_t y, osinteraction::ControlKeyFlag const& control_key_flag)
 {
     ImGuiIO& io = ImGui::GetIO();
     io.MousePos = ImVec2{ static_cast<float>(x), static_cast<float>(y) };
@@ -440,7 +440,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
         ResourceDescriptor font_texture_descriptor = ResourceDescriptor::CreateTexture2D(width, height, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
 
         m_fonts_texture = std::make_unique<CommittedResource>(m_device, ResourceState::base_values::pixel_shader,
-            misc::makeEmptyOptional<ResourceOptimizedClearValue>(), font_texture_descriptor, AbstractHeapType::default,
+            misc::makeEmptyOptional<ResourceOptimizedClearValue>(), font_texture_descriptor, AbstractHeapType::_default,
             HeapCreationFlags::base_values::allow_all);
 
         ResourceDataUploader::TextureSourceDescriptor source_descriptor{};

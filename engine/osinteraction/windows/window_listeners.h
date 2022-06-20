@@ -10,6 +10,7 @@
 
 #include "engine/osinteraction/listener.h"
 #include "engine/osinteraction/keyboard.h"
+#include "engine/osinteraction/mouse.h"
 
 #include "window.h"
 
@@ -35,17 +36,6 @@ protected:
 };
 
 
-//! Flags representing virtual control keys that may affect mouse actions when pressed
-BEGIN_FLAGS_DECLARATION(ControlKeyFlag)
-FLAG(ctrl, 1)
-FLAG(left_mouse_button, 2)
-FLAG(middle_mouse_button, 4)
-FLAG(right_mouse_button, 8)
-FLAG(shift, 0x10)
-FLAG(xbutton1, 0x20)
-FLAG(xbutton2, 0x40)
-END_FLAGS_DECLARATION(ControlKeyFlag);
-
 //! Listener implementing handling of the basic mouse button actions that are present on the most mouse models
 class MouseButtonListener : public ConcreteListener<
     WM_LBUTTONDOWN, WM_LBUTTONUP,
@@ -59,22 +49,13 @@ class MouseButtonListener : public ConcreteListener<
 >
 {
 public:
-    //! Enumerates basic three mouse buttons
-    enum class MouseButton
-    {
-        left,
-        middle,
-        right,
-        x
-    };
-
     //! called when one of the mouse buttons is pressed. The function should return 'true' on success
     virtual bool buttonDown(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
 
     //! called when one of the mouse buttons is released. The function should return 'true' on success
     virtual bool buttonUp(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
 
-    //! called when one of the mouse buttons is double-clicked. The function shoudl return 'true' on success
+    //! called when one of the mouse buttons is double-clicked. The function should return 'true' on success
     virtual bool doubleClick(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
 
     //! called when mouse wheel is moved. The function should return 'true' on success

@@ -9,17 +9,17 @@ else()
 set(_64_bit_build FALSE)
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(_build_runtime_output_directory ${CMAKE_BINARY_DIR}/bin/)
+set(_build_lib_output_directory ${CMAKE_BINARY_DIR}/bin/lib/)
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/lib)
 
 get_property(isMultiConfigGenerator GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 
 function(add_subproject name)
-    set(_build_runtime_output_directory ${CMAKE_BINARY_DIR}/bin/)
-    set(_build_lib_output_directory ${CMAKE_BINARY_DIR}/bin/lib/)
     if (isMultiConfigGenerator)
         foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
             string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)

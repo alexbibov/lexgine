@@ -5,7 +5,7 @@ namespace lexgine { namespace core { namespace misc {
 template<MinificationFilter min_filter, MagnificationFilter mag_filter, bool is_comparison>
 struct MinMagFilterConverter<EngineAPI::Direct3D12, min_filter, mag_filter, is_comparison>
 {
-    static uint32_t constexpr value() { static_assert(false, "requested combination of minification and magnification filters is not supported by Direct3D 12 API"); }
+    static uint32_t constexpr value() { assert(false); return static_cast<uint32_t>(-1); }
 };
 
 template<>
