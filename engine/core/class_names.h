@@ -7,7 +7,6 @@ extern char const DXGI_HwOutput[];
 extern char const DXGI_HwOutputEnumerator[];
 extern char const DXGI_HwAdapter[];
 extern char const DXGI_HwAdapterEnumerator[];
-extern char const DXGI_SwapChain[];
 extern char const D3D12_Device[];
 extern char const D3D12_QueryCache[];
 extern char const D3D12_CommandQueue[];
@@ -40,6 +39,7 @@ extern char const D3D12_UploadBufferAllocator[];
 extern char const D3D12_RenderingTasks[];
 extern char const BasicRenderingServices[];
 extern char const ConstantBufferStream[];
+extern char const SwapChain[];
 }
 
 #define LEXGINE_CORE_CLASS_NAMES_CLASS_NAMES_H

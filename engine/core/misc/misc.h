@@ -19,15 +19,6 @@
 
 namespace lexgine::core::misc {
 
-//! Version of the renderer
-enum class EngineAPI
-{
-    Direct3D12,
-    Vulkan,
-    Metal,
-    OpenGL45    // not sure if ever gets implemented
-};
-
 enum class DataFormat
 {
     float64,

@@ -7,7 +7,6 @@ extern char const DXGI_HwOutput[] = "lexgine::core::dx::dxgi::HwOutput";
 extern char const DXGI_HwOutputEnumerator[] = "lexgine::core::dx::dxgi::HwOutputEnumerator";
 extern char const DXGI_HwAdapter[] = "lexgine::core::dx::dxgi::HwAdapter";
 extern char const DXGI_HwAdapterEnumerator[] = "lexgine::core::dx::dxgi::HwAdapterEnumerator";
-extern char const DXGI_SwapChain[] = "lexgine::core::dx::dxgi::SwapChain";
 extern char const D3D12_Device[] = "lexgine::core::dx::d3d12::Device";
 extern char const D3D12_QueryCache[] = "lexgine::core::dx::d3d12::QueryCache";
 extern char const D3D12_CommandQueue[] = "lexgine::core::dx::d3d12::CommandQueue";
@@ -40,4 +39,5 @@ extern char const D3D12_UploadBufferAllocator[] = "lexgine::core::dx::d3d12::Upl
 extern char const D3D12_RenderingTasks[] = "lexgine::core::dx::d3d12::RenderingTasks";
 extern char const BasicRenderingServices[] = "lexgine::core::dx::d3d12::BasicRenderingServices";
 extern char const ConstantBufferStream[] = "lexgine::core::dx::d3d12::ConstantBufferStream";
+extern char const SwapChain[] = "lexgine::core::SwapChain";
 }

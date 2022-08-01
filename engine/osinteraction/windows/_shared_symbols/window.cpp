@@ -36,6 +36,8 @@ using WindowExStyle = lexgine::osinteraction::windows::Window::WindowExStyle;
 extern "C" {
 
 
+
+
 LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXCreateInstanceYYHINSTANCEYYWindowStyleYYWindowExStyle(void* p_destination, HINSTANCE hInstance, WindowStyle window_style, WindowExStyle window_ex_style)
 {
 	new (p_destination) lexgine::osinteraction::windows::Window{hInstance, window_style, window_ex_style};
@@ -46,31 +48,23 @@ LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXDestroyInstance(void* 
 	reinterpret_cast<lexgine::osinteraction::windows::Window*>(p_instance)->~Window();
 }
 
-
-
-LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXsetTitleYYstdWstring_CONST_LVALREF_(void * p_instance, std::wstring const & title)
+void lexgineOsinteractionWindowsXXXXWindowXXXXDestroyInstance__deleter(void* p_instance)
 {
-	 reinterpret_cast<lexgine::osinteraction::windows::Window *>(p_instance)->setTitle(title);
+	delete reinterpret_cast<lexgine::osinteraction::windows::Window*>(p_instance);
+}
+
+
+
+
+
+LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXsetDimensionsYYuint32_tYYuint32_t(void * p_instance, uint32_t width, uint32_t height)
+{
+	 reinterpret_cast<lexgine::osinteraction::windows::Window *>(p_instance)->setDimensions(width, height);
 }
 
 LEXGINE_API bool lexgineOsinteractionWindowsXXXXWindowXXXXgetVisibility(void const* p_instance)
 {
 	return reinterpret_cast<lexgine::osinteraction::windows::Window const*>(p_instance)->getVisibility();
-}
-
-LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXgetLocation_RTNTYPE_coreMathVector2u_LVALREF_(void const* p_instance, core::math::Vector2u& destination)
-{
-	destination = reinterpret_cast<lexgine::osinteraction::windows::Window const*>(p_instance)->getLocation();
-}
-
-LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXsetLocationYYcoreMathVector2u_CONST_LVALREF_(void * p_instance, core::math::Vector2u const & location)
-{
-	 reinterpret_cast<lexgine::osinteraction::windows::Window *>(p_instance)->setLocation(location);
-}
-
-LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXgetDimensions_RTNTYPE_coreMathVector2u_LVALREF_(void const* p_instance, core::math::Vector2u& destination)
-{
-	destination = reinterpret_cast<lexgine::osinteraction::windows::Window const*>(p_instance)->getDimensions();
 }
 
 LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXgetClientArea_RTNTYPE_coreMathRectangle_LVALREF_(void const* p_instance, core::math::Rectangle& destination)
@@ -83,14 +77,29 @@ LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXsetLocationYYuint32_tY
 	 reinterpret_cast<lexgine::osinteraction::windows::Window *>(p_instance)->setLocation(x, y);
 }
 
+LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXsetTitleYYstdWstring_CONST_LVALREF_(void * p_instance, std::wstring const & title)
+{
+	 reinterpret_cast<lexgine::osinteraction::windows::Window *>(p_instance)->setTitle(title);
+}
+
+LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXgetDimensions_RTNTYPE_coreMathVector2u_LVALREF_(void const* p_instance, core::math::Vector2u& destination)
+{
+	destination = reinterpret_cast<lexgine::osinteraction::windows::Window const*>(p_instance)->getDimensions();
+}
+
 LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXsetVisibilityYYbool(void * p_instance, bool visibility_flag)
 {
 	 reinterpret_cast<lexgine::osinteraction::windows::Window *>(p_instance)->setVisibility(visibility_flag);
 }
 
-LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXsetDimensionsYYuint32_tYYuint32_t(void * p_instance, uint32_t width, uint32_t height)
+LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXsetLocationYYcoreMathVector2u_CONST_LVALREF_(void * p_instance, core::math::Vector2u const & location)
 {
-	 reinterpret_cast<lexgine::osinteraction::windows::Window *>(p_instance)->setDimensions(width, height);
+	 reinterpret_cast<lexgine::osinteraction::windows::Window *>(p_instance)->setLocation(location);
+}
+
+LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXgetLocation_RTNTYPE_coreMathVector2u_LVALREF_(void const* p_instance, core::math::Vector2u& destination)
+{
+	destination = reinterpret_cast<lexgine::osinteraction::windows::Window const*>(p_instance)->getLocation();
 }
 
 LEXGINE_API void lexgineOsinteractionWindowsXXXXWindowXXXXsetDimensionsYYcoreMathVector2u_CONST_LVALREF_(void * p_instance, core::math::Vector2u const & dimensions)

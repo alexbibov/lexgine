@@ -24,11 +24,6 @@ $link_methods_call_list
     return linker;
 }
 
-${class_name}* ${class_name}::getNative() const
-{
-    return reinterpret_cast<${class_name}*>(Ioc::getNative());
-}
-
 $public_properties_setters_getters_definitions
 
 $api_methods_definitions

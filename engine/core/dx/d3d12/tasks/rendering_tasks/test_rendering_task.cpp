@@ -1,6 +1,7 @@
 #include <chrono>
 
 #include "engine/core/globals.h"
+#include "engine/core/engine_api.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/profiling_services.h"
 #include "engine/core/rendering_configuration.h"
@@ -240,7 +241,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         m_cb_data_mapping.addDataBinding("ProjectionMatrix", m_projection_transform);
         m_cb_data_mapping.addDataBinding("RotationAngle", m_box_rotation_angle);
 
-        m_projection_transform = math::createProjectionMatrix(misc::EngineAPI::Direct3D12, 16.f, 9.f);
+        m_projection_transform = math::createProjectionMatrix(EngineApi::Direct3D12, 16.f, 9.f);
     }
 }
 

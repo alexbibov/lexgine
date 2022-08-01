@@ -1,5 +1,4 @@
 #include "global_settings.h"
-#include "initializer.h"
 
 #include "engine/core/build_info.h"
 #include "engine/core/misc/misc.h"

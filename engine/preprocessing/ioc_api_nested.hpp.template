@@ -1,0 +1,32 @@
+$class_token $class_name $class_qualifier $inheritance_list
+{
+public:    // flags
+$exported_flags
+
+public:    // public enumerations
+$public_enums
+
+public:    // nested classes forward declarations
+$nested_classes_forward_declarations
+
+public:    // public unions
+$public_unions
+
+public:    // nested classes
+$nested_classes
+
+public:    // function pointer using declarations
+$fp_using_declarations
+
+public:    // public properties
+$public_properties_setters_and_getters_declarations
+    
+public:    // runtime linking infrastructure
+    static lexgine::api::LinkResult link(HMODULE module);    //! Runtime link interface
+    
+public:    // API methods
+$api_methods
+
+protected:    // protected APIs
+$protected_apis
+};

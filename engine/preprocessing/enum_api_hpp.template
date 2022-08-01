@@ -1,0 +1,12 @@
+#ifndef $hpp_guard
+#define $hpp_guard
+
+$includes_list
+
+namespace $namespace_name{
+	
+$enum_definition;
+	
+}
+
+#endif $hpp_guard  

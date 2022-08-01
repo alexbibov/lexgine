@@ -8,7 +8,7 @@
 
 namespace lexgine::api {
 
-class LexgineObject: public Ioc
+class LexgineObject: public virtual Ioc
 {
 public:    // runtime linking infrastructure
     static LinkResult link(HMODULE module);    //! Runtime link interface
@@ -20,7 +20,7 @@ public:
     static uint64_t aliveEntities();    //! returns total population of instantiated engine objects. Useful for debugging purposes.
         
 protected:
-    LexgineObject(lexgine::common::ImportedOpaqueClass ioc_name);
+    LexgineObject();
 };
 
 }

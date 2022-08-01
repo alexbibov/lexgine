@@ -1,5 +1,5 @@
-#ifndef LEXGINE_CORE_INITIALIZER
-#define LEXGINE_CORE_INITIALIZER
+#ifndef LEXGINE_CORE_DX_D3D12INITIALIZER
+#define LEXGINE_CORE_DX_D3D12INITIALIZER
 
 #include <memory>
 
@@ -20,10 +20,10 @@
 
 #include "engine/preprocessing/preprocessor_tokens.h"
 
-namespace lexgine::core {
+namespace lexgine::core::dx {
 
 
-struct LEXGINE_CPP_API EngineSettings
+struct D3D12EngineSettings
 {
     bool debug_mode;
     lexgine::core::dx::d3d12::GpuBasedValidationSettings gpu_based_validation_settings;
@@ -35,7 +35,7 @@ struct LEXGINE_CPP_API EngineSettings
     std::string logging_output_path;
     std::string log_name;
 
-    EngineSettings();
+    D3D12EngineSettings();
 };
 
 
@@ -43,7 +43,7 @@ struct LEXGINE_CPP_API EngineSettings
  IMPORTANT NOTE: currently the Initializer class depends on windows API functions to retrieve
  the time zone information for logging. This must be changed in order to support cross-platform compilation
 */
-class Initializer
+class D3D12Initializer
 {
 public:
     /*! Initializes environment of the engine (e.g. logging, global parameters and so on). Returns 'true' on success and 'false' on failure
@@ -52,10 +52,10 @@ public:
     logging_output_path is the path where to output the logging information. Note that this is not a look-up directory, so it is NOT prefixed
     with global_lookup_prefix
     */
-    Initializer(EngineSettings const& settings);
+    D3D12Initializer(D3D12EngineSettings const& settings);
 
     //! Shuts down the environment
-    ~Initializer();
+    ~D3D12Initializer();
 
     core::Globals& globals();    //! returns the global parameter object pool. This function must not be exposed to the client and will be removed in the future.
 
@@ -76,9 +76,6 @@ public:
     //! helper function that simplifies linking swap chain to rendering tasks
     std::shared_ptr<dx::d3d12::SwapChainLink> createSwapChainLink(dx::dxgi::SwapChain& target_swap_chain,
         dx::d3d12::SwapChainDepthBufferFormat depth_buffer_format, dx::d3d12::RenderingTasks& source_rendering_tasks) const;
-
-    //! creates main rendering loop
-    //dx::d3d12::RenderingLoop& 
 
 private:
     std::unique_ptr<GlobalSettings> m_global_settings;

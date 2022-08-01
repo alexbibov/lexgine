@@ -43,5 +43,16 @@
 		"engine/core/math",
 		"engine/core/misc/flags.h",
 		"engine/preprocessing/preprocessor_tokens.h"
+	],
+	"api_resources":
+	[
+		"api/link_result.h",
+		"api/link_result.cpp",
+		"api/lexgine_object.h",
+		"api/lexgine_object.cpp",
+		"api/ioc.h",
+		"api/ioc.cpp",
+		"api/is_call_possible.h",
+		"api/CMakeLists.txt"
 	]
 }
