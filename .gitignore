@@ -69,3 +69,19 @@ TestLogging/*
 
 # Pycharm IDE caches
 **/.idea
+
+# Automatically generated exports
+engine/**/_shared_symbols/
+
+# Automatically generated APIs
+api/
+!api/ioc.*
+!api/lexgine_object.*
+!api/link_result.*
+!api/is_call_possible.h
+!api/CMakeLists.txt
+
+# Automatically created common library
+common/
+!common/CMakeLists.txt
+!common/ioc_traits.h
