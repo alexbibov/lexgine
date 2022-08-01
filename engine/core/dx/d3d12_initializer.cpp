@@ -2,12 +2,12 @@
 #include <cwchar>
 
 
-#include "initializer.h"
+#include "d3d12_initializer.h"
 
-#include "exception.h"
-#include "globals.h"
-#include "global_settings.h"
-#include "logging_streams.h"
+#include "engine/core/exception.h"
+#include "engine/core/globals.h"
+#include "engine/core/global_settings.h"
+#include "engine/core/logging_streams.h"
 
 #include "engine/core/build_info.h"
 #include "engine/core/misc/misc.h"
@@ -29,7 +29,7 @@
 
 using namespace lexgine;
 using namespace lexgine::core;
-
+using namespace lexgine::core::dx;
 
 
 namespace {
@@ -47,7 +47,7 @@ std::string correct_path(std::string const& original_path)
 }
 
 
-EngineSettings::EngineSettings()
+D3D12EngineSettings::D3D12EngineSettings()
     : debug_mode{ false }
     , enable_profiling{ false }
     , adapter_enumeration_preference{ dx::dxgi::DxgiGpuPreference::high_performance }
@@ -58,7 +58,7 @@ EngineSettings::EngineSettings()
 }
 
 
-Initializer::Initializer(EngineSettings const& settings)
+D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
 {
     std::string corrected_logging_output_path = correct_path(settings.logging_output_path);
     std::string corrected_global_lookup_prefix = correct_path(settings.global_lookup_prefix);
@@ -173,7 +173,7 @@ Initializer::Initializer(EngineSettings const& settings)
     setCurrentDevice(0);
 }
 
-Initializer::~Initializer()
+D3D12Initializer::~D3D12Initializer()
 {
     m_shader_cache.reset();
     m_rs_cache.reset();
@@ -189,12 +189,12 @@ Initializer::~Initializer()
 }
 
 
-core::Globals& Initializer::globals()
+core::Globals& D3D12Initializer::globals()
 {
     return *m_globals;
 }
 
-bool Initializer::setCurrentDevice(uint32_t adapter_id)
+bool D3D12Initializer::setCurrentDevice(uint32_t adapter_id)
 {
     auto p = m_resource_factory->hardwareAdapterEnumerator().begin();
     auto e = m_resource_factory->hardwareAdapterEnumerator().end();
@@ -211,38 +211,38 @@ bool Initializer::setCurrentDevice(uint32_t adapter_id)
     return true;
 }
 
-dx::d3d12::Device& Initializer::getCurrentDevice() const
+dx::d3d12::Device& D3D12Initializer::getCurrentDevice() const
 {
     return *m_globals->get<dx::d3d12::Device>();
 }
 
-dx::dxgi::HwAdapter const& Initializer::getCurrentDeviceHwAdapter() const
+dx::dxgi::HwAdapter const& D3D12Initializer::getCurrentDeviceHwAdapter() const
 {
     return *m_globals->get<dx::d3d12::DxResourceFactory>()->retrieveHwAdapterOwningDevicePtr(getCurrentDevice());
 }
 
-void Initializer::setWARPAdapterAsCurrent() const
+void D3D12Initializer::setWARPAdapterAsCurrent() const
 {
     dx::d3d12::Device& warp_device_ref = m_resource_factory->hardwareAdapterEnumerator().getWARPAdapter().device();
     m_globals->put(&warp_device_ref);
 }
 
-uint32_t Initializer::getAdapterCount() const
+uint32_t D3D12Initializer::getAdapterCount() const
 {
     return m_resource_factory->hardwareAdapterEnumerator().getAdapterCount();
 }
 
-dx::dxgi::SwapChain Initializer::createSwapChainForCurrentDevice(osinteraction::windows::Window& window, dx::dxgi::SwapChainDescriptor const& desc) const
+dx::dxgi::SwapChain D3D12Initializer::createSwapChainForCurrentDevice(osinteraction::windows::Window& window, dx::dxgi::SwapChainDescriptor const& desc) const
 {
     return getCurrentDeviceHwAdapter().createSwapChain(window, desc);
 }
 
-std::unique_ptr<dx::d3d12::RenderingTasks> Initializer::createRenderingTasks() const
+std::unique_ptr<dx::d3d12::RenderingTasks> D3D12Initializer::createRenderingTasks() const
 {
     return std::make_unique<dx::d3d12::RenderingTasks>(*m_globals);
 }
 
-std::shared_ptr<dx::d3d12::SwapChainLink> Initializer::createSwapChainLink(dx::dxgi::SwapChain& target_swap_chain,
+std::shared_ptr<dx::d3d12::SwapChainLink> D3D12Initializer::createSwapChainLink(dx::dxgi::SwapChain& target_swap_chain,
     dx::d3d12::SwapChainDepthBufferFormat depth_buffer_format,
     dx::d3d12::RenderingTasks& source_rendering_tasks) const
 {

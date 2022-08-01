@@ -1,5 +1,6 @@
 #include "engine/core/exception.h"
 #include "engine/core/globals.h"
+#include "engine/core/engine_api.h"
 
 #include "pipeline_state.h"
 #include "d3d12_tools.h"
@@ -191,7 +192,7 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
     {
         input_element_descs[input_element_desc_idx].SemanticName = (**p).name().c_str();
         input_element_descs[input_element_desc_idx].SemanticIndex = (**p).name_index();
-        input_element_descs[input_element_desc_idx].Format = (**p).format<EngineAPI::Direct3D12>();
+        input_element_descs[input_element_desc_idx].Format = (**p).format<EngineApi::Direct3D12>();
         input_element_descs[input_element_desc_idx].InputSlot = (**p).input_slot();
         input_element_descs[input_element_desc_idx].AlignedByteOffset = (**p).offset();
         input_element_descs[input_element_desc_idx].InputSlotClass = (**p).type() == AbstractVertexAttributeSpecification::specification_type::per_instance ?

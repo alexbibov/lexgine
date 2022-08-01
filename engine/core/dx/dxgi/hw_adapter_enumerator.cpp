@@ -291,7 +291,7 @@ HwOutputEnumerator const& HwAdapter::getOutputEnumerator() const
     return m_impl->getOutputEnumeratorForThisAdapter();
 }
 
-SwapChain HwAdapter::createSwapChain(osinteraction::windows::Window& window, SwapChainDescriptor const& desc) const
+lexgine::core::dx::dxgi::SwapChain HwAdapter::createSwapChain(osinteraction::windows::Window& window, SwapChainDescriptor const& desc) const
 {
     return SwapChainAttorney<HwAdapter>::makeSwapChain(m_dxgi_adapter_factory, *m_device,
         m_device->defaultCommandQueue(), window, desc);

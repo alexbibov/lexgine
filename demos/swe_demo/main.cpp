@@ -4,29 +4,28 @@
 
 #include "api/runtime.h"
 #include "api/osinteraction/windows/window.h"
-#include "api/core/engine_settings.h"
+#include "api/initializer.h"
 //#include "engine/osinteraction/windows/window.h"
 //#include "engine/osinteraction/windows/window_listeners.h"
 
-using namespace lexgine;
-using namespace lexgine::api;
+using namespace lexgine::core;
 using namespace lexgine::osinteraction;
 using namespace lexgine::osinteraction::windows;
-
-//using namespace lexgine::core;
 //using namespace lexgine::core::dx::dxgi;
 //using namespace lexgine::core::dx::d3d12;
 
 namespace
 {
 
-lexgine::core::EngineSettings createEngineSettings()
+lexgine::EngineSettings createEngineSettings()
 {
-    lexgine::core::EngineSettings settings{};
+    lexgine::EngineSettings settings{};
 
-    settings.setDebugMode(true);
+    settings.setEngineApi(EngineApi::Direct3D12);
+    auto engineApi = settings.getEngineApi();
+
+    settings.setDebugMode(false);
     settings.setEnableProfiling(true);
-    settings.setAdapterEnumerationPreference(lexgine::core::dx::dxgi::DxgiGpuPreference::high_performance);
     settings.setGlobalLookupPrefix("");
     settings.setSettingsLookupPath("../../settings/");
     settings.setGlobalSettingsJsonFile("global_settings.json");
@@ -35,24 +34,21 @@ lexgine::core::EngineSettings createEngineSettings()
 
     auto json_file = settings.getGlobalSettingsJsonFile();
 
-    lexgine::core::dx::d3d12::GpuBasedValidationSettings gpu_based_validation_settings{};
-    settings.setGpuBasedValidationSettings(gpu_based_validation_settings);
+    auto ptr = settings.getNative();
+
 
     return settings;
 }
-//
-//SwapChainDescriptor createSwapChainSettings()
-//{
-//    SwapChainDescriptor swap_chain_desc{};
-//    swap_chain_desc.format = DXGI_FORMAT_R8G8B8A8_UNORM;
-//    swap_chain_desc.refreshRate = 60;
-//    swap_chain_desc.scaling = SwapChainScaling::none;
-//    swap_chain_desc.stereo = false;
-//    swap_chain_desc.windowed = true;
-//    swap_chain_desc.back_buffer_count = 3;
-//    swap_chain_desc.enable_vsync = false;
-//    return swap_chain_desc;
-//}
+
+lexgine::core::SwapChainDescriptor createSwapChainSettings()
+{
+    lexgine::core::SwapChainDescriptor swap_chain_desc{};
+    swap_chain_desc.color_format = lexgine::core::SwapChainColorFormat::r8_g8_b8_a8_unorm;
+    swap_chain_desc.back_buffer_count = 2;
+    swap_chain_desc.enable_vsync = false;
+    swap_chain_desc.windowed = true;
+    return swap_chain_desc;
+}
 
 }
 
@@ -216,22 +212,29 @@ public:
 private:
     MainClass()
         : m_engine_settings{ createEngineSettings() }
-        /*, m_engine_initializer{m_engine_settings}
-        , m_swap_chain{ m_engine_initializer.createSwapChainForCurrentDevice(m_rendering_window, createSwapChainSettings()) }
-        , m_rendering_tasks{ m_engine_initializer.createRenderingTasks() }
+        , m_engine_initializer{m_engine_settings}
+        , m_window_handler{ m_rendering_window }
+        , m_swap_chain{m_engine_initializer.createSwapChainForCurrentDevice(m_window_handler, createSwapChainSettings())}
+        /*, m_rendering_tasks{m_engine_initializer.createRenderingTasks()}
         , m_swap_chain_link{ m_engine_initializer.createSwapChainLink(m_swap_chain, lexgine::core::dx::d3d12::SwapChainDepthBufferFormat::d32float, *m_rendering_tasks) }*/
     {
-        /*m_rendering_window.setLocation(10, 10);
+        m_swap_chain.reset();
+        m_rendering_window.setLocation(10, 10);
         m_rendering_window.setVisibility(true);
+        
 
-        Device& dev_ref = m_engine_initializer.getCurrentDevice();*/
+        /*Device& dev_ref = m_engine_initializer.getCurrentDevice(); */
     }
 
 private:
-    lexgine::core::EngineSettings m_engine_settings;
-    /*Initializer m_engine_initializer;
-    Window m_rendering_window;
-    SwapChain m_swap_chain;
+    lexgine::EngineSettings m_engine_settings;
+    lexgine::Initializer m_engine_initializer;
+    lexgine::osinteraction::windows::Window m_rendering_window;
+    lexgine::osinteraction::WindowHandler m_window_handler;
+    lexgine::core::SwapChain m_swap_chain;
+    
+    
+    /*SwapChain m_swap_chain;
     std::unique_ptr<RenderingTasks> m_rendering_tasks;
     std::shared_ptr<SwapChainLink> m_swap_chain_link;*/
 };

@@ -7,7 +7,7 @@
 namespace lexgine::core::misc {
 
 template<BlendFactor blend_factor>
-struct BlendFactorConverter<EngineAPI::Direct3D12, blend_factor>
+struct BlendFactorConverter<EngineApi::Direct3D12, blend_factor>
 {
     // See definition of BlendFactor and of D3D12_BLEND for grim details
     static uint8_t constexpr value()
@@ -19,7 +19,7 @@ struct BlendFactorConverter<EngineAPI::Direct3D12, blend_factor>
 
 
 template<BlendOperation blend_op>
-struct BlendOperationConverter<EngineAPI::Direct3D12, blend_op>
+struct BlendOperationConverter<EngineApi::Direct3D12, blend_op>
 {
     // See definition of BlendOperation and of D3D12_BLEND_OP for dark details
     static uint8_t constexpr value()
@@ -30,7 +30,7 @@ struct BlendOperationConverter<EngineAPI::Direct3D12, blend_op>
 
 
 template<BlendLogicalOperation blend_logical_op>
-struct BlendLogicalOperationConverter<EngineAPI::Direct3D12, blend_logical_op>
+struct BlendLogicalOperationConverter<EngineApi::Direct3D12, blend_logical_op>
 {
     // See definition of BlendLogicalOperation and of D3D12_LOGIC_OP for bleak details
     static uint8_t constexpr value()
@@ -41,7 +41,7 @@ struct BlendLogicalOperationConverter<EngineAPI::Direct3D12, blend_logical_op>
 
 
 template<FillMode triangle_fill_mode>
-struct FillModeConverter<EngineAPI::Direct3D12, triangle_fill_mode>
+struct FillModeConverter<EngineApi::Direct3D12, triangle_fill_mode>
 {
     // See definition of FillMode and of D3D12_FILL_MODE for dirty details
     static uint8_t constexpr value()
@@ -53,7 +53,7 @@ struct FillModeConverter<EngineAPI::Direct3D12, triangle_fill_mode>
 
 
 template<CullMode cull_mode>
-struct CullModeConverter<EngineAPI::Direct3D12, cull_mode>
+struct CullModeConverter<EngineApi::Direct3D12, cull_mode>
 {
     // See definition of CullMode and of D3D12_CULL_MODE for more details
     static uint8_t constexpr value()
@@ -64,7 +64,7 @@ struct CullModeConverter<EngineAPI::Direct3D12, cull_mode>
 
 
 template<ConservativeRasterizationMode conservative_rasterization_mode>
-struct ConservativeRasterizationModeConverter<EngineAPI::Direct3D12, conservative_rasterization_mode>
+struct ConservativeRasterizationModeConverter<EngineApi::Direct3D12, conservative_rasterization_mode>
 {
     // See definition of ConservativeRasterizationMode and of D3D12_CONSERVATIVE_RASTERIZATION_MODE for enlightening details
     static uint8_t constexpr value()
@@ -75,7 +75,7 @@ struct ConservativeRasterizationModeConverter<EngineAPI::Direct3D12, conservativ
 
 
 template<ComparisonFunction cmp_fun>
-struct ComparisonFunctionConverter<EngineAPI::Direct3D12, cmp_fun>
+struct ComparisonFunctionConverter<EngineApi::Direct3D12, cmp_fun>
 {
     // See definition of ComparisonFunction and of D3D12_COMPARISON_FUNC for non-confusing details
     static uint8_t constexpr value()
@@ -86,7 +86,7 @@ struct ComparisonFunctionConverter<EngineAPI::Direct3D12, cmp_fun>
 
 
 template<StencilOperation stencil_op>
-struct StencilOperationConverter<EngineAPI::Direct3D12, stencil_op>
+struct StencilOperationConverter<EngineApi::Direct3D12, stencil_op>
 {
     // See definition of StencilOperation and of D3D12_STENCIL_OP for the devil-living-in-the-details
     static uint8_t constexpr value()
@@ -97,7 +97,7 @@ struct StencilOperationConverter<EngineAPI::Direct3D12, stencil_op>
 
 
 template<PrimitiveTopologyType primitive_topology_type>
-struct PrimitiveTopologyTypeConverter<EngineAPI::Direct3D12, primitive_topology_type>
+struct PrimitiveTopologyTypeConverter<EngineApi::Direct3D12, primitive_topology_type>
 {
     // See definition of PrimitiveTopology and of D3D12_PRIMITIVE_TOPOLOGY_TYPE for the clumsy details
     static uint8_t constexpr value()
@@ -108,7 +108,7 @@ struct PrimitiveTopologyTypeConverter<EngineAPI::Direct3D12, primitive_topology_
 
 
 template<PrimitiveTopology primitive_topology> 
-struct PrimitiveTopologyConverter<EngineAPI::Direct3D12, primitive_topology>
+struct PrimitiveTopologyConverter<EngineApi::Direct3D12, primitive_topology>
 {
     // See definition of D3D_PRIMITIVE_TOPOLOGY enumeration for details
     static uint8_t constexpr value()
@@ -123,7 +123,7 @@ struct PrimitiveTopologyConverter<EngineAPI::Direct3D12, primitive_topology>
 
 
 template<WrapMode wrap_mode>
-struct WrapModeConverter<EngineAPI::Direct3D12, wrap_mode>
+struct WrapModeConverter<EngineApi::Direct3D12, wrap_mode>
 {
     // See definition of WrapMode and of D3D12_TEXTURE_ADDRESS_MODE for not-so-easy-to-understand details
     static uint8_t constexpr value()
@@ -134,14 +134,35 @@ struct WrapModeConverter<EngineAPI::Direct3D12, wrap_mode>
 
 
 template<StaticBorderColor border_color>
-struct BorderColorConverter<EngineAPI::Direct3D12, border_color>
+struct BorderColorConverter<EngineApi::Direct3D12, border_color>
 {
     // See definition of BorderColor and D3D12_STATIC_BORDER_COLOR enumeration for very detailed details
     static uint8_t constexpr value() { return static_cast<uint8_t>(border_color); }
 };
 
-}
 
+template<SwapChainColorFormat color_format>
+struct SwapChainColorFormatConverter<EngineApi::Direct3D12, color_format>
+{
+    static unsigned constexpr value()
+    {
+        switch (color_format)
+        {
+        case lexgine::core::SwapChainColorFormat::r8_g8_b8_a8_unorm:
+            return DXGI_FORMAT_R8G8B8A8_UNORM;
+        case lexgine::core::SwapChainColorFormat::b8_g8_r8_a8_unorm:
+            return DXGI_FORMAT_B8G8R8A8_UNORM;
+        case lexgine::core::SwapChainColorFormat::r8_g8_b8_a8_unorm_srgb:
+            return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        case lexgine::core::SwapChainColorFormat::b8_g8_r8_a8_unorm_srgb:
+            return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+        }
+        return static_cast<unsigned>(-1);
+    }
+};
+
+
+}
 
 
 namespace lexgine::core::dx::d3d12 {
@@ -152,39 +173,39 @@ inline D3D12_BLEND d3d12Convert(BlendFactor blend_factor)
     switch (blend_factor)
     {
     case BlendFactor::zero:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::zero>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::zero>::value());
     case BlendFactor::one:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::one>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::one>::value());
     case BlendFactor::source_color:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::source_color>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::source_color>::value());
     case BlendFactor::one_minus_source_color:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::one_minus_source_color>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::one_minus_source_color>::value());
     case BlendFactor::source_alpha:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::source_alpha>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::source_alpha>::value());
     case BlendFactor::one_minus_source_alpha:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::one_minus_source_alpha>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::one_minus_source_alpha>::value());
     case BlendFactor::destination_alpha:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::destination_alpha>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::destination_alpha>::value());
     case BlendFactor::one_minus_destination_alpha:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::one_minus_destination_alpha>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::one_minus_destination_alpha>::value());
     case BlendFactor::destination_color:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::destination_color>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::destination_color>::value());
     case BlendFactor::one_minus_destination_color:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::one_minus_destination_color>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::one_minus_destination_color>::value());
     case BlendFactor::source_alpha_saturation:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::source_alpha_saturation>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::source_alpha_saturation>::value());
     case BlendFactor::custom_constant:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::custom_constant>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::custom_constant>::value());
     case BlendFactor::one_minus_custom_constant:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::one_minus_custom_constant>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::one_minus_custom_constant>::value());
     case BlendFactor::source1_color:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::source1_color>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::source1_color>::value());
     case BlendFactor::one_minus_source1_color:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::one_minus_source1_color>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::one_minus_source1_color>::value());
     case BlendFactor::source1_alpha:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::source1_alpha>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::source1_alpha>::value());
     case BlendFactor::one_minus_source1_alpha:
-        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<misc::EngineAPI::Direct3D12, BlendFactor::one_minus_source1_alpha>::value());
+        return static_cast<D3D12_BLEND>(misc::BlendFactorConverter<EngineApi::Direct3D12, BlendFactor::one_minus_source1_alpha>::value());
     default: __assume(0);    // not supported
     }
 }
@@ -197,15 +218,15 @@ inline D3D12_BLEND_OP d3d12Convert(BlendOperation blend_op)
     switch (blend_op)
     {
     case BlendOperation::add:
-        return static_cast<D3D12_BLEND_OP>(misc::BlendOperationConverter<misc::EngineAPI::Direct3D12, BlendOperation::add>::value());
+        return static_cast<D3D12_BLEND_OP>(misc::BlendOperationConverter<EngineApi::Direct3D12, BlendOperation::add>::value());
     case BlendOperation::subtract:
-        return static_cast<D3D12_BLEND_OP>(misc::BlendOperationConverter<misc::EngineAPI::Direct3D12, BlendOperation::subtract>::value());
+        return static_cast<D3D12_BLEND_OP>(misc::BlendOperationConverter<EngineApi::Direct3D12, BlendOperation::subtract>::value());
     case BlendOperation::reverse_subtract:
-        return static_cast<D3D12_BLEND_OP>(misc::BlendOperationConverter<misc::EngineAPI::Direct3D12, BlendOperation::reverse_subtract>::value());
+        return static_cast<D3D12_BLEND_OP>(misc::BlendOperationConverter<EngineApi::Direct3D12, BlendOperation::reverse_subtract>::value());
     case BlendOperation::min:
-        return static_cast<D3D12_BLEND_OP>(misc::BlendOperationConverter<misc::EngineAPI::Direct3D12, BlendOperation::min>::value());
+        return static_cast<D3D12_BLEND_OP>(misc::BlendOperationConverter<EngineApi::Direct3D12, BlendOperation::min>::value());
     case BlendOperation::max:
-        return static_cast<D3D12_BLEND_OP>(misc::BlendOperationConverter<misc::EngineAPI::Direct3D12, BlendOperation::max>::value());
+        return static_cast<D3D12_BLEND_OP>(misc::BlendOperationConverter<EngineApi::Direct3D12, BlendOperation::max>::value());
     default: __assume(0);    // not supported
     }
 }
@@ -218,37 +239,37 @@ inline D3D12_LOGIC_OP d3d12Convert(BlendLogicalOperation blend_logical_op)
     switch (blend_logical_op)
     {
     case BlendLogicalOperation::clear:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::clear>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::clear>::value());
     case BlendLogicalOperation::set:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::set>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::set>::value());
     case BlendLogicalOperation::copy:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::copy>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::copy>::value());
     case BlendLogicalOperation::copy_inverted:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::copy_inverted>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::copy_inverted>::value());
     case BlendLogicalOperation::no_operation:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::no_operation>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::no_operation>::value());
     case BlendLogicalOperation::invert:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::invert>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::invert>::value());
     case BlendLogicalOperation::_and:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::_and>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::_and>::value());
     case BlendLogicalOperation::nand:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::nand>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::nand>::value());
     case BlendLogicalOperation::_or:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::_or >::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::_or >::value());
     case BlendLogicalOperation::nor:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::nor>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::nor>::value());
     case BlendLogicalOperation::_xor:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::_xor>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::_xor>::value());
     case BlendLogicalOperation::equiv:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::equiv>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::equiv>::value());
     case BlendLogicalOperation::and_then_reverse:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::and_then_reverse>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::and_then_reverse>::value());
     case BlendLogicalOperation::and_then_invert:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::and_then_invert>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::and_then_invert>::value());
     case BlendLogicalOperation::or_then_reverse:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::or_then_reverse>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::or_then_reverse>::value());
     case BlendLogicalOperation::or_then_invert:
-        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<misc::EngineAPI::Direct3D12, BlendLogicalOperation::or_then_invert>::value());
+        return static_cast<D3D12_LOGIC_OP>(misc::BlendLogicalOperationConverter<EngineApi::Direct3D12, BlendLogicalOperation::or_then_invert>::value());
     default: __assume(0);    // not supported
     }
 }
@@ -261,9 +282,9 @@ inline D3D12_FILL_MODE d3d12Convert(FillMode fill_mode)
     switch (fill_mode)
     {
     case FillMode::wireframe:
-        return static_cast<D3D12_FILL_MODE>(misc::FillModeConverter<misc::EngineAPI::Direct3D12, FillMode::wireframe>::value());
+        return static_cast<D3D12_FILL_MODE>(misc::FillModeConverter<EngineApi::Direct3D12, FillMode::wireframe>::value());
     case FillMode::solid:
-        return static_cast<D3D12_FILL_MODE>(misc::FillModeConverter<misc::EngineAPI::Direct3D12, FillMode::solid>::value());
+        return static_cast<D3D12_FILL_MODE>(misc::FillModeConverter<EngineApi::Direct3D12, FillMode::solid>::value());
     default: __assume(0);    // not supported
     }
 }
@@ -276,11 +297,11 @@ inline D3D12_CULL_MODE d3d12Convert(CullMode cull_mode)
     switch (cull_mode)
     {
     case CullMode::none:
-        return static_cast<D3D12_CULL_MODE>(misc::CullModeConverter<misc::EngineAPI::Direct3D12, CullMode::none>::value());
+        return static_cast<D3D12_CULL_MODE>(misc::CullModeConverter<EngineApi::Direct3D12, CullMode::none>::value());
     case CullMode::front:
-        return static_cast<D3D12_CULL_MODE>(misc::CullModeConverter<misc::EngineAPI::Direct3D12, CullMode::front>::value());
+        return static_cast<D3D12_CULL_MODE>(misc::CullModeConverter<EngineApi::Direct3D12, CullMode::front>::value());
     case CullMode::back:
-        return static_cast<D3D12_CULL_MODE>(misc::CullModeConverter<misc::EngineAPI::Direct3D12, CullMode::back>::value());
+        return static_cast<D3D12_CULL_MODE>(misc::CullModeConverter<EngineApi::Direct3D12, CullMode::back>::value());
     default: __assume(0);    //not supported
     }
 }
@@ -293,9 +314,9 @@ inline D3D12_CONSERVATIVE_RASTERIZATION_MODE d3d12Convert(ConservativeRasterizat
     switch (conservative_rasterization_mode)
     {
     case ConservativeRasterizationMode::off:
-        return static_cast<D3D12_CONSERVATIVE_RASTERIZATION_MODE>(misc::ConservativeRasterizationModeConverter<misc::EngineAPI::Direct3D12, ConservativeRasterizationMode::off>::value());
+        return static_cast<D3D12_CONSERVATIVE_RASTERIZATION_MODE>(misc::ConservativeRasterizationModeConverter<EngineApi::Direct3D12, ConservativeRasterizationMode::off>::value());
     case ConservativeRasterizationMode::on:
-        return static_cast<D3D12_CONSERVATIVE_RASTERIZATION_MODE>(misc::ConservativeRasterizationModeConverter<misc::EngineAPI::Direct3D12, ConservativeRasterizationMode::on>::value());
+        return static_cast<D3D12_CONSERVATIVE_RASTERIZATION_MODE>(misc::ConservativeRasterizationModeConverter<EngineApi::Direct3D12, ConservativeRasterizationMode::on>::value());
     default: __assume(0);    // not supported
     }
 }
@@ -309,21 +330,21 @@ inline D3D12_COMPARISON_FUNC d3d12Convert(ComparisonFunction cmp_fun)
     switch (cmp_fun)
     {
     case ComparisonFunction::never:
-        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<misc::EngineAPI::Direct3D12, ComparisonFunction::never>::value());
+        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<EngineApi::Direct3D12, ComparisonFunction::never>::value());
     case ComparisonFunction::less:
-        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<misc::EngineAPI::Direct3D12, ComparisonFunction::less>::value());
+        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<EngineApi::Direct3D12, ComparisonFunction::less>::value());
     case ComparisonFunction::equal:
-        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<misc::EngineAPI::Direct3D12, ComparisonFunction::equal>::value());
+        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<EngineApi::Direct3D12, ComparisonFunction::equal>::value());
     case ComparisonFunction::less_or_equal:
-        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<misc::EngineAPI::Direct3D12, ComparisonFunction::less_or_equal>::value());
+        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<EngineApi::Direct3D12, ComparisonFunction::less_or_equal>::value());
     case ComparisonFunction::greater:
-        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<misc::EngineAPI::Direct3D12, ComparisonFunction::greater>::value());
+        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<EngineApi::Direct3D12, ComparisonFunction::greater>::value());
     case ComparisonFunction::not_equal:
-        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<misc::EngineAPI::Direct3D12, ComparisonFunction::not_equal>::value());
+        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<EngineApi::Direct3D12, ComparisonFunction::not_equal>::value());
     case ComparisonFunction::greater_equal:
-        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<misc::EngineAPI::Direct3D12, ComparisonFunction::greater_equal>::value());
+        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<EngineApi::Direct3D12, ComparisonFunction::greater_equal>::value());
     case ComparisonFunction::always:
-        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<misc::EngineAPI::Direct3D12, ComparisonFunction::always>::value());
+        return static_cast<D3D12_COMPARISON_FUNC>(misc::ComparisonFunctionConverter<EngineApi::Direct3D12, ComparisonFunction::always>::value());
     default: __assume(0);    // not supported
     }
 }
@@ -336,21 +357,21 @@ inline D3D12_STENCIL_OP d3d12Convert(StencilOperation stencil_op)
     switch (stencil_op)
     {
     case StencilOperation::keep:
-        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<misc::EngineAPI::Direct3D12, StencilOperation::keep>::value());
+        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<EngineApi::Direct3D12, StencilOperation::keep>::value());
     case StencilOperation::zero:
-        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<misc::EngineAPI::Direct3D12, StencilOperation::zero>::value());
+        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<EngineApi::Direct3D12, StencilOperation::zero>::value());
     case StencilOperation::replace:
-        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<misc::EngineAPI::Direct3D12, StencilOperation::replace>::value());
+        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<EngineApi::Direct3D12, StencilOperation::replace>::value());
     case StencilOperation::increment_and_saturate:
-        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<misc::EngineAPI::Direct3D12, StencilOperation::increment_and_saturate>::value());
+        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<EngineApi::Direct3D12, StencilOperation::increment_and_saturate>::value());
     case StencilOperation::decrement_and_saturate:
-        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<misc::EngineAPI::Direct3D12, StencilOperation::decrement_and_saturate>::value());
+        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<EngineApi::Direct3D12, StencilOperation::decrement_and_saturate>::value());
     case StencilOperation::invert:
-        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<misc::EngineAPI::Direct3D12, StencilOperation::invert>::value());
+        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<EngineApi::Direct3D12, StencilOperation::invert>::value());
     case StencilOperation::increment:
-        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<misc::EngineAPI::Direct3D12, StencilOperation::increment>::value());
+        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<EngineApi::Direct3D12, StencilOperation::increment>::value());
     case StencilOperation::decrement:
-        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<misc::EngineAPI::Direct3D12, StencilOperation::decrement>::value());
+        return static_cast<D3D12_STENCIL_OP>(misc::StencilOperationConverter<EngineApi::Direct3D12, StencilOperation::decrement>::value());
     default: __assume(0);    // not supported
     }
 }
@@ -363,13 +384,13 @@ inline D3D12_PRIMITIVE_TOPOLOGY_TYPE d3d12Convert(PrimitiveTopologyType primitiv
     switch (primitive_topology_type)
     {
     case PrimitiveTopologyType::point:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyTypeConverter<misc::EngineAPI::Direct3D12, PrimitiveTopologyType::point>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyTypeConverter<EngineApi::Direct3D12, PrimitiveTopologyType::point>::value());
     case PrimitiveTopologyType::line:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyTypeConverter<misc::EngineAPI::Direct3D12, PrimitiveTopologyType::line>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyTypeConverter<EngineApi::Direct3D12, PrimitiveTopologyType::line>::value());
     case PrimitiveTopologyType::triangle:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyTypeConverter<misc::EngineAPI::Direct3D12, PrimitiveTopologyType::triangle>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyTypeConverter<EngineApi::Direct3D12, PrimitiveTopologyType::triangle>::value());
     case PrimitiveTopologyType::patch:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyTypeConverter<misc::EngineAPI::Direct3D12, PrimitiveTopologyType::patch>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(misc::PrimitiveTopologyTypeConverter<EngineApi::Direct3D12, PrimitiveTopologyType::patch>::value());
     default: __assume(0);    // not supported
     }
 }
@@ -381,130 +402,130 @@ inline D3D12_PRIMITIVE_TOPOLOGY d3d12Convert(PrimitiveTopology primitive_topolog
     switch (primitive_topology)
     {
     case PrimitiveTopology::undefined:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::undefined>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::undefined>::value());
         break;
     case PrimitiveTopology::point_list:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::point_list>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::point_list>::value());
         break;
     case PrimitiveTopology::line_list:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::line_list>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::line_list>::value());
         break;
     case PrimitiveTopology::line_strip:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::line_strip>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::line_strip>::value());
         break;
     case PrimitiveTopology::triangle_list:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::triangle_list>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::triangle_list>::value());
         break;
     case PrimitiveTopology::triangle_strip:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::triangle_strip>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::triangle_strip>::value());
         break;
     case PrimitiveTopology::line_list_adjacent:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::line_list_adjacent>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::line_list_adjacent>::value());
         break;
     case PrimitiveTopology::line_strip_adjacent:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::line_strip_adjacent>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::line_strip_adjacent>::value());
         break;
     case PrimitiveTopology::triangle_list_adjacent:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::triangle_list_adjacent>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::triangle_list_adjacent>::value());
         break;
     case PrimitiveTopology::triangle_strip_adjacent:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::triangle_strip_adjacent>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::triangle_strip_adjacent>::value());
         break;
     case PrimitiveTopology::patch_list_1_ctrl_point:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_1_ctrl_point>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_1_ctrl_point>::value());
         break;
     case PrimitiveTopology::patch_list_2_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_2_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_2_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_3_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_3_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_3_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_4_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_4_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_4_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_5_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_5_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_5_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_6_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_6_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_6_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_7_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_7_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_7_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_8_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_8_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_8_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_9_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_9_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_9_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_10_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_10_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_10_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_11_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_11_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_11_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_12_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_12_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_12_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_13_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_13_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_13_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_14_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_14_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_14_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_15_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_15_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_15_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_16_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_16_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_16_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_17_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_17_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_17_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_18_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_18_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_18_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_19_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_19_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_19_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_20_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_20_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_20_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_21_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_21_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_21_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_22_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_22_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_22_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_23_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_23_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_23_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_24_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_24_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_24_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_25_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_25_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_25_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_26_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_26_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_26_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_27_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_27_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_27_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_28_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_28_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_28_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_29_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_29_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_29_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_30_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_30_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_30_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_31_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_31_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_31_ctrl_points>::value());
         break;
     case PrimitiveTopology::patch_list_32_ctrl_points:
-        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<misc::EngineAPI::Direct3D12, PrimitiveTopology::patch_list_32_ctrl_points>::value());
+        return static_cast<D3D12_PRIMITIVE_TOPOLOGY>(misc::PrimitiveTopologyConverter<EngineApi::Direct3D12, PrimitiveTopology::patch_list_32_ctrl_points>::value());
         break;
     default:
         __assume(0);
@@ -518,13 +539,13 @@ inline D3D12_TEXTURE_ADDRESS_MODE d3d12Convert(WrapMode wrap_mode)
     switch (wrap_mode)
     {
     case WrapMode::repeat:
-        return static_cast<D3D12_TEXTURE_ADDRESS_MODE>(misc::WrapModeConverter<misc::EngineAPI::Direct3D12, WrapMode::repeat>::value());
+        return static_cast<D3D12_TEXTURE_ADDRESS_MODE>(misc::WrapModeConverter<EngineApi::Direct3D12, WrapMode::repeat>::value());
     case WrapMode::mirror:
-        return static_cast<D3D12_TEXTURE_ADDRESS_MODE>(misc::WrapModeConverter<misc::EngineAPI::Direct3D12, WrapMode::mirror>::value());
+        return static_cast<D3D12_TEXTURE_ADDRESS_MODE>(misc::WrapModeConverter<EngineApi::Direct3D12, WrapMode::mirror>::value());
     case WrapMode::clamp:
-        return static_cast<D3D12_TEXTURE_ADDRESS_MODE>(misc::WrapModeConverter<misc::EngineAPI::Direct3D12, WrapMode::clamp>::value());
+        return static_cast<D3D12_TEXTURE_ADDRESS_MODE>(misc::WrapModeConverter<EngineApi::Direct3D12, WrapMode::clamp>::value());
     case WrapMode::border:
-        return static_cast<D3D12_TEXTURE_ADDRESS_MODE>(misc::WrapModeConverter<misc::EngineAPI::Direct3D12, WrapMode::border>::value());
+        return static_cast<D3D12_TEXTURE_ADDRESS_MODE>(misc::WrapModeConverter<EngineApi::Direct3D12, WrapMode::border>::value());
     default: __assume(0);    // unsupported
     }
 }
@@ -537,11 +558,29 @@ inline D3D12_STATIC_BORDER_COLOR d3d12Convert(StaticBorderColor border_color)
     switch (border_color)
     {
     case StaticBorderColor::transparent_black:
-        return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<misc::EngineAPI::Direct3D12, StaticBorderColor::transparent_black>::value());
+        return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<EngineApi::Direct3D12, StaticBorderColor::transparent_black>::value());
     case StaticBorderColor::opaque_black:
-        return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<misc::EngineAPI::Direct3D12, StaticBorderColor::opaque_black>::value());
+        return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<EngineApi::Direct3D12, StaticBorderColor::opaque_black>::value());
     case StaticBorderColor::opaque_white:
-        return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<misc::EngineAPI::Direct3D12, StaticBorderColor::opaque_white>::value());
+        return static_cast<D3D12_STATIC_BORDER_COLOR>(misc::BorderColorConverter<EngineApi::Direct3D12, StaticBorderColor::opaque_white>::value());
+    default: __assume(0);    // not supported
+    }
+}
+
+
+//! Converts API-agnostic swap chain color format to DXGI format understood by Direct3D
+inline DXGI_FORMAT d3d12Convert(SwapChainColorFormat swap_chain_color_format)
+{
+    switch (swap_chain_color_format)
+    {
+    case lexgine::core::SwapChainColorFormat::r8_g8_b8_a8_unorm:
+        return static_cast<DXGI_FORMAT>(misc::SwapChainColorFormatConverter<EngineApi::Direct3D12, SwapChainColorFormat::r8_g8_b8_a8_unorm>::value());
+    case lexgine::core::SwapChainColorFormat::b8_g8_r8_a8_unorm:
+        return static_cast<DXGI_FORMAT>(misc::SwapChainColorFormatConverter<EngineApi::Direct3D12, SwapChainColorFormat::b8_g8_r8_a8_unorm>::value());
+    case lexgine::core::SwapChainColorFormat::r8_g8_b8_a8_unorm_srgb:
+        return static_cast<DXGI_FORMAT>(misc::SwapChainColorFormatConverter<EngineApi::Direct3D12, SwapChainColorFormat::r8_g8_b8_a8_unorm_srgb>::value());
+    case lexgine::core::SwapChainColorFormat::b8_g8_r8_a8_unorm_srgb:
+        return static_cast<DXGI_FORMAT>(misc::SwapChainColorFormatConverter<EngineApi::Direct3D12, SwapChainColorFormat::b8_g8_r8_a8_unorm_srgb>::value());
     default: __assume(0);    // not supported
     }
 }

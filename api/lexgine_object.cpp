@@ -13,6 +13,12 @@ uint64_t (LEXGINE_CALL *api__lexgineCoreGetAliveEntitiesCount)() = nullptr;
     
 }
 
+LexgineObject::LexgineObject()
+    : Ioc{ FakeConstruction_tag{} }
+{
+
+}
+
 LinkResult LexgineObject::link(HMODULE module)
 {
     LinkResult rv{module};
@@ -21,11 +27,6 @@ LinkResult LexgineObject::link(HMODULE module)
     api__lexgineCoreObjectSetStringName = reinterpret_cast<decltype(api__lexgineCoreObjectSetStringName)>(rv.attemptLink("lexgineCoreObjectSetStringName"));
     api__lexgineCoreGetAliveEntitiesCount = reinterpret_cast<decltype(api__lexgineCoreGetAliveEntitiesCount)>(rv.attemptLink("lexgineCoreGetAliveEntitiesCount"));
     return rv;
-}
-
-LexgineObject::LexgineObject(lexgine::common::ImportedOpaqueClass ioc_name)
-	: Ioc{ioc_name}
-{
 }
 
 GUID LexgineObject::asUUID() const

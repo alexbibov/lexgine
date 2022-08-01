@@ -1,0 +1,7 @@
+$includes_list
+
+namespace $parent_namespace {
+
+$flags_definition;
+
+}

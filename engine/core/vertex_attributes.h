@@ -8,6 +8,7 @@
 #include <dxgi1_5.h>
 
 #include "misc/misc.h"
+#include "engine/core/engine_api.h"
 #include "dx/d3d12/d3d12_tools.h"
 
 namespace lexgine::core {
@@ -17,8 +18,8 @@ namespace lexgine::core {
 class AbstractVertexAttributeSpecification
 {
 private:
-    template<misc::EngineAPI API> struct va_format_type;
-    template<> struct va_format_type<misc::EngineAPI::Direct3D12> { using type = DXGI_FORMAT; };
+    template<EngineApi API> struct va_format_type;
+    template<> struct va_format_type<EngineApi::Direct3D12> { using type = DXGI_FORMAT; };
 
 public:
     enum class specification_type
@@ -36,8 +37,8 @@ public:
     virtual unsigned char capacity() const = 0;
 
     //! Returns format type depending on the chosen graphics API
-    template<misc::EngineAPI API> typename va_format_type<API>::type format();
-    template<> auto format<misc::EngineAPI::Direct3D12>() -> typename va_format_type<misc::EngineAPI::Direct3D12>::type
+    template<EngineApi API> typename va_format_type<API>::type format();
+    template<> auto format<EngineApi::Direct3D12>() -> typename va_format_type<EngineApi::Direct3D12>::type
     {
         return d3d12VertexFormat();
     }

@@ -2,18 +2,36 @@
 #include "engine/core/exception.h"
 #include "engine/core/dx/d3d12/command_queue.h"
 
-using namespace lexgine;
-using namespace lexgine::core;
-using namespace lexgine::core::dx::d3d12;
-using namespace lexgine::core::dx::dxgi;
 
+namespace lexgine::core::dx::dxgi {
 
-Device& lexgine::core::dx::dxgi::SwapChain::device() const
+namespace {
+
+misc::Optional<core::SwapChainColorFormat> dxgiColorFormatToSwapChainColorFormat(DXGI_FORMAT dxgi_color_format)
+{
+    switch (dxgi_color_format)
+    {
+    case DXGI_FORMAT_R8G8B8A8_UNORM:
+        return core::SwapChainColorFormat::r8_g8_b8_a8_unorm;
+    case DXGI_FORMAT_B8G8R8A8_UNORM:
+        return core::SwapChainColorFormat::b8_g8_r8_a8_unorm;
+    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+        return core::SwapChainColorFormat::b8_g8_r8_a8_unorm_srgb;
+    case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+        return core::SwapChainColorFormat::b8_g8_r8_a8_unorm_srgb;
+    default:
+        return misc::Optional<core::SwapChainColorFormat>{};
+    }
+}
+
+}
+
+d3d12::Device& lexgine::core::dx::dxgi::SwapChain::device() const
 {
     return m_device;
 }
 
-CommandQueue const& SwapChain::defaultCommandQueue() const
+d3d12::CommandQueue const& SwapChain::defaultCommandQueue() const
 {
     return m_default_command_queue;
 }
@@ -51,7 +69,7 @@ uint32_t SwapChain::getCurrentBackBufferIndex() const
 
 void SwapChain::present() const
 {
-    if(!m_swapChainIsIdle)
+    if (!m_swapChainIsIdle)
     {
         HRESULT rv = m_dxgi_swap_chain->Present(m_descriptor.enable_vsync ? 1 : 0, 0);
 
@@ -82,7 +100,19 @@ uint32_t SwapChain::backBufferCount() const
     return m_descriptor.back_buffer_count;
 }
 
-SwapChainDescriptor const& SwapChain::descriptor() const
+core::SwapChainDescriptor SwapChain::descriptor() const
+{
+    auto swap_chain_color_format = dxgiColorFormatToSwapChainColorFormat(m_descriptor.format);
+
+    core::SwapChainDescriptor rv{
+        .color_format = static_cast<core::SwapChainColorFormat>(swap_chain_color_format),
+        .back_buffer_count = m_descriptor.back_buffer_count,
+        .enable_vsync = m_descriptor.enable_vsync
+    };
+    return rv;
+}
+
+dxgi::SwapChainDescriptor SwapChain::extendedDescriptor() const
 {
     return m_descriptor;
 }
@@ -90,7 +120,7 @@ SwapChainDescriptor const& SwapChain::descriptor() const
 void SwapChain::resizeBuffers(math::Vector2u const& new_dimensions)
 {
     // TODO: AFR support
-    
+
     std::vector<UINT> node_masks(m_descriptor.back_buffer_count, 0x1);
     std::vector<IUnknown*> queues(m_descriptor.back_buffer_count, m_default_command_queue.native().Get());
 
@@ -104,11 +134,12 @@ void SwapChain::resizeBuffers(math::Vector2u const& new_dimensions)
 }
 
 SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
-    Device& device,
-    CommandQueue const& default_command_queue,
+    d3d12::Device& device,
+    d3d12::CommandQueue const& default_command_queue,
     osinteraction::windows::Window& window,
     SwapChainDescriptor const& desc)
-    : m_dxgi_factory{ dxgi_factory }
+    : lexgine::core::SwapChain{EngineApi::Direct3D12}
+    , m_dxgi_factory{ dxgi_factory }
     , m_device{ device }
     , m_window{ window }
     , m_default_command_queue{ default_command_queue }
@@ -149,4 +180,6 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
         S_OK
     );
     p_swap_chain1->Release();
+}
+
 }

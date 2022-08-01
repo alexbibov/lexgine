@@ -56,8 +56,6 @@ inline T const& unfold(T const& obj) { return obj; }
 template<typename T, typename = std::enable_if_t<!is_api_getNative_supported<T, void* (void)>::value>, typename = void>
 inline T&& unfold(T&& obj) { return std::move(obj); }
 
-}
-
 
 template<typename T>
 struct public_property_type_accessor
@@ -148,6 +146,10 @@ template<> struct public_property_type_accessor<unsigned long long>
 {
     using value_type = unsigned long long;
 };
+
+struct FakeConstruction_tag{};
+
+}
 
 #else
 #define LEXGINE_API __declspec(dllexport)

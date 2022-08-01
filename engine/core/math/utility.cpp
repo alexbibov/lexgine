@@ -15,7 +15,7 @@ extern double const pi = 3.1415926535897932384626433832795;
 
 
 
-Matrix4f createProjectionMatrix(EngineAPI target_api, float width, float height,
+Matrix4f createProjectionMatrix(EngineApi target_api, float width, float height,
     float horizontal_fov/* = 120.f*/, float cutoff_distance/* = 10000.f*/, bool invert_depth/* = true*/)
 {
     float m = (std::max)(width, height);
@@ -33,18 +33,18 @@ Matrix4f createProjectionMatrix(EngineAPI target_api, float width, float height,
 
     switch (target_api)
     {
-    case EngineAPI::Direct3D12:
-    case EngineAPI::Vulkan:
+    case EngineApi::Direct3D12:
+    case EngineApi::Vulkan:
         row2 = invert_depth
             ? Vector4f{ 0.f, 0.f, n * Q, n * f * Q, }
         : Vector4f{ 0.f, 0.f, -f * Q, -n * f * Q };
         break;
 
-    case EngineAPI::Metal:
+    case EngineApi::Metal:
         LEXGINE_THROW_ERROR("not implemented");
         break;
 
-    case EngineAPI::OpenGL45:
+    case EngineApi::OpenGL46:
         row2 = Vector4f{ 0.f, 0.f, -(f + n) * Q, -2 * n * f * Q };
         if (invert_depth) row2 *= -1.f;
         break;
@@ -56,7 +56,7 @@ Matrix4f createProjectionMatrix(EngineAPI target_api, float width, float height,
     return Matrix4f{ row0, row1, row2, row3 }.transpose();
 }
 
-Matrix4f createOrthogonalProjectionMatrix(EngineAPI target_api, float position_x, float position_y, 
+Matrix4f createOrthogonalProjectionMatrix(EngineApi target_api, float position_x, float position_y,
     float width, float height, float near_cutoff_distance, float far_cutoff_distance)
 {
     float l{ position_x }, r{ position_x + width };
@@ -71,16 +71,16 @@ Matrix4f createOrthogonalProjectionMatrix(EngineAPI target_api, float position_x
 
     switch (target_api)
     {
-    case EngineAPI::Direct3D12:
-    case EngineAPI::Vulkan:
+    case EngineApi::Direct3D12:
+    case EngineApi::Vulkan:
         row2 = Vector4f{ 0.f, 0.f, Q, f * Q };
         break;
 
-    case EngineAPI::Metal:
+    case EngineApi::Metal:
         // LEXGINE_THROW_ERROR("not implemented");
         break;
 
-    case EngineAPI::OpenGL45:
+    case EngineApi::OpenGL46:
         row2 = Vector4f{ 0.f, 0.f, 2.f * Q, (f + n) * Q };
         break;
 

@@ -2,6 +2,7 @@
 
 #include "engine/core/exception.h"
 #include "engine/core/globals.h"
+#include "engine/core/engine_api.h"
 #include "engine/core/profiling_services.h"
 #include "engine/core/rendering_configuration.h"
 #include "engine/core/ui/ui_provider.h"
@@ -611,7 +612,7 @@ void UIDrawTask::drawFrame()
             };
             m_viewports[0] = viewport;
 
-            auto projection_matrix = math::createOrthogonalProjectionMatrix(misc::EngineAPI::Direct3D12,
+            auto projection_matrix = math::createOrthogonalProjectionMatrix(EngineApi::Direct3D12,
                 p_draw_data->DisplayPos.x, p_draw_data->DisplayPos.y,
                 p_draw_data->DisplaySize.x, p_draw_data->DisplaySize.y, -1.f, 1.f);
 
