@@ -107,7 +107,7 @@ private:
 
 private:
     windows::Window& m_target_os_window;
-    std::unique_ptr<impl> m_impl;
+    std::shared_ptr<impl> m_impl;
 };
 
 template<> class WindowHandlerAttorney<Initializer>

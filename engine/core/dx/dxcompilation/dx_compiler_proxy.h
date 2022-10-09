@@ -2,7 +2,7 @@
 #define LEXGINE_CORE_DX_DXCOMPILATION_DX_COMPILER_PROXY_H
 
 #include <d3d12.h>
-#include <dxc/dxcapi.h>
+#include <dxcapi.h>
 
 #include <wrl/client.h>
 
@@ -42,7 +42,7 @@ private:
     Microsoft::WRL::ComPtr<IDxcCompiler3> m_dxc;
     Microsoft::WRL::ComPtr<IDxcUtils> m_dxc_utils;
     bool m_is_successfully_initialized;
-    
+
     std::vector<Microsoft::WRL::ComPtr<IDxcResult>> m_dxc_result;
     std::vector<std::string> m_dxc_errors;
     std::vector<std::string> m_last_comilation_attempt_source_name;

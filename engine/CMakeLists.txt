@@ -38,10 +38,10 @@ add_library(${_target} SHARED ${_sources_list} ${_headers_list})
 target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}"
                                               "${CMAKE_SOURCE_DIR}/api"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/"
-                                              "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/include/"
+                                              "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/inc/"
                                               "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/Include/WinPixEventRuntime/")
 
-target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib")
+target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/x64")
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/bin/x64/")
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
 target_link_libraries(${_target} PRIVATE 

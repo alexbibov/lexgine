@@ -22,7 +22,7 @@ public:
     
 private:
     std::array<D3D12_VERTEX_BUFFER_VIEW, CommandList::c_input_assembler_count> m_vb_views;
-    uint16_t m_defined_slots_mask;
+    uint16_t m_defined_slots_mask = 0ui16;
 };
 
 enum struct IndexDataType { _16_bit, _32_bit };

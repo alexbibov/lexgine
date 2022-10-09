@@ -206,7 +206,7 @@ void CommandList::inputAssemblySetPrimitiveTopology(PrimitiveTopology primitive_
 }
 
 void CommandList::inputAssemblySetVertexBuffers(VertexBufferBinding const& vb_binding)
-{
+{  
     D3D12_VERTEX_BUFFER_VIEW native_vb_views[c_input_assembler_count];
 
     unsigned long index{ 0 };

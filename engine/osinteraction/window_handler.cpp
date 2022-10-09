@@ -130,7 +130,7 @@ WindowHandler::WindowHandler(core::Globals& globals, windows::Window& os_window,
     : m_target_os_window{ os_window }
     , m_impl{ new impl{globals, swap_chain_link} }
 {
-
+    m_target_os_window.addListener(m_impl);
 }
 
 WindowHandler::WindowHandler(WindowHandler&&) = default;

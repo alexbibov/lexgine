@@ -83,8 +83,8 @@ private:
         , m_engine_initializer{ m_engine_settings }
     {
         m_engine_initializer.setCurrentDevice(0);
-        m_window.setVisibility(true);
         m_window_handler = std::make_unique<lexgine::osinteraction::WindowHandler>(m_engine_initializer.createWindowHandler(m_window, createSwapChainSettings(), lexgine::core::SwapChainDepthFormat::depth32));
+        m_window.setVisibility(true);
     }
 
 private:
