@@ -107,7 +107,7 @@ struct PrimitiveTopologyTypeConverter<EngineApi::Direct3D12, primitive_topology_
 };
 
 
-template<PrimitiveTopology primitive_topology> 
+template<PrimitiveTopology primitive_topology>
 struct PrimitiveTopologyConverter<EngineApi::Direct3D12, primitive_topology>
 {
     // See definition of D3D_PRIMITIVE_TOPOLOGY enumeration for details
@@ -152,10 +152,30 @@ struct SwapChainColorFormatConverter<EngineApi::Direct3D12, color_format>
             return DXGI_FORMAT_R8G8B8A8_UNORM;
         case lexgine::core::SwapChainColorFormat::b8_g8_r8_a8_unorm:
             return DXGI_FORMAT_B8G8R8A8_UNORM;
-        case lexgine::core::SwapChainColorFormat::r8_g8_b8_a8_unorm_srgb:
-            return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        case lexgine::core::SwapChainColorFormat::b8_g8_r8_a8_unorm_srgb:
-            return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+        }
+        return static_cast<unsigned>(-1);
+    }
+};
+
+
+template<SwapChainDepthFormat depth_format, bool typeless_format>
+struct SwapChainDepthFormatConverter<EngineApi::Direct3D12, depth_format, typeless_format>
+{
+    static unsigned constexpr value()
+    {
+        switch (depth_format)
+        {
+        case lexgine::core::SwapChainDepthFormat::depth16:
+            return typeless_format ? DXGI_FORMAT_R16_TYPELESS : DXGI_FORMAT_D16_UNORM;
+        case lexgine::core::SwapChainDepthFormat::depth32:
+            return typeless_format ? DXGI_FORMAT_R32_TYPELESS : DXGI_FORMAT_D32_FLOAT;
+        case lexgine::core::SwapChainDepthFormat::depth24_stencil8:
+            return typeless_format ? DXGI_FORMAT_R24_UNORM_X8_TYPELESS : DXGI_FORMAT_D24_UNORM_S8_UINT;
+        case lexgine::core::SwapChainDepthFormat::depth32_stencil8:
+            return typeless_format ? DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS : DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+        default:
+            break;
+
         }
         return static_cast<unsigned>(-1);
     }
@@ -235,7 +255,7 @@ inline D3D12_BLEND_OP d3d12Convert(BlendOperation blend_op)
 
 //! Converts API-agnostic blend logical operation to the corresponding Direc3D 12 enumeration
 inline D3D12_LOGIC_OP d3d12Convert(BlendLogicalOperation blend_logical_op)
-{ 
+{
     switch (blend_logical_op)
     {
     case BlendLogicalOperation::clear:
@@ -577,12 +597,39 @@ inline DXGI_FORMAT d3d12Convert(SwapChainColorFormat swap_chain_color_format)
         return static_cast<DXGI_FORMAT>(misc::SwapChainColorFormatConverter<EngineApi::Direct3D12, SwapChainColorFormat::r8_g8_b8_a8_unorm>::value());
     case lexgine::core::SwapChainColorFormat::b8_g8_r8_a8_unorm:
         return static_cast<DXGI_FORMAT>(misc::SwapChainColorFormatConverter<EngineApi::Direct3D12, SwapChainColorFormat::b8_g8_r8_a8_unorm>::value());
-    case lexgine::core::SwapChainColorFormat::r8_g8_b8_a8_unorm_srgb:
-        return static_cast<DXGI_FORMAT>(misc::SwapChainColorFormatConverter<EngineApi::Direct3D12, SwapChainColorFormat::r8_g8_b8_a8_unorm_srgb>::value());
-    case lexgine::core::SwapChainColorFormat::b8_g8_r8_a8_unorm_srgb:
-        return static_cast<DXGI_FORMAT>(misc::SwapChainColorFormatConverter<EngineApi::Direct3D12, SwapChainColorFormat::b8_g8_r8_a8_unorm_srgb>::value());
     default: __assume(0);    // not supported
     }
+}
+
+
+//! Converts API-agnostic swap chain depth-stencil format to DXGI format understood by Direct3D
+inline DXGI_FORMAT d3d12Convert(SwapChainDepthFormat swap_chain_depth_format, bool typeless_format)
+{
+    switch (swap_chain_depth_format)
+    {
+    case lexgine::core::SwapChainDepthFormat::depth16:
+        return typeless_format
+            ? static_cast<DXGI_FORMAT>(misc::SwapChainDepthFormatConverter <EngineApi::Direct3D12, SwapChainDepthFormat::depth16, true>::value())
+            : static_cast<DXGI_FORMAT>(misc::SwapChainDepthFormatConverter <EngineApi::Direct3D12, SwapChainDepthFormat::depth16, false>::value());
+
+    case lexgine::core::SwapChainDepthFormat::depth32:
+        return typeless_format
+            ? static_cast<DXGI_FORMAT>(misc::SwapChainDepthFormatConverter <EngineApi::Direct3D12, SwapChainDepthFormat::depth32, true>::value())
+            : static_cast<DXGI_FORMAT>(misc::SwapChainDepthFormatConverter <EngineApi::Direct3D12, SwapChainDepthFormat::depth32, false>::value());
+
+    case lexgine::core::SwapChainDepthFormat::depth24_stencil8:
+        return typeless_format
+            ? static_cast<DXGI_FORMAT>(misc::SwapChainDepthFormatConverter <EngineApi::Direct3D12, SwapChainDepthFormat::depth24_stencil8, true>::value())
+            : static_cast<DXGI_FORMAT>(misc::SwapChainDepthFormatConverter <EngineApi::Direct3D12, SwapChainDepthFormat::depth24_stencil8, false>::value());
+
+    case lexgine::core::SwapChainDepthFormat::depth32_stencil8:
+        return typeless_format
+            ? static_cast<DXGI_FORMAT>(misc::SwapChainDepthFormatConverter <EngineApi::Direct3D12, SwapChainDepthFormat::depth32_stencil8, true>::value())
+            : static_cast<DXGI_FORMAT>(misc::SwapChainDepthFormatConverter <EngineApi::Direct3D12, SwapChainDepthFormat::depth32_stencil8, false>::value());
+
+    }
+
+    return static_cast<DXGI_FORMAT>(-1);
 }
 
 

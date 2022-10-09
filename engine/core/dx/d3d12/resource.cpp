@@ -140,9 +140,9 @@ void* Resource::map(unsigned int subresource/* = 0U */,
     uint64_t total_resource_size_in_bytes{ 0 };
     native_device->GetCopyableFootprints(&desc, subresource, 1, 0UI64, nullptr, nullptr, nullptr, &total_resource_size_in_bytes);
 
-    D3D12_RANGE read_range{ 
-        read_range_offset, 
-        read_range_offset + (std::min<uint64_t>)(total_resource_size_in_bytes - read_range_offset, read_range_size) 
+    D3D12_RANGE read_range{
+        read_range_offset,
+        read_range_offset + (std::min<uint64_t>)(total_resource_size_in_bytes - read_range_offset, read_range_size)
     };
 
     void* rv{ nullptr };
@@ -200,7 +200,7 @@ ResourceDescriptor const& Resource::descriptor() const
 PlacedResource::PlacedResource(Heap const& heap, uint64_t heap_offset,
     ResourceState const& initial_state,
     misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
-    ResourceDescriptor const& descriptor) 
+    ResourceDescriptor const& descriptor)
     : Resource{ initial_state }
     , m_heap{ heap }
     , m_offset{ heap_offset }

@@ -1,18 +1,22 @@
 #include "window_handler.h"
 #include "engine/osinteraction/windows/window_listeners.h"
 #include "engine/osinteraction/windows/window.h"
+#include "engine/core/dx/d3d12/swap_chain_link.h"
+#include "engine/core/dx/d3d12/d3d12_tools.h"
 
+
+using namespace lexgine;
 using namespace lexgine::osinteraction;
 using namespace lexgine::osinteraction::windows;
 
 
 class WindowHandler::impl :
-    public Listeners<KeyInputListener, MouseButtonListener, MouseMoveListener>
+    public Listeners<KeyInputListener, MouseButtonListener, MouseMoveListener, ClientAreaUpdateListener>
 {
 public:    // KeyInputListener
-    bool keyDown(SystemKey key) override 
+    bool keyDown(SystemKey key) override
     {
-        if(!m_key_input_handler) return true;
+        if (!m_key_input_handler) return true;
 
         KeyInputInfo info{ .event_source = KeyInputSource{.system_key = key} };
         return m_key_input_handler(info, KeyInputEvent::KEY_DOWN);
@@ -56,12 +60,12 @@ public:    // MouseButtonListener
     {
         return true;
     }
-    
+
     bool buttonUp(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
     {
         return true;
     }
-    
+
     bool doubleClick(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) override
     {
         return true;
@@ -89,6 +93,24 @@ public:    // MouseMoveListener
         return true;
     }
 
+public:    // ClientAreaUpdateListener
+
+    bool paint(core::math::Rectangle const& update_region) override
+    {
+        m_swap_chain_link.render();
+        return true;
+    }
+
+
+public:    // Construction
+    impl(core::Globals& globals, core::dx::d3d12::SwapChainLink& swap_chain_link)
+        : m_swap_chain_link{ swap_chain_link }
+    {
+
+    }
+
+    void render() const { m_swap_chain_link.render(); }
+
 public:
     void setKeyInputCallbackPtr(KeyInputHandler key_input_handler) { m_key_input_handler = key_input_handler; }
     void setMouseButtonCallbackPtr(MouseButtonHandler mouse_button_handler) { m_mouse_button_handler = mouse_button_handler; }
@@ -98,17 +120,20 @@ private:
     KeyInputHandler m_key_input_handler = nullptr;
     MouseButtonHandler m_mouse_button_handler = nullptr;
     MouseMoveHandler m_mouse_move_handler = nullptr;
+
+    core::dx::d3d12::SwapChainLink& m_swap_chain_link;
 };
 
 
 
-WindowHandler::WindowHandler(windows::Window& os_window)
+WindowHandler::WindowHandler(core::Globals& globals, windows::Window& os_window, core::dx::d3d12::SwapChainLink& swap_chain_link)
     : m_target_os_window{ os_window }
-    , m_impl{ new impl{} }
+    , m_impl{ new impl{globals, swap_chain_link} }
 {
 
 }
 
+WindowHandler::WindowHandler(WindowHandler&&) = default;
 WindowHandler::~WindowHandler() = default;
 
 
@@ -133,3 +158,17 @@ windows::Window* WindowHandler::attachedWindow() const
 {
     return &m_target_os_window;
 }
+
+
+void WindowHandler::update() const
+{
+    m_target_os_window.processMessages();
+    m_target_os_window.update();
+}
+
+
+bool WindowHandler::shouldClose() const
+{
+    return m_target_os_window.shouldClose();
+}
+

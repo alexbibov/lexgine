@@ -1,30 +1,10 @@
-#include "swap_chain.h"
 #include "engine/core/exception.h"
 #include "engine/core/dx/d3d12/command_queue.h"
 
+#include "swap_chain.h"
+
 
 namespace lexgine::core::dx::dxgi {
-
-namespace {
-
-misc::Optional<core::SwapChainColorFormat> dxgiColorFormatToSwapChainColorFormat(DXGI_FORMAT dxgi_color_format)
-{
-    switch (dxgi_color_format)
-    {
-    case DXGI_FORMAT_R8G8B8A8_UNORM:
-        return core::SwapChainColorFormat::r8_g8_b8_a8_unorm;
-    case DXGI_FORMAT_B8G8R8A8_UNORM:
-        return core::SwapChainColorFormat::b8_g8_r8_a8_unorm;
-    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
-        return core::SwapChainColorFormat::b8_g8_r8_a8_unorm_srgb;
-    case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
-        return core::SwapChainColorFormat::b8_g8_r8_a8_unorm_srgb;
-    default:
-        return misc::Optional<core::SwapChainColorFormat>{};
-    }
-}
-
-}
 
 d3d12::Device& lexgine::core::dx::dxgi::SwapChain::device() const
 {
@@ -100,19 +80,7 @@ uint32_t SwapChain::backBufferCount() const
     return m_descriptor.back_buffer_count;
 }
 
-core::SwapChainDescriptor SwapChain::descriptor() const
-{
-    auto swap_chain_color_format = dxgiColorFormatToSwapChainColorFormat(m_descriptor.format);
-
-    core::SwapChainDescriptor rv{
-        .color_format = static_cast<core::SwapChainColorFormat>(swap_chain_color_format),
-        .back_buffer_count = m_descriptor.back_buffer_count,
-        .enable_vsync = m_descriptor.enable_vsync
-    };
-    return rv;
-}
-
-dxgi::SwapChainDescriptor SwapChain::extendedDescriptor() const
+SwapChainDescriptor SwapChain::descriptor() const
 {
     return m_descriptor;
 }
@@ -138,8 +106,7 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     d3d12::CommandQueue const& default_command_queue,
     osinteraction::windows::Window& window,
     SwapChainDescriptor const& desc)
-    : lexgine::core::SwapChain{EngineApi::Direct3D12}
-    , m_dxgi_factory{ dxgi_factory }
+    : m_dxgi_factory{ dxgi_factory }
     , m_device{ device }
     , m_window{ window }
     , m_default_command_queue{ default_command_queue }

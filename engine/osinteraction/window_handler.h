@@ -2,14 +2,25 @@
 #define LEXGINE_OSINTERACTION_WINDOW_HANDLER_H
 
 #include <engine/preprocessing/preprocessor_tokens.h>
+#include <engine/osinteraction/lexgine_osinteraction_fwd.h>
 #include <engine/osinteraction/windows/window.h>
 #include <engine/osinteraction/keyboard.h>
 #include <engine/osinteraction/mouse.h>
+#include <engine/core/dx/d3d12/swap_chain_link.h>
+
+namespace lexgine {
+
+class Initializer;
+
+}
 
 namespace lexgine::osinteraction {
 
+template<typename T> class WindowHandlerAttorney;
+
 class LEXGINE_CPP_API WindowHandler final
 {
+    friend class WindowHandlerAttorney<Initializer>;
 public:
     enum class LEXGINE_CPP_API KeyInputEvent {
         KEY_DOWN,
@@ -58,7 +69,7 @@ public:
         ControlKeyFlag control_key;
     };
 
-    
+
 
     enum class LEXGINE_CPP_API MouseMoveEvent {
         MOVE,
@@ -78,13 +89,18 @@ public:
     using MouseMoveHandler = bool(*)(MouseMoveInfo const&, MouseMoveEvent);
 
 public:
-    WindowHandler(windows::Window& os_window);
+    WindowHandler(WindowHandler&&);
     ~WindowHandler();
 
     LEXGINE_CPP_API void enableKeyInputMonitoring(KeyInputHandler key_input_handler);
     LEXGINE_CPP_API void enableMouseButtonMonitoring(MouseButtonHandler mouse_button_handler);
     LEXGINE_CPP_API void enableMouseMoveMonitoring(MouseMoveHandler mouse_move_handler);
     LEXGINE_CPP_API windows::Window* attachedWindow() const;
+    LEXGINE_CPP_API void update() const;
+    LEXGINE_CPP_API bool shouldClose() const;
+
+private:
+    WindowHandler(core::Globals& globals, windows::Window& os_window, core::dx::d3d12::SwapChainLink& swap_chain_link);
 
 private:
     class impl;
@@ -92,6 +108,17 @@ private:
 private:
     windows::Window& m_target_os_window;
     std::unique_ptr<impl> m_impl;
+};
+
+template<> class WindowHandlerAttorney<Initializer>
+{
+    friend class Initializer;
+
+private:
+    static WindowHandler makeWindowHandler(core::Globals& globals, windows::Window& os_window, core::dx::d3d12::SwapChainLink& swap_chain_link)
+    {
+        return WindowHandler{ globals, os_window, swap_chain_link };
+    }
 };
 
 }

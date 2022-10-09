@@ -17,6 +17,34 @@ using namespace lexgine::core::dx;
 using namespace lexgine::core::dx::d3d12;
 
 
+namespace {
+
+DXGI_FORMAT getValidDepthStencilFormatFromTypelessFormat(DXGI_FORMAT format)
+{
+    switch (format)
+    {
+    case DXGI_FORMAT_R16_TYPELESS:
+    case DXGI_FORMAT_D16_UNORM:
+        return DXGI_FORMAT_D16_UNORM;
+
+    case DXGI_FORMAT_R32_TYPELESS:
+    case DXGI_FORMAT_D32_FLOAT:
+        return DXGI_FORMAT_D32_FLOAT;
+
+    case DXGI_FORMAT_R24G8_TYPELESS:
+    case DXGI_FORMAT_D24_UNORM_S8_UINT:
+        return DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+    case DXGI_FORMAT_R32G8X24_TYPELESS:
+    case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+        return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+    }
+    return DXGI_FORMAT_UNKNOWN;
+}
+
+}
+
+
 SwapChainLink::SwapChainLink(Globals& globals, dxgi::SwapChain& swap_chain_to_link,
     SwapChainDepthBufferFormat depth_buffer_format)
     : m_globals{ globals }
@@ -67,11 +95,10 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 
 void SwapChainLink::render()
 {
-    if (m_linked_swap_chain.isIdle()) {
-
-        m_linked_swap_chain.present();    // check if we should exit idle presentation state
-
-    } else if (!m_suspend_rendering && m_linked_rendering_tasks_ptr)
+    if (m_linked_swap_chain.isIdle()) {    // check if we should exit idle presentation state
+        m_linked_swap_chain.present();
+    }
+    else if (!m_suspend_rendering && m_linked_rendering_tasks_ptr)
     {
         uint32_t current_back_buffer_index = m_linked_swap_chain.getCurrentBackBufferIndex();
         RenderingTarget& target = m_targets[current_back_buffer_index];
@@ -124,7 +151,7 @@ void SwapChainLink::updateRenderingConfiguration() const
 
     m_linked_rendering_tasks_ptr->defineRenderingConfiguration(RenderingConfiguration{
         viewport,
-        m_linked_swap_chain.extendedDescriptor().format, m_depth_buffer_native_format,
+        m_linked_swap_chain.descriptor().format, m_depth_buffer_native_format,
         &m_linked_swap_chain.window() });
 }
 
@@ -169,6 +196,7 @@ void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
         dsv_texture_array_info.first_array_element = i;
         dsv_texture_array_info.num_array_elements = 1;
         DepthTarget depth_target{ *m_depth_buffer, ResourceState::base_values::depth_read, dsv_texture_array_info };
+        depth_target.target_view.overrideFormat(getValidDepthStencilFormatFromTypelessFormat(m_depth_buffer_native_format));
 
         m_targets.emplace_back(m_globals, std::vector<ColorTarget>{ color_target }, misc::makeOptional<DepthTarget>(depth_target));
     }

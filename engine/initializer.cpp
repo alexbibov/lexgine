@@ -1,8 +1,25 @@
 #include "initializer.h"
 #include "engine/core/dx/d3d12_initializer.h"
 #include "engine/core/dx/d3d12/d3d12_tools.h"
+#include "engine/core/dx/d3d12/rendering_tasks.h"
+#include "engine/core/dx/d3d12/swap_chain_link.h"
+#include "engine/osinteraction/window_handler.h"
+
 
 namespace lexgine {
+
+
+namespace
+{
+
+core::dx::d3d12::SwapChainDepthBufferFormat convertSwapChainDepthFormatD3d12(core::SwapChainDepthFormat depth_buffer_format)
+{
+    DXGI_FORMAT dxgiDepthFormat = core::dx::d3d12::d3d12Convert(depth_buffer_format, false);
+    return static_cast<core::dx::d3d12::SwapChainDepthBufferFormat>(dxgiDepthFormat);
+}
+
+}
+
 
 EngineSettings::EngineSettings()
     : engine_api{ core::EngineApi::Direct3D12 }
@@ -31,7 +48,7 @@ Initializer::Initializer(EngineSettings const& settings)
             if (settings.debug_mode)
             {
                 gpu_based_validation_settings.disableResourceStateChecks = false;
-                gpu_based_validation_settings.enableGpuBasedValidation = true;
+                gpu_based_validation_settings.enableGpuBasedValidation = false;
                 gpu_based_validation_settings.enableSynchronizedCommandQueueValidation = true;
             }
             else
@@ -64,6 +81,9 @@ Initializer::Initializer(EngineSettings const& settings)
 }
 
 
+Initializer::~Initializer() = default;
+
+
 bool Initializer::setCurrentDevice(uint32_t adapter_id)
 {
     switch (m_engine_api)
@@ -94,24 +114,41 @@ uint32_t Initializer::getAdapterCount() const
 }
 
 
-std::unique_ptr<core::SwapChain> Initializer::createSwapChainForCurrentDevice(osinteraction::WindowHandler& window_handler, core::SwapChainDescriptor const& descriptor) const
+osinteraction::WindowHandler* Initializer::createWindowHandler(osinteraction::windows::Window& window, core::SwapChainDescriptor const& swap_chain_desc, core::SwapChainDepthFormat depth_format)
 {
     switch (m_engine_api)
     {
-    case core::EngineApi::Direct3D12:
+    case lexgine::core::EngineApi::Direct3D12:
     {
         core::dx::dxgi::SwapChainDescriptor dxgi_swap_chain_descriptor{
-            .format = core::dx::d3d12::d3d12Convert(descriptor.color_format),
+            .format = core::dx::d3d12::d3d12Convert(swap_chain_desc.color_format),
             .stereo = false,
             .scaling = core::dx::dxgi::SwapChainScaling::none,
             .refreshRate = 60,
-            .windowed = descriptor.windowed,
-            .enable_vsync = descriptor.enable_vsync,
-            .back_buffer_count = descriptor.back_buffer_count
+            .windowed = swap_chain_desc.windowed,
+            .enable_vsync = swap_chain_desc.enable_vsync,
+            .back_buffer_count = swap_chain_desc.back_buffer_count
         };
-        return std::unique_ptr<core::SwapChain>{new core::dx::dxgi::SwapChain{ std::move(m_d3d12_initializer->createSwapChainForCurrentDevice(*window_handler.attachedWindow(), dxgi_swap_chain_descriptor)) }};
+
+        m_swap_chain = std::make_unique<lexgine::core::dx::dxgi::SwapChain>(
+            std::move(m_d3d12_initializer->createSwapChainForCurrentDevice(window, dxgi_swap_chain_descriptor))
+            );
+
+        m_rendering_tasks = m_d3d12_initializer->createRenderingTasks();
+
+        m_swap_chain_link = m_d3d12_initializer->createSwapChainLink(*m_swap_chain, convertSwapChainDepthFormatD3d12(depth_format), *m_rendering_tasks);
+
+        m_window_handler = std::make_unique<osinteraction::WindowHandler>(
+            std::move(osinteraction::WindowHandlerAttorney<Initializer>::makeWindowHandler(m_d3d12_initializer->globals(), window, *m_swap_chain_link)
+            ));
+
+        return m_window_handler.get();
     }
-    case core::EngineApi::Vulkan:
+
+
+    case lexgine::core::EngineApi::Vulkan:
+    case lexgine::core::EngineApi::Metal:
+    case lexgine::core::EngineApi::OpenGL46:
         return nullptr;
     }
 

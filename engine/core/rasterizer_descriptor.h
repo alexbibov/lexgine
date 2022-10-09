@@ -2,22 +2,22 @@
 
 #include <cstdint>
 
-namespace lexgine {namespace core {
+namespace lexgine::core {
 
 //! API-agnostic triangle fill mode
-enum class FillMode: int8_t
+enum class FillMode : int8_t
 {
     wireframe, solid
 };
 
 //! API-agnostic cull mode
-enum class CullMode: int8_t
+enum class CullMode : int8_t
 {
     none, front, back
 };
 
 //! API-agnostic conservative rasterization mode
-enum class ConservativeRasterizationMode: int8_t
+enum class ConservativeRasterizationMode : int8_t
 {
     off, on
 };
@@ -62,7 +62,7 @@ private:
     ConservativeRasterizationMode m_cr_mode;    //! conservative rasterization mode
 };
 
-}}
+}
 
 #define LEXGINE_CORE_RASTERIZER_DESCRIPTOR
 #endif
