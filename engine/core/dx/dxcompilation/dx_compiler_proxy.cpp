@@ -45,7 +45,7 @@ std::vector<wchar_t const*> convertParametersIntoCommandLineArgs(
     }
 
     if (strict_mode) rv.push_back(DXC_ARG_ENABLE_STRICTNESS);
-    if (force_all_resources_be_bound) 
+    if (force_all_resources_be_bound)
     {
         rv.push_back(DXC_ARG_ALL_RESOURCES_BOUND);
         rv.push_back(DXC_ARG_AVOID_FLOW_CONTROL);    // avoid flow control constructs in DXIL
@@ -62,7 +62,7 @@ std::vector<wchar_t const*> convertParametersIntoCommandLineArgs(
 }
 
 
-DXCompilerProxy::DXCompilerProxy(GlobalSettings const& global_settings):
+DXCompilerProxy::DXCompilerProxy(GlobalSettings const& global_settings) :
     m_is_successfully_initialized{ false },
     m_dxc_result(global_settings.getNumberOfWorkers()),
     m_dxc_errors(global_settings.getNumberOfWorkers(), "unknown error"),
@@ -81,22 +81,22 @@ DXCompilerProxy::DXCompilerProxy(GlobalSettings const& global_settings):
     }
 }
 
-bool DXCompilerProxy::compile(uint8_t worker_id, 
+bool DXCompilerProxy::compile(uint8_t worker_id,
     std::string const& hlsl_source_code,
-    std::string const& source_name, 
-    std::string const& entry_point_name, 
+    std::string const& source_name,
+    std::string const& entry_point_name,
     std::string const& target_profile_name,
     std::list<HLSLMacroDefinition> const& macro_definitions,
-    HLSLCompilationOptimizationLevel optimization_level, 
+    HLSLCompilationOptimizationLevel optimization_level,
     bool strict_mode, bool force_all_resources_be_bound,
     bool force_ieee_standard, bool treat_warnings_as_errors, bool enable_validation,
     bool enable_debug_inforamtion, bool enable_16bit_types)
 {
     m_last_comilation_attempt_source_name[worker_id] = source_name;
 
-    std::vector<wchar_t const*> args = 
+    std::vector<wchar_t const*> args =
         convertParametersIntoCommandLineArgs(optimization_level, strict_mode, force_all_resources_be_bound,
-        force_ieee_standard, treat_warnings_as_errors, enable_validation, enable_debug_inforamtion, enable_16bit_types);
+            force_ieee_standard, treat_warnings_as_errors, enable_validation, enable_debug_inforamtion, enable_16bit_types);
 
     std::vector<std::pair<std::wstring, std::wstring>> hlsl_define_name_and_value_pairs{};
     std::vector<DxcDefine> dxc_defines{};
@@ -119,7 +119,7 @@ bool DXCompilerProxy::compile(uint8_t worker_id,
     Microsoft::WRL::ComPtr<IDxcCompilerArgs> dxc_compiler_args{};
     {
         // Build compiler arguments
-        HRESULT hres = m_dxc_utils->BuildArguments(misc::asciiStringToWstring(source_name).c_str(), 
+        HRESULT hres = m_dxc_utils->BuildArguments(misc::asciiStringToWstring(source_name).c_str(),
             misc::asciiStringToWstring(entry_point_name).c_str(), misc::asciiStringToWstring(target_profile_name).c_str(), args.data(), static_cast<UINT32>(args.size()),
             dxc_defines.data(), static_cast<UINT32>(dxc_defines.size()), dxc_compiler_args.GetAddressOf());
 
@@ -149,26 +149,29 @@ bool DXCompilerProxy::compile(uint8_t worker_id,
 
         if (hres != S_OK && hres != S_FALSE) return false;
 
-        
-        if(m_dxc_result[worker_id]->HasOutput(DXC_OUT_KIND::DXC_OUT_ERRORS))
+
+        if (m_dxc_result[worker_id]->HasOutput(DXC_OUT_KIND::DXC_OUT_ERRORS))
         {
             Microsoft::WRL::ComPtr<IDxcBlobUtf8> dxc_errors_blob{ nullptr };
             Microsoft::WRL::ComPtr<IDxcBlobUtf16> dxc_result_name{ nullptr };
-            
-            HRESULT hres = m_dxc_result[worker_id]->GetOutput(DXC_OUT_KIND::DXC_OUT_ERRORS, 
+
+            HRESULT hres = m_dxc_result[worker_id]->GetOutput(DXC_OUT_KIND::DXC_OUT_ERRORS,
                 __uuidof(IDxcBlobUtf8), reinterpret_cast<void**>(dxc_errors_blob.GetAddressOf()), dxc_result_name.GetAddressOf());
 
             if (hres != S_OK && hres != S_FALSE)
             {
-                misc::Log::retrieve()->out("Unable to retrieve errors from compilation result of HLSL source \"" + source_name + "\". "
-                    "The compilation, however, has failed.", misc::LogMessageType::exclamation);
+                misc::Log::retrieve()->out("Unable to retrieve status of HLSL source compilation \"" + source_name + "\". "
+                    "The compilation may have produced incorrect output.", misc::LogMessageType::exclamation);
             }
             else
             {
-                m_dxc_errors[worker_id] = std::string{ static_cast<char const*>(dxc_errors_blob->GetStringPointer()) };
+                auto error_message = std::string{ static_cast<char const*>(dxc_errors_blob->GetStringPointer()) };
+                if (!error_message.empty())
+                {
+                    m_dxc_errors[worker_id] = error_message;
+                    return false;
+                }
             }
-
-            return false;
         }
     }
 
@@ -181,7 +184,7 @@ misc::Optional<D3DDataBlob> DXCompilerProxy::result(uint8_t worker_id) const
     {
         Microsoft::WRL::ComPtr<ID3DBlob> blob{ nullptr };
         Microsoft::WRL::ComPtr<IDxcBlobUtf16> dxc_result_name{ nullptr };
-        HRESULT hres = m_dxc_result[worker_id]->GetOutput(DXC_OUT_OBJECT, 
+        HRESULT hres = m_dxc_result[worker_id]->GetOutput(DXC_OUT_OBJECT,
             __uuidof(ID3DBlob), reinterpret_cast<void**>(blob.GetAddressOf()), dxc_result_name.GetAddressOf());
         if (hres != S_OK && hres != S_FALSE) return misc::Optional<D3DDataBlob>{};
 

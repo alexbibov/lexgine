@@ -15,19 +15,14 @@
 #include <fstream>
 
 
-using namespace lexgine;
-using namespace lexgine::core;
-using namespace lexgine::core::dx::dxcompilation;
-using namespace lexgine::core::dx::d3d12;
-using namespace lexgine::core::dx::d3d12::tasks;
 
-
+namespace lexgine::core::dx::d3d12::tasks {
 std::string HLSLCompilationTask::getCacheName() const
 {
     return m_key.toString();
 }
 
-std::pair<uint8_t, uint8_t> lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::unpackShaderModelVersion(ShaderModel shader_model)
+std::pair<uint8_t, uint8_t> HLSLCompilationTask::unpackShaderModelVersion(dxcompilation::ShaderModel shader_model)
 {
     uint8_t version_major = static_cast<uint8_t>((static_cast<unsigned short>(shader_model) >> 4) & 0xF);
     uint8_t version_minor = static_cast<uint8_t>(static_cast<unsigned short>(shader_model) & 0xF);
@@ -35,7 +30,7 @@ std::pair<uint8_t, uint8_t> lexgine::core::dx::d3d12::tasks::HLSLCompilationTask
     return std::make_pair(version_major, version_minor);
 }
 
-std::string lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::shaderModelAndTypeToTargetName(ShaderModel shader_model, ShaderType shader_type)
+std::string HLSLCompilationTask::shaderModelAndTypeToTargetName(dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type)
 {
     char target[7] = { 0 };
 
@@ -43,22 +38,22 @@ std::string lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::shaderModelAnd
 
     switch (shader_type)
     {
-    case ShaderType::vertex:
+    case dxcompilation::ShaderType::vertex:
         memcpy(target, "vs_", 3);
         break;
-    case ShaderType::hull:
+    case dxcompilation::ShaderType::hull:
         memcpy(target, "hs_", 3);
         break;
-    case ShaderType::domain:
+    case dxcompilation::ShaderType::domain:
         memcpy(target, "ds_", 3);
         break;
-    case ShaderType::geometry:
+    case dxcompilation::ShaderType::geometry:
         memcpy(target, "gs_", 3);
         break;
-    case ShaderType::pixel:
+    case dxcompilation::ShaderType::pixel:
         memcpy(target, "ps_", 3);
         break;
-    case ShaderType::compute:
+    case dxcompilation::ShaderType::compute:
         memcpy(target, "cs_", 3);
         break;
     }
@@ -74,9 +69,9 @@ std::string lexgine::core::dx::d3d12::tasks::HLSLCompilationTask::shaderModelAnd
 
 HLSLCompilationTask::HLSLCompilationTask(task_caches::CombinedCacheKey const& key, misc::DateTime const& time_stamp,
     core::Globals& globals, std::string const& hlsl_source, std::string const& source_name,
-    ShaderModel shader_model, ShaderType shader_type, std::string const& shader_entry_point,
-    std::list<HLSLMacroDefinition> const& macro_definitions/* = std::list<HLSLMacroDefinition>{}*/,
-    HLSLCompilationOptimizationLevel optimization_level/* = HLSLCompilationOptimizationLevel::level3*/,
+    dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
+    std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions/* = std::list<HLSLMacroDefinition>{}*/,
+    dxcompilation::HLSLCompilationOptimizationLevel optimization_level/* = HLSLCompilationOptimizationLevel::level3*/,
     bool strict_mode/* = true*/, bool force_all_resources_be_bound/* = false*/,
     bool force_ieee_standard/* = true*/, bool treat_warnings_as_errors/* = true*/, bool enable_validation/* = true*/,
     bool enable_debug_information/* = false*/, bool enable_16bit_types/* = false*/)
@@ -131,13 +126,13 @@ HLSLCompilationTask::HLSLCompilationTask(task_caches::CombinedCacheKey const& ke
             misc::Log::retrieve()->out("Reduced precision 16-bit types require shader model 6.2 although shader model "
                 + std::to_string(shader_model_version.first) + "." + std::to_string(shader_model_version.second)
                 + " was requested. The shader model will be forced to 6.2", misc::LogMessageType::exclamation);
-            m_shader_model = ShaderModel::model_62;
+            m_shader_model = dxcompilation::ShaderModel::model_62;
         }
     }
 
     if (m_should_enable_debug_information)
     {
-        m_optimization_level = HLSLCompilationOptimizationLevel::level_no;
+        m_optimization_level = dxcompilation::HLSLCompilationOptimizationLevel::level_no;
         m_is_validation_enabled = true;
     }
 }
@@ -222,7 +217,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
                 // Need to recompile the shader
                 std::string target = shaderModelAndTypeToTargetName(m_shader_model, m_shader_type);
 
-                if (static_cast<unsigned short>(m_shader_model) < static_cast<unsigned short>(ShaderModel::model_60))
+                if (static_cast<unsigned short>(m_shader_model) < static_cast<unsigned short>(dxcompilation::ShaderModel::model_60))
                 {
                     // use legacy compiler
 
@@ -235,7 +230,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
                     macro_definitions[m_preprocessor_macro_definitions.size()] = D3D_SHADER_MACRO{ NULL, NULL };
                     {
                         uint32_t i;
-                        std::list<HLSLMacroDefinition>::iterator p;
+                        std::list<dxcompilation::HLSLMacroDefinition>::iterator p;
                         for (p = m_preprocessor_macro_definitions.begin(), i = 0; p != m_preprocessor_macro_definitions.end(); ++p, ++i)
                         {
                             macro_definitions[i].Name = p->name.c_str();
@@ -258,19 +253,19 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
                     switch (m_optimization_level)
                     {
-                    case HLSLCompilationOptimizationLevel::level_no:
+                    case dxcompilation::HLSLCompilationOptimizationLevel::level_no:
                         compilation_flags |= D3DCOMPILE_SKIP_OPTIMIZATION;
                         break;
-                    case HLSLCompilationOptimizationLevel::level0:
+                    case dxcompilation::HLSLCompilationOptimizationLevel::level0:
                         compilation_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
                         break;
-                    case HLSLCompilationOptimizationLevel::level1:
+                    case dxcompilation::HLSLCompilationOptimizationLevel::level1:
                         compilation_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL1;
                         break;
-                    case HLSLCompilationOptimizationLevel::level2:
+                    case dxcompilation::HLSLCompilationOptimizationLevel::level2:
                         compilation_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL2;
                         break;
-                    case HLSLCompilationOptimizationLevel::level3:
+                    case dxcompilation::HLSLCompilationOptimizationLevel::level3:
                         compilation_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
                         break;
                     }
@@ -344,7 +339,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
     }
     catch (Exception const& e)
     {
-        LEXGINE_LOG_ERROR(this, std::string{ "Lexgine has thrown exception: " } +e.what());
+        LEXGINE_LOG_ERROR(this, std::string{ "Lexgine has thrown exception: " } + e.what());
     }
     catch (...)
     {
@@ -362,3 +357,4 @@ lexgine::core::concurrency::TaskType HLSLCompilationTask::type() const
 }
 
 
+}

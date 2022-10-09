@@ -300,9 +300,12 @@ void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
 
         case QueryHeapType::timestamp:
         case QueryHeapType::copy_queue_timestamp:
-            native_command_list->ResolveQueryData(native_query_heap, D3D12_QUERY_TYPE_TIMESTAMP, 0,
-                m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][0]], current_query_resolve_buffer->native().Get(),
-                resolve_destination_base_offset);
+            if (heap_type == QueryHeapType::copy_queue_timestamp && cmd_list.commandType() == CommandType::copy || heap_type == QueryHeapType::timestamp)
+            {
+                native_command_list->ResolveQueryData(native_query_heap, D3D12_QUERY_TYPE_TIMESTAMP, 0,
+                    m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][0]], current_query_resolve_buffer->native().Get(),
+                    resolve_destination_base_offset);
+            }
             break;
 
         case QueryHeapType::pipeline_statistics:
@@ -317,7 +320,7 @@ void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
             UINT start_query_index{ 0 };
             for (int i = 0; i < 4; ++i)
             {
-                native_query_type = static_cast<D3D12_QUERY_TYPE>(native_query_type + i);
+                native_query_type = static_cast<D3D12_QUERY_TYPE>(D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0 + i);
                 UINT num_queries = static_cast<UINT>(m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][i]]);
                 native_command_list->ResolveQueryData(native_query_heap, native_query_type, start_query_index,
                     num_queries, current_query_resolve_buffer->native().Get(),

@@ -25,12 +25,12 @@ public:
     /*! Deploys new shader compilation task. The type of source is determined from parameters source and source_type.
      when source_type = file then source is interpreted as path to a file containing HLSL code to compile. If source_type = string then
      source is interpreted as a string containing HLSL source code.
-     
-     Here p_target_pso_descriptors should point to a contiguous array of either graphics or compute descriptors that will receive 
+
+     Here p_target_pso_descriptors should point to a contiguous array of either graphics or compute descriptors that will receive
      compiled shader blob. The exact type of PSO descriptor as well as its shader stage receiving the blob is determined based on
      provided value of parameter shader_type.
     */
-    HLSLCompilationTask(task_caches::CombinedCacheKey const& key, misc::DateTime const& time_stamp, 
+    HLSLCompilationTask(task_caches::CombinedCacheKey const& key, misc::DateTime const& time_stamp,
         core::Globals& globals, std::string const& hlsl_source, std::string const& source_name,
         dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
         std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions = std::list<dxcompilation::HLSLMacroDefinition>{},
@@ -90,7 +90,7 @@ private:
     dxcompilation::ShaderModel m_shader_model;
     dxcompilation::ShaderType m_shader_type;
     std::string m_shader_entry_point;
-    
+
     std::list<dxcompilation::HLSLMacroDefinition> m_preprocessor_macro_definitions;
     dxcompilation::HLSLCompilationOptimizationLevel m_optimization_level;
     bool m_is_strict_mode_enabled;
