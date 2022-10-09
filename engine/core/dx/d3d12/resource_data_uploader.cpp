@@ -72,7 +72,7 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
                 }
             }
 
-            TextureCopyLocation source_location{ m_upload_buffer_allocator.getUploadResource(), 
+            TextureCopyLocation source_location{ m_upload_buffer_allocator.getUploadResource(),
                 allocation->offset() + footprint_desc.Offset,
                 footprint_desc.Footprint.Format, footprint_desc.Footprint.Width,
                 footprint_desc.Footprint.Height, footprint_desc.Footprint.Depth,
@@ -82,7 +82,7 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
 
             m_upload_command_list.copyTextureRegion(destination_location, misc::makeEmptyOptional<math::Vector3u>(),
                 source_location, misc::makeEmptyOptional<math::Box>());
-        } 
+        }
     }
     endCopy(destination_descriptor);
 }

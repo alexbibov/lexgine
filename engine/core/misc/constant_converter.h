@@ -10,7 +10,7 @@
 #include "engine/core/depth_stencil_descriptor.h"
 #include "engine/core/primitive_topology.h"
 #include "engine/core/filter.h"
-#include "engine/core/swap_chain.h"
+#include "engine/core/swap_chain_desc.h"
 
 namespace lexgine::core::misc {
 
@@ -61,6 +61,9 @@ template<EngineApi api, StaticBorderColor border_color> struct BorderColorConver
 
 //! Converts API-agnostic definition of swap chain color format to an API-specific constant
 template<EngineApi api, SwapChainColorFormat> struct SwapChainColorFormatConverter;
+
+//! Converts API-agnostic definition of swap chain depth format to an API-specific constant
+template<EngineApi api, SwapChainDepthFormat, bool> struct SwapChainDepthFormatConverter;
 
 }
 

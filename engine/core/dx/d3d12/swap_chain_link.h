@@ -27,7 +27,7 @@ enum class SwapChainDepthBufferFormat
 };
 
 //! Implements link between swap chain and main rendering loop
-class SwapChainLink final : 
+class SwapChainLink final :
     public osinteraction::Listeners<osinteraction::windows::WindowSizeChangeListener>
 {
 public:
@@ -72,7 +72,7 @@ private:
 
     DXGI_FORMAT m_depth_buffer_native_format;
     ResourceOptimizedClearValue m_depth_optimized_clear_value;
-    
+
     std::vector<RenderingTarget> m_targets;
 
     std::function<void(RenderingTarget const&)> m_presenter;

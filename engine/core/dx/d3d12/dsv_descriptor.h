@@ -41,7 +41,7 @@ public:
         DSVTextureArrayInfo const& texture_array_info,
         DSVFlags flags = DSVFlags::none);
 
-    /*! Normally, DXGI format for the SRV descriptor is fetched from resource descriptor.
+    /*! Normally, DXGI format for the DSV descriptor is fetched from resource descriptor.
      This function can be useful if another setting for the format is preferable
     */
     void overrideFormat(DXGI_FORMAT format);

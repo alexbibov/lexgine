@@ -22,8 +22,8 @@
 #ifndef LEXGINE_CORE_DX_D3D12_GPU_BASED_VALIDATION_SETTINGS_H
 #define LEXGINE_CORE_DX_D3D12_GPU_BASED_VALIDATION_SETTINGS_H
 
-#include <api/preprocessing/preprocessor_tokens.h>
 #include <common/ioc_traits.h>
+#include <api/preprocessing/preprocessor_tokens.h>
 #include <api/ioc.h>
 #include <api/link_result.h>
 

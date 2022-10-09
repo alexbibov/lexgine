@@ -16,7 +16,6 @@ from typing import List, Optional, Tuple, Dict, Set, Iterable, Any, Union
 from enum import Enum
 from functools import reduce
 
-
 CPP_INTERFACE_LOOKUP_KEYWORD = "LEXGINE_CPP_API"
 DEPENDENCY_KEYWORD = "DEPENDS_ON"
 LUA_INTERFACE_LOOKUP_KEYWORD = "LEXGINE_LUA_API"
@@ -46,27 +45,37 @@ GENERATED_SOURCE_CODE_EXTENSIONS = [".cpp", ".c", ".hpp", ".h", ".inl"]
 
 
 class LexgineFlags:
-    _flag_entry_re = re.compile(r"FLAG\s*\(\s*(?P<flag_name>\w+)\s*,\s*(?P<flag_value>\w+)\s*\)")
+    _flag_entry_re = re.compile(
+        r"FLAG\s*\(\s*(?P<flag_name>\w+)\s*,\s*(?P<flag_value>\w+)\s*\)")
 
-    def __init__(self, source: str, declaration_begin_offset_idx: int, name: str):
+    def __init__(self, source: str, declaration_begin_offset_idx: int,
+                 name: str):
         source = source[declaration_begin_offset_idx:].lstrip(' \n\t\r')
-        _flags_declaration_begin_re = re.compile(r"BEGIN_FLAGS_DECLARATION\s*\(\s*" + name + r"\s*\)")
-        _flag_declaration_end_re = re.compile(r"END_FLAGS_DECLARATION\s*\(\s*" + name + r"\s*\)")
+        _flags_declaration_begin_re = re.compile(
+            r"BEGIN_FLAGS_DECLARATION\s*\(\s*" + name + r"\s*\)")
+        _flag_declaration_end_re = re.compile(
+            r"END_FLAGS_DECLARATION\s*\(\s*" + name + r"\s*\)")
 
         declaration_begin = _flags_declaration_begin_re.search(source)
         declaration_end = _flag_declaration_end_re.search(source)
 
         if declaration_begin is None or declaration_end is None:
-            raise RuntimeError(f"Unable to locate declaration of flags '{name}' in provided source string")
+            raise RuntimeError(
+                f"Unable to locate declaration of flags '{name}' in provided source string"
+            )
 
-        self._declaration_string = source[declaration_begin.start():declaration_end.end()]
+        self._declaration_string = source[declaration_begin.start(
+        ):declaration_end.end()]
         self._declaration_flags: Dict[str, str] = {}
         self._name = name
 
-        declaration_flag = LexgineFlags._flag_entry_re.search(self._declaration_string)
+        declaration_flag = LexgineFlags._flag_entry_re.search(
+            self._declaration_string)
         while declaration_flag is not None:
-            self._declaration_flags[declaration_flag["flag_name"]] = declaration_flag["flag_value"]
-            declaration_flag = LexgineFlags._flag_entry_re.search(self._declaration_string, declaration_flag.end())
+            self._declaration_flags[
+                declaration_flag["flag_name"]] = declaration_flag["flag_value"]
+            declaration_flag = LexgineFlags._flag_entry_re.search(
+                self._declaration_string, declaration_flag.end())
 
     @property
     def name(self) -> str:
@@ -157,7 +166,8 @@ class ExportedResourceDescriptor(RuntimeApi):
 
     def ravel(self) -> List[ExportedResourceDescriptor]:
         rv = [self]
-        queue: List[ExportedResourceDescriptor] = self.nested_resources.copy() if self.nested_resources is not None else None
+        queue: List[ExportedResourceDescriptor] = self.nested_resources.copy(
+        ) if self.nested_resources is not None else None
 
         if queue is not None:
             while len(queue) > 0:
@@ -165,7 +175,9 @@ class ExportedResourceDescriptor(RuntimeApi):
                 if next_element not in rv:
                     rv.append(next_element)
                 else:
-                    raise AssertionError("Resource descriptor nesting structure cannot have looping relations")
+                    raise AssertionError(
+                        "Resource descriptor nesting structure cannot have looping relations"
+                    )
                 queue += next_element.nested_resources if next_element.nested_resources is not None else []
 
         return rv
@@ -178,7 +190,9 @@ class ScopeType(Enum):
     ANGULAR_BRACKETS = "<>"
 
 
-class LexgineDllExportInterface(namedtuple("LexgineDllExportInterface", ["source"])):
+class LexgineDllExportInterface(
+        namedtuple("LexgineDllExportInterface", ["source"])):
+
     def write(self, path: Path, interface_name: str):
         path.mkdir(parents=True, exist_ok=True)
         if self.source is not None:
@@ -186,7 +200,9 @@ class LexgineDllExportInterface(namedtuple("LexgineDllExportInterface", ["source
                 f.write(self.source)
 
 
-class LexgineRuntimeLinkInterface(namedtuple("LexgineRuntimeLinkInterface", ["source", "header"])):
+class LexgineRuntimeLinkInterface(
+        namedtuple("LexgineRuntimeLinkInterface", ["source", "header"])):
+
     def write(self, path: Path, interface_name: str):
         path.mkdir(parents=True, exist_ok=True)
         if self.header is not None:
@@ -221,14 +237,17 @@ def signal_last(series: Iterable) -> Iterable[Tuple[bool, Any]]:
         return True, None
 
 
-def is_hpp_path_ignored(hpp_path: Path, preprocessor_ignored_hpp_paths: List[Path]):
+def is_hpp_path_ignored(hpp_path: Path,
+                        preprocessor_ignored_hpp_paths: List[Path]):
     try:
         engine_subdirectory_index = hpp_path.parts.index("engine")
     except ValueError:
         return False
 
     hpp_path_engine_relative_parts = hpp_path.parts[engine_subdirectory_index:]
-    engine_relative_hpp_path = Path(reduce(lambda x, y: f"{x}/{y}", hpp_path_engine_relative_parts[1:], hpp_path_engine_relative_parts[0]))
+    engine_relative_hpp_path = Path(
+        reduce(lambda x, y: f"{x}/{y}", hpp_path_engine_relative_parts[1:],
+               hpp_path_engine_relative_parts[0]))
 
     if engine_relative_hpp_path in preprocessor_ignored_hpp_paths:
         return True
@@ -251,14 +270,18 @@ def is_hpp_path_ignored(hpp_path: Path, preprocessor_ignored_hpp_paths: List[Pat
 
 
 def locate_closing_token(source: str, opening_token_offset: int) -> int:
-    supported_opening_tokens = reduce(lambda x, y: x + y, [str(s.value[0]) for s in ScopeType], '')
-    closing_tokens = reduce(lambda x, y: x + y, [str(s.value[1]) for s in ScopeType], '')
+    supported_opening_tokens = reduce(lambda x, y: x + y,
+                                      [str(s.value[0]) for s in ScopeType], '')
+    closing_tokens = reduce(lambda x, y: x + y,
+                            [str(s.value[1]) for s in ScopeType], '')
 
     if source[opening_token_offset] not in supported_opening_tokens:
-        ValueError(f"'{source[opening_token_offset]}' is not supported opening token")
+        ValueError(
+            f"'{source[opening_token_offset]}' is not supported opening token")
 
     opening_token = source[opening_token_offset]
-    closing_token = closing_tokens[supported_opening_tokens.find(opening_token)]
+    closing_token = closing_tokens[supported_opening_tokens.find(
+        opening_token)]
     counter = 1
     i: int = 0
     for i in range(opening_token_offset + 1, len(source)):
@@ -271,7 +294,8 @@ def locate_closing_token(source: str, opening_token_offset: int) -> int:
     return i
 
 
-def extract_scope(source: str, offset: int, scope_type: ScopeType) -> Tuple[int, int]:
+def extract_scope(source: str, offset: int,
+                  scope_type: ScopeType) -> Tuple[int, int]:
     opening_brace_idx = source.find(scope_type.value[0], offset)
     return opening_brace_idx, locate_closing_token(source, opening_brace_idx)
 
@@ -293,14 +317,16 @@ def is_subname(name_token1: str, name_token2: str) -> bool:
 
 
 def count_lines_till_index(source: str, offset: int, index: int) -> int:
-    return len(source[offset:index+1].splitlines())
+    return len(source[offset:index + 1].splitlines())
 
 
 def get_line_offset(source: str, zero_based_line_number: int) -> int:
-    return functools.reduce(lambda x, y: x + len(y) + 1, source.splitlines()[:zero_based_line_number], 0)
+    return functools.reduce(lambda x, y: x + len(y) + 1,
+                            source.splitlines()[:zero_based_line_number], 0)
 
 
-def search_for_lexgine_namespace(source: str, offset: int) -> Optional[LexgineNamespace]:
+def search_for_lexgine_namespace(source: str,
+                                 offset: int) -> Optional[LexgineNamespace]:
     search_offset = offset
     lexgine_namespace_start_idx = -1
     while lexgine_namespace_start_idx == -1 and search_offset < len(source):
@@ -317,15 +343,21 @@ def search_for_lexgine_namespace(source: str, offset: int) -> Optional[LexgineNa
     if lexgine_namespace_start_idx == -1:
         return None
     else:
-        lexgine_namespace_begin_idx, lexgine_namespace_end_idx = extract_scope(source, lexgine_namespace_start_idx, ScopeType.BRACES)
-        lexgine_namespace_definition_token = source[lexgine_namespace_start_idx:lexgine_namespace_begin_idx].strip()
+        lexgine_namespace_begin_idx, lexgine_namespace_end_idx = extract_scope(
+            source, lexgine_namespace_start_idx, ScopeType.BRACES)
+        lexgine_namespace_definition_token = source[
+            lexgine_namespace_start_idx:lexgine_namespace_begin_idx].strip()
 
-        lexgine_namespace_begin_line = count_lines_till_index(source, 0, lexgine_namespace_begin_idx)
-        lexgine_namespace_end_line = count_lines_till_index(source, 0, lexgine_namespace_end_idx)
+        lexgine_namespace_begin_line = count_lines_till_index(
+            source, 0, lexgine_namespace_begin_idx)
+        lexgine_namespace_end_line = count_lines_till_index(
+            source, 0, lexgine_namespace_end_idx)
 
         return LexgineNamespace(lexgine_namespace_definition_token,
-                                lexgine_namespace_begin_line, lexgine_namespace_end_line,
-                                lexgine_namespace_begin_idx, lexgine_namespace_end_idx)
+                                lexgine_namespace_begin_line,
+                                lexgine_namespace_end_line,
+                                lexgine_namespace_begin_idx,
+                                lexgine_namespace_end_idx)
 
 
 def get_lexgine_namespaces(source: str) -> List[LexgineNamespace]:
@@ -333,34 +365,51 @@ def get_lexgine_namespaces(source: str) -> List[LexgineNamespace]:
     new_lexgine_namespace = search_for_lexgine_namespace(source, 0)
     while new_lexgine_namespace is not None:
         rv.append(new_lexgine_namespace)
-        new_lexgine_namespace = search_for_lexgine_namespace(source, new_lexgine_namespace.end_index + 1)
+        new_lexgine_namespace = search_for_lexgine_namespace(
+            source, new_lexgine_namespace.end_index + 1)
     return rv
 
 
-def get_lexgine_namespace_for_location(lexgine_namespaces: List[LexgineNamespace], line: int) -> Optional[LexgineNamespace]:
+def get_lexgine_namespace_for_location(
+        lexgine_namespaces: List[LexgineNamespace],
+        line: int) -> Optional[LexgineNamespace]:
     for namespace in lexgine_namespaces:
         if namespace.begin_line_number <= line <= namespace.end_line_number:
             return namespace
     return None
 
 
-def find_first_of(source: str, chars: str, start: Optional[int] = None, end: Optional[int] = None) -> int:
-    return min([e for e in [source.find(c, start, end) for c in chars] if e != -1])
+def find_first_of(source: str,
+                  chars: str,
+                  start: Optional[int] = None,
+                  end: Optional[int] = None) -> int:
+    return min(
+        [e for e in [source.find(c, start, end) for c in chars] if e != -1])
 
 
-def list_raw_lexgine_export_references(source: str, lexgine_namespaces: List[LexgineNamespace]) -> Tuple[Set[LexgineTypeReference], str]:
-    token_function_re = re.compile(r"[\w\d\s:&*_<>]+\s+(?P<function_name>\w+)\s*\([\w\d\s&:*_,<>]*\)", flags=re.MULTILINE)
-    token_flags_re = re.compile(r"BEGIN_FLAGS_DECLARATION\s*\(\s*(?P<flags_name>\w+)\s*\)", flags=re.MULTILINE)
+def list_raw_lexgine_export_references(
+    source: str, lexgine_namespaces: List[LexgineNamespace]
+) -> Tuple[Set[LexgineTypeReference], str]:
+    token_function_re = re.compile(
+        r"[\w\d\s:&*_<>]+\s+(?P<function_name>\w+)\s*\([\w\d\s&:*_,<>]*\)",
+        flags=re.MULTILINE)
+    token_flags_re = re.compile(
+        r"BEGIN_FLAGS_DECLARATION\s*\(\s*(?P<flags_name>\w+)\s*\)",
+        flags=re.MULTILINE)
 
-    supported_token_definition_strings = [str(s.value) for s in TokenType if isinstance(s.value, str)]
+    supported_token_definition_strings = [
+        str(s.value) for s in TokenType if isinstance(s.value, str)
+    ]
     rv = set()
 
     offset = 0
     idx = source.find(CPP_INTERFACE_LOOKUP_KEYWORD, offset)
 
     while idx > 0:
-        export_reference_definition_line_idx = count_lines_till_index(source, 0, idx) - 1
-        type_definition_line_offset = get_line_offset(source, export_reference_definition_line_idx)
+        export_reference_definition_line_idx = count_lines_till_index(
+            source, 0, idx) - 1
+        type_definition_line_offset = get_line_offset(
+            source, export_reference_definition_line_idx)
 
         token_type = TokenType.UNKNOWN
         for token_string in supported_token_definition_strings:
@@ -368,17 +417,25 @@ def list_raw_lexgine_export_references(source: str, lexgine_namespaces: List[Lex
                 token_type = TokenType(token_string)
                 break
 
-        exported_type_definition_begin_offset = idx + len(CPP_INTERFACE_LOOKUP_KEYWORD)
-        stripped_source = source[exported_type_definition_begin_offset:].lstrip(' \t\r\n')
+        exported_type_definition_begin_offset = idx + len(
+            CPP_INTERFACE_LOOKUP_KEYWORD)
+        stripped_source = source[
+            exported_type_definition_begin_offset:].lstrip(' \t\r\n')
 
         dependency_list_offset = stripped_source.find(DEPENDENCY_KEYWORD, 0)
         dependency_list_token_length = 0
         dependency_list = ()
         if dependency_list_offset == 0:
-            dependency_list_begin, dependency_list_end = extract_scope(stripped_source, dependency_list_offset, ScopeType.PARENTHESES)
+            dependency_list_begin, dependency_list_end = extract_scope(
+                stripped_source, dependency_list_offset, ScopeType.PARENTHESES)
             dependency_list_token_length = dependency_list_end - dependency_list_offset + 1
-            dependency_list = tuple([e.strip() for e in stripped_source[dependency_list_begin + 1:dependency_list_end].split(sep=',')])
-            stripped_source = stripped_source[dependency_list_token_length:].lstrip(' \t\r\n')
+            dependency_list = tuple([
+                e.strip()
+                for e in stripped_source[dependency_list_begin +
+                                         1:dependency_list_end].split(sep=',')
+            ])
+            stripped_source = stripped_source[
+                dependency_list_token_length:].lstrip(' \t\r\n')
 
         if token_type != TokenType.UNKNOWN:
             token_name = stripped_source
@@ -396,17 +453,28 @@ def list_raw_lexgine_export_references(source: str, lexgine_namespaces: List[Lex
                     token_type = token_type.FLAGS
 
         if token_type == TokenType.UNKNOWN:
-            raise AssertionError(f'Unable to determine type of the token at line {export_reference_definition_line_idx + 1}, '
-                                 f'"{source[idx:idx + 100]}"...')
+            raise AssertionError(
+                f'Unable to determine type of the token at line {export_reference_definition_line_idx + 1}, '
+                f'"{source[idx:idx + 100]}"...')
 
-        parent_namespace = get_lexgine_namespace_for_location(lexgine_namespaces, export_reference_definition_line_idx)
+        parent_namespace = get_lexgine_namespace_for_location(
+            lexgine_namespaces, export_reference_definition_line_idx)
         if parent_namespace is not None:
-            rv.add(LexgineTypeReference(name=token_name, line=export_reference_definition_line_idx + 1,
-                                        token_type=token_type, parent_namespace=parent_namespace, dependency_list=dependency_list))
+            rv.add(
+                LexgineTypeReference(
+                    name=token_name,
+                    line=export_reference_definition_line_idx + 1,
+                    token_type=token_type,
+                    parent_namespace=parent_namespace,
+                    dependency_list=dependency_list))
         else:
-            print(f"Found Lexgine type export {token_name} outside of any Lexgine namespace. This type export will be ignored.")
+            print(
+                f"Found Lexgine type export {token_name} outside of any Lexgine namespace. This type export will be ignored."
+            )
 
-        source = source[:idx] + source[idx + len(CPP_INTERFACE_LOOKUP_KEYWORD) + dependency_list_token_length + 1:]
+        source = source[:idx] + source[idx +
+                                       len(CPP_INTERFACE_LOOKUP_KEYWORD) +
+                                       dependency_list_token_length + 1:]
 
         offset = idx
         idx = source.find(CPP_INTERFACE_LOOKUP_KEYWORD, offset)
@@ -447,7 +515,8 @@ def is_header_file(file: Path) -> bool:
     return file.suffix in (".hpp", ".h", ".inl")
 
 
-def extract_header_relative_path(supplied_include_path: Path, engine_path: Path) -> Optional[Path]:
+def extract_header_relative_path(supplied_include_path: Path,
+                                 engine_path: Path) -> Optional[Path]:
     return supplied_include_path.relative_to(engine_path)
 
 
@@ -456,7 +525,8 @@ def create_api_path(source_path: Path) -> Optional[Path]:
     try:
         path_parts = path_parts[path_parts.index("engine"):]
         path_parts[0] = "api"
-        fixed_path = reduce(lambda x, y: x + "/" + y, path_parts[1:], path_parts[0])
+        fixed_path = reduce(lambda x, y: x + "/" + y, path_parts[1:],
+                            path_parts[0])
         fixed_path = Path(fixed_path)
         return fixed_path
     except ValueError:
@@ -472,7 +542,8 @@ def convert_engine_path_to_api_path(source_path: Path) -> Optional[Path]:
     if is_engine_path(source_path):
         path_parts = list(source_path.parts)
         path_parts[0] = "api"
-        converted_path = reduce(lambda x, y: f"{x}/{y}", path_parts[1:], path_parts[0])
+        converted_path = reduce(lambda x, y: f"{x}/{y}", path_parts[1:],
+                                path_parts[0])
         return Path(converted_path)
     return None
 
@@ -499,94 +570,138 @@ def convert_snake_case_to_camel_case(token: str) -> str:
     return rv
 
 
-def fetch_parsed_class(class_ref: LexgineTypeReference, parsed_classes: Dict[str, CppClass]) -> Optional[CppClass]:
-    if class_ref.name not in parsed_classes or class_ref.line != parsed_classes[class_ref.name]["line_number"]:
+def fetch_parsed_class(
+        class_ref: LexgineTypeReference,
+        parsed_classes: Dict[str, CppClass]) -> Optional[CppClass]:
+    if class_ref.name not in parsed_classes or class_ref.line != parsed_classes[
+            class_ref.name]["line_number"]:
         return None
     return parsed_classes[class_ref.name]
 
 
-def fetch_parsed_enum_or_union(export_billet: PreprocessorHeaderBillet, type_ref: LexgineTypeReference, parsed_types: List[CppEnum],
-                               parsed_unions: Dict[str, CppUnion]) -> Union[CppEnum, CppUnion]:
+def fetch_parsed_enum_or_union(
+        export_billet: PreprocessorHeaderBillet,
+        type_ref: LexgineTypeReference, parsed_types: List[CppEnum],
+        parsed_unions: Dict[str, CppUnion]) -> Union[CppEnum, CppUnion]:
     for e in parsed_types:
         if e["name"] == type_ref.name and e["line_number"] == type_ref.line:
             return e
     for k, v in parsed_unions.items():
-        if (k == type_ref.name or v["name"] == type_ref.name) and v["line_number"] == type_ref.line:
+        if (k == type_ref.name or v["name"]
+                == type_ref.name) and v["line_number"] == type_ref.line:
             return v
-    raise AssertionError(f'Unable to locate declaration for export reference "{type_ref.token_type} {type_ref.name}" in '
-                         f'header "{export_billet.exporting_header_path}"')
+    raise AssertionError(
+        f'Unable to locate declaration for export reference "{type_ref.token_type} {type_ref.name}" in '
+        f'header "{export_billet.exporting_header_path}"')
 
 
-def is_ioc_class(cpp_class: CppClass, exported_methods: List[CppMethod]) -> bool:
+def is_ioc_class(cpp_class: CppClass,
+                 exported_methods: List[CppMethod]) -> bool:
     if len(exported_methods) > 0 or len(cpp_class["inherits"]) > 0 or len(cpp_class["properties"]["private"]) > 0 \
        or len(cpp_class["properties"]["protected"]) > 0:
         return True
 
     class_methods = cpp_class["methods"]
-    for m in class_methods["public"] + class_methods["protected"] + class_methods["private"]:
-        if m["final"] or m["override"] or m["virtual"] or m["pure_virtual"] or (m["constructor"] and m["name"] == cpp_class["name"]):
+    for m in class_methods["public"] + class_methods[
+            "protected"] + class_methods["private"]:
+        if m["final"] or m["override"] or m["virtual"] or m[
+                "pure_virtual"] or (m["constructor"]
+                                    and m["name"] == cpp_class["name"]):
             return True
 
     return False
 
 
-def map_inherited_type(type: str, replaced_types_dictionary: dict) -> Optional[str]:
+def map_inherited_type(type: str,
+                       replaced_types_dictionary: dict) -> Optional[str]:
     for k in replaced_types_dictionary:
         if is_subname(type, k):
             return replaced_types_dictionary[k]
     return None
 
 
-def fetch_list_of_exported_methods_for_class(export_billet: PreprocessorHeaderBillet, parsed_class: CppClass) -> List[CppMethod]:
+def fetch_list_of_exported_methods_for_class(
+        export_billet: PreprocessorHeaderBillet,
+        parsed_class: CppClass) -> List[CppMethod]:
     rv = []
-    parsed_public_methods_in_class = {e["line_number"]: idx for idx, e in enumerate(parsed_class["methods"]["public"])}
+    parsed_public_methods_in_class = {
+        e["line_number"]: idx
+        for idx, e in enumerate(parsed_class["methods"]["public"])
+    }
     discovered_functions = []
     for export_ref in export_billet.exported_types_set:
-        if export_ref.token_type == TokenType.FUNCTION and export_ref.line in parsed_public_methods_in_class.keys():
-            rv.append(parsed_class["methods"]["public"][parsed_public_methods_in_class[export_ref.line]])
+        if export_ref.token_type == TokenType.FUNCTION and export_ref.line in parsed_public_methods_in_class.keys(
+        ):
+            rv.append(parsed_class["methods"]["public"][
+                parsed_public_methods_in_class[export_ref.line]])
             discovered_functions.append(export_ref)
     export_billet.exported_types_set.difference_update(discovered_functions)
     return rv
 
 
-def fetch_list_of_exported_flags_for_class(source: str, export_billet: PreprocessorHeaderBillet, parsed_class: CppClass) -> List[LexgineFlags]:
+def fetch_list_of_exported_flags_for_class(
+        source: str, export_billet: PreprocessorHeaderBillet,
+        parsed_class: CppClass) -> List[LexgineFlags]:
     rv = []
-    public_flag_declarations_found_in_class = [e["line_number"] for e in parsed_class["methods"]["public"] if e["name"] == "BEGIN_FLAGS_DECLARATION"
-                                               and e["constructor"] is True]
+    public_flag_declarations_found_in_class = [
+        e["line_number"] for e in parsed_class["methods"]["public"]
+        if e["name"] == "BEGIN_FLAGS_DECLARATION" and e["constructor"] is True
+    ]
     discovered_flag_declarations = []
     for export_ref in export_billet.exported_types_set:
         if export_ref.token_type == TokenType.FLAGS and export_ref.line in public_flag_declarations_found_in_class:
-            rv.append(LexgineFlags(source, get_line_offset(source, export_ref.line - 1), export_ref.name))
+            rv.append(
+                LexgineFlags(source,
+                             get_line_offset(source, export_ref.line - 1),
+                             export_ref.name))
             discovered_flag_declarations.append(export_ref)
-    export_billet.exported_types_set.difference_update(discovered_flag_declarations)
+    export_billet.exported_types_set.difference_update(
+        discovered_flag_declarations)
     return rv
 
 
-def fetch_list_of_exported_enums_in_class(export_billet: PreprocessorHeaderBillet, parsed_class: CppClass) -> List[CppEnum]:
+def fetch_list_of_exported_enums_in_class(
+        export_billet: PreprocessorHeaderBillet,
+        parsed_class: CppClass) -> List[CppEnum]:
     rv: List[CppEnum] = []
     public_enums = parsed_class["enums"]["public"]
-    public_enums_decl_line_idx_map = {e["line_number"]: idx for idx, e in enumerate(public_enums)}
+    public_enums_decl_line_idx_map = {
+        e["line_number"]: idx
+        for idx, e in enumerate(public_enums)
+    }
     discovered_enum_declarations = []
     for export_ref in export_billet.exported_types_set:
         if export_ref.token_type == TokenType.ENUM and export_ref.line in public_enums_decl_line_idx_map \
                 and export_ref.name == public_enums[public_enums_decl_line_idx_map[export_ref.line]]["name"]:
-            rv.append(public_enums[public_enums_decl_line_idx_map[export_ref.line]])
+            rv.append(
+                public_enums[public_enums_decl_line_idx_map[export_ref.line]])
             discovered_enum_declarations.append(export_ref)
-    export_billet.exported_types_set.difference_update(discovered_enum_declarations)
+    export_billet.exported_types_set.difference_update(
+        discovered_enum_declarations)
     return rv
 
 
-def fetch_list_of_exported_unions_in_class(export_billet: PreprocessorHeaderBillet, parsed_class: CppClass) -> List[CppUnion]:
+def fetch_list_of_exported_unions_in_class(
+        export_billet: PreprocessorHeaderBillet,
+        parsed_class: CppClass) -> List[CppUnion]:
     rv: List[CppUnion] = []
-    public_unions = [e for e in parsed_class["nested_classes"] if e["access_in_parent"] == "public"]
-    public_unions_decl_line_idx_map = {e["line_number"]: idx for idx, e in enumerate(public_unions)}
+    public_unions = [
+        e for e in parsed_class["nested_classes"]
+        if e["access_in_parent"] == "public"
+    ]
+    public_unions_decl_line_idx_map = {
+        e["line_number"]: idx
+        for idx, e in enumerate(public_unions)
+    }
     discovered_union_declarations = []
     for export_ref in export_billet.exported_types_set:
         if export_ref.token_type == TokenType.UNION and export_ref.line in public_unions_decl_line_idx_map \
                 and export_ref.name == public_unions[public_unions_decl_line_idx_map[export_ref.line]]["name"]:
-            rv.append(public_unions[public_unions_decl_line_idx_map[export_ref.line]])
+            rv.append(public_unions[public_unions_decl_line_idx_map[
+                export_ref.line]])
             discovered_union_declarations.append(export_ref)
-    export_billet.exported_types_set.difference_update(discovered_union_declarations)
+    export_billet.exported_types_set.difference_update(
+        discovered_union_declarations)
     return rv
 
 
@@ -628,24 +743,34 @@ def is_pointer_to_function_type(type_desc: str) -> bool:
     all_tokens = [e for e in all_tokens if len(e) > 0]
     if len(all_tokens) != 3 and len(all_tokens) != 4:
         return False
-    if len(all_tokens) == 4 and all_tokens[-1] != "const" and all_tokens[-1] != "volatile":
+    if len(all_tokens) == 4 and all_tokens[-1] != "const" and all_tokens[
+            -1] != "volatile":
         return False
 
-    type_ref_prefix_modifier_re = re.compile(r"((const|volatile)\s*)?[\w\d_:<>]+\s*(&+|\*+)?")
-    type_ref_suffix_modifier_re = re.compile(r"[\w\d_:<>]+(\s*(const|volatile))?\s*(&+|\*+)?")
-    if type_ref_prefix_modifier_re.fullmatch(all_tokens[0]) is None and type_ref_suffix_modifier_re.fullmatch(all_tokens[0]) is None:
+    type_ref_prefix_modifier_re = re.compile(
+        r"((const|volatile)\s*)?[\w\d_:<>]+\s*(&+|\*+)?")
+    type_ref_suffix_modifier_re = re.compile(
+        r"[\w\d_:<>]+(\s*(const|volatile))?\s*(&+|\*+)?")
+    if type_ref_prefix_modifier_re.fullmatch(
+            all_tokens[0]) is None and type_ref_suffix_modifier_re.fullmatch(
+                all_tokens[0]) is None:
         return False
 
-    function_pointer_calling_convention_re = re.compile(r"[\w\d_:<>]*\s*\*\s*([\w\d_]+)?")
+    function_pointer_calling_convention_re = re.compile(
+        r"[\w\d_:<>]*\s*\*\s*([\w\d_]+)?")
     if function_pointer_calling_convention_re.fullmatch(all_tokens[1]) is None:
         return False
 
     function_arguments_list = all_tokens[2].split(sep=',')
-    function_arguments_list = [e.strip(" \t\r\n") for e in function_arguments_list]
+    function_arguments_list = [
+        e.strip(" \t\r\n") for e in function_arguments_list
+    ]
     function_argument_name_re = re.compile(r"[\w\d_]+")
     for a in function_arguments_list:
         t = a
-        if type_ref_prefix_modifier_re.fullmatch(t) is None and type_ref_suffix_modifier_re.fullmatch(t) is None:
+        if type_ref_prefix_modifier_re.fullmatch(
+                t) is None and type_ref_suffix_modifier_re.fullmatch(
+                    t) is None:
             # t is not a type, it can be a type + name token
             for idx, s in enumerate(reversed(a)):
                 if s == ' ':
@@ -661,16 +786,32 @@ def is_pointer_to_function_type(type_desc: str) -> bool:
 
 
 def is_primitive_type(type_desc: str) -> bool:
-    character_types = ["char", "wchar_t", "char8_t", "char16_t", "char32_t", "signed char", "unsigned char"]
-    integral_types = ["short", "short int", "signed short", "signed short int", "unsigned short", "unsigned short int", "int", "signed", "signed int",
-                      "unsigned", "unsigned int", "long", "long int", "signed long", "signed long int", "unsigned long", "unsigned long int",
-                      "long long", "long long int", "signed long long", "signed long long int", "unsigned long long", "unsigned long long int"]
+    character_types = [
+        "char", "wchar_t", "char8_t", "char16_t", "char32_t", "signed char",
+        "unsigned char"
+    ]
+    integral_types = [
+        "short", "short int", "signed short", "signed short int",
+        "unsigned short", "unsigned short int", "int", "signed", "signed int",
+        "unsigned", "unsigned int", "long", "long int", "signed long",
+        "signed long int", "unsigned long", "unsigned long int", "long long",
+        "long long int", "signed long long", "signed long long int",
+        "unsigned long long", "unsigned long long int"
+    ]
     floating_point_types = ["float", "double", "long double"]
-    sized_types = ["int8_t", "int16_t", "int32_t", "int64_t", "int_fast8_t", "int_fast16_t", "int_fast32_t", "int_fast64_t", "int_least8_t", "int_least16_t",
-                   "int_least32_t", "int_least64_t", "intmax_t", "intptr_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t", "uint_fast8_t", "uint_fast16_t",
-                   "uint_fast32_t", "uint_fast64_t", "uint_least8_t", "uint_least16_t", "uint_least32_t", "uint_least64_t", "uintmax_t", "uintptr_t", "size_t"]
+    sized_types = [
+        "int8_t", "int16_t", "int32_t", "int64_t", "int_fast8_t",
+        "int_fast16_t", "int_fast32_t", "int_fast64_t", "int_least8_t",
+        "int_least16_t", "int_least32_t", "int_least64_t", "intmax_t",
+        "intptr_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t",
+        "uint_fast8_t", "uint_fast16_t", "uint_fast32_t", "uint_fast64_t",
+        "uint_least8_t", "uint_least16_t", "uint_least32_t", "uint_least64_t",
+        "uintmax_t", "uintptr_t", "size_t"
+    ]
     sized_types += [f"std::{e}" for e in sized_types]
-    fundamental_types = ["void", "bool"] + character_types + integral_types + floating_point_types + sized_types
+    fundamental_types = [
+        "void", "bool"
+    ] + character_types + integral_types + floating_point_types + sized_types
     return type_desc in fundamental_types
 
 
@@ -681,7 +822,8 @@ def is_raw_pointer_to_ioc(type_desc: str, list_of_ioc_interfaces: List[ExportedR
         return False, None
     type_desc = type_desc[:idx].replace(' ', '')
 
-    if is_primitive_type(type_desc) or is_pointer_type(type_desc) or is_reference_type(type_desc):
+    if is_primitive_type(type_desc) or is_pointer_type(
+            type_desc) or is_reference_type(type_desc):
         return False, None
 
     return is_ioc_type_desc(list_of_ioc_interfaces, namespace, type_desc)
@@ -690,7 +832,8 @@ def is_raw_pointer_to_ioc(type_desc: str, list_of_ioc_interfaces: List[ExportedR
 def is_unique_pointer_to_ioc(type_desc: str, list_of_ioc_interfaces: List[ExportedResourceDescriptor], namespace: LexgineNamespace) \
         -> Tuple[bool, Optional[ExportedResourceDescriptor]]:
     type_desc = type_desc.replace(' ', '')
-    shared_ptr_re = re.compile(r"(std::)?unique_ptr<(?P<shared_ptr_type_desc>.+)>")
+    shared_ptr_re = re.compile(
+        r"(std::)?unique_ptr<(?P<shared_ptr_type_desc>.+)>")
 
     m = shared_ptr_re.match(type_desc)
     if m is None:
@@ -699,22 +842,31 @@ def is_unique_pointer_to_ioc(type_desc: str, list_of_ioc_interfaces: List[Export
     return is_ioc_type_desc(list_of_ioc_interfaces, namespace, type_desc)
 
 
-def get_namespace_and_type_name_from_type_desc(type_desc: str) -> Tuple[str, str]:
+def get_namespace_and_type_name_from_type_desc(
+        type_desc: str) -> Tuple[str, str]:
     idx = type_desc.rfind("::")
     type_namespace = type_desc[:idx] if idx >= 0 else ""
-    type_class_name_and_modifiers = type_desc[idx+2:] if idx >= 0 else type_desc
+    type_class_name_and_modifiers = type_desc[idx +
+                                              2:] if idx >= 0 else type_desc
 
     idx = type_desc.find(" ")
     type_class_name = type_class_name_and_modifiers[:idx] if idx >= 0 else type_class_name_and_modifiers
     return type_namespace, type_class_name
 
 
-def get_context_nested_namespace_variations_for_type_desc(context_namespace: LexgineNamespace, type_desc: str) -> Tuple[List[str], str]:
-    type_namespace, type_name = get_namespace_and_type_name_from_type_desc(type_desc)
+def get_context_nested_namespace_variations_for_type_desc(
+        context_namespace: LexgineNamespace,
+        type_desc: str) -> Tuple[List[str], str]:
+    type_namespace, type_name = get_namespace_and_type_name_from_type_desc(
+        type_desc)
     context_namespace_nested_tokens = context_namespace.definition.split("::")
-    lookup_prefixes = reduce(lambda x, y: x + [f"{x[-1]}::{y}"], context_namespace_nested_tokens[1:], [context_namespace_nested_tokens[0]])
+    lookup_prefixes = reduce(lambda x, y: x + [f"{x[-1]}::{y}"],
+                             context_namespace_nested_tokens[1:],
+                             [context_namespace_nested_tokens[0]])
     if len(type_namespace) > 0:
-        lookup_namespaces = [type_namespace] + [f"{e}::{type_namespace}" for e in lookup_prefixes]
+        lookup_namespaces = [type_namespace] + [
+            f"{e}::{type_namespace}" for e in lookup_prefixes
+        ]
     else:
         lookup_namespaces = lookup_prefixes
     return lookup_namespaces, type_name
@@ -722,14 +874,18 @@ def get_context_nested_namespace_variations_for_type_desc(context_namespace: Lex
 
 def is_ioc_type_desc(list_of_ioc_interfaces: List[ExportedResourceDescriptor], context_namespace: LexgineNamespace, type_desc: str) \
         -> Tuple[bool, Optional[ExportedResourceDescriptor]]:
-    lookup_namespaces, type_name = get_context_nested_namespace_variations_for_type_desc(context_namespace, type_desc)
+    lookup_namespaces, type_name = get_context_nested_namespace_variations_for_type_desc(
+        context_namespace, type_desc)
     qualifying_interfaces = []
     for e in list_of_ioc_interfaces:
-        if e.parsed_class["name"] == type_name and e.parent_namespace.definition in lookup_namespaces:
+        if e.parsed_class[
+                "name"] == type_name and e.parent_namespace.definition in lookup_namespaces:
             qualifying_interfaces.append(e)
 
     if len(qualifying_interfaces) > 1:
-        print(f"WARNING: type look-up for type {type_name} resolves to more than single namespace. Is there a naming collision?")
+        print(
+            f"WARNING: type look-up for type {type_name} resolves to more than single namespace. Is there a naming collision?"
+        )
         return True, qualifying_interfaces[0]
     elif len(qualifying_interfaces) == 0:
         return False, None
@@ -738,45 +894,67 @@ def is_ioc_type_desc(list_of_ioc_interfaces: List[ExportedResourceDescriptor], c
 
 
 def get_full_qualified_name(namespace_desc: str, type_desc: str) -> str:
-    return f"{namespace_desc}::{type_desc}" if len(namespace_desc) > 0 else type_desc
+    return f"{namespace_desc}::{type_desc}" if len(
+        namespace_desc) > 0 else type_desc
 
 
-def get_compatible_type_desc_for_output_parameter(type_desc: str, is_ioc_type: bool) -> str:
-    assert is_primitive_type(type_desc) is False and is_pointer_type(type_desc) is False and is_reference_type(type_desc) is False
+def get_compatible_type_desc_for_output_parameter(type_desc: str,
+                                                  is_ioc_type: bool) -> str:
+    assert is_primitive_type(type_desc) is False and is_pointer_type(
+        type_desc) is False and is_reference_type(type_desc) is False
     const = is_const(type_desc)
     volatile = is_volatile(type_desc)
-    type_namespace, type_name = get_namespace_and_type_name_from_type_desc(type_desc)
+    type_namespace, type_name = get_namespace_and_type_name_from_type_desc(
+        type_desc)
     if is_ioc_type is True:
         return f"{get_full_qualified_name(type_namespace, type_name)}{' const' if const is True else ''}{' volatile' if volatile is True else ''}*"
     else:
         return f"{get_full_qualified_name(type_namespace, type_name)}{' const' if const is True else ''}{' volatile' if volatile is True else ''}&"
 
 
-def replace_fp_type_with_using_directive(type_desc: str, parent_class: CppClass, function: Optional[CppMethod], using_directives: dict, using_dependency_list: set) -> str:
+def replace_fp_type_with_using_directive(type_desc: str,
+                                         parent_class: CppClass,
+                                         function: Optional[CppMethod],
+                                         using_directives: dict,
+                                         using_dependency_list: set) -> str:
     if is_pointer_to_function_type(type_desc):
         if type_desc in using_directives:
             using_dependency_list.add((using_directives[type_desc], type_desc))
             return using_directives[type_desc]
         else:
-            raise AssertionError(f"Parameter type '{type_desc}' in declaration of function {parent_class['name']}::"
-                                 f"{function['name'] if function is not None else parent_class['name']} is not aliased by a using directive within the enclosing class. Function "
-                                 f"pointer types used within the list of arguments in an exported function must be always aliased.")
+            raise AssertionError(
+                f"Parameter type '{type_desc}' in declaration of function {parent_class['name']}::"
+                f"{function['name'] if function is not None else parent_class['name']} is not aliased by a using directive within the enclosing class. Function "
+                f"pointer types used within the list of arguments in an exported function must be always aliased."
+            )
     else:
         return type_desc
 
 
-def get_mangled_function_name(namespace: LexgineNamespace, parent_class: CppClass, using_directives: dict, using_dependency_list: set,
-                              function: Optional[CppMethod], kind: FunctionKind = FunctionKind.DEFAULT) -> str:
+def get_mangled_function_name(
+        namespace: LexgineNamespace,
+        parent_class: CppClass,
+        using_directives: dict,
+        using_dependency_list: set,
+        function: Optional[CppMethod],
+        kind: FunctionKind = FunctionKind.DEFAULT) -> str:
+
     def process_namespace_definition(namespace_definition: str) -> str:
         namespace_definition_parts = namespace_definition.split(sep='::')
-        return reduce(lambda x, y: x + y[0].upper() + y[1:], namespace_definition_parts[1:], namespace_definition_parts[0])
+        return reduce(lambda x, y: x + y[0].upper() + y[1:],
+                      namespace_definition_parts[1:],
+                      namespace_definition_parts[0])
 
     def process_type(type_token: str) -> str:
-        type_token = replace_fp_type_with_using_directive(type_token, parent_class, function, using_directives, using_dependency_list)
-        rv = (type_token.replace(" ", "").replace('&', '_LVALREF_').replace('&&', '_RVALREF_').replace('*', "_PTR_")
-              .replace('const', '_CONST_').replace('volatile', '_VOLATILE_'))
+        type_token = replace_fp_type_with_using_directive(
+            type_token, parent_class, function, using_directives,
+            using_dependency_list)
+        rv = (type_token.replace(" ", "").replace('&', '_LVALREF_').replace(
+            '&&', '_RVALREF_').replace('*', "_PTR_").replace(
+                'const', '_CONST_').replace('volatile', '_VOLATILE_'))
         rv = process_namespace_definition(rv)
-        rv = rv.replace('<', "_TMPLB_").replace('>', "_TMPLE_").replace('__', '_')
+        rv = rv.replace('<', "_TMPLB_").replace('>',
+                                                "_TMPLE_").replace('__', '_')
         return rv
 
     namespace_token_part = process_namespace_definition(namespace.definition)
@@ -785,14 +963,18 @@ def get_mangled_function_name(namespace: LexgineNamespace, parent_class: CppClas
 
     if function is not None and kind == FunctionKind.DEFAULT:
         rtn_type = function["rtnType"]
-        if is_primitive_type(rtn_type) is False and is_pointer_type(rtn_type) is False and is_reference_type(rtn_type) is False:
+        if is_primitive_type(rtn_type) is False and is_pointer_type(
+                rtn_type) is False and is_reference_type(rtn_type) is False:
             return_type_part = f"_RTNTYPE_{process_type(rtn_type)}_LVALREF_"
 
     method_token_part = ""
     parameters_token_part = ""
-    if (kind == FunctionKind.DEFAULT or kind == FunctionKind.CONSTRUCTOR) and function is not None:
+    if (kind == FunctionKind.DEFAULT
+            or kind == FunctionKind.CONSTRUCTOR) and function is not None:
         method_token_part = function["name"]
-        parameters_token_part = reduce(lambda x, y: x + f"YY{process_type(y['type'])}", function["parameters"], "")
+        parameters_token_part = reduce(
+            lambda x, y: x + f"YY{process_type(y['type'])}",
+            function["parameters"], "")
 
     # override method name section in mangling for constructors and destructors
     if kind == FunctionKind.CONSTRUCTOR:
@@ -805,9 +987,11 @@ def get_mangled_function_name(namespace: LexgineNamespace, parent_class: CppClas
     return name_string
 
 
-def generate_export_function_definition(list_of_ioc_interfaces: List[ExportedResourceDescriptor], namespace: LexgineNamespace,
-                                        parent_class: CppClass, function: Optional[Union[CppMethod, List[CppMethod]]],
-                                        using_dependency_list: set) -> str:
+def generate_export_function_definition(
+        list_of_ioc_interfaces: List[ExportedResourceDescriptor],
+        namespace: LexgineNamespace, parent_class: CppClass,
+        function: Optional[Union[CppMethod, List[CppMethod]]],
+        using_dependency_list: set) -> str:
     functions_to_define: List[CppMethod] = []
     generate_construction_destruction_code = False
     if isinstance(function, list):
@@ -815,7 +999,11 @@ def generate_export_function_definition(list_of_ioc_interfaces: List[ExportedRes
     elif isinstance(function, CppMethod):
         functions_to_define = [function]
     elif function is None:
-        functions_to_define = [e for e in parent_class["methods"]["public"] if e["constructor"] is True and e["name"] == parent_class["name"] and e["deleted"] is False]
+        functions_to_define = [
+            e for e in parent_class["methods"]["public"]
+            if e["constructor"] is True and e["name"] == parent_class["name"]
+            and e["deleted"] is False
+        ]
         generate_construction_destruction_code = True
 
     using_dict = {v['type']: k for k, v in parent_class["using"].items()}
@@ -828,23 +1016,33 @@ def generate_export_function_definition(list_of_ioc_interfaces: List[ExportedRes
         parameters_string = "("
         if generate_construction_destruction_code is True:
             return_type_string = "void"
-            name_string = get_mangled_function_name(namespace, parent_class, using_dict, using_dependency_list, foo, FunctionKind.CONSTRUCTOR)
+            name_string = get_mangled_function_name(namespace, parent_class,
+                                                    using_dict,
+                                                    using_dependency_list, foo,
+                                                    FunctionKind.CONSTRUCTOR)
             parameters_string += "void* p_destination"
         else:
             return_type_desc = foo["rtnType"]
-            is_unique_ptr_to_ioc, ioc_ptr_type_desc = is_unique_pointer_to_ioc(return_type_desc, list_of_ioc_interfaces, namespace)
+            is_unique_ptr_to_ioc, ioc_ptr_type_desc = is_unique_pointer_to_ioc(
+                return_type_desc, list_of_ioc_interfaces, namespace)
 
             if is_unique_ptr_to_ioc:
                 return_type_string = "void"
                 output_parameter_type_desc = f"std::shared_ptr<{ioc_ptr_type_desc.parent_namespace.definition}::{ioc_ptr_type_desc.parsed_class['name']}>&"
-            elif is_primitive_type(return_type_desc) or is_pointer_type(return_type_desc) or is_reference_type(return_type_desc):
+            elif is_primitive_type(return_type_desc) or is_pointer_type(
+                    return_type_desc) or is_reference_type(return_type_desc):
                 return_type_string = return_type_desc
             else:
-                output_parameter_is_ioc, _ = is_ioc_type_desc(list_of_ioc_interfaces, namespace, return_type_desc)
+                output_parameter_is_ioc, _ = is_ioc_type_desc(
+                    list_of_ioc_interfaces, namespace, return_type_desc)
                 return_type_string = "void"
-                output_parameter_type_desc = get_compatible_type_desc_for_output_parameter(return_type_desc, output_parameter_is_ioc)
+                output_parameter_type_desc = get_compatible_type_desc_for_output_parameter(
+                    return_type_desc, output_parameter_is_ioc)
 
-            name_string = get_mangled_function_name(namespace, parent_class, using_dict, using_dependency_list, foo, FunctionKind.DEFAULT)
+            name_string = get_mangled_function_name(namespace, parent_class,
+                                                    using_dict,
+                                                    using_dependency_list, foo,
+                                                    FunctionKind.DEFAULT)
             parameters_string += f"void {'const' if foo['const'] is True else ''}* p_instance"
             if output_parameter_type_desc is not None:
                 parameters_string += f", {output_parameter_type_desc} {'p_' if output_parameter_is_ioc else ''}destination"
@@ -857,9 +1055,12 @@ def generate_export_function_definition(list_of_ioc_interfaces: List[ExportedRes
             param_name = param["name"]
             if param_name[0] == '&' or param_name[0] == '*':
                 param_type += param_name[0]
-                param_name = f"param{idx}" if len(param_name) == 1 else param_name[1:]
+                param_name = f"param{idx}" if len(
+                    param_name) == 1 else param_name[1:]
 
-            parameter_type = replace_fp_type_with_using_directive(param_type, parent_class, foo, using_dict, using_dependency_list)
+            parameter_type = replace_fp_type_with_using_directive(
+                param_type, parent_class, foo, using_dict,
+                using_dependency_list)
             parameters_string += f"{parameter_type} {param_name}"
             if parameter_type[-2:] != "&&":
                 param_call_list += param_name
@@ -880,9 +1081,13 @@ def generate_export_function_definition(list_of_ioc_interfaces: List[ExportedRes
             else:
                 if output_parameter_is_ioc is False:
                     if is_unique_ptr_to_ioc:
-                        referred_deleter_name = get_mangled_function_name(ioc_ptr_type_desc.parent_namespace, ioc_ptr_type_desc.parsed_class, using_dict,
-                                                                          using_dependency_list, None, FunctionKind.DESTRUCTOR) + "__deleter"
-                        referred_deleters.add(f"void {referred_deleter_name}(void*);\n")
+                        referred_deleter_name = get_mangled_function_name(
+                            ioc_ptr_type_desc.parent_namespace,
+                            ioc_ptr_type_desc.parsed_class, using_dict,
+                            using_dependency_list, None,
+                            FunctionKind.DESTRUCTOR) + "__deleter"
+                        referred_deleters.add(
+                            f"void {referred_deleter_name}(void*);\n")
                         rv += "{\n" \
                               f"\tauto _temp = reinterpret_cast<{namespace.definition}::{parent_class['name']} {'const' if foo['const'] else ''}*>(p_instance)" \
                               f"->{foo['name']}({param_call_list});\n" \
@@ -901,7 +1106,9 @@ def generate_export_function_definition(list_of_ioc_interfaces: List[ExportedRes
 
     if generate_construction_destruction_code is True:
         # Generate destruction code
-        destructor_name_string = get_mangled_function_name(namespace, parent_class, using_dict, using_dependency_list, None, FunctionKind.DESTRUCTOR)
+        destructor_name_string = get_mangled_function_name(
+            namespace, parent_class, using_dict, using_dependency_list, None,
+            FunctionKind.DESTRUCTOR)
         rv += f"LEXGINE_API void {destructor_name_string}(void* p_instance)\n" \
               + "{\n" \
                 f"\treinterpret_cast<{namespace.definition}::{parent_class['name']}*>(p_instance)->~{parent_class['name']}();\n" \
@@ -921,41 +1128,60 @@ def create_hpp_guard(namespace: LexgineNamespace, cpp_class: CppClass) -> str:
     return hpp_guard
 
 
-def get_template_descriptor(config: dict, interface_kind: InterfaceKind) -> Union[dict, str]:
-    template_entry = inspect.stack()[1][3][len(f"create_{interface_kind.value}_interface_"):]
+def get_template_descriptor(config: dict,
+                            interface_kind: InterfaceKind) -> Union[dict, str]:
+    template_entry = inspect.stack(
+    )[1][3][len(f"create_{interface_kind.value}_interface_"):]
     return config[f"{interface_kind.value}_interfaces"][template_entry]
 
 
-def get_inheritance_mapped_type(context_namespace: LexgineNamespace, probed_type_desc: str, inherited_types_mapping: Dict[str, dict]) -> Optional[str]:
-    namespace_context_nesting_variants, type_name = get_context_nested_namespace_variations_for_type_desc(context_namespace, probed_type_desc)
+def get_inheritance_mapped_type(
+        context_namespace: LexgineNamespace, probed_type_desc: str,
+        inherited_types_mapping: Dict[str, dict]) -> Optional[str]:
+    namespace_context_nesting_variants, type_name = get_context_nested_namespace_variations_for_type_desc(
+        context_namespace, probed_type_desc)
     rv = None
     for e in namespace_context_nesting_variants:
         probed_fully_qualified_type = f"{e}::{type_name}"
         if probed_fully_qualified_type in inherited_types_mapping:
-            rv = inherited_types_mapping[probed_fully_qualified_type]["mapped_object_name"]
+            rv = inherited_types_mapping[probed_fully_qualified_type][
+                "mapped_object_name"]
             break
     return rv
 
 
-def create_import_interface_data_class(resource: ExportedResourceDescriptor, config: dict) -> LexgineRuntimeLinkInterface:
+def create_import_interface_data_class(
+        resource: ExportedResourceDescriptor,
+        config: dict) -> LexgineRuntimeLinkInterface:
     assert resource.token_type == TokenType.CLASS or resource.token_type == TokenType.STRUCT
-    template_path: Path = Path(get_template_descriptor(config, InterfaceKind.IMPORT)["header"])
+    template_path: Path = Path(
+        get_template_descriptor(config, InterfaceKind.IMPORT)["header"])
     with open(template_path.as_posix(), 'r') as f:
         import_template_hpp_string = BSD_3CLAUSE_LICENSE + f.read()
 
-    includes_list = reduce(lambda x, y: f"{x}#include <{y.as_posix()}>\n", resource.includes, "")
+    includes_list = reduce(lambda x, y: f"{x}#include <{y.as_posix()}>\n",
+                           resource.includes, "")
 
-    definition_begin_offset = get_line_offset(resource.exporting_header_source, resource.parsed_class["line_number"] - 1)
-    definition_begin_offset = resource.exporting_header_source.find(str(resource.token_type.value), definition_begin_offset) + len(resource.token_type.value)
-    _, definition_end_offset = extract_scope(resource.exporting_header_source, definition_begin_offset, ScopeType.BRACES)
+    definition_begin_offset = get_line_offset(
+        resource.exporting_header_source,
+        resource.parsed_class["line_number"] - 1)
+    definition_begin_offset = resource.exporting_header_source.find(
+        str(resource.token_type.value), definition_begin_offset) + len(
+            resource.token_type.value)
+    _, definition_end_offset = extract_scope(resource.exporting_header_source,
+                                             definition_begin_offset,
+                                             ScopeType.BRACES)
 
-    definition_str = resource.exporting_header_source[definition_begin_offset:definition_end_offset+1].strip(' \t\n\r')
-    header = Template(import_template_hpp_string).substitute(year=datetime.date.today().year,
-                                                             hpp_guard=create_hpp_guard(resource.parent_namespace, resource.parsed_class),
-                                                             includes_list=includes_list,
-                                                             parent_namespace=resource.parent_namespace.definition,
-                                                             token_type=resource.token_type.value,
-                                                             data_class_definition=definition_str)
+    definition_str = resource.exporting_header_source[
+        definition_begin_offset:definition_end_offset + 1].strip(' \t\n\r')
+    header = Template(import_template_hpp_string).substitute(
+        year=datetime.date.today().year,
+        hpp_guard=create_hpp_guard(resource.parent_namespace,
+                                   resource.parsed_class),
+        includes_list=includes_list,
+        parent_namespace=resource.parent_namespace.definition,
+        token_type=resource.token_type.value,
+        data_class_definition=definition_str)
     return LexgineRuntimeLinkInterface(None, header)
 
 
@@ -964,8 +1190,11 @@ def create_ioc_enum_clause(resource: ExportedResourceDescriptor) -> str:
     return f"{resource.parent_namespace.definition.replace('::', '_').upper()}_{convert_camel_case_to_snake_case(resource.short_name).upper()}"
 
 
-def create_export_interface_imported_opaque_class_traits(list_of_ioc_interfaces: List[ExportedResourceDescriptor], config: dict) -> LexgineDllExportInterface:
-    template_path: Path = Path(get_template_descriptor(config, InterfaceKind.EXPORT))
+def create_export_interface_imported_opaque_class_traits(
+        list_of_ioc_interfaces: List[ExportedResourceDescriptor],
+        config: dict) -> LexgineDllExportInterface:
+    template_path: Path = Path(
+        get_template_descriptor(config, InterfaceKind.EXPORT))
     with open(template_path.as_posix(), 'r') as f:
         source_template_string = BSD_3CLAUSE_LICENSE + f.read()
     includes_list = ""
@@ -977,28 +1206,35 @@ def create_export_interface_imported_opaque_class_traits(list_of_ioc_interfaces:
         if resource.parent_resource is None:
             includes_list += f"#include <{resource.exporting_header_path.as_posix()}>\n"
 
-    cpp_exporting_source = string.Template(source_template_string).substitute(year=datetime.date.today().year,
-                                                                              includes_list=includes_list,
-                                                                              ioc_name_switch_clauses=switch_clauses)
+    cpp_exporting_source = string.Template(source_template_string).substitute(
+        year=datetime.date.today().year,
+        includes_list=includes_list,
+        ioc_name_switch_clauses=switch_clauses)
     return LexgineDllExportInterface(source=cpp_exporting_source)
 
 
-def create_import_interface_imported_opaque_class_traits(list_of_ioc_interfaces: List[ExportedResourceDescriptor], config: dict) -> LexgineRuntimeLinkInterface:
-    template_path: Path = Path(get_template_descriptor(config, InterfaceKind.IMPORT)["header"])
+def create_import_interface_imported_opaque_class_traits(
+        list_of_ioc_interfaces: List[ExportedResourceDescriptor],
+        config: dict) -> LexgineRuntimeLinkInterface:
+    template_path: Path = Path(
+        get_template_descriptor(config, InterfaceKind.IMPORT)["header"])
     with open(template_path.as_posix(), 'r') as f:
         import_template_hpp_string = BSD_3CLAUSE_LICENSE + f.read()
     ioc_names_list = ""
     for resource in list_of_ioc_interfaces:
         ioc_names_list += f"\t{create_ioc_enum_clause(resource)},\n"
     ioc_names_list += "\tCOUNT"
-    hpp_api_source = string.Template(import_template_hpp_string).substitute(year=datetime.date.today().year,
-                                                                            ioc_names_list=ioc_names_list)
+    hpp_api_source = string.Template(import_template_hpp_string).substitute(
+        year=datetime.date.today().year, ioc_names_list=ioc_names_list)
     return LexgineRuntimeLinkInterface(source=None, header=hpp_api_source)
 
 
-def create_export_interface_imported_opaque_class(list_of_ioc_interfaces: List[ExportedResourceDescriptor],
-                                                  resource: ExportedResourceDescriptor, config: dict) -> LexgineDllExportInterface:
-    template_path: Path = Path(get_template_descriptor(config, InterfaceKind.EXPORT))
+def create_export_interface_imported_opaque_class(
+        list_of_ioc_interfaces: List[ExportedResourceDescriptor],
+        resource: ExportedResourceDescriptor,
+        config: dict) -> LexgineDllExportInterface:
+    template_path: Path = Path(
+        get_template_descriptor(config, InterfaceKind.EXPORT))
     with open(template_path.as_posix(), 'r') as f:
         source_template_string = BSD_3CLAUSE_LICENSE + f.read()
 
@@ -1027,28 +1263,37 @@ def create_export_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
                 for nr in r.nested_resources:
                     exported_nested_classes += f"using {nr.parsed_class['name']} = {nr.parent_namespace.definition}::{nr.parsed_class['name']};\n"
 
-            constructors_and_destructors_definitions = generate_export_function_definition(list_of_ioc_interfaces, r.parent_namespace,
-                                                                                           r.parsed_class, None, referred_fp_using_declarations)
-            parsed_methods_definitions = generate_export_function_definition(list_of_ioc_interfaces, r.parent_namespace, r.parsed_class,
-                                                                             r.parsed_methods, referred_fp_using_declarations)
+            constructors_and_destructors_definitions = generate_export_function_definition(
+                list_of_ioc_interfaces, r.parent_namespace, r.parsed_class,
+                None, referred_fp_using_declarations)
+            parsed_methods_definitions = generate_export_function_definition(
+                list_of_ioc_interfaces, r.parent_namespace, r.parsed_class,
+                r.parsed_methods, referred_fp_using_declarations)
 
             source_body = f"\n\n{constructors_and_destructors_definitions}\n\n{parsed_methods_definitions}"
-            fp_using_declarations = reduce(lambda x, y: f"{x}using {y[0]} = {y[1]};\n", referred_fp_using_declarations, "")
+            fp_using_declarations = reduce(
+                lambda x, y: f"{x}using {y[0]} = {y[1]};\n",
+                referred_fp_using_declarations, "")
 
-            cpp_exporting_source += string.Template(source_template_string).substitute(year=datetime.date.today().year,
-                                                                                       exporting_header=r.exporting_header_path.as_posix(),
-                                                                                       exporting_namespace=r.parent_namespace.definition,
-                                                                                       flags_using_declarations=exported_flags_using_declarations,
-                                                                                       enums_using_declarations=exported_enums,
-                                                                                       unions_using_declarations=exported_unions,
-                                                                                       nested_classes_using_declarations=exported_nested_classes,
-                                                                                       fp_using_declarations=fp_using_declarations,
-                                                                                       source_body=source_body)
+            cpp_exporting_source += string.Template(
+                source_template_string).substitute(
+                    year=datetime.date.today().year,
+                    exporting_header=r.exporting_header_path.as_posix(),
+                    exporting_namespace=r.parent_namespace.definition,
+                    flags_using_declarations=exported_flags_using_declarations,
+                    enums_using_declarations=exported_enums,
+                    unions_using_declarations=exported_unions,
+                    nested_classes_using_declarations=exported_nested_classes,
+                    fp_using_declarations=fp_using_declarations,
+                    source_body=source_body)
     return LexgineDllExportInterface(cpp_exporting_source)
 
 
-def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[ExportedResourceDescriptor], resource: ExportedResourceDescriptor,
-                                                  inherited_types_mapping: Dict[str, dict], config: dict) -> LexgineRuntimeLinkInterface:
+def create_import_interface_imported_opaque_class(
+        list_of_ioc_interfaces: List[ExportedResourceDescriptor],
+        resource: ExportedResourceDescriptor,
+        inherited_types_mapping: Dict[str, dict],
+        config: dict) -> LexgineRuntimeLinkInterface:
     template_desc = get_template_descriptor(config, InterfaceKind.IMPORT)
     import_template_cpp_path: Optional[Path] = Path(template_desc["source"])
     import_template_hpp_path: Optional[Path] = Path(template_desc["header"])
@@ -1060,13 +1305,19 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
     with open(import_template_helper_path.as_posix(), 'r') as f:
         import_template_helper_string = f.read()
 
-    includes_list_src: str = reduce(lambda x, y: x + f"#include <{y}>\n", resource.includes, "")
+    includes_list_src: str = reduce(lambda x, y: x + f"#include <{y}>\n",
+                                    resource.includes, "")
 
-    def create_hpp_cpp_sources(r: ExportedResourceDescriptor) -> Tuple[str, str]:
-        def extract_structure_definition_from_source(s: Union[CppEnum, CppUnion, CppClass]) -> str:
+    def create_hpp_cpp_sources(
+            r: ExportedResourceDescriptor) -> Tuple[str, str]:
+
+        def extract_structure_definition_from_source(
+                s: Union[CppEnum, CppUnion, CppClass]) -> str:
             line_number_zb = s["line_number"] - 1
-            begin_idx = get_line_offset(r.exporting_header_source, line_number_zb)
-            _, end_idx = extract_scope(r.exporting_header_source, begin_idx, ScopeType.BRACES)
+            begin_idx = get_line_offset(r.exporting_header_source,
+                                        line_number_zb)
+            _, end_idx = extract_scope(r.exporting_header_source, begin_idx,
+                                       ScopeType.BRACES)
             return r.exporting_header_source[begin_idx:end_idx + 1]
 
         if r.is_ioc:
@@ -1075,7 +1326,9 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
             inherited_classes: Dict[str, str] = {}
             inheritance_remapping_mask: Dict[str, bool] = {}
             for inherited_type in r.parsed_class['inherits']:
-                target_name = get_inheritance_mapped_type(r.parent_namespace, inherited_type["decl_name"], inherited_types_mapping)
+                target_name = get_inheritance_mapped_type(
+                    r.parent_namespace, inherited_type["decl_name"],
+                    inherited_types_mapping)
                 if target_name is None:
                     target_name = inherited_type['decl_name']
                     inheritance_remapping_mask[target_name] = False
@@ -1085,7 +1338,10 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
             if len(inherited_classes) == 0:
                 inherited_classes[ioc_base_name] = "virtual public"
 
-            inheritance_list: str = reduce(lambda x, y: f"{x}{y[1][1]} {y[1][0]}{', ' if y[0] is False else ''}", signal_last(inherited_classes.items()), ": ")
+            inheritance_list: str = reduce(
+                lambda x, y:
+                f"{x}{y[1][1]} {y[1][0]}{', ' if y[0] is False else ''}",
+                signal_last(inherited_classes.items()), ": ")
 
             class IocInitStrategy(Enum):
                 API = 0
@@ -1093,7 +1349,9 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
                 RUNTIME_SHARED_PTR = 2
                 FAKE_CONSTRUCTION_TAG = 3
 
-            def get_base_classes_init_list(ioc_init_strategy: IocInitStrategy = IocInitStrategy.API, argument_name: Optional[str] = None) -> str:
+            def get_base_classes_init_list(
+                    ioc_init_strategy: IocInitStrategy = IocInitStrategy.API,
+                    argument_name: Optional[str] = None) -> str:
                 if ioc_init_strategy == IocInitStrategy.API:
                     ioc_enum_name = f"{r.parent_namespace.definition.replace('::', '_').upper()}_{convert_camel_case_to_snake_case(r.short_name).upper()}"
                     base_classes_init_list = "\n\t: Ioc{" \
@@ -1104,7 +1362,9 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
                 elif ioc_init_strategy == IocInitStrategy.FAKE_CONSTRUCTION_TAG:
                     base_classes_init_list = "\n\t: Ioc{lexgine::api::FakeConstruction_tag{}}"
                 else:
-                    raise AssertionError("Unknown initialization strategy of lexgine::api::Ioc class requested")
+                    raise AssertionError(
+                        "Unknown initialization strategy of lexgine::api::Ioc class requested"
+                    )
 
                 for base_class_name in inherited_classes.keys():
                     if base_class_name != ioc_base_name:
@@ -1115,7 +1375,9 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
             supported_public_properties_list: List[CppVariable] = []
             for p in r.parsed_class["properties"]["public"]:
                 if p["static"] is True:
-                    print(f"WARNING: property {p['name']} is static. Static properties are not supported in IOC export types.")
+                    print(
+                        f"WARNING: property {p['name']} is static. Static properties are not supported in IOC export types."
+                    )
                     continue
                 supported_public_properties_list.append(p)
 
@@ -1143,7 +1405,11 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
             api_methods_definitions = ""
             api_linked_pointers = ""
             link_methods_call_list = "\t"
-            constructors = [m for m in r.parsed_class["methods"]["public"] if m["constructor"] is True and m["name"] == r.parsed_class["name"] and m["deleted"] is False]
+            constructors = [
+                m for m in r.parsed_class["methods"]["public"]
+                if m["constructor"] is True and m["name"] ==
+                r.parsed_class["name"] and m["deleted"] is False
+            ]
 
             flags_using_declarations = ""
             referred_fp_using_declarations = set()
@@ -1165,31 +1431,45 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
                     exported_unions_definitions += f"{extract_structure_definition_from_source(union)};\n\n"
                     exported_unions_using_declarations += f"using {union['name']} = {r.parent_namespace.definition}::{r.parsed_class['name']}::{union['name']};\n"
 
-            using_dict = {v["type"]: k for k, v in r.parsed_class["using"].items()}
+            using_dict = {
+                v["type"]: k
+                for k, v in r.parsed_class["using"].items()
+            }
             for m in r.parsed_methods + constructors:
-                compatible_rtn_type = m["rtnType"] if m['constructor'] is False else ''
+                compatible_rtn_type = m[
+                    "rtnType"] if m['constructor'] is False else ''
                 api_function_rtn_type = compatible_rtn_type
                 rtn_type_is_object = False
                 rtn_type_is_ioc = False
                 rtn_type_resource_descriptor = None
                 api_function_output_parameter_rtn_type = None
 
-                rtn_type_is_unique_ptr_to_ioc, ioc_ptr_type_desc = is_unique_pointer_to_ioc(compatible_rtn_type, list_of_ioc_interfaces, r.parent_namespace)
+                rtn_type_is_unique_ptr_to_ioc, ioc_ptr_type_desc = is_unique_pointer_to_ioc(
+                    compatible_rtn_type, list_of_ioc_interfaces,
+                    r.parent_namespace)
                 rtn_type_is_ptr_to_ioc = False
                 if rtn_type_is_unique_ptr_to_ioc is False:
-                    rtn_type_is_ptr_to_ioc, ioc_ptr_type_desc = is_raw_pointer_to_ioc(compatible_rtn_type, list_of_ioc_interfaces, r.parent_namespace)
+                    rtn_type_is_ptr_to_ioc, ioc_ptr_type_desc = is_raw_pointer_to_ioc(
+                        compatible_rtn_type, list_of_ioc_interfaces,
+                        r.parent_namespace)
                 if rtn_type_is_unique_ptr_to_ioc or rtn_type_is_ptr_to_ioc:
                     compatible_rtn_type = f"{ioc_ptr_type_desc.parent_namespace.definition}::{ioc_ptr_type_desc.parsed_class['name']}"
 
                 api_methods_declarations += f"\t{compatible_rtn_type}{' ' if len(compatible_rtn_type) else ''}{m['name']}("
                 api_methods_definitions += f"{compatible_rtn_type}{' ' if len(compatible_rtn_type) else ''}{r.parent_namespace.definition}::{r.parsed_class['name']}::{m['name']}("
                 call_list = ""
-                mangled_method_name = get_mangled_function_name(r.parent_namespace, r.parsed_class, using_dict, referred_fp_using_declarations, m,
-                                                                FunctionKind.DEFAULT if m["constructor"] is False else FunctionKind.CONSTRUCTOR)
-                destructor_mangled_name = get_mangled_function_name(r.parent_namespace, r.parsed_class, using_dict, referred_fp_using_declarations, None, FunctionKind.DESTRUCTOR)
+                mangled_method_name = get_mangled_function_name(
+                    r.parent_namespace, r.parsed_class, using_dict,
+                    referred_fp_using_declarations, m, FunctionKind.DEFAULT
+                    if m["constructor"] is False else FunctionKind.CONSTRUCTOR)
+                destructor_mangled_name = get_mangled_function_name(
+                    r.parent_namespace, r.parsed_class, using_dict,
+                    referred_fp_using_declarations, None,
+                    FunctionKind.DESTRUCTOR)
                 link_methods_call_list += f'api__{mangled_method_name} = reinterpret_cast<decltype(api__{mangled_method_name})>(linker.attemptLink("{mangled_method_name}"));\n\t'
 
-                if len(compatible_rtn_type) == 0:    # the function is a constructor
+                if len(compatible_rtn_type
+                       ) == 0:  # the function is a constructor
                     compatible_rtn_type = "void"
                     api_function_rtn_type = "void"
                 elif rtn_type_is_unique_ptr_to_ioc:
@@ -1201,9 +1481,12 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
                         and is_reference_type(compatible_rtn_type) is False \
                         and rtn_type_is_ptr_to_ioc is False:
                     rtn_type_is_object = True
-                    rtn_type_is_ioc, rtn_type_resource_descriptor = is_ioc_type_desc(list_of_ioc_interfaces, r.parent_namespace, compatible_rtn_type)
+                    rtn_type_is_ioc, rtn_type_resource_descriptor = is_ioc_type_desc(
+                        list_of_ioc_interfaces, r.parent_namespace,
+                        compatible_rtn_type)
                     api_function_rtn_type = "void"
-                    api_function_output_parameter_rtn_type = get_compatible_type_desc_for_output_parameter(compatible_rtn_type, rtn_type_is_ioc)
+                    api_function_output_parameter_rtn_type = get_compatible_type_desc_for_output_parameter(
+                        compatible_rtn_type, rtn_type_is_ioc)
 
                 api_pointer_declaration = f"{api_function_rtn_type}(LEXGINE_CALL* api__{mangled_method_name})(void {'const' if m['const'] is True else ''}*"
                 if rtn_type_is_object:
@@ -1219,9 +1502,12 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
                     if param_name[0] == '&' or param_name[0] == '*':
                         param_type += param_name[0]
                         if len(param_name) == 1:
-                            param_name = f"param{idx}" if len(param_name) == 1 else param_name[1:]
+                            param_name = f"param{idx}" if len(
+                                param_name) == 1 else param_name[1:]
 
-                    processed_type = replace_fp_type_with_using_directive(param_type, r.parsed_class, m, using_dict, referred_fp_using_declarations)
+                    processed_type = replace_fp_type_with_using_directive(
+                        param_type, r.parsed_class, m, using_dict,
+                        referred_fp_using_declarations)
                     next_named_function_param = f"{processed_type} {param_name}"
                     api_methods_declarations += next_named_function_param
                     api_methods_definitions += next_named_function_param
@@ -1272,9 +1558,10 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
                                                        "return rv;\n}\n\n"
                 else:
                     if rtn_type_is_ptr_to_ioc:
-                        api_methods_definitions += "\n{\n\t" \
+                        api_methods_definitions += "\n{\n\tvoid* ptr = api__" \
+                                                   f"{mangled_method_name}(getNative(){', ' + call_list if nz_params else ''});\n\t" \
                                                    f"return {ioc_ptr_type_desc.parent_namespace.definition}::{ioc_ptr_type_desc.parsed_class['name']}" \
-                                                   "{api__" + f"{mangled_method_name}(getNative(){', ' + call_list if nz_params else ''})" + "};\n" \
+                                                   "{static_cast<lexgine::api::Ioc*>(ptr)};\n" \
                                                    "}\n\n"
                     else:
                         api_methods_definitions += "\n{\n\t" \
@@ -1309,11 +1596,18 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
                 api_methods_definitions += f"\n\n{r.parent_namespace.definition}::{r.parsed_class['name']}::{r.parsed_class['name']}(lexgine::api::FakeConstruction_tag)" \
                                            f"{get_base_classes_init_list(IocInitStrategy.FAKE_CONSTRUCTION_TAG)}" + "{}\n\n"
 
-            fp_using_declarations_hpp = reduce(lambda x, y: f"{x}using {y[0]} = {y[1]};\n\t", referred_fp_using_declarations, "\t")
-            fp_using_declarations_cpp = reduce(lambda x, y: f"{x}using {y[0]} = {r.parsed_class['name']}::{y[0]};\n", referred_fp_using_declarations, "")
+            fp_using_declarations_hpp = reduce(
+                lambda x, y: f"{x}using {y[0]} = {y[1]};\n\t",
+                referred_fp_using_declarations, "\t")
+            fp_using_declarations_cpp = reduce(
+                lambda x, y:
+                f"{x}using {y[0]} = {r.parsed_class['name']}::{y[0]};\n",
+                referred_fp_using_declarations, "")
 
             class_qualifier = f"{'final' if resource.parsed_class['final'] is True else ''}"
-            exported_flags = reduce(lambda x, y: f"{x}\t{y.declaration_string};\n", resource.exported_flags, "")
+            exported_flags = reduce(
+                lambda x, y: f"{x}\t{y.declaration_string};\n",
+                resource.exported_flags, "")
 
             nested_classes_forward_declarations = "\t"
             nested_classes_declarations = ""
@@ -1328,38 +1622,45 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
                     nested_classes_declarations += f"{hpp}\n\n"
                     import_api_cpp += cpp
 
-            class_declaration = string.Template(import_template_helper_string).substitute(
-                class_token=resource.token_type.value,
-                class_name=resource.parsed_class["name"],
-                inheritance_list=inheritance_list,
-                class_qualifier=class_qualifier,
-                public_properties_setters_and_getters_declarations=public_properties_setters_getters_declarations,
-                exported_flags=exported_flags,
-                public_unions=exported_unions_definitions,
-                public_enums=exported_enums_definitions,
-                fp_using_declarations=fp_using_declarations_hpp,
-                nested_classes_forward_declarations=nested_classes_forward_declarations,
-                nested_classes=nested_classes_declarations,
-                api_methods=api_methods_declarations,
-                protected_apis=protected_apis
-            )
+            class_declaration = string.Template(
+                import_template_helper_string).substitute(
+                    class_token=resource.token_type.value,
+                    class_name=resource.parsed_class["name"],
+                    inheritance_list=inheritance_list,
+                    class_qualifier=class_qualifier,
+                    public_properties_setters_and_getters_declarations=
+                    public_properties_setters_getters_declarations,
+                    exported_flags=exported_flags,
+                    public_unions=exported_unions_definitions,
+                    public_enums=exported_enums_definitions,
+                    fp_using_declarations=fp_using_declarations_hpp,
+                    nested_classes_forward_declarations=
+                    nested_classes_forward_declarations,
+                    nested_classes=nested_classes_declarations,
+                    api_methods=api_methods_declarations,
+                    protected_apis=protected_apis)
 
-            import_api_cpp += string.Template(import_template_cpp_string).substitute(
+            import_api_cpp += string.Template(
+                import_template_cpp_string
+            ).substitute(
                 year=datetime.date.today().year,
-                api_name=f"{convert_camel_case_to_snake_case(resource.parsed_class['name'])}",
+                api_name=
+                f"{convert_camel_case_to_snake_case(resource.parsed_class['name'])}",
                 namespace=resource.parent_namespace.definition,
-                public_properties_memory_layout_declaration=property_accessor_dummy_class_definition,
+                public_properties_memory_layout_declaration=
+                property_accessor_dummy_class_definition,
                 flags_using_declarations=flags_using_declarations,
                 unions_using_declarations=exported_unions_using_declarations,
                 enums_using_declarations=exported_enums_using_declarations,
-                nested_classes_using_declarations=nested_classes_using_declarations,
+                nested_classes_using_declarations=
+                nested_classes_using_declarations,
                 fp_using_declarations=fp_using_declarations_cpp,
                 api_function_pointers_declarations=api_linked_pointers,
                 class_name=resource.parsed_class["name"],
                 link_methods_call_list=link_methods_call_list,
-                public_properties_setters_getters_definitions=public_properties_setters_getters_definitions,
-                api_methods_definitions=api_methods_definitions
-            )
+                public_properties_setters_getters_definitions=
+                public_properties_setters_getters_definitions,
+                api_methods_definitions=api_methods_definitions)
         else:
             return f"{extract_structure_definition_from_source(r.parsed_class)};", ""
 
@@ -1368,19 +1669,25 @@ def create_import_interface_imported_opaque_class(list_of_ioc_interfaces: List[E
     class_declaration, import_api_cpp = create_hpp_cpp_sources(resource)
     import_api_hpp = string.Template(import_template_hpp_string).substitute(
         year=datetime.date.today().year,
-        hpp_guard=create_hpp_guard(resource.parent_namespace, resource.parsed_class),
+        hpp_guard=create_hpp_guard(resource.parent_namespace,
+                                   resource.parsed_class),
         namespace=resource.parent_namespace.definition,
         includes_list=includes_list_src,
-        class_declaration=class_declaration
-    )
-    return LexgineRuntimeLinkInterface(source=import_api_cpp, header=import_api_hpp)
+        class_declaration=class_declaration)
+    return LexgineRuntimeLinkInterface(source=import_api_cpp,
+                                       header=import_api_hpp)
 
 
-def fetch_import_templates(import_templates_desc: dict) -> Tuple[Optional[str], Optional[str]]:
+def fetch_import_templates(
+        import_templates_desc: dict) -> Tuple[Optional[str], Optional[str]]:
     import_template_cpp_string = None
     import_template_hpp_string = None
-    import_template_cpp_path: Optional[Path] = Path(import_templates_desc["source"]) if "source" in import_templates_desc else None
-    import_template_hpp_path: Optional[Path] = Path(import_templates_desc["header"]) if "header" in import_templates_desc else None
+    import_template_cpp_path: Optional[Path] = Path(
+        import_templates_desc["source"]
+    ) if "source" in import_templates_desc else None
+    import_template_hpp_path: Optional[Path] = Path(
+        import_templates_desc["header"]
+    ) if "header" in import_templates_desc else None
     if import_template_cpp_path is not None:
         with open(import_template_cpp_path.as_posix(), 'r') as f:
             import_template_cpp_string = BSD_3CLAUSE_LICENSE + f.read()
@@ -1390,54 +1697,86 @@ def fetch_import_templates(import_templates_desc: dict) -> Tuple[Optional[str], 
     return import_template_cpp_string, import_template_hpp_string
 
 
-def create_import_interface_api_linker(list_of_ioc_interfaces: List[ExportedResourceDescriptor], config: dict) -> LexgineRuntimeLinkInterface:
-    import_templates_desc: dict = get_template_descriptor(config, InterfaceKind.IMPORT)
-    import_template_cpp_string, import_template_hpp_string = fetch_import_templates(import_templates_desc)
+def create_import_interface_api_linker(
+        list_of_ioc_interfaces: List[ExportedResourceDescriptor],
+        config: dict) -> LexgineRuntimeLinkInterface:
+    import_templates_desc: dict = get_template_descriptor(
+        config, InterfaceKind.IMPORT)
+    import_template_cpp_string, import_template_hpp_string = fetch_import_templates(
+        import_templates_desc)
 
-    includes_list = reduce(lambda x, y: f"{x}#include <{y.runtime_api_header_path.as_posix()}>\n", list_of_ioc_interfaces, "")
+    includes_list = reduce(
+        lambda x, y: f"{x}#include <{y.runtime_api_header_path.as_posix()}>\n",
+        list_of_ioc_interfaces, "")
     link_calls_list = "\t"
     for resource in list_of_ioc_interfaces:
         fully_qualified_name = f"{resource.parent_namespace.definition}::{resource.parsed_class['name']}"
         link_calls_list += 'rv.emplace(std::make_pair(std::string{"' + fully_qualified_name + '"}, ' + f"{fully_qualified_name}::link(module)));\n\t"
 
-    import_template_hpp_string = string.Template(import_template_hpp_string).substitute(year=datetime.date.today().year)
-    import_template_cpp_string = string.Template(import_template_cpp_string).substitute(year=datetime.date.today().year,
-                                                                                        includes_list=includes_list,
-                                                                                        link_calls_list=link_calls_list)
-    return LexgineRuntimeLinkInterface(source=import_template_cpp_string, header=import_template_hpp_string)
+    import_template_hpp_string = string.Template(
+        import_template_hpp_string).substitute(year=datetime.date.today().year)
+    import_template_cpp_string = string.Template(
+        import_template_cpp_string).substitute(year=datetime.date.today().year,
+                                               includes_list=includes_list,
+                                               link_calls_list=link_calls_list)
+    return LexgineRuntimeLinkInterface(source=import_template_cpp_string,
+                                       header=import_template_hpp_string)
 
 
-def create_import_interface_enumeration(resource: ExportedResourceDescriptor, config: dict) -> LexgineRuntimeLinkInterface:
-    import_templates_desc: dict = get_template_descriptor(config, InterfaceKind.IMPORT)
-    _, import_template_hpp_string = fetch_import_templates(import_templates_desc)
-    includes_list = reduce(lambda x, y: f"{x}#include <{y.as_posix()}>\n", resource.includes, "")
+def create_import_interface_enumeration(
+        resource: ExportedResourceDescriptor,
+        config: dict) -> LexgineRuntimeLinkInterface:
+    import_templates_desc: dict = get_template_descriptor(
+        config, InterfaceKind.IMPORT)
+    _, import_template_hpp_string = fetch_import_templates(
+        import_templates_desc)
+    includes_list = reduce(lambda x, y: f"{x}#include <{y.as_posix()}>\n",
+                           resource.includes, "")
     namespace_name = resource.parent_namespace.definition
 
-    enum_definition_begin = get_line_offset(resource.exporting_header_source, resource.parsed_class["line_number"] - 1)
-    _, enum_definition_end = extract_scope(resource.exporting_header_source, enum_definition_begin, ScopeType.BRACES)
-    enum_definition = resource.exporting_header_source[enum_definition_begin:enum_definition_end + 1]
+    enum_definition_begin = get_line_offset(
+        resource.exporting_header_source,
+        resource.parsed_class["line_number"] - 1)
+    _, enum_definition_end = extract_scope(resource.exporting_header_source,
+                                           enum_definition_begin,
+                                           ScopeType.BRACES)
+    enum_definition = resource.exporting_header_source[
+        enum_definition_begin:enum_definition_end + 1]
 
-    import_template_hpp_string = string.Template(import_template_hpp_string).substitute(year=datetime.date.today().year,
-                                                                                        hpp_guard=create_hpp_guard(resource.parent_namespace, resource.parsed_class),
-                                                                                        includes_list=includes_list,
-                                                                                        namespace_name=namespace_name,
-                                                                                        enum_definition=enum_definition)
-    return LexgineRuntimeLinkInterface(source=None, header=import_template_hpp_string)
-
-
-def create_import_interface_flags(resource: ExportedResourceDescriptor, config: dict) -> LexgineRuntimeLinkInterface:
-    import_templates_desc: dict = get_template_descriptor(config, InterfaceKind.IMPORT)
-    _, import_template_hpp_string = fetch_import_templates(import_templates_desc)
-    includes_list = reduce(lambda x, y: f"{x}#include <{y.as_posix()}>\n", resource.includes, "")
-
-    import_template_hpp_string = string.Template(import_template_hpp_string).substitute(year=datetime.date.today().year,
-                                                                                        includes_list=includes_list,
-                                                                                        parent_namespace=resource.parent_namespace.definition,
-                                                                                        flags_definition=resource.parsed_class.declaration_string)
-    return LexgineRuntimeLinkInterface(source=None, header=import_template_hpp_string)
+    import_template_hpp_string = string.Template(
+        import_template_hpp_string).substitute(year=datetime.date.today().year,
+                                               hpp_guard=create_hpp_guard(
+                                                   resource.parent_namespace,
+                                                   resource.parsed_class),
+                                               includes_list=includes_list,
+                                               namespace_name=namespace_name,
+                                               enum_definition=enum_definition)
+    return LexgineRuntimeLinkInterface(source=None,
+                                       header=import_template_hpp_string)
 
 
-def clean(engine_path: Path, api_path: Path, excluded_api_resources: List[Path]):
+def create_import_interface_flags(resource: ExportedResourceDescriptor,
+                                  config: dict) -> LexgineRuntimeLinkInterface:
+    import_templates_desc: dict = get_template_descriptor(
+        config, InterfaceKind.IMPORT)
+    _, import_template_hpp_string = fetch_import_templates(
+        import_templates_desc)
+    includes_list = reduce(lambda x, y: f"{x}#include <{y.as_posix()}>\n",
+                           resource.includes, "")
+
+    import_template_hpp_string = string.Template(
+        import_template_hpp_string).substitute(
+            year=datetime.date.today().year,
+            includes_list=includes_list,
+            parent_namespace=resource.parent_namespace.definition,
+            flags_definition=resource.parsed_class.declaration_string)
+    return LexgineRuntimeLinkInterface(source=None,
+                                       header=import_template_hpp_string)
+
+
+def clean(engine_path: Path, api_path: Path,
+          excluded_api_resources: List[Path]):
+
     def clean_shared_symbols(target_dir: Path):
         for e in target_dir.iterdir():
             if e.is_dir():
@@ -1445,6 +1784,7 @@ def clean(engine_path: Path, api_path: Path, excluded_api_resources: List[Path])
                     shutil.rmtree(e.as_posix(), ignore_errors=True)
                 else:
                     clean_shared_symbols(e)
+
     clean_shared_symbols(engine_path)
 
     def clean_api(target_dir: Path):
@@ -1469,6 +1809,7 @@ def clean(engine_path: Path, api_path: Path, excluded_api_resources: List[Path])
                     shutil.rmtree(e.as_posix(), ignore_errors=True)
                 elif e.is_file():
                     e.unlink()
+
     clean_api(api_path)
 
 
@@ -1482,8 +1823,10 @@ def main(arguments: argparse.Namespace):
     for hpp in configuration.get("ignored_headers", []):
         hpp = str(hpp).strip(' \t\r\n')
         if not hpp.startswith("engine"):
-            print(f'WARNING: the path {hpp} listed among ignored include directories in the configuration file {arguments.config} does not start with "engine". This path will'
-                  f'not be included into the list of ignored engine directories as it is impossible to relate it to the engine directory structure')
+            print(
+                f'WARNING: the path {hpp} listed among ignored include directories in the configuration file {arguments.config} does not start with "engine". This path will'
+                f'not be included into the list of ignored engine directories as it is impossible to relate it to the engine directory structure'
+            )
         else:
             ignored_hpp_paths.append(Path(hpp))
 
@@ -1507,15 +1850,19 @@ def main(arguments: argparse.Namespace):
         with open(source_hpp_path.as_posix(), 'r') as f:
             header_source_code = f.read()
 
-        lexgine_namespaces: List[LexgineNamespace] = get_lexgine_namespaces(header_source_code)
+        lexgine_namespaces: List[LexgineNamespace] = get_lexgine_namespaces(
+            header_source_code)
 
         exported_types_set: Set[LexgineTypeReference]
         header_source_code: str
-        exported_types_set, header_source_code = list_raw_lexgine_export_references(header_source_code, lexgine_namespaces)
+        exported_types_set, header_source_code = list_raw_lexgine_export_references(
+            header_source_code, lexgine_namespaces)
         if len(exported_types_set) > 0:
-            billets.append(PreprocessorHeaderBillet(exporting_header_path=source_hpp_path,
-                                                    preprocessor_ready_header_source=header_source_code,
-                                                    exported_types_set=exported_types_set))
+            billets.append(
+                PreprocessorHeaderBillet(
+                    exporting_header_path=source_hpp_path,
+                    preprocessor_ready_header_source=header_source_code,
+                    exported_types_set=exported_types_set))
 
     common_resource_headers: List[Path] = []
     common_resource_sources: List[Path] = []
@@ -1535,37 +1882,51 @@ def main(arguments: argparse.Namespace):
             for ee in files_in_directory:
                 append_common_resource(ee.relative_to(engine_path))
 
-    forced_includes = [Path(e) for e in configuration.get("forced_includes", [])]
-    inherited_types_mapping = configuration.get("inherited_types_api_mapping", {})
+    forced_includes = [
+        Path(e) for e in configuration.get("forced_includes", [])
+    ]
+    inherited_types_mapping = configuration.get("inherited_types_api_mapping",
+                                                {})
     engine_runtime_resource_map: Dict[Path, List[RuntimeApi]] = {}
 
     for v in inherited_types_mapping.values():
         source_object_header_path = Path(v["source_object_header_path"])
-        mapped_header = RuntimeApi(runtime_api_header_path=Path(v["mapped_object_header_path"]))
+        mapped_header = RuntimeApi(
+            runtime_api_header_path=Path(v["mapped_object_header_path"]))
         if source_object_header_path not in engine_runtime_resource_map:
-            engine_runtime_resource_map[source_object_header_path] = [mapped_header]
+            engine_runtime_resource_map[source_object_header_path] = [
+                mapped_header
+            ]
         else:
-            engine_runtime_resource_map[source_object_header_path].append(mapped_header)
+            engine_runtime_resource_map[source_object_header_path].append(
+                mapped_header)
 
     all_exported_resources: List[ExportedResourceDescriptor] = []
     inherited_types: List[Tuple[LexgineNamespace, str]] = []
     using_directives: Dict[str, CppVariable] = {}
 
-    excluded_api_resources = [Path(e) for e in configuration.get("api_resources", [])]
+    excluded_api_resources = [
+        Path(e) for e in configuration.get("api_resources", [])
+    ]
     clean(engine_path / "engine", api_path, excluded_api_resources)
     for export_billet in billets:
         source_path: Path = export_billet.exporting_header_path
-        source_relative_path: Path = extract_header_relative_path(source_path, engine_path)
+        source_relative_path: Path = extract_header_relative_path(
+            source_path, engine_path)
         header_source: str = export_billet.preprocessor_ready_header_source
 
         try:
             parsed_header = CppHeader(header_source, argType="string")
             using_directives.update(parsed_header.using)
         except CppParseError as e:
-            print(f'Problem parsing header "{export_billet.exporting_header_path.as_posix()}": {e}')
+            print(
+                f'Problem parsing header "{export_billet.exporting_header_path.as_posix()}": {e}'
+            )
             continue
 
-        raw_includes = [Path(inc.strip('"<>')) for inc in parsed_header.includes] + forced_includes
+        raw_includes = [
+            Path(inc.strip('"<>')) for inc in parsed_header.includes
+        ] + forced_includes
         raw_includes = list(set(raw_includes))
 
         exported_classes = []
@@ -1573,7 +1934,8 @@ def main(arguments: argparse.Namespace):
             if e.token_type == TokenType.STRUCT or e.token_type == TokenType.CLASS:
                 exported_classes.append(e)
 
-        exported_namespaces: List[LexgineNamespace] = get_lexgine_namespaces(header_source)
+        exported_namespaces: List[LexgineNamespace] = get_lexgine_namespaces(
+            header_source)
 
         assert len(source_path.parts) > 1
         api_relative_path = create_api_path(source_path)
@@ -1583,27 +1945,59 @@ def main(arguments: argparse.Namespace):
         if source_relative_path not in engine_runtime_resource_map:
             engine_runtime_resource_map[source_relative_path] = []
 
-        def create_resource_descriptor_for_exported_class(parent_resource: Optional[ExportedResourceDescriptor], parsed_class: CppClass,
-                                                          token_type: TokenType, parent_namespace: LexgineNamespace, dependency_names: Iterable[str]) -> ExportedResourceDescriptor:
-            exported_methods_in_class: List[CppMethod] = fetch_list_of_exported_methods_for_class(export_billet, parsed_class)
-            dest_header_name: str = convert_camel_case_to_snake_case(parsed_class["name"])
+        def create_resource_descriptor_for_exported_class(
+                parent_resource: Optional[ExportedResourceDescriptor],
+                parsed_class: CppClass, token_type: TokenType,
+                parent_namespace: LexgineNamespace,
+                dependency_names: Iterable[str]) -> ExportedResourceDescriptor:
+            exported_methods_in_class: List[
+                CppMethod] = fetch_list_of_exported_methods_for_class(
+                    export_billet, parsed_class)
+            dest_header_name: str = convert_camel_case_to_snake_case(
+                parsed_class["name"])
             is_ioc = is_ioc_class(parsed_class, exported_methods_in_class)
-            exported_flags_in_class: List[LexgineFlags] = fetch_list_of_exported_flags_for_class(header_source, export_billet, parsed_class) if is_ioc else None
-            exported_enums_in_class: List[CppEnum] = fetch_list_of_exported_enums_in_class(export_billet, parsed_class) if is_ioc else None
-            exported_unions_in_class: List[CppUnion] = fetch_list_of_exported_unions_in_class(export_billet, parsed_class) if is_ioc else None
-            rv = ExportedResourceDescriptor(short_name=dest_header_name, exporting_header_path=source_relative_path, exporting_header_source=header_source,
-                                            runtime_api_header_path=api_relative_path / f"{dest_header_name}.h", includes=raw_includes, parent_namespace=parent_namespace,
-                                            parsed_class=parsed_class, token_type=token_type, parsed_methods=exported_methods_in_class,
-                                            exported_flags=exported_flags_in_class, exported_enums=exported_enums_in_class,
-                                            exported_unions=exported_unions_in_class, nested_resources=None, parent_resource=parent_resource, is_ioc=is_ioc,
-                                            is_inherited=False, dependency_names=dependency_names)
+            exported_flags_in_class: List[
+                LexgineFlags] = fetch_list_of_exported_flags_for_class(
+                    header_source, export_billet,
+                    parsed_class) if is_ioc else None
+            exported_enums_in_class: List[
+                CppEnum] = fetch_list_of_exported_enums_in_class(
+                    export_billet, parsed_class) if is_ioc else None
+            exported_unions_in_class: List[
+                CppUnion] = fetch_list_of_exported_unions_in_class(
+                    export_billet, parsed_class) if is_ioc else None
+            rv = ExportedResourceDescriptor(
+                short_name=dest_header_name,
+                exporting_header_path=source_relative_path,
+                exporting_header_source=header_source,
+                runtime_api_header_path=api_relative_path /
+                f"{dest_header_name}.h",
+                includes=raw_includes,
+                parent_namespace=parent_namespace,
+                parsed_class=parsed_class,
+                token_type=token_type,
+                parsed_methods=exported_methods_in_class,
+                exported_flags=exported_flags_in_class,
+                exported_enums=exported_enums_in_class,
+                exported_unions=exported_unions_in_class,
+                nested_resources=None,
+                parent_resource=parent_resource,
+                is_ioc=is_ioc,
+                is_inherited=False,
+                dependency_names=dependency_names)
 
-            exported_nested_classes: List[CppClass] = [e for e in parsed_class["nested_classes"] if type(e) is CppClass and e["access_in_parent"] == "public"]
+            exported_nested_classes: List[CppClass] = [
+                e for e in parsed_class["nested_classes"]
+                if type(e) is CppClass and e["access_in_parent"] == "public"
+            ]
 
-            new_inherited_types = [(parent_namespace, e["decl_name"]) for e in parsed_class["inherits"] if e["access"] == "public"]
+            new_inherited_types = [(parent_namespace, e["decl_name"])
+                                   for e in parsed_class["inherits"]
+                                   if e["access"] == "public"]
             mapped_types_indices = []
             for idx, t in enumerate(new_inherited_types):
-                mapped_type = get_inheritance_mapped_type(parent_namespace, t[1], inherited_types_mapping)
+                mapped_type = get_inheritance_mapped_type(
+                    parent_namespace, t[1], inherited_types_mapping)
                 if mapped_type is not None:
                     mapped_types_indices.append(idx)
             for i in mapped_types_indices:
@@ -1612,31 +2006,44 @@ def main(arguments: argparse.Namespace):
 
             if len(exported_nested_classes):
                 parsed_class_line_number_zb = parsed_class["line_number"] - 1
-                parsed_class_begin_idx = get_line_offset(header_source, parsed_class_line_number_zb)
-                _, parsed_class_end_idx = extract_scope(header_source, parsed_class_begin_idx, ScopeType.BRACES)
-                parsed_class_end_line_number_zb = count_lines_till_index(header_source, 0, parsed_class_end_idx)
+                parsed_class_begin_idx = get_line_offset(
+                    header_source, parsed_class_line_number_zb)
+                _, parsed_class_end_idx = extract_scope(
+                    header_source, parsed_class_begin_idx, ScopeType.BRACES)
+                parsed_class_end_line_number_zb = count_lines_till_index(
+                    header_source, 0, parsed_class_end_idx)
 
                 list_of_nested_resources: List[ExportedResourceDescriptor] = []
                 for c in exported_nested_classes:
                     tt = TokenType.CLASS
                     for ref in exported_classes:
-                        if ref.line == c["line_number"] and ref.name == c["name"]:
+                        if ref.line == c["line_number"] and ref.name == c[
+                                "name"]:
                             tt = ref.token_type
                             break
-                    pn = LexgineNamespace(f"{parent_namespace.definition}::{parsed_class['name']}", parsed_class_line_number_zb, parsed_class_end_line_number_zb,
-                                          parsed_class_begin_idx, parsed_class_end_idx)
-                    list_of_nested_resources.append(create_resource_descriptor_for_exported_class(rv, c, tt, pn, []))
+                    pn = LexgineNamespace(
+                        f"{parent_namespace.definition}::{parsed_class['name']}",
+                        parsed_class_line_number_zb,
+                        parsed_class_end_line_number_zb,
+                        parsed_class_begin_idx, parsed_class_end_idx)
+                    list_of_nested_resources.append(
+                        create_resource_descriptor_for_exported_class(
+                            rv, c, tt, pn, []))
 
                 rv.nested_resources = list_of_nested_resources
 
             return rv
 
         for e in exported_classes:
-            parsed_class: Optional[CppClass] = fetch_parsed_class(e, parsed_header.classes)
-            if parsed_class is None:    # can only happen if e is a nested class / struct
+            parsed_class: Optional[CppClass] = fetch_parsed_class(
+                e, parsed_header.classes)
+            if parsed_class is None:  # can only happen if e is a nested class / struct
                 continue
-            parent_namespace: LexgineNamespace = get_lexgine_namespace_for_location(exported_namespaces, parsed_class["line_number"] - 1)
-            desc = create_resource_descriptor_for_exported_class(None, parsed_class, e.token_type, parent_namespace, e.dependency_list)
+            parent_namespace: LexgineNamespace = get_lexgine_namespace_for_location(
+                exported_namespaces, parsed_class["line_number"] - 1)
+            desc = create_resource_descriptor_for_exported_class(
+                None, parsed_class, e.token_type, parent_namespace,
+                e.dependency_list)
             engine_runtime_resource_map[source_relative_path].append(desc)
             all_exported_resources.append(desc)
 
@@ -1654,28 +2061,69 @@ def main(arguments: argparse.Namespace):
                 exported_flags.append(e)
 
         for e in exported_enums + exported_unions:
-            parsed_unions = {k: v for k, v in parsed_header.classes.items() if isinstance(v, CppUnion)}
-            parsed_enum_or_union: Union[CppEnum, CppUnion] = fetch_parsed_enum_or_union(export_billet, e, parsed_header.enums, parsed_unions)
-            parent_namespace: LexgineNamespace = get_lexgine_namespace_for_location(exported_namespaces, parsed_enum_or_union["line_number"] - 1)
-            dest_header_name: str = convert_camel_case_to_snake_case(parsed_enum_or_union["name"])
-            desc = ExportedResourceDescriptor(short_name=dest_header_name, exporting_header_path=source_relative_path, exporting_header_source=header_source,
-                                              runtime_api_header_path=api_relative_path / f"{dest_header_name}.h", includes=raw_includes, parent_namespace=parent_namespace,
-                                              parsed_class=parsed_enum_or_union, token_type=e.token_type, parsed_methods=[], exported_flags=None,
-                                              exported_enums=[parsed_enum_or_union] if isinstance(parsed_enum_or_union, CppEnum) else None,
-                                              exported_unions=[parsed_enum_or_union] if isinstance(parsed_enum_or_union, CppUnion) else None, nested_resources=None,
-                                              parent_resource=None, is_inherited=False, is_ioc=False, dependency_names=e.dependency_list)
+            parsed_unions = {
+                k: v
+                for k, v in parsed_header.classes.items()
+                if isinstance(v, CppUnion)
+            }
+            parsed_enum_or_union: Union[CppEnum,
+                                        CppUnion] = fetch_parsed_enum_or_union(
+                                            export_billet, e,
+                                            parsed_header.enums, parsed_unions)
+            parent_namespace: LexgineNamespace = get_lexgine_namespace_for_location(
+                exported_namespaces, parsed_enum_or_union["line_number"] - 1)
+            dest_header_name: str = convert_camel_case_to_snake_case(
+                parsed_enum_or_union["name"])
+            desc = ExportedResourceDescriptor(
+                short_name=dest_header_name,
+                exporting_header_path=source_relative_path,
+                exporting_header_source=header_source,
+                runtime_api_header_path=api_relative_path /
+                f"{dest_header_name}.h",
+                includes=raw_includes,
+                parent_namespace=parent_namespace,
+                parsed_class=parsed_enum_or_union,
+                token_type=e.token_type,
+                parsed_methods=[],
+                exported_flags=None,
+                exported_enums=[parsed_enum_or_union] if isinstance(
+                    parsed_enum_or_union, CppEnum) else None,
+                exported_unions=[parsed_enum_or_union] if isinstance(
+                    parsed_enum_or_union, CppUnion) else None,
+                nested_resources=None,
+                parent_resource=None,
+                is_inherited=False,
+                is_ioc=False,
+                dependency_names=e.dependency_list)
             engine_runtime_resource_map[source_relative_path].append(desc)
             all_exported_resources.append(desc)
 
         for e in exported_flags:
-            parsed_flags: LexgineFlags = LexgineFlags(header_source, e.line - 1, e.name)
-            parent_namespace: LexgineNamespace = get_lexgine_namespace_for_location(exported_namespaces, e.line - 1)
-            dest_header_name: str = convert_camel_case_to_snake_case(parsed_flags.name)
-            desc = ExportedResourceDescriptor(short_name=dest_header_name, exporting_header_path=source_relative_path, exporting_header_source=header_source,
-                                              runtime_api_header_path=api_relative_path / f"{dest_header_name}.h", includes=raw_includes, parent_namespace=parent_namespace,
-                                              parsed_class=parsed_flags, token_type=e.token_type, parsed_methods=[], exported_flags=[parsed_flags],
-                                              exported_enums=None, exported_unions=None, nested_resources=None, parent_resource=None, is_ioc=False,
-                                              is_inherited=False, dependency_names=e.dependency_list)
+            parsed_flags: LexgineFlags = LexgineFlags(header_source,
+                                                      e.line - 1, e.name)
+            parent_namespace: LexgineNamespace = get_lexgine_namespace_for_location(
+                exported_namespaces, e.line - 1)
+            dest_header_name: str = convert_camel_case_to_snake_case(
+                parsed_flags.name)
+            desc = ExportedResourceDescriptor(
+                short_name=dest_header_name,
+                exporting_header_path=source_relative_path,
+                exporting_header_source=header_source,
+                runtime_api_header_path=api_relative_path /
+                f"{dest_header_name}.h",
+                includes=raw_includes,
+                parent_namespace=parent_namespace,
+                parsed_class=parsed_flags,
+                token_type=e.token_type,
+                parsed_methods=[],
+                exported_flags=[parsed_flags],
+                exported_enums=None,
+                exported_unions=None,
+                nested_resources=None,
+                parent_resource=None,
+                is_ioc=False,
+                is_inherited=False,
+                dependency_names=e.dependency_list)
             engine_runtime_resource_map[source_relative_path].append(desc)
             all_exported_resources.append(desc)
 
@@ -1684,12 +2132,14 @@ def main(arguments: argparse.Namespace):
     all_exported_resources_named_dict = {}
     for r in all_exported_resources:
         parsed_class = r.parsed_class
-        if isinstance(parsed_class, CppClass) or isinstance(parsed_class, CppEnum) or isinstance(parsed_class, CppUnion):
+        if isinstance(parsed_class, CppClass) or isinstance(
+                parsed_class, CppEnum) or isinstance(parsed_class, CppUnion):
             parsed_class_name = f"{r.parent_namespace.definition}::{parsed_class['name']}"
         elif isinstance(parsed_class, LexgineFlags):
             parsed_class_name = f"{r.parent_namespace.definition}::{parsed_class.name}"
         else:
-            raise AssertionError("Invalid exported resource type handling detected")
+            raise AssertionError(
+                "Invalid exported resource type handling detected")
         all_exported_resources_named_dict[parsed_class_name] = r
 
     for resource in all_exported_resources:
@@ -1697,24 +2147,33 @@ def main(arguments: argparse.Namespace):
         for inc in resource.includes:
             if is_engine_path(inc):
                 if inc in engine_runtime_resource_map:
-                    patched_includes += [e.runtime_api_header_path for e in engine_runtime_resource_map[inc]]
+                    patched_includes += [
+                        e.runtime_api_header_path
+                        for e in engine_runtime_resource_map[inc]
+                    ]
                 elif inc in common_resource_headers:
-                    patched_includes.append(convert_engine_path_to_api_path(inc))
+                    patched_includes.append(
+                        convert_engine_path_to_api_path(inc))
             else:
                 patched_includes.append(inc)
         for dependency in resource.dependency_names:
-            namespace_variants, dependency_type = get_context_nested_namespace_variations_for_type_desc(resource.parent_namespace, dependency)
+            namespace_variants, dependency_type = get_context_nested_namespace_variations_for_type_desc(
+                resource.parent_namespace, dependency)
             found_dependency = False
             for variant in namespace_variants:
                 full_qualified_dependency_name_candidate = f"{variant}::{dependency_type}"
                 if full_qualified_dependency_name_candidate in all_exported_resources_named_dict:
-                    patched_includes.append(all_exported_resources_named_dict[full_qualified_dependency_name_candidate].runtime_api_header_path)
+                    patched_includes.append(all_exported_resources_named_dict[
+                        full_qualified_dependency_name_candidate].
+                                            runtime_api_header_path)
                     found_dependency = True
                     break
             if found_dependency is False:
-                parsed_class_name = r.parsed_class.name if isinstance(r.parsed_class, LexgineFlags) else r.parsed_class['name']
-                raise RuntimeError(f"Dependency {dependency} referred by resource {parsed_class_name} is not found among exported resources. Have you forgotten to add "
-                                   f"'LEXGINE_CPP_API' token to the resource declaration?")
+                parsed_class_name = r.parsed_class.name if isinstance(
+                    r.parsed_class, LexgineFlags) else r.parsed_class['name']
+                raise RuntimeError(
+                    f"Dependency {dependency} referred by resource {parsed_class_name} is not found among exported resources. Have you forgotten to add "
+                    f"'LEXGINE_CPP_API' token to the resource declaration?")
         resource.includes = patched_includes
 
         resource_nesting_ravel = resource.ravel()
@@ -1723,39 +2182,60 @@ def main(arguments: argparse.Namespace):
                 all_ioc_resources.append(resource)
 
     for (context_namespace, type_desc) in inherited_types:
-        namespace_variants, type_name = get_context_nested_namespace_variations_for_type_desc(context_namespace, type_desc)
+        namespace_variants, type_name = get_context_nested_namespace_variations_for_type_desc(
+            context_namespace, type_desc)
         for variant in namespace_variants:
             full_qualified_name = f"{variant}::{type_name}"
             if full_qualified_name in all_exported_resources_named_dict:
-                all_exported_resources_named_dict[full_qualified_name].is_inherited = True
+                all_exported_resources_named_dict[
+                    full_qualified_name].is_inherited = True
                 break
 
     common_lib_path: Path = arguments.common_lib
 
-    ioc_traits_export: LexgineDllExportInterface = create_export_interface_imported_opaque_class_traits(all_ioc_resources, configuration)
-    ioc_traits_api: LexgineRuntimeLinkInterface = create_import_interface_imported_opaque_class_traits(all_ioc_resources, configuration)
-    ioc_traits_export.write(engine_path / "engine/core" / SHARED_SYMBOLS_FOLDER_NAME, "ioc_traits")
+    ioc_traits_export: LexgineDllExportInterface = create_export_interface_imported_opaque_class_traits(
+        all_ioc_resources, configuration)
+    ioc_traits_api: LexgineRuntimeLinkInterface = create_import_interface_imported_opaque_class_traits(
+        all_ioc_resources, configuration)
+    ioc_traits_export.write(
+        engine_path / "engine/core" / SHARED_SYMBOLS_FOLDER_NAME, "ioc_traits")
     ioc_traits_api.write(common_lib_path, "ioc_traits")
 
-    runtime_api: LexgineRuntimeLinkInterface = create_import_interface_api_linker(all_ioc_resources, configuration)
+    runtime_api: LexgineRuntimeLinkInterface = create_import_interface_api_linker(
+        all_ioc_resources, configuration)
     runtime_api.write(api_path, "runtime")
 
     for resource in all_exported_resources:
         if type(resource.parsed_class) is CppClass:
             if resource.is_ioc:
-                export_interface = create_export_interface_imported_opaque_class(all_ioc_resources, resource, configuration)
-                import_interface = create_import_interface_imported_opaque_class(all_ioc_resources, resource, inherited_types_mapping, configuration)
+                export_interface = create_export_interface_imported_opaque_class(
+                    all_ioc_resources, resource, configuration)
+                import_interface = create_import_interface_imported_opaque_class(
+                    all_ioc_resources, resource, inherited_types_mapping,
+                    configuration)
 
-                export_interface.write(engine_path / resource.exporting_header_path.parent / SHARED_SYMBOLS_FOLDER_NAME, resource.short_name)
+                export_interface.write(
+                    engine_path / resource.exporting_header_path.parent /
+                    SHARED_SYMBOLS_FOLDER_NAME, resource.short_name)
             else:
-                import_interface = create_import_interface_data_class(resource, configuration)
-            import_interface.write(engine_path / resource.runtime_api_header_path.parent, resource.short_name)
-        elif type(resource.parsed_class) is CppEnum or type(resource.parsed_class) is CppUnion:
-            import_interface = create_import_interface_enumeration(resource, configuration)
-            import_interface.write(engine_path / resource.runtime_api_header_path.parent, resource.short_name)
+                import_interface = create_import_interface_data_class(
+                    resource, configuration)
+            import_interface.write(
+                engine_path / resource.runtime_api_header_path.parent,
+                resource.short_name)
+        elif type(resource.parsed_class) is CppEnum or type(
+                resource.parsed_class) is CppUnion:
+            import_interface = create_import_interface_enumeration(
+                resource, configuration)
+            import_interface.write(
+                engine_path / resource.runtime_api_header_path.parent,
+                resource.short_name)
         elif type(resource.parsed_class) is LexgineFlags:
-            import_interface = create_import_interface_flags(resource, configuration)
-            import_interface.write(engine_path / resource.runtime_api_header_path.parent, resource.short_name)
+            import_interface = create_import_interface_flags(
+                resource, configuration)
+            import_interface.write(
+                engine_path / resource.runtime_api_header_path.parent,
+                resource.short_name)
         else:
             raise AssertionError("Exported resource type is not supported")
 
@@ -1782,15 +2262,28 @@ def main(arguments: argparse.Namespace):
         f.writelines(cpp_list)
 
 
-argument_parser = argparse.ArgumentParser(description="Lexgine DLL interface generator")
-argument_parser.add_argument("--headers", required=True, help="List of paths to the C++ headers to be parsed", dest="headers")
-argument_parser.add_argument("--config", required=True, help="Path to configuration JSON", dest="config")
-argument_parser.add_argument("--output", required=True, help="Output directory where to write the generated interfaces", dest="output", type=Path)
-argument_parser.add_argument("--common-lib", required=True, help="Path to the engine common statically linked library", dest="common_lib", type=Path)
+argument_parser = argparse.ArgumentParser(
+    description="Lexgine DLL interface generator")
+argument_parser.add_argument(
+    "--headers",
+    required=True,
+    help="List of paths to the C++ headers to be parsed",
+    dest="headers")
+argument_parser.add_argument("--config",
+                             required=True,
+                             help="Path to configuration JSON",
+                             dest="config")
+argument_parser.add_argument(
+    "--output",
+    required=True,
+    help="Output directory where to write the generated interfaces",
+    dest="output",
+    type=Path)
+argument_parser.add_argument(
+    "--common-lib",
+    required=True,
+    help="Path to the engine common statically linked library",
+    dest="common_lib",
+    type=Path)
 arguments = argument_parser.parse_args()
 main(arguments)
-
-
-
-
-

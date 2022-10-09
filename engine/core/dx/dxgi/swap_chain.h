@@ -6,7 +6,6 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
-#include "engine/core/swap_chain.h"
 #include "engine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/resource.h"
@@ -43,7 +42,7 @@ struct SwapChainDescriptor
     uint32_t back_buffer_count;
 };
 
-class SwapChain final : public lexgine::core::SwapChain
+class SwapChain final : public core::NamedEntity<lexgine::core::class_names::SwapChain>
 {
     friend class SwapChainAttorney<HwAdapter>;
 
@@ -63,37 +62,34 @@ public:
     osinteraction::windows::Window& window() const;
 
     //! Retrieves current width and height of the swap chain packed into a 2D vector
-    math::Vector2u getDimensions() const override;
+    math::Vector2u getDimensions() const;
 
     //! Retrieves one of the back buffers of the swap chain and wraps it into a Resource object
     dx::d3d12::Resource getBackBuffer(uint32_t buffer_index) const;
 
     //! Returns index of the current back buffer of the swap chain
-    uint32_t getCurrentBackBufferIndex() const override;
+    uint32_t getCurrentBackBufferIndex() const;
 
     //! Puts contents of the back buffer into the front buffer.
-    void present() const override;
+    void present() const;
 
     //! Total back buffer count
-    uint32_t backBufferCount() const override;
+    uint32_t backBufferCount() const;
 
     //! Retrieves descriptor of the swap chain
-    core::SwapChainDescriptor descriptor() const override;
-
-    //! Retrieves descriptor of the swap chain specific to the rendering API
-    dxgi::SwapChainDescriptor extendedDescriptor() const;
+    SwapChainDescriptor descriptor() const;
 
     //! Resizes the swap chain 
-    void resizeBuffers(math::Vector2u const& new_dimensions) override;
+    void resizeBuffers(math::Vector2u const& new_dimensions);
 
     //! Checks if the swap chain is in idle state
-    bool isIdle() const override { return m_swapChainIsIdle; }
+    bool isIdle() const { return m_swapChainIsIdle; }
 
 private:
-    SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory, 
-        d3d12::Device& device, 
+    SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
+        d3d12::Device& device,
         d3d12::CommandQueue const& default_command_queue,
-        osinteraction::windows::Window& window, 
+        osinteraction::windows::Window& window,
         SwapChainDescriptor const& desc);
 
 private:
