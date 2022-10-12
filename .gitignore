@@ -33,9 +33,9 @@
 
 # Visual studio auxiliary files and folders
 **/.vs
-**/x64
-**/Debug
-**/Release
+**/x64/*
+**/Debug/*
+**/Release/*
 *.VC.db
 *.VC.VC.opendb
 *.sdf
@@ -56,7 +56,7 @@ TestLogging/*
 !3rd_party/**/*.dll
 !3rd_party/**/*.exe
 !3rd_party/**/*.lib
-!3rd_party/dxcompiler/*.dll
+!3rd_party/dxcompiler/**/*.dll
 !nuget.exe
 
 # Engine-generated caches
@@ -82,6 +82,6 @@ api/*
 !api/CMakeLists.txt
 
 # Automatically created common library
-common/
+common/*
 !common/CMakeLists.txt
 !common/ioc_traits.h
