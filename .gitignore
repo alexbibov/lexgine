@@ -74,7 +74,7 @@ TestLogging/*
 engine/**/_shared_symbols/
 
 # Automatically generated APIs
-api/
+api/*
 !api/ioc.*
 !api/lexgine_object.*
 !api/link_result.*
