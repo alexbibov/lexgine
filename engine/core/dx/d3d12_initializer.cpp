@@ -168,7 +168,7 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
         builder.registerRootSignatureCompilationTaskCache(*m_rs_cache);
     }
 
-    *m_globals = builder.build();
+    m_globals = builder.build();
 
     setCurrentDevice(0);
 }

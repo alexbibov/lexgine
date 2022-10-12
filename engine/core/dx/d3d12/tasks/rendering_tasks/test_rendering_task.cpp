@@ -35,6 +35,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
                 HeapCreationFlags::base_values::allow_all }
     , m_cb_data_mapping{ m_cb_reflection }
     , m_timestamp{ std::chrono::high_resolution_clock::now().time_since_epoch().count() }
+    , m_box_rotation_angle{ 0.f }
     , m_allocation{ nullptr }
     , m_cmd_list_ptr{ addCommandList() }
 {

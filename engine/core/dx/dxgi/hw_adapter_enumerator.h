@@ -90,23 +90,27 @@ public:
 
 public:
     HwAdapter(HwAdapter const&) = delete;
-    HwAdapter(HwAdapter&&) = default;
+    HwAdapter(HwAdapter&& other) = default;
     ~HwAdapter();
 
 public:
     //! Sends the OS notification requesting to reserve given amount_in_bytes from the video memory for the rendering application.
     void reserveVideoMemory(uint32_t node_index, MemoryBudget budget_type, uint64_t amount_in_bytes) const;
 
+    //! Refreshes memory statistics usage of the adapter
+    void refreshMemoryStatistics() const;
+
     //! Returns properties structure describing this adapter
     Properties getProperties() const;
 
     //! Returns enumerator object that allows to iterate through hardware outputs of the adapter
-    HwOutputEnumerator const& getOutputEnumerator() const;
+    HwOutputEnumerator getOutputEnumerator() const;
 
     //! Creates swap chain for this adapter (or adapter link) and associates it with the given window
     dxgi::SwapChain createSwapChain(osinteraction::windows::Window& window, SwapChainDescriptor const& desc) const;
 
     d3d12::Device& device() const;
+
 
 private:
     //! Constructs wrapper around DXGI adapter. This is normally done only by HwAdapterEnumerator
@@ -116,15 +120,13 @@ private:
 
 private:
     GlobalSettings const& m_global_settings;
-    ComPtr<IDXGIAdapter4> m_dxgi_adapter;	//!< DXGI adapter
     ComPtr<IDXGIFactory6> m_dxgi_adapter_factory;    //!< DXGI factory, which has been used in order to create this adapter
-
-    Properties m_properties;    //!< describes properties of the adapter
-
-    class impl;
-    std::unique_ptr<impl> m_impl;    //!< various properties of the adapter encapsulated in the details class
+    ComPtr<IDXGIAdapter4> m_dxgi_adapter;	//!< DXGI adapter
 
     std::unique_ptr<d3d12::Device> m_device;    //!< d3d12 device associated with the adapter
+    std::unique_ptr<HwOutputEnumerator> m_output_enumerator;
+    mutable Properties m_properties;    //!< describes properties of the adapter
+
 };
 
 template<> class HwAdapterAttorney<HwAdapterEnumerator>

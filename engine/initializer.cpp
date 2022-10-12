@@ -114,6 +114,23 @@ uint32_t Initializer::getAdapterCount() const
 }
 
 
+DeviceDetails Initializer::getDeviceDetails() const
+{
+    auto& adapter = m_d3d12_initializer->getCurrentDeviceHwAdapter();
+    auto adapter_properties = adapter.getProperties();
+
+    DeviceDetails rv{};
+
+    rv.description = adapter_properties.details.name;
+    rv.dedicated_video_memory = adapter_properties.details.dedicated_video_memory;
+    rv.dedicated_system_memory = adapter_properties.details.dedicated_system_memory;
+    rv.shared_system_memory = adapter_properties.details.shared_system_memory;
+    rv.d3d12_feature_level = adapter_properties.d3d12_feature_level;
+
+    return rv;
+}
+
+
 osinteraction::WindowHandler* Initializer::createWindowHandler(osinteraction::windows::Window& window, core::SwapChainDescriptor const& swap_chain_desc, core::SwapChainDepthFormat depth_format)
 {
     switch (m_engine_api)

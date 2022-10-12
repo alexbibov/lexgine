@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <codecvt>
 
 #include "api/runtime.h"
 #include "api/osinteraction/windows/window.h"
@@ -83,6 +84,15 @@ private:
         , m_engine_initializer{ m_engine_settings }
     {
         m_engine_initializer.setCurrentDevice(0);
+        auto device_details = m_engine_initializer.getDeviceDetails();
+        std::string device_string_description{};
+        {
+            using codec = std::codecvt_utf8<wchar_t>;
+            std::wstring_convert<codec, wchar_t> converter;
+            device_string_description = converter.to_bytes(device_details.description);
+        }
+
+        std::cout << device_string_description << std::endl;
         m_window_handler = std::make_unique<lexgine::osinteraction::WindowHandler>(m_engine_initializer.createWindowHandler(m_window, createSwapChainSettings(), lexgine::core::SwapChainDepthFormat::depth32));
         m_window.setVisibility(true);
     }

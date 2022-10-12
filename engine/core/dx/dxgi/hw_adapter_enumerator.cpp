@@ -126,81 +126,13 @@ uint32_t HwAdapterEnumerator::getAdapterCount() const
 }
 
 
-
-
-class HwAdapter::impl final
-{
-public:
-    impl(HwAdapter& enclosing, ComPtr<IDXGIAdapter4> const& adapter, LUID luid, uint32_t num_nodes) :
-        m_enclosing{ enclosing },
-        m_output_enumerator{ adapter, luid },
-        m_num_nodes{ num_nodes },
-        m_local_memory_desc(num_nodes),
-        m_non_local_memory_desc(num_nodes)
-    {
-
-    }
-
-    HwOutputEnumerator const& getOutputEnumeratorForThisAdapter() const
-    {
-        return m_output_enumerator;
-    }
-
-    void refreshMemoryStatistics()
-    {
-        for (uint32_t i = 0; i < m_num_nodes; ++i)
-        {
-            DXGI_QUERY_VIDEO_MEMORY_INFO vm_info_desc;
-
-            LEXGINE_THROW_ERROR_IF_FAILED(
-                m_enclosing,
-                m_enclosing.m_dxgi_adapter->QueryVideoMemoryInfo(i, DXGI_MEMORY_SEGMENT_GROUP::DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &vm_info_desc),
-                S_OK
-            );
-            m_local_memory_desc[i].total = vm_info_desc.Budget;
-            m_local_memory_desc[i].available = vm_info_desc.AvailableForReservation;
-            m_local_memory_desc[i].current_usage = vm_info_desc.CurrentUsage;
-            m_local_memory_desc[i].current_reservation = vm_info_desc.CurrentReservation;
-
-            LEXGINE_THROW_ERROR_IF_FAILED(
-                m_enclosing,
-                m_enclosing.m_dxgi_adapter->QueryVideoMemoryInfo(i, DXGI_MEMORY_SEGMENT_GROUP::DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &vm_info_desc),
-                S_OK
-            );
-            m_non_local_memory_desc[i].total = vm_info_desc.Budget;
-            m_non_local_memory_desc[i].available = vm_info_desc.AvailableForReservation;
-            m_non_local_memory_desc[i].current_usage = vm_info_desc.CurrentUsage;
-            m_non_local_memory_desc[i].current_reservation = vm_info_desc.CurrentReservation;
-        }
-    }
-
-    std::vector<MemoryDesc> const& getLocalMemoryDescription() const
-    {
-        return m_local_memory_desc;
-    }
-
-    std::vector<MemoryDesc> const& getNonLocalMemoryDescription() const
-    {
-        return m_non_local_memory_desc;
-    }
-
-private:
-    HwAdapter& m_enclosing;
-    HwOutputEnumerator m_output_enumerator;
-    uint32_t m_num_nodes;
-    std::vector<MemoryDesc> m_local_memory_desc;
-    std::vector<MemoryDesc> m_non_local_memory_desc;
-};
-
-
-
 HwAdapter::HwAdapter(GlobalSettings const& global_settings,
     ComPtr<IDXGIFactory6> const& adapter_factory,
-    ComPtr<IDXGIAdapter4> const& adapter) :
-    m_global_settings{ global_settings },
-    m_dxgi_adapter{ adapter },
-    m_dxgi_adapter_factory{ adapter_factory },
-    m_impl{ nullptr }
+    ComPtr<IDXGIAdapter4> const& adapter)
+    : m_global_settings{ global_settings }
+    , m_dxgi_adapter_factory{ adapter_factory }
+    , m_dxgi_adapter{ adapter }
+
 {
     DXGI_ADAPTER_DESC3 desc;
     LEXGINE_THROW_ERROR_IF_FAILED(
@@ -234,15 +166,14 @@ HwAdapter::HwAdapter(GlobalSettings const& global_settings,
             logger().out("Device \"" + wstringToAsciiString(m_properties.details.name) +
                 "\": feature level " + feature_level.second + " detected", LogMessageType::information);
 
-            m_impl.reset(new impl{ *this, m_dxgi_adapter, desc.AdapterLuid, d3d12_device->GetNodeCount() });
+            m_output_enumerator.reset(new HwOutputEnumerator{ m_dxgi_adapter, desc.AdapterLuid });
 
 
             m_properties.d3d12_feature_level = feature_level.first;
             m_properties.num_nodes = d3d12_device->GetNodeCount();
-            m_impl->refreshMemoryStatistics();
-            m_properties.local = m_impl->getLocalMemoryDescription();
-            m_properties.non_local = m_impl->getNonLocalMemoryDescription();
-
+            m_properties.local.resize(m_properties.num_nodes);
+            m_properties.non_local.resize(m_properties.num_nodes);
+            refreshMemoryStatistics();
 
             setStringName(wstringToAsciiString(m_properties.details.name) + "_VendorID:" + std::to_string(m_properties.details.vendor_id)
                 + "_DeviceID:" + std::to_string(m_properties.details.device_id) + "_SubSystemID:" + std::to_string(m_properties.details.sub_system_id)
@@ -280,15 +211,43 @@ void HwAdapter::reserveVideoMemory(uint32_t node_index, MemoryBudget budget_type
     );
 }
 
+void HwAdapter::refreshMemoryStatistics() const
+{
+    for (uint32_t i = 0; i < m_properties.num_nodes; ++i)
+    {
+        DXGI_QUERY_VIDEO_MEMORY_INFO vm_info_desc;
+
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            *this,
+            m_dxgi_adapter->QueryVideoMemoryInfo(i, DXGI_MEMORY_SEGMENT_GROUP::DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &vm_info_desc),
+            S_OK
+        );
+        m_properties.local[i].total = vm_info_desc.Budget;
+        m_properties.local[i].available = vm_info_desc.AvailableForReservation;
+        m_properties.local[i].current_usage = vm_info_desc.CurrentUsage;
+        m_properties.local[i].current_reservation = vm_info_desc.CurrentReservation;
+
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            *this,
+            m_dxgi_adapter->QueryVideoMemoryInfo(i, DXGI_MEMORY_SEGMENT_GROUP::DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &vm_info_desc),
+            S_OK
+        );
+        m_properties.non_local[i].total = vm_info_desc.Budget;
+        m_properties.non_local[i].available = vm_info_desc.AvailableForReservation;
+        m_properties.non_local[i].current_usage = vm_info_desc.CurrentUsage;
+        m_properties.non_local[i].current_reservation = vm_info_desc.CurrentReservation;
+    }
+}
+
 HwAdapter::Properties HwAdapter::getProperties() const
 {
-    m_impl->refreshMemoryStatistics();
+    refreshMemoryStatistics();
     return m_properties;
 }
 
-HwOutputEnumerator const& HwAdapter::getOutputEnumerator() const
+HwOutputEnumerator HwAdapter::getOutputEnumerator() const
 {
-    return m_impl->getOutputEnumeratorForThisAdapter();
+    return *m_output_enumerator;
 }
 
 lexgine::core::dx::dxgi::SwapChain HwAdapter::createSwapChain(osinteraction::windows::Window& window, SwapChainDescriptor const& desc) const
@@ -296,6 +255,9 @@ lexgine::core::dx::dxgi::SwapChain HwAdapter::createSwapChain(osinteraction::win
     return SwapChainAttorney<HwAdapter>::makeSwapChain(m_dxgi_adapter_factory, *m_device,
         m_device->defaultCommandQueue(), window, desc);
 }
+
+
+
 
 dx::d3d12::Device& HwAdapter::device() const
 {

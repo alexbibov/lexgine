@@ -10,6 +10,7 @@
 #include "engine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
 #include "engine/core/dx/lexgine_core_dx_fwd.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
+#include "engine/core/dx/dxgi/interface.h"
 #include "engine/osinteraction/windows/lexgine_osinteraction_windows_fwd.h"
 
 #include "engine/core/swap_chain_desc.h"
@@ -34,8 +35,17 @@ struct LEXGINE_CPP_API EngineSettings
     EngineSettings();
 };
 
+struct LEXGINE_CPP_API DeviceDetails
+{
+    std::wstring description;
+    size_t dedicated_video_memory;
+    size_t dedicated_system_memory;
+    size_t shared_system_memory;
+    core::dx::dxgi::D3D12FeatureLevel d3d12_feature_level;
+};
 
-class LEXGINE_CPP_API DEPENDS_ON(EngineSettings) Initializer
+
+class LEXGINE_CPP_API DEPENDS_ON(EngineSettings, DeviceDetails) Initializer
 {
 public:
     Initializer(EngineSettings const& settings);
@@ -43,6 +53,7 @@ public:
 
     LEXGINE_CPP_API bool setCurrentDevice(uint32_t adapter_id);    //! assigns device that will be used for graphics and compute tasks. Returns 'true' on success
     LEXGINE_CPP_API uint32_t getAdapterCount() const;    //! returns total number of adapters installed in the host system including possibly available software devices
+    LEXGINE_CPP_API DeviceDetails getDeviceDetails() const;    //! retrieves detailed information about currently active device
 
     LEXGINE_CPP_API osinteraction::WindowHandler* createWindowHandler(osinteraction::windows::Window & window, core::SwapChainDescriptor const& swap_chain_desc, core::SwapChainDepthFormat depth_format);
 

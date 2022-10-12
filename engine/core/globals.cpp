@@ -26,12 +26,18 @@ void const* Globals::find(misc::HashedString const& hashed_name) const
     return const_cast<Globals*>(this)->find(hashed_name);
 }
 
-bool Globals::put(misc::HashedString const& hashed_name, void* p_object)
+void Globals::put(misc::HashedString const& hashed_name, void* p_object)
 {
-    return m_global_object_pool.insert(std::make_pair(hashed_name, p_object)).second;
+    auto it = m_global_object_pool.find(hashed_name);
+    if (it != m_global_object_pool.end())
+    {
+        it->second = p_object;
+    }
+    else
+    {
+        m_global_object_pool.insert(std::make_pair(hashed_name, p_object)).second;
+    }
 }
-
-
 
 
 void MainGlobalsBuilder::defineGlobalSettings(GlobalSettings& global_settings)
@@ -68,16 +74,15 @@ void MainGlobalsBuilder::registerRootSignatureCompilationTaskCache(dx::d3d12::ta
     m_rs_cache = &rs_cache;
 }
 
-Globals MainGlobalsBuilder::build()
+std::unique_ptr<Globals> MainGlobalsBuilder::build()
 {
-    Globals rv;
-    rv.put(m_global_settings);
-    rv.put(m_logging_streams);
-    rv.put(m_dx_resource_factory);
-    rv.put(m_shader_cache);
-    rv.put(m_pso_cache);
-    rv.put(m_rs_cache);
-
+    std::unique_ptr<Globals> rv = std::make_unique<Globals>();
+    rv->put(m_global_settings);
+    rv->put(m_logging_streams);
+    rv->put(m_dx_resource_factory);
+    rv->put(m_shader_cache);
+    rv->put(m_pso_cache);
+    rv->put(m_rs_cache);
 
     return rv;
 }
