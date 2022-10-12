@@ -73,7 +73,7 @@ QueryCache::QueryCache(GlobalSettings const& settings, Device& device)
     , m_frame_progress_tracker{ device.frameProgressTracker() }
     , m_query_resolve_buffers(settings.getMaxFramesInFlight())
 {
-    std::fill(m_query_heap_capacities.begin(), m_query_heap_capacities.end(), 4096);
+    std::fill(m_query_heap_capacities.begin(), m_query_heap_capacities.end(), 16);
     static_assert(static_cast<uint8_t>(QueryHeapType::count) == c_query_heap_count);
     static_assert(c_query_heap_count + 4 == c_query_type_count);
 }

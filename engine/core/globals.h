@@ -16,7 +16,7 @@ namespace lexgine::core {
 class Globals : NamedEntity<class_names::Globals>
 {
 private:
-    
+
     using global_object_pool_type = std::map<misc::HashedString, void*>;
 
 
@@ -30,14 +30,14 @@ private:
     void* find(misc::HashedString const& hashed_name);
     void const* find(misc::HashedString const& hashed_name) const;
 
-    bool put(misc::HashedString const& hashed_name, void* p_object);
+    void put(misc::HashedString const& hashed_name, void* p_object);
 
 
 public:
 
     template<typename T,
-    typename = typename std::enable_if<
-        std::is_trivially_constructible<T>::value 
+        typename = typename std::enable_if<
+        std::is_trivially_constructible<T>::value
         || std::is_default_constructible<T>::value>::type>
     T* get()
     {
@@ -46,7 +46,7 @@ public:
 
         if ((rv = find(hashed_type_name)))
             return static_cast<T*>(rv);
-        
+
         rv = new T{};
         put(hashed_type_name, rv);
         return static_cast<T*>(rv);
@@ -73,11 +73,11 @@ public:
     }
 
     template<typename T>
-    bool put(T* obj)
+    void put(T* obj)
     {
         static_assert(!std::is_const<T>::value, "constant objects cannot be put into object pool \"Globals\"");
         misc::HashedString hashed_type_name{ typeid(T).name() };
-        return put(hashed_type_name, obj);
+        put(hashed_type_name, obj);
     }
 };
 
@@ -102,7 +102,7 @@ public:
     void registerPSOCompilationTaskCache(dx::d3d12::task_caches::PSOCompilationTaskCache& pso_cache);
     void registerRootSignatureCompilationTaskCache(dx::d3d12::task_caches::RootSignatureCompilationTaskCache& rs_cache);
 
-    Globals build();
+    std::unique_ptr<Globals> build();
 };
 
 
