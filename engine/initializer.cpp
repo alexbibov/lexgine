@@ -48,7 +48,7 @@ Initializer::Initializer(EngineSettings const& settings)
             if (settings.debug_mode)
             {
                 gpu_based_validation_settings.disableResourceStateChecks = false;
-                gpu_based_validation_settings.enableGpuBasedValidation = false;
+                gpu_based_validation_settings.enableGpuBasedValidation = true;
                 gpu_based_validation_settings.enableSynchronizedCommandQueueValidation = true;
             }
             else

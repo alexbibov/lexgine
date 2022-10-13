@@ -30,7 +30,7 @@ namespace {
 std::vector<std::ostream*> convertFileStreamsToGenericStreams(std::vector<std::ofstream>& fstreams)
 {
     std::vector<std::ostream*> res(fstreams.size());
-    std::transform(fstreams.begin(), fstreams.end(), res.begin(), [](std::ofstream& fs)->std::ostream * { return &fs; });
+    std::transform(fstreams.begin(), fstreams.end(), res.begin(), [](std::ofstream& fs)->std::ostream* { return &fs; });
     return res;
 }
 
@@ -132,7 +132,7 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
         m_test_rendering_task_build_cmd_list->updateRenderingConfiguration(flags, m_rendering_configuration);
         m_ui_draw_build_cmd_list->updateRenderingConfiguration(flags, m_rendering_configuration);
 
-        m_task_sink.start(); 
+        m_task_sink.start();
     }
 }
 

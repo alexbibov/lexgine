@@ -6,9 +6,9 @@
 using namespace lexgine::core::concurrency;
 using namespace lexgine::core::misc;
 
-TaskSink::TaskSink(TaskGraph& source_task_graph, 
-    std::vector<std::ostream*> const& worker_thread_logging_streams, 
-    std::string const& debug_name):
+TaskSink::TaskSink(TaskGraph& source_task_graph,
+    std::vector<std::ostream*> const& worker_thread_logging_streams,
+    std::string const& debug_name) :
     m_source_task_graph{ source_task_graph },
     m_task_queue{ source_task_graph.getNumberOfWorkerThreads() },
     m_num_threads_finished{ source_task_graph.getNumberOfWorkerThreads() },
@@ -25,7 +25,7 @@ TaskSink::TaskSink(TaskGraph& source_task_graph,
     }
 }
 
-TaskSink::~TaskSink() 
+TaskSink::~TaskSink()
 {
     if (!m_stop_signal.load(std::memory_order_acquire))
     {
@@ -38,7 +38,7 @@ void TaskSink::start()
     assert(m_stop_signal.load(std::memory_order_acquire));
 
     logger().out(misc::formatString("Starting task sink %s", getStringName().c_str()), LogMessageType::information);
-        
+
     TaskGraphAttorney<TaskSink>::compileTaskGraph(m_source_task_graph);
 
     m_num_threads_finished.store(0, std::memory_order_release);
@@ -47,7 +47,7 @@ void TaskSink::start()
 
     // Start worker threads
     uint8_t i = 0;
-    
+
     for (auto worker = m_workers_list.begin(); worker != m_workers_list.end(); ++worker, ++i)
     {
         logger().out(misc::formatString("Starting worker thread %i", i), LogMessageType::information);
@@ -64,7 +64,7 @@ void TaskSink::submit(uint64_t user_data)
     uint64_t error_status{ 0x0 };
     m_source_task_graph.setUserData(user_data);
 
-    while(!TaskGraphAttorney<TaskSink>::isTaskGraphCompleted(m_source_task_graph) 
+    while (!TaskGraphAttorney<TaskSink>::isTaskGraphCompleted(m_source_task_graph)
         && !(error_status = m_error_watchdog.load(std::memory_order_acquire)))
     {
         bool some_tasks_were_dispatched{ false };
@@ -86,8 +86,8 @@ void TaskSink::submit(uint64_t user_data)
             std::this_thread::yield();
             ++yield_counter;
 
-            if ((yield_counter & 63) == 0)
-                std::this_thread::sleep_for(std::chrono::milliseconds(yield_counter < 1000 ? 0 : 1));
+            if (yield_counter >= 100)
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
@@ -109,7 +109,7 @@ void TaskSink::shutdown()
     assert(!m_stop_signal.load(std::memory_order_acquire));
 
     logger().out(misc::formatString("Task sink %s is shutting down", getStringName().c_str()), LogMessageType::information);
-    
+
     m_stop_signal.store(true, std::memory_order_release);    //! dispatch the stop signal
     while (m_num_threads_finished.load(std::memory_order_acquire) < m_workers_list.size()) YieldProcessor();
     m_task_queue.shutdown();
@@ -127,7 +127,7 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
 {
     if (logging_stream)
     {
-        Log::create(*logging_stream, misc::formatString("Worker #%i", worker_id),  logging_time_zone, logging_dts);
+        Log::create(*logging_stream, misc::formatString("Worker #%i", worker_id), logging_time_zone, logging_dts);
         logger().out(misc::formatString("###### Worker thread %i log start ######", worker_id), LogMessageType::information);
     }
 
@@ -136,7 +136,7 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
     while (!m_error_watchdog.load(std::memory_order_acquire)
         && ((task = m_task_queue.dequeueTask()).isValid() || !m_stop_signal.load(std::memory_order_acquire)))
     {
-        if(task.isValid())
+        if (task.isValid())
         {
             yield_counter = 0;
             TaskGraphNode* unwrapped_task = static_cast<TaskGraphNode*>(task);
@@ -162,7 +162,7 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
         {
             ++yield_counter;
             std::this_thread::yield();
-            
+
             if ((yield_counter & 63) == 0)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(yield_counter < 1000 ? 0 : 1));

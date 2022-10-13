@@ -26,10 +26,10 @@ lexgine::EngineSettings createEngineSettings()
     settings.setEngineApi(EngineApi::Direct3D12);
     auto engineApi = settings.getEngineApi();
 
-    settings.setDebugMode(true);
+    settings.setDebugMode(false);
     settings.setEnableProfiling(true);
     settings.setGlobalLookupPrefix("");
-    settings.setSettingsLookupPath("../../../../lexgine/settings/");
+    settings.setSettingsLookupPath("");
     settings.setGlobalSettingsJsonFile("global_settings.json");
     settings.setLoggingOutputPath("");
     settings.setLogName("swe_demo.log");
@@ -47,8 +47,8 @@ lexgine::core::SwapChainDescriptor createSwapChainSettings()
     lexgine::core::SwapChainDescriptor swap_chain_desc{};
     swap_chain_desc.color_format = lexgine::core::SwapChainColorFormat::r8_g8_b8_a8_unorm;
     swap_chain_desc.back_buffer_count = 2;
-    swap_chain_desc.enable_vsync = false;
-    swap_chain_desc.windowed = true;
+    swap_chain_desc.enable_vsync = true;
+    swap_chain_desc.windowed = false;
     return swap_chain_desc;
 }
 
