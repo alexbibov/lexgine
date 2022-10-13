@@ -72,6 +72,8 @@ QueryCache::QueryCache(GlobalSettings const& settings, Device& device)
     , m_device{ device }
     , m_frame_progress_tracker{ device.frameProgressTracker() }
     , m_query_resolve_buffers(settings.getMaxFramesInFlight())
+    , m_frame_times{}
+    , m_last_measured_time_point{ std::chrono::high_resolution_clock::now() }
 {
     std::fill(m_query_heap_capacities.begin(), m_query_heap_capacities.end(), 16);
     static_assert(static_cast<uint8_t>(QueryHeapType::count) == c_query_heap_count);

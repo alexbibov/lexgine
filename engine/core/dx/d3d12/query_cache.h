@@ -54,7 +54,7 @@ class QueryCache final : public NamedEntity<class_names::D3D12_QueryCache>
 {
     friend class QueryCacheAttorney<CommandList>;
 public:
-    static constexpr size_t c_statistics_package_length = 10;
+    static constexpr size_t c_statistics_package_length = 32;
 public:
     QueryCache(GlobalSettings const& settings, Device& device);
 
@@ -113,11 +113,11 @@ private:
     std::array<Microsoft::WRL::ComPtr<ID3D12QueryHeap>, c_query_heap_count> m_query_heaps;    //!< cached query heaps
     std::vector<std::unique_ptr<CommittedResource>> m_query_resolve_buffers;    //!< resolution buffers employed by the queries
     size_t m_per_frame_resolve_buffer_capacity;    //!< resolve buffer capacity reserved for each frame
-    
+
     std::array<frame_time_resolution, c_statistics_package_length> m_frame_times;    //!< frame times measured on the CPU side
     size_t m_frame_time_measurement_index{ 0ULL };
-    std::chrono::time_point<std::chrono::high_resolution_clock> m_last_measured_time_point;   
-    
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_last_measured_time_point;
+
     mutable std::mutex m_resolve_buffer_mapping_mutex;    //!< mutex guarding resolve buffer mapping
     mutable void const* volatile m_query_resolve_buffer_mapped_addr{ nullptr };
 };

@@ -24,8 +24,8 @@
 
 #include <api/ioc.h>
 #include <common/ioc_traits.h>
-#include <api/preprocessing/preprocessor_tokens.h>
 #include <api/link_result.h>
+#include <api/preprocessing/preprocessor_tokens.h>
 
 
 namespace lexgine::core::dx::d3d12{
