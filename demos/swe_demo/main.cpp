@@ -47,8 +47,8 @@ lexgine::core::SwapChainDescriptor createSwapChainSettings()
     lexgine::core::SwapChainDescriptor swap_chain_desc{};
     swap_chain_desc.color_format = lexgine::core::SwapChainColorFormat::r8_g8_b8_a8_unorm;
     swap_chain_desc.back_buffer_count = 2;
-    swap_chain_desc.enable_vsync = true;
-    swap_chain_desc.windowed = false;
+    swap_chain_desc.enable_vsync = false;
+    swap_chain_desc.windowed = true;
     return swap_chain_desc;
 }
 
