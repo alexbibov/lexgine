@@ -40,4 +40,5 @@ extern char const D3D12_RenderingTasks[] = "lexgine::core::dx::d3d12::RenderingT
 extern char const BasicRenderingServices[] = "lexgine::core::dx::d3d12::BasicRenderingServices";
 extern char const ConstantBufferStream[] = "lexgine::core::dx::d3d12::ConstantBufferStream";
 extern char const SwapChain[] = "lexgine::core::SwapChain";
+
 }

@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_CLASS_NAMES_CLASS_NAMES_H
+#define LEXGINE_CORE_CLASS_NAMES_CLASS_NAMES_H
 
 namespace lexgine::core::class_names {
 
@@ -40,7 +41,7 @@ extern char const D3D12_RenderingTasks[];
 extern char const BasicRenderingServices[];
 extern char const ConstantBufferStream[];
 extern char const SwapChain[];
+
 }
 
-#define LEXGINE_CORE_CLASS_NAMES_CLASS_NAMES_H
 #endif

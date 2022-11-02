@@ -671,7 +671,7 @@ namespace {
         bool va_is_target_format_normalized;
 
         unsigned char ia_slot;
-        unsigned char element_stride;
+        uint32_t element_stride;
         char const* name;
         uint32_t name_index;
         uint32_t instancing_rate;
@@ -710,7 +710,7 @@ namespace {
     };
 
     std::shared_ptr<AbstractVertexAttributeSpecification> createVertexAttributeSpecification(DataFormat type, uint32_t size, bool is_normalized,
-        unsigned char primitive_assembler_input_slot, unsigned char element_stride, char const* name, uint32_t name_index, uint32_t instancing_data_rate)
+        unsigned char primitive_assembler_input_slot, uint32_t element_stride, char const* name, uint32_t name_index, uint32_t instancing_data_rate)
     {
         VATargetSpecification target_spec;
 
