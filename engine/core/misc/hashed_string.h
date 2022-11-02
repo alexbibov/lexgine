@@ -6,7 +6,7 @@
 
 #include "3rd_party/SpookyHash/SpookyV2.h"
 
-namespace lexgine::core::misc{
+namespace lexgine::core::misc {
 
 class HashedString
 {
@@ -50,6 +50,7 @@ struct hash<lexgine::core::misc::HashedString>
         return key.hash();
     }
 };
+
 }
 
 #endif

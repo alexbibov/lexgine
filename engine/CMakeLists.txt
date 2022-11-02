@@ -3,6 +3,7 @@ set(_project_name engine)
 project(${_project_name})
 
 set(_src_root_path ${PROJECT_SOURCE_DIR})
+set(_tests_root_path ${PROJECT_SOURCE_DIR}/tests)
 set(_target ${_project_name})
 
 file(
@@ -25,6 +26,15 @@ execute_process(
 	COMMAND_ECHO STDOUT
 )
 
+# Remove test sources
+foreach(elem ${_sources_list})
+cmake_path(IS_PREFIX _tests_root_path ${elem} result)
+if(result)
+list(REMOVE_ITEM _sources_list ${elem})
+endif() 
+endforeach(elem)
+
+# Remove excluded sources
 file(STRINGS excluded_sources.txt excluded_sources_list)
 foreach(elem ${excluded_sources_list})
 list(REMOVE_ITEM _sources_list ${elem})
@@ -41,14 +51,29 @@ target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/inc/"
                                               "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/Include/WinPixEventRuntime/")
 
-target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/x64")
-target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/bin/x64/")
+target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
+target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/bin/${CMAKE_VS_PLATFORM_NAME}/")
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
-target_link_libraries(${_target} PRIVATE 
-                      "glm_static.lib" "lua.lib" "imgui.lib" "zlib.lib" "pugixml.lib" "spookyhashv2.lib"
-                      "d3dcompiler.lib" "dxgi.lib" "d3d12.lib" "dxcompiler.lib" "WinPixEventRuntime.lib" "common.lib")
+
+set(_engine_lib_dependencies 
+"glm_static.lib" 
+"lua.lib" 
+"imgui.lib" 
+"zlib.lib" 
+"pugixml.lib" 
+"spookyhashv2.lib"
+"d3dcompiler.lib" 
+"dxgi.lib" 
+"d3d12.lib" 
+"dxcompiler.lib" 
+"WinPixEventRuntime.lib" 
+"common.lib")
+target_link_libraries(${_target} PRIVATE ${_engine_lib_dependencies})
 
 add_dependencies(${_target} zlib glm lua imgui pugixml spookyhashv2 common)
+target_compile_definitions(${_target} INTERFACE LEXGINE_GLOBAL_LOOKUP_PREFIX="${CMAKE_SOURCE_DIR}")
+target_compile_definitions(${_target} INTERFACE LEXGINE_SETTINGS_PATH="settings/")
+target_compile_definitions(${_target} INTERFACE LEXGINE_SCRIPTS_PATH="scripts/")
 
 if (MSVC)
     add_compile_definitions(_UNICODE)
@@ -71,4 +96,27 @@ if (MSVC)
 	file(COPY ${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/bin/${CMAKE_VS_PLATFORM_NAME}/WinPixEventRuntime.dll DESTINATION ${_build_runtime_output_directory})
 endif()
 
+set(_dxc_binary_path ${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/bin/${CMAKE_VS_PLATFORM_NAME}/)
+file(COPY ${_dxc_binary_path}/dxcompiler.dll DESTINATION ${_build_runtime_output_directory})
+file(COPY ${_dxc_binary_path}/dxil.dll DESTINATION ${_build_runtime_output_directory})
+
 set_property(TARGET ${_target} PROPERTY OUTPUT_NAME "lexgine")
+
+
+enable_testing()
+add_executable(basic_tests tests/basic_tests.cpp)
+
+target_include_directories(basic_tests PRIVATE "${CMAKE_SOURCE_DIR}")
+
+target_link_directories(basic_tests PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
+target_link_directories(basic_tests PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/bin/${CMAKE_VS_PLATFORM_NAME}/")
+target_link_directories(basic_tests PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
+
+target_link_libraries(basic_tests GTest::gtest_main)
+target_link_libraries(basic_tests ${_engine_lib_dependencies})
+target_link_libraries(basic_tests $<TARGET_OBJECTS:${_target}>)
+target_link_libraries(basic_tests ${_target})
+add_dependencies(basic_tests ${_target})
+
+include(googletest)
+gtest_discover_tests(basic_tests)
