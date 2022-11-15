@@ -6,6 +6,8 @@
 
 #include <engine/core/entity.h>
 #include "class_names.h"
+#include "light.h"
+#include "texture.h"
 
 namespace lexgine::scenegraph
 {
@@ -20,8 +22,22 @@ private:
 
 private:
     std::unordered_map<std::string, bool> m_enabled_extensions = { {c_khr_light_punctual_ext, false} };
+
+private:
+    bool loadLights(tinygltf::Model& model);
+    bool loadTextures(tinygltf::Model& model);
+    bool loadMaterials(tinygltf::Model& model);
+    bool loadMeshes(tinygltf::Model& model);
+    bool loadCameras(tinygltf::Model& model);
+    bool loadNodes(tinygltf::Model& model);
+    bool loadAnimations(tinygltf::Model& model);
+
 private:
     Scene();
+
+private:
+    std::vector<Light> m_lights;
+    std::vector<Texture> m_textures;
 
 };
 
