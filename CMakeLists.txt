@@ -43,8 +43,8 @@ endfunction()
 include(FetchContent)
 FetchContent_Declare(
     googletest
-	GIT_REPOSITORY https://github.com/google/googletest.git
-	GIT_TAG release-1.12.1
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG release-1.12.1
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
@@ -53,7 +53,6 @@ add_subproject(glm 3rd_party)
 add_subproject(imgui 3rd_party)
 add_subproject(pugixml 3rd_party)
 add_subproject(zlib 3rd_party)
-add_subproject(lua 3rd_party)
 add_subproject(SpookyHash 3rd_party)
 add_subproject(engine)
 add_subproject(common)
