@@ -22,8 +22,8 @@ find_package(Python COMPONENTS Interpreter REQUIRED)
 
 execute_process(
     COMMAND ${Python_EXECUTABLE} "${_src_root_path}/preprocessing/generate_dll_interfaces.py" --headers "${_headers_list}" --common-lib "${CMAKE_SOURCE_DIR}/common" --output "\"${CMAKE_SOURCE_DIR}/api\"" --config "${_src_root_path}/preprocessing/config.json"
-	WORKING_DIRECTORY "${_src_root_path}/preprocessing"
-	COMMAND_ECHO STDOUT
+    WORKING_DIRECTORY "${_src_root_path}/preprocessing"
+    COMMAND_ECHO STDOUT
 )
 
 # Remove test sources
@@ -56,8 +56,7 @@ target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixE
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
 
 set(_engine_lib_dependencies 
-"glm_static.lib" 
-"lua.lib" 
+"glm_static.lib"
 "imgui.lib" 
 "zlib.lib" 
 "pugixml.lib" 
@@ -70,7 +69,7 @@ set(_engine_lib_dependencies
 "common.lib")
 target_link_libraries(${_target} PRIVATE ${_engine_lib_dependencies})
 
-add_dependencies(${_target} zlib glm lua imgui pugixml spookyhashv2 common)
+add_dependencies(${_target} zlib glm imgui pugixml spookyhashv2 common)
 target_compile_definitions(${_target} INTERFACE LEXGINE_GLOBAL_LOOKUP_PREFIX="${CMAKE_SOURCE_DIR}")
 target_compile_definitions(${_target} INTERFACE LEXGINE_SETTINGS_PATH="settings/")
 target_compile_definitions(${_target} INTERFACE LEXGINE_SCRIPTS_PATH="scripts/")
