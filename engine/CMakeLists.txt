@@ -49,7 +49,8 @@ target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}"
                                               "${CMAKE_SOURCE_DIR}/api"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/inc/"
-                                              "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/Include/WinPixEventRuntime/")
+                                              "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/Include/WinPixEventRuntime/"
+                                              "${CMAKE_SOURCE_DIR}/3rd_party/DirectXTex/")
 
 target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/bin/${CMAKE_VS_PLATFORM_NAME}/")
