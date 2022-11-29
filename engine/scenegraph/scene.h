@@ -7,6 +7,8 @@
 #include <engine/core/entity.h>
 #include "class_names.h"
 #include "light.h"
+#include "image.h"
+#include "sampler.h"
 #include "texture.h"
 
 namespace lexgine::scenegraph
@@ -36,7 +38,10 @@ private:
     Scene();
 
 private:
+    std::filesystem::path m_scene_path;
     std::vector<Light> m_lights;
+    std::vector<Image> m_images;
+    std::vector<Sampler> m_samplers;
     std::vector<Texture> m_textures;
 
 };

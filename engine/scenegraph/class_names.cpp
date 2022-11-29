@@ -11,5 +11,7 @@ extern char const Mesh[] = "lexgine::scenegraph::Mesh";
 extern char const Submesh[] = "lexgine::scenegraph::Submesh";
 extern char const Node[] = "lexgine::scenegraph::Node";
 extern char const Texture[] = "lexgine::scenegraph::Texture";
+extern char const Image[] = "lexgine::scenegraph::Image";
+extern char const Sampler[] = "lexgine::scenegraph::Sampler";
 
 }

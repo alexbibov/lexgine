@@ -11,6 +11,8 @@ extern char const Mesh[];
 extern char const Submesh[];
 extern char const Node[];
 extern char const Texture[];
+extern char const Image[];
+extern char const Sampler[];
 
 }
 

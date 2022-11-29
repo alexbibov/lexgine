@@ -8,7 +8,7 @@
 #include "misc.h"
 
 
-namespace lexgine::core::misc{
+namespace lexgine::core::misc {
 
 std::wstring asciiStringToWstring(std::string const& str)
 {
@@ -88,6 +88,23 @@ bool readBinaryDataFromSourceFile(std::string const& file_path, void* destinatio
     return false;
 }
 
+Optional<std::vector<uint8_t>> readBinaryDataFromSourceFile(std::string const& file_path)
+{
+    std::ifstream ifile{ file_path, std::ios_base::in | std::ios_base::binary };
+
+    if (ifile)
+    {
+        std::vector<uint8_t> rv{};
+        std::transform(std::istreambuf_iterator<char>{ifile}, std::istreambuf_iterator<char>{},
+            std::back_inserter(rv), [](char c) {return static_cast<uint8_t>(c); });
+
+        ifile.close();
+        return Optional<std::vector<uint8_t>>{rv};
+    }
+
+    return Optional<std::vector<uint8_t>>{};
+}
+
 bool writeBinaryDataToFile(std::string const& file_path, void* source_memory_address, size_t data_size)
 {
     std::ofstream ofile{ file_path, std::ios_base::out | std::ios_base::binary };
@@ -113,12 +130,12 @@ Optional<DateTime> getFileLastUpdatedTimeStamp(std::string const& file_path)
     SYSTEMTIME systime{};
     if (!FileTimeToSystemTime(&last_updated_time, &systime)) return Optional<DateTime>{};
 
-    return DateTime{ systime.wYear, static_cast<uint8_t>(systime.wMonth), static_cast<uint8_t>(systime.wDay), 
+    return DateTime{ systime.wYear, static_cast<uint8_t>(systime.wMonth), static_cast<uint8_t>(systime.wDay),
         static_cast<uint8_t>(systime.wHour), static_cast<uint8_t>(systime.wMinute),
         systime.wSecond + systime.wMilliseconds / 1000.0 };
 }
 
-std::list<std::string> getFilesInDirectory(std::string const& directory_name, std::string const & name_pattern)
+std::list<std::string> getFilesInDirectory(std::string const& directory_name, std::string const& name_pattern)
 {
     {
         DWORD file_attributes = GetFileAttributes(asciiStringToWstring(directory_name).c_str());
@@ -137,7 +154,7 @@ std::list<std::string> getFilesInDirectory(std::string const& directory_name, st
     {
         rv.push_back(wstringToAsciiString(data.cFileName));
     }
-       
+
 
     while (FindNextFile(search_handle, &data))
     {
@@ -156,9 +173,9 @@ uint32_t getSetBitCount(uint64_t value)
 {
     uint64_t rv{ 0U };
 
-    #if defined(_WIN64) && defined(_M_AMD64)
+#if defined(_WIN64) && defined(_M_AMD64)
     return static_cast<uint32_t>(__popcnt64(value));
-    #else
+#else
     rv = value - ((value >> 1) & 0x5555555555555555);
     rv = (rv & 0x3333333333333333) + ((rv >> 2) & 0x3333333333333333);
     rv = (rv & 0x0F0F0F0F0F0F0F0F) + ((rv >> 4) & 0x0F0F0F0F0F0F0F0F);
@@ -166,7 +183,7 @@ uint32_t getSetBitCount(uint64_t value)
     rv = (rv + (rv >> 16)) & 0x0000FFFF0000FFFF;
     rv = (rv & 0x00000000FFFFFFFF) + (rv >> 32);
     return static_cast<uint32_t>(rv);
-    #endif
+#endif
 }
 
 std::string formatString(char const* format_string, ...)

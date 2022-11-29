@@ -24,16 +24,17 @@ std::shared_ptr<Scene> Scene::loadScene(std::filesystem::path const& path_to_sce
     tinygltf::Model gltf_model{};
 
     bool result = gltf_loader.LoadASCIIFromFile(&gltf_model, &error_buffer, &warning_buffer, gltf_path_to_file, tinygltf::SectionCheck::REQUIRE_VERSION);
-    Scene rv{};
+    auto rv = std::shared_ptr<Scene>{ new Scene() };
+    rv->m_scene_path = path_to_scene;
 
 
     if (!result) {
-        LEXGINE_LOG_ERROR(rv, "Unable to load gltf file '" + gltf_path_to_file + "'");
+        LEXGINE_LOG_ERROR(*rv, "Unable to load gltf file '" + gltf_path_to_file + "'");
         return nullptr;
     }
     if (!error_buffer.empty())
     {
-        LEXGINE_LOG_ERROR(rv, "Error loading gltf file '" + gltf_path_to_file + "': " + error_buffer);
+        LEXGINE_LOG_ERROR(*rv, "Error loading gltf file '" + gltf_path_to_file + "': " + error_buffer);
         return nullptr;
     }
 
@@ -43,17 +44,17 @@ std::shared_ptr<Scene> Scene::loadScene(std::filesystem::path const& path_to_sce
     }
 
 
-    rv.setStringName("gltf_scene_" + path_to_scene.stem().string());
+    rv->setStringName("gltf_scene_" + path_to_scene.stem().string());
 
     // Check used extensions
     for (auto& ext : gltf_model.extensionsUsed)
     {
-        auto it = rv.m_enabled_extensions.find(ext);
-        if (it == rv.m_enabled_extensions.end())
+        auto it = rv->m_enabled_extensions.find(ext);
+        if (it == rv->m_enabled_extensions.end())
         {
             if (std::find(gltf_model.extensionsRequired.begin(), gltf_model.extensionsRequired.end(), ext) != gltf_model.extensionsRequired.end())
             {
-                LEXGINE_LOG_ERROR(rv, "Unable to load gltf file '" + gltf_path_to_file + "': required extension " + ext.c_str() + " is not supported");
+                LEXGINE_LOG_ERROR(*rv, "Unable to load gltf file '" + gltf_path_to_file + "': required extension " + ext.c_str() + " is not supported");
                 return nullptr;
             }
             else {
@@ -66,17 +67,15 @@ std::shared_ptr<Scene> Scene::loadScene(std::filesystem::path const& path_to_sce
         }
     }
 
-    if (!rv.loadLights(gltf_model)) return;
-    if (!rv.loadSamplers(gltf_model)) return;
-    if (!rv.loadImages(gltf_model)) return;
-    if (!rv.loadTextures(gltf_model)) return;
-    if (!rv.loadMaterials(gltf_model)) return;
-    if (!rv.loadMeshes(gltf_model)) return;
-    if (!rv.loadCameras(gltf_model)) return;
-    if (!rv.loadNodes(gltf_model)) return;
-    if (!rv.loadAnimations(gltf_model)) return;
+    if (!rv->loadLights(gltf_model)) return nullptr;
+    if (!rv->loadTextures(gltf_model)) return nullptr;
+    if (!rv->loadMaterials(gltf_model)) return nullptr;
+    if (!rv->loadMeshes(gltf_model)) return nullptr;
+    if (!rv->loadCameras(gltf_model)) return nullptr;
+    if (!rv->loadNodes(gltf_model)) return nullptr;
+    if (!rv->loadAnimations(gltf_model)) return nullptr;
 
-    //return rv;
+    return rv;
 }
 
 bool Scene::loadLights(tinygltf::Model& model)
@@ -190,7 +189,25 @@ bool Scene::loadLights(tinygltf::Model& model)
 
 bool Scene::loadTextures(tinygltf::Model& model)
 {
+    size_t const num_images = model.images.size();
+    m_images.reserve(num_images);
 
+    for (size_t i = 0; i < num_images; ++i)
+    {
+        auto& gltf_image = model.images.at(i);
+        if (gltf_image.image.empty())
+        {
+            // image is loaded from uri
+            m_images.emplace_back(m_scene_path / gltf_image.uri);
+        }
+        else
+        {
+            // image is embedded in gltf
+            m_images.emplace_back(std::move(gltf_image.image), static_cast<uint32_t>(gltf_image.width), static_cast<uint32_t>(gltf_image.height));
+        }
+    }
+
+    return true;
 }
 
 }
