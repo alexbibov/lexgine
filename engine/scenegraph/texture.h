@@ -2,6 +2,7 @@
 #define LEXGINE_SCENEGRAPH_TEXTURE_H
 
 #include <engine/core/entity.h>
+#include <engine/scenegraph/class_names.h>
 
 namespace lexgine::scenegraph
 {

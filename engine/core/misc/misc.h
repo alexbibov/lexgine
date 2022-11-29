@@ -124,6 +124,11 @@ unsigned long long getFileSize(std::string const& file_path);
  */
 bool readBinaryDataFromSourceFile(std::string const& file_path, void* destination_memory_address);
 
+/*!Reads binary data from the specified source and returns a buffer populated with the read data wrapped in Optional<> container.
+* Returns invalid Optional<> in case of failure.
+*/
+Optional<std::vector<uint8_t>> readBinaryDataFromSourceFile(std::string const& file_path);
+
 //! Writes provided binary data to file. Returns 'true' in case of success and 'false' in case of failure
 bool writeBinaryDataToFile(std::string const& file_path, void* source_memory_address, size_t data_size);
 
@@ -151,7 +156,7 @@ std::string formatString(char const* format_string, ...);
 
 //! Aligns the given value with the specified alignment and returns the result of this operation
 template<typename T1, typename T2>
-inline decltype(T1{} % T2{}) align(T1 value, T2 alignment)
+inline decltype(T1{}% T2{}) align(T1 value, T2 alignment)
 {
     return value + (alignment - value % alignment) % alignment;
 }
