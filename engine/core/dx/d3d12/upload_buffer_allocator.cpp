@@ -1,15 +1,15 @@
 #include "engine/core/globals.h"
 #include "engine/core/exception.h"
 
-#include "dx_resource_factory.h"
-#include "heap.h"
-#include "device.h"
-#include "frame_progress_tracker.h"
-
+#include "engine/core/dx/d3d12/dx_resource_factory.h"
+#include "engine/core/dx/d3d12/heap.h"
+#include "engine/core/dx/d3d12/device.h"
+#include "engine/core/dx/d3d12/frame_progress_tracker.h"
 #include "upload_buffer_allocator.h"
 
-using namespace lexgine::core;
-using namespace lexgine::core::dx::d3d12;
+
+namespace lexgine::core::dx::d3d12
+{
 
 size_t UploadDataBlock::capacity() const
 {
@@ -305,4 +305,6 @@ uint64_t PerFrameUploadDataStreamAllocator::nextValueOfControllingSignal() const
 uint64_t PerFrameUploadDataStreamAllocator::lastSignaledValueOfControllingSignal() const
 {
     return m_frame_progress_tracker.completedFramesCount();
+}
+
 }

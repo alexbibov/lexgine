@@ -6,10 +6,10 @@
 #undef STB_IMAGE_IMPLEMENTATION
 
 #include <ktx/include/ktx.h>
-
 #include <engine/core/misc/misc.h>
-
 #include "image.h"
+
+#pragma intrinsic (_BitScanReverse)
 
 namespace lexgine::scenegraph
 {
@@ -38,6 +38,37 @@ ktx_error_code_e KTX_APIENTRY ktxIterateLevelsCallback(int level, int face, int 
     mipmap.dimensions = { static_cast<unsigned int>(width), static_cast<unsigned int>(height), static_cast<unsigned int>(depth) };
 
     return KTX_SUCCESS;
+}
+
+
+size_t calculateMipmapCount(size_t base_level_width, size_t base_level_height, size_t base_level_depth)
+{
+    unsigned long iw{}, ih{}, id{};
+    _BitScanReverse(&iw, static_cast<unsigned long>(base_level_width));
+    _BitScanReverse(&ih, static_cast<unsigned long>(base_level_height));
+    _BitScanReverse(&id, static_cast<unsigned long>(base_level_depth));
+    return static_cast<size_t>((std::max)((std::max)(iw, ih), id)) + 1;
+}
+
+
+void createMipmapLevel(std::vector<uint8_t> const& data, size_t element_size, Image::Mipmap const& previous_level_desc, std::vector<uint8_t>& current_level_data)
+{
+    uint8_t const* source_data_ptr = data.data() + previous_level_desc.offset;
+    size_t const row_pitch = previous_level_desc.dimensions.y * element_size;
+    size_t const layer_pitch = previous_level_desc.dimensions.x * row_pitch;
+
+    for (uint32_t k = 0; k < previous_level_desc.dimensions.z; k += 2)
+    {
+        for (uint32_t i = 0; i < previous_level_desc.dimensions.x; i += 2)
+        {
+            size_t offset = k * layer_pitch + i * row_pitch;
+            for (uint32_t j = 0; j < previous_level_desc.dimensions.y; j += 2)
+            {
+                auto src_data_begin = source_data_ptr + offset + j * element_size;
+                current_level_data.insert(current_level_data.end(), src_data_begin, src_data_begin + element_size);
+            }
+        }
+    }
 }
 
 
@@ -70,11 +101,12 @@ Image::Image(std::filesystem::path const& uri)
         {
             int width{}, height{}, nchannels{};
             int const req_component = 4;
+            m_element_size = req_component;
 
             auto image_data = stbi_load_from_memory(data.data(), static_cast<int>(data.size()), &width, &height, &nchannels, req_component);
             m_data = std::vector<uint8_t>{ image_data, image_data + width * height * req_component };
             stbi_image_free(image_data);
-            m_layers.push_back({ .offset = 0, .mipmaps = std::vector<Mipmap>{Mipmap{.offset = 0, .dimensions = {static_cast<unsigned int>(width), static_cast<unsigned int>(height), 1U} }} });
+            m_layers.push_back(Layer{ .offset = 0, .mipmaps = {Mipmap{.offset = 0, .dimensions = {static_cast<unsigned int>(width), static_cast<unsigned int>(height), 1U} }} });
         }
     }
     else if (ext == ".astc")
@@ -110,6 +142,8 @@ Image::Image(std::filesystem::path const& uri)
                 return;
             }
         }
+
+        m_element_size = ktxTexture_GetElementSize(p_ktx_texture);
 
         {
             // Populate mipmap levels and texture layers
@@ -197,6 +231,43 @@ Image::Image(std::filesystem::path const& uri)
         LEXGINE_LOG_ERROR(this, "Error while loading image '" + path + "': unsupported format");
         return;
     }
+
+    generateMipmaps();
+    m_valid = true;
+}
+
+
+Image::Image(std::vector<uint8_t>&& data, uint32_t width, uint32_t height)
+    : m_data{ std::move(data) }
+{
+    m_layers.push_back(Layer{ .offset = 0, .mipmaps = {Mipmap{.offset = 0, .dimensions = {width, height, 1U}} } });
+    generateMipmaps();
+    m_valid = true;
+}
+
+
+void Image::generateMipmaps()
+{
+    std::vector<uint8_t> generated_data{};
+    for (auto& e : m_layers)
+    {
+        auto last_mipmap_level_dimensions = e.mipmaps.back().dimensions;
+        size_t missing_mipmap_count = calculateMipmapCount(last_mipmap_level_dimensions.x, last_mipmap_level_dimensions.y, last_mipmap_level_dimensions.z) - 1;
+        for (size_t i = 0; i < missing_mipmap_count; ++i)
+        {
+            last_mipmap_level_dimensions = {
+                (std::max)(last_mipmap_level_dimensions.x >> 1, 1u),
+                (std::max)(last_mipmap_level_dimensions.y >> 1, 1u),
+                (std::max)(last_mipmap_level_dimensions.z >> 1, 1u)
+            };
+
+            Mipmap level_desc{ m_data.size() + generated_data.size(), last_mipmap_level_dimensions };
+            createMipmapLevel(m_data, m_element_size, e.mipmaps.back(), generated_data);
+            e.mipmaps.push_back(level_desc);
+        }
+    }
+
+    m_data.insert(m_data.end(), generated_data.begin(), generated_data.end());
 }
 
 

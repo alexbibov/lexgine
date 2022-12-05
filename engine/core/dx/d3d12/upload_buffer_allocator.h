@@ -19,6 +19,7 @@ class UploadDataBlock final
 {
     friend class UploadDataAllocator;
     friend class Allocator<UploadDataBlock>::memory_block_type;
+    using memory_block_type = Allocator<UploadDataBlock>::memory_block_type;
 
 public:
     size_t capacity() const;
@@ -30,7 +31,7 @@ public:
     uint32_t offset() const;  //! returns offset of the starting address of the allocation within the upload buffer
 
 private:
-    UploadDataBlock(UploadDataAllocator const& allocator, 
+    UploadDataBlock(UploadDataAllocator const& allocator,
         void* buffer_cpu_addr, uint64_t buffer_virtual_gpu_addr,
         uint64_t signal_value, uint32_t allocation_begin, uint32_t allocation_end);
 
@@ -47,7 +48,7 @@ class UploadDataAllocator : public Allocator<UploadDataBlock>,
     public NamedEntity<class_names::D3D12_UploadBufferAllocator>
 {
 public:
-    UploadDataAllocator(Globals& globals, 
+    UploadDataAllocator(Globals& globals,
         uint64_t offset_from_heap_start, size_t upload_buffer_size);
 
     virtual ~UploadDataAllocator();

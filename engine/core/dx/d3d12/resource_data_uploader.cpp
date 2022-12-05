@@ -10,9 +10,7 @@
 
 #include "engine/core/math/box.h"
 
-using namespace lexgine::core;
-using namespace lexgine::core::dx::d3d12;
-
+namespace lexgine::core::dx::d3d12 {
 
 ResourceDataUploader::ResourceDataUploader(Globals& globals, DedicatedUploadDataStreamAllocator& upload_buffer_allocator)
     : m_device{ *globals.get<Device>() }
@@ -169,4 +167,6 @@ void ResourceDataUploader::endCopy(DestinationDescriptor const& destination_desc
     barriers.addTransitionBarrier(destination_descriptor.p_destination_resource,
         m_copy_destination_resource_state, destination_descriptor.destination_resource_state);
     barriers.applyBarriers(m_upload_command_list);
+}
+
 }
