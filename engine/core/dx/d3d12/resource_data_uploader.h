@@ -48,7 +48,7 @@ public:
         // Describes single subresource from the source data 
         struct Subresource
         {
-            void *p_data;    //!< pointer to the source subresource data
+            void* p_data;    //!< pointer to the source subresource data
             size_t row_pitch;    //!< size in bytes of a single row in the subresource
             size_t slice_pitch;    //!< size in bytes of a single data slice in the subresource
         };
@@ -59,7 +59,7 @@ public:
     //! Describes buffer source dataset
     struct BufferSourceDescriptor
     {
-        void *p_data;    //!< buffer source data
+        void* p_data;    //!< buffer source data
         size_t buffer_size;    //!< size of the buffer given in bytes
     };
 
