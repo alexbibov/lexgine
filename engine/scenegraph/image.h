@@ -32,6 +32,8 @@ public:
 
     operator bool() const { return m_valid; }
 
+    void upload();
+
 private:
     void generateMipmaps();
 

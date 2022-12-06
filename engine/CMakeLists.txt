@@ -68,10 +68,12 @@ set(_engine_lib_dependencies
 "d3d12.lib" 
 "dxcompiler.lib" 
 "WinPixEventRuntime.lib" 
-"common.lib")
+"common.lib"
+"DirectXTex.lib"
+)
 target_link_libraries(${_target} PRIVATE ${_engine_lib_dependencies})
 
-add_dependencies(${_target} zlib glm imgui pugixml spookyhashv2 ktx_read common)
+add_dependencies(${_target} zlib glm imgui pugixml spookyhashv2 ktx_read common DirectXTex)
 target_compile_definitions(${_target} INTERFACE LEXGINE_GLOBAL_LOOKUP_PREFIX="${CMAKE_SOURCE_DIR}")
 target_compile_definitions(${_target} INTERFACE LEXGINE_SETTINGS_PATH="settings/")
 target_compile_definitions(${_target} INTERFACE LEXGINE_SCRIPTS_PATH="scripts/")
