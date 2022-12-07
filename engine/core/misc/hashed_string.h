@@ -2,7 +2,6 @@
 #define LEXGINE_CORE_MISC_HASHED_STRING_H
 
 #include <string>
-#include <functional>
 
 #include "3rd_party/SpookyHash/SpookyV2.h"
 
