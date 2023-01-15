@@ -25,8 +25,8 @@ EngineSettings::EngineSettings()
     : engine_api{ core::EngineApi::Direct3D12 }
     , debug_mode{ false }
     , enable_profiling{ false }
-    , global_lookup_prefix{ "" }
-    , settings_lookup_path{ "" }
+    , global_lookup_prefix{ LEXGINE_GLOBAL_LOOKUP_PREFIX }
+    , settings_lookup_path{ LEXGINE_SETTINGS_PATH }
     , logging_output_path{ "" }
     , log_name{ "lexgine.log" }
 {

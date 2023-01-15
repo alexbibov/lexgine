@@ -28,8 +28,6 @@ lexgine::EngineSettings createEngineSettings()
 
     settings.setDebugMode(false);
     settings.setEnableProfiling(true);
-    settings.setGlobalLookupPrefix("");
-    settings.setSettingsLookupPath("");
     settings.setGlobalSettingsJsonFile("global_settings.json");
     settings.setLoggingOutputPath("");
     settings.setLogName("swe_demo.log");
