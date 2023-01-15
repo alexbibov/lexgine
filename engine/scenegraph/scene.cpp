@@ -1,17 +1,16 @@
 
+#define TINYGLTF_IMPLEMENTATION
+#define TINYGLTF_NO_STB_IMAGE_WRITE
 #include <tinygltf/tiny_gltf.h>
+#undef TINYGLTF_IMPLEMENTATION
+#undef TINYGLTF_NO_STB_IMAGE_WRITE
+
 #include <3rd_party/glm/gtc/constants.hpp>
 #include "scene.h"
 
 namespace lexgine::scenegraph
 {
 
-namespace
-{
-
-
-
-}
 
 std::shared_ptr<Scene> Scene::loadScene(std::filesystem::path const& path_to_scene, int scene_index /* = -1 */)
 {
@@ -69,11 +68,11 @@ std::shared_ptr<Scene> Scene::loadScene(std::filesystem::path const& path_to_sce
 
     if (!rv->loadLights(gltf_model)) return nullptr;
     if (!rv->loadTextures(gltf_model)) return nullptr;
-    if (!rv->loadMaterials(gltf_model)) return nullptr;
+    /*if (!rv->loadMaterials(gltf_model)) return nullptr;
     if (!rv->loadMeshes(gltf_model)) return nullptr;
     if (!rv->loadCameras(gltf_model)) return nullptr;
     if (!rv->loadNodes(gltf_model)) return nullptr;
-    if (!rv->loadAnimations(gltf_model)) return nullptr;
+    if (!rv->loadAnimations(gltf_model)) return nullptr;*/
 
     return rv;
 }

@@ -15,7 +15,7 @@
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
-ResourceViewDescriptorTableBuilder::ResourceViewDescriptorTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page_id):
+ResourceViewDescriptorTableBuilder::ResourceViewDescriptorTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page_id) :
     m_globals{ globals },
     m_target_descriptor_heap_page_id{ target_descriptor_heap_page_id },
     m_currently_assembled_range{ descriptor_cache_type::none }
@@ -80,9 +80,9 @@ ShaderResourceDescriptorTable ResourceViewDescriptorTableBuilder::build() const
             return a + static_cast<uint32_t>(range.end - range.start);
         }
     );
-   
-    auto& target_descriptor_heap = 
-        m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(*m_globals.get<Device>(), 
+
+    auto& target_descriptor_heap =
+        m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(*m_globals.get<Device>(),
             DescriptorHeapType::cbv_srv_uav, m_target_descriptor_heap_page_id);
 
     uint32_t offset = target_descriptor_heap.reserveDescriptors(total_descriptor_count);
@@ -118,11 +118,11 @@ ShaderResourceDescriptorTable ResourceViewDescriptorTableBuilder::build() const
             break;
         }
     }
-    
+
     return rv;
 }
 
-SamplerDescriptorTableBuilder::SamplerDescriptorTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page):
+SamplerDescriptorTableBuilder::SamplerDescriptorTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page) :
     m_globals{ globals },
     m_target_descriptor_heap_page_id{ target_descriptor_heap_page }
 {
@@ -151,7 +151,7 @@ ShaderResourceDescriptorTable SamplerDescriptorTableBuilder::build() const
     return rv;
 }
 
-RenderTargetViewTableBuilder::RenderTargetViewTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page):
+RenderTargetViewTableBuilder::RenderTargetViewTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page) :
     m_globals{ globals },
     m_target_descriptor_heap_page_id{ target_descriptor_heap_page }
 {
@@ -171,16 +171,16 @@ RenderTargetViewDescriptorTable RenderTargetViewTableBuilder::build() const
     uint32_t descriptor_size = target_descriptor_heap.getDescriptorSize();
     size_t cpu_ptr = target_descriptor_heap.getBaseCPUPointer()
         + offset * descriptor_size;
-    uint64_t gpu_ptr = target_descriptor_heap.getBaseGPUPointer()
-        + offset * descriptor_size;
-    RenderTargetViewDescriptorTable rv{ cpu_ptr, gpu_ptr, static_cast<uint32_t>(m_rtv_descriptors.size()), descriptor_size };
+    /*uint64_t gpu_ptr = target_descriptor_heap.getBaseGPUPointer()
+        + offset * descriptor_size;*/
+    RenderTargetViewDescriptorTable rv{ cpu_ptr, 0, static_cast<uint32_t>(m_rtv_descriptors.size()), descriptor_size };
 
     target_descriptor_heap.createRenderTargetViewDescriptors(offset, m_rtv_descriptors);
 
     return rv;
 }
 
-DepthStencilViewTableBuilder::DepthStencilViewTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page):
+DepthStencilViewTableBuilder::DepthStencilViewTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page) :
     m_globals{ globals },
     m_target_descriptor_heap_page_id{ target_descriptor_heap_page }
 {
@@ -200,9 +200,9 @@ DepthStencilViewDescriptorTable DepthStencilViewTableBuilder::build() const
     uint32_t descriptor_size = target_descriptor_heap.getDescriptorSize();
     size_t cpu_ptr = target_descriptor_heap.getBaseCPUPointer()
         + offset * descriptor_size;
-    uint64_t gpu_ptr = target_descriptor_heap.getBaseGPUPointer()
-        + offset * descriptor_size;
-    DepthStencilViewDescriptorTable rv{ cpu_ptr, gpu_ptr, static_cast<uint32_t>(m_dsv_descriptors.size()), descriptor_size };
+    /*uint64_t gpu_ptr = target_descriptor_heap.getBaseGPUPointer()
+        + offset * descriptor_size;*/
+    DepthStencilViewDescriptorTable rv{ cpu_ptr, 0, static_cast<uint32_t>(m_dsv_descriptors.size()), descriptor_size };
 
     target_descriptor_heap.createDepthStencilViewDescriptors(offset, m_dsv_descriptors);
 

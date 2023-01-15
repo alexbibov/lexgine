@@ -5,7 +5,10 @@
 #include <stb/stb_image.h>
 #undef STB_IMAGE_IMPLEMENTATION
 
+#define KHRONOS_STATIC
 #include <ktx/include/ktx.h>
+#undef KHRONOS_STATIC
+
 #include <engine/core/misc/misc.h>
 #include "image.h"
 

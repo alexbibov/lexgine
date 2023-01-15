@@ -35,7 +35,7 @@ private:
     bool loadAnimations(tinygltf::Model& model);
 
 private:
-    Scene();
+    Scene() = default;
 
 private:
     std::filesystem::path m_scene_path;

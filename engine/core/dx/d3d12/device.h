@@ -20,6 +20,7 @@
 #include "command_queue.h"
 #include "command_allocator_ring.h"
 #include "frame_progress_tracker.h"
+#include "engine/core/misc/flags.h"
 
 
 
@@ -86,9 +87,102 @@ enum class D3D12ResourceHeapTier
 };
 
 
+enum class D3D12ProgrammableSamplePositionsTier
+{
+    not_supported = D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED,
+    tier1 = D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_1,
+    tier2 = D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_2
+};
+
+
+enum class D3D12CommandListSupportFlags
+{
+    none = D3D12_COMMAND_LIST_SUPPORT_FLAG_NONE,
+    direct = D3D12_COMMAND_LIST_SUPPORT_FLAG_DIRECT,
+    bundle = D3D12_COMMAND_LIST_SUPPORT_FLAG_BUNDLE,
+    compute = D3D12_COMMAND_LIST_SUPPORT_FLAG_COMPUTE,
+    copy = D3D12_COMMAND_LIST_SUPPORT_FLAG_COPY,
+    decode = D3D12_COMMAND_LIST_SUPPORT_FLAG_VIDEO_DECODE,
+    process = D3D12_COMMAND_LIST_SUPPORT_FLAG_VIDEO_PROCESS,
+    encode = D3D12_COMMAND_LIST_SUPPORT_FLAG_VIDEO_ENCODE
+};
+
+
+enum class D3D12ViewInstancingTier
+{
+    not_supported = D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED,
+    tier1 = D3D12_VIEW_INSTANCING_TIER_1,
+    tier2 = D3D12_VIEW_INSTANCING_TIER_2,
+    tier3 = D3D12_VIEW_INSTANCING_TIER_3
+};
+
+
+enum class D3D12SharedResourceCompatibilityTier
+{
+    tier0 = D3D12_SHARED_RESOURCE_COMPATIBILITY_TIER_0,
+    tier1 = D3D12_SHARED_RESOURCE_COMPATIBILITY_TIER_1,
+    tier2 = D3D12_SHARED_RESOURCE_COMPATIBILITY_TIER_2
+};
+
+
+enum class D3D12RenderPassTier
+{
+    tier0 = D3D12_RENDER_PASS_TIER_0,
+    tier1 = D3D12_RENDER_PASS_TIER_1,
+    tier2 = D3D12_RENDER_PASS_TIER_2
+};
+
+
+enum class D3D12RaytracingTier
+{
+    not_supported = D3D12_RAYTRACING_TIER_NOT_SUPPORTED,
+    tier_1_0 = D3D12_RAYTRACING_TIER_1_0,
+    tier_1_1 = D3D12_RAYTRACING_TIER_1_1
+};
+
+
+enum class D3D12VariableShadingRateTier
+{
+    not_supported = D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED,
+    tier1 = D3D12_VARIABLE_SHADING_RATE_TIER_1,
+    tier2 = D3D12_VARIABLE_SHADING_RATE_TIER_2
+};
+
+
+enum class D3D12MeshShaderTier
+{
+    not_supported = D3D12_MESH_SHADER_TIER_NOT_SUPPORTED,
+    tier1 = D3D12_MESH_SHADER_TIER_1
+};
+
+
+enum class D3D12SamplerFeedbackTier
+{
+    not_supported = D3D12_SAMPLER_FEEDBACK_TIER_NOT_SUPPORTED,
+    tier_0_9 = D3D12_SAMPLER_FEEDBACK_TIER_0_9,
+    tier_1_0 = D3D12_SAMPLER_FEEDBACK_TIER_1_0
+};
+
+
+enum class D3D12WaveMMATier
+{
+    not_supported = D3D12_WAVE_MMA_TIER_NOT_SUPPORTED,
+    tier_1_0 = D3D12_WAVE_MMA_TIER_1_0
+};
+
+
+enum class D3D12TriState
+{
+    unknown = D3D12_TRI_STATE_UNKNOWN,
+    _false = D3D12_TRI_STATE_FALSE,
+    _true = D3D12_TRI_STATE_TRUE
+};
+
+
 //! Thin wrapper over D3D12_FEATURE_DATA_D3D12_OPTIONS
 struct FeatureD3D12Options final
 {
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS
     bool doublePrecisionFloatShaderOps;
     bool outputMergerLogicOp;
     ShaderPrecisionMode minPrecisionSupport;
@@ -104,6 +198,90 @@ struct FeatureD3D12Options final
     bool crossAdapterRowMajorTextureSupported;
     bool VPAndRTArrayIndexFromAnyShaderFeedingRasterizerSupportedWithoutGSEmulation;
     D3D12ResourceHeapTier resourceHeapTier;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS1
+    bool waveOps;
+    uint32_t waveLaneCountMin;
+    uint32_t waveLaneCountMax;
+    uint32_t totalLaneCount;
+    bool expandedComputeResourceStates;
+    bool int64ShaderOps;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS2
+    bool depthBoundsTestSupported;
+    D3D12ProgrammableSamplePositionsTier programmableSamplePositionsTier;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS3
+    bool copyQueueTimestampQueriesSupported;
+    bool castingFullyTypedFormatSupported;
+    misc::Flags<D3D12CommandListSupportFlags> writeBufferImmediateSupportFlags;
+    D3D12ViewInstancingTier viewInstancingTier;
+    bool barycentricsSupported;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS4
+    bool msaa64KBAlignedTextureSupported;
+    D3D12SharedResourceCompatibilityTier sharedResourceCompatibilityTier;
+    bool native16BitShaderOpsSupported;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS5
+    bool srvOnlyTiledResourceTier3;
+    D3D12RenderPassTier renderPassesTier;
+    D3D12RaytracingTier  raytracingTier;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS6
+    bool additionalShadingRatesSupported;
+    bool perPrimitiveShadingRateSupportedWithViewportIndexing;
+    D3D12VariableShadingRateTier variableShadingRateTier;
+    uint32_t shadingRateImageTileSize;
+    bool backgroundProcessingSupported;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS7
+    D3D12MeshShaderTier      meshShaderTier;
+    D3D12SamplerFeedbackTier samplerFeedbackTier;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS8
+    bool unalignedBlockTexturesSupported;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS9
+    bool meshShaderPipelineStatsSupported;
+    bool meshShaderSupportsFullRangeRenderTargetArrayIndex;
+    bool atomicInt64OnTypedResourceSupported;
+    bool atomicInt64OnGroupSharedSupported;
+    bool derivativesInMeshAndAmplificationShadersSupported;
+    D3D12WaveMMATier waveMMATier;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS10
+    bool variableRateShadingSumCombinerSupported;
+    bool meshShaderPerPrimitiveShadingRateSupported;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS11
+    bool atomicInt64OnDescriptorHeapResourceSupported;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS12
+    D3D12TriState msPrimitivesPipelineStatisticIncludesCulledPrimitives;
+    bool enhancedBarriersSupported;
+    bool relaxedFormatCastingSupported;
+
+
+    // D3D12_FEATURE_DATA_D3D12_OPTIONS13
+    bool unrestrictedBufferTextureCopyPitchSupported;
+    bool unrestrictedVertexElementAlignmentSupported;
+    bool invertedViewportHeightFlipsYSupported;
+    bool invertedViewportDepthFlipsZSupported;
+    bool textureCopyBetweenDimensionsSupported;
+    bool alphaBlendFactorSupported;
 };
 
 //! Thin wrapper over D3D12_FEATURE_DATA_ARCHITECTURE
@@ -225,6 +403,8 @@ private:
     CommandQueue m_default_command_queue;
     CommandQueue m_async_command_queue;
     CommandQueue m_copy_command_queue;
+
+    mutable std::unique_ptr<FeatureD3D12Options> m_features;    //!< device features
 };
 
 

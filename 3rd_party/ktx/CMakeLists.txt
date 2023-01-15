@@ -3,13 +3,13 @@
 
 cmake_minimum_required(VERSION 3.15)
 
-project(KTX-Software DESCRIPTION "Libraries and tools to create and read KTX image texture files.")
+project(ktx DESCRIPTION "Libraries and tools to create and read KTX image texture files.")
 
 # OPTIONS
 set( LIB_TYPE_DEFAULT ON )
 
 option( KTX_FEATURE_DOC "Create KTX documentation" OFF )
-option( KTX_FEATURE_STATIC_LIBRARY "Create static libraries (shared otherwise)" ${LIB_TYPE_DEFAULT} )
+# option( KTX_FEATURE_STATIC_LIBRARY "Create static libraries (shared otherwise)" ${LIB_TYPE_DEFAULT} )
 option( KTX_FEATURE_TESTS "Create unit tests" ON )
 option( BASISU_SUPPORT_SSE "Compile with SSE support so applications can choose to use it" ON )
 
@@ -28,11 +28,12 @@ if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8 OR FORCE32)
 	set(bitness 32)
 endif()
 
-if(KTX_FEATURE_STATIC_LIBRARY)
-    set(LIB_TYPE STATIC)
-else()
-    set(LIB_TYPE SHARED)
-endif()
+# if(KTX_FEATURE_STATIC_LIBRARY)
+#     set(LIB_TYPE STATIC)
+# else()
+#     set(LIB_TYPE SHARED)
+# endif()
+set(LIB_TYPE STATIC)
 
 # Global Optimization Flags
 if(MSVC)
@@ -102,9 +103,7 @@ set(KTX_MAIN_SRC
 #     )
 
 # Read-only library
-add_library( ktx_read ${LIB_TYPE}
-    ${KTX_MAIN_SRC}
-    )
+add_library(ktx_read ${LIB_TYPE} ${KTX_MAIN_SRC})
 
 macro(commom_lib_settings lib write)
 
