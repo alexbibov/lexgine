@@ -75,7 +75,7 @@ QueryCache::QueryCache(GlobalSettings const& settings, Device& device)
     , m_frame_times{}
     , m_last_measured_time_point{ std::chrono::high_resolution_clock::now() }
 {
-    std::fill(m_query_heap_capacities.begin(), m_query_heap_capacities.end(), 16);
+    std::fill(m_query_heap_capacities.begin(), m_query_heap_capacities.end(), 0);
     static_assert(static_cast<uint8_t>(QueryHeapType::count) == c_query_heap_count);
     static_assert(c_query_heap_count + 4 == c_query_type_count);
 }
@@ -180,10 +180,19 @@ void QueryCache::initQueryCache()
     {
         m_query_heaps[heap_id].Reset();
 
+        if (static_cast<QueryHeapType>(heap_id) == QueryHeapType::copy_queue_timestamp)
+        {
+            auto device_features = m_device.queryFeatureD3D12Options();
+            if (!device_features.copyQueueTimestampQueriesSupported) {
+                continue;
+            }
+        }
+
         D3D12_QUERY_HEAP_DESC desc;
         desc.Type = toNativeQueryHeapType(heap_id);
         desc.Count = static_cast<UINT>(getHeapQueryCount(heap_id));
         desc.NodeMask = 0x1;
+
 
         if (desc.Count)
         {
@@ -300,9 +309,16 @@ void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
             break;
         }
 
+
+
         case QueryHeapType::timestamp:
+            native_command_list->ResolveQueryData(native_query_heap, D3D12_QUERY_TYPE_TIMESTAMP, 0,
+                m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][0]], current_query_resolve_buffer->native().Get(),
+                resolve_destination_base_offset);
+            break;
+
         case QueryHeapType::copy_queue_timestamp:
-            if (heap_type == QueryHeapType::copy_queue_timestamp && cmd_list.commandType() == CommandType::copy || heap_type == QueryHeapType::timestamp)
+            if (cmd_list.commandType() == CommandType::copy)
             {
                 native_command_list->ResolveQueryData(native_query_heap, D3D12_QUERY_TYPE_TIMESTAMP, 0,
                     m_query_heap_capacities[query_heap_type_to_capacity_cache_map[heap_id][0]], current_query_resolve_buffer->native().Get(),

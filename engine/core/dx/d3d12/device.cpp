@@ -40,29 +40,228 @@ Device::Device(ComPtr<ID3D12Device6> const& device, lexgine::core::GlobalSetting
 
 FeatureD3D12Options Device::queryFeatureD3D12Options() const
 {
+    if (m_features) {
+        return *m_features;
+    }
+
     FeatureD3D12Options rv{};
 
-    D3D12_FEATURE_DATA_D3D12_OPTIONS feature_desc;
-    LEXGINE_THROW_ERROR_IF_FAILED(
-        this,
-        m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS)),
-        S_OK
-    );
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS
 
-    rv.doublePrecisionFloatShaderOps = feature_desc.DoublePrecisionFloatShaderOps == TRUE;
-    rv.outputMergerLogicOp = feature_desc.OutputMergerLogicOp == TRUE;
-    rv.minPrecisionSupport = feature_desc.MinPrecisionSupport;
-    rv.tiledResourcesTier = static_cast<D3D12TiledResourceTier>(feature_desc.TiledResourcesTier);
-    rv.resourceBindingTier = static_cast<D3D12ResourceBindingTier>(feature_desc.ResourceBindingTier);
-    rv.PSSpecifiedStencilRefSupported = feature_desc.PSSpecifiedStencilRefSupported == TRUE;
-    rv.typedUAVLoadAdditionalFormats = feature_desc.TypedUAVLoadAdditionalFormats == TRUE;
-    rv.ROVsSupported = feature_desc.ROVsSupported == TRUE;
-    rv.conservativeRasterizationTier = static_cast<D3D12ConservativeRasterization>(feature_desc.ConservativeRasterizationTier);
-    rv.standardSwizzle64KBSupported = feature_desc.StandardSwizzle64KBSupported == TRUE;
-    rv.crossNodeSharingTier = static_cast<D3D12CrossNodeSharingTier>(feature_desc.CrossNodeSharingTier);
-    rv.crossAdapterRowMajorTextureSupported = feature_desc.CrossAdapterRowMajorTextureSupported == TRUE;
-    rv.VPAndRTArrayIndexFromAnyShaderFeedingRasterizerSupportedWithoutGSEmulation = feature_desc.VPAndRTArrayIndexFromAnyShaderFeedingRasterizerSupportedWithoutGSEmulation == TRUE;
-    rv.resourceHeapTier = static_cast<D3D12ResourceHeapTier>(feature_desc.ResourceHeapTier);
+        D3D12_FEATURE_DATA_D3D12_OPTIONS feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS)),
+            S_OK
+        );
+
+        rv.doublePrecisionFloatShaderOps = feature_desc.DoublePrecisionFloatShaderOps == TRUE;
+        rv.outputMergerLogicOp = feature_desc.OutputMergerLogicOp == TRUE;
+        rv.minPrecisionSupport = feature_desc.MinPrecisionSupport;
+        rv.tiledResourcesTier = static_cast<D3D12TiledResourceTier>(feature_desc.TiledResourcesTier);
+        rv.resourceBindingTier = static_cast<D3D12ResourceBindingTier>(feature_desc.ResourceBindingTier);
+        rv.PSSpecifiedStencilRefSupported = feature_desc.PSSpecifiedStencilRefSupported == TRUE;
+        rv.typedUAVLoadAdditionalFormats = feature_desc.TypedUAVLoadAdditionalFormats == TRUE;
+        rv.ROVsSupported = feature_desc.ROVsSupported == TRUE;
+        rv.conservativeRasterizationTier = static_cast<D3D12ConservativeRasterization>(feature_desc.ConservativeRasterizationTier);
+        rv.standardSwizzle64KBSupported = feature_desc.StandardSwizzle64KBSupported == TRUE;
+        rv.crossNodeSharingTier = static_cast<D3D12CrossNodeSharingTier>(feature_desc.CrossNodeSharingTier);
+        rv.crossAdapterRowMajorTextureSupported = feature_desc.CrossAdapterRowMajorTextureSupported == TRUE;
+        rv.VPAndRTArrayIndexFromAnyShaderFeedingRasterizerSupportedWithoutGSEmulation = feature_desc.VPAndRTArrayIndexFromAnyShaderFeedingRasterizerSupportedWithoutGSEmulation == TRUE;
+        rv.resourceHeapTier = static_cast<D3D12ResourceHeapTier>(feature_desc.ResourceHeapTier);
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS1
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS1 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS1, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS1)),
+            S_OK
+        );
+        rv.waveOps = feature_desc.WaveOps;
+        rv.waveLaneCountMin = static_cast<uint32_t>(feature_desc.WaveLaneCountMin);
+        rv.waveLaneCountMax = static_cast<uint32_t>(feature_desc.WaveLaneCountMax);
+        rv.totalLaneCount = static_cast<uint32_t>(feature_desc.TotalLaneCount);
+        rv.expandedComputeResourceStates = feature_desc.ExpandedComputeResourceStates;
+        rv.int64ShaderOps = feature_desc.Int64ShaderOps;
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS2
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS2 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS2, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS2)),
+            S_OK
+        );
+        rv.depthBoundsTestSupported = feature_desc.DepthBoundsTestSupported;
+        rv.programmableSamplePositionsTier = static_cast<D3D12ProgrammableSamplePositionsTier>(feature_desc.ProgrammableSamplePositionsTier);
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS3
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS3 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS3, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS3)),
+            S_OK
+        );
+        rv.copyQueueTimestampQueriesSupported = feature_desc.CopyQueueTimestampQueriesSupported;
+        rv.castingFullyTypedFormatSupported = feature_desc.CastingFullyTypedFormatSupported;
+        rv.writeBufferImmediateSupportFlags = misc::Flags<D3D12CommandListSupportFlags>{ feature_desc.WriteBufferImmediateSupportFlags };
+        rv.viewInstancingTier = static_cast<D3D12ViewInstancingTier>(feature_desc.ViewInstancingTier);
+        rv.barycentricsSupported = feature_desc.BarycentricsSupported;
+
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS4
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS4 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS4, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS4)),
+            S_OK
+        );
+        rv.msaa64KBAlignedTextureSupported = feature_desc.MSAA64KBAlignedTextureSupported;
+        rv.sharedResourceCompatibilityTier = static_cast<D3D12SharedResourceCompatibilityTier>(feature_desc.SharedResourceCompatibilityTier);
+        rv.native16BitShaderOpsSupported = feature_desc.Native16BitShaderOpsSupported;
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS5
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS5 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS5)),
+            S_OK
+        );
+        rv.srvOnlyTiledResourceTier3 = feature_desc.SRVOnlyTiledResourceTier3;
+        rv.renderPassesTier = static_cast<D3D12RenderPassTier>(feature_desc.RenderPassesTier);
+        rv.raytracingTier = static_cast<D3D12RaytracingTier>(feature_desc.RaytracingTier);
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS6
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS6 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS6)),
+            S_OK
+        );
+        rv.additionalShadingRatesSupported = feature_desc.AdditionalShadingRatesSupported;
+        rv.perPrimitiveShadingRateSupportedWithViewportIndexing = feature_desc.PerPrimitiveShadingRateSupportedWithViewportIndexing;
+        rv.variableShadingRateTier = static_cast<D3D12VariableShadingRateTier>(feature_desc.VariableShadingRateTier);
+        rv.shadingRateImageTileSize = feature_desc.ShadingRateImageTileSize;
+        rv.backgroundProcessingSupported = feature_desc.BackgroundProcessingSupported;
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS7
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS7 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS7)),
+            S_OK
+        );
+        rv.meshShaderTier = static_cast<D3D12MeshShaderTier>(feature_desc.MeshShaderTier);
+        rv.samplerFeedbackTier = static_cast<D3D12SamplerFeedbackTier>(feature_desc.SamplerFeedbackTier);
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS8
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS8 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS8, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS8)),
+            S_OK
+        );
+        rv.unalignedBlockTexturesSupported = feature_desc.UnalignedBlockTexturesSupported;
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS9
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS9 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS9, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS9)),
+            S_OK
+        );
+        rv.meshShaderPipelineStatsSupported = feature_desc.MeshShaderPipelineStatsSupported;
+        rv.meshShaderSupportsFullRangeRenderTargetArrayIndex = feature_desc.MeshShaderSupportsFullRangeRenderTargetArrayIndex;
+        rv.atomicInt64OnTypedResourceSupported = feature_desc.AtomicInt64OnTypedResourceSupported;
+        rv.atomicInt64OnGroupSharedSupported = feature_desc.AtomicInt64OnGroupSharedSupported;
+        rv.derivativesInMeshAndAmplificationShadersSupported = feature_desc.DerivativesInMeshAndAmplificationShadersSupported;
+        rv.waveMMATier = static_cast<D3D12WaveMMATier>(feature_desc.WaveMMATier);
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS10
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS10 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS10, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS10)),
+            S_OK
+        );
+        rv.variableRateShadingSumCombinerSupported = feature_desc.VariableRateShadingSumCombinerSupported;
+        rv.meshShaderPerPrimitiveShadingRateSupported = feature_desc.MeshShaderPerPrimitiveShadingRateSupported;
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS11
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS11 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS11, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS11)),
+            S_OK
+        );
+        rv.atomicInt64OnDescriptorHeapResourceSupported = feature_desc.AtomicInt64OnDescriptorHeapResourceSupported;
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS12
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS12 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS12)),
+            S_OK
+        );
+        rv.msPrimitivesPipelineStatisticIncludesCulledPrimitives = static_cast<D3D12TriState>(feature_desc.MSPrimitivesPipelineStatisticIncludesCulledPrimitives);
+        rv.enhancedBarriersSupported = feature_desc.EnhancedBarriersSupported;
+        rv.relaxedFormatCastingSupported = feature_desc.RelaxedFormatCastingSupported;
+    }
+
+    {
+        // D3D12_FEATURE_DATA_D3D12_OPTIONS13
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS13 feature_desc;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS13, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS13)),
+            S_OK
+        );
+        rv.unrestrictedBufferTextureCopyPitchSupported = feature_desc.UnrestrictedBufferTextureCopyPitchSupported;
+        rv.unrestrictedVertexElementAlignmentSupported = feature_desc.UnrestrictedVertexElementAlignmentSupported;
+        rv.invertedViewportHeightFlipsYSupported = feature_desc.InvertedViewportHeightFlipsYSupported;
+        rv.invertedViewportDepthFlipsZSupported = feature_desc.InvertedViewportDepthFlipsZSupported;
+        rv.textureCopyBetweenDimensionsSupported = feature_desc.TextureCopyBetweenDimensionsSupported;
+        rv.alphaBlendFactorSupported = feature_desc.AlphaBlendFactorSupported;
+    }
+
+    m_features.reset(new FeatureD3D12Options{ rv });
 
     return rv;
 }

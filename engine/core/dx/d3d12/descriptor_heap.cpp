@@ -203,7 +203,12 @@ DescriptorHeap::DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t
     );
 
     D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = m_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
-    D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = m_descriptor_heap->GetGPUDescriptorHandleForHeapStart();
     m_heap_start_cpu_address = cpu_handle.ptr;
-    m_heap_start_gpu_address = gpu_handle.ptr;
+    m_heap_start_gpu_address = 0;
+
+    if (desc.Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)
+    {
+        D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = m_descriptor_heap->GetGPUDescriptorHandleForHeapStart();
+        m_heap_start_gpu_address = gpu_handle.ptr;
+    }
 }
