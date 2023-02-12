@@ -21,10 +21,18 @@ file(
 find_package(Python COMPONENTS Interpreter REQUIRED)
 
 execute_process(
-    COMMAND ${Python_EXECUTABLE} "${_src_root_path}/preprocessing/generate_dll_interfaces.py" --headers "${_headers_list}" --common-lib "${CMAKE_SOURCE_DIR}/common" --output "\"${CMAKE_SOURCE_DIR}/api\"" --config "${_src_root_path}/preprocessing/config.json"
+    COMMAND ${Python_EXECUTABLE} "${_src_root_path}/preprocessing/generate_dll_interfaces.py" --source-tree "${CMAKE_SOURCE_DIR}" --headers "${_headers_list}" --common-lib "${CMAKE_BINARY_DIR}/common" --output "${CMAKE_BINARY_DIR}" --config "${_src_root_path}/preprocessing/config.json"
     WORKING_DIRECTORY "${_src_root_path}/preprocessing"
     COMMAND_ECHO STDOUT
 )
+
+file(
+    GLOB_RECURSE _generated_sources_list
+    CONFIGURE_DEPENDS
+    "${PROJECT_BINARY_DIR}/*.c" "${PROJECT_BINARY_DIR}/*.cpp"
+)
+
+list(APPEND ${_headers_list} "${CMAKE_PROJECT_BINARY_DIR}/build_info.h")
 
 # Remove test sources
 foreach(elem ${_sources_list})
@@ -35,21 +43,23 @@ endif()
 endforeach(elem)
 
 # Remove excluded sources
-file(STRINGS excluded_sources.txt excluded_sources_list)
+file(STRINGS ${PROJECT_BINARY_DIR}/excluded_sources.txt excluded_sources_list)
 foreach(elem ${excluded_sources_list})
 list(REMOVE_ITEM _sources_list ${elem})
 endforeach(elem)
 
 source_group(TREE ${_src_root_path} PREFIX "Source files" FILES ${_sources_list})
 source_group(TREE ${_src_root_path} PREFIX "Header files" FILES ${_headers_list})
+source_group(TREE ${PROJECT_BINARY_DIR} PREFIX "Generated sources" FILES ${_generated_sources_list})
 
-add_library(${_target} SHARED ${_sources_list} ${_headers_list})
+add_library(${_target} SHARED ${_sources_list} ${_generated_sources_list} ${_headers_list})
 
 target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}"
                                               "${CMAKE_SOURCE_DIR}/api"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/inc/"
                                               "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/Include/WinPixEventRuntime/"
+                                              "${CMAKE_BINARY_DIR}"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/DirectXTex/")
 
 target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
@@ -104,7 +114,6 @@ file(COPY ${_dxc_binary_path}/dxcompiler.dll DESTINATION ${_build_runtime_output
 file(COPY ${_dxc_binary_path}/dxil.dll DESTINATION ${_build_runtime_output_directory})
 
 set_property(TARGET ${_target} PROPERTY OUTPUT_NAME "lexgine")
-
 
 enable_testing()
 add_executable(basic_tests tests/basic_tests.cpp)

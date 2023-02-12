@@ -1,12 +1,12 @@
 {
 	"ignored_headers": [
-    "engine/core/concurrency/lock_free_queue.h",
-	"engine/core/concurrency/hazard_pointer_pool.h",
-	"engine/core/dx/d3d12/command_queue.h",
-	"engine/core/dx/d3d12/root_signature.h",
-	"engine/core/dx/d3d12/tasks/rendering_tasks/rendering_work.h",
-	"engine/api/",
-	"engine/preprocessing/preprocessor_tokens.h"
+		"engine/core/concurrency/lock_free_queue.h",
+	    "engine/core/concurrency/hazard_pointer_pool.h",
+	    "engine/core/dx/d3d12/command_queue.h",
+	    "engine/core/dx/d3d12/root_signature.h",
+	    "engine/core/dx/d3d12/tasks/rendering_tasks/rendering_work.h",
+	    "engine/api/",
+	    "engine/preprocessing/preprocessor_tokens.h"
 	],
 	"forced_includes": 
 	[
@@ -26,17 +26,18 @@
 	},
 	"export_interfaces":
 	{
-		"imported_opaque_class": "ioc.cpp.template",
-		"imported_opaque_class_traits": "ioc_traits.cpp.template"
+		"imported_opaque_class": "templates/ioc.cpp.template",
+		"imported_opaque_class_traits": "templates/ioc_traits.cpp.template"
 	},
 	"import_interfaces":
 	{
-		"imported_opaque_class": {"source": "ioc_api.cpp.template", "header": "ioc_api.hpp.template", "helper": "ioc_api_nested.hpp.template"},
-		"imported_opaque_class_traits": {"header": "ioc_traits_api.hpp.template"},
-		"data_class": {"header": "data_class_api.hpp.template"},
-		"api_linker": {"source": "runtime_api.cpp.template", "header": "runtime_api.hpp.template"},
-		"enumeration": {"header": "enum_api_hpp.template"},
-		"flags": {"header": "flags_api.hpp.template"}
+		"imported_opaque_class": {"source": "templates/ioc_api.cpp.template", "header": "templates/ioc_api.hpp.template", "helper": "templates/ioc_api_nested.hpp.template"},
+		"imported_opaque_class_traits": {"header": "templates/ioc_traits_api.hpp.template"},
+		"data_class": {"header": "templates/data_class_api.hpp.template"},
+		"api_linker": {"source": "templates/runtime_api.cpp.template", "header": "templates/runtime_api.hpp.template"},
+		"enumeration": {"header": "templates/enum_api_hpp.template"},
+		"flags": {"header": "templates/flags_api.hpp.template"},
+		"build_info": {"header": "templates/build_info.hpp.template"}
 	},
 	"common_resources":
 	[

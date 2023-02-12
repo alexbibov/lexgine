@@ -69,6 +69,7 @@ TestLogging/*
 
 # Pycharm IDE caches
 **/.idea
+**/__pycache__/
 
 # Automatically generated exports
 engine/**/_shared_symbols/

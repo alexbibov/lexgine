@@ -9,7 +9,7 @@
 #include "engine/core/global_settings.h"
 #include "engine/core/logging_streams.h"
 
-#include "engine/core/build_info.h"
+#include "engine/build_info.h"
 #include "engine/core/misc/misc.h"
 #include "engine/core/misc/log.h"
 #include "engine/core/global_settings.h"
@@ -88,8 +88,8 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
             wcscpy_s(host_computer_name, L"UNKNOWN_HOST");
 
         std::string log_name{ std::string{ PROJECT_CODE_NAME } + " v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
-        + std::to_string(PROJECT_VERSION_MINOR) + " rev." + std::to_string(PROJECT_VERSION_REVISION)
-        + "(" + PROJECT_VERSION_STAGE + ")" + " (" + misc::wstringToAsciiString(host_computer_name) + ")" };
+        + std::to_string(PROJECT_VERSION_MINOR) + " rev." + std::to_string(PROJECT_VERSION_BUILD)
+        + "(" + std::to_string(PROJECT_VERSION_REVISION) + ")" + " (" + misc::wstringToAsciiString(host_computer_name) + ")" };
 
         misc::Log::create(m_logging_streams->main_logging_stream, settings.log_name, time_zone_bias, dts);
     }

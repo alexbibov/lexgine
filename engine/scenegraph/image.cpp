@@ -60,6 +60,12 @@ void createMipmapLevel(std::vector<uint8_t> const& data, size_t element_size, Im
     size_t const row_pitch = previous_level_desc.dimensions.y * element_size;
     size_t const layer_pitch = previous_level_desc.dimensions.x * row_pitch;
 
+    size_t mipmap_height = (std::max)(previous_level_desc.dimensions.x >> 1, 1U);
+    size_t mipmap_width = (std::max)(previous_level_desc.dimensions.y >> 1, 1U);
+    size_t mipmap_depth = (std::max)(previous_level_desc.dimensions.z >> 1, 1U);
+    size_t mipmap_size = mipmap_width * mipmap_height * mipmap_depth * element_size;
+    current_level_data.reserve(current_level_data.size() + mipmap_size);
+
     for (uint32_t k = 0; k < previous_level_desc.dimensions.z; k += 2)
     {
         for (uint32_t i = 0; i < previous_level_desc.dimensions.x; i += 2)
