@@ -1,9 +1,0 @@
-F:/Repos/lexgine/engine/core/math/box.h
-F:/Repos/lexgine/engine/core/math/lexgine_core_math_fwd.h
-F:/Repos/lexgine/engine/core/math/linear_algebra_types.inl
-F:/Repos/lexgine/engine/core/math/matrix_types.h
-F:/Repos/lexgine/engine/core/math/rectangle.h
-F:/Repos/lexgine/engine/core/math/utility.h
-F:/Repos/lexgine/engine/core/math/vector_types.h
-F:/Repos/lexgine/engine/core/misc/flags.h
-F:/Repos/lexgine/engine/preprocessing/preprocessor_tokens.h

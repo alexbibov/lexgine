@@ -5,10 +5,10 @@ project(${_project_name})
 set(_src_root_path ${PROJECT_SOURCE_DIR})
 set(_target ${_project_name})
 
-file(STRINGS headers_list.txt _headers_list)
-file(STRINGS sources_list.txt _sources_list)
+file(STRINGS "${PROJECT_BINARY_DIR}/headers_list.txt" _headers_list)
+file(STRINGS "${PROJECT_BINARY_DIR}/sources_list.txt" _sources_list)
 
-list(APPEND _headers_list "${PROJECT_SOURCE_DIR}/ioc_traits.h")
+list(APPEND _headers_list "${PROJECT_BINARY_DIR}/ioc_traits.h")
 
 #source_group(TREE ${_src_root_path} "Header files" FILES ${_headers_list})
 #source_group(TREE ${_src_root_path} "Source files" FILES ${_sources_list})

@@ -1,6 +1,6 @@
 #include "global_settings.h"
 
-#include "engine/core/build_info.h"
+#include "engine/build_info.h"
 #include "engine/core/misc/misc.h"
 #include "engine/core/misc/log.h"
 
@@ -25,7 +25,7 @@ std::string to_string<std::string>(std::string const& value) { return value; }
 }
 
 
-GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int8_t time_zone, bool dts):
+GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int8_t time_zone, bool dts) :
     m_time_zone{ time_zone },
     m_dts{ dts }
 {
@@ -37,16 +37,16 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
         m_deferred_pso_compilation = true;
         m_deferred_root_signature_compilation = true;
 
-        m_cache_path = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
+        m_cache_path = std::string{ PROJECT_CODE_NAME } + "__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
             + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
-            + "__" + PROJECT_VERSION_STAGE + "__cache/";
+            + "__" + std::to_string(PROJECT_VERSION_REVISION) + "__cache/";
 
-        m_combined_cache_name = std::string{ PROJECT_CODE_NAME } +"__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
+        m_combined_cache_name = std::string{ PROJECT_CODE_NAME } + "__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
             + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
-            + "__" + PROJECT_VERSION_STAGE + ".combined_cache";
+            + "__" + std::to_string(PROJECT_VERSION_REVISION) + ".combined_cache";
 
         m_max_combined_cache_size = 1024ull * 1024 * 1024 * 4;    // defaults to 4Gbs
-        
+
         m_upload_heap_capacity = 1024 * 1024 * 512;    // 512MBs by default
         m_streamed_constant_data_partitioning = .125f;    // 12.5% of the upload heap capacity by default is dedicated to constant data streaming
         m_enable_async_compute = true;
@@ -74,10 +74,10 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
 
 
     misc::Optional<std::string> source_json = misc::readAsciiTextFromSourceFile(json_settings_source_path);
-    
+
     if (!source_json.isValid())
     {
-        misc::Log::retrieve()->out("WARNING: unable to parse global settings JSON file located at \"" 
+        misc::Log::retrieve()->out("WARNING: unable to parse global settings JSON file located at \""
             + json_settings_source_path + "\". The system will fall back to the default settings",
             misc::LogMessageType::exclamation);
         return;
@@ -144,7 +144,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
             }
         }
 
-        
+
         if ((p = document.find("shader_lookup_directories")) != document.end())
         {
             if (p->is_array())
@@ -171,7 +171,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
                     misc::LogMessageType::exclamation);
             }
         }
-        
+
         if ((p = document.find("cache_path")) != document.end()
             && p->is_string())
         {
@@ -199,7 +199,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
         }
         else
         {
-            yield_warning_log_message("maximal_combined_cache_size", 
+            yield_warning_log_message("maximal_combined_cache_size",
                 std::to_string(m_max_combined_cache_size / 1024 / 1024 / 1024) + "GBs");
         }
 
@@ -210,7 +210,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
         }
         else
         {
-            yield_warning_log_message("upload_heap_capacity", 
+            yield_warning_log_message("upload_heap_capacity",
                 std::to_string(m_upload_heap_capacity / 1024 / 1024) + "MBs");
         }
 
@@ -361,7 +361,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
                     m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::dsv)]);
             }
         }
-        
+
     }
     catch (...)
     {
@@ -426,7 +426,7 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
         { "enable_async_copy", m_enable_async_copy },
         { "max_frames_in_flight", m_max_frames_in_flight },
         { "max_non_blocking_upload_buffer_allocation_timeout", m_max_non_blocking_upload_buffer_allocation_timeout },
-        
+
         { "resource_view_descriptors_per_page", m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] },
         { "resource_view_descriptor_heap_page_count", m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] },
         { "sampler_descriptors_per_page", m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::sampler)] },
@@ -544,7 +544,7 @@ void GlobalSettings::setIsDeferredShaderCompilationOn(bool is_enabled)
             "deferred PSO compilation is disabled", misc::LogMessageType::exclamation);
         m_deferred_shader_compilation = false;
     }
-    else 
+    else
         m_deferred_shader_compilation = is_enabled;
 }
 
@@ -564,7 +564,7 @@ void GlobalSettings::setIsDeferredRootSignatureCompilationOn(bool is_enabled)
     m_deferred_root_signature_compilation = is_enabled;
 }
 
-void GlobalSettings::addShaderLookupDirectory(std::string const & path)
+void GlobalSettings::addShaderLookupDirectory(std::string const& path)
 {
     m_shader_lookup_directories.push_back(path);
 }

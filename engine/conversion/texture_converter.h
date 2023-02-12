@@ -9,7 +9,7 @@ namespace lexgine::conversion
 class TextureConverter
 {
 public:
-
+    TextureConverter();
 private:
 };
 

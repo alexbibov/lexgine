@@ -14,6 +14,32 @@ using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
 
+namespace {
+
+bool isWindows11OrNewer()
+{
+    RTL_OSVERSIONINFOEXW version_info;
+    version_info.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
+
+    HMODULE ntdll_handle = GetModuleHandle(L"ntdll.dll");
+    if (!ntdll_handle) return false;
+    using RtlGetVersionPtr = NTSTATUS(*)(PRTL_OSVERSIONINFOW);
+    RtlGetVersionPtr rtl_get_version = reinterpret_cast<RtlGetVersionPtr>(GetProcAddress(ntdll_handle, "RtlGetVersion"));
+    if (!rtl_get_version) return false;
+
+    rtl_get_version(reinterpret_cast<PRTL_OSVERSIONINFOW>(&version_info));
+    if (version_info.dwMajorVersion > 10 || version_info.dwMajorVersion == 10 && (version_info.dwMinorVersion > 0 || version_info.dwBuildNumber >= 22000))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+
+}
+
+
 Device::Device(ComPtr<ID3D12Device6> const& device, lexgine::core::GlobalSettings const& global_settings) :
     m_device{ device }
     , m_frame_progress_tracker{ *this }
@@ -176,89 +202,94 @@ FeatureD3D12Options Device::queryFeatureD3D12Options() const
         rv.samplerFeedbackTier = static_cast<D3D12SamplerFeedbackTier>(feature_desc.SamplerFeedbackTier);
     }
 
+
+    if (isWindows11OrNewer())
     {
-        // D3D12_FEATURE_DATA_D3D12_OPTIONS8
 
-        D3D12_FEATURE_DATA_D3D12_OPTIONS8 feature_desc;
-        LEXGINE_THROW_ERROR_IF_FAILED(
-            this,
-            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS8, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS8)),
-            S_OK
-        );
-        rv.unalignedBlockTexturesSupported = feature_desc.UnalignedBlockTexturesSupported;
-    }
+        {
+            // D3D12_FEATURE_DATA_D3D12_OPTIONS8
 
-    {
-        // D3D12_FEATURE_DATA_D3D12_OPTIONS9
+            D3D12_FEATURE_DATA_D3D12_OPTIONS8 feature_desc;
+            LEXGINE_THROW_ERROR_IF_FAILED(
+                this,
+                m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS8, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS8)),
+                S_OK
+            );
+            rv.unalignedBlockTexturesSupported = feature_desc.UnalignedBlockTexturesSupported;
+        }
 
-        D3D12_FEATURE_DATA_D3D12_OPTIONS9 feature_desc;
-        LEXGINE_THROW_ERROR_IF_FAILED(
-            this,
-            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS9, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS9)),
-            S_OK
-        );
-        rv.meshShaderPipelineStatsSupported = feature_desc.MeshShaderPipelineStatsSupported;
-        rv.meshShaderSupportsFullRangeRenderTargetArrayIndex = feature_desc.MeshShaderSupportsFullRangeRenderTargetArrayIndex;
-        rv.atomicInt64OnTypedResourceSupported = feature_desc.AtomicInt64OnTypedResourceSupported;
-        rv.atomicInt64OnGroupSharedSupported = feature_desc.AtomicInt64OnGroupSharedSupported;
-        rv.derivativesInMeshAndAmplificationShadersSupported = feature_desc.DerivativesInMeshAndAmplificationShadersSupported;
-        rv.waveMMATier = static_cast<D3D12WaveMMATier>(feature_desc.WaveMMATier);
-    }
+        {
+            // D3D12_FEATURE_DATA_D3D12_OPTIONS9
 
-    {
-        // D3D12_FEATURE_DATA_D3D12_OPTIONS10
+            D3D12_FEATURE_DATA_D3D12_OPTIONS9 feature_desc;
+            LEXGINE_THROW_ERROR_IF_FAILED(
+                this,
+                m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS9, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS9)),
+                S_OK
+            );
+            rv.meshShaderPipelineStatsSupported = feature_desc.MeshShaderPipelineStatsSupported;
+            rv.meshShaderSupportsFullRangeRenderTargetArrayIndex = feature_desc.MeshShaderSupportsFullRangeRenderTargetArrayIndex;
+            rv.atomicInt64OnTypedResourceSupported = feature_desc.AtomicInt64OnTypedResourceSupported;
+            rv.atomicInt64OnGroupSharedSupported = feature_desc.AtomicInt64OnGroupSharedSupported;
+            rv.derivativesInMeshAndAmplificationShadersSupported = feature_desc.DerivativesInMeshAndAmplificationShadersSupported;
+            rv.waveMMATier = static_cast<D3D12WaveMMATier>(feature_desc.WaveMMATier);
+        }
 
-        D3D12_FEATURE_DATA_D3D12_OPTIONS10 feature_desc;
-        LEXGINE_THROW_ERROR_IF_FAILED(
-            this,
-            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS10, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS10)),
-            S_OK
-        );
-        rv.variableRateShadingSumCombinerSupported = feature_desc.VariableRateShadingSumCombinerSupported;
-        rv.meshShaderPerPrimitiveShadingRateSupported = feature_desc.MeshShaderPerPrimitiveShadingRateSupported;
-    }
+        {
+            // D3D12_FEATURE_DATA_D3D12_OPTIONS10
 
-    {
-        // D3D12_FEATURE_DATA_D3D12_OPTIONS11
+            D3D12_FEATURE_DATA_D3D12_OPTIONS10 feature_desc;
+            LEXGINE_THROW_ERROR_IF_FAILED(
+                this,
+                m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS10, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS10)),
+                S_OK
+            );
+            rv.variableRateShadingSumCombinerSupported = feature_desc.VariableRateShadingSumCombinerSupported;
+            rv.meshShaderPerPrimitiveShadingRateSupported = feature_desc.MeshShaderPerPrimitiveShadingRateSupported;
+        }
 
-        D3D12_FEATURE_DATA_D3D12_OPTIONS11 feature_desc;
-        LEXGINE_THROW_ERROR_IF_FAILED(
-            this,
-            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS11, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS11)),
-            S_OK
-        );
-        rv.atomicInt64OnDescriptorHeapResourceSupported = feature_desc.AtomicInt64OnDescriptorHeapResourceSupported;
-    }
+        {
+            // D3D12_FEATURE_DATA_D3D12_OPTIONS11
 
-    {
-        // D3D12_FEATURE_DATA_D3D12_OPTIONS12
+            D3D12_FEATURE_DATA_D3D12_OPTIONS11 feature_desc;
+            LEXGINE_THROW_ERROR_IF_FAILED(
+                this,
+                m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS11, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS11)),
+                S_OK
+            );
+            rv.atomicInt64OnDescriptorHeapResourceSupported = feature_desc.AtomicInt64OnDescriptorHeapResourceSupported;
+        }
 
-        D3D12_FEATURE_DATA_D3D12_OPTIONS12 feature_desc;
-        LEXGINE_THROW_ERROR_IF_FAILED(
-            this,
-            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS12)),
-            S_OK
-        );
-        rv.msPrimitivesPipelineStatisticIncludesCulledPrimitives = static_cast<D3D12TriState>(feature_desc.MSPrimitivesPipelineStatisticIncludesCulledPrimitives);
-        rv.enhancedBarriersSupported = feature_desc.EnhancedBarriersSupported;
-        rv.relaxedFormatCastingSupported = feature_desc.RelaxedFormatCastingSupported;
-    }
+        {
+            // D3D12_FEATURE_DATA_D3D12_OPTIONS12
 
-    {
-        // D3D12_FEATURE_DATA_D3D12_OPTIONS13
+            D3D12_FEATURE_DATA_D3D12_OPTIONS12 feature_desc;
+            LEXGINE_THROW_ERROR_IF_FAILED(
+                this,
+                m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS12)),
+                S_OK
+            );
+            rv.msPrimitivesPipelineStatisticIncludesCulledPrimitives = static_cast<D3D12TriState>(feature_desc.MSPrimitivesPipelineStatisticIncludesCulledPrimitives);
+            rv.enhancedBarriersSupported = feature_desc.EnhancedBarriersSupported;
+            rv.relaxedFormatCastingSupported = feature_desc.RelaxedFormatCastingSupported;
+        }
 
-        D3D12_FEATURE_DATA_D3D12_OPTIONS13 feature_desc;
-        LEXGINE_THROW_ERROR_IF_FAILED(
-            this,
-            m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS13, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS13)),
-            S_OK
-        );
-        rv.unrestrictedBufferTextureCopyPitchSupported = feature_desc.UnrestrictedBufferTextureCopyPitchSupported;
-        rv.unrestrictedVertexElementAlignmentSupported = feature_desc.UnrestrictedVertexElementAlignmentSupported;
-        rv.invertedViewportHeightFlipsYSupported = feature_desc.InvertedViewportHeightFlipsYSupported;
-        rv.invertedViewportDepthFlipsZSupported = feature_desc.InvertedViewportDepthFlipsZSupported;
-        rv.textureCopyBetweenDimensionsSupported = feature_desc.TextureCopyBetweenDimensionsSupported;
-        rv.alphaBlendFactorSupported = feature_desc.AlphaBlendFactorSupported;
+        {
+            // D3D12_FEATURE_DATA_D3D12_OPTIONS13
+
+            D3D12_FEATURE_DATA_D3D12_OPTIONS13 feature_desc;
+            LEXGINE_THROW_ERROR_IF_FAILED(
+                this,
+                m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS13, &feature_desc, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS13)),
+                S_OK
+            );
+            rv.unrestrictedBufferTextureCopyPitchSupported = feature_desc.UnrestrictedBufferTextureCopyPitchSupported;
+            rv.unrestrictedVertexElementAlignmentSupported = feature_desc.UnrestrictedVertexElementAlignmentSupported;
+            rv.invertedViewportHeightFlipsYSupported = feature_desc.InvertedViewportHeightFlipsYSupported;
+            rv.invertedViewportDepthFlipsZSupported = feature_desc.InvertedViewportDepthFlipsZSupported;
+            rv.textureCopyBetweenDimensionsSupported = feature_desc.TextureCopyBetweenDimensionsSupported;
+            rv.alphaBlendFactorSupported = feature_desc.AlphaBlendFactorSupported;
+        }
     }
 
     m_features.reset(new FeatureD3D12Options{ rv });
