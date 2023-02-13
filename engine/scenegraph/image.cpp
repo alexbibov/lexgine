@@ -54,27 +54,30 @@ size_t calculateMipmapCount(size_t base_level_width, size_t base_level_height, s
 }
 
 
-void createMipmapLevel(std::vector<uint8_t> const& data, size_t element_size, Image::Mipmap const& previous_level_desc, std::vector<uint8_t>& current_level_data)
+void createMipmapLevel(std::vector<uint8_t> const& data, size_t element_size, Image::Mipmap const& base_level_desc, uint32_t order, std::vector<uint8_t>& output_buffer,
+    size_t* p_new_mipmap_height, size_t* p_new_mipmap_width, size_t* p_new_mipmap_depth)
 {
-    uint8_t const* source_data_ptr = data.data() + previous_level_desc.offset;
-    size_t const row_pitch = previous_level_desc.dimensions.y * element_size;
-    size_t const layer_pitch = previous_level_desc.dimensions.x * row_pitch;
+    uint8_t const* source_data_ptr = data.data() + base_level_desc.offset;
+    size_t const row_pitch = base_level_desc.dimensions.x * element_size;
+    size_t const layer_pitch = base_level_desc.dimensions.y * row_pitch;
 
-    size_t mipmap_height = (std::max)(previous_level_desc.dimensions.x >> 1, 1U);
-    size_t mipmap_width = (std::max)(previous_level_desc.dimensions.y >> 1, 1U);
-    size_t mipmap_depth = (std::max)(previous_level_desc.dimensions.z >> 1, 1U);
+    size_t mipmap_height{}, mipmap_width{}, mipmap_depth{};
+    *p_new_mipmap_height = mipmap_height = (std::max)(base_level_desc.dimensions.x >> order, 1U);
+    *p_new_mipmap_width = mipmap_width = (std::max)(base_level_desc.dimensions.y >> order, 1U);
+    *p_new_mipmap_depth = mipmap_depth = (std::max)(base_level_desc.dimensions.z >> order, 1U);
+
     size_t mipmap_size = mipmap_width * mipmap_height * mipmap_depth * element_size;
-    current_level_data.reserve(current_level_data.size() + mipmap_size);
+    output_buffer.reserve(output_buffer.size() + mipmap_size);
 
-    for (uint32_t k = 0; k < previous_level_desc.dimensions.z; k += 2)
+    for (uint32_t k = 0; k < base_level_desc.dimensions.z; k += 2 * order)
     {
-        for (uint32_t i = 0; i < previous_level_desc.dimensions.x; i += 2)
+        for (uint32_t i = 0; i < base_level_desc.dimensions.x; i += 2 * order)
         {
             size_t offset = k * layer_pitch + i * row_pitch;
-            for (uint32_t j = 0; j < previous_level_desc.dimensions.y; j += 2)
+            for (uint32_t j = 0; j < base_level_desc.dimensions.y; j += 2 * order)
             {
                 auto src_data_begin = source_data_ptr + offset + j * element_size;
-                current_level_data.insert(current_level_data.end(), src_data_begin, src_data_begin + element_size);
+                output_buffer.insert(output_buffer.end(), src_data_begin, src_data_begin + element_size);
             }
         }
     }
@@ -260,19 +263,14 @@ void Image::generateMipmaps()
     std::vector<uint8_t> generated_data{};
     for (auto& e : m_layers)
     {
-        auto last_mipmap_level_dimensions = e.mipmaps.back().dimensions;
-        size_t missing_mipmap_count = calculateMipmapCount(last_mipmap_level_dimensions.x, last_mipmap_level_dimensions.y, last_mipmap_level_dimensions.z) - 1;
+        Mipmap const& last_loaded_mipmap = e.mipmaps.back();
+        size_t missing_mipmap_count = calculateMipmapCount(last_loaded_mipmap.dimensions.x, last_loaded_mipmap.dimensions.y, last_loaded_mipmap.dimensions.z) - 1;
+
         for (size_t i = 0; i < missing_mipmap_count; ++i)
         {
-            last_mipmap_level_dimensions = {
-                (std::max)(last_mipmap_level_dimensions.x >> 1, 1u),
-                (std::max)(last_mipmap_level_dimensions.y >> 1, 1u),
-                (std::max)(last_mipmap_level_dimensions.z >> 1, 1u)
-            };
-
-            Mipmap level_desc{ m_data.size() + generated_data.size(), last_mipmap_level_dimensions };
-            createMipmapLevel(m_data, m_element_size, e.mipmaps.back(), generated_data);
-            e.mipmaps.push_back(level_desc);
+            size_t new_mipmap_height{}, new_mipmap_width{}, new_mipmap_depth{};
+            createMipmapLevel(m_data, m_element_size, last_loaded_mipmap, i + 1, generated_data, &new_mipmap_height, &new_mipmap_width, &new_mipmap_depth);
+            e.mipmaps.push_back(Mipmap{ m_data.size() + generated_data.size(), glm::uvec3{new_mipmap_width, new_mipmap_height, new_mipmap_depth} });
         }
     }
 
