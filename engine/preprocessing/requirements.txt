@@ -1,2 +1,2 @@
-robotpy-cppheaderparser==5.1.1
-GitPython==3.1.37
+robotpy-cppheaderparser==5.0.20
+GitPython==3.1.41
