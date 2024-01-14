@@ -29,7 +29,7 @@ class is_api_##api_name##_supported<T, R(Args...)> \
     template<typename U> \
     static constexpr std::false_type _deduce(float, float) \
     { \
-        return std::true_type{}; \
+        return std::false_type{}; \
     } \
 \
 public: \
@@ -64,7 +64,7 @@ class is_api_##api_name##_supported_const<T, R(Args...)> \
     template<typename U> \
     static constexpr std::false_type _deduce(float, float) \
     { \
-        return std::true_type{}; \
+        return std::false_type{}; \
     } \
 \
 public: \

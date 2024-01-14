@@ -2,7 +2,7 @@
 #define LEXGINE_CORE_DX_D3D12_TYPE_TRAITS_INL
 
 
-namespace lexgine { namespace core { namespace dx { namespace d3d12 {
+namespace lexgine::core::dx::d3d12 {
 
 //! Helper: converts static representation of a format to the corresponding DXGI_FORMAT value.
 //! NOTE that not all formats are supported nor are all of them listed in the partial specializations below.
@@ -383,6 +383,8 @@ struct d3d12_type_traits<int8_t, 4U, true>
     static unsigned char const total_size_in_bytes = 4U;
     static DXGI_FORMAT const dxgi_format = DXGI_FORMAT_R8G8B8A8_SNORM;
 };
+
+
 // ********************************************
 
 
@@ -512,7 +514,7 @@ struct StaticTypeToDataFormat<uint16_t>
     static misc::DataFormat const data_format = misc::DataFormat::uint16;
 };
 
-}}}}
+}
 
 
 #endif

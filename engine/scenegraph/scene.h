@@ -5,6 +5,8 @@
 #include <unordered_map>
 
 #include <engine/core/entity.h>
+#include <engine/core/misc/datetime.h>
+#include <engine/core/misc/optional.h>
 #include "class_names.h"
 #include "light.h"
 #include "image.h"
@@ -27,7 +29,7 @@ private:
 
 private:
     bool loadLights(tinygltf::Model& model);
-    bool loadTextures(tinygltf::Model& model);
+    bool loadTextures(tinygltf::Model& model, core::misc::Optional<core::misc::DateTime> const& timestamp);
     bool loadMaterials(tinygltf::Model& model);
     bool loadMeshes(tinygltf::Model& model);
     bool loadCameras(tinygltf::Model& model);

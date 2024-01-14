@@ -40,8 +40,9 @@ bool isWindows11OrNewer()
 }
 
 
-Device::Device(ComPtr<ID3D12Device6> const& device, lexgine::core::GlobalSettings const& global_settings) :
-    m_device{ device }
+Device::Device(dxgi::HwAdapter* owning_adapter_ptr, ComPtr<ID3D12Device6> const& device, lexgine::core::GlobalSettings const& global_settings)
+    : m_owning_adapter_ptr{ owning_adapter_ptr }
+    , m_device{ device }
     , m_frame_progress_tracker{ *this }
     , m_query_cache{ new QueryCache{ global_settings, *this } }
     , m_max_frames_in_flight{ global_settings.getMaxFramesInFlight() }
@@ -379,6 +380,11 @@ uint32_t Device::getNodeCount() const
 ComPtr<ID3D12Device> Device::native() const
 {
     return m_device;
+}
+
+ComPtr<ID3D11Device5> Device::nativeD3d11() const
+{
+    return m_d3d11_device;
 }
 
 void Device::setStringName(std::string const& entity_string_name)

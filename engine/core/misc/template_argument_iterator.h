@@ -203,7 +203,7 @@ namespace lexgine::core::misc {
         }
 
         template<>
-        static void loop_iteration<number_of_tuples - 1>(void* user_data) {}
+        static void loop_iteration<number_of_tuples>(void* user_data) {}
 
     public:
         static void loop(void* user_data = nullptr)

@@ -1,9 +1,10 @@
 #include "initializer.h"
-#include "engine/core/dx/d3d12_initializer.h"
-#include "engine/core/dx/d3d12/d3d12_tools.h"
-#include "engine/core/dx/d3d12/rendering_tasks.h"
-#include "engine/core/dx/d3d12/swap_chain_link.h"
-#include "engine/osinteraction/window_handler.h"
+#include <engine/core/dx/d3d12_initializer.h>
+#include <engine/core/dx/d3d12/d3d12_tools.h>
+#include <engine/core/dx/d3d12/device.h>
+#include <engine/core/dx/d3d12/rendering_tasks.h>
+#include <engine/core/dx/d3d12/swap_chain_link.h>
+#include <engine/osinteraction/window_handler.h>
 
 
 namespace lexgine {
@@ -116,8 +117,8 @@ uint32_t Initializer::getAdapterCount() const
 
 DeviceDetails Initializer::getDeviceDetails() const
 {
-    auto& adapter = m_d3d12_initializer->getCurrentDeviceHwAdapter();
-    auto adapter_properties = adapter.getProperties();
+    auto adapter = m_d3d12_initializer->getCurrentDevice().hwAdapter();
+    auto adapter_properties = adapter->getProperties();
 
     DeviceDetails rv{};
 

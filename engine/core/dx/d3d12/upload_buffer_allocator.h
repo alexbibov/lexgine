@@ -15,6 +15,8 @@
 namespace lexgine::core::dx::d3d12
 {
 
+class UploadDataAllocator;
+
 class UploadDataBlock final
 {
     friend class UploadDataAllocator;

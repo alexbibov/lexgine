@@ -40,6 +40,12 @@ void Globals::put(misc::HashedString const& hashed_name, void* p_object)
 }
 
 
+void MainGlobalsBuilder::defineEngineApi(EngineApi api)
+{
+    m_engine_api = api;
+}
+
+
 void MainGlobalsBuilder::defineGlobalSettings(GlobalSettings& global_settings)
 {
     m_global_settings = &global_settings;
@@ -77,6 +83,7 @@ void MainGlobalsBuilder::registerRootSignatureCompilationTaskCache(dx::d3d12::ta
 std::unique_ptr<Globals> MainGlobalsBuilder::build()
 {
     std::unique_ptr<Globals> rv = std::make_unique<Globals>();
+    rv->put(reinterpret_cast<EngineApi*>(static_cast<std::uintptr_t>(m_engine_api)));
     rv->put(m_global_settings);
     rv->put(m_logging_streams);
     rv->put(m_dx_resource_factory);

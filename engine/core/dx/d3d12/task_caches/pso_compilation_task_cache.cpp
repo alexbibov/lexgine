@@ -1,11 +1,12 @@
 #include "pso_compilation_task_cache.h"
 
-#include "engine/core/exception.h"
-#include "engine/core/globals.h"
-#include "engine/core/global_settings.h"
-#include "engine/core/misc/strict_weak_ordering.h"
-#include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
-#include "engine/core/dx/d3d12/device.h"
+#include <engine/core/dx/dxgi/hw_adapter_enumerator.h>
+#include <engine/core/exception.h>
+#include <engine/core/globals.h>
+#include <engine/core/global_settings.h>
+#include <engine/core/misc/strict_weak_ordering.h>
+#include <engine/core/dx/d3d12/tasks/pso_compilation_task.h>
+#include <engine/core/dx/d3d12/device.h>
 
 #include "combined_cache_key.h"
 
@@ -71,7 +72,13 @@ tasks::GraphicsPSOCompilationTask* PSOCompilationTaskCache::findOrCreateTask(
     std::string const& pso_cache_name, uint64_t uid)
 {
     tasks::GraphicsPSOCompilationTask* new_pso_compilation_task{ nullptr };
-    Key key{ pso_cache_name, uid, PSOType::graphics };
+
+    auto* active_adaptor_ptr = globals.get<Device>()->hwAdapter();
+    auto adapter_luid = active_adaptor_ptr->getProperties().details.luid;
+    std::string adapter_tailored_pso_cache_name = pso_cache_name + "__" + std::to_string(adapter_luid.LowPart) + std::to_string(adapter_luid.HighPart);
+
+
+    Key key{ adapter_tailored_pso_cache_name, uid, PSOType::graphics };
     CombinedCacheKey combined_key{ key };
 
     auto q = m_psos_cache_keys.find(combined_key);

@@ -20,10 +20,15 @@
 #include <engine/core/dx/d3d12_initializer.h>
 #include <engine/core/dx/d3d12/d3d12_pso_xml_parser.h>
 #include <engine/core/streamed_cache.h>
+#include <engine/conversion/texture_converter.h>
+#include <engine/conversion/png_jpg_image_loader.h>
+#include <engine/scenegraph/image.h>
 
 #include <engine/core/dx/d3d12/task_caches/combined_cache_key.h>
 #include <engine/core/dx/d3d12/tasks/root_signature_compilation_task.h>
 #include <engine/core/dx/d3d12/task_caches/root_signature_compilation_task_cache.h>
+
+#include <engine/core/misc/uuid.h>
 
 
 class TestErrorBehavioral
@@ -740,4 +745,57 @@ TEST(EngineTests_Basic, TestStreamedCacheExtensiveUsage)
         delete[] random_value_buffer;
     }
 
+
+}
+
+TEST(EngineTests_Basic, TestUuid)
+{
+    using namespace lexgine::core::misc;
+
+    lexgine::core::misc::UUID uuid  = lexgine::core::misc::UUID::generate();
+    
+    std::string str_uuid = uuid.toString();
+    EXPECT_EQ(str_uuid.length(), 36);
+    EXPECT_TRUE(lexgine::core::misc::UUID{ str_uuid } == uuid);
+
+    for (size_t i = 0; i < 36; ++i)
+    {
+        EXPECT_TRUE(str_uuid[i] == '-' || (str_uuid[i] >= '0' && str_uuid[i] <= '9') || (str_uuid[i] >= 'a' && str_uuid[i] <= 'f'));
+    }
+
+    EXPECT_TRUE(str_uuid[8] == '-' && str_uuid[13] == '-' && str_uuid[18] == '-' && str_uuid[23] == '-');
+
+    lexgine::core::misc::UUID uuid1{"abcdef12-3456-7890-1234-567890abcdef"};
+    EXPECT_TRUE(uuid1.loPart() == 0x1234567890abcdef);
+    EXPECT_TRUE(uuid1.hiPart() == 0xabcdef1234567890);
+}
+
+
+TEST(EngineTests_Basic, TestTextureCompression)
+{
+    using namespace lexgine;
+    using namespace lexgine::core;
+    using namespace lexgine::conversion;
+    using namespace lexgine::core::dx;
+    using namespace lexgine::core::dx::d3d12;
+    using namespace lexgine::core::misc;
+
+    D3D12EngineSettings settings{};
+    settings.debug_mode = true;
+    settings.enable_profiling = true;
+    settings.global_lookup_prefix = LEXGINE_GLOBAL_LOOKUP_PREFIX;
+    settings.settings_lookup_path = LEXGINE_SETTINGS_PATH;
+    settings.log_name = "TestTextureCompression.log";
+
+    D3D12Initializer engine_initializer{ settings };
+    engine_initializer.setCurrentDevice(0);
+
+
+    conversion::TextureConverter* p_texture_converter = engine_initializer.globals().get<conversion::TextureConverter>();
+    scenegraph::Image test_image{ std::filesystem::path{LEXGINE_GLOBAL_LOOKUP_PREFIX} / "engine/tests/data/Lenna_(test_image).png" };
+    test_image.registerImageLoader(std::make_unique<conversion::PNGJPGImageLoader>());
+    p_texture_converter->addTextureConversionTask(test_image, false);
+    p_texture_converter->convertTextures();
+    p_texture_converter->uploadTextures();
+    p_texture_converter->waitForTextureUploadCompletion();
 }
