@@ -27,7 +27,6 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
     , m_globals{ globals }
     , m_device{ *globals.get<Device>() }
     , m_basic_rendering_services{ rendering_services }
-    , m_data_uploader{ globals, rendering_services.resourceUploadAllocator() }
     , m_vb{ m_device }
     , m_ib{ m_device, IndexDataType::_16_bit, 32 * 1024 }
     , m_texture{ m_device, ResourceState::base_values::pixel_shader, misc::makeEmptyOptional<ResourceOptimizedClearValue>(),
@@ -47,6 +46,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         std::make_shared<VertexAttributeSpecification<float, 2>>(0, 24, "TEXCOORD", 0, 0));
 
     m_va_list = VertexAttributeSpecificationList{ position, color, texture_coordinate };
+    auto& data_uploader = m_basic_rendering_services.resourceDataUploader();
 
     {
         // upload vertex buffer
@@ -75,7 +75,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         source_descriptor.p_data = m_box_vertices.data();
         source_descriptor.buffer_size = m_box_vertices.size() * sizeof(float);
 
-        m_data_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
+        data_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
     }
 
 
@@ -100,7 +100,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         source_descriptor.p_data = m_box_indices.data();
         source_descriptor.buffer_size = m_box_indices.size() * sizeof(short);
 
-        m_data_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
+        data_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
     }
 
     {
@@ -119,11 +119,11 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         destination_descriptor.segment.subresources.first_subresource = 0;
         destination_descriptor.segment.subresources.num_subresources = 1;
 
-        m_data_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
+        data_uploader.addResourceForUpload(destination_descriptor, source_descriptor);
     }
 
-    m_data_uploader.upload();
-    m_data_uploader.waitUntilUploadIsFinished();
+    data_uploader.upload();
+    data_uploader.waitUntilUploadIsFinished();
 
     // Create root signature and the related descriptor tables
     {

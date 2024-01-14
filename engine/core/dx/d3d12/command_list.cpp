@@ -210,14 +210,18 @@ void CommandList::inputAssemblySetVertexBuffers(VertexBufferBinding const& vb_bi
     D3D12_VERTEX_BUFFER_VIEW native_vb_views[c_input_assembler_count];
 
     unsigned long index{ 0 };
-    size_t offset{ 0 };
-    size_t offset_old{ 0 };
-    size_t base{ 0 };
-    bool buffers_set{ true };
     unsigned long mask = vb_binding.slotUsageMask();
+    _BitScanForward(&index, mask);
+
+    size_t offset{ 0 };
+    size_t offset_old{ index };
+    size_t base{ index };
+    bool buffers_set{ true };
+    
 
     while (_BitScanForward(&index, mask) || !buffers_set)
     {
+        offset += index;
         if (mask && offset - offset_old <= 1)
         {
             native_vb_views[offset] = vb_binding.vertexBufferViewAtSlot(static_cast<uint8_t>(offset));
@@ -231,8 +235,8 @@ void CommandList::inputAssemblySetVertexBuffers(VertexBufferBinding const& vb_bi
             buffers_set = true;
         }
 
-        mask >>= index + 1; 
-        offset += index + 1;
+        mask >>= index + 1;
+        ++offset;
     }
 }
 

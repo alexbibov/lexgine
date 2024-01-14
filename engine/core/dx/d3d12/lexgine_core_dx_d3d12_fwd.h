@@ -93,6 +93,8 @@ class PerFrameUploadDataStreamAllocator;
 class QueryCache;
 struct QueryHandle;
 
+class DxgiFormatFetcher;
+
 }
 
 #endif

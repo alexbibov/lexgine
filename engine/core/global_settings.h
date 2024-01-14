@@ -34,11 +34,14 @@ public:
     std::string getCacheDirectory() const;
     std::string getCombinedCacheName() const;
     uint64_t getMaxCombinedCacheSize() const;
+    uint64_t getMaxCombinedTextureCacheSize() const;
 
     uint32_t getDescriptorHeapPageCapacity(dx::d3d12::DescriptorHeapType descriptor_heap_type) const;
     uint32_t getDescriptorHeapPageCount(dx::d3d12::DescriptorHeapType descriptor_heap_type) const;
     uint32_t getUploadHeapCapacity() const;
-    float getStreamedConstantDataPartitioning() const;    //! returns the portion of the upload heap dedicated to constant data streaming (cannot exceed 25% of the upload heap)
+    size_t getStreamedConstantDataPartitionSize() const;    //! returns size of upload buffer partition dedicated to constant data streaming
+    size_t getStreamedGeometryDataPartitionSize() const;    //! returns size of upload buffer partition dedicated to dynamic geometry data streaming
+    size_t getTextureUploadPartitionSize() const;    //! returns size of upload buffer partition dedicated to texture uploading
 
     bool isAsyncComputeEnabled() const;
     bool isAsyncCopyEnabled() const;
@@ -47,6 +50,8 @@ public:
     uint16_t getMaxFramesInFlight() const;
 
     uint32_t getMaxNonBlockingUploadBufferAllocationTimeout() const;
+
+    bool isGpuAcceleratedTextureConversionEnabled() const;
 
 
     // *** the following functions are used to alter the global settings during run time. All functions return 'true' in case of success and 'false' if the parameter's value cannot be changed ***
@@ -76,13 +81,16 @@ private:
     std::string m_cache_path;
     std::string m_combined_cache_name;
     uint64_t m_max_combined_cache_size;
+    uint64_t m_max_combined_texture_cache_size;
     uint32_t m_upload_heap_capacity;
     float m_streamed_constant_data_partitioning;
+    float m_streamed_geometry_data_partitioning;
     bool m_enable_async_compute;
     bool m_enable_async_copy;
     uint16_t m_max_frames_in_flight;
     uint32_t m_max_non_blocking_upload_buffer_allocation_timeout;
     bool m_enable_profiling;
+    bool m_enable_gpu_accelerated_texture_conversion;
 
     std::array<uint32_t, static_cast<size_t>(dx::d3d12::DescriptorHeapType::count)> m_descriptors_per_page;
     std::array<uint32_t, static_cast<size_t>(dx::d3d12::DescriptorHeapType::count)> m_descriptor_heap_page_count;

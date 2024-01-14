@@ -6,6 +6,8 @@ using namespace lexgine::core::dx::d3d12;
 void VertexBufferBinding::setVertexBufferView(uint8_t input_assembler_slot, Resource const& source_vertex_data_resource, 
     uint64_t vertex_data_offset, uint32_t vertex_entry_stride, uint32_t vertices_count)
 {
+    assert(input_assembler_slot < CommandList::c_input_assembler_count);
+
     m_defined_slots_mask |= (1 << input_assembler_slot);
 
     D3D12_VERTEX_BUFFER_VIEW vb_view;

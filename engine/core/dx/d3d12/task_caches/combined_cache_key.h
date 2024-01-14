@@ -6,7 +6,7 @@
 #include "root_signature_compilation_task_cache.h"
 
 
-namespace lexgine { namespace core { namespace dx { namespace d3d12 { namespace task_caches {
+namespace lexgine::core::dx::d3d12::task_caches {
 
 
 class CombinedCacheKey
@@ -66,6 +66,6 @@ private:
     } m_key;
 };
 
-}}}}}
+}
 
 #endif

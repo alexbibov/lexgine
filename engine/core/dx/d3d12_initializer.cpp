@@ -26,6 +26,8 @@
 #include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 
+#include "engine/conversion/texture_converter.h"
+
 
 using namespace lexgine;
 using namespace lexgine::core;
@@ -91,12 +93,14 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
         + std::to_string(PROJECT_VERSION_MINOR) + " rev." + std::to_string(PROJECT_VERSION_BUILD)
         + "(" + std::to_string(PROJECT_VERSION_REVISION) + ")" + " (" + misc::wstringToAsciiString(host_computer_name) + ")" };
 
-        misc::Log::create(m_logging_streams->main_logging_stream, settings.log_name, time_zone_bias, dts);
+        misc::Log const& logger = misc::Log::create(m_logging_streams->main_logging_stream, settings.log_name, time_zone_bias, dts);
+        misc::Log::registerMainLogger(&logger);
     }
 
     // Initialize global object pool
-    m_globals.reset(new Globals{});
     MainGlobalsBuilder builder;
+
+    builder.defineEngineApi(EngineApi::Direct3D12);    // define graphics API used by the engine
 
     // Load the global settings
     m_global_settings.reset(new GlobalSettings{ corrected_global_lookup_prefix + corrected_settings_lookup_path + settings.global_settings_json_file, time_zone_bias, dts });
@@ -175,6 +179,7 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
 
 D3D12Initializer::~D3D12Initializer()
 {
+    m_texture_converter.reset();
     m_shader_cache.reset();
     m_rs_cache.reset();
     m_pso_cache.reset();
@@ -196,18 +201,17 @@ core::Globals& D3D12Initializer::globals()
 
 bool D3D12Initializer::setCurrentDevice(uint32_t adapter_id)
 {
-    auto p = m_resource_factory->hardwareAdapterEnumerator().begin();
-    auto e = m_resource_factory->hardwareAdapterEnumerator().end();
+    auto& hw_adapter_enumerator = m_resource_factory->hardwareAdapterEnumerator();
+    if (adapter_id >= hw_adapter_enumerator.getAdapterCount()) return false;
 
-    for (uint32_t i = 0; i < adapter_id && p != e; ++i, ++p);
+    dx::d3d12::Device& device_ref = hw_adapter_enumerator[adapter_id]->device();
+    m_globals->put(&device_ref);
 
-    if (p == e) return false;
-    else
+    // Texture converter is re-created each time the device is switched as it relies on batch texture uploader that is device dependent
     {
-        dx::d3d12::Device& device_ref = p->device();
-        m_globals->put(&device_ref);
+        m_texture_converter.reset(new conversion::TextureConverter{ *m_globals });
+        m_globals->put(m_texture_converter.get());
     }
-
     return true;
 }
 
@@ -216,14 +220,9 @@ dx::d3d12::Device& D3D12Initializer::getCurrentDevice() const
     return *m_globals->get<dx::d3d12::Device>();
 }
 
-dx::dxgi::HwAdapter const& D3D12Initializer::getCurrentDeviceHwAdapter() const
-{
-    return *m_globals->get<dx::d3d12::DxResourceFactory>()->retrieveHwAdapterOwningDevicePtr(getCurrentDevice());
-}
-
 void D3D12Initializer::setWARPAdapterAsCurrent() const
 {
-    dx::d3d12::Device& warp_device_ref = m_resource_factory->hardwareAdapterEnumerator().getWARPAdapter().device();
+    dx::d3d12::Device& warp_device_ref = m_resource_factory->hardwareAdapterEnumerator().getWARPAdapter()->device();
     m_globals->put(&warp_device_ref);
 }
 
@@ -234,7 +233,7 @@ uint32_t D3D12Initializer::getAdapterCount() const
 
 dx::dxgi::SwapChain D3D12Initializer::createSwapChainForCurrentDevice(osinteraction::windows::Window& window, dx::dxgi::SwapChainDescriptor const& desc) const
 {
-    return getCurrentDeviceHwAdapter().createSwapChain(window, desc);
+    return getCurrentDevice().hwAdapter()->createSwapChain(window, desc);
 }
 
 std::unique_ptr<dx::d3d12::RenderingTasks> D3D12Initializer::createRenderingTasks() const

@@ -33,6 +33,10 @@ DataBlob::DataBlob():
 {
 }
 
+DataBlob::DataBlob(nullptr_t): DataBlob{}
+{
+}
+
 DataBlob::DataBlob(void *p_blob_data, size_t blob_size):
     m_p_data{ p_blob_data },
     m_size{ blob_size }
@@ -49,6 +53,13 @@ void DataBlob::declareBufferPointer(void* ptr)
 {
     assert(!m_p_data);
     m_p_data = ptr;
+}
+
+DataBlob& DataBlob::operator=(nullptr_t)
+{
+    m_p_data = nullptr;
+    m_size = 0U;
+    return *this;
 }
 
 
@@ -86,6 +97,13 @@ Microsoft::WRL::ComPtr<ID3DBlob> D3DDataBlob::native() const
     return m_blob;
 }
 
+D3DDataBlob& D3DDataBlob::operator=(nullptr_t)
+{
+    m_blob = nullptr;
+    DataBlob::operator=(nullptr);
+    return *this;
+}
+
 
 DataChunk::DataChunk(nullptr_t)
 {
@@ -102,6 +120,14 @@ DataChunk::~DataChunk()
         free(this->data());
 }
 
+DataChunk& DataChunk::operator=(nullptr_t)
+{
+    if (this->data())
+        free(this->data());
+    DataBlob::operator=(nullptr);
+    return *this;
+}
+
 SharedDataChunk::SharedDataChunk(nullptr_t)
 {
 }
@@ -111,4 +137,11 @@ SharedDataChunk::SharedDataChunk(size_t chunk_size):
     m_allocation_ptr{ malloc(chunk_size), free }
 {
     declareBufferPointer(m_allocation_ptr.get());
+}
+
+SharedDataChunk& SharedDataChunk::operator=(nullptr_t)
+{
+    m_allocation_ptr.reset();
+    DataBlob::operator=(nullptr);
+    return *this;
 }

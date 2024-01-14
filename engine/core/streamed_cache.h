@@ -290,7 +290,7 @@ public:
 
     size_t hardSizeLimit() const;    //! returns total capacity of the cache plus maximal possible overhead. The cache cannot grow larger than this value.
 
-    SharedDataChunk retrieveEntry(Key const& entry_key) const;    //! retrieves an entry from the cache based on its key
+    SharedDataChunk retrieveEntry(Key const& entry_key, size_t* valid_bytes_count = nullptr) const;    //! retrieves an entry from the cache based on its key
 
     misc::DateTime getEntryTimestamp(Key const& entry_key) const;    //! retrieves time stamp of entry with given key
 
@@ -2215,7 +2215,7 @@ inline size_t StreamedCache<Key, cluster_size>::hardSizeLimit() const
 }
 
 template<typename Key, size_t cluster_size>
-inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const& entry_key) const
+inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const& entry_key, size_t* valid_bytes_count) const
 {
     auto rv = m_index.get_cache_entry_data_offset_from_key(entry_key);
     if (!rv.isValid())
@@ -2286,10 +2286,14 @@ inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const
             return SharedDataChunk{};
         }
 
+        if(valid_bytes_count) *valid_bytes_count = zlib_deflation_stream.total_out;
         return uncompressed_data_chunk;
     }
     else
+    {
+        if(valid_bytes_count) *valid_bytes_count = raw_data_chunk_and_uncompressed_size.second;
         return raw_data_chunk_and_uncompressed_size.first;
+    }
 }
 
 template<typename Key, size_t cluster_size>

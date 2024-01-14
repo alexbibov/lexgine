@@ -16,10 +16,8 @@ ConstantBufferStream::ConstantBufferStream(Globals& globals)
     : m_allocator{ nullptr }
 {
     GlobalSettings const& global_settings = *globals.get<GlobalSettings>();
-    float streamed_constant_data_partitioning = global_settings.getStreamedConstantDataPartitioning();
-    size_t upload_buffer_total_size = global_settings.getUploadHeapCapacity();
-    size_t constant_data_section_size = static_cast<size_t>(upload_buffer_total_size * streamed_constant_data_partitioning);
-
+    size_t constant_data_section_size = global_settings.getStreamedConstantDataPartitionSize();
+    
     DxResourceFactory& dx_resources = *globals.get<DxResourceFactory>();
     Device& device = *globals.get<Device>();
 

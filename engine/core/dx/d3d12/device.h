@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <array>
+#include <d3d11_4.h>
 
 #include "common.h"
 
@@ -330,6 +331,9 @@ class Device final : public NamedEntity<class_names::D3D12_Device>
     friend class DeviceAttorney<dxgi::HwAdapter>;
 
 public:
+    dxgi::HwAdapter* hwAdapter() const { return m_owning_adapter_ptr; }    //! retrieves pointer to the DXGI adapter, which has created this device
+
+
     FeatureD3D12Options queryFeatureD3D12Options() const;    //! queries Direc3D12 feature options in the current graphics driver
 
     //! queries details about adapter's architecture for the physical adapter corresponding to provided @param node_index
@@ -345,6 +349,7 @@ public:
     uint32_t getNodeCount() const;
 
     ComPtr<ID3D12Device> native() const;    //! returns native IDirect3D12 interface for the device
+    ComPtr<ID3D11Device5> nativeD3d11() const;    //! returns native IDirect3D11 interface used by GPU-based texture compression sometimes
 
     void setStringName(std::string const& entity_string_name) override;	//! sets new user-friendly string name for the Direct3D 12 device
 
@@ -389,11 +394,20 @@ public:
     ~Device();
 
 private:
-    Device(ComPtr<ID3D12Device6> const& native_device, lexgine::core::GlobalSettings const& global_settings);
+    Device(dxgi::HwAdapter* owning_adapter_ptr, ComPtr<ID3D12Device6> const& native_device, lexgine::core::GlobalSettings const& global_settings);
+    void defineD3d11Handles(ComPtr<ID3D11Device5> const& native_d3d11_device, ComPtr<ID3D11DeviceContext4> const& native_d3d11_device_context)
+    {
+        m_d3d11_device = native_d3d11_device;
+        m_d3d11_device_context = native_d3d11_device_context;
+    }
 
 private:
+    dxgi::HwAdapter* m_owning_adapter_ptr;    //!< pointer to the DXGI adapter, which created this device
     ComPtr<ID3D12Device6> m_device;    //!< encapsulated pointer to Direct3D12 device interface
     ComPtr<ID3D12DebugDevice2> m_debug_device;    //!< interface used by GPU based validation
+    ComPtr<ID3D11Device5> m_d3d11_device;    //!< D3D11 device used by GPU texture conversion
+    ComPtr<ID3D11DeviceContext4> m_d3d11_device_context;    //!< D3D11 auxiliary device context, which may be used for D3D11<->D3D12 interop
+
     RootSignatureCache m_rs_cache;    //!< cached root signatures
 
     FrameProgressTracker m_frame_progress_tracker;
@@ -414,9 +428,14 @@ template<> class DeviceAttorney<dxgi::HwAdapter>
 
 private:
 
-    static std::unique_ptr<Device> makeDevice(ComPtr<ID3D12Device6> const& native_device_interface, lexgine::core::GlobalSettings const& global_settings)
+    static std::unique_ptr<Device> makeDevice(dxgi::HwAdapter* owning_adapter_ptr, ComPtr<ID3D12Device6> const& native_device_interface, lexgine::core::GlobalSettings const& global_settings)
     {
-        return std::unique_ptr<Device>{new Device{ native_device_interface, global_settings }};
+        return std::unique_ptr<Device>{new Device{ owning_adapter_ptr, native_device_interface, global_settings }};
+    }
+
+    static void defineD3d11HandlesForDevice(Device& target_device, ComPtr<ID3D11Device5> const& native_d3d11_device, ComPtr<ID3D11DeviceContext4> const& native_d3d11_device_context)
+    {
+        target_device.defineD3d11Handles(native_d3d11_device, native_d3d11_device_context);
     }
 };
 

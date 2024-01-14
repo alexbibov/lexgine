@@ -208,4 +208,13 @@ std::string formatString(char const* format_string, ...)
     return std::string{ tmp.get() };
 }
 
+
+std::string toLowerCase(std::string const& str)
+{
+    std::vector<char> aux{};
+    std::transform(str.begin(), str.end(), std::back_inserter(aux),
+        [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+    return std::string{ aux.begin(), aux.end() };
+}
+
 }

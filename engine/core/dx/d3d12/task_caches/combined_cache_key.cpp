@@ -1,7 +1,9 @@
-#include "combined_cache_key.h"
-#include "engine/core/misc/strict_weak_ordering.h"
-
 #include <cassert>
+
+#include <engine/core/misc/strict_weak_ordering.h>
+#include "combined_cache_key.h"
+
+
 
 using namespace lexgine::core::dx::d3d12::task_caches;
 

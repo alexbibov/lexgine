@@ -20,8 +20,7 @@ class BasicRenderingServices final : public NamedEntity<class_names::BasicRender
     friend class BasicRenderingServicesAttorney<RenderingTasks>;
 
 public:
-    static std::string const c_upload_section_name;
-    static float const c_upload_section_fraction;
+    static std::string const c_dynamic_geometry_section_name;
 
 public:
     BasicRenderingServices(Globals& globals);
@@ -38,7 +37,8 @@ public:
 
     Viewport const& defaultViewport() const { return m_default_viewports[0]; }
     ConstantBufferStream& constantDataStream() { return m_constant_data_stream; }
-    DedicatedUploadDataStreamAllocator& resourceUploadAllocator() { return *m_resource_upload_allocator; }
+    PerFrameUploadDataStreamAllocator& dynamicGeometryStream() { return m_dynamic_geometry_allocator; }
+    ResourceDataUploader& resourceDataUploader() { return m_resource_uploader; }
 
 private:
     void defineRenderingTarget(RenderingTarget& rendering_target) { m_current_rendering_target_ptr = &rendering_target; }
@@ -59,6 +59,7 @@ private:
 private:
     Device& m_device;
     DxResourceFactory& m_dx_resources;
+    ResourceDataUploader& m_resource_uploader;
 
     RenderingTarget* m_current_rendering_target_ptr;
     DXGI_FORMAT m_rendering_target_color_format;
@@ -69,8 +70,8 @@ private:
 
     misc::StaticVector<DescriptorHeap const*, 4U> m_page0_descriptor_heaps;
     ConstantBufferStream m_constant_data_stream;
-    std::unique_ptr<DedicatedUploadDataStreamAllocator> m_resource_upload_allocator;
-
+    PerFrameUploadDataStreamAllocator m_dynamic_geometry_allocator;
+    
     osinteraction::windows::Window* m_rendering_window_ptr = nullptr;
 };
 

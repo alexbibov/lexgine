@@ -24,7 +24,7 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
 
     for (auto& adapter : m_hw_adapter_enumerator)
     {
-        Device& dev_ref = adapter.device();
+        Device& dev_ref = adapter->device();
 
         uint32_t node_mask = 1;
 
@@ -94,25 +94,6 @@ Heap& DxResourceFactory::retrieveUploadHeap(Device const& device)
     return m_upload_heaps.at(&device);
 }
 
-dxgi::HwAdapter const* DxResourceFactory::retrieveHwAdapterOwningDevicePtr(Device const& device) const
-{
-    auto target_adapter = std::find_if(m_hw_adapter_enumerator.begin(), m_hw_adapter_enumerator.end(),
-        [&device](auto& adapter)
-    {
-        Device& dev_ref = adapter.device();
-        return &dev_ref == &device;
-    }
-    );
-
-    if (target_adapter != m_hw_adapter_enumerator.end())
-    {
-        dxgi::HwAdapter const& adapter_ref = *target_adapter;
-        return &adapter_ref;
-    }
-    else
-        return nullptr;
-}
-
 
 misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHeap(Heap const& upload_heap, std::string const& section_name, size_t section_size)
 {
@@ -122,7 +103,7 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHe
     if (p == m_upload_heap_partitions.end())
     {
         upload_heap_partitioning new_partitioning{};
-        new_partitioning.partitioned_space_size = section_size;
+        new_partitioning.partitioned_space_size = aligned_section_size;
         auto q = new_partitioning.partitioning.insert(std::make_pair(
             misc::HashedString{ section_name },
             UploadHeapPartition{ 0ULL, aligned_section_size }
@@ -139,7 +120,7 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHe
         {
             size_t& offset = p->second.partitioned_space_size;
 
-            if (offset + section_size <= upload_heap.capacity())
+            if (offset + aligned_section_size <= upload_heap.capacity())
             {
                 auto r = p->second.partitioning.insert(std::make_pair(section_hash, UploadHeapPartition{ offset, aligned_section_size })).first;
                 offset += aligned_section_size;
@@ -150,6 +131,10 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHe
                 LEXGINE_THROW_ERROR("Unable to allocated named section \"" + section_name
                     + "\" in upload heap \"" + upload_heap.getStringName() + "\": the heap is exhausted");
             }
+        }
+        else 
+        {
+            return q->second;
         }
     }
 
@@ -169,3 +154,15 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::retrieveUploadHeapSection
     return misc::makeEmptyOptional<UploadHeapPartition>();
 }
 
+size_t DxResourceFactory::getUploadHeapFreeSpace(Heap const& upload_heap) const
+{
+    auto p = m_upload_heap_partitions.find(&upload_heap);
+    size_t upload_heap_full_capacity = m_global_settings.getUploadHeapCapacity();
+    return p != m_upload_heap_partitions.end() ? upload_heap_full_capacity - p->second.partitioned_space_size : 0;
+}
+
+size_t DxResourceFactory::getUploadHeapFreeSpace(Device const& owning_device) const
+{
+    auto p = m_upload_heaps.find(&owning_device);
+    return p != m_upload_heaps.end() ? getUploadHeapFreeSpace(p->second) : 0;
+}

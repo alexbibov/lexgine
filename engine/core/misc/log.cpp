@@ -1,17 +1,20 @@
 #include "log.h"
 
+#include <cassert>
 #include <chrono>
 #include <sstream>
 
 
-using namespace lexgine::core::misc;
-
-
+namespace lexgine::core::misc
+{
 
 namespace
 {
 static thread_local Log const* p_thread_logger = nullptr;
 }
+
+Log const* Log::m_main_logging_stream = nullptr;
+std::mutex Log::m_main_thread_log_mutex{};
 
 
 Log const& Log::create(std::ostream& output_logging_stream, std::string const& log_name, int8_t time_zone /* = 0 */, bool is_dts /* = false */)
@@ -47,6 +50,8 @@ Log const& Log::create(std::ostream& output_logging_stream, std::string const& l
 
 Log const* Log::retrieve()
 {
+    if (!p_thread_logger && m_main_logging_stream)
+        p_thread_logger = m_main_logging_stream;
     return p_thread_logger;
 }
 
@@ -69,9 +74,17 @@ bool Log::shutdown()
         }
     }
 
-    delete p_thread_logger;
+    if(p_thread_logger != m_main_logging_stream)
+        delete p_thread_logger;
     p_thread_logger = nullptr;
+    m_main_logging_stream = nullptr;
     return true;
+}
+
+void Log::registerMainLogger(Log const* logger)
+{
+    assert(m_main_logging_stream == nullptr || m_main_logging_stream == logger || logger == nullptr);
+    m_main_logging_stream = logger;
 }
 
 
@@ -84,6 +97,10 @@ Log::Log(std::ostream& output_logging_stream, int8_t time_zone, bool is_dts) :
 
 void Log::out(std::string const& message, LogMessageType message_type) const
 {
+    bool const is_main_thread = m_main_logging_stream && p_thread_logger == m_main_logging_stream;
+    if (is_main_thread)
+        m_main_thread_log_mutex.lock();
+
     std::stringstream sstream{};
 
     sstream << "<tr bgcolor=\"";
@@ -119,6 +136,9 @@ void Log::out(std::string const& message, LogMessageType message_type) const
     {
         *out_stream << sstream.rdbuf()->str();
     }
+
+    if (is_main_thread)
+        m_main_thread_log_mutex.unlock();
 }
 
 
@@ -134,4 +154,6 @@ Log::scoped_tabulation_helper::scoped_tabulation_helper(Log& logger) : m_logger{
 Log::scoped_tabulation_helper::~scoped_tabulation_helper()
 {
     if (m_logger.m_tabs > 0) --m_logger.m_tabs;
+}
+
 }

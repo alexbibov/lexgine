@@ -17,6 +17,12 @@
 #include "3rd_party/half/half.h"
 #include "datetime.h"
 
+#ifdef _DEBUG
+#define LEXGINE_ASSUME assert(false)
+#else
+#define LEXGINE_ASSUME __assume(0)
+#endif
+
 namespace lexgine::core::misc {
 
 enum class DataFormat
@@ -160,6 +166,8 @@ inline decltype(T1{}% T2{}) align(T1 value, T2 alignment)
 {
     return value + (alignment - value % alignment) % alignment;
 }
+
+std::string toLowerCase(std::string const& str);
 
 }
 

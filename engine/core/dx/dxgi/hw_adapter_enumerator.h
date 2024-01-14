@@ -6,7 +6,6 @@
 #include <memory>
 #include <iterator>
 #include <vector>
-#include <list>
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
@@ -90,7 +89,7 @@ public:
 
 public:
     HwAdapter(HwAdapter const&) = delete;
-    HwAdapter(HwAdapter&& other) = default;
+    HwAdapter(HwAdapter&& other) = delete;
     ~HwAdapter();
 
 public:
@@ -134,11 +133,11 @@ template<> class HwAdapterAttorney<HwAdapterEnumerator>
     friend class HwAdapterEnumerator;
 
 private:
-    static HwAdapter makeHwAdapter(GlobalSettings const& global_settings,
+    static std::unique_ptr<HwAdapter> makeHwAdapter(GlobalSettings const& global_settings,
         ComPtr<IDXGIFactory6> const& adapter_factory,
         ComPtr<IDXGIAdapter4> const& adapter)
     {
-        return HwAdapter{ global_settings, adapter_factory, adapter };
+        return std::unique_ptr<HwAdapter>{ new HwAdapter{ global_settings, adapter_factory, adapter }};
     }
 };
 
@@ -147,7 +146,7 @@ private:
 class HwAdapterEnumerator final : public NamedEntity<class_names::DXGI_HwAdapterEnumerator>
 {
 public:
-    using adapter_list_type = std::list<HwAdapter>;
+    using adapter_list_type = std::vector<std::unique_ptr<HwAdapter>>;
     using iterator = adapter_list_type::iterator;
     using const_iterator = adapter_list_type::const_iterator;
 
@@ -169,10 +168,13 @@ public:
     const_iterator cend() const;
 
 
+    adapter_list_type::value_type& operator[](ptrdiff_t index);
+    adapter_list_type::value_type const& operator[](ptrdiff_t index) const;
+
+
     void refresh(DxgiGpuPreference enumeration_preference = DxgiGpuPreference::high_performance);	//! refreshes the list of available hardware adapters with support of D3D12. THROWS.
     bool isRefreshNeeded() const;	//! returns true if the list of adapters has to be refreshed
-    HwAdapter& getWARPAdapter();   //! retrieves the WARP adapter
-    HwAdapter const& getWARPAdapter() const;    //! retrieves the WARP adapter
+    HwAdapter* getWARPAdapter() const;    //! retrieves the WARP adapter
 
     uint32_t getAdapterCount() const;    //! retrieves total number of adapters installed in the host system including the WARP adapter
 

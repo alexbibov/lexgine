@@ -4,12 +4,14 @@
 #include <map>
 #include <cassert>
 
-#include "misc/hashed_string.h"
-#include "entity.h"
-#include "class_names.h"
-#include "lexgine_core_fwd.h"
-#include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
-#include "engine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h"
+#include <engine/core/misc/hashed_string.h>
+#include <engine/core/entity.h>
+#include <engine/core/class_names.h>
+#include <engine/core/engine_api.h>
+#include <engine/core/lexgine_core_fwd.h>
+#include <engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h>
+#include <engine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h>
+
 
 namespace lexgine::core {
 
@@ -86,15 +88,8 @@ public:
 //! Construct the main and the most generalist part of the Globals object pool
 class MainGlobalsBuilder
 {
-private:
-    GlobalSettings* m_global_settings;
-    dx::d3d12::DxResourceFactory* m_dx_resource_factory;
-    dx::d3d12::task_caches::HLSLCompilationTaskCache* m_shader_cache;
-    dx::d3d12::task_caches::PSOCompilationTaskCache* m_pso_cache;
-    dx::d3d12::task_caches::RootSignatureCompilationTaskCache* m_rs_cache;
-    LoggingStreams* m_logging_streams;
-
 public:
+    void defineEngineApi(EngineApi api);
     void defineGlobalSettings(GlobalSettings& global_settings);
     void defineLoggingStreams(LoggingStreams& logging_streams);
     void registerDxResourceFactory(dx::d3d12::DxResourceFactory& dx_resource_factory);
@@ -102,7 +97,17 @@ public:
     void registerPSOCompilationTaskCache(dx::d3d12::task_caches::PSOCompilationTaskCache& pso_cache);
     void registerRootSignatureCompilationTaskCache(dx::d3d12::task_caches::RootSignatureCompilationTaskCache& rs_cache);
 
+
     std::unique_ptr<Globals> build();
+
+private:
+    EngineApi m_engine_api;
+    GlobalSettings* m_global_settings;
+    dx::d3d12::DxResourceFactory* m_dx_resource_factory;
+    dx::d3d12::task_caches::HLSLCompilationTaskCache* m_shader_cache;
+    dx::d3d12::task_caches::PSOCompilationTaskCache* m_pso_cache;
+    dx::d3d12::task_caches::RootSignatureCompilationTaskCache* m_rs_cache;
+    LoggingStreams* m_logging_streams;
 };
 
 

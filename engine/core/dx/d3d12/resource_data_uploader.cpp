@@ -28,7 +28,7 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
 {
     D3D12_RESOURCE_DESC d3d12_destination_resource_descriptor = destination_descriptor.p_destination_resource->descriptor().native();
     assert(d3d12_destination_resource_descriptor.Dimension >= D3D12_RESOURCE_DIMENSION_TEXTURE1D
-        || d3d12_destination_resource_descriptor.Dimension <= D3D12_RESOURCE_DIMENSION_TEXTURE3D);
+        && d3d12_destination_resource_descriptor.Dimension <= D3D12_RESOURCE_DIMENSION_TEXTURE3D);
 
     beginCopy(destination_descriptor);
     {
