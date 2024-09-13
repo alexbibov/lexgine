@@ -26,7 +26,7 @@ lexgine::EngineSettings createEngineSettings()
     settings.setEngineApi(EngineApi::Direct3D12);
     auto engineApi = settings.getEngineApi();
 
-    settings.setDebugMode(true);
+    settings.setDebugMode(false);
     settings.setEnableProfiling(true);
     settings.setGlobalSettingsJsonFile("global_settings.json");
     settings.setLoggingOutputPath("");
@@ -92,7 +92,7 @@ private:
 
         std::cout << device_string_description << std::endl;
         m_window_handler = std::make_unique<lexgine::osinteraction::WindowHandler>(m_engine_initializer.createWindowHandler(m_window, createSwapChainSettings(), lexgine::core::SwapChainDepthFormat::depth32));
-        m_window.setVisibility(true);
+       //  m_window.setVisibility(true);
     }
 
 private:

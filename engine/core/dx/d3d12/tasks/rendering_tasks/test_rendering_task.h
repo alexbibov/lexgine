@@ -57,7 +57,7 @@ private:
     std::array<short, 36> m_box_indices;
 
     ShaderResourceDescriptorTable m_srv_table;
-    ShaderResourceDescriptorTable m_sampler_table;
+    SamplerResourceDescriptorTable m_sampler_table;
 
     core::Allocator<UploadDataBlock>::address_type m_allocation;
 
