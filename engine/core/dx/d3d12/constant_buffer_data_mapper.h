@@ -102,7 +102,7 @@ public:
 
 private:
     ConstantBufferReflection const& m_reflection;
-    std::list<std::pair<misc::HashedString, std::unique_ptr<AbstractConstantDataProvider>>> m_writers;
+    std::vector<std::pair<misc::HashedString, std::unique_ptr<AbstractConstantDataProvider>>> m_writers;
 };
 
 }
