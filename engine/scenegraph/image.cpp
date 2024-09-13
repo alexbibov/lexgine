@@ -1,7 +1,9 @@
 #include <cstdlib>  
 #include <cassert>
 #include <array>
+
 #include <engine/core/misc/misc.h>
+#include <engine/conversion/image_loader_pool.h>
 
 #include "image.h"
 
@@ -55,17 +57,18 @@ void createMipmapLevel(std::vector<uint8_t>& texture_buffer, size_t texel_size, 
 } // namespace
 
 
-Image::Image(std::filesystem::path const& uri)
+Image::Image(std::filesystem::path const& uri, conversion::ImageLoaderPool const& image_loader_pool)
     : m_uri{ uri.string() }
-    , m_image_loaders{}
+    , m_image_loader_pool{ image_loader_pool }
 {
     
 }
 
 
-Image::Image(std::vector<uint8_t>&& data, uint32_t width, uint32_t height, size_t element_count, size_t element_size, conversion::ImageColorSpace color_space, std::string const& uri, core::misc::DateTime const& timestamp)
+Image::Image(std::vector<uint8_t>&& data, uint32_t width, uint32_t height, size_t element_count, size_t element_size, conversion::ImageColorSpace color_space, std::string const& uri, core::misc::DateTime const& timestamp, conversion::ImageLoaderPool const& image_loader_pool)
     : m_uri{ uri }
     , m_data{ std::move(data) }
+    , m_image_loader_pool{ image_loader_pool }
 {
     m_description.timestamp = timestamp;
     m_description.element_count = element_count;
@@ -85,7 +88,7 @@ bool Image::load()
         return true;
 
     std::filesystem::path p{m_uri};
-    for (auto const& e : m_image_loaders)
+    for (auto const& e : m_image_loader_pool)
     {
         if (e->canLoad(p))
         {
@@ -117,10 +120,7 @@ size_t Image::getMipmapCount() const
     return m_description.layers[0].mipmaps.size();
 }
 
-void Image::registerImageLoader(std::unique_ptr<conversion::ImageLoader>&& image_loader)
-{
-    m_image_loaders.emplace_back(std::move(image_loader));
-}
+
 
 void Image::generateMipmaps()
 {
