@@ -17,6 +17,7 @@
 #include "engine/preprocessing/preprocessor_tokens.h"
 #include "engine/osinteraction/window_handler.h"
 #include "engine/osinteraction/windows/window.h"
+#include "engine/conversion/lexgine_conversion_fwd.h"
 
 namespace lexgine {
 
@@ -57,6 +58,8 @@ public:
 
     LEXGINE_CPP_API osinteraction::WindowHandler* createWindowHandler(osinteraction::windows::Window & window, core::SwapChainDescriptor const& swap_chain_desc, core::SwapChainDepthFormat depth_format);
 
+    core::Globals& globals();
+
 private:
     core::EngineApi m_engine_api;
     std::unique_ptr<core::dx::D3D12Initializer> m_d3d12_initializer;
@@ -64,6 +67,7 @@ private:
     std::unique_ptr<core::dx::d3d12::RenderingTasks> m_rendering_tasks;
     std::shared_ptr<core::dx::d3d12::SwapChainLink> m_swap_chain_link;
     std::unique_ptr<osinteraction::WindowHandler> m_window_handler;
+    std::unique_ptr<conversion::ImageLoaderPool> m_image_loader_pool;
 };
 
 }
