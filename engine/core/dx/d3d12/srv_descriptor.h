@@ -7,6 +7,8 @@
 #include <d3d12.h>
 
 #include "lexgine_core_dx_d3d12_fwd.h"
+#include "engine/core/misc/hash_value.h"
+#include "hashable_descriptor.h"
 
 
 namespace lexgine::core::dx::d3d12 {
@@ -44,7 +46,7 @@ struct SRVTextureArrayInfo final
 };
 
 
-class SRVDescriptor final
+class SRVDescriptor final : public HashableDescriptor<D3D12_SHADER_RESOURCE_VIEW_DESC>
 {
 public:
     SRVDescriptor(Resource const& resource, 

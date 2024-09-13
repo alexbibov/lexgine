@@ -3,15 +3,16 @@
 #include "srv_descriptor.h"
 #include "resource.h"
 
-using namespace lexgine::core::dx::d3d12;
+namespace lexgine::core::dx::d3d12 {
 
 
 SRVDescriptor::SRVDescriptor(Resource const& resource,
-    SRVBufferInfo const& buffer_info):
-    m_resource_ref{ resource }
+    SRVBufferInfo const& buffer_info) 
+    : HashableDescriptor{ resource, m_native }
+    , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
-    
+
     assert(resource_desc.dimension == ResourceDimension::buffer);
 
     m_native.Format = resource_desc.format;
@@ -25,8 +26,9 @@ SRVDescriptor::SRVDescriptor(Resource const& resource,
 }
 
 SRVDescriptor::SRVDescriptor(Resource const& resource,
-    SRVTextureInfo const& texture_info, bool is_cubemap):
-    m_resource_ref{ resource }
+    SRVTextureInfo const& texture_info, bool is_cubemap) 
+    : HashableDescriptor{ resource, m_native }
+    , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
 
@@ -66,7 +68,7 @@ SRVDescriptor::SRVDescriptor(Resource const& resource,
             m_native.Texture2D.MostDetailedMip = static_cast<UINT>(texture_info.most_detailed_mipmap_level);
             m_native.Texture2D.ResourceMinLODClamp = static_cast<FLOAT>(texture_info.resource_min_lod_clamp);
         }
-        
+
         break;
 
     case ResourceDimension::texture3d:
@@ -79,8 +81,9 @@ SRVDescriptor::SRVDescriptor(Resource const& resource,
 }
 
 SRVDescriptor::SRVDescriptor(Resource const& resource,
-    SRVTextureArrayInfo const& texture_array_info, bool is_cubemap):
-    m_resource_ref{ resource }
+    SRVTextureArrayInfo const& texture_array_info, bool is_cubemap) 
+    : HashableDescriptor{ resource, m_native }
+    , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
 
@@ -204,7 +207,7 @@ std::pair<uint64_t, uint32_t> SRVDescriptor::arrayOffsetAndSize() const
     case D3D12_SRV_DIMENSION_TEXTURE3D:
     case D3D12_SRV_DIMENSION_TEXTURECUBE:
         return std::make_pair(0ULL, 1U);
-    
+
     case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
     case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
     case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
@@ -214,9 +217,10 @@ std::pair<uint64_t, uint32_t> SRVDescriptor::arrayOffsetAndSize() const
     case D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY:
         return std::make_pair(m_native.Texture2DMSArray.FirstArraySlice,
             static_cast<uint32_t>(m_native.Texture2DMSArray.ArraySize));
-        
+
     }
 
     return std::make_pair(static_cast<uint64_t>(-1), static_cast<uint32_t>(-1));
 }
 
+}    // namespace lexgine::core::dx::d3d12

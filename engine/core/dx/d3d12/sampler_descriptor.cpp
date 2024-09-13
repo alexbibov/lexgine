@@ -7,6 +7,7 @@ using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
 SamplerDescriptor::SamplerDescriptor(FilterPack const& filter, math::Vector4f const& border_color)
+    : HashableDescriptor{ m_native }
 {
     auto uv_address = filter.getWrapModeUV();
     m_native.AddressU = d3d12Convert(uv_address.first);

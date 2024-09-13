@@ -7,8 +7,9 @@ using namespace lexgine::core::dx::d3d12;
 
 
 DSVDescriptor::DSVDescriptor(Resource const& resource, 
-    DSVTextureInfo const& texture_info, DSVFlags flags):
-    m_resource_ref{ resource }
+    DSVTextureInfo const& texture_info, DSVFlags flags)
+    : HashableDescriptor{ resource, m_native }
+    , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
 
@@ -35,8 +36,9 @@ DSVDescriptor::DSVDescriptor(Resource const& resource,
 }
 
 DSVDescriptor::DSVDescriptor(Resource const& resource, 
-    DSVTextureArrayInfo const& texture_array_info, DSVFlags flags):
-    m_resource_ref{ resource }
+    DSVTextureArrayInfo const& texture_array_info, DSVFlags flags)
+    : HashableDescriptor{ resource, m_native }
+    , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
 

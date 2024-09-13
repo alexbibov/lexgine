@@ -7,6 +7,7 @@
 #include <d3d12.h>
 
 #include "lexgine_core_dx_d3d12_fwd.h"
+#include "hashable_descriptor.h"
 
 
 namespace lexgine::core::dx::d3d12 {
@@ -30,7 +31,7 @@ struct DSVTextureArrayInfo final
 };
 
 
-class DSVDescriptor final
+class DSVDescriptor final : public HashableDescriptor<D3D12_DEPTH_STENCIL_VIEW_DESC>
 {
 public:
     DSVDescriptor(Resource const& resource, 

@@ -7,6 +7,7 @@
 #include <d3d12.h>
 
 #include "lexgine_core_dx_d3d12_fwd.h"
+#include "hashable_descriptor.h"
 
 
 namespace lexgine::core::dx::d3d12 {
@@ -35,7 +36,7 @@ struct RTVTextureArrayInfo final
 };
 
 
-class RTVDescriptor final
+class RTVDescriptor final : public HashableDescriptor<D3D12_RENDER_TARGET_VIEW_DESC>
 {
 public:
     RTVDescriptor(Resource const& resource, RTVBufferInfo const& buffer_info);
