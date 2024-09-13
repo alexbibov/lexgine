@@ -56,12 +56,13 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
         m_max_frames_in_flight = 6;
         m_max_non_blocking_upload_buffer_allocation_timeout = 1000U;
         m_enable_profiling = false;
+        m_enable_cache = true;
         m_enable_gpu_accelerated_texture_conversion = false;
 
         {
             // Descriptor heaps total and per-page capacity default settings
 
-            m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = 8192;
+            m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = 1000000;
             m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = 1;
 
             m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::sampler)] = 256;
@@ -268,6 +269,15 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
         else
         {
             yield_warning_log_message("enable_async_copy", m_enable_async_copy);
+        }
+
+        if ((p = document.find("enable_cache")) != document.end()
+            && p->is_boolean())
+        {
+            m_enable_cache = p->get<bool>();
+        } else 
+        {
+            yield_warning_log_message("enable_cache", m_enable_cache);
         }
 
         if ((p = document.find("max_frames_in_flight")) != document.end()
@@ -569,6 +579,11 @@ bool GlobalSettings::isAsyncCopyEnabled() const
 bool GlobalSettings::isProfilingEnabled() const
 {
     return m_enable_profiling;
+}
+
+bool GlobalSettings::isCacheEnabled() const
+{
+    return m_enable_cache;
 }
 
 uint16_t GlobalSettings::getMaxFramesInFlight() const

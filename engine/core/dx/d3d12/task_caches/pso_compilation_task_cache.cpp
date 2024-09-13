@@ -77,7 +77,6 @@ tasks::GraphicsPSOCompilationTask* PSOCompilationTaskCache::findOrCreateTask(
     auto adapter_luid = active_adaptor_ptr->getProperties().details.luid;
     std::string adapter_tailored_pso_cache_name = pso_cache_name + "__" + std::to_string(adapter_luid.LowPart) + std::to_string(adapter_luid.HighPart);
 
-
     Key key{ adapter_tailored_pso_cache_name, uid, PSOType::graphics };
     CombinedCacheKey combined_key{ key };
 
@@ -113,7 +112,12 @@ tasks::ComputePSOCompilationTask* PSOCompilationTaskCache::findOrCreateTask(
     std::string const& pso_cache_name, uint64_t uid)
 {
     tasks::ComputePSOCompilationTask* new_pso_compilation_task{ nullptr };
-    Key key{ pso_cache_name, uid, PSOType::compute };
+
+    auto* active_adaptor_ptr = globals.get<Device>()->hwAdapter();
+    auto adapter_luid = active_adaptor_ptr->getProperties().details.luid;
+    std::string adapter_tailored_pso_cache_name = pso_cache_name + "__" + std::to_string(adapter_luid.LowPart) + std::to_string(adapter_luid.HighPart);
+
+    Key key{ adapter_tailored_pso_cache_name, uid, PSOType::compute };
     CombinedCacheKey combined_key{ key };
 
     auto q = m_psos_cache_keys.find(combined_key);
