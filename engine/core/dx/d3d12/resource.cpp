@@ -201,7 +201,7 @@ PlacedResource::PlacedResource(Heap const& heap, uint64_t heap_offset,
     ResourceState const& initial_state,
     misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
     ResourceDescriptor const& descriptor)
-    : Resource{ initial_state }
+    : Resource{ descriptor.dimension == ResourceDimension::buffer ? ResourceState::base_values::common : initial_state }
     , m_heap{ heap }
     , m_offset{ heap_offset }
 {
@@ -217,7 +217,7 @@ PlacedResource::PlacedResource(Heap const& heap, uint64_t heap_offset,
     }
 
     LEXGINE_THROW_ERROR_IF_FAILED(this,
-        heap.device().native()->CreatePlacedResource(heap.native().Get(), heap_offset, &desc, static_cast<D3D12_RESOURCE_STATES>(initial_state.getValue()), native_clear_value_ptr, IID_PPV_ARGS(&m_resource)),
+        heap.device().native()->CreatePlacedResource(heap.native().Get(), heap_offset, &desc, static_cast<D3D12_RESOURCE_STATES>(m_resource_default_state.getValue()), native_clear_value_ptr, IID_PPV_ARGS(&m_resource)),
         S_OK);
 }
 
@@ -281,14 +281,14 @@ CommittedResource::CommittedResource(Device const& device, ResourceState initial
     ResourceDescriptor const& descriptor, AbstractHeapType resource_memory_type,
     HeapCreationFlags resource_usage_flags,
     uint32_t node_mask/* = 0x1*/, uint32_t node_exposure_mask/* = 0x1*/)
-    : Resource{ initial_state }
+    : Resource{ descriptor.dimension == ResourceDimension::buffer ? ResourceState::base_values::common : initial_state }
     , m_device{ device }
     , m_node_mask{ node_mask }
     , m_node_exposure_mask{ node_exposure_mask }
 {
     Heap::retrieveAbstractHeapTypeProperties(device, resource_memory_type, node_mask, m_cpu_page_property, m_gpu_memory_pool);
     D3D12_HEAP_PROPERTIES heap_properties = Heap::createNativeHeapProperties(resource_memory_type, node_mask, node_exposure_mask);
-    createResource(heap_properties, initial_state, descriptor, resource_usage_flags, optimized_clear_value);
+    createResource(heap_properties, m_resource_default_state, descriptor, resource_usage_flags, optimized_clear_value);
 }
 
 CommittedResource::CommittedResource(Device const& device, ResourceState initial_state,
@@ -296,7 +296,7 @@ CommittedResource::CommittedResource(Device const& device, ResourceState initial
     ResourceDescriptor const& descriptor, CPUPageProperty cpu_page_property,
     GPUMemoryPool gpu_memory_pool, HeapCreationFlags resource_usage_flags,
     uint32_t node_mask/* = 0x1*/, uint32_t node_exposure_mask/* = 0x1*/)
-    : Resource{ initial_state }
+    : Resource{ descriptor.dimension == ResourceDimension::buffer ? ResourceState::base_values::common : initial_state }
     , m_device{ device }
     , m_cpu_page_property{ cpu_page_property }
     , m_gpu_memory_pool{ gpu_memory_pool }
@@ -304,7 +304,7 @@ CommittedResource::CommittedResource(Device const& device, ResourceState initial
     , m_node_exposure_mask{ node_exposure_mask }
 {
     D3D12_HEAP_PROPERTIES heap_properties = Heap::createNativeHeapProperties(cpu_page_property, gpu_memory_pool, node_mask, node_exposure_mask);
-    createResource(heap_properties, initial_state, descriptor, resource_usage_flags, optimized_clear_value);
+    createResource(heap_properties, m_resource_default_state, descriptor, resource_usage_flags, optimized_clear_value);
 }
 
 void CommittedResource::createResource(D3D12_HEAP_PROPERTIES const& owning_heap_properties,
