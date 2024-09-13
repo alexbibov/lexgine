@@ -136,21 +136,15 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
     }
 }
 
-void RenderingTasks::render(RenderingTarget& rendering_target,
-    std::function<void(RenderingTarget const&)> const& presentation_routine)
+void RenderingTasks::render(RenderingTarget& rendering_target, const std::function<void(void)>& presenter)
 {
+    // Submit and present frame
+
+    BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingTarget(m_basic_rendering_services, rendering_target);
+
     m_device.queryCache()->markFrameBegin();
-
-    {
-        // Submit and present frame
-
-        BasicRenderingServicesAttorney<RenderingTasks>
-            ::defineRenderingTarget(m_basic_rendering_services, rendering_target);
-
-        m_task_sink.submit(m_frame_progress_tracker.currentFrameIndex());
-        presentation_routine(rendering_target);
-    }
-
+    m_task_sink.submit(m_frame_progress_tracker.currentFrameIndex());
+    presenter();
     m_device.queryCache()->markFrameEnd();
 }
 

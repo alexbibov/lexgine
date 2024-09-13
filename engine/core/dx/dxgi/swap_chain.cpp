@@ -96,7 +96,7 @@ void SwapChain::resizeBuffers(math::Vector2u const& new_dimensions)
         this,
         m_dxgi_swap_chain->ResizeBuffers1(0,
             static_cast<UINT>(new_dimensions.x), static_cast<UINT>(new_dimensions.y),
-            DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH, node_masks.data(), queues.data()),
+            DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING, node_masks.data(), queues.data()),
         S_OK
     );
 }
@@ -124,9 +124,9 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     swap_chain_desc1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swap_chain_desc1.BufferCount = static_cast<UINT>(desc.back_buffer_count);
     swap_chain_desc1.Scaling = static_cast<DXGI_SCALING>(desc.scaling);
-    swap_chain_desc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+    swap_chain_desc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swap_chain_desc1.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-    swap_chain_desc1.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+    swap_chain_desc1.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
     swap_chain_fs_desc.RefreshRate = DXGI_RATIONAL{ desc.refreshRate, 1 };
     swap_chain_fs_desc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
