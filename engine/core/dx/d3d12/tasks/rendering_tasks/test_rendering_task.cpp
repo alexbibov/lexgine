@@ -13,6 +13,9 @@
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
 
+#include "engine/core/dx/dxcompilation/shader_stage.h"
+#include "engine/core/dx/dxcompilation/shader_function.h"
+
 #include "test_rendering_task.h"
 
 
@@ -47,6 +50,8 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
 
     m_va_list = VertexAttributeSpecificationList{ position, color, texture_coordinate };
     auto& data_uploader = m_basic_rendering_services.resourceDataUploader();
+
+    m_projection_transform = math::createProjectionMatrix(EngineApi::Direct3D12, 16.f, 9.f);
 
     {
         // upload vertex buffer
@@ -125,44 +130,6 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
     data_uploader.upload();
     data_uploader.waitUntilUploadIsFinished();
 
-    // Create root signature and the related descriptor tables
-    {
-        RootSignatureCompilationTaskCache& rs_compilation_task_cache = *globals.get<RootSignatureCompilationTaskCache>();
-        RootSignature rs{};
-
-        RootEntryDescriptorTable main_parameters;
-        main_parameters.addRange(RootEntryDescriptorTable::RangeType::srv, 1, 0, 0, 0);
-
-        RootEntryDescriptorTable sampler_table;
-        sampler_table.addRange(RootEntryDescriptorTable::RangeType::sampler, 1, 0, 0, 0);
-
-        rs.addParameter(0, main_parameters);
-        rs.addParameter(1, sampler_table);
-        rs.addParameter(2, RootEntryCBVDescriptor{ 0, 0 });
-
-        RootSignatureFlags rs_flags = RootSignatureFlags::base_values::allow_input_assembler;
-        // rs_flags |= RootSignatureFlags::base_values::deny_domain_shader;
-        // rs_flags |= RootSignatureFlags::base_values::deny_hull_shader;
-
-        m_rs = rs_compilation_task_cache.findOrCreateTask(globals, std::move(rs), rs_flags, "test_rendering_rs", 0);
-        m_rs->execute(0);
-
-        {
-            ResourceViewDescriptorTableBuilder builder{ globals, 0 };
-            builder.addDescriptor(SRVDescriptor{ m_texture, SRVTextureInfo{} });
-            m_srv_table = builder.build();
-        }
-
-        {
-            FilterPack filter_pack{ MinificationFilter::linear, MagnificationFilter::linear, 16,
-                WrapMode::clamp, WrapMode::clamp, WrapMode::clamp };
-
-            SamplerDescriptorTableBuilder builder{ globals, 0 };
-            builder.addDescriptor(SamplerDescriptor{ filter_pack, math::Vector4f{0.f} });
-            m_sampler_table = builder.build();
-        }
-    }
-
 
     // Create shaders
     {
@@ -173,7 +140,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
             "    float rotationAngle;\n"
             "};\n"
             "\n"
-            "ConstantBuffer<ConstantDataStruct> ConstantData : register(b0);\n"
+            "ConstantBuffer<ConstantDataStruct> ConstantData : register(b0, space100);\n"
             "Texture2D<float4> SampleTexture : register(t0);\n"
             "SamplerState BillinearSampler : register(s0);\n"
             "\n"
@@ -229,20 +196,22 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
 
         m_vs->execute(0);
         m_ps->execute(0);
-    }
 
-    // Setup constant buffer data
-    {
-        m_cb_reflection.addElement("ProjectionMatrix",
-            ConstantBufferReflection::ReflectionEntryDesc{ ConstantBufferReflection::ReflectionEntryBaseType::float4x4, 1 });
+        dxcompilation::ShaderFunction shader_function{ m_globals, 0, "test_rendering_shader" };
+        dxcompilation::ShaderStage* p_vs_stage = shader_function.createShaderStage(m_vs);
+        dxcompilation::ShaderStage* p_ps_stage = shader_function.createShaderStage(m_ps);
 
-        m_cb_reflection.addElement("RotationAngle",
-            ConstantBufferReflection::ReflectionEntryDesc{ ConstantBufferReflection::ReflectionEntryBaseType::float1, 1 });
+        p_ps_stage->bindTexture(std::string{ "SampleTexture" }, m_texture);
+        p_ps_stage->bindSampler(std::string{ "BillinearSampler" },
+            FilterPack{ MinificationFilter::linear, MagnificationFilter::linear, 16, WrapMode::clamp, WrapMode::clamp, WrapMode::clamp }, 
+            math::Vector4f{ 0.f });
 
+        shader_function.prepare(false);
+        m_rs = shader_function.getBindingSignature();
+         
+        m_cb_reflection = p_vs_stage->buildConstantBufferReflection(std::string{ "ConstantData" });
         m_cb_data_mapping.addDataBinding("ProjectionMatrix", m_projection_transform);
-        m_cb_data_mapping.addDataBinding("RotationAngle", m_box_rotation_angle);
-
-        m_projection_transform = math::createProjectionMatrix(EngineApi::Direct3D12, 16.f, 9.f);
+        m_cb_data_mapping.addDataBinding("rotationAngle", m_box_rotation_angle);
     }
 }
 
@@ -278,10 +247,12 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
     //cmd_list.reset();
 
     m_basic_rendering_services.beginRendering(*m_cmd_list_ptr);
-
-    m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
+    
     m_cmd_list_ptr->setPipelineState(m_pso->getTaskData());
     m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());
+
+    m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
+    
     m_basic_rendering_services.setDefaultViewport(*m_cmd_list_ptr);
 
     m_cmd_list_ptr->inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
@@ -299,9 +270,9 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
     m_allocation =
         m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_cb_data_mapping);
 
-    m_cmd_list_ptr->setRootDescriptorTable(0, m_srv_table);
-    m_cmd_list_ptr->setRootDescriptorTable(1, m_sampler_table);
-    m_cmd_list_ptr->setRootConstantBufferView(2, m_allocation->virtualGpuAddress());
+    /*m_cmd_list_ptr->setRootDescriptorTable(0, m_srv_table.gpu_pointer);
+    m_cmd_list_ptr->setRootDescriptorTable(1, m_sampler_table.gpu_pointer);*/
+    m_cmd_list_ptr->setRootConstantBufferView(static_cast<uint32_t>(dxcompilation::ShaderFunctionConstantBufferRootIds::scene_uniforms), m_allocation->virtualGpuAddress());
 
     m_cmd_list_ptr->drawIndexedInstanced(36, 1, 0, 0, 0);
 
