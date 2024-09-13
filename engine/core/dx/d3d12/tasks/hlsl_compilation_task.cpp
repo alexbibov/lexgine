@@ -16,7 +16,9 @@
 
 
 
-namespace lexgine::core::dx::d3d12::tasks {
+namespace lexgine::core::dx::d3d12::tasks 
+{
+
 std::string HLSLCompilationTask::getCacheName() const
 {
     return m_key.toString();
@@ -97,7 +99,6 @@ HLSLCompilationTask::HLSLCompilationTask(task_caches::CombinedCacheKey const& ke
     , m_was_compilation_successful{ false }
     , m_compilation_log{ "" }
     , m_should_recompile{ true }
-    , m_is_completed{ false }
 {
     addProfilingService(std::make_unique<CPUTaskProfilingService>(*globals.get<GlobalSettings>(), getStringName()));
 
@@ -167,7 +168,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
 {
     try
     {
-        if (!m_is_completed)
+        if (!isCompleted())
         {
             auto shader_cache_containing_requested_shader =
                 task_caches::findCombinedCacheContainingKey(m_key, m_global_settings);
@@ -327,10 +328,11 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
                 if (m_was_compilation_successful)
                 {
                     // if compilation was successful serialize compiled shader into the cache
-                    auto my_shader_cache =
-                        task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
-
-                    my_shader_cache.cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_shader_byte_code });
+                    auto my_shader_cache = task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
+                    if (my_shader_cache.isValid())
+                    {
+                        static_cast<task_caches::StreamedCacheConnection&>(my_shader_cache).cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_shader_byte_code });
+                    }
                 }
 
                 m_should_recompile = m_was_compilation_successful;
@@ -346,7 +348,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
         LEXGINE_LOG_ERROR(this, "unknown exception");
     }
 
-    m_is_completed = true;
+    markCompleted();
 
     return true;    // the task is not reschedulable, so do_task() returns 'true' regardless of compilation outcome
 }
@@ -357,4 +359,4 @@ lexgine::core::concurrency::TaskType HLSLCompilationTask::type() const
 }
 
 
-}
+}  

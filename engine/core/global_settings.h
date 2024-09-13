@@ -46,6 +46,7 @@ public:
     bool isAsyncComputeEnabled() const;
     bool isAsyncCopyEnabled() const;
     bool isProfilingEnabled() const;
+    bool isCacheEnabled() const;
 
     uint16_t getMaxFramesInFlight() const;
 
@@ -90,6 +91,7 @@ private:
     uint16_t m_max_frames_in_flight;
     uint32_t m_max_non_blocking_upload_buffer_allocation_timeout;
     bool m_enable_profiling;
+    bool m_enable_cache;
     bool m_enable_gpu_accelerated_texture_conversion;
 
     std::array<uint32_t, static_cast<size_t>(dx::d3d12::DescriptorHeapType::count)> m_descriptors_per_page;

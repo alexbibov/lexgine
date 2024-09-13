@@ -83,10 +83,11 @@ bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
             if (m_was_successful)
             {
-                auto my_rs_cache =
-                    task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
-
-                my_rs_cache.cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_compiled_rs_blob });
+                auto my_rs_cache = task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
+                if (my_rs_cache.isValid())
+                {
+                    static_cast<task_caches::StreamedCacheConnection&>(my_rs_cache).cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_compiled_rs_blob });
+                }
             }
 
         }

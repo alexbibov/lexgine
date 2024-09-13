@@ -105,7 +105,6 @@ private:
     std::string m_compilation_log;
 
     bool mutable m_should_recompile;
-    bool m_is_completed;
     D3DDataBlob m_shader_byte_code;
 };
 
