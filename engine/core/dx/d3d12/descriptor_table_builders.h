@@ -18,7 +18,7 @@ namespace lexgine::core::dx::d3d12 {
 template<typename TagType>
 struct DescriptorTable final
 {
-    size_t cpu_pointer;
+    uintptr_t cpu_pointer;
     uint64_t gpu_pointer;
     uint32_t descriptor_count;
     uint32_t descriptor_size;
@@ -76,7 +76,7 @@ public:
 
     void addDescriptor(SamplerDescriptor const& descriptor);
 
-    ShaderResourceDescriptorTable build() const;
+    SamplerResourceDescriptorTable build() const;
 
 private:
     Globals& m_globals;

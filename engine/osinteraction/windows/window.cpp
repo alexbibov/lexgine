@@ -63,7 +63,7 @@ HWND createWindow(Window* p_window, ATOM& atom, HINSTANCE hInstance, uint32_t x,
     {
         WNDCLASSEX wndclassex;
         wndclassex.cbSize = sizeof(WNDCLASSEX);
-        wndclassex.style = CS_DBLCLKS | CS_HREDRAW | CS_OWNDC | CS_VREDRAW;
+        wndclassex.style = CS_DBLCLKS | CS_OWNDC;
         wndclassex.lpfnWndProc = window_procedure;
         wndclassex.cbClsExtra = 0;
         wndclassex.cbWndExtra = 0;

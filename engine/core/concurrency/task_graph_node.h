@@ -77,6 +77,9 @@ public:
     //! Retrieves custom user data associated with the task graph node
     uint64_t getUserData() const;
 
+protected:
+    void markCompleted();
+
 private:
     TaskGraphNode(TaskGraphNode const& other);    //! NOTE: copies only identifier and the pointer to contained task but not completion status or dependency sets (see implementation)
 

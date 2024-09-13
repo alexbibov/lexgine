@@ -51,9 +51,8 @@ public:
         END_FLAGS_DECLARATION(WindowExStyle);
 
     Window(HINSTANCE hInstance = NULL,
-        WindowStyle window_style = WindowStyle::base_values::has_system_menu | WindowStyle::base_values::has_minimize_box
-        | WindowStyle::base_values::has_maximize_box | WindowStyle::base_values::supports_sizing,
-        WindowExStyle window_ex_style = WindowExStyle::base_values::raise_border_edge);
+        WindowStyle window_style = WindowStyle::base_values::thin_border | WindowStyle::base_values::has_minimize_box | WindowStyle::base_values::visible,
+        WindowExStyle window_ex_style = {});
 
 
     ~Window();

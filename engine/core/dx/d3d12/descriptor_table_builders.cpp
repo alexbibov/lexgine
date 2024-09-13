@@ -133,7 +133,7 @@ void SamplerDescriptorTableBuilder::addDescriptor(SamplerDescriptor const& descr
     m_sampler_descriptors.push_back(descriptor);
 }
 
-ShaderResourceDescriptorTable SamplerDescriptorTableBuilder::build() const
+SamplerResourceDescriptorTable SamplerDescriptorTableBuilder::build() const
 {
     auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
         *m_globals.get<Device>(), DescriptorHeapType::sampler, m_target_descriptor_heap_page_id);
@@ -144,7 +144,7 @@ ShaderResourceDescriptorTable SamplerDescriptorTableBuilder::build() const
         + offset * descriptor_size;
     uint64_t gpu_ptr = target_descriptor_heap.getBaseGPUPointer()
         + offset * descriptor_size;
-    ShaderResourceDescriptorTable rv{ cpu_ptr, gpu_ptr, static_cast<uint32_t>(m_sampler_descriptors.size()), descriptor_size };
+    SamplerResourceDescriptorTable rv{ cpu_ptr, gpu_ptr, static_cast<uint32_t>(m_sampler_descriptors.size()), descriptor_size };
 
     target_descriptor_heap.createSamplerDescriptors(offset, m_sampler_descriptors);
 

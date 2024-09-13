@@ -53,6 +53,12 @@ void TaskSink::start()
         logger().out(misc::formatString("Starting worker thread %i", i), LogMessageType::information);
         auto last_stamp_time = logger().getLastEntryTimeStamp();
         worker->first = std::thread{ &TaskSink::dispatch, this, i, worker->second, last_stamp_time.getTimeZone(), last_stamp_time.isDTS() };
+
+        #ifdef _WIN32
+        HANDLE threadNativeHandle = worker->first.native_handle();
+        SetThreadDescription(threadNativeHandle, (L"Rendering thread #" + std::to_wstring(i)).c_str());
+        #endif
+
         worker->first.detach();
     }
 }
@@ -86,7 +92,7 @@ void TaskSink::submit(uint64_t user_data)
             std::this_thread::yield();
             ++yield_counter;
 
-            if (yield_counter >= 100)
+            if (yield_counter >= 1000)
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }

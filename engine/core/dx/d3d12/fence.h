@@ -43,6 +43,7 @@ public:
     FenceSharing sharingMode() const;    //! returns the sharing mode of the fence
     void signalFromCPU();    //! signals the fence on the CPU side
 
+    uint64_t lastValueRecorded() const;    //! retrieves the last value that the fence has recorded, but not necessarily signaled
     uint64_t lastValueSignaled() const;    //! retrieves the last value that the fence has ALREADY signaled
     uint64_t nextValueOfSignal() const;    //! the next value to be used for the fence's signal
 

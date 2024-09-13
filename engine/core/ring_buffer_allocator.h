@@ -91,7 +91,7 @@ private:
 
         }
 
-    }*m_buffer_ptr;;
+    }*m_buffer_ptr;
 
     size_t const m_num_of_cells;    //!< number of memory cells allocated for the ring buffer
 };
