@@ -2,7 +2,6 @@
 #define LEXGINE_CORE_DX_D3D12_ROOT_SIGNATURE_H
 
 #include <map>
-#include <list>
 #include <vector>
 
 #include <d3d12.h>
@@ -97,7 +96,7 @@ public:
 
     RootEntryDescriptorTable() = default;
 
-    RootEntryDescriptorTable(std::list<Range> const& ranges);    //! initializes descriptor table using provided register ranges
+    RootEntryDescriptorTable(std::vector<Range> const& ranges);    //! initializes descriptor table using provided register ranges
 
     //! adds new register range to descriptor table
     void addRange(Range const& range);
@@ -105,9 +104,11 @@ public:
     //! adds new register range to descriptor table
     void addRange(RangeType type, uint32_t num_descriptors, uint32_t base_register, uint32_t register_space, uint32_t offset_from_start);
 
+    //! checks if descriptor table is empty
+    bool empty() const { return m_ranges.empty(); }
 
 private:
-    std::list<Range> m_ranges;    //!< register ranges contained in the table
+    std::vector<Range> m_ranges;    //!< register ranges contained in the table
 };
 
 
@@ -186,8 +187,8 @@ public:
 
 private:
     std::unordered_map<uint32_t, D3D12_ROOT_PARAMETER> m_root_parameters;    //!< root signature parameters packed into a map with the key defining slot in the root signature
-    std::list<std::vector<D3D12_DESCRIPTOR_RANGE>> m_descriptor_range_cache;    //!< stores descriptor ranges from all descriptor tables
-    std::list<D3D12_STATIC_SAMPLER_DESC> m_static_samplers;    //!< list of static samplers attached to the root signature
+    std::vector<std::vector<D3D12_DESCRIPTOR_RANGE>> m_descriptor_range_cache;    //!< stores descriptor ranges from all descriptor tables
+    std::vector<D3D12_STATIC_SAMPLER_DESC> m_static_samplers;    //!< list of static samplers attached to the root signature
 };
 
 }
