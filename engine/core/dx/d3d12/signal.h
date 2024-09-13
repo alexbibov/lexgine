@@ -21,6 +21,7 @@ public:
     void signalFromCPU();    //! Signals underlying fence object from the CPU side
     void signalFromGPU(CommandQueue const& signaling_queue);    //! Signals underlying fence object from GPU side on the given GPU queue
 
+    uint64_t lastValueRecorded() const;    //! Last value, which has been recorded by the signal, but not necessarily signaled
     uint64_t lastValueSignaled() const;    //! Last value, which has been already signaled
     uint64_t nextValueOfSignal() const;    //! Returns the next value of the signal
 

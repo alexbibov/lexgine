@@ -1,19 +1,22 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_LOCK_FREE_QUEUE_H
+#define LEXGINE_CORE_CONCURRENCY_LOCK_FREE_QUEUE_H
 
-#include "../misc/optional.h"
-#include "hazard_pointer_pool.h"
-#include "../default_allocator.h"
 
 #include <cassert>
+#include <array>
+
+#include "engine/core/misc/optional.h"
+#include "hazard_pointer_pool.h"
+#include "engine/core/default_allocator.h"
 
 
-namespace lexgine {namespace core {namespace concurrency {
+namespace lexgine::core::concurrency {
 
 /*! Implements generic lock-free queue supporting multiple producers and consumers.
  The implementation is based on the ideas from paper "Simple, Fast, and Practical Non-blocking and Blocking Concurrent Queue Algorithms" by Michael, M.M., and Scott, M.L.
 */
 template<typename T, template<typename> typename AllocatorTemplate = DefaultAllocator>
-class LockFreeQueue
+class LockFreeQueue final
 {
 public:
     template<typename ... allocator_construction_params>
@@ -208,9 +211,10 @@ private:
     std::atomic_uint32_t m_num_elements_enqueued;    //!< total number of elements ever added into the queue
     std::atomic_uint32_t m_num_elements_dequeued;    //!< total number of elements ever removed from the queue
 #endif
+
+    std::array<uint8_t, 64> m_padding; //!< padding to avoid false sharing
 };
 
-}}}
+} // namespace lexgine::core::concurrency
 
-#define LEXGINE_CORE_CONCURRENCY_LOCK_FREE_QUEUE_H
 #endif

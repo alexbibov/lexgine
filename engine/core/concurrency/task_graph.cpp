@@ -241,7 +241,7 @@ void TaskGraph::compile()
         m_barrier_sync_task->setStringName(getStringName() + "__barrier_sync_task");
         m_compiled_task_graph.emplace_back(*m_barrier_sync_task);
 
-        auto sync_node_iter = (++m_compiled_task_graph.rbegin()).base();
+        auto sync_node_iter = --m_compiled_task_graph.end();
         for (auto p = m_compiled_task_graph.begin(); p != sync_node_iter; ++p) p->addDependent(*sync_node_iter);
     }
 }
