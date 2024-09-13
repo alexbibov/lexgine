@@ -5,11 +5,12 @@
 #include <unordered_map>
 #include <array>
 
-#include <engine/core/global_settings.h>
-#include <engine/core/dx/dxgi/hw_adapter_enumerator.h>
-#include <engine/core/dx/d3d12/d3d12_tools.h>
-#include <engine/core/dx/d3d12/upload_buffer_allocator.h>
-#include <engine/core/dx/dxcompilation/dx_compiler_proxy.h>
+#include "engine/core/global_settings.h"
+#include "engine/core/dx/dxgi/hw_adapter_enumerator.h"
+#include "engine/core/dx/d3d12/d3d12_tools.h"
+#include "engine/core/dx/d3d12/upload_buffer_allocator.h"
+#include "engine/core/dx/dxcompilation/dx_compiler_proxy.h"
+#include "engine/core/misc/hashed_string.h"
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "debug_interface.h"
 
@@ -38,6 +39,7 @@ public:
 
     DescriptorHeap& retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id);
     Heap& retrieveUploadHeap(Device const& device);
+    StaticDescriptorAllocationManager& getStaticAllocationManagerForDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id);
 
 
     /*! Attempts to allocate a new named section in the given upload heap.
@@ -60,7 +62,12 @@ public:
     size_t getUploadHeapFreeSpace(Device const& owning_device) const;    //!< Returns size of unallocated space in the upload heap owned by given device
 
 private:
-    using descriptor_heap_page_pool = std::array<std::vector<std::unique_ptr<DescriptorHeap>>, 4U>;
+    struct descriptor_heap_page_pool
+    {
+        static constexpr size_t heap_type_count = static_cast<size_t>(DescriptorHeapType::count);
+        std::array<std::vector<std::unique_ptr<DescriptorHeap>>, heap_type_count> heaps;
+        std::array<std::vector<std::unique_ptr<StaticDescriptorAllocationManager>>, heap_type_count> static_allocators;
+    };
 
     struct upload_heap_partitioning
     {

@@ -6,7 +6,7 @@
 
 #include "depth_stencil_descriptor.h"
 
-namespace lexgine {namespace core {
+namespace lexgine::core {
 
 enum class MinificationFilter
 {
@@ -120,7 +120,7 @@ private:
     float m_min_lod, m_max_lod;
 };
 
-}}
+}
 
 #define LEXGINE_CORE_FILTER_H
 #endif
