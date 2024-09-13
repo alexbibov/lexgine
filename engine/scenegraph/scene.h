@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <unordered_map>
 
+#include <engine/core/lexgine_core_fwd.h>
 #include <engine/core/entity.h>
 #include <engine/core/misc/datetime.h>
 #include <engine/core/misc/optional.h>
@@ -11,7 +12,6 @@
 #include "light.h"
 #include "image.h"
 #include "sampler.h"
-#include "texture.h"
 
 namespace lexgine::scenegraph
 {
@@ -19,7 +19,7 @@ namespace lexgine::scenegraph
 class Scene : public core::NamedEntity<class_names::Scene>
 {
 public:
-    static std::shared_ptr<Scene> loadScene(std::filesystem::path const& path_to_scene, int scene_index = -1);
+    static std::shared_ptr<Scene> loadScene(core::Globals const& globals, std::filesystem::path const& path_to_scene, int scene_index = -1);
 
 private:
     static constexpr char const* c_khr_light_punctual_ext = "KHR_lights_punctual";
@@ -29,7 +29,7 @@ private:
 
 private:
     bool loadLights(tinygltf::Model& model);
-    bool loadTextures(tinygltf::Model& model, core::misc::Optional<core::misc::DateTime> const& timestamp);
+    bool loadTextures(tinygltf::Model& model, core::misc::Optional<core::misc::DateTime> const& timestamp, conversion::ImageLoaderPool const& image_loader_pool);
     bool loadMaterials(tinygltf::Model& model);
     bool loadMeshes(tinygltf::Model& model);
     bool loadCameras(tinygltf::Model& model);
@@ -44,7 +44,6 @@ private:
     std::vector<Light> m_lights;
     std::vector<Image> m_images;
     std::vector<Sampler> m_samplers;
-    std::vector<Texture> m_textures;
 
 };
 

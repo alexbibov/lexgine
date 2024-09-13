@@ -535,7 +535,7 @@ TextureConverter::TextureUploadTask::TextureUploadTask(TextureConverter& texture
         static_cast<DXGI_FORMAT>(texture_description.compression_format), static_cast<uint32_t>(texture_description.layers[0].mipmaps.size()),
         core::dx::d3d12::ResourceFlags::base_values::none, core::MultiSamplingFormat{ 1, 0 }, core::dx::d3d12::ResourceAlignment::_default, core::dx::d3d12::TextureLayout::unknown);
 
-    m_texture = std::make_shared<core::dx::d3d12::CommittedResource>(*pDevice, core::dx::d3d12::ResourceState::base_values::pixel_shader, misc::makeEmptyOptional<core::dx::d3d12::ResourceOptimizedClearValue>(), desc, dx::d3d12::AbstractHeapType::_default,
+    m_texture = std::make_shared<core::dx::d3d12::CommittedResource>(*pDevice, core::dx::d3d12::ResourceState::base_values::common, misc::makeEmptyOptional<core::dx::d3d12::ResourceOptimizedClearValue>(), desc, dx::d3d12::AbstractHeapType::_default,
         core::dx::d3d12::HeapCreationFlags::base_values::allow_all);
 }
 
@@ -544,9 +544,10 @@ TextureConverter::TextureUploadTask::result_type TextureConverter::TextureUpload
 {
     core::dx::d3d12::ResourceDataUploader::DestinationDescriptor::DestinationSegment destination_segment{};
     destination_segment.subresources = core::dx::d3d12::ResourceDataUploader::DestinationDescriptor::SubresourceSegment{ .first_subresource = 0, .num_subresources = static_cast<uint32_t>(m_src_desc.subresources.size()) };
+    
     core::dx::d3d12::ResourceDataUploader::DestinationDescriptor data_upload_destination_descriptor{
         .p_destination_resource = m_texture.get(), 
-        .destination_resource_state = core::dx::d3d12::ResourceState::base_values::pixel_shader, 
+        .destination_resource_state = core::dx::d3d12::ResourceState::base_values::common, 
         .segment = destination_segment
     };
 

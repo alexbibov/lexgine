@@ -17,10 +17,13 @@
 #include <engine/core/concurrency/schedulable_task.h>
 #include <engine/core/misc/misc.h>
 #include <engine/core/exception.h>
+#include <engine/initializer.h>
 #include <engine/core/dx/d3d12_initializer.h>
+#include <engine/core/engine_api.h>
 #include <engine/core/dx/d3d12/d3d12_pso_xml_parser.h>
 #include <engine/core/streamed_cache.h>
 #include <engine/conversion/texture_converter.h>
+#include <engine/conversion/image_loader_pool.h>
 #include <engine/conversion/png_jpg_image_loader.h>
 #include <engine/scenegraph/image.h>
 
@@ -468,7 +471,6 @@ TEST(EngineTests_Basic, TestD3D12PSOXMLParser)
     using namespace lexgine::core::misc;
     using namespace lexgine::core;
 
-
     D3D12EngineSettings settings{};
     settings.debug_mode = true;
     settings.global_lookup_prefix = LEXGINE_GLOBAL_LOOKUP_PREFIX;
@@ -780,20 +782,17 @@ TEST(EngineTests_Basic, TestTextureCompression)
     using namespace lexgine::core::dx::d3d12;
     using namespace lexgine::core::misc;
 
-    D3D12EngineSettings settings{};
+    EngineSettings settings{};
+    settings.engine_api = EngineApi::Direct3D12;
     settings.debug_mode = true;
-    settings.enable_profiling = true;
-    settings.global_lookup_prefix = LEXGINE_GLOBAL_LOOKUP_PREFIX;
-    settings.settings_lookup_path = LEXGINE_SETTINGS_PATH;
     settings.log_name = "TestTextureCompression.log";
 
-    D3D12Initializer engine_initializer{ settings };
-    engine_initializer.setCurrentDevice(0);
+    Initializer initializer{ settings };
+    initializer.setCurrentDevice(0);
 
 
-    conversion::TextureConverter* p_texture_converter = engine_initializer.globals().get<conversion::TextureConverter>();
-    scenegraph::Image test_image{ std::filesystem::path{LEXGINE_GLOBAL_LOOKUP_PREFIX} / "engine/tests/data/Lenna_(test_image).png" };
-    test_image.registerImageLoader(std::make_unique<conversion::PNGJPGImageLoader>());
+    conversion::TextureConverter* p_texture_converter = initializer.globals().get<conversion::TextureConverter>();
+    scenegraph::Image test_image{ std::filesystem::path{LEXGINE_GLOBAL_LOOKUP_PREFIX} / "engine/tests/data/Lenna_(test_image).png", *initializer.globals().get<ImageLoaderPool>()};
     p_texture_converter->addTextureConversionTask(test_image, false);
     p_texture_converter->convertTextures();
     p_texture_converter->uploadTextures();
