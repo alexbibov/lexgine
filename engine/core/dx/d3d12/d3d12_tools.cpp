@@ -24,7 +24,7 @@ namespace DxgiTypeTraitsArguments
     using is_fp_vals = misc::value_arg_pack<bool, false, true>;
     using is_signed_vals = misc::value_arg_pack<bool, false, true>;
     using is_normalized_vals = misc::value_arg_pack<bool, false, true>;
-    using element_count_vals = misc::value_arg_pack<unsigned char, 1, 2, 4>;
+    using element_count_vals = misc::value_arg_pack<unsigned char, 1, 2, 3, 4>;
     using element_size_vals = misc::value_arg_pack<unsigned char, 1, 2, 4>;
 };
 
@@ -95,8 +95,8 @@ DxgiFormatFetcher::DxgiFormatFetcher()
         DxgiTypeTraitsArguments::is_fp_vals,
         DxgiTypeTraitsArguments::is_signed_vals,
         DxgiTypeTraitsArguments::is_normalized_vals,
-        DxgiTypeTraitsArguments::element_size_vals,
-        DxgiTypeTraitsArguments::element_count_vals>::loop(&m_d3d12_formats);
+        DxgiTypeTraitsArguments::element_count_vals,
+        DxgiTypeTraitsArguments::element_size_vals>::loop(&m_d3d12_formats);
 
 }
 
