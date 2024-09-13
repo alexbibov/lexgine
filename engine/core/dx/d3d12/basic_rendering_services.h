@@ -61,6 +61,9 @@ private:
     DxResourceFactory& m_dx_resources;
     ResourceDataUploader& m_resource_uploader;
 
+    d3d12::StaticDescriptorAllocationManager& m_static_cbv_srv_uav_descriptor_allocator;
+    d3d12::StaticDescriptorAllocationManager& m_static_sampler_descriptor_allocator;
+
     RenderingTarget* m_current_rendering_target_ptr;
     DXGI_FORMAT m_rendering_target_color_format;
     DXGI_FORMAT m_rendering_target_depth_format;
@@ -71,7 +74,7 @@ private:
     misc::StaticVector<DescriptorHeap const*, 4U> m_page0_descriptor_heaps;
     ConstantBufferStream m_constant_data_stream;
     PerFrameUploadDataStreamAllocator m_dynamic_geometry_allocator;
-    
+
     osinteraction::windows::Window* m_rendering_window_ptr = nullptr;
 };
 
