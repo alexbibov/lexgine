@@ -8,15 +8,16 @@ using namespace lexgine::core::dx::d3d12;
 
 UAVDescriptor::UAVDescriptor(Resource const& resource, 
     UAVBufferInfo const& buffer_info,
-    Resource const* p_counter_resource):
-    m_resource_ref{ resource },
-    m_counter_resource_ptr{ p_counter_resource }
+    Resource const* p_counter_resource)
+    : HashableDescriptor{ resource, p_counter_resource, m_native }
+    , m_resource_ref{ resource }
+    , m_counter_resource_ptr{ p_counter_resource }
 {
     auto resource_desc = resource.descriptor();
 
     assert(resource_desc.dimension == ResourceDimension::buffer);
 
-    m_native.Format = resource_desc.format;
+    m_native.Format = m_counter_resource_ptr ? DXGI_FORMAT_UNKNOWN : resource_desc.format;
     m_native.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
     m_native.Buffer.FirstElement = static_cast<UINT64>(buffer_info.first_element);
     m_native.Buffer.NumElements = static_cast<UINT>(buffer_info.num_elements);
@@ -27,9 +28,10 @@ UAVDescriptor::UAVDescriptor(Resource const& resource,
 
 UAVDescriptor::UAVDescriptor(Resource const& resource, 
     UAVTextureInfo const& texture_info,
-    Resource const* p_counter_resource):
-    m_resource_ref{ resource },
-    m_counter_resource_ptr{ p_counter_resource }
+    Resource const* p_counter_resource)
+    : HashableDescriptor{ resource, p_counter_resource, m_native }
+    , m_resource_ref{ resource }
+    , m_counter_resource_ptr{ p_counter_resource }
 {
     auto resource_desc = resource.descriptor();
 
@@ -64,9 +66,10 @@ UAVDescriptor::UAVDescriptor(Resource const& resource,
 
 UAVDescriptor::UAVDescriptor(Resource const& resource, 
     UAVTextureArrayInfo const& texture_array_info,
-    Resource const* p_counter_resource):
-    m_resource_ref{ resource },
-    m_counter_resource_ptr{ p_counter_resource }
+    Resource const* p_counter_resource)
+    : HashableDescriptor{ resource, p_counter_resource, m_native }
+    , m_resource_ref{ resource }
+    , m_counter_resource_ptr{ p_counter_resource }
 {
     auto resource_desc = resource.descriptor();
 

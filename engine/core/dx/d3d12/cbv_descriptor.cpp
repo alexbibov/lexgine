@@ -3,11 +3,13 @@
 #include "cbv_descriptor.h"
 #include "resource.h"
 
-using namespace lexgine::core::dx::d3d12;
+namespace lexgine::core::dx::d3d12
+{
 
 CBVDescriptor::CBVDescriptor(Resource const& resource,
-    uint32_t offset_from_start, uint32_t view_size_in_bytes):
-    m_resource_ref{ resource }
+    uint32_t offset_from_start, uint32_t view_size_in_bytes) 
+    : HashableDescriptor{ resource, m_native }
+    , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
 
@@ -36,3 +38,5 @@ uint32_t CBVDescriptor::size() const
 {
     return m_native.SizeInBytes;
 }
+
+}    // namespace lexgine::core::dx::d3d12

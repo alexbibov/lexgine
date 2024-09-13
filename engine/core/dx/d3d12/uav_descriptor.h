@@ -7,6 +7,7 @@
 #include <d3d12.h>
 
 #include "lexgine_core_dx_d3d12_fwd.h"
+#include "hashable_descriptor.h"
 
 namespace lexgine::core::dx::d3d12 {
 
@@ -42,7 +43,7 @@ struct UAVTextureArrayInfo final
 };
 
 
-class UAVDescriptor final
+class UAVDescriptor final : public HashableDescriptor<D3D12_UNORDERED_ACCESS_VIEW_DESC>
 {
 public:
     UAVDescriptor(Resource const& resource,
@@ -57,7 +58,7 @@ public:
         UAVTextureArrayInfo const& texture_array_info,
         Resource const* p_counter_resource = nullptr);
 
-    /*! Normally, DXGI format for the SRV descriptor is fetched from resource descriptor.
+    /*! Normally, DXGI format for the UAV descriptor is fetched from resource descriptor.
      This function can be use if another setting for the format is preferable
     */
     void overrideFormat(DXGI_FORMAT format);
@@ -70,7 +71,6 @@ public:
 
     //! for compatible resources returns the first array slice and the total number of array elements that were attached to the view
     std::pair<uint64_t, uint32_t> arrayOffsetAndSize() const;
-
 
 private:
     Resource const& m_resource_ref;

@@ -71,6 +71,17 @@ public:
         return *this;
     }
 
+    Flags operator^(BaseFlagsType const& base_flag) const
+    {
+        return Flags { m_value ^ static_cast<CompatibleIntegralType>(base_flag) };
+    }
+
+    Flags& operator^=(BaseFlagsType const& base_flag)
+    {
+        m_value ^= static_cast<CompatibleIntegralType>(base_flag);
+        return *this;
+    }
+
     //! Sets given base flag bit. Equivalent to OR'ing this flag bit with the current value of the flags object.
     //! Returns reference to the updated flag object
     Flags& set(BaseFlagsType const& base_flag)
