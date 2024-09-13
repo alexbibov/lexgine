@@ -33,7 +33,9 @@ public:
         float4, int4, uint4, bool4,
         float4x2, int4x2, uint4x2, bool4x2,
         float4x3, int4x3, uint4x3, bool4x3,
-        float4x4, int4x4, uint4x4, bool4x4
+        float4x4, int4x4, uint4x4, bool4x4,
+
+        unknown
     };
 
     static std::pair<unsigned, unsigned> getReflectionEntryBaseTypeDimensions(ReflectionEntryBaseType entry_base_type);

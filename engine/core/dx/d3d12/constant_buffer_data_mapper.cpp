@@ -22,9 +22,9 @@ void ConstantBufferDataMapper::writeAllBoundData(uint64_t constant_buffer_alloca
         uint64_t dst_address = constant_buffer_allocation_base_address
             + reflection_entry.offset();
 
-        size_t column_count = row_and_column_count.second;
+        auto [row_count, column_count] = row_and_column_count;
         size_t element_count = w.second->dataElementCount();
-        size_t total_element_count{ column_count*element_count };
+        size_t total_element_count{ row_count * column_count * element_count };
         if (total_element_count > 1)
         {
             for (size_t i = 0; i < element_count; ++i)
