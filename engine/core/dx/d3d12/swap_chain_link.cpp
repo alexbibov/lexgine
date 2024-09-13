@@ -54,7 +54,6 @@ SwapChainLink::SwapChainLink(Globals& globals, dxgi::SwapChain& swap_chain_to_li
     , m_linked_rendering_tasks_ptr{ nullptr }
     , m_depth_buffer_native_format{ static_cast<DXGI_FORMAT>(depth_buffer_format) }
     , m_depth_optimized_clear_value{ m_depth_buffer_native_format, math::Vector4f{1.f, 0.f, 0.f, 0.f} }
-, m_presenter{ [this](RenderingTarget const&) { m_linked_swap_chain.present(); } }
 {
 
 }
@@ -70,7 +69,6 @@ SwapChainLink::SwapChainLink(SwapChainLink&& other)
     , m_depth_buffer_native_format{ other.m_depth_buffer_native_format }
     , m_depth_optimized_clear_value{ std::move(other.m_depth_optimized_clear_value) }
     , m_targets{ std::move(other.m_targets) }
-, m_presenter{ [this](RenderingTarget const&) { m_linked_swap_chain.present(); } }
 {
 
 }
@@ -95,25 +93,31 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 
 void SwapChainLink::render()
 {
+    if (m_targets.empty())
+    {
+        core::math::Vector2u swap_chain_dimensions = m_linked_swap_chain.getDimensions();
+        acquireBuffers(swap_chain_dimensions.x, swap_chain_dimensions.y);
+        updateRenderingConfiguration();
+        m_suspend_rendering = false;
+    }
+
     if (m_linked_swap_chain.isIdle()) {    // check if we should exit idle presentation state
         m_linked_swap_chain.present();
     }
     else if (!m_suspend_rendering && m_linked_rendering_tasks_ptr)
     {
-        uint32_t current_back_buffer_index = m_linked_swap_chain.getCurrentBackBufferIndex();
-        RenderingTarget& target = m_targets[current_back_buffer_index];
+        RenderingTarget& target = m_targets[m_linked_swap_chain.getCurrentBackBufferIndex()];
         FrameProgressTracker const& frame_progress_tracker = m_linked_rendering_tasks_ptr->frameProgressTracker();
 
-        uint64_t frame_idx = frame_progress_tracker.currentFrameIndex();
-        uint64_t competing_frame_idx = frame_idx - m_global_settings.getMaxFramesInFlight();
-
-        if (frame_idx >= m_global_settings.getMaxFramesInFlight()
-            && frame_progress_tracker.lastCompletedFrameIndex() < competing_frame_idx)
+        uint64_t scheduled_frames_count = frame_progress_tracker.scheduledFramesCount();
+        uint64_t completed_frames_count = frame_progress_tracker.completedFramesCount();
+        while (scheduled_frames_count - completed_frames_count >= m_global_settings.getMaxFramesInFlight())
         {
-            frame_progress_tracker.waitForFrameCompletion(competing_frame_idx);
+            frame_progress_tracker.waitForFrameCompletion(completed_frames_count);
+            ++completed_frames_count;
         }
 
-        m_linked_rendering_tasks_ptr->render(target, m_presenter);
+        m_linked_rendering_tasks_ptr->render(target, [this](void) { m_linked_swap_chain.present(); });
     }
 }
 

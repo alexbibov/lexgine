@@ -29,7 +29,7 @@ HwAdapterEnumerator::HwAdapterEnumerator(GlobalSettings const& global_settings,
 
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        dxgi_factory2->QueryInterface(IID_PPV_ARGS(&m_dxgi_factory6)),
+        dxgi_factory2->QueryInterface(IID_PPV_ARGS(&m_dxgi_factory7)),
         S_OK
     );
 
@@ -86,7 +86,7 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 
     HRESULT hres = S_OK;
     UINT id = 0;
-    while ((hres = m_dxgi_factory6->EnumAdapterByGpuPreference(id,
+    while ((hres = m_dxgi_factory7->EnumAdapterByGpuPreference(id,
         static_cast<DXGI_GPU_PREFERENCE>(enumeration_preference), __uuidof(IDXGIAdapter),
         reinterpret_cast<void**>(&dxgi_adapter))) != DXGI_ERROR_NOT_FOUND)
     {
@@ -106,7 +106,7 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 
         HRESULT res;
         if ((res = D3D12CreateDevice(dxgi_adapter4.Get(), static_cast<D3D_FEATURE_LEVEL>(D3D12FeatureLevel::_11_0), __uuidof(ID3D12Device), nullptr)) == S_OK || res == S_FALSE)
-            m_adapter_list.emplace_back(HwAdapterAttorney<HwAdapterEnumerator>::makeHwAdapter(m_global_settings, m_dxgi_factory6, dxgi_adapter4));
+            m_adapter_list.emplace_back(HwAdapterAttorney<HwAdapterEnumerator>::makeHwAdapter(m_global_settings, m_dxgi_factory7, dxgi_adapter4));
         else
         {
             DXGI_ADAPTER_DESC3 desc;
@@ -124,7 +124,7 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 
 bool HwAdapterEnumerator::isRefreshNeeded() const
 {
-    return !m_dxgi_factory6->IsCurrent();
+    return !m_dxgi_factory7->IsCurrent();
 }
 
 HwAdapter* HwAdapterEnumerator::getWARPAdapter() const { return m_adapter_list.back().get(); }
@@ -136,7 +136,7 @@ uint32_t HwAdapterEnumerator::getAdapterCount() const
 
 
 HwAdapter::HwAdapter(GlobalSettings const& global_settings,
-    ComPtr<IDXGIFactory6> const& adapter_factory,
+    ComPtr<IDXGIFactory7> const& adapter_factory,
     ComPtr<IDXGIAdapter4> const& adapter)
     : m_global_settings{ global_settings }
     , m_dxgi_adapter_factory{ adapter_factory }

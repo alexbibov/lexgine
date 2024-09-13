@@ -114,12 +114,12 @@ public:
 private:
     //! Constructs wrapper around DXGI adapter. This is normally done only by HwAdapterEnumerator
     HwAdapter(GlobalSettings const& global_settings,
-        ComPtr<IDXGIFactory6> const& adapter_factory,
+        ComPtr<IDXGIFactory7> const& adapter_factory,
         ComPtr<IDXGIAdapter4> const& adapter);
 
 private:
     GlobalSettings const& m_global_settings;
-    ComPtr<IDXGIFactory6> m_dxgi_adapter_factory;    //!< DXGI factory, which has been used in order to create this adapter
+    ComPtr<IDXGIFactory7> m_dxgi_adapter_factory;    //!< DXGI factory, which has been used in order to create this adapter
     ComPtr<IDXGIAdapter4> m_dxgi_adapter;	//!< DXGI adapter
 
     std::unique_ptr<d3d12::Device> m_device;    //!< d3d12 device associated with the adapter
@@ -134,7 +134,7 @@ template<> class HwAdapterAttorney<HwAdapterEnumerator>
 
 private:
     static std::unique_ptr<HwAdapter> makeHwAdapter(GlobalSettings const& global_settings,
-        ComPtr<IDXGIFactory6> const& adapter_factory,
+        ComPtr<IDXGIFactory7> const& adapter_factory,
         ComPtr<IDXGIAdapter4> const& adapter)
     {
         return std::unique_ptr<HwAdapter>{ new HwAdapter{ global_settings, adapter_factory, adapter }};
@@ -181,7 +181,7 @@ public:
 
 private:
     GlobalSettings const& m_global_settings;
-    ComPtr<IDXGIFactory6> m_dxgi_factory6;
+    ComPtr<IDXGIFactory7> m_dxgi_factory7;
     adapter_list_type m_adapter_list;
 };
 
