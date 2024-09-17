@@ -19,6 +19,7 @@ extern char const D3D12_RootSignature[];
 extern char const D3D12_Fence[];
 extern char const OSWindows_FenceEvent[];
 extern char const D3D12_DescriptorHeap[];
+extern char const D3D12_DescriptorHeapAllocationManager[];
 extern char const D3D12_Heap[];
 extern char const D3D12_Resource[];
 extern char const D3D12_ConstantBuffer[];
@@ -41,6 +42,8 @@ extern char const D3D12_RenderingTasks[];
 extern char const BasicRenderingServices[];
 extern char const ConstantBufferStream[];
 extern char const SwapChain[];
+extern char const ShaderStage[];
+extern char const ShaderFunction[];
 
 }
 

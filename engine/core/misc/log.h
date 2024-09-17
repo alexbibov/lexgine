@@ -6,6 +6,7 @@
 #include <ostream>
 #include <list>
 #include <exception>
+#include <mutex>
 
 #include "datetime.h"
 #include "misc.h"
@@ -41,6 +42,8 @@ public:
     //! Attempts to shutdown the logging system and returns 'true' on success or 'false' on failure
     static bool shutdown();
 
+    static void registerMainLogger(Log const* p_logger);	//!< registers main logger
+
     void out(std::string const& message, LogMessageType message_type) const;	//! logs supplied message out
 
     DateTime const& getLastEntryTimeStamp() const;	//! returns the time stamp of the last logging entry
@@ -66,6 +69,9 @@ private:
     mutable DateTime m_time_stamp;	//!< time stamp of the last logging entry (needed mostly for debugging purposes)
     int16_t m_tabs;    //!< number of tabulations to be added in front of the next logging entry
     std::list<std::ostream*> m_out_streams;	//!< list of output streams used by the logging system
+
+    static Log const* m_main_logging_stream;    //!< pointer to the main logger
+    static std::mutex m_main_thread_log_mutex;    //!< mutex used to lock main thread logger
 };
 
 }

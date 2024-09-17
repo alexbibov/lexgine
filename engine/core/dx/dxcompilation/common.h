@@ -3,12 +3,14 @@
 
 #include <string>
 
-namespace lexgine { namespace core { namespace dx { namespace dxcompilation {
+namespace lexgine::core::dx::dxcompilation {
 
 enum class ShaderType
 {
     vertex = 0, hull = 1, domain = 2, geometry = 3, pixel = 4, compute = 5,
-    tessellation_control = 1, tesselation_evaluation = 2, fragment = 4    // OpenGL/Vulkan terminology for convenience
+    tessellation_control = 1, tesselation_evaluation = 2, fragment = 4,    // OpenGL/Vulkan terminology for convenience
+    count = 6, 
+    unknown = 6
 };
 
 enum class ShaderModel : unsigned short
@@ -35,6 +37,6 @@ struct HLSLMacroDefinition
     std::string value;    //!< value of the macro to define
 };
 
-}}}}
+}
 
 #endif

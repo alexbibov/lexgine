@@ -37,7 +37,6 @@ private:
     Device& m_device;
     BasicRenderingServices& m_basic_rendering_services;
 
-    ResourceDataUploader m_data_uploader;
     VertexBuffer m_vb;
     IndexBuffer m_ib;
     VertexAttributeSpecificationList m_va_list;
@@ -58,7 +57,7 @@ private:
     std::array<short, 36> m_box_indices;
 
     ShaderResourceDescriptorTable m_srv_table;
-    ShaderResourceDescriptorTable m_sampler_table;
+    SamplerResourceDescriptorTable m_sampler_table;
 
     core::Allocator<UploadDataBlock>::address_type m_allocation;
 

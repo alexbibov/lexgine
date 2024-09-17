@@ -3,10 +3,11 @@
 #include <cstdint>
 #include <memory>
 #include <atomic>
+#include <array>
 
-#include "../allocator.h"
+#include "engine/core/allocator.h"
 
-namespace lexgine {namespace core {namespace concurrency {
+namespace lexgine::core::concurrency {
 
 //! Pool of hazard pointers. Allows to make a given allocation hazardous, which prevents it from being freed by the concurrent threads
 template<typename AllocatorInstantiation>
@@ -20,7 +21,7 @@ public:
         friend HazardPointerPool;
 
     public:
-        HazardPointerRecord():
+        HazardPointerRecord() :
             m_p_hp_entry{ nullptr },
             m_ref_counter{ nullptr }
         {
@@ -109,7 +110,7 @@ public:
     HazardPointerPool(AllocatorInstantiation& allocator)
         : m_allocator{ allocator }
         , m_gc_threshold{ 24U }
-        , m_hp_list_head { new HPListEntry{} }
+        , m_hp_list_head{ new HPListEntry{} }
         , m_hp_list_tail{ m_hp_list_head }
 
 #ifdef _DEBUG
@@ -222,7 +223,7 @@ public:
     }
 
     //! forces garbage collection to wake up and check if there are memory blocks that have to be removed
-    void forceGC() 
+    void forceGC()
     {
         if (m_dlist_cardinality >= m_gc_threshold) __scan();
     }
@@ -243,7 +244,7 @@ public:
     */
     void cleanup()
     {
-        while(m_dlist_cardinality) flush();    // remove data that might still be in the dlist
+        while (m_dlist_cardinality) flush();    // remove data that might still be in the dlist
 
         // clear dlist and plist caches
         GCListEntry* p_pd_next = m_dlist_head->p_next;
@@ -324,8 +325,8 @@ private:
         // now it is time to remove the pointers that are not in "hazardous" state from the delete list
 
         // formate the list of pointers that are currently in "hazardous" state
-        for (HPListEntry* p_hp_list_entry = m_hp_list_head; 
-            p_hp_list_entry != nullptr; 
+        for (HPListEntry* p_hp_list_entry = m_hp_list_head;
+            p_hp_list_entry != nullptr;
             p_hp_list_entry = p_hp_list_entry->next.load(std::memory_order::memory_order_consume))
         {
             if (p_hp_list_entry->is_active)
@@ -335,8 +336,8 @@ private:
         // for each pointer marked for deletion check if this pointer is NOT in the list of pointers in "hazardous" state. 
         // If it's OK to do so, deallocate the corresponding memory block
         uint32_t num_freed_successfully{ 0U };
-        for (GCListEntry* p_dlist_entry = m_dlist_head->p_next; 
-            p_dlist_entry != nullptr; 
+        for (GCListEntry* p_dlist_entry = m_dlist_head->p_next;
+            p_dlist_entry != nullptr;
             p_dlist_entry = p_dlist_entry->p_next)
         {
             if (!p_dlist_entry->is_in_use || !p_dlist_entry->p_mem_block)
@@ -373,8 +374,8 @@ private:
         m_dlist_cardinality -= num_freed_successfully;
 
         // reset plist
-        for (GCListEntry* p_plist_entry = m_plist_head->p_next; 
-            p_plist_entry != m_plist_tail->p_next; 
+        for (GCListEntry* p_plist_entry = m_plist_head->p_next;
+            p_plist_entry != m_plist_tail->p_next;
             p_plist_entry = p_plist_entry->p_next)
         {
             p_plist_entry->is_in_use = false;
@@ -393,8 +394,8 @@ private:
 
     static thread_local GCListEntry m_dlist_head_instance, m_plist_head_instance;
 
-    static thread_local GCListEntry* m_dlist_head, *m_dlist_tail;
-    static thread_local GCListEntry* m_plist_head, *m_plist_tail;
+    static thread_local GCListEntry* m_dlist_head, * m_dlist_tail;
+    static thread_local GCListEntry* m_plist_head, * m_plist_tail;
 
     static thread_local uint32_t m_dlist_cardinality;
 
@@ -432,7 +433,7 @@ thread_local typename HazardPointerPool<AllocatorInstance>::GCListEntry* HazardP
 
 
 
-}}}
+} // namespace lexgine::core::concurrency
 
 #define LEXGINE_CORE_CONCURRENCY_HAZARD_POINTER_POOL_H
 #endif

@@ -6,19 +6,30 @@
 #undef TINYGLTF_NO_STB_IMAGE_WRITE
 
 #include <3rd_party/glm/gtc/constants.hpp>
+#include <engine/core/globals.h>
+#include <engine/core/misc/misc.h>
+#include <engine/conversion/image_loader_pool.h>
 #include "scene.h"
 
 namespace lexgine::scenegraph
 {
 
 
-std::shared_ptr<Scene> Scene::loadScene(std::filesystem::path const& path_to_scene, int scene_index /* = -1 */)
+std::shared_ptr<Scene> Scene::loadScene(core::Globals const& globals, std::filesystem::path const& path_to_scene, int scene_index /* = -1 */)
 {
     std::string error_buffer{};
     std::string warning_buffer{};
 
     tinygltf::TinyGLTF gltf_loader{};
     std::string gltf_path_to_file = path_to_scene.string();
+    core::misc::DateTime timestamp{};
+    {
+        // Fetch the time stamp to be used be the relevant components of the scene: this shall be the update time of the source
+        // file containing the scene. Otherwise, if not available for any reason, the timestamp of the build time of the translation unit
+        // is being used
+        auto gltf_timestamp = core::misc::getFileLastUpdatedTimeStamp(gltf_path_to_file);
+        timestamp = gltf_timestamp.isValid() ? static_cast<core::misc::DateTime const&>(gltf_timestamp) : core::misc::DateTime::buildTime();
+    }
 
     tinygltf::Model gltf_model{};
 
@@ -67,9 +78,9 @@ std::shared_ptr<Scene> Scene::loadScene(std::filesystem::path const& path_to_sce
     }
 
     if (!rv->loadLights(gltf_model)) return nullptr;
-    if (!rv->loadTextures(gltf_model)) return nullptr;
-    /*if (!rv->loadMaterials(gltf_model)) return nullptr;
-    if (!rv->loadMeshes(gltf_model)) return nullptr;
+    if (!rv->loadTextures(gltf_model, timestamp, *globals.get<conversion::ImageLoaderPool>())) return nullptr;
+    if (!rv->loadMaterials(gltf_model)) return nullptr;
+    /*if (!rv->loadMeshes(gltf_model)) return nullptr;
     if (!rv->loadCameras(gltf_model)) return nullptr;
     if (!rv->loadNodes(gltf_model)) return nullptr;
     if (!rv->loadAnimations(gltf_model)) return nullptr;*/
@@ -186,7 +197,7 @@ bool Scene::loadLights(tinygltf::Model& model)
     return true;
 }
 
-bool Scene::loadTextures(tinygltf::Model& model)
+bool Scene::loadTextures(tinygltf::Model& model, core::misc::Optional<core::misc::DateTime> const& timestamp, conversion::ImageLoaderPool const& image_loader_pool)
 {
     size_t const num_images = model.images.size();
     m_images.reserve(num_images);
@@ -197,15 +208,21 @@ bool Scene::loadTextures(tinygltf::Model& model)
         if (gltf_image.image.empty())
         {
             // image is loaded from uri
-            m_images.emplace_back(m_scene_path / gltf_image.uri);
+            m_images.emplace_back(m_scene_path / gltf_image.uri, image_loader_pool);
         }
         else
         {
             // image is embedded in gltf
-            m_images.emplace_back(std::move(gltf_image.image), static_cast<uint32_t>(gltf_image.width), static_cast<uint32_t>(gltf_image.height));
+            m_images.emplace_back(std::move(gltf_image.image), static_cast<uint32_t>(gltf_image.width), static_cast<uint32_t>(gltf_image.height),
+                static_cast<size_t>(gltf_image.component), static_cast<size_t>(gltf_image.bits), conversion::ImageColorSpace::srgb, gltf_image.name, timestamp, image_loader_pool);
         }
     }
 
+    return true;
+}
+
+bool Scene::loadMaterials(tinygltf::Model& model)
+{
     return true;
 }
 

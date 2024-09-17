@@ -18,6 +18,7 @@ extern char const D3D12_RootSignature[] = "lexgine::core::dx::d3d12::RootSignatu
 extern char const D3D12_Fence[] = "lexgine::core::dx::d3d12::Fence";
 extern char const OSWindows_FenceEvent[] = "lexgine::osinteraction::windows::FenceEvent";
 extern char const D3D12_DescriptorHeap[] = "lexgine::core::dx::d3d12::DescriptorHeap";
+extern char const D3D12_DescriptorHeapAllocationManager[] = "lexgine::core::dx::d3d12::DescriptorHeapAllocationManager";
 extern char const D3D12_Heap[] = "lexgine::core::dx::d3d12::Heap";
 extern char const D3D12_Resource[] = "lexgine::core::dx::d3d12::Resource";
 extern char const D3D12_ConstantBuffer[] = "lexgine::core::dx::d3d12::ConstantBuffer";
@@ -40,5 +41,7 @@ extern char const D3D12_RenderingTasks[] = "lexgine::core::dx::d3d12::RenderingT
 extern char const BasicRenderingServices[] = "lexgine::core::dx::d3d12::BasicRenderingServices";
 extern char const ConstantBufferStream[] = "lexgine::core::dx::d3d12::ConstantBufferStream";
 extern char const SwapChain[] = "lexgine::core::SwapChain";
+extern char const ShaderStage[] = "lexgine::core::dx::dxcompilation::ShaderStage";
+extern char const ShaderFunction[] = "lexgine::core::dx::dxcompilation::ShaderFunction";
 
 }

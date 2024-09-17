@@ -20,11 +20,12 @@ public:
 
     uint64_t totalCapacity() const;
 
-    PerFrameUploadDataStreamAllocator::address_type allocate(uint64_t size);
+    typename PerFrameUploadDataStreamAllocator::address_type allocate(uint64_t size);
 
     void update(PerFrameUploadDataStreamAllocator::address_type const& destination_data_block, ConstantBufferDataMapper const& data_mapper);
 
     PerFrameUploadDataStreamAllocator::address_type allocateAndUpdate(ConstantBufferDataMapper const& data_mapper);
+
 
 private:
     std::unique_ptr<PerFrameUploadDataStreamAllocator> m_allocator;

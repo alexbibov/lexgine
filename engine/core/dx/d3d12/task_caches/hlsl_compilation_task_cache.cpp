@@ -167,8 +167,10 @@ HLSLCompilationTaskCache::Key::Key(std::string const& hlsl_source_path,
     shader_model{ shader_model },
     hash_value{ hash_value }
 {
-    memset(source_path, 0, max_string_section_length_in_bytes);
-    memcpy(source_path, hlsl_source_path.c_str(), max_string_section_length_in_bytes);
+    std::fill(source_path, source_path + max_string_section_length_in_bytes, 0);
+    std::copy(hlsl_source_path.begin(), 
+        hlsl_source_path.begin() + (std::min)(max_string_section_length_in_bytes, hlsl_source_path.size()),
+        source_path);
 }
 
 bool HLSLCompilationTaskCache::Key::operator<(Key const& other) const

@@ -74,8 +74,6 @@ private:
     ResourceOptimizedClearValue m_depth_optimized_clear_value;
 
     std::vector<RenderingTarget> m_targets;
-
-    std::function<void(RenderingTarget const&)> m_presenter;
 };
 
 }

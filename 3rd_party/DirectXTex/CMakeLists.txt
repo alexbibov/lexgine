@@ -118,3 +118,8 @@ if(NOT MINGW)
     target_precompile_headers(${PROJECT_NAME} PRIVATE DirectXTexP.h)
 endif()
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+target_compile_options(${PROJECT_NAME} PRIVATE ${OpenMP_CXX_FLAGS})
+endif()
+

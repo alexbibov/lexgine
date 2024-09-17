@@ -133,6 +133,11 @@ uint64_t TaskGraphNode::getUserData() const
     return m_user_data;
 }
 
+void TaskGraphNode::markCompleted()
+{
+    m_is_completed.store(true, std::memory_order_release);
+}
+
 TaskGraphRootNode::TaskGraphRootNode(AbstractTask& task) :
     TaskGraphNode{ task }
 {

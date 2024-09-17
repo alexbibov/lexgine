@@ -15,6 +15,8 @@
 #include "engine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
+#include "engine/core/dx/dxcompilation/shader_function.h"
+#include "engine/core/dx/dxcompilation/shader_stage.h"
 #include "engine/core/math/utility.h"
 #include "ui_draw_task.h"
 
@@ -24,7 +26,6 @@ using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
 
-std::string const UIDrawTask::c_interface_update_section = "interface_update_section";
 
 namespace {
 
@@ -214,7 +215,7 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
                 + "__" + std::to_string(rendering_configuration.depth_buffer_format), 0);
             m_pso->setVertexShaderCompilationTask(m_vs);
             m_pso->setPixelShaderCompilationTask(m_ps);
-            m_pso->setRootSignatureCompilationTask(m_rs);
+            m_pso->setRootSignatureCompilationTask(m_shader_function->getBindingSignature());
         }
         else
         {
@@ -328,8 +329,9 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
     , m_device{ *globals.get<Device>() }
     , m_basic_rendering_services{ basic_rendering_services }
     , m_time_counter{ std::chrono::high_resolution_clock::now().time_since_epoch().count() }
-    , m_resource_uploader{ globals, basic_rendering_services.resourceUploadAllocator() }
-    , m_projection_matrix_constants(16)
+    , m_resource_uploader{ basic_rendering_services.resourceDataUploader() }
+    , m_constant_data_mapper{ m_constant_buffer_reflection }
+    , m_ui_data_allocator{ basic_rendering_services.dynamicGeometryStream() }
     , m_scissor_rectangles(1)
     , m_cmd_list_ptr{ addCommandList() }
 {
@@ -345,98 +347,13 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
         : ImGui::GetMouseCursor();
 
     // Setup UI device objects
-    {
-        // root signature
-        {
-            task_caches::RootSignatureCompilationTaskCache& rs_compilation_task_cache = *m_globals.get<task_caches::RootSignatureCompilationTaskCache>();
-            RootSignature rs{};
-
-            // parameter 0 (rendering constants, root constants)
-            {
-                RootEntryConstants root_constants{ 0, 0, 16 };
-                rs.addParameter(0, root_constants, ShaderVisibility::vertex);
-            }
-
-            // parameter 1 (font texture, root SRV)
-            {
-                RootEntryDescriptorTable font_texture_srv_table{};
-                font_texture_srv_table.addRange(RootEntryDescriptorTable::RangeType::srv, 1, 0, 0, 0);
-                rs.addParameter(1, font_texture_srv_table, ShaderVisibility::pixel);
-            }
-
-            // static bilinear sampler
-            {
-                FilterPack filtering_parameters{ MinificationFilter::linear_mipmap_linear, MagnificationFilter::linear, 0,
-                WrapMode::repeat, WrapMode::repeat, WrapMode::repeat, StaticBorderColor::transparent_black };
-                RootStaticSampler sampler{ 0, 0, filtering_parameters };
-                rs.addStaticSampler(sampler, ShaderVisibility::pixel);
-            }
-
-            auto flags = RootSignatureFlags::base_values::allow_input_assembler
-                | RootSignatureFlags::base_values::deny_hull_shader
-                | RootSignatureFlags::base_values::deny_domain_shader
-                | RootSignatureFlags::base_values::deny_geometry_shader;
-
-            m_rs = rs_compilation_task_cache.findOrCreateTask(globals, std::move(rs), flags, "ui_rendering_rs", 0);
-            m_rs->execute(0);
-        }
-
-        // shaders
-        {
-            static char const* const hlsl_source =
-                "struct ConstantBufferDataStruct\n\
-                {\n\
-                    float4x4 ProjectionMatrix;\n\
-                };\n \
-                ConstantBuffer<ConstantBufferDataStruct> constants : register(b0);\n\
-                \n\
-                struct VS_INPUT\n\
-                {\n\
-                    float2 pos : POSITION;\n\
-                    float4 col : COLOR0;\n\
-                    float2 uv : TEXCOORD0;\n\
-                };\n\
-                \n\
-                struct PS_INPUT\n\
-                {\n\
-                    float4 pos : SV_POSITION;\n\
-                    float4 col : COLOR0;\n\
-                    float2 uv : TEXCOORD0;\n\
-                };\n\
-                \n\
-                PS_INPUT VSMain(VS_INPUT input)\n\
-                {\n\
-                    PS_INPUT output;\n\
-                    output.pos = mul(constants.ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));\n\
-                    output.col = input.col;\n\
-                    output.uv = input.uv;\n\
-                    return output;\n\
-                }\n\
-                \n\
-                SamplerState sampler0 : register(s0);\n\
-                Texture2D<float4> texture0 : register(t0);\n\
-                \n\
-                float4 PSMain(PS_INPUT input) : SV_Target\n\
-                {\n\
-                    float4 out_col = input.col * texture0.Sample(sampler0, input.uv);\n\
-                    return out_col;\n\
-                }\n";
-
-            task_caches::HLSLCompilationTaskCache& hlsl_compilation_task_cache = *m_globals.get<task_caches::HLSLCompilationTaskCache>();
-            task_caches::HLSLSourceTranslationUnit hlsl_translation_unit{ m_globals, "ui_rendering_shader", hlsl_source };
-
-            m_vs = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, dxcompilation::ShaderModel::model_61, dxcompilation::ShaderType::vertex, "VSMain");
-            m_ps = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, dxcompilation::ShaderModel::model_61, dxcompilation::ShaderType::pixel, "PSMain");
-            m_vs->execute(0);
-            m_ps->execute(0);
-        }
-    }
 
     // Fetch and upload UI font texture
     {
-        unsigned char* pixels{ nullptr };
-        int width{}, height{};
+        unsigned char* pixels { nullptr };
+        int width {}, height {};
         io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+        io.Fonts->TexID = nullptr;
 
         ResourceDescriptor font_texture_descriptor = ResourceDescriptor::CreateTexture2D(width, height, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
 
@@ -444,15 +361,15 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
             misc::makeEmptyOptional<ResourceOptimizedClearValue>(), font_texture_descriptor, AbstractHeapType::_default,
             HeapCreationFlags::base_values::allow_all);
 
-        ResourceDataUploader::TextureSourceDescriptor source_descriptor{};
-        ResourceDataUploader::TextureSourceDescriptor::Subresource texture_subresource{
+        ResourceDataUploader::TextureSourceDescriptor source_descriptor {};
+        ResourceDataUploader::TextureSourceDescriptor::Subresource texture_subresource {
             pixels,
             static_cast<size_t>(width) * 4ULL,
             static_cast<size_t>(width) * static_cast<size_t>(height) * 4ULL
         };
         source_descriptor.subresources.emplace_back(texture_subresource);
 
-        ResourceDataUploader::DestinationDescriptor destination_descriptor{};
+        ResourceDataUploader::DestinationDescriptor destination_descriptor {};
         destination_descriptor.p_destination_resource = m_fonts_texture.get();
         destination_descriptor.destination_resource_state = ResourceState::base_values::pixel_shader;
         destination_descriptor.segment.subresources.first_subresource = 0;
@@ -462,34 +379,78 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
         m_resource_uploader.upload();
         m_resource_uploader.waitUntilUploadIsFinished();
 
-        {
-            ResourceViewDescriptorTableBuilder builder{ globals, 0 };
-            builder.addDescriptor(SRVDescriptor{ *m_fonts_texture, SRVTextureInfo{} });
+        /*{
+            ResourceViewDescriptorTableBuilder builder { globals, 0 };
+            builder.addDescriptor(SRVDescriptor { *m_fonts_texture, SRVTextureInfo {} });
 
             m_srv_table = builder.build();
             io.Fonts->TexID = reinterpret_cast<ImTextureID>(m_srv_table.gpu_pointer);
-        }
+        }*/
     }
 
-    // Create UI update section in upload heap
+    // shaders
     {
-        DxResourceFactory& dx_resource_factory = *globals.get<DxResourceFactory>();
-        Device& device = *globals.get<Device>();
+        static char const* const hlsl_source =
+            "struct ConstantBufferDataStruct\n\
+            {\n\
+                float4x4 ProjectionMatrix;\n\
+            };\n \
+            ConstantBuffer<ConstantBufferDataStruct> constants : register(b0, space100);\n\
+            \n\
+            struct VS_INPUT\n\
+            {\n\
+                float2 pos : POSITION;\n\
+                float4 col : COLOR0;\n\
+                float2 uv : TEXCOORD0;\n\
+            };\n\
+            \n\
+            struct PS_INPUT\n\
+            {\n\
+                float4 pos : SV_POSITION;\n\
+                float4 col : COLOR0;\n\
+                float2 uv : TEXCOORD0;\n\
+            };\n\
+            \n\
+            PS_INPUT VSMain(VS_INPUT input)\n\
+            {\n\
+                PS_INPUT output;\n\
+                output.pos = mul(constants.ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));\n\
+                output.col = input.col;\n\
+                output.uv = input.uv;\n\
+                return output;\n\
+            }\n\
+            \n\
+            SamplerState sampler0 : register(s0);\n\
+            Texture2D<float4> texture0 : register(t0);\n\
+            \n\
+            float4 PSMain(PS_INPUT input) : SV_Target\n\
+            {\n\
+                float4 out_col = input.col * texture0.Sample(sampler0, input.uv);\n\
+                return out_col;\n\
+            }\n";
 
-        auto ui_update_section = dx_resource_factory.allocateSectionInUploadHeap(dx_resource_factory.retrieveUploadHeap(device),
-            UIDrawTask::c_interface_update_section,
-            UIDrawTask::c_interface_update_section_size);
+        task_caches::HLSLCompilationTaskCache& hlsl_compilation_task_cache = *m_globals.get<task_caches::HLSLCompilationTaskCache>();
+        task_caches::HLSLSourceTranslationUnit hlsl_translation_unit{ m_globals, "ui_rendering_shader", hlsl_source };
 
-        if (!ui_update_section.isValid())
-        {
-            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
-                "Unable to allocate UI update section \"" + UIDrawTask::c_interface_update_section
-                + "\" in data upload heap");
-        }
+        m_vs = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, dxcompilation::ShaderModel::model_61, dxcompilation::ShaderType::vertex, "VSMain");
+        m_ps = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, dxcompilation::ShaderModel::model_61, dxcompilation::ShaderType::pixel, "PSMain");
+        m_vs->execute(0);
+        m_ps->execute(0);
 
-        UploadHeapPartition const& ui_update_section_partition = static_cast<UploadHeapPartition const&>(ui_update_section);
-        m_ui_data_allocator = std::make_unique<PerFrameUploadDataStreamAllocator>(globals, ui_update_section_partition.offset, ui_update_section_partition.size, device.frameProgressTracker());
+        m_shader_function = std::make_unique<dxcompilation::ShaderFunction>(m_globals, 0, "ui_shader_function");
+        dxcompilation::ShaderStage* p_vs_stage = m_shader_function->createShaderStage(m_vs);
+        dxcompilation::ShaderStage* p_ps_stage = m_shader_function->createShaderStage(m_ps);
+
+        m_constant_buffer_reflection = p_vs_stage->buildConstantBufferReflection(std::string{ "constants" });
+        m_constant_data_mapper.addDataBinding("ProjectionMatrix", m_projection_matrix);
+
+        p_ps_stage->bindTexture(std::string{ "texture0" }, *m_fonts_texture);
+        p_ps_stage->bindSampler(std::string{ "sampler0" }, FilterPack{ MinificationFilter::linear, MagnificationFilter::linear, 16,
+            WrapMode::clamp, WrapMode::clamp, WrapMode::clamp }, math::Vector4f{ 0.f });
+
+        m_shader_function->prepare(false);
     }
+    
 
     // Initialize vertex and index data
     {
@@ -509,7 +470,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
         default:
             LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "The actual version of ImGui appears to use unsupported size for the index data");
         }
-        m_ui_index_data_binding = std::make_unique<IndexBufferBinding>(m_ui_data_allocator->getUploadResource(), 0, index_data_type, 0);
+        m_ui_index_data_binding = std::make_unique<IndexBufferBinding>(m_ui_data_allocator.getUploadResource(), 0, index_data_type, 0);
     }
 
     // Create input layout
@@ -597,11 +558,11 @@ void UIDrawTask::processEvents() const
 
 void UIDrawTask::drawFrame()
 {
-    if (ImDrawData * p_draw_data = ImGui::GetDrawData())
+    if (ImDrawData* p_draw_data = ImGui::GetDrawData())
     {
         //cmd_list.reset();
-        m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
-        // m_basic_rendering_services.beginRendering(m_cmd_list);
+       
+        // m_basic_rendering_services.beginRendering(*m_cmd_list_ptr);
 
         auto setup_render_state_lambda = [this, p_draw_data]()
         {
@@ -612,22 +573,23 @@ void UIDrawTask::drawFrame()
             };
             m_viewports[0] = viewport;
 
-            auto projection_matrix = math::createOrthogonalProjectionMatrix(EngineApi::Direct3D12,
+            m_projection_matrix = math::createOrthogonalProjectionMatrix(EngineApi::Direct3D12,
                 p_draw_data->DisplayPos.x, p_draw_data->DisplayPos.y,
                 p_draw_data->DisplaySize.x, p_draw_data->DisplaySize.y, -1.f, 1.f);
 
-            std::transform(projection_matrix.getRawData(), projection_matrix.getRawData() + 16,
-                m_projection_matrix_constants.begin(), [](float value) {return *reinterpret_cast<uint32_t*>(&value); });
-
             m_cmd_list_ptr->setPipelineState(m_pso->getTaskData());
-            m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());
-            m_cmd_list_ptr->setRoot32BitConstants(0, m_projection_matrix_constants, 0);
+            m_cmd_list_ptr->setRootSignature(m_shader_function->getBindingSignature()->getCacheName());
+
+            m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
+
             m_cmd_list_ptr->rasterizerStateSetViewports(m_viewports);
             m_cmd_list_ptr->inputAssemblySetVertexBuffers(*m_ui_vertex_data_binding);
             m_cmd_list_ptr->inputAssemblySetIndexBuffer(*m_ui_index_data_binding);
             m_cmd_list_ptr->inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
             m_cmd_list_ptr->outputMergerSetBlendFactor(math::Vector4f{ 0.f });
             m_basic_rendering_services.setDefaultRenderingTarget(*m_cmd_list_ptr);
+            auto allocation = m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_constant_data_mapper);
+            m_cmd_list_ptr->setRootConstantBufferView(static_cast<uint32_t>(dxcompilation::ShaderFunctionConstantBufferRootIds::scene_uniforms), allocation->virtualGpuAddress());
         };
 
         // upload vertex data and set rendering context state
@@ -640,8 +602,8 @@ void UIDrawTask::drawFrame()
             size_t index_buffer_offset = total_vertex_count * sizeof(ImDrawVert);
             size_t required_draw_buffer_capacity = index_buffer_offset + total_index_count * sizeof(ImDrawIdx);
 
-            m_vertex_and_index_data_allocation = m_ui_data_allocator->allocate(required_draw_buffer_capacity);
-            m_ui_vertex_data_binding->setVertexBufferView(0, m_ui_data_allocator->getUploadResource(), m_vertex_and_index_data_allocation->offset(),
+            m_vertex_and_index_data_allocation = m_ui_data_allocator.allocate(required_draw_buffer_capacity);
+            m_ui_vertex_data_binding->setVertexBufferView(0, m_ui_data_allocator.getUploadResource(), m_vertex_and_index_data_allocation->offset(),
                 sizeof(ImDrawVert), static_cast<uint32_t>(p_draw_data->TotalVtxCount));
             m_ui_index_data_binding->update(m_vertex_and_index_data_allocation->offset() + total_vertex_count * sizeof(ImDrawVert),
                 static_cast<uint32_t>(p_draw_data->TotalIdxCount));
@@ -684,9 +646,9 @@ void UIDrawTask::drawFrame()
                             p_draw_command->ClipRect.y - clip_off.y });
                         scissor_rectangle.setSize(p_draw_command->ClipRect.z - p_draw_command->ClipRect.x,
                             p_draw_command->ClipRect.w - p_draw_command->ClipRect.y);
-                        ShaderResourceDescriptorTable srv_table{};
+                        /*ShaderResourceDescriptorTable srv_table{};
                         srv_table.gpu_pointer = reinterpret_cast<uint64_t>(p_draw_command->TextureId);
-                        m_cmd_list_ptr->setRootDescriptorTable(1, srv_table);
+                        m_cmd_list_ptr->setRootDescriptorTable(1, srv_table.gpu_pointer);*/
                         m_cmd_list_ptr->rasterizerStateSetScissorRectangles(m_scissor_rectangles);
                         m_cmd_list_ptr->drawIndexedInstanced(p_draw_command->ElemCount, 1, offset_in_index_buffer, offset_in_vertex_buffer, 0);
                     }

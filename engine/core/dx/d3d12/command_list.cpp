@@ -210,14 +210,18 @@ void CommandList::inputAssemblySetVertexBuffers(VertexBufferBinding const& vb_bi
     D3D12_VERTEX_BUFFER_VIEW native_vb_views[c_input_assembler_count];
 
     unsigned long index{ 0 };
-    size_t offset{ 0 };
-    size_t offset_old{ 0 };
-    size_t base{ 0 };
-    bool buffers_set{ true };
     unsigned long mask = vb_binding.slotUsageMask();
+    _BitScanForward(&index, mask);
+
+    size_t offset{ 0 };
+    size_t offset_old{ index };
+    size_t base{ index };
+    bool buffers_set{ true };
+    
 
     while (_BitScanForward(&index, mask) || !buffers_set)
     {
+        offset += index;
         if (mask && offset - offset_old <= 1)
         {
             native_vb_views[offset] = vb_binding.vertexBufferViewAtSlot(static_cast<uint8_t>(offset));
@@ -231,8 +235,8 @@ void CommandList::inputAssemblySetVertexBuffers(VertexBufferBinding const& vb_bi
             buffers_set = true;
         }
 
-        mask >>= index + 1; 
-        offset += index + 1;
+        mask >>= index + 1;
+        ++offset;
     }
 }
 
@@ -307,8 +311,9 @@ void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable c
             _BitScanForward64(&idx, active_rtv_descriptors_mask);
             offset += idx, active_rtv_descriptors_mask >>= idx + 1, ++i)
         {
-            rtv_cpu_handles.push_back(D3D12_CPU_DESCRIPTOR_HANDLE{ rtv_descriptor_table->cpu_pointer
-                + rtv_descriptor_table->descriptor_size*offset });
+            rtv_cpu_handles.push_back(D3D12_CPU_DESCRIPTOR_HANDLE{
+                rtv_descriptor_table->cpu_pointer + rtv_descriptor_table->descriptor_size * offset
+                });
         }
         p_rtv_base_cpu_handle = rtv_cpu_handles.data();
     }
@@ -318,7 +323,7 @@ void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable c
     if (dsv_descriptor_table)
     {
         dsv_base_cpu_handle.ptr = dsv_descriptor_table->cpu_pointer
-            + dsv_descriptor_table->descriptor_size*dsv_descriptor_table_offset;
+            + dsv_descriptor_table->descriptor_size * dsv_descriptor_table_offset;
         p_dsv_base_cpu_handle = &dsv_base_cpu_handle;
     }
 
@@ -444,7 +449,7 @@ void CommandList::setRootSignature(std::string const& cached_root_signature_frie
 }
 
 void CommandList::setRootDescriptorTable(uint32_t root_signature_slot, 
-    ShaderResourceDescriptorTable const& cbv_srv_uav_table,
+    uint64_t virtual_gpu_memory_address,
     BundleInvocationContext bundle_invokation_context) const
 {
     auto cmd_list_type = commandType();
@@ -456,9 +461,9 @@ void CommandList::setRootDescriptorTable(uint32_t root_signature_slot,
 
     cmd_list_type == CommandType::direct || bundle_invokation_context == BundleInvocationContext::direct
         ? m_command_list->SetGraphicsRootDescriptorTable(static_cast<UINT>(root_signature_slot),
-            D3D12_GPU_DESCRIPTOR_HANDLE{ cbv_srv_uav_table.gpu_pointer })
+            D3D12_GPU_DESCRIPTOR_HANDLE{ virtual_gpu_memory_address })
         : m_command_list->SetComputeRootDescriptorTable(static_cast<UINT>(root_signature_slot),
-            D3D12_GPU_DESCRIPTOR_HANDLE{ cbv_srv_uav_table.gpu_pointer });
+            D3D12_GPU_DESCRIPTOR_HANDLE{ virtual_gpu_memory_address });
 }
 
 void CommandList::setRoot32BitConstant(uint32_t root_signature_slot, uint32_t data, 

@@ -38,6 +38,11 @@ FenceSharing Fence::sharingMode() const
     return m_sharing_mode;
 }
 
+uint64_t Fence::lastValueRecorded() const
+{
+    return m_next_signal_value - 1;
+}
+
 uint64_t Fence::lastValueSignaled() const
 {
     return static_cast<uint64_t>(m_fence->GetCompletedValue());

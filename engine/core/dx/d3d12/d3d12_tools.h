@@ -666,4 +666,45 @@ inline D3D12_DESCRIPTOR_HEAP_TYPE d3d12Convert(DescriptorHeapType descriptor_hea
 #include "d3d12_type_traits.inl"
 
 
+namespace lexgine::core::dx::d3d12 {
+
+class DxgiFormatFetcher
+{
+public:
+    struct key
+    {
+        bool is_fp;
+        bool is_signed;
+        bool is_normalized;
+        unsigned char element_count;
+        unsigned char element_size;
+
+        bool operator ==(key const& other) const;
+    };
+
+    struct key_hasher
+    {
+        size_t operator()(key const& k) const;
+    };
+
+    using dxgi_types_map = std::unordered_map<key, DXGI_FORMAT, key_hasher, std::equal_to<void>>;
+
+public:
+    DxgiFormatFetcher();
+    DxgiFormatFetcher(DxgiFormatFetcher const&) = delete;
+    DxgiFormatFetcher(DxgiFormatFetcher&&) = delete;
+
+    DxgiFormatFetcher& operator=(DxgiFormatFetcher const&) = delete;
+    DxgiFormatFetcher& operator=(DxgiFormatFetcher&&) = delete;
+
+    DXGI_FORMAT fetch(bool is_floating_point, bool is_signed, bool is_normalized,
+        unsigned char element_count, unsigned char element_size) const;
+
+private:
+     dxgi_types_map m_d3d12_formats;
+};
+
+}
+
+
 #endif

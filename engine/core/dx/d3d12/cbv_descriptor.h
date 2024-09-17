@@ -5,15 +5,15 @@
 
 #include <d3d12.h>
 
-#include "lexgine_core_dx_d3d12_fwd.h"
+#include "hashable_descriptor.h"
+#include "engine/core/misc/hash_value.h"
 
 namespace lexgine::core::dx::d3d12 {
 
-class CBVDescriptor final
+class CBVDescriptor final : public HashableDescriptor<D3D12_CONSTANT_BUFFER_VIEW_DESC>
 {
 public:
-    CBVDescriptor(Resource const& resource,
-        uint32_t offset_from_start, uint32_t view_size_in_bytes);
+    CBVDescriptor(Resource const& resource, uint32_t offset_from_start, uint32_t view_size_in_bytes);
 
     D3D12_CONSTANT_BUFFER_VIEW_DESC nativeDescriptor() const;
     Resource const& associatedResource() const;

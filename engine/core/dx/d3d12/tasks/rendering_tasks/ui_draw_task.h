@@ -11,6 +11,9 @@
 
 #include "engine/core/dx/d3d12/resource_data_uploader.h"
 #include "engine/core/dx/d3d12/vertex_buffer_binding.h"
+#include "engine/core/dx/d3d12/constant_buffer_data_mapper.h"
+
+#include "engine/core/dx/dxcompilation/lexgine_core_dx_dxcompilation_fwd.h"
 #include "engine/core/concurrency/schedulable_task.h"
 #include "engine/osinteraction/windows/lexgine_osinteraction_windows_fwd.h"
 #include "engine/osinteraction/listener.h"
@@ -83,26 +86,27 @@ private:
     osinteraction::windows::Window* m_rendering_window_ptr = nullptr;
     mutable long long m_time_counter;
     mutable ImGuiMouseCursor m_mouse_cursor;
-    ResourceDataUploader m_resource_uploader;
+    ResourceDataUploader& m_resource_uploader;
 
-    tasks::RootSignatureCompilationTask* m_rs = nullptr;
     tasks::HLSLCompilationTask* m_vs = nullptr;
     tasks::HLSLCompilationTask* m_ps = nullptr;
     tasks::GraphicsPSOCompilationTask* m_pso = nullptr;
     VertexAttributeSpecificationList m_va_list;
+    std::unique_ptr<dxcompilation::ShaderFunction> m_shader_function;
     GraphicsPSODescriptor m_pso_desc;
 
-    std::vector<uint32_t> m_projection_matrix_constants;
+    ConstantBufferReflection m_constant_buffer_reflection;
+    ConstantBufferDataMapper m_constant_data_mapper;
+    math::Matrix4f m_projection_matrix;
 
     ImGuiContext* m_gui_context = nullptr;
 
     std::unique_ptr<CommittedResource> m_fonts_texture;
-    ShaderResourceDescriptorTable m_srv_table;
 
-    std::unique_ptr<PerFrameUploadDataStreamAllocator> m_ui_data_allocator;
     std::unique_ptr<VertexBufferBinding> m_ui_vertex_data_binding;
     std::unique_ptr<IndexBufferBinding> m_ui_index_data_binding;
 
+    PerFrameUploadDataStreamAllocator& m_ui_data_allocator;
     PerFrameUploadDataStreamAllocator::address_type m_vertex_and_index_data_allocation = nullptr;
 
     misc::StaticVector<Viewport, CommandList::c_maximal_viewport_count> m_viewports;

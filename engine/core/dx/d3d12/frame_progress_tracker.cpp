@@ -10,7 +10,7 @@ FrameProgressTracker::FrameProgressTracker(Device& device)
 
 uint64_t FrameProgressTracker::scheduledFramesCount() const
 {
-    return m_cpu_wall_signal.lastValueSignaled();
+    return m_cpu_wall_signal.lastValueRecorded();
 }
 
 uint64_t FrameProgressTracker::completedFramesCount() const

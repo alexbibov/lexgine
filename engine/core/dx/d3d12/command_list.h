@@ -164,7 +164,7 @@ public:
     void setRootSignature(std::string const& cached_root_signature_friendly_name,
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
 
-    void setRootDescriptorTable(uint32_t root_signature_slot, ShaderResourceDescriptorTable const& cbv_srv_uav_table,
+    void setRootDescriptorTable(uint32_t root_signature_slot, uint64_t virtual_gpu_memory_address,
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
 
     void setRoot32BitConstant(uint32_t root_signature_slot, uint32_t data, uint32_t offset_in_32_bit_values,

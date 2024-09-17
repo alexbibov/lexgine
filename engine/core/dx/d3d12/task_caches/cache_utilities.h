@@ -10,7 +10,8 @@
 #include "combined_cache_key.h"
 
 
-namespace lexgine::core::dx::d3d12::task_caches {
+namespace lexgine::core::dx::d3d12::task_caches 
+{
 
 using CombinedCache = StreamedCache<CombinedCacheKey, global_constants::combined_cache_cluster_size>;
 
@@ -36,12 +37,12 @@ private:
 /*! establishes connection with combined cache associated with the given worker id.
  In case if it is not possible to establish connection with requested cache returns invalid Optional<> object
 */
-StreamedCacheConnection establishConnectionWithCombinedCache(GlobalSettings const& global_settings, uint8_t worker_id, bool readonly_mode, bool allow_overwrites = true);
+misc::Optional<StreamedCacheConnection> establishConnectionWithCombinedCache(GlobalSettings const& global_settings, uint8_t worker_id, bool readonly_mode, bool allow_overwrites = true);
 
 /*! Establishes connection with combined cache located at the given path.
  In case if connection cannot be made, the return value will be an invalid Optional<> object
 */
-StreamedCacheConnection establishConnectionWithCombinedCache(GlobalSettings const& global_settings, std::string const& path_to_combined_cache, bool readonly_mode, bool allow_overwrites = true);
+misc::Optional<StreamedCacheConnection> establishConnectionWithCombinedCache(GlobalSettings const& global_settings, std::string const& path_to_combined_cache, bool readonly_mode, bool allow_overwrites = true);
 
 /*! locates combined cache containing requested key and establishes connection with it.
  Returns invalid Optional<> object in case if connection cannot be established (the most common reason is

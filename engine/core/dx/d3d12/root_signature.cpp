@@ -39,7 +39,7 @@ RootEntryConstants::RootEntryConstants(uint32_t shader_register, uint32_t regist
 }
 
 
-RootEntryDescriptorTable::RootEntryDescriptorTable(std::list<Range> const & ranges):
+RootEntryDescriptorTable::RootEntryDescriptorTable(std::vector<Range> const & ranges):
     m_ranges{ ranges }
 {
 }
@@ -75,27 +75,26 @@ D3DDataBlob RootSignature::compile(RootSignatureFlags const& flags) const
 {
     // validate root signature (the slots should follow in order beginning from 0)
     for(uint32_t i = 0U; i < static_cast<uint32_t>(m_root_parameters.size()); ++i)
-        if (m_root_parameters.find(i) == m_root_parameters.end())
-        {
-            std::string err_msg{ "Root signature " + getStringName() + " has undefined slots" };
+    {
+        if (m_root_parameters.find(i) == m_root_parameters.end()) {
+            std::string err_msg { "Root signature " + getStringName() + " has undefined slots" };
             LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, err_msg);
         }
+    }
+
+    std::vector<D3D12_ROOT_PARAMETER> root_parameters_buf{};
+    root_parameters_buf.resize(m_root_parameters.size());
+    for (auto const& e : m_root_parameters)
+    {
+        root_parameters_buf[e.first] = e.second;
+    }
 
     D3D12_ROOT_SIGNATURE_DESC root_desc;
     root_desc.NumParameters = static_cast<UINT>(m_root_parameters.size());
     root_desc.NumStaticSamplers = static_cast<UINT>(m_static_samplers.size());
 
-    std::vector<D3D12_ROOT_PARAMETER> rs_parameters(root_desc.NumParameters);
-    std::vector<D3D12_STATIC_SAMPLER_DESC> rs_static_samplers(root_desc.NumStaticSamplers);
-
-    for (uint32_t i = 0; i < root_desc.NumParameters; ++i) rs_parameters[i] = m_root_parameters.at(i);
-
-    uint32_t sampler_idx = 0;
-    for (auto p = m_static_samplers.begin(); p != m_static_samplers.end(); ++p, ++sampler_idx) rs_static_samplers[sampler_idx] = *p;
-
-
-    root_desc.pParameters = rs_parameters.data();
-    root_desc.pStaticSamplers = rs_static_samplers.data();
+    root_desc.pParameters = root_parameters_buf.data();
+    root_desc.pStaticSamplers = m_static_samplers.data();
     root_desc.Flags = static_cast<D3D12_ROOT_SIGNATURE_FLAGS>(flags.getValue());
 
 
@@ -174,15 +173,14 @@ RootSignature& RootSignature::addParameter(uint32_t slot, RootEntryDescriptorTab
     size_t num_ranges = root_entry_descriptor_table_declaration.m_ranges.size();
     param.DescriptorTable.NumDescriptorRanges = static_cast<UINT>(num_ranges);
 
-    auto range_iterator = root_entry_descriptor_table_declaration.m_ranges.begin();
-    auto& range_cache = m_descriptor_range_cache.emplace_back(num_ranges);
-    for (size_t i = 0; i < num_ranges; ++i, ++range_iterator)
+    auto& range_cache = m_descriptor_range_cache.emplace_back(std::vector<D3D12_DESCRIPTOR_RANGE>(num_ranges));
+    for (size_t i = 0; i < num_ranges; ++i)
     {
-        range_cache[i].RangeType = static_cast<D3D12_DESCRIPTOR_RANGE_TYPE>(range_iterator->type);
-        range_cache[i].NumDescriptors = range_iterator->num_descriptors;
-        range_cache[i].BaseShaderRegister = range_iterator->base_register;
-        range_cache[i].RegisterSpace = range_iterator->register_space;
-        range_cache[i].OffsetInDescriptorsFromTableStart = range_iterator->offset;
+        range_cache[i].RangeType = static_cast<D3D12_DESCRIPTOR_RANGE_TYPE>(root_entry_descriptor_table_declaration.m_ranges[i].type);
+        range_cache[i].NumDescriptors = root_entry_descriptor_table_declaration.m_ranges[i].num_descriptors;
+        range_cache[i].BaseShaderRegister = root_entry_descriptor_table_declaration.m_ranges[i].base_register;
+        range_cache[i].RegisterSpace = root_entry_descriptor_table_declaration.m_ranges[i].register_space;
+        range_cache[i].OffsetInDescriptorsFromTableStart = root_entry_descriptor_table_declaration.m_ranges[i].offset;
     }
     param.DescriptorTable.pDescriptorRanges = range_cache.data();
     param.ShaderVisibility = static_cast<D3D12_SHADER_VISIBILITY>(shader_visibility);

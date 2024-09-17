@@ -46,19 +46,23 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
             + "__" + std::to_string(PROJECT_VERSION_REVISION) + ".combined_cache";
 
         m_max_combined_cache_size = 1024ull * 1024 * 1024 * 4;    // defaults to 4Gbs
+        m_max_combined_texture_cache_size = 1024ull * 1024 * 1024 * 16;    // defaults to 16Gbs
 
-        m_upload_heap_capacity = 1024 * 1024 * 512;    // 512MBs by default
+        m_upload_heap_capacity = misc::align(1024 * 1024 * 512, 1 << 16);    // 512MBs by default
         m_streamed_constant_data_partitioning = .125f;    // 12.5% of the upload heap capacity by default is dedicated to constant data streaming
+        m_streamed_geometry_data_partitioning = .125f;    // 12.5% of the upload heap capacity by default is dedicated to geometry data streaming
         m_enable_async_compute = true;
         m_enable_async_copy = true;
         m_max_frames_in_flight = 6;
         m_max_non_blocking_upload_buffer_allocation_timeout = 1000U;
-
+        m_enable_profiling = false;
+        m_enable_cache = true;
+        m_enable_gpu_accelerated_texture_conversion = false;
 
         {
             // Descriptor heaps total and per-page capacity default settings
 
-            m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = 8192;
+            m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = 1000000;
             m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = 1;
 
             m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::sampler)] = 256;
@@ -203,10 +207,21 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
                 std::to_string(m_max_combined_cache_size / 1024 / 1024 / 1024) + "GBs");
         }
 
+        if ((p = document.find("maximal_combined_texture_cache_size")) != document.end()
+            && p->is_number_unsigned())
+        {
+            m_max_combined_texture_cache_size = p->get<uint64_t>();
+        }
+        else
+        {
+            yield_warning_log_message("maximal_combined_texture_cache_size",
+                std::to_string(m_max_combined_texture_cache_size / 1024 / 1024 / 1024) + "GBs");
+        }
+
         if ((p = document.find("upload_heap_capacity")) != document.end()
             && p->is_number_unsigned())
         {
-            m_upload_heap_capacity = p->get<uint32_t>();
+            m_upload_heap_capacity = misc::align(p->get<uint32_t>(), 1 << 16);
         }
         else
         {
@@ -222,7 +237,18 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
         else
         {
             yield_warning_log_message("streamed_constant_data_partitioning",
-                std::to_string(.125f * 100) + "%");
+                std::to_string(m_streamed_constant_data_partitioning * 100) + "%");
+        }
+
+        if ((p = document.find("streamed_geometry_data_partitioning")) != document.end()
+            && p->is_number_float())
+        {
+            m_streamed_geometry_data_partitioning = p->get<float>();
+        }
+        else
+        {
+            yield_warning_log_message("streamed_geometry_data_partitioning", 
+                std::to_string(m_streamed_geometry_data_partitioning * 100) + "%");
         }
 
         if ((p = document.find("enable_async_compute")) != document.end()
@@ -245,6 +271,15 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
             yield_warning_log_message("enable_async_copy", m_enable_async_copy);
         }
 
+        if ((p = document.find("enable_cache")) != document.end()
+            && p->is_boolean())
+        {
+            m_enable_cache = p->get<bool>();
+        } else 
+        {
+            yield_warning_log_message("enable_cache", m_enable_cache);
+        }
+
         if ((p = document.find("max_frames_in_flight")) != document.end()
             && p->is_number_unsigned())
         {
@@ -264,6 +299,16 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
         {
             yield_warning_log_message("max_non_blocking_upload_buffer_allocation_timeout",
                 m_max_non_blocking_upload_buffer_allocation_timeout);
+        }
+
+        if ((p = document.find("enable_gpu_accelerated_texture_conversion")) != document.end())
+        {
+            m_enable_gpu_accelerated_texture_conversion = p->get<bool>();
+        }
+        else
+        {
+            yield_warning_log_message("enable_gpu_accelerated_texture_conversion",
+                m_enable_gpu_accelerated_texture_conversion);
         }
 
 
@@ -486,6 +531,11 @@ uint64_t GlobalSettings::getMaxCombinedCacheSize() const
     return m_max_combined_cache_size;
 }
 
+uint64_t GlobalSettings::getMaxCombinedTextureCacheSize() const
+{
+    return m_max_combined_texture_cache_size;
+}
+
 uint32_t GlobalSettings::getDescriptorHeapPageCapacity(DescriptorHeapType descriptor_heap_type) const
 {
     return m_descriptors_per_page[static_cast<size_t>(descriptor_heap_type)];
@@ -501,9 +551,19 @@ uint32_t GlobalSettings::getUploadHeapCapacity() const
     return m_upload_heap_capacity;
 }
 
-float GlobalSettings::getStreamedConstantDataPartitioning() const
+size_t GlobalSettings::getStreamedConstantDataPartitionSize() const
 {
-    return m_streamed_constant_data_partitioning;
+    return misc::align(static_cast<size_t>(std::ceil(m_streamed_constant_data_partitioning * m_upload_heap_capacity)), 1 << 16);
+}
+
+size_t GlobalSettings::getStreamedGeometryDataPartitionSize() const
+{
+    return misc::align(static_cast<size_t>(std::ceil(m_streamed_geometry_data_partitioning * m_upload_heap_capacity)), 1 << 16);
+}
+
+size_t GlobalSettings::getTextureUploadPartitionSize() const
+{
+    return m_upload_heap_capacity - getStreamedConstantDataPartitionSize() - getStreamedGeometryDataPartitionSize();
 }
 
 bool GlobalSettings::isAsyncComputeEnabled() const
@@ -521,6 +581,11 @@ bool GlobalSettings::isProfilingEnabled() const
     return m_enable_profiling;
 }
 
+bool GlobalSettings::isCacheEnabled() const
+{
+    return m_enable_cache;
+}
+
 uint16_t GlobalSettings::getMaxFramesInFlight() const
 {
     return m_max_frames_in_flight;
@@ -529,6 +594,11 @@ uint16_t GlobalSettings::getMaxFramesInFlight() const
 uint32_t GlobalSettings::getMaxNonBlockingUploadBufferAllocationTimeout() const
 {
     return m_max_non_blocking_upload_buffer_allocation_timeout;
+}
+
+bool GlobalSettings::isGpuAcceleratedTextureConversionEnabled() const
+{
+    return m_enable_gpu_accelerated_texture_conversion;
 }
 
 void GlobalSettings::setNumberOfWorkers(uint8_t num_workers)

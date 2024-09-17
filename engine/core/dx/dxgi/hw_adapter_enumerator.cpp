@@ -29,7 +29,7 @@ HwAdapterEnumerator::HwAdapterEnumerator(GlobalSettings const& global_settings,
 
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        dxgi_factory2->QueryInterface(IID_PPV_ARGS(&m_dxgi_factory6)),
+        dxgi_factory2->QueryInterface(IID_PPV_ARGS(&m_dxgi_factory7)),
         S_OK
     );
 
@@ -66,6 +66,16 @@ HwAdapterEnumerator::const_iterator HwAdapterEnumerator::cend() const
     return m_adapter_list.cend();
 }
 
+HwAdapterEnumerator::adapter_list_type::value_type& HwAdapterEnumerator::operator[](ptrdiff_t index)
+{
+    return m_adapter_list[index];
+}
+
+HwAdapterEnumerator::adapter_list_type::value_type const& HwAdapterEnumerator::operator[](ptrdiff_t index) const
+{
+    return m_adapter_list[index];
+}
+
 void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 {
     m_adapter_list.clear();
@@ -76,7 +86,7 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 
     HRESULT hres = S_OK;
     UINT id = 0;
-    while ((hres = m_dxgi_factory6->EnumAdapterByGpuPreference(id,
+    while ((hres = m_dxgi_factory7->EnumAdapterByGpuPreference(id,
         static_cast<DXGI_GPU_PREFERENCE>(enumeration_preference), __uuidof(IDXGIAdapter),
         reinterpret_cast<void**>(&dxgi_adapter))) != DXGI_ERROR_NOT_FOUND)
     {
@@ -96,7 +106,7 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 
         HRESULT res;
         if ((res = D3D12CreateDevice(dxgi_adapter4.Get(), static_cast<D3D_FEATURE_LEVEL>(D3D12FeatureLevel::_11_0), __uuidof(ID3D12Device), nullptr)) == S_OK || res == S_FALSE)
-            m_adapter_list.emplace_back(HwAdapterAttorney<HwAdapterEnumerator>::makeHwAdapter(m_global_settings, m_dxgi_factory6, dxgi_adapter4));
+            m_adapter_list.emplace_back(HwAdapterAttorney<HwAdapterEnumerator>::makeHwAdapter(m_global_settings, m_dxgi_factory7, dxgi_adapter4));
         else
         {
             DXGI_ADAPTER_DESC3 desc;
@@ -114,11 +124,10 @@ void HwAdapterEnumerator::refresh(DxgiGpuPreference enumeration_preference)
 
 bool HwAdapterEnumerator::isRefreshNeeded() const
 {
-    return !m_dxgi_factory6->IsCurrent();
+    return !m_dxgi_factory7->IsCurrent();
 }
 
-HwAdapter& HwAdapterEnumerator::getWARPAdapter() { return m_adapter_list.back(); }
-HwAdapter const& HwAdapterEnumerator::getWARPAdapter() const { return m_adapter_list.back(); }
+HwAdapter* HwAdapterEnumerator::getWARPAdapter() const { return m_adapter_list.back().get(); }
 
 uint32_t HwAdapterEnumerator::getAdapterCount() const
 {
@@ -127,7 +136,7 @@ uint32_t HwAdapterEnumerator::getAdapterCount() const
 
 
 HwAdapter::HwAdapter(GlobalSettings const& global_settings,
-    ComPtr<IDXGIFactory6> const& adapter_factory,
+    ComPtr<IDXGIFactory7> const& adapter_factory,
     ComPtr<IDXGIAdapter4> const& adapter)
     : m_global_settings{ global_settings }
     , m_dxgi_adapter_factory{ adapter_factory }
@@ -185,9 +194,48 @@ HwAdapter::HwAdapter(GlobalSettings const& global_settings,
     }
 
 
+    ComPtr<ID3D11Device5> d3d11_device5{ nullptr };
+    ComPtr<ID3D11DeviceContext4> d3d11_device_context4{ nullptr };
+    if (global_settings.isGpuAcceleratedTextureConversionEnabled()) 
+    {
+        // attempt to create D3D11 device for GPU-based texture conversion, when GPU-accelerated texture conversion is enabled
+        ComPtr<ID3D11Device> d3d11_device{ nullptr };
+        ComPtr<ID3D11DeviceContext> d3d11_device_context{ nullptr };
+        D3D_FEATURE_LEVEL compatible_feature_levels[] =
+        {
+            D3D_FEATURE_LEVEL_11_1
+        };
+
+        HRESULT res = D3D11CreateDevice(m_dxgi_adapter.Get(), D3D_DRIVER_TYPE_UNKNOWN, NULL,
+            NULL, compatible_feature_levels, static_cast<UINT>(sizeof(compatible_feature_levels) / sizeof(D3D_FEATURE_LEVEL)),
+            D3D11_SDK_VERSION, d3d11_device.GetAddressOf(), NULL, d3d11_device_context.GetAddressOf());
+
+        if (res == S_OK && d3d11_device && d3d11_device_context)
+        {
+            LEXGINE_LOG_ERROR_IF_FAILED(
+                this,
+                d3d11_device->QueryInterface(IID_PPV_ARGS(&d3d11_device5)),
+                S_OK
+            );
+
+            LEXGINE_LOG_ERROR_IF_FAILED(
+                this,
+                d3d11_device_context->QueryInterface(IID_PPV_ARGS(&d3d11_device_context4)),
+                S_OK
+            );
+        }
+        else
+        {
+            Log::retrieve()->out("WARNING: GPU-accelerated texture conversion was toggled on, but creation of Direct3D 11 device has failed."
+                " The system will fall back to CPU-based texture conversion", LogMessageType::exclamation);
+        }
+    }
+
+
+
     if (d3d12_device)
     {
-        m_device = d3d12::DeviceAttorney<HwAdapter>::makeDevice(d3d12_device, m_global_settings);
+        m_device = d3d12::DeviceAttorney<HwAdapter>::makeDevice(this, d3d12_device, m_global_settings);
         m_device->setStringName("\"" + misc::wstringToAsciiString(m_properties.details.name)
             + "\"__D3D12_device");
     }
@@ -195,6 +243,11 @@ HwAdapter::HwAdapter(GlobalSettings const& global_settings,
     {
         LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "no device compatible with Direct3D 12 found");
         return;
+    }
+
+    if (d3d11_device5 && d3d11_device_context4)
+    {
+        d3d12::DeviceAttorney<HwAdapter>::defineD3d11HandlesForDevice(*m_device, d3d11_device5, d3d11_device_context4);
     }
 }
 
@@ -255,9 +308,6 @@ lexgine::core::dx::dxgi::SwapChain HwAdapter::createSwapChain(osinteraction::win
     return SwapChainAttorney<HwAdapter>::makeSwapChain(m_dxgi_adapter_factory, *m_device,
         m_device->defaultCommandQueue(), window, desc);
 }
-
-
-
 
 dx::d3d12::Device& HwAdapter::device() const
 {

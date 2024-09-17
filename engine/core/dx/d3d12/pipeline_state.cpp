@@ -18,7 +18,7 @@ bool isWARPAdapterCurrentlySelected(Globals const& globals)
 {
     DxResourceFactory const& dx_resource_factory_ref = *globals.get<DxResourceFactory>();
     Device const& current_device_ref = *globals.get<Device>();
-    Device const& warp_device_ref = dx_resource_factory_ref.hardwareAdapterEnumerator().getWARPAdapter().device();
+    Device const& warp_device_ref = dx_resource_factory_ref.hardwareAdapterEnumerator().getWARPAdapter()->device();
 
     return &current_device_ref == &warp_device_ref;
 }

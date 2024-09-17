@@ -48,8 +48,7 @@ public:
     */
     void defineRenderingConfiguration(RenderingConfiguration const& rendering_configuration);
 
-    void render(RenderingTarget& rendering_target,
-        std::function<void(RenderingTarget const&)> const& presentation_routine);
+    void render(RenderingTarget& rendering_target, const std::function<void(void)>& presenter);
 
     BasicRenderingServices& basicRenderingServices() { return m_basic_rendering_services; }
     FrameProgressTracker const& frameProgressTracker() { return m_frame_progress_tracker; }

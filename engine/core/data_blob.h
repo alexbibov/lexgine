@@ -19,6 +19,7 @@ public:
     operator bool() const;    //! returns 'true' if this object contains data blob (equivalent to !isNull())
 
     DataBlob();
+    DataBlob(nullptr_t);
     DataBlob(DataBlob const& other) = default;
     DataBlob(DataBlob&& other) = default;
 
@@ -29,6 +30,7 @@ public:
 
     DataBlob& operator=(DataBlob const&) = default;
     DataBlob& operator=(DataBlob&& other) = default;
+    DataBlob& operator=(nullptr_t);    //! releases the memory associated with the blob
 
     virtual ~DataBlob();
 
@@ -47,8 +49,15 @@ class D3DDataBlob : public DataBlob
 public:
     D3DDataBlob();
     D3DDataBlob(nullptr_t);
+    D3DDataBlob(D3DDataBlob const&) = default;
+    D3DDataBlob(D3DDataBlob&&) = default;
+
     D3DDataBlob(Microsoft::WRL::ComPtr<ID3DBlob> const& blob);
     D3DDataBlob(size_t blob_size);
+
+    D3DDataBlob& operator=(D3DDataBlob const&) = default;
+    D3DDataBlob& operator=(D3DDataBlob&&) = default;
+    D3DDataBlob& operator=(nullptr_t);    //! releases the memory associated with the blob
 
     Microsoft::WRL::ComPtr<ID3DBlob> native() const;    //! returns native pointer to Direct3D blob interface
 
@@ -71,6 +80,7 @@ public:
 
     DataChunk& operator=(DataChunk const&) = delete;
     DataChunk& operator=(DataChunk&&) = default;
+    DataChunk& operator=(nullptr_t);    //! releases the memory associated with the chunk
 
     ~DataChunk();    //! destroys the data chunk and deallocates the memory buffer associated with it
 };
@@ -90,6 +100,7 @@ public:
 
     SharedDataChunk& operator=(SharedDataChunk const&) = default;
     SharedDataChunk& operator=(SharedDataChunk&&) = default;
+    SharedDataChunk& operator=(nullptr_t);    //! releases the memory associated with the chunk
 
     ~SharedDataChunk() = default;
 

@@ -4,6 +4,7 @@
 
 #include "device.h"
 #include "descriptor_heap.h"
+#include "static_descriptor_allocation_manager.h"
 
 #include "dx_resource_factory.h"
 
@@ -24,14 +25,14 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
 
     for (auto& adapter : m_hw_adapter_enumerator)
     {
-        Device& dev_ref = adapter.device();
+        Device& dev_ref = adapter->device();
 
         uint32_t node_mask = 1;
 
         // initialize descriptor heaps
 
         descriptor_heap_page_pool page_pool{};
-        std::array<std::string, 4U> descriptor_heap_name_suffixes = {
+        std::array<std::string, descriptor_heap_page_pool::heap_type_count> descriptor_heap_name_suffixes = {
             "_cbv_srv_uav_heap", "_sampler_heap", "_rtv_heap", "_dsv_heap"
         };
         for (auto heap_type :
@@ -41,17 +42,21 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
             DescriptorHeapType::dsv })
         {
             uint32_t descriptor_heap_page_count = global_settings.getDescriptorHeapPageCount(heap_type);
-            page_pool[static_cast<size_t>(heap_type)].resize(descriptor_heap_page_count);
+            page_pool.heaps[static_cast<size_t>(heap_type)].resize(descriptor_heap_page_count);
+            page_pool.static_allocators[static_cast<size_t>(heap_type)].resize(descriptor_heap_page_count);
 
             for (uint32_t page_id = 0U; page_id < descriptor_heap_page_count; ++page_id)
             {
                 uint32_t descriptor_count = global_settings.getDescriptorHeapPageCapacity(heap_type);
                 auto& new_descriptor_heap_ref =
-                    page_pool[static_cast<size_t>(heap_type)][page_id] =
+                    page_pool.heaps[static_cast<size_t>(heap_type)][page_id] = 
                     dev_ref.createDescriptorHeap(heap_type, descriptor_count, node_mask);
 
                 new_descriptor_heap_ref->setStringName(dev_ref.getStringName()
                     + descriptor_heap_name_suffixes[static_cast<size_t>(heap_type)] + "_page" + std::to_string(page_id));
+
+                page_pool.static_allocators[static_cast<size_t>(heap_type)][page_id] =
+                    std::make_unique<StaticDescriptorAllocationManager>(*new_descriptor_heap_ref);
             }
         }
 
@@ -86,7 +91,7 @@ dxcompilation::DXCompilerProxy& DxResourceFactory::shaderModel6xDxCompilerProxy(
 
 DescriptorHeap& DxResourceFactory::retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id)
 {
-    return *m_descriptor_heaps.at(&device)[static_cast<size_t>(descriptor_heap_type)][page_id];
+    return *m_descriptor_heaps.at(&device).heaps[static_cast<size_t>(descriptor_heap_type)][page_id];
 }
 
 Heap& DxResourceFactory::retrieveUploadHeap(Device const& device)
@@ -94,23 +99,9 @@ Heap& DxResourceFactory::retrieveUploadHeap(Device const& device)
     return m_upload_heaps.at(&device);
 }
 
-dxgi::HwAdapter const* DxResourceFactory::retrieveHwAdapterOwningDevicePtr(Device const& device) const
+StaticDescriptorAllocationManager& lexgine::core::dx::d3d12::DxResourceFactory::getStaticAllocationManagerForDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id)
 {
-    auto target_adapter = std::find_if(m_hw_adapter_enumerator.begin(), m_hw_adapter_enumerator.end(),
-        [&device](auto& adapter)
-    {
-        Device& dev_ref = adapter.device();
-        return &dev_ref == &device;
-    }
-    );
-
-    if (target_adapter != m_hw_adapter_enumerator.end())
-    {
-        dxgi::HwAdapter const& adapter_ref = *target_adapter;
-        return &adapter_ref;
-    }
-    else
-        return nullptr;
+    return *m_descriptor_heaps.at(&device).static_allocators[static_cast<size_t>(descriptor_heap_type)][page_id];
 }
 
 
@@ -122,7 +113,7 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHe
     if (p == m_upload_heap_partitions.end())
     {
         upload_heap_partitioning new_partitioning{};
-        new_partitioning.partitioned_space_size = section_size;
+        new_partitioning.partitioned_space_size = aligned_section_size;
         auto q = new_partitioning.partitioning.insert(std::make_pair(
             misc::HashedString{ section_name },
             UploadHeapPartition{ 0ULL, aligned_section_size }
@@ -139,7 +130,7 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHe
         {
             size_t& offset = p->second.partitioned_space_size;
 
-            if (offset + section_size <= upload_heap.capacity())
+            if (offset + aligned_section_size <= upload_heap.capacity())
             {
                 auto r = p->second.partitioning.insert(std::make_pair(section_hash, UploadHeapPartition{ offset, aligned_section_size })).first;
                 offset += aligned_section_size;
@@ -150,6 +141,10 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHe
                 LEXGINE_THROW_ERROR("Unable to allocated named section \"" + section_name
                     + "\" in upload heap \"" + upload_heap.getStringName() + "\": the heap is exhausted");
             }
+        }
+        else 
+        {
+            return q->second;
         }
     }
 
@@ -169,3 +164,15 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::retrieveUploadHeapSection
     return misc::makeEmptyOptional<UploadHeapPartition>();
 }
 
+size_t DxResourceFactory::getUploadHeapFreeSpace(Heap const& upload_heap) const
+{
+    auto p = m_upload_heap_partitions.find(&upload_heap);
+    size_t upload_heap_full_capacity = m_global_settings.getUploadHeapCapacity();
+    return p != m_upload_heap_partitions.end() ? upload_heap_full_capacity - p->second.partitioned_space_size : 0;
+}
+
+size_t DxResourceFactory::getUploadHeapFreeSpace(Device const& owning_device) const
+{
+    auto p = m_upload_heaps.find(&owning_device);
+    return p != m_upload_heaps.end() ? getUploadHeapFreeSpace(p->second) : 0;
+}

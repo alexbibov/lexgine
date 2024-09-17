@@ -19,6 +19,7 @@
 #include "engine/core/dx/dxgi/swap_chain.h"
 
 #include "engine/preprocessing/preprocessor_tokens.h"
+#include "engine/conversion/lexgine_conversion_fwd.h"
 
 namespace lexgine::core::dx {
 
@@ -61,8 +62,7 @@ public:
 
     bool setCurrentDevice(uint32_t adapter_id);    //! assigns device that will be used for graphics and compute tasks. Returns 'true' on success.
     dx::d3d12::Device& getCurrentDevice() const;    //! returns current device
-    dx::dxgi::HwAdapter const& getCurrentDeviceHwAdapter() const;    //! returns reference for hardware adapter that owns the current device
-
+    
     void setWARPAdapterAsCurrent() const;    //! sets the WARP adapter as the one to be used by the engine
 
     uint32_t getAdapterCount() const;    //! returns total number of adapters installed in the host system including the virtual WARP adapter
@@ -85,6 +85,7 @@ private:
     std::unique_ptr<dx::d3d12::task_caches::HLSLCompilationTaskCache> m_shader_cache;
     std::unique_ptr<dx::d3d12::task_caches::PSOCompilationTaskCache> m_pso_cache;
     std::unique_ptr<dx::d3d12::task_caches::RootSignatureCompilationTaskCache> m_rs_cache;
+    std::unique_ptr<conversion::TextureConverter> m_texture_converter;
 };
 
 }

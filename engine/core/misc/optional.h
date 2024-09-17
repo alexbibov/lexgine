@@ -43,17 +43,15 @@ public:
         m_is_valid{ other.m_is_valid }
     {
         if (other.m_is_valid)
-            new(m_value) T{ std::move(*reinterpret_cast<T const*>(other.m_value)) };
+            new(m_value) T{ std::move(*reinterpret_cast<T*>(other.m_value)) };
     }
 
     //! constructs wrapped type "in-place" without copy overhead
-    template<typename A, typename... Args,
-        typename = std::enable_if<std::is_constructible<T, A, Args...>::value
-        && !(std::is_same<typename std::decay<A>::type, T>::value && sizeof...(Args) == 0)>::value>
-    explicit Optional(A&& a0, Args&&... args) :
+    template<typename A0, typename A1, typename... Args>
+    Optional(A0&& a0, A1&& a1, Args&&... args) :
         m_is_valid{ true }
     {
-        new(m_value) T(std::forward<A>(a0), std::forward<Args>(args)...);
+        new(m_value) T(std::forward<A0>(a0), std::forward<A1>(a1), std::forward<Args>(args)...);
     }
 
     ~Optional()
