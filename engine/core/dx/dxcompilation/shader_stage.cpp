@@ -612,28 +612,28 @@ void ShaderStage::collectShaderArguments(ShaderArgumentKind kind)
         unsigned char element_count{}, element_size{};
         switch (desc.ComponentType)
         {
-        case D3D_REGISTER_COMPONENT_UINT64:
+        // case D3D_REGISTER_COMPONENT_UINT64:
         case D3D_REGISTER_COMPONENT_UINT32:
             is_fp = false;
             is_signed = false;
             element_size = 4;
             break;
 
-        case D3D_REGISTER_COMPONENT_SINT64:
+        // case D3D_REGISTER_COMPONENT_SINT64:
         case D3D_REGISTER_COMPONENT_SINT32:
             is_fp = false;
             is_signed = true;
             element_size = 4;
             break;
 
-        case D3D_REGISTER_COMPONENT_FLOAT64:
+        // case D3D_REGISTER_COMPONENT_FLOAT64:
         case D3D_REGISTER_COMPONENT_FLOAT32:
             is_fp = true;
             is_signed = true;
             element_size = 4;
             break;
 
-        case D3D_REGISTER_COMPONENT_UINT16:
+        /*case D3D_REGISTER_COMPONENT_UINT16:
             is_fp = false;
             is_signed = false;
             element_size = 2;
@@ -649,7 +649,7 @@ void ShaderStage::collectShaderArguments(ShaderArgumentKind kind)
             is_fp = true;
             is_signed = true;
             element_size = 2;
-            break;
+            break;*/
         
         default:
             LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "Unsupported shader input parameter component type");
