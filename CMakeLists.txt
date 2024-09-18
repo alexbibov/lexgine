@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.23)
 project(lexgine)
 
 set(ENV{PATH} "${CMAKE_SOURCE_DIR};$ENV{PATH}")

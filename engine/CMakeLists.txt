@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.23)
 set(_project_name engine)
 project(${_project_name})
 
@@ -67,12 +67,12 @@ target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}"
                                               "${CMAKE_SOURCE_DIR}/api"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/inc/"
-                                              "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/Include/WinPixEventRuntime/"
+                                              "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/Include/WinPixEventRuntime/"
                                               "${CMAKE_BINARY_DIR}"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/DirectXTex/")
 
 target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
-target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/bin/${CMAKE_VS_PLATFORM_NAME}/")
+target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/bin/${CMAKE_VS_PLATFORM_NAME}/")
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
 
 set(_engine_lib_dependencies 
@@ -112,7 +112,7 @@ if (MSVC)
         message(FATAL_ERROR "CMake was not able to locate nuget command line tool")
     endif()
 
-    set_property(TARGET ${_target} PROPERTY VS_PACKAGE_REFERENCES "WinPixEventRuntime_1.0.200127001")
+    set_property(TARGET ${_target} PROPERTY VS_PACKAGE_REFERENCES "WinPixEventRuntime_1.0.240308001")
 
     # Configure Nuget packages for the project
     configure_file(packages.config.in packages.config COPYONLY)
@@ -121,7 +121,7 @@ if (MSVC)
     execute_process(COMMAND ${NUGET} restore packages.config -SolutionDirectory ${CMAKE_BINARY_DIR}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 		
-	file(COPY ${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/bin/${CMAKE_VS_PLATFORM_NAME}/WinPixEventRuntime.dll DESTINATION ${_build_runtime_output_directory})
+	file(COPY ${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/bin/${CMAKE_VS_PLATFORM_NAME}/WinPixEventRuntime.dll DESTINATION ${_build_runtime_output_directory})
 endif()
 
 set(_dxc_binary_path ${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/bin/${CMAKE_VS_PLATFORM_NAME}/)
@@ -130,7 +130,6 @@ file(COPY ${_dxc_binary_path}/dxil.dll DESTINATION ${_build_runtime_output_direc
 
 set_property(TARGET ${_target} PROPERTY OUTPUT_NAME "lexgine")
 
-enable_testing()
 add_executable(basic_tests tests/basic_tests.cpp)
 
 target_include_directories(basic_tests PRIVATE "${CMAKE_SOURCE_DIR}"
@@ -141,7 +140,7 @@ target_include_directories(basic_tests PRIVATE "${CMAKE_SOURCE_DIR}"
                                                "${CMAKE_SOURCE_DIR}/3rd_party/DirectXTex/")
 
 target_link_directories(basic_tests PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
-target_link_directories(basic_tests PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.200127001/bin/${CMAKE_VS_PLATFORM_NAME}/")
+target_link_directories(basic_tests PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/bin/${CMAKE_VS_PLATFORM_NAME}/")
 target_link_directories(basic_tests PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
 
 target_link_libraries(basic_tests PRIVATE GTest::gtest_main)
@@ -153,5 +152,6 @@ configure_openmp_support(basic_tests)
 
 add_dependencies(basic_tests ${_target})
 
+enable_testing()
 include(googletest)
 gtest_discover_tests(basic_tests)

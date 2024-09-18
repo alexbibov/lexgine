@@ -286,7 +286,10 @@ bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
             auto my_pso_cache =
                 task_caches::establishConnectionWithCombinedCache(*m_globals.get<GlobalSettings>(), worker_id, false);
 
-            static_cast<task_caches::StreamedCacheConnection&>(my_pso_cache).cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
+            if (my_pso_cache.isValid()) 
+            {
+                static_cast<task_caches::StreamedCacheConnection&>(my_pso_cache).cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
+            }
         }
     }
     catch (Exception const& e)

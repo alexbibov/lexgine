@@ -184,7 +184,7 @@ This attribute is optional and is defaulted to 0xF, which means that all color c
 source_alpha_blend_factor="ZERO" destination_alpha_blend_factor="ONE" alpha_blend_operation="ADD"
 logical_operation="NO_OPEATION" color_mask="0xF" />
 
-<BlendDescriptor render_target="1" source_blend_factor="SOURCE_ALPHA" destination_blend_factor="DESTINATION_ALPHA" blend_operation="MAX"
+<BlendDescriptor render_target="1" source_blend_factor="ONE" destination_blend_factor="ONE" blend_operation="MAX"
 source_alpha_blend_factor="ZERO" destination_alpha_blend_factor="ONE" alpha_blend_operation="REVERSE_SUBTRACT"
 logical_operation="NO_OPEATION" color_mask="0x9" />    <!-- here only red and alpha channels are written-->
 
