@@ -463,7 +463,7 @@ TEST(EngineTests_Concurrency, TestTaskScheuling)
 }
 
 
-TEST(EngineTests_Basic, TestD3D12PSOXMLParser)
+TEST(EngineTests_gpu, TestD3D12PSOXMLParser)
 {
     using namespace lexgine;
     using namespace lexgine::core::dx;
@@ -502,18 +502,31 @@ TEST(EngineTests_Basic, TestD3D12PSOXMLParser)
 
 }
 
+class CacheTest : public testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        lexgine::core::misc::Log::create(std::cout, "CacheTest", 0, false);
+    }
 
-TEST(EngineTests_Basic, TestStreamedCacheBigEntries)
+    void TearDown() override
+    {
+        lexgine::core::misc::Log::shutdown();
+    }
+};
+
+TEST_F(CacheTest, TestStreamedCacheBigEntries)
 {
     using namespace lexgine::core;
     using namespace lexgine::core::dx;
     using namespace lexgine::core::misc;
 
-    D3D12EngineSettings settings{};
+    /*D3D12EngineSettings settings{};
     settings.debug_mode = true;
     settings.global_lookup_prefix = LEXGINE_GLOBAL_LOOKUP_PREFIX;
     settings.settings_lookup_path = LEXGINE_SETTINGS_PATH;
-    D3D12Initializer engine_init{ settings };
+    D3D12Initializer engine_init{ settings };*/
 
     {
         std::default_random_engine rand_eng{ static_cast<unsigned int>(
@@ -587,17 +600,17 @@ TEST(EngineTests_Basic, TestStreamedCacheBigEntries)
 }
 
 
-TEST(EngineTests_Basic, TestStreamedCacheExtensiveUsage)
+TEST_F(CacheTest, TestStreamedCacheExtensiveUsage)
 {
     using namespace lexgine::core;
     using namespace lexgine::core::dx;
     using namespace lexgine::core::misc;
 
-    D3D12EngineSettings settings{};
+    /*D3D12EngineSettings settings{};
     settings.debug_mode = true;
     settings.global_lookup_prefix = LEXGINE_GLOBAL_LOOKUP_PREFIX;
     settings.settings_lookup_path = LEXGINE_SETTINGS_PATH;
-    D3D12Initializer engine_init{ settings };
+    D3D12Initializer engine_init{ settings };*/
 
     {
         size_t const test_cache_size{ 26214400U };    // 100 megabytes
@@ -773,7 +786,7 @@ TEST(EngineTests_Basic, TestUuid)
 }
 
 
-TEST(EngineTests_Basic, TestTextureCompression)
+TEST(EngineTests_gpu, TestTextureCompression)
 {
     using namespace lexgine;
     using namespace lexgine::core;
