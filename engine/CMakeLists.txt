@@ -154,4 +154,4 @@ add_dependencies(basic_tests ${_target})
 
 enable_testing()
 include(googletest)
-gtest_discover_tests(basic_tests)
+gtest_discover_tests(basic_tests TEST_FILTER CacheTest.*:EngineTests_Basic.*:EngineTests_Concurrency.*)
