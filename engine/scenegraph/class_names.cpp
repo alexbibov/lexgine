@@ -13,5 +13,7 @@ extern char const Node[] = "lexgine::scenegraph::Node";
 extern char const Texture[] = "lexgine::scenegraph::Texture";
 extern char const Image[] = "lexgine::scenegraph::Image";
 extern char const Sampler[] = "lexgine::scenegraph::Sampler";
+extern char const Buffer[] = "lexgine::scenegraph::Buffer";
+extern char const BufferView[] = "lexgine::scenegraph::BufferView";
 
 }

@@ -12,6 +12,12 @@
 
 namespace lexgine::scenegraph {
 
+class Material
+{
+public:
+    virtual ~Material() = default;
+};
+
 struct TextureInfo
 {
     std::string textureName;
@@ -19,14 +25,12 @@ struct TextureInfo
     std::unique_ptr<Image> texture;
 };
 
-using PbrMaterialHandle = std::shared_ptr<PbrMaterial>;
 
-
-class PbrMaterial : public std::enable_shared_from_this<PbrMaterial>
+class PbrMaterial : public std::enable_shared_from_this<PbrMaterial>, public Material
 {
 public:
-    static PbrMaterialHandle create(std::string const& name) { return PbrMaterialHandle { new PbrMaterial { name } }; }
-    static PbrMaterialHandle createDefaultPbrMaterial();
+    // static PbrMaterialHandle create(std::string const& name) { return PbrMaterialHandle { new PbrMaterial { name } }; }
+    // static PbrMaterialHandle createDefaultPbrMaterial();
 
     void setBrdfShader(core::dx::d3d12::tasks::HLSLCompilationTask* shaderCompilationTask);
 

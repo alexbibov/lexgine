@@ -9,6 +9,8 @@
 #include <engine/core/misc/datetime.h>
 #include <engine/core/misc/optional.h>
 #include "class_names.h"
+#include "buffer.h"
+#include "buffer_view.h"
 #include "light.h"
 #include "image.h"
 #include "sampler.h"
@@ -19,13 +21,11 @@ namespace lexgine::scenegraph
 class Scene : public core::NamedEntity<class_names::Scene>
 {
 public:
-    static std::shared_ptr<Scene> loadScene(core::Globals const& globals, std::filesystem::path const& path_to_scene, int scene_index = -1);
+    static std::shared_ptr<Scene> loadScene(core::Globals& globals, std::filesystem::path const& path_to_scene, int scene_index = -1);
 
 private:
     static constexpr char const* c_khr_light_punctual_ext = "KHR_lights_punctual";
 
-private:
-    std::unordered_map<std::string, bool> m_enabled_extensions = { {c_khr_light_punctual_ext, false} };
 
 private:
     bool loadLights(tinygltf::Model& model);
@@ -40,10 +40,14 @@ private:
     Scene() = default;
 
 private:
+    std::unordered_map<std::string, bool> m_enabled_extensions = { {c_khr_light_punctual_ext, false} };
     std::filesystem::path m_scene_path;
     std::vector<Light> m_lights;
     std::vector<Image> m_images;
     std::vector<Sampler> m_samplers;
+
+    std::vector<BufferView> m_memory_views;
+    std::unique_ptr<Buffer> m_scene_memory;
 
 };
 

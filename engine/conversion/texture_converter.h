@@ -25,9 +25,6 @@ namespace lexgine::conversion
 
 class TextureConverter : public core::NamedEntity<class_names::TextureConverter>
 {
-public:
-    static std::string const c_upload_section_name;
-
 private:
     class sha256_provider final
     {
