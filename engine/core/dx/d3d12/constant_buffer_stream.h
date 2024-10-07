@@ -13,12 +13,12 @@ namespace lexgine::core::dx::d3d12 {
 class ConstantBufferStream : public NamedEntity<class_names::ConstantBufferStream>
 {
 public:
-    static std::string const c_constant_section_name;
-
-public:
     ConstantBufferStream(Globals& globals);
 
     uint64_t totalCapacity() const;
+    size_t getPartitionsCount() const;
+    uint64_t getUpartitionedCapacity() const;
+    uint64_t getFragmentationCapacity() const;
 
     typename PerFrameUploadDataStreamAllocator::address_type allocate(uint64_t size);
 

@@ -28,6 +28,11 @@ struct UploadHeapPartition
 class DxResourceFactory final
 {
 public:
+    static char const* const c_constant_data_section_name;
+    static char const* const c_dynamic_geometry_section_name;
+    static char const* const c_texture_section_name;
+
+public:
     DxResourceFactory(GlobalSettings const& global_settings,
         bool enable_debug_mode, GpuBasedValidationSettings const& gpu_based_validation_settings,
         dxgi::DxgiGpuPreference enumeration_preference);

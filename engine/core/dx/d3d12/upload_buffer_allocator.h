@@ -10,6 +10,7 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/resource.h"
 #include "engine/core/dx/d3d12/signal.h"
+#include "engine/core/misc/static_vector.h"
 
 
 namespace lexgine::core::dx::d3d12
@@ -59,31 +60,51 @@ public:
 
     uint64_t completedWork() const;
     uint64_t scheduledWork() const;
-    uint64_t totalCapacity() const;
+    uint64_t totalCapacity() const { return m_buffer_size; }
+
+    size_t getPartitionsCount() const;
+    uint64_t getUnpartitionedCapacity() const { return m_unpartitioned_chunk_size; }
+    uint64_t getFragmentationCapacity() const { return m_fragmentation_capacity; }
 
     Resource const& getUploadResource() const;
 
 private:
-    using list_of_allocations = std::vector<memory_block_type>;
+    using allocation_bucket = misc::StaticVector<memory_block_type, 200>;
+    using list_of_allocation_buckets = std::list<allocation_bucket>;
+    
+    struct allocation_iterator
+    {
+        list_of_allocation_buckets::iterator bucket_iter;
+        allocation_bucket::iterator block_iter;
+
+        memory_block_type& block() { return *block_iter; }
+    };
 
 private:
     virtual void waitUntilControllingSignalValue(uint64_t value) const = 0;
-    virtual void waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const = 0;
+    virtual bool waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const = 0;
     virtual uint64_t nextValueOfControllingSignal() const = 0;
     virtual uint64_t lastSignaledValueOfControllingSignal() const = 0;
+
+    address_type allocateInternal(size_t size_in_bytes, bool is_blocking_call);
+    memory_block_type& allocateNewMemoryBlock(uint32_t allocation_begin_address, uint32_t allocation_end_address);
 
 private:
     Heap const& m_upload_heap;
     PlacedResource m_upload_buffer;
+    uint32_t const m_max_non_blocking_allocation_timeout;
+
+    uint64_t const m_buffer_size{};
+    uint64_t m_unpartitioned_chunk_size;
+    uint64_t m_fragmentation_capacity{ 0 };
+
+    void* m_upload_buffer_cpu_address;
+    uint64_t m_upload_buffer_gpu_virtual_address;
+
+    list_of_allocation_buckets m_blocks;
+    allocation_iterator m_allocation_hint;
 
     std::mutex m_access_semaphore;
-    list_of_allocations m_blocks;
-    list_of_allocations::iterator m_last_allocation;
-    size_t m_unpartitioned_chunk_size;
-    uint32_t m_max_non_blocking_allocation_timeout;
-
-    void* m_upload_buffer_mapping;
-    uint64_t m_upload_buffer_gpu_virtual_address;
 };
 
 
@@ -97,7 +118,7 @@ public:
 
 private:
     void waitUntilControllingSignalValue(uint64_t value) const override;
-    void waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const override;
+    bool waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const override;
     uint64_t nextValueOfControllingSignal() const override;
     uint64_t lastSignaledValueOfControllingSignal() const override;
 
@@ -116,7 +137,7 @@ public:
 
 private:
     void waitUntilControllingSignalValue(uint64_t value) const override;
-    void waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const override;
+    bool waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const override;
     uint64_t nextValueOfControllingSignal() const override;
     uint64_t lastSignaledValueOfControllingSignal() const override;
 

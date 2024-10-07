@@ -66,16 +66,17 @@ UploadDataAllocator::UploadDataAllocator(Globals& globals,
     : m_upload_heap{ globals.get<DxResourceFactory>()->retrieveUploadHeap(*globals.get<Device>()) }
     , m_upload_buffer{ m_upload_heap, offset_from_heap_start, ResourceState::base_values::generic_read,
         misc::makeEmptyOptional<ResourceOptimizedClearValue>(), ResourceDescriptor::CreateBuffer(upload_buffer_size) }
-    , m_last_allocation{ m_blocks.end() }
-    , m_unpartitioned_chunk_size{ upload_buffer_size }
     , m_max_non_blocking_allocation_timeout{ globals.get<GlobalSettings>()->getMaxNonBlockingUploadBufferAllocationTimeout() }
+    , m_buffer_size{ upload_buffer_size }
+    , m_unpartitioned_chunk_size{ upload_buffer_size }
 {
     assert(offset_from_heap_start + upload_buffer_size <= m_upload_heap.capacity());
 
-    m_upload_buffer_mapping = m_upload_buffer.map();
+    m_upload_buffer_cpu_address = m_upload_buffer.map();
     m_upload_buffer_gpu_virtual_address = m_upload_buffer.getGPUVirtualAddress();
 
-    m_blocks.reserve(200);
+    m_blocks.emplace_back(allocation_bucket{});
+    m_allocation_hint = { m_blocks.begin(), m_blocks.back().begin() };
 }
 
 UploadDataAllocator::~UploadDataAllocator()
@@ -85,139 +86,45 @@ UploadDataAllocator::~UploadDataAllocator()
 
 UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_bytes, bool is_blocking_call)
 {
-    if (size_in_bytes > m_upload_buffer.descriptor().width)
-    {
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
-            "Unable to allocate block in upload buffer. Requested size of the allocation ("
-            + std::to_string(size_in_bytes) + " bytes) exceeds the total size of the buffer ("
-            + std::to_string(m_upload_buffer.descriptor().width) + " bytes)");
-    }
-
+    assert(size_in_bytes != 0);
 
     std::lock_guard<std::mutex> lock{ m_access_semaphore };
-
-    bool allocation_successful{ false };
-    uint32_t end_of_new_allocation{ 0U };
-    auto first_allocation_block_to_invalidate = m_blocks.begin();
-    auto one_past_last_allocation_block_to_invalidate = m_blocks.begin();
-
-    // try to allocate space in the end of the buffer
+    
+    // try to allocate space in unpartitioned part of the buffer
     if (m_unpartitioned_chunk_size >= size_in_bytes)
     {
-        uint32_t allocation_begin = m_blocks.size() ? m_blocks.back()->m_allocation_end : 0U;
-        end_of_new_allocation = static_cast<uint32_t>(misc::align(allocation_begin + size_in_bytes, 256));
-        uint32_t allocation_end = end_of_new_allocation;
+        uint32_t new_allocation_start = m_buffer_size - m_unpartitioned_chunk_size;
+        uint32_t new_allocation_end = static_cast<uint32_t>(misc::align(new_allocation_start + size_in_bytes, 256));
 
-        m_blocks.emplace_back(*this, m_upload_buffer_mapping, m_upload_buffer_gpu_virtual_address,
-            nextValueOfControllingSignal(),
-            allocation_begin, allocation_end);
+        memory_block_type& new_memory_block = allocateNewMemoryBlock(new_allocation_start, new_allocation_end);
+        
+        if (new_allocation_end <= m_unpartitioned_chunk_size)
+        {
+            m_unpartitioned_chunk_size -= new_allocation_end;
+        } else 
+        {
+            m_unpartitioned_chunk_size = 0;
+        }
 
-        m_unpartitioned_chunk_size -= size_in_bytes;
-
-        m_last_allocation = std::prev(m_blocks.end());
-        allocation_successful = true;
+        return { &new_memory_block };
     }
 
-    // attempt to allocate space after the last allocation (the wrap-around mode)
-    if (!allocation_successful)
-    {
-        size_t requested_space_counter{ 0U };
-        uint32_t trailing_end_allocation_addr{ (*m_last_allocation)->m_allocation_end };
-        uint64_t controlling_signal_value{ 0U };
-
-        auto q = std::next(m_last_allocation);
-        while (q != m_blocks.end() && requested_space_counter < size_in_bytes)
-        {
-            requested_space_counter += (*q)->m_allocation_end - trailing_end_allocation_addr;
-            trailing_end_allocation_addr = (*q)->m_allocation_end;
-            controlling_signal_value = (std::max)(controlling_signal_value, (*q)->m_controlling_signal_value);
-            ++q;
-        }
-
-        if (requested_space_counter + m_unpartitioned_chunk_size >= size_in_bytes)
-        {
-            // allocation after the last block succeeded
-
-            if (is_blocking_call) waitUntilControllingSignalValue(controlling_signal_value);
-            else waitUntilControllingSignalValue(controlling_signal_value, m_max_non_blocking_allocation_timeout);
-
-            auto next_allocation = std::next(m_last_allocation);
-            (*next_allocation)->m_allocation_begin = (*m_last_allocation)->m_allocation_end;
-            end_of_new_allocation = (*next_allocation)->m_allocation_end =
-                static_cast<uint32_t>(misc::align((*next_allocation)->m_allocation_begin + size_in_bytes, 256));
-            (*next_allocation)->m_controlling_signal_value = nextValueOfControllingSignal();
-
-            m_unpartitioned_chunk_size -= size_in_bytes - requested_space_counter;
-            m_last_allocation = next_allocation;
-            first_allocation_block_to_invalidate = ++next_allocation;
-            one_past_last_allocation_block_to_invalidate = q;
-            allocation_successful = true;
-        }
+    // Attempt to allocate space at current allocation hint
+    address_type result = allocateInternal(size_in_bytes, is_blocking_call);
+    if (result) {
+        return result;
     }
 
-    // attempt to allocate space before the last allocation
-    if (!allocation_successful)
-    {
-        size_t requested_space_counter{ 0U };
-        uint32_t trailing_end_allocation_addr{ 0U };
-        uint64_t controlling_signal_value{ 0U };
-
-        auto q = m_blocks.begin();
-        while (q != m_last_allocation && requested_space_counter < size_in_bytes)
-        {
-            requested_space_counter += (*q)->m_allocation_end - trailing_end_allocation_addr;
-            trailing_end_allocation_addr = (*q)->m_allocation_end;
-            controlling_signal_value = (std::max)(controlling_signal_value, (*q)->m_controlling_signal_value);
-            ++q;
-        }
-
-        if (requested_space_counter >= size_in_bytes)
-        {
-            if (is_blocking_call) waitUntilControllingSignalValue(controlling_signal_value);
-            else waitUntilControllingSignalValue(controlling_signal_value, m_max_non_blocking_allocation_timeout);
-
-            auto next_allocation = m_blocks.begin();
-            end_of_new_allocation = (*next_allocation)->m_allocation_end = static_cast<uint32_t>(misc::align(size_in_bytes, 256));
-            (*next_allocation)->m_controlling_signal_value = nextValueOfControllingSignal();
-
-            m_last_allocation = next_allocation;
-            first_allocation_block_to_invalidate = std::next(next_allocation);
-            one_past_last_allocation_block_to_invalidate = q;
-            allocation_successful = true;
-        }
+    // Allocation failed. Reset allocation hint and try allocating space at the beginning of the buffer
+    m_allocation_hint.bucket_iter = m_blocks.begin();
+    m_allocation_hint.block_iter = m_blocks.front().begin();
+    result = allocateInternal(size_in_bytes, is_blocking_call);
+    if (result) {
+        return result;
     }
 
-    // the most recent allocation took too much space, need to wait until all allocations made in the buffer
-    // are not any longer in use
-    if (!allocation_successful)
-    {
-        if (is_blocking_call) waitUntilControllingSignalValue((*m_last_allocation)->m_controlling_signal_value);
-        else waitUntilControllingSignalValue((*m_last_allocation)->m_controlling_signal_value, m_max_non_blocking_allocation_timeout);
-
-        m_last_allocation = m_blocks.begin();
-        end_of_new_allocation = (*m_last_allocation)->m_allocation_end = static_cast<uint32_t>(misc::align(size_in_bytes, 256));
-        (*m_last_allocation)->m_controlling_signal_value = nextValueOfControllingSignal();
-
-        first_allocation_block_to_invalidate = std::next(m_last_allocation);
-        one_past_last_allocation_block_to_invalidate = m_blocks.end();
-        allocation_successful = true;
-    }
-
-    assert(allocation_successful);
-
-    // invalidate unused allocation blocks
-    std::for_each(first_allocation_block_to_invalidate, one_past_last_allocation_block_to_invalidate,
-        [end_of_new_allocation](memory_block_type& mem_block_ref)
-        {
-            mem_block_ref->m_allocation_begin = mem_block_ref->m_allocation_end = static_cast<uint32_t>(end_of_new_allocation);
-        }
-    );
-
-    m_unpartitioned_chunk_size = m_upload_buffer.descriptor().width - m_blocks.back()->m_allocation_end;
-
-    memory_block_type& mem_block_ref = *m_last_allocation;
-    return address_type{ &mem_block_ref };
-
+    assert(false);    // should never get here
+    return { nullptr };
 }
 
 uint64_t UploadDataAllocator::completedWork() const
@@ -230,14 +137,135 @@ uint64_t UploadDataAllocator::scheduledWork() const
     return nextValueOfControllingSignal() - 1;
 }
 
-uint64_t UploadDataAllocator::totalCapacity() const
+size_t UploadDataAllocator::getPartitionsCount() const
 {
-    return m_upload_buffer.descriptor().width;
+    return std::accumulate(m_blocks.begin(), m_blocks.end(), static_cast<size_t>(0),
+        [](size_t accumulator, allocation_bucket const& block) { return accumulator + block.size(); });
 }
 
 Resource const& UploadDataAllocator::getUploadResource() const
 {
     return m_upload_buffer;
+}
+
+UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t size_in_bytes, bool is_blocking_call)
+{
+    if (m_allocation_hint.bucket_iter->empty() || m_allocation_hint.block()->m_controlling_signal_value == nextValueOfControllingSignal()) {
+        // Unable to allocate more space, the buffer is exhausted
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
+            "Unable to allocate block in upload buffer. Requested size of the allocation ("
+                + std::to_string(size_in_bytes) + " bytes) exceeds the remaining capacity of the buffer ("
+                + std::to_string(m_unpartitioned_chunk_size) + " bytes with total of " + std::to_string(m_fragmentation_capacity)
+                + " fragmented bytes)");
+
+        return { nullptr };
+    }
+
+    // attempt to allocate space within the "allocation hint" (wrap-around mode)
+
+    size_t space_retrieved{ 0 };
+    uint32_t trailing_end_allocation_addr{ m_allocation_hint.block()->m_allocation_begin };
+    uint64_t controlling_signal_value{ 0 };
+
+    list_of_allocation_buckets::iterator p{};
+    allocation_bucket::iterator q{};
+    for (p = m_allocation_hint.bucket_iter; p != m_blocks.end(); ++p) {
+        for (q = (p == m_allocation_hint.bucket_iter ? m_allocation_hint.block_iter : p->begin());
+            space_retrieved < size_in_bytes && q != p->end();
+            ++q) {
+            memory_block_type& memory_block = *q;
+            if (memory_block->m_controlling_signal_value == nextValueOfControllingSignal())
+            {
+                break;
+            }
+
+            size_t current_end_addr = memory_block->m_allocation_end;
+            space_retrieved += current_end_addr - trailing_end_allocation_addr;
+            m_fragmentation_capacity -= trailing_end_allocation_addr - memory_block->m_allocation_begin;
+            trailing_end_allocation_addr = current_end_addr;
+            controlling_signal_value = (std::max)(controlling_signal_value, memory_block->m_controlling_signal_value);
+        }
+
+        if (space_retrieved >= size_in_bytes) {
+            break;
+        }
+
+        if ((*q)->m_controlling_signal_value == nextValueOfControllingSignal()) {
+            break;
+        }
+    }
+
+    if (p == m_blocks.end()) {
+        // all blocks seem to allow retirement, try to combine their space with unpartitioned remainder of the buffer
+        space_retrieved += m_unpartitioned_chunk_size;
+    }
+
+    if (space_retrieved >= size_in_bytes) {
+        // allocation after the last block succeeded
+
+        if (is_blocking_call) {
+            waitUntilControllingSignalValue(controlling_signal_value);
+        }
+        else if (!waitUntilControllingSignalValue(controlling_signal_value, m_max_non_blocking_allocation_timeout)) {
+            return { nullptr };
+        }
+
+        memory_block_type& reused_memory_block = m_allocation_hint.block();
+
+        size_t end_of_new_allocation = reused_memory_block->m_allocation_begin + static_cast<uint32_t>(misc::align(size_in_bytes, 256));
+        reused_memory_block->m_allocation_end = end_of_new_allocation;
+        reused_memory_block->m_controlling_signal_value = nextValueOfControllingSignal();
+
+        ++m_allocation_hint.block_iter;
+        if (m_allocation_hint.block_iter == m_allocation_hint.bucket_iter->end()) {
+            ++m_allocation_hint.bucket_iter;
+            if (m_allocation_hint.bucket_iter != m_blocks.end()) {
+                m_allocation_hint.block_iter = m_allocation_hint.bucket_iter->begin();
+            }
+        }
+
+        if (trailing_end_allocation_addr > end_of_new_allocation) {
+            // some unpartitioned space remained, attempt to track it within one of retired memory blocks
+            if (m_allocation_hint.bucket_iter != m_blocks.end()) {
+                memory_block_type& memory_block = m_allocation_hint.block();
+                if (memory_block->m_controlling_signal_value <= lastSignaledValueOfControllingSignal()) {
+                    memory_block->m_allocation_begin = end_of_new_allocation;
+                    memory_block->m_allocation_end = (std::max)(trailing_end_allocation_addr, memory_block->m_allocation_end);
+                }
+                else {
+                    m_fragmentation_capacity += trailing_end_allocation_addr - end_of_new_allocation;
+                }
+            }
+            else {
+                // trailing memory partitions are exhausted, add the remaining space to unpartitioned chunk
+                m_unpartitioned_chunk_size += trailing_end_allocation_addr - end_of_new_allocation;
+            }
+        }
+
+        if (m_allocation_hint.bucket_iter == m_blocks.end()) {
+            // wrap around
+            m_allocation_hint.bucket_iter = m_blocks.begin();
+            m_allocation_hint.block_iter = m_blocks.front().begin();
+        }
+
+        return { &reused_memory_block };
+    }
+
+
+    return { nullptr };
+}
+
+UploadDataAllocator::memory_block_type& UploadDataAllocator::allocateNewMemoryBlock(uint32_t allocation_begin_address, uint32_t allocation_end_address)
+{
+    if (m_blocks.back().exhausted())
+    {
+        m_blocks.emplace_back(allocation_bucket{});
+    }
+    allocation_bucket& last_bucket = m_blocks.back();
+    last_bucket.emplace_back(*this, m_upload_buffer_cpu_address, m_upload_buffer_gpu_virtual_address,
+        nextValueOfControllingSignal(), allocation_begin_address, allocation_end_address);
+
+    return last_bucket.back();
 }
 
 
@@ -258,9 +286,9 @@ void DedicatedUploadDataStreamAllocator::waitUntilControllingSignalValue(uint64_
     m_progress_tracking_signal.waitUntilValue(value);
 }
 
-void DedicatedUploadDataStreamAllocator::waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const
+bool DedicatedUploadDataStreamAllocator::waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const
 {
-    m_progress_tracking_signal.waitUntilValue(value, timeout_in_milliseconds);
+    return m_progress_tracking_signal.waitUntilValue(value, timeout_in_milliseconds);
 }
 
 uint64_t DedicatedUploadDataStreamAllocator::nextValueOfControllingSignal() const
@@ -291,10 +319,10 @@ void PerFrameUploadDataStreamAllocator::waitUntilControllingSignalValue(uint64_t
     m_frame_progress_tracker.waitForFrameCompletion(value - 1);
 }
 
-void PerFrameUploadDataStreamAllocator::waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const
+bool PerFrameUploadDataStreamAllocator::waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const
 {
-    if (value <= m_frame_progress_tracker.completedFramesCount()) return;
-    m_frame_progress_tracker.waitForFrameCompletion(value - 1, timeout_in_milliseconds);
+    if (value <= m_frame_progress_tracker.completedFramesCount()) return true;
+    return m_frame_progress_tracker.waitForFrameCompletion(value - 1, timeout_in_milliseconds);
 }
 
 uint64_t PerFrameUploadDataStreamAllocator::nextValueOfControllingSignal() const

@@ -18,9 +18,11 @@ class Profiler : public UIProvider
 {
 
 public:
-    static std::shared_ptr<Profiler> create(Globals const& globals, concurrency::TaskGraph const& task_graph)
+    static std::shared_ptr<Profiler> create(Globals const& globals, 
+        dx::d3d12::BasicRenderingServices const& basic_rendering_services,
+        concurrency::TaskGraph const& task_graph)
     {
-        return std::shared_ptr<Profiler>{new Profiler{ globals, task_graph }};
+        return std::shared_ptr<Profiler>{new Profiler{ globals, basic_rendering_services, task_graph }};
     }
 
 public:    // required by UIProvider
@@ -36,7 +38,9 @@ private:
     };
 
 private:
-    Profiler(Globals const& globals, concurrency::TaskGraph const& task_graph);
+    Profiler(Globals const& globals, 
+        dx::d3d12::BasicRenderingServices const& basic_rendering_services,
+        concurrency::TaskGraph const& task_graph);
 
     double getWorkloadTimePerFrame(ProfilingServiceType workload_type) const;
     double getCPUTimePerFrame() const;
@@ -46,6 +50,7 @@ private:
 
 private:
     Globals const& m_globals;
+    dx::d3d12::BasicRenderingServices const& m_basic_rendering_services;
     concurrency::TaskGraph const& m_task_graph;
     dx::d3d12::QueryCache const& m_query_cache;
     bool m_show_profiler;
