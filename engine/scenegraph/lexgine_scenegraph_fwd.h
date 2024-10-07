@@ -3,7 +3,9 @@
 namespace lexgine::scenegraph {
 
 class Image;
-class PbrMaterial;
+class Material;
+class Buffer;
+class BufferView;
 
 }
 

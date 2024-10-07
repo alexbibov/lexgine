@@ -15,7 +15,7 @@ namespace lexgine::scenegraph
 {
 
 
-std::shared_ptr<Scene> Scene::loadScene(core::Globals const& globals, std::filesystem::path const& path_to_scene, int scene_index /* = -1 */)
+std::shared_ptr<Scene> Scene::loadScene(core::Globals& globals, std::filesystem::path const& path_to_scene, int scene_index /* = -1 */)
 {
     std::string error_buffer{};
     std::string warning_buffer{};
@@ -75,6 +75,25 @@ std::shared_ptr<Scene> Scene::loadScene(core::Globals const& globals, std::files
         {
             it->second = true;
         }
+    }
+
+    // Prepare scene memory
+    {
+        uint64_t scene_memory_size = std::accumulate(gltf_model.buffers.begin(), gltf_model.buffers.end(), 
+            static_cast<uint64_t>(0),
+            [](uint64_t acc, tinygltf::Buffer const& e)
+            {
+                return acc + static_cast<uint64_t>(e.data.size());
+            }
+        );
+
+        rv->m_scene_memory.reset(new Buffer{ globals, scene_memory_size });
+        for (tinygltf::Buffer& buffer : gltf_model.buffers)
+        {
+
+        }
+        
+        
     }
 
     if (!rv->loadLights(gltf_model)) return nullptr;
@@ -223,6 +242,12 @@ bool Scene::loadTextures(tinygltf::Model& model, core::misc::Optional<core::misc
 
 bool Scene::loadMaterials(tinygltf::Model& model)
 {
+    return true;
+}
+
+bool Scene::loadMeshes(tinygltf::Model& model)
+{
+
     return true;
 }
 

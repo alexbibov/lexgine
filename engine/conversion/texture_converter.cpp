@@ -23,8 +23,6 @@ using namespace lexgine::core;
 namespace lexgine::conversion
 {
 
-std::string const TextureConverter::c_upload_section_name = "texture_upload_section";
-
 namespace
 {
 
@@ -155,7 +153,7 @@ dx::d3d12::DedicatedUploadDataStreamAllocator createUploadStreamAllocator(core::
     GlobalSettings const& global_settings = *globals.get<GlobalSettings>();
     dx::d3d12::DxResourceFactory& dx_resource_factory = *globals.get<dx::d3d12::DxResourceFactory>();
     dx::d3d12::Heap& upload_heap = dx_resource_factory.retrieveUploadHeap(*globals.get<dx::d3d12::Device>());
-    auto upload_heap_section = dx_resource_factory.allocateSectionInUploadHeap(upload_heap, TextureConverter::c_upload_section_name, global_settings.getTextureUploadPartitionSize());
+    auto upload_heap_section = dx_resource_factory.allocateSectionInUploadHeap(upload_heap, dx::d3d12::DxResourceFactory::c_texture_section_name, global_settings.getTextureUploadPartitionSize());
     if (!upload_heap_section.isValid()) {
         LEXGINE_THROW_ERROR("Unable to create texture upload heap");
     }
