@@ -28,8 +28,8 @@ void FrameProgressTracker::waitForFrameCompletion(uint64_t frame_index) const
     m_gpu_wall_signal.waitUntilValue(frame_index + 1);
 }
 
-void FrameProgressTracker::waitForFrameCompletion(uint64_t frame_index, uint32_t timeout_in_milliseconds) const
+bool FrameProgressTracker::waitForFrameCompletion(uint64_t frame_index, uint32_t timeout_in_milliseconds) const
 {
-    m_gpu_wall_signal.waitUntilValue(frame_index + 1, timeout_in_milliseconds);
+    return m_gpu_wall_signal.waitUntilValue(frame_index + 1, timeout_in_milliseconds);
 }
 

@@ -53,6 +53,18 @@ public:
 
         }
 
+        inline MemoryBlockAddr& operator=(MemoryBlockAddr const& other)
+        {
+            m_mem_block_addr = other.m_mem_block_addr;
+            return *this;
+        }
+
+        inline MemoryBlockAddr& operator=(MemoryBlock<T>* pBlock)
+        {
+            m_mem_block_addr = pBlock;
+            return *this;
+        }
+
         inline MemoryBlock<T>& operator->() { return *m_mem_block_addr; }
         inline MemoryBlock<T> const& operator->() const { return *m_mem_block_addr; }
 

@@ -41,7 +41,7 @@ public:
     uint32_t getUploadHeapCapacity() const;
     size_t getStreamedConstantDataPartitionSize() const;    //! returns size of upload buffer partition dedicated to constant data streaming
     size_t getStreamedGeometryDataPartitionSize() const;    //! returns size of upload buffer partition dedicated to dynamic geometry data streaming
-    size_t getTextureUploadPartitionSize() const;    //! returns size of upload buffer partition dedicated to texture uploading
+    size_t getTextureUploadPartitionSize() const;    //! returns size of upload buffer partition dedicated to dynamic texture uploading
 
     bool isAsyncComputeEnabled() const;
     bool isAsyncCopyEnabled() const;

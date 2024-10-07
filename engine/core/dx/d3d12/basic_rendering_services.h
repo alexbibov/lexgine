@@ -20,9 +20,6 @@ class BasicRenderingServices final : public NamedEntity<class_names::BasicRender
     friend class BasicRenderingServicesAttorney<RenderingTasks>;
 
 public:
-    static std::string const c_dynamic_geometry_section_name;
-
-public:
     BasicRenderingServices(Globals& globals);
 
     void beginRendering(CommandList& command_list) const;
@@ -37,6 +34,7 @@ public:
 
     Viewport const& defaultViewport() const { return m_default_viewports[0]; }
     ConstantBufferStream& constantDataStream() { return m_constant_data_stream; }
+    ConstantBufferStream const& constantDataStream() const { return m_constant_data_stream; }
     PerFrameUploadDataStreamAllocator& dynamicGeometryStream() { return m_dynamic_geometry_allocator; }
     ResourceDataUploader& resourceDataUploader() { return m_resource_uploader; }
 

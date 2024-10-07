@@ -7,6 +7,7 @@
 #include "engine/core/concurrency/abstract_task.h"
 #include "engine/core/dx/d3d12/device.h"
 #include "engine/core/dx/d3d12/pix_support.h"
+#include "engine/core/dx/d3d12/basic_rendering_services.h"
 #include "profiler.h"
 
 using namespace lexgine::core;
@@ -28,8 +29,11 @@ ImVec4 convertPixColorMarkerToImGuiColor(uint32_t pix_color_marker)
 
 }
 
-Profiler::Profiler(Globals const& globals, TaskGraph const& task_graph)
+Profiler::Profiler(Globals const& globals, 
+    dx::d3d12::BasicRenderingServices const& basic_rendering_services,
+    TaskGraph const& task_graph)
     : m_globals{ globals }
+    , m_basic_rendering_services{ basic_rendering_services }
     , m_task_graph{ task_graph }
     , m_query_cache{ *globals.get<Device>()->queryCache() }
     , m_show_profiler{ true }
@@ -153,6 +157,9 @@ void Profiler::constructUI()
             ImGui::Text("Frame CPU time: %fms", getCPUTimePerFrame());
             ImGui::Text("Frame GPU time: %fms", getGPUTimePerFrame());
             ImGui::Text("FPS: %f", getFPS());
+            ImGui::Text("Constant data stream partition count: %u", m_basic_rendering_services.constantDataStream().getPartitionsCount());
+            ImGui::Text("Unpartitioned constant buffer capacity: %u bytes", m_basic_rendering_services.constantDataStream().getUpartitionedCapacity());
+            ImGui::Text("Fragmented constant buffer capacity: %u bytes", m_basic_rendering_services.constantDataStream().getFragmentationCapacity());
             ImGui::EndGroup();
         }
     }

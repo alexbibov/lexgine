@@ -9,10 +9,12 @@
 #include "dx_resource_factory.h"
 
 
-using namespace lexgine::core;
-using namespace lexgine::core::dx;
-using namespace lexgine::core::dx::d3d12;
+namespace lexgine::core::dx::d3d12
+{
 
+char const* const DxResourceFactory::c_constant_data_section_name = "constant_data_section";
+char const* const DxResourceFactory::c_dynamic_geometry_section_name = "dynamic_geometry_section";
+char const* const DxResourceFactory::c_texture_section_name = "texture_section";
 
 DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
     bool enable_debug_mode, GpuBasedValidationSettings const& gpu_based_validation_settings,
@@ -49,7 +51,7 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
             {
                 uint32_t descriptor_count = global_settings.getDescriptorHeapPageCapacity(heap_type);
                 auto& new_descriptor_heap_ref =
-                    page_pool.heaps[static_cast<size_t>(heap_type)][page_id] = 
+                    page_pool.heaps[static_cast<size_t>(heap_type)][page_id] =
                     dev_ref.createDescriptorHeap(heap_type, descriptor_count, node_mask);
 
                 new_descriptor_heap_ref->setStringName(dev_ref.getStringName()
@@ -142,8 +144,9 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHe
                     + "\" in upload heap \"" + upload_heap.getStringName() + "\": the heap is exhausted");
             }
         }
-        else 
+        else
         {
+            assert(q->second.size >= aligned_section_size);
             return q->second;
         }
     }
@@ -175,4 +178,6 @@ size_t DxResourceFactory::getUploadHeapFreeSpace(Device const& owning_device) co
 {
     auto p = m_upload_heaps.find(&owning_device);
     return p != m_upload_heaps.end() ? getUploadHeapFreeSpace(p->second) : 0;
+}
+
 }

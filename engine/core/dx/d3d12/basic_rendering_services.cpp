@@ -15,8 +15,6 @@
 namespace lexgine::core::dx::d3d12
 {
 
-std::string const BasicRenderingServices::c_dynamic_geometry_section_name = "dynamic_geometry_section";
-
 namespace {
 
     PerFrameUploadDataStreamAllocator createDynamicGeometryStreamAllocator(Globals& globals)
@@ -28,9 +26,9 @@ namespace {
 
         UploadHeapPartition upload_heap_partition {};
         {
-            auto upload_heap_partition_handle = dx_resource_factory.allocateSectionInUploadHeap(upload_heap, BasicRenderingServices::c_dynamic_geometry_section_name, global_settings.getStreamedGeometryDataPartitionSize());
+            auto upload_heap_partition_handle = dx_resource_factory.allocateSectionInUploadHeap(upload_heap, DxResourceFactory::c_dynamic_geometry_section_name, global_settings.getStreamedGeometryDataPartitionSize());
             if (!upload_heap_partition_handle.isValid()) {
-                LEXGINE_THROW_ERROR("Unable to allocate " + BasicRenderingServices::c_dynamic_geometry_section_name + " in upload heap");
+                LEXGINE_THROW_ERROR("Unable to allocate " + std::string{ DxResourceFactory::c_dynamic_geometry_section_name } + " in upload heap");
             }
             upload_heap_partition = static_cast<UploadHeapPartition&>(upload_heap_partition_handle);
         }

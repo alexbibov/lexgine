@@ -68,7 +68,7 @@ RenderingTasks::RenderingTasks(Globals& globals)
     m_test_rendering_task_build_cmd_list = RenderingTaskFactory::create<TestRenderingTask>(m_globals, m_basic_rendering_services);
     m_ui_draw_build_cmd_list = RenderingTaskFactory::create<UIDrawTask>(globals, m_basic_rendering_services);
     m_gpu_profiling_queries_flush_build_cmd_list = RenderingTaskFactory::create<GpuProfilingQueriesFlushTask>(globals);
-    m_profiler = RenderingTaskFactory::create<Profiler>(globals, m_task_graph);
+    m_profiler = RenderingTaskFactory::create<Profiler>(globals, m_basic_rendering_services, m_task_graph);
     m_ui_draw_build_cmd_list->addUIProvider(m_profiler);
 
     m_post_rendering_gpu_tasks = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device,

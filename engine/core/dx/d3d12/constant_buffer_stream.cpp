@@ -10,8 +10,6 @@
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
-std::string const ConstantBufferStream::c_constant_section_name = "constant_upload_section";
-
 ConstantBufferStream::ConstantBufferStream(Globals& globals)
     : m_allocator{ nullptr }
 {
@@ -23,12 +21,12 @@ ConstantBufferStream::ConstantBufferStream(Globals& globals)
 
     auto section_in_upload_heap =
         dx_resources.allocateSectionInUploadHeap(dx_resources.retrieveUploadHeap(device),
-            c_constant_section_name, constant_data_section_size);
+            DxResourceFactory::c_texture_section_name, constant_data_section_size);
 
     if (!section_in_upload_heap.isValid())
     {
         LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
-            "Unable to reserve section \"" + c_constant_section_name + "\" in the upload heap");
+            "Unable to reserve section \"" + std::string{ DxResourceFactory::c_texture_section_name } + "\" in the upload heap");
     }
 
     UploadHeapPartition const& partition = static_cast<UploadHeapPartition const&>(section_in_upload_heap);
@@ -39,6 +37,21 @@ ConstantBufferStream::ConstantBufferStream(Globals& globals)
 uint64_t ConstantBufferStream::totalCapacity() const
 {
     return m_allocator->totalCapacity();
+}
+
+size_t lexgine::core::dx::d3d12::ConstantBufferStream::getPartitionsCount() const
+{
+    return m_allocator->getPartitionsCount();
+}
+
+uint64_t lexgine::core::dx::d3d12::ConstantBufferStream::getUpartitionedCapacity() const
+{
+    return m_allocator->getUnpartitionedCapacity();
+}
+
+uint64_t lexgine::core::dx::d3d12::ConstantBufferStream::getFragmentationCapacity() const
+{
+    return m_allocator->getFragmentationCapacity();
 }
 
 PerFrameUploadDataStreamAllocator::address_type ConstantBufferStream::allocate(uint64_t size)
