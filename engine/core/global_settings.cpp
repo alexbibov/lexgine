@@ -89,7 +89,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
 
 
     try {
-        json document = json::parse(static_cast<std::string&>(source_json));
+        json document = json::parse(*source_json);
 
         json::iterator p;
 

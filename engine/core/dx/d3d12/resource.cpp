@@ -191,7 +191,7 @@ ResourceDescriptor const& Resource::descriptor() const
         m_descriptor = desc;
     }
 
-    return static_cast<ResourceDescriptor const&>(m_descriptor);
+    return *m_descriptor;
 }
 
 
@@ -212,7 +212,7 @@ PlacedResource::PlacedResource(Heap const& heap, uint64_t heap_offset,
     D3D12_CLEAR_VALUE* native_clear_value_ptr = nullptr;
     if (optimized_clear_value.isValid())
     {
-        native_clear_value = static_cast<ResourceOptimizedClearValue const&>(optimized_clear_value).native();
+        native_clear_value = optimized_clear_value->native();
         native_clear_value_ptr = &native_clear_value;
     }
 
@@ -318,7 +318,7 @@ void CommittedResource::createResource(D3D12_HEAP_PROPERTIES const& owning_heap_
     D3D12_CLEAR_VALUE* resource_clear_value_ptr{ nullptr };
     if (optimized_clear_value.isValid())
     {
-        resource_clear_value = static_cast<ResourceOptimizedClearValue const&>(optimized_clear_value).native();
+        resource_clear_value = optimized_clear_value->native();
         resource_clear_value_ptr = &resource_clear_value;
     }
 

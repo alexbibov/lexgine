@@ -497,7 +497,7 @@ TEST(EngineTests_gpu, TestD3D12PSOXMLParser)
         }
 
 
-        D3D12PSOXMLParser xml_parser{ globals, content };
+        D3D12PSOXMLParser xml_parser{ globals, *content };
     }
 
 }

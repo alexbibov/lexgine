@@ -97,7 +97,7 @@ public:
     template<typename ...Args>
     void emplace_back(Args&&... args);
 
-    T pop_back();
+    void pop_back();
 
     void resize(size_t new_size);
 
@@ -319,14 +319,12 @@ inline void StaticVector<T, max_size>::emplace_back(Args&& ...args)
 }
 
 template<typename T, size_t max_size>
-inline T StaticVector<T, max_size>::pop_back()
+inline void StaticVector<T, max_size>::pop_back()
 {
     m_p_end -= sizeof(T);
     T* e_addr = reinterpret_cast<T*>(m_p_end);
-    T rv{ std::move(*e_addr) };
     destruct_element(e_addr);
     --m_size;
-    return rv;
 }
 
 template<typename T, size_t max_size>

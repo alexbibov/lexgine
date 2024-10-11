@@ -30,7 +30,6 @@ private:
         T obj;    //!< allocated object instance
     };
 
-public:
     /*! Wraps memory block into and object-like pointer representation to
     allow natural access the member "obj" encapsulated by MemoryBlock instance
     */
@@ -79,6 +78,7 @@ public:
         MemoryBlock<T>* m_mem_block_addr;
     };
 
+public:
     using value_type = T;
     using memory_block_type = MemoryBlock<T>;
     using address_type = MemoryBlockAddr<T>;

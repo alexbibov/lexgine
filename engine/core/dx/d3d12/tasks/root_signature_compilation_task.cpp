@@ -57,12 +57,9 @@ bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
         D3DDataBlob rs_blob{ nullptr };
         if (rs_cache_with_requested_root_signature.isValid()
-            && static_cast<task_caches::StreamedCacheConnection&>(rs_cache_with_requested_root_signature)
-            .cache().getEntryTimestamp(m_key) >= m_timestamp)
+            && rs_cache_with_requested_root_signature->cache().getEntryTimestamp(m_key) >= m_timestamp)
         {
-            SharedDataChunk blob =
-                static_cast<task_caches::StreamedCacheConnection&>(rs_cache_with_requested_root_signature)
-                .cache().retrieveEntry(m_key);
+            SharedDataChunk blob = rs_cache_with_requested_root_signature->cache().retrieveEntry(m_key);
 
             if (blob.size() && blob.data())
             {
@@ -86,7 +83,7 @@ bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
                 auto my_rs_cache = task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
                 if (my_rs_cache.isValid())
                 {
-                    static_cast<task_caches::StreamedCacheConnection&>(my_rs_cache).cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_compiled_rs_blob });
+                    my_rs_cache->cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_compiled_rs_blob });
                 }
             }
 

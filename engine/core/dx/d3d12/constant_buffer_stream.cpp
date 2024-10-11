@@ -29,7 +29,7 @@ ConstantBufferStream::ConstantBufferStream(Globals& globals)
             "Unable to reserve section \"" + std::string{ DxResourceFactory::c_texture_section_name } + "\" in the upload heap");
     }
 
-    UploadHeapPartition const& partition = static_cast<UploadHeapPartition const&>(section_in_upload_heap);
+    UploadHeapPartition const& partition = *section_in_upload_heap;
 
     m_allocator = std::make_unique<PerFrameUploadDataStreamAllocator>(globals, partition.offset, partition.size, device.frameProgressTracker());
 }

@@ -175,8 +175,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
             if (shader_cache_containing_requested_shader.isValid())
             {
-                misc::DateTime cached_time_stamp =
-                    static_cast<task_caches::StreamedCacheConnection&>(shader_cache_containing_requested_shader).cache().getEntryTimestamp(m_key);
+                misc::DateTime cached_time_stamp = shader_cache_containing_requested_shader->cache().getEntryTimestamp(m_key);
 
                 m_should_recompile = cached_time_stamp < m_time_stamp;
             }
@@ -186,8 +185,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
             {
                 // Attempt to use cached version of the shader
 
-                SharedDataChunk blob =
-                    static_cast<task_caches::StreamedCacheConnection&>(shader_cache_containing_requested_shader).cache().retrieveEntry(m_key);
+                SharedDataChunk blob = shader_cache_containing_requested_shader->cache().retrieveEntry(m_key);
                 if (!blob.data())
                 {
                     LEXGINE_LOG_ERROR(this, "Unable to retrieve precompiled shader byte code for source \""
@@ -312,7 +310,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
                         auto compilation_result = m_dxc_proxy.result(worker_id);
                         if (compilation_result.isValid())
                         {
-                            m_shader_byte_code = static_cast<D3DDataBlob>(compilation_result);
+                            m_shader_byte_code = *compilation_result;
                             m_was_compilation_successful = true;
                         }
                         else
@@ -331,7 +329,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
                     auto my_shader_cache = task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
                     if (my_shader_cache.isValid())
                     {
-                        static_cast<task_caches::StreamedCacheConnection&>(my_shader_cache).cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_shader_byte_code });
+                        my_shader_cache->cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_shader_byte_code });
                     }
                 }
 

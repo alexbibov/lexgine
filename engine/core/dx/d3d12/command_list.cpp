@@ -156,7 +156,7 @@ void CommandList::copyTextureRegion(TextureCopyLocation const& dst, misc::Option
     D3D12_BOX box{};
     if(src_box.isValid())
     {
-        math::Box const& unpacked_src_box = static_cast<math::Box const&>(src_box);
+        math::Box const& unpacked_src_box = *src_box;
 
         math::Vector3u left_bottom_far{ static_cast<math::Vector3u>(unpacked_src_box.center() - unpacked_src_box.extents()) };
         math::Vector3u right_top_near{ static_cast<math::Vector3u>(unpacked_src_box.center() + unpacked_src_box.extents()) };
@@ -175,7 +175,7 @@ void CommandList::copyTextureRegion(TextureCopyLocation const& dst, misc::Option
     UINT dst_x{ 0 }, dst_y{ 0 }, dst_z{ 0 };
     if (dst_offset.isValid())
     {
-        math::Vector3u const& offsets = static_cast<math::Vector3u const&>(dst_offset);
+        math::Vector3u const& offsets = *dst_offset;
         dst_x = static_cast<UINT>(offsets.x);
         dst_y = static_cast<UINT>(offsets.y);
         dst_z = static_cast<UINT>(offsets.z);

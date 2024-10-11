@@ -158,7 +158,7 @@ dx::d3d12::DedicatedUploadDataStreamAllocator createUploadStreamAllocator(core::
         LEXGINE_THROW_ERROR("Unable to create texture upload heap");
     }
 
-    dx::d3d12::UploadHeapPartition const upload_heap_partition = static_cast<dx::d3d12::UploadHeapPartition const>(upload_heap_section);
+    dx::d3d12::UploadHeapPartition const upload_heap_partition = *upload_heap_section;
     return dx::d3d12::DedicatedUploadDataStreamAllocator{ globals, upload_heap_partition.offset, upload_heap_partition.size };
 }
 
@@ -533,7 +533,7 @@ TextureConverter::TextureUploadTask::TextureUploadTask(TextureConverter& texture
         static_cast<DXGI_FORMAT>(texture_description.compression_format), static_cast<uint32_t>(texture_description.layers[0].mipmaps.size()),
         core::dx::d3d12::ResourceFlags::base_values::none, core::MultiSamplingFormat{ 1, 0 }, core::dx::d3d12::ResourceAlignment::_default, core::dx::d3d12::TextureLayout::unknown);
 
-    m_texture = std::make_shared<core::dx::d3d12::CommittedResource>(*pDevice, core::dx::d3d12::ResourceState::base_values::common, misc::makeEmptyOptional<core::dx::d3d12::ResourceOptimizedClearValue>(), desc, dx::d3d12::AbstractHeapType::_default,
+    m_texture = std::make_shared<core::dx::d3d12::CommittedResource>(*pDevice, core::dx::d3d12::ResourceState::base_values::common, misc::Optional<core::dx::d3d12::ResourceOptimizedClearValue>(), desc, dx::d3d12::AbstractHeapType::_default,
         core::dx::d3d12::HeapCreationFlags::base_values::allow_all);
 }
 

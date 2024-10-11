@@ -67,7 +67,7 @@ HLSLFileTranslationUnit::HLSLFileTranslationUnit(Globals& globals, std::string c
         m_hlsl_source_code = ShaderSourceCodePreprocessor{ m_path_to_shader, ShaderSourceCodePreprocessor::SourceType::file }.getPreprocessedSource();
     }
 
-    m_timestamp = misc::getFileLastUpdatedTimeStamp(m_path_to_shader);
+    m_timestamp = *misc::getFileLastUpdatedTimeStamp(m_path_to_shader);
 }
 
 

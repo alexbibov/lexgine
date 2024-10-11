@@ -74,7 +74,7 @@ RenderingTarget::RenderingTarget(Globals& globals,
 
     if (m_depth_target.isValid())
     {
-        auto const& target = static_cast<DepthTarget const&>(depth_target);
+        auto const& target = *depth_target;
         m_depth_target_format = target.target_view.associatedResource().descriptor().format;
 
         DepthStencilViewTableBuilder dsv_table_builder{ globals, 0U };
