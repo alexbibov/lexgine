@@ -42,7 +42,7 @@ misc::Optional<StreamedCacheConnection> lexgine::core::dx::d3d12::task_caches::f
         auto cache_connection = establishConnectionWithCombinedCache(global_settings, cache_directory + cache_name, true);
         if (cache_connection.isValid())
         {
-            if (static_cast<StreamedCacheConnection&>(cache_connection).cache().doesEntryExist(key))
+            if (cache_connection->cache().doesEntryExist(key))
                 return misc::Optional<StreamedCacheConnection>{std::move(cache_connection)};
         }
     }

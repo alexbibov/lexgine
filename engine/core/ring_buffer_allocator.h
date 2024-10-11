@@ -3,66 +3,40 @@
 
 #include <atomic>
 #include "engine/core/allocator.h"
+#include "engine/core/misc/static_vector.h"
 
 namespace lexgine::core {
 
 /*! Ring buffer allocation manager. Note that ring buffer does not support
  constructors or destructors for type T. Therefore, it has to be used for primitive types only.
 */
-template<typename T>
-class RingBufferAllocator : public Allocator<T>
+template<typename T, size_t number_of_cells>
+class RingBufferAllocatorN : public Allocator<T>
 {
 public:
     //! Initializes ring buffer with given number of memory cells
-    RingBufferAllocator(size_t number_of_cells = 128U) :
-        m_num_of_cells{ number_of_cells }
+    RingBufferAllocatorN()
     {
-        if (number_of_cells)
+        for (size_t i = 0; i < number_of_cells; ++i) 
         {
-            m_buffer_ptr = new RingBufferCell{ false, nullptr };
-
-            RingBufferCell* p_current_cell = m_buffer_ptr;
-            for (size_t i = 0; i < number_of_cells - 1; ++i)
-            {
-                p_current_cell->p_next = new RingBufferCell{ false, nullptr };
-                p_current_cell = p_current_cell->p_next;
-            }
-            p_current_cell->p_next = m_buffer_ptr;
+            m_buffer.emplace_back();
+            std::atomic_init(&m_buffer.back().is_used, false);
         }
-    }
-
-    ~RingBufferAllocator()
-    {
-        RingBufferCell* p_current_cell = m_buffer_ptr;
-        for (size_t i = 0; i < m_num_of_cells; ++i)
-        {
-            RingBufferCell* p_next = p_current_cell->p_next;
-            delete p_current_cell;
-            p_current_cell = p_next;
-        }
+        std::atomic_init(&m_current_element, 0);
     }
 
     //! Allocates new object of type T from the ring buffer
     typename Allocator<T>::address_type allocate()
     {
-        RingBufferCell* p_current_cell = m_buffer_ptr;
-        uint32_t num_parsed_count{ 0U };
-
-        while (true)
+        size_t element_index = m_current_element.load(std::memory_order_acquire);
+        RingBufferCell* cell = m_buffer.data() + element_index;
+        bool expected_usage{ false };
+        while (!cell->is_used.compare_exchange_strong(expected_usage, true, std::memory_order_acq_rel, std::memory_order_acquire))
         {
-            while (num_parsed_count < m_num_of_cells && p_current_cell->is_used.load(std::memory_order_acquire))
-            {
-                p_current_cell = p_current_cell->p_next;
-                ++num_parsed_count;
-            }
-
-            if (num_parsed_count == m_num_of_cells) return nullptr;    // the ring buffer is exhausted
-
-            bool expected{ false };
-            if (p_current_cell->is_used.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) break;
+            while (!m_current_element.compare_exchange_strong(element_index, (element_index + 1) % number_of_cells, std::memory_order_acq_rel, std::memory_order_acquire));
+            cell = m_buffer.data() + (element_index + 1) % number_of_cells;
         }
-
-        return typename Allocator<T>::address_type{ p_current_cell };
+        return typename Allocator<T>::address_type{ cell };
     }
 
 
@@ -76,25 +50,21 @@ public:
     }
 
     //! Returns full capacity of the ring buffer
-    size_t getCapacity() const { return m_num_of_cells; }
+    static constexpr size_t getCapacity() { return number_of_cells; }
 
 private:
     struct RingBufferCell : public Allocator<T>::memory_block_type
     {
         std::atomic_bool is_used;    //!< 'true' if the cell is currently in use, 'false' otherwise
-        RingBufferCell* p_next;    //!< pointer to the next cell in the ring buffer
+    };
 
-        RingBufferCell(bool is_used, RingBufferCell* p_next) :
-            is_used{ is_used },
-            p_next{ p_next }
-        {
-
-        }
-
-    }*m_buffer_ptr;
-
-    size_t const m_num_of_cells;    //!< number of memory cells allocated for the ring buffer
+private:
+    std::atomic_size_t m_current_element;
+    misc::StaticVector<RingBufferCell, number_of_cells> m_buffer;
 };
+
+template<typename T>
+using RingBufferAllocator = RingBufferAllocatorN<T, 512>;
 
 }
 

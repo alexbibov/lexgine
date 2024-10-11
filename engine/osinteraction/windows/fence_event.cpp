@@ -84,7 +84,7 @@ void FenceEvent::waitAsync(void* data_to_pass_to_callback) const
 {
     if (m_callback.isValid())
     {
-        m_callback_message.callback = &static_cast<callback_type const&>(m_callback);
+        m_callback_message.callback = m_callback.getAddress();
         m_callback_message.user_data = data_to_pass_to_callback;
         if (!RegisterWaitForSingleObject(&m_wait_handle, m_event_handle,
             [](PVOID data, BOOLEAN)

@@ -358,7 +358,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
         ResourceDescriptor font_texture_descriptor = ResourceDescriptor::CreateTexture2D(width, height, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
 
         m_fonts_texture = std::make_unique<CommittedResource>(m_device, ResourceState::base_values::pixel_shader,
-            misc::makeEmptyOptional<ResourceOptimizedClearValue>(), font_texture_descriptor, AbstractHeapType::_default,
+            misc::Optional<ResourceOptimizedClearValue>(), font_texture_descriptor, AbstractHeapType::_default,
             HeapCreationFlags::base_values::allow_all);
 
         ResourceDataUploader::TextureSourceDescriptor source_descriptor {};

@@ -28,7 +28,7 @@ std::shared_ptr<Scene> Scene::loadScene(core::Globals& globals, std::filesystem:
         // file containing the scene. Otherwise, if not available for any reason, the timestamp of the build time of the translation unit
         // is being used
         auto gltf_timestamp = core::misc::getFileLastUpdatedTimeStamp(gltf_path_to_file);
-        timestamp = gltf_timestamp.isValid() ? static_cast<core::misc::DateTime const&>(gltf_timestamp) : core::misc::DateTime::buildTime();
+        timestamp = gltf_timestamp.isValid() ? *gltf_timestamp : core::misc::DateTime::buildTime();
     }
 
     tinygltf::Model gltf_model{};
@@ -233,7 +233,7 @@ bool Scene::loadTextures(tinygltf::Model& model, core::misc::Optional<core::misc
         {
             // image is embedded in gltf
             m_images.emplace_back(std::move(gltf_image.image), static_cast<uint32_t>(gltf_image.width), static_cast<uint32_t>(gltf_image.height),
-                static_cast<size_t>(gltf_image.component), static_cast<size_t>(gltf_image.bits), conversion::ImageColorSpace::srgb, gltf_image.name, timestamp, image_loader_pool);
+                static_cast<size_t>(gltf_image.component), static_cast<size_t>(gltf_image.bits), conversion::ImageColorSpace::srgb, gltf_image.name, *timestamp, image_loader_pool);
         }
     }
 

@@ -92,7 +92,7 @@ void TaskSink::submit(uint64_t user_data)
             std::this_thread::yield();
             ++yield_counter;
 
-            if (yield_counter >= 1000)
+            if (yield_counter >= 100)
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
@@ -145,7 +145,7 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
         if (task.isValid())
         {
             yield_counter = 0;
-            TaskGraphNode* unwrapped_task = static_cast<TaskGraphNode*>(task);
+            TaskGraphNode* unwrapped_task = *task;
             AbstractTask* p_contained_task = unwrapped_task->task();
             try
             {

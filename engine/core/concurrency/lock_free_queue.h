@@ -37,16 +37,12 @@ public:
     LockFreeQueue(LockFreeQueue const&) = delete;
     LockFreeQueue& operator=(LockFreeQueue const&) = delete;
 
-
     //! Inserts new value into the queue
     void enqueue(T const& value)
     {
         typename allocator_type::address_type p_new_node = nullptr;
         
-        while (!p_new_node)
-        {
-            p_new_node = m_allocator.allocate();
-        }
+        p_new_node = m_allocator.allocate();
         p_new_node->data = value;
         std::atomic_init(&p_new_node->next, 0U);
 
@@ -196,13 +192,13 @@ private:
     struct Node
     {
         T data;    //!< the data contained in the queue node
-        std::atomic_size_t next;    //!< atomic pointer to the next member of the queue
+        std::atomic_uintptr_t next;    //!< atomic pointer to the next member of the queue
     };
 
     using allocator_type = AllocatorTemplate<Node>;
     using hpp_type = HazardPointerPool<allocator_type>;
 
-    std::atomic_size_t m_head, m_tail;    //!< head and tail of the underlying queue data structure
+    std::atomic_uintptr_t m_head, m_tail;    //!< head and tail of the underlying queue data structure
 
     allocator_type m_allocator;    //!< allocator used by the queue
     hpp_type m_hp_pool;    //!< pool of hazard pointer employed for safe memory reclamation

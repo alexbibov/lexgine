@@ -30,7 +30,7 @@ namespace {
             if (!upload_heap_partition_handle.isValid()) {
                 LEXGINE_THROW_ERROR("Unable to allocate " + std::string{ DxResourceFactory::c_dynamic_geometry_section_name } + " in upload heap");
             }
-            upload_heap_partition = static_cast<UploadHeapPartition&>(upload_heap_partition_handle);
+            upload_heap_partition = *upload_heap_partition_handle;
         }
 
         return PerFrameUploadDataStreamAllocator { globals, upload_heap_partition.offset, upload_heap_partition.size, device.frameProgressTracker() };

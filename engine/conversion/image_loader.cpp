@@ -9,7 +9,7 @@ namespace
 core::misc::DateTime getTimestampForUri(std::filesystem::path const& uri)
 {
     auto timestamp = core::misc::getFileLastUpdatedTimeStamp(uri.string());
-    return timestamp.isValid() ? static_cast<core::misc::DateTime>(timestamp) : core::misc::DateTime::buildTime();
+    return timestamp.isValid() ? *timestamp : core::misc::DateTime::buildTime();
 }
 
 
@@ -107,7 +107,7 @@ bool ImageLoader::load(std::filesystem::path const& uri, std::vector<uint8_t>& i
     }
     m_description.uri = uri.string();
     m_description.timestamp = getTimestampForUri(uri);
-    bool res = doLoad(static_cast<std::vector<uint8_t>&>(binary_data), image_data_buffer);
+    bool res = doLoad(*binary_data, image_data_buffer);
     if (res)
     {
         glm::uvec3& dims = m_description.layers[0].mipmaps[0].dimensions;

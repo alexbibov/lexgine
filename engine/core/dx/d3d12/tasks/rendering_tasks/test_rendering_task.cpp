@@ -32,7 +32,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
     , m_basic_rendering_services{ rendering_services }
     , m_vb{ m_device }
     , m_ib{ m_device, IndexDataType::_16_bit, 32 * 1024 }
-    , m_texture{ m_device, ResourceState::base_values::pixel_shader, misc::makeEmptyOptional<ResourceOptimizedClearValue>(),
+    , m_texture{ m_device, ResourceState::base_values::pixel_shader, misc::Optional<ResourceOptimizedClearValue>(),
                 ResourceDescriptor::CreateTexture2D(256, 256, 1, DXGI_FORMAT_R8G8B8A8_UNORM), AbstractHeapType::_default,
                 HeapCreationFlags::base_values::allow_all }
     , m_cb_data_mapping{ m_cb_reflection }

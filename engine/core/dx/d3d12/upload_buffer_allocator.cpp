@@ -65,7 +65,7 @@ UploadDataAllocator::UploadDataAllocator(Globals& globals,
     uint64_t offset_from_heap_start, size_t upload_buffer_size)
     : m_upload_heap{ globals.get<DxResourceFactory>()->retrieveUploadHeap(*globals.get<Device>()) }
     , m_upload_buffer{ m_upload_heap, offset_from_heap_start, ResourceState::base_values::generic_read,
-        misc::makeEmptyOptional<ResourceOptimizedClearValue>(), ResourceDescriptor::CreateBuffer(upload_buffer_size) }
+        misc::Optional<ResourceOptimizedClearValue>{}, ResourceDescriptor::CreateBuffer(upload_buffer_size) }
     , m_max_non_blocking_allocation_timeout{ globals.get<GlobalSettings>()->getMaxNonBlockingUploadBufferAllocationTimeout() }
     , m_buffer_size{ upload_buffer_size }
     , m_unpartitioned_chunk_size{ upload_buffer_size }

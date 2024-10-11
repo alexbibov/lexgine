@@ -5,8 +5,16 @@
 
 #include <stdexcept>
 #include <utility>
+#include <concepts>
+#include <type_traits>
 
 namespace lexgine::core::misc{
+
+template<typename T>
+concept SupportsDereferencing = requires(T t)
+{
+    { t.operator->() };
+};
 
 //! Implements nullable type wrapper over provided type T
 template<typename T>
@@ -17,6 +25,8 @@ public:
 
 public:
     Optional() noexcept : m_is_valid{ false } {}    //! initializes invalidated wrapper
+
+    Optional(nullptr_t) noexcept : m_is_valid{ false } {}
 
     //! initializes wrapper containing provided value
     Optional(T const& value) :
@@ -113,25 +123,25 @@ public:
         return *this;
     }
 
-    //! Converts wrapper type to constant reference to the wrapped value
-    operator T const&() const noexcept(false)
-    {
-        return const_cast<Optional<T>*>(this)->operator T&();
-    }
+    ////! Converts wrapper type to constant reference to the wrapped value
+    //operator T const&() const noexcept(false)
+    //{
+    //    return const_cast<Optional<T>*>(this)->operator T&();
+    //}
 
-    //! Converts wrapper type to the wrapped value
-    operator T() const noexcept(false)
-    {
-        if (m_is_valid) return *reinterpret_cast<T*>(m_value);
-        else throw std::logic_error{ "Attempt to dereference invalid Optional wrapper" };
-    }
+    ////! Converts wrapper type to the wrapped value
+    //operator T() const noexcept(false)
+    //{
+    //    if (m_is_valid) return *reinterpret_cast<T*>(m_value);
+    //    else throw std::logic_error{ "Attempt to dereference invalid Optional wrapper" };
+    //}
 
-    //! Converts wrapper type to reference to the wrapped value
-    operator T&() noexcept(false)
-    {
-        if (m_is_valid) return *reinterpret_cast<T*>(m_value);
-        else throw std::logic_error{ "Attempt to dereference invalid Optional wrapper" };
-    }
+    ////! Converts wrapper type to reference to the wrapped value
+    //operator T&() noexcept(false)
+    //{
+    //    if (m_is_valid) return *reinterpret_cast<T*>(m_value);
+    //    else throw std::logic_error{ "Attempt to dereference invalid Optional wrapper" };
+    //}
 
     //! Implements conversion between wrappers corresponding to conversion between compatible types
     template<typename V>
@@ -140,36 +150,80 @@ public:
         return Optional<V>{static_cast<V const>(*reinterpret_cast<T const*>(m_value))};
     }
 
+    //! returns 'true' if the wrapper contains a valid value, returns 'false' otherwise
+    operator bool() const noexcept { return m_is_valid; }
 
-    bool isValid() const noexcept { return m_is_valid; }     //! returns 'true' if the wrapper contains a valid value, returns 'false' otherwise
 
-    //! invalidates the wrapper if it was valid; otherwise has no effect
-    void invalidate()
+    template<typename U = T>
+        requires SupportsDereferencing<U>
+    T const& operator->() const noexcept(false)
+    {
+        return const_cast<Optional*>(this)->operator->();
+    }
+
+    template <typename U = T>
+        requires SupportsDereferencing<U>
+    T& operator->() noexcept(false)
     {
         if (m_is_valid)
         {
-            destruction_t::destruct(*reinterpret_cast<T*>(m_value));
+            return *reinterpret_cast<T*>(m_value);
+        }
+        else
+        {
+            throw std::logic_error{ "Attempt to dereference invalid Optional wrapper" };
+        }
+    }
+
+    template <typename U = T>
+        requires (!SupportsDereferencing<U>)
+    T const* operator->() const noexcept(false)
+    {
+        return const_cast<Optional*>(this)->operator->();
+    }
+
+    template <typename U = T>
+        requires (!SupportsDereferencing<U>)
+    T* operator->() noexcept(false)
+    {
+        if (m_is_valid) {
+            return reinterpret_cast<T*>(m_value);
+        } else {
+            throw std::logic_error { "Attempt to dereference invalid Optional wrapper" };
+        }
+    }
+
+    T const& operator*() const noexcept(false)
+    {
+        return *(this->operator->());
+    }
+
+    T& operator*() noexcept(false)
+    {
+        return *this->operator->();
+    }
+
+    bool isValid() const noexcept { return m_is_valid; }     //! returns 'true' if the wrapper contains a valid value, returns 'false' otherwise
+
+    T* getAddress() noexcept { return m_is_valid ? reinterpret_cast<T*>(m_value) : nullptr; } //! returns pointer to the wrapped value
+    T const* getAddress() const noexcept { return const_cast<Optional*>(this)->getAddress(); } //! returns pointer to the wrapped value
+
+    template<typename U = T>
+    void invalidate() requires std::destructible<std::remove_all_extents<U>>
+    {
+        if (m_is_valid)
+        {
+            reinterpret_cast<T*>(m_value)->~T();
             m_is_valid = false;
         }
     }
 
-
-private:
-    template<typename T, bool>
-    struct destruct_wrapped_type
+    template<typename U = T>
+    void invalidate()
+        requires(!std::destructible<std::remove_all_extents<U>>)
     {
-        static inline void destruct(T const&) {};
-    };
-
-    template<typename T> struct destruct_wrapped_type<T, true>
-    {
-        static inline void destruct(T const& val)
-        {
-            val.~T();
-        }
-    };
-
-    using destruction_t = destruct_wrapped_type<T, std::is_destructible<T>::value && !std::is_trivially_destructible<T>::value>;
+        m_is_valid = false;
+    }
 
 private:
     char m_value[sizeof(T)];  //!< wrapped value buffer
