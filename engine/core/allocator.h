@@ -1,25 +1,30 @@
 #ifndef LEXGINE_CORE_ALLOCATOR_H
 #define LEXGINE_CORE_ALLOCATOR_H
 
+#include <cassert>
+#include <cstddef>
 #include <utility>
+#include <atomic>
+#include "engine/core/misc/optional.h"
 
-namespace lexgine {namespace core {
+namespace lexgine::core {
+
 
 //! Base class for all allocators
 template<typename T>
 class Allocator
 {
-private:
-    //! Base class for pointers returned by allocators
-    template<typename T>
-    class MemoryBlock
+public:
+    using value_type = T;
+
+    //! Base class for memory blocks returned by allocators
+    class memory_block_type 
     {
     public:
-        template<typename ... Args>
-        inline MemoryBlock(Args&&... args) :
-            obj{ std::forward<Args>(args)... }
+        template <typename... Args>
+        inline memory_block_type(Args&&... args)
+            : obj { std::forward<Args>(args)... }
         {
-
         }
 
     public:
@@ -27,73 +32,129 @@ private:
         inline T const* operator->() const { return &obj; }
 
     private:
-        T obj;    //!< allocated object instance
+        T obj; //!< allocated object instance
     };
 
+    
     /*! Wraps memory block into and object-like pointer representation to
-    allow natural access the member "obj" encapsulated by MemoryBlock instance
+    allow natural access the member "obj" encapsulated by memory_block_type instance.
+    This pointer representation does not necessarily have to be a pointer in the traditional sense, it
+    may instead be an index into a memory pool or a handle to a memory block in a memory manager.
     */
-    template<typename T>
-    class MemoryBlockAddr final
-    {
-        friend class Allocator<T>;
+    template <typename U>
+    class t_address_type {
+    public:
+        using value_type = U;
 
     public:
-
-        MemoryBlockAddr(MemoryBlock<T>* p_memory_block) :
-            m_mem_block_addr{ p_memory_block }
+        t_address_type(Allocator* p_allocator)
+            : m_allocator_ptr{ p_allocator }
+            , m_is_valid{ false }
         {
-
         }
 
-        explicit MemoryBlockAddr(size_t addr) :
-            m_mem_block_addr{ reinterpret_cast<MemoryBlock<T>*>(addr) }
+        t_address_type(U const& value, Allocator* p_allocator)
+            : m_allocator_ptr { p_allocator }
+            , m_is_valid{ true }
+            , m_opaque_memory_block_pointer{ value }
         {
-
         }
 
-        inline MemoryBlockAddr& operator=(MemoryBlockAddr const& other)
+        operator bool() const
         {
-            m_mem_block_addr = other.m_mem_block_addr;
+            return m_is_valid;
+        }
+
+        explicit operator U() const
+        {
+            return m_opaque_memory_block_pointer;
+        }
+
+        t_address_type& operator=(U const& value)
+        {
+            m_is_valid = true;
+            m_opaque_memory_block_pointer = value;
             return *this;
         }
 
-        inline MemoryBlockAddr& operator=(MemoryBlock<T>* pBlock)
+        t_address_type& operator=(t_address_type const& other)
         {
-            m_mem_block_addr = pBlock;
+            assert(m_allocator_ptr == other.m_allocator_ptr);
+
+            if (this == &other)
+                return *this;
+
+            m_is_valid = other.m_is_valid;
+            m_opaque_memory_block_pointer = other.m_opaque_memory_block_pointer;
             return *this;
         }
 
-        inline MemoryBlock<T>& operator->() { return *m_mem_block_addr; }
-        inline MemoryBlock<T> const& operator->() const { return *m_mem_block_addr; }
+        bool operator==(t_address_type const& other) const = default;
 
-        inline bool operator == (MemoryBlockAddr<T> const& other) const { return m_mem_block_addr == other.m_mem_block_addr; }
-        inline bool operator == (void* other_pointer) const { return m_mem_block_addr == other_pointer; }
-        inline bool operator != (MemoryBlockAddr<T> const& other) const { return m_mem_block_addr != other.m_mem_block_addr; }
-        inline bool operator != (void* other_pointer) const { return m_mem_block_addr != other_pointer; }
-        inline operator bool() const { return m_mem_block_addr != nullptr; }
-        inline explicit operator size_t() const { return reinterpret_cast<size_t>(m_mem_block_addr); }
+        memory_block_type& operator->()
+        {
+            return *get();
+        }
+
+        memory_block_type const& operator->() const
+        {
+            return *get();
+        }
+
+        virtual memory_block_type* get() = 0;
+
+        memory_block_type const* get() const
+        {
+            return const_cast<t_address_type*>(this)->get();
+        }
+
+    protected:
+        Allocator* m_allocator_ptr { nullptr };
+        bool m_is_valid;
+        U m_opaque_memory_block_pointer;
+    };
+
+    template <>
+    class t_address_type<memory_block_type*> final
+    {
+    public:
+        using value_type = memory_block_type*;
+
+    public:
+        t_address_type() = default;
+
+        t_address_type(memory_block_type* memory_block_pointer)
+            : m_memory_block_pointer { memory_block_pointer }
+        {
+        }
+
+        t_address_type& operator=(t_address_type const&) = default;
+
+        t_address_type& operator=(memory_block_type* other)
+        {
+            m_memory_block_pointer = other;
+            return *this;
+        }
+
+        bool operator==(t_address_type const&) const = default;
+
+        memory_block_type& operator->() { return *m_memory_block_pointer; }
+        memory_block_type const& operator->() const { return const_cast<t_address_type*>(this)->operator->(); }
+
+        explicit operator uintptr_t() const { return reinterpret_cast<uintptr_t>(m_memory_block_pointer); }
+        operator bool() const { return m_memory_block_pointer != nullptr; }
+
+        memory_block_type* get() { return m_memory_block_pointer; }
+        memory_block_type const* get() const { return const_cast<t_address_type*>(this)->get(); }
 
     private:
-        MemoryBlock<T>* m_mem_block_addr;
+        memory_block_type* m_memory_block_pointer;
     };
 
 public:
-    using value_type = T;
-    using memory_block_type = MemoryBlock<T>;
-    using address_type = MemoryBlockAddr<T>;
-
     virtual ~Allocator() = default;
-
-protected:
-    //! Allows to cast MemoryBlockAddr<T> objects to MemoryBlock<T> object pointers, which is a useful operation when implementing allocators
-    inline MemoryBlock<T>* pointerCast(MemoryBlockAddr<T> const& pointer_wrapper)
-    {
-        return pointer_wrapper.m_mem_block_addr;
-    }
 };
 
-
-}}
+}
 
 #endif

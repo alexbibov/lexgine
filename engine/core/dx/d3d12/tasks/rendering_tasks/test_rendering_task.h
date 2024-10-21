@@ -59,7 +59,7 @@ private:
     ShaderResourceDescriptorTable m_srv_table;
     SamplerResourceDescriptorTable m_sampler_table;
 
-    core::Allocator<UploadDataBlock>::address_type m_allocation;
+    PerFrameUploadDataStreamAllocator::address_type m_allocation;
 
     CommandList* m_cmd_list_ptr = nullptr;
 };

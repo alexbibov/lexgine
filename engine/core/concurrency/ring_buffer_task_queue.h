@@ -15,11 +15,9 @@ class RingBufferTaskQueue final
 public:
     using task_type = TaskType;
 
-    RingBufferTaskQueue(uint16_t num_consumers,
-        size_t ring_buffer_capacity = 256U,
-        uint32_t garbage_collection_threshold = 10U) 
+    RingBufferTaskQueue(uint16_t num_consumers) 
     {
-        m_lock_free_queue.setGarbageCollectionThreshold(garbage_collection_threshold);
+        // m_lock_free_queue.setGarbageCollectionThreshold(garbage_collection_threshold);
     }
 
     RingBufferTaskQueue(RingBufferTaskQueue const&) = delete;
@@ -56,7 +54,7 @@ public:
     }
 
 private:
-    LockFreeQueue<TaskType, RingBufferAllocator> m_lock_free_queue;
+    LockFreeQueue<TaskType> m_lock_free_queue;
 
 };
 
