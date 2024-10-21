@@ -2,14 +2,16 @@
 
 #include "allocator.h"
 
-namespace lexgine {namespace core {
+namespace lexgine::core {
 
 //! Implements default allocator for objects of type T (type T must implement default constructor)
 template<typename T>
 class DefaultAllocator : public Allocator<T>
 {
 public:
-    using Allocator<T>::address_type;
+    using address_type = Allocator<T>::t_address_type<Allocator<T>::memory_block_type*>;
+
+public:
 
     //! Allocates new object of type T from the heap memory using default constructor
     address_type allocate()
@@ -32,13 +34,13 @@ public:
     }
 
 private:
-    struct DefaultAllocatorMemoryBlock : public Allocator<T>::MemoryBlock<T>
+    struct DefaultAllocatorMemoryBlock : public Allocator<T>::memory_block_type
     {
         size_t size;    //!< size of the allocated block
     };
 };
 
-}}
+}
 
 #define LEXGINE_CORE_DEFAULT_ALLOCATOR_H
 #endif

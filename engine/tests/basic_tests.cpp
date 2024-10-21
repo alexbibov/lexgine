@@ -75,7 +75,7 @@ TEST(EngineTests_Concurrency, TestConcurrency)
 
     uint8_t const num_consumption_threads = 7U;
 
-    RingBufferTaskQueue<int*> queue{ num_consumption_threads, 65536 };
+    RingBufferTaskQueue<int*> queue{ num_consumption_threads };
 
     bool production_finished = false;
     std::atomic_uint64_t tasks_produced{ 0U };
@@ -87,7 +87,7 @@ TEST(EngineTests_Concurrency, TestConcurrency)
     //! Produces 100 000 elements for the queue
     auto produce = [&queue, &tasks_produced, &production_finished]()->void
     {
-        for (uint32_t i = 0; i < 100000; ++i)
+        for (uint32_t i = 0; i < 100000000; ++i)
         {
             queue.enqueueTask(nullptr);
             ++tasks_produced;

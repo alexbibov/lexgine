@@ -92,7 +92,7 @@ void TaskSink::submit(uint64_t user_data)
             std::this_thread::yield();
             ++yield_counter;
 
-            if (yield_counter >= 100)
+            if (yield_counter >= 60)
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
