@@ -37,5 +37,6 @@ CommandList* RenderingWork::addCommandList(uint32_t node_mask/* = 0x1*/,
 {
     m_cmd_lists.emplace_back(m_device.createCommandList(m_command_type, node_mask, command_list_sync_mode, initial_pipeline_state));
     CommandList& rv = m_cmd_lists.back();
+    rv.setStringName(getStringName() + "__command_list#" + std::to_string(m_cmd_lists.size()));
     return &rv;
 }

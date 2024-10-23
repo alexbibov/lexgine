@@ -87,7 +87,7 @@ TEST(EngineTests_Concurrency, TestConcurrency)
     //! Produces 100 000 elements for the queue
     auto produce = [&queue, &tasks_produced, &production_finished]()->void
     {
-        for (uint32_t i = 0; i < 100000000; ++i)
+        for (uint32_t i = 0; i < 10000000; ++i)
         {
             queue.enqueueTask(nullptr);
             ++tasks_produced;

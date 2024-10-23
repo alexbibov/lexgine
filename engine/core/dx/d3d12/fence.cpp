@@ -53,6 +53,15 @@ uint64_t Fence::nextValueOfSignal() const
     return m_next_signal_value;
 }
 
+void Fence::setStringName(std::string const& entity_string_name)
+{
+    Entity::setStringName(entity_string_name);
+    LEXGINE_LOG_ERROR_IF_FAILED(
+        this,
+        m_fence->SetName(misc::asciiStringToWstring(entity_string_name).c_str()),
+        S_OK);
+}
+
 Fence::Fence(Device& device, FenceSharing sharing/* = FenceSharing::none*/) :
     m_device{ device },
     m_sharing_mode{ sharing },

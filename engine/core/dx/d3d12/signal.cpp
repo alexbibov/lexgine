@@ -65,6 +65,10 @@ void Signal::waitOnGPUQueue(CommandQueue const& waiting_queue, uint64_t signal_v
     waiting_queue.wait(m_fence, signal_value);
 }
 
+void Signal::setStringName(std::string const& entity_string_name)
+{
+    m_fence.setStringName(entity_string_name);
+}
 
 
 

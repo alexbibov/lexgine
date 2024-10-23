@@ -137,14 +137,12 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
         logger().out(misc::formatString("###### Worker thread %i log start ######", worker_id), LogMessageType::information);
     }
 
-    uint32_t yield_counter = 0;
     Optional<TaskGraphNode*> task;
     while (!m_error_watchdog.load(std::memory_order_acquire)
         && ((task = m_task_queue.dequeueTask()).isValid() || !m_stop_signal.load(std::memory_order_acquire)))
     {
         if (task.isValid())
         {
-            yield_counter = 0;
             TaskGraphNode* unwrapped_task = *task;
             AbstractTask* p_contained_task = unwrapped_task->task();
             try
@@ -166,13 +164,7 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
         }
         else
         {
-            ++yield_counter;
             std::this_thread::yield();
-
-            if ((yield_counter & 63) == 0)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(yield_counter < 1000 ? 0 : 1));
-            }
         }
     }
 
