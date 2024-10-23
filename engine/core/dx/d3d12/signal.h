@@ -3,6 +3,8 @@
 
 #include "fence.h"
 #include "lexgine_core_dx_d3d12_fwd.h"
+#include "engine/core/class_names.h"
+#include "engine/core/entity.h"
 #include "engine/osinteraction/windows/fence_event.h"
 #include "engine/core/misc/optional.h"
 
@@ -36,6 +38,9 @@ public:
 
     //! Inserts wait object into the waiting_queue which remains active until this signal reaches the given signal_value
     void waitOnGPUQueue(CommandQueue const& waiting_queue, uint64_t signal_value);
+
+    //! Assigns user-friendly debug name
+    void setStringName(std::string const& name);
 
 private:
     Fence m_fence;

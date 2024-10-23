@@ -6,6 +6,8 @@ FrameProgressTracker::FrameProgressTracker(Device& device)
     : m_cpu_wall_signal{ device }
     , m_gpu_wall_signal{ device }
 {
+    m_cpu_wall_signal.setStringName("CPU wall");
+    m_gpu_wall_signal.setStringName("GPU wall");
 }
 
 uint64_t FrameProgressTracker::scheduledFramesCount() const

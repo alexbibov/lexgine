@@ -576,6 +576,9 @@ void CommandList::setStringName(std::string const& entity_string_name)
         this,
         m_command_list->SetName(misc::asciiStringToWstring(entity_string_name).c_str()),
         S_OK);
+
+    m_signal.setStringName(entity_string_name + "__signal");
+    m_allocator_ring.setStringName(entity_string_name + "__allocator");
 }
 
 CommandType CommandList::commandType() const

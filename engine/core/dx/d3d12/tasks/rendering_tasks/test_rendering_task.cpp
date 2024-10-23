@@ -246,35 +246,35 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
     //cmd_list.reset();
 
-    //m_basic_rendering_services.beginRendering(*m_cmd_list_ptr);
-    //
-    //m_cmd_list_ptr->setPipelineState(m_pso->getTaskData());
-    //m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());
+    m_basic_rendering_services.beginRendering(*m_cmd_list_ptr);
+    
+    m_cmd_list_ptr->setPipelineState(m_pso->getTaskData());
+    m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());
 
-    //m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
-    //
-    //m_basic_rendering_services.setDefaultViewport(*m_cmd_list_ptr);
+    m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
+    
+    m_basic_rendering_services.setDefaultViewport(*m_cmd_list_ptr);
 
-    //m_cmd_list_ptr->inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
-    //m_vb.bind(*m_cmd_list_ptr);
-    //m_ib.bind(*m_cmd_list_ptr);
+    m_cmd_list_ptr->inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
+    m_vb.bind(*m_cmd_list_ptr);
+    m_ib.bind(*m_cmd_list_ptr);
 
-    //m_basic_rendering_services.setDefaultRenderingTarget(*m_cmd_list_ptr);
-    //m_basic_rendering_services.clearDefaultRenderingTarget(*m_cmd_list_ptr);
+    m_basic_rendering_services.setDefaultRenderingTarget(*m_cmd_list_ptr);
+    m_basic_rendering_services.clearDefaultRenderingTarget(*m_cmd_list_ptr);
 
-    //long long new_timestamp = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    //float duration = (new_timestamp - m_timestamp) / 1e9f;
-    //m_box_rotation_angle += static_cast<float>(math::pi * duration * .5f);
-    //m_timestamp = new_timestamp;
+    long long new_timestamp = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    float duration = (new_timestamp - m_timestamp) / 1e9f;
+    m_box_rotation_angle += static_cast<float>(math::pi * duration * .5f);
+    m_timestamp = new_timestamp;
 
-    //m_allocation =
-    //    m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_cb_data_mapping);
+    m_allocation =
+        m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_cb_data_mapping);
 
-    ///*m_cmd_list_ptr->setRootDescriptorTable(0, m_srv_table.gpu_pointer);
-    //m_cmd_list_ptr->setRootDescriptorTable(1, m_sampler_table.gpu_pointer);*/
-    //m_cmd_list_ptr->setRootConstantBufferView(static_cast<uint32_t>(dxcompilation::ShaderFunctionConstantBufferRootIds::scene_uniforms), m_allocation->virtualGpuAddress());
+    /*m_cmd_list_ptr->setRootDescriptorTable(0, m_srv_table.gpu_pointer);
+    m_cmd_list_ptr->setRootDescriptorTable(1, m_sampler_table.gpu_pointer);*/
+    m_cmd_list_ptr->setRootConstantBufferView(static_cast<uint32_t>(dxcompilation::ShaderFunctionConstantBufferRootIds::scene_uniforms), m_allocation->virtualGpuAddress());
 
-    //m_cmd_list_ptr->drawIndexedInstanced(36, 1, 0, 0, 0);
+    m_cmd_list_ptr->drawIndexedInstanced(36, 1, 0, 0, 0);
 
     //cmd_list.close();
 

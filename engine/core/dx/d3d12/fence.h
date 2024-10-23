@@ -47,6 +47,8 @@ public:
     uint64_t lastValueSignaled() const;    //! retrieves the last value that the fence has ALREADY signaled
     uint64_t nextValueOfSignal() const;    //! the next value to be used for the fence's signal
 
+    void setStringName(std::string const& entity_string_name); //! sets new user-friendly string name for the fence
+
     Fence(Fence const&) = delete;
     Fence(Fence&&) = default;
 
