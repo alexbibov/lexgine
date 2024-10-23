@@ -2141,7 +2141,7 @@ inline bool StreamedCache<Key, cluster_size>::addEntry(entry_type const& entry, 
         }
         else
         {
-            overwrite_offset = static_cast<size_t>(static_cast<uint64_t>(entry_base_offset));
+            overwrite_offset = *entry_base_offset;
         }
     }
 
@@ -2226,7 +2226,7 @@ inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const
         return SharedDataChunk{};
     }
 
-    std::pair<SharedDataChunk, size_t> raw_data_chunk_and_uncompressed_size = deserialize_entry(rv);
+    std::pair<SharedDataChunk, size_t> raw_data_chunk_and_uncompressed_size = deserialize_entry(*rv);
     if (static_cast<int>(m_compression_level) > 0)
     {
         // the data are compressed and should be inflated before getting returned to the caller
@@ -2310,7 +2310,7 @@ inline misc::DateTime StreamedCache<Key, cluster_size>::getEntryTimestamp(Key co
         return misc::DateTime::now();
     }
 
-    m_cache_stream.seekg(static_cast<uint64_t>(entry_base_offset) + m_sequence_overhead, std::ios::beg);
+    m_cache_stream.seekg(*entry_base_offset + m_sequence_overhead, std::ios::beg);
     char packed_datestamp_data[m_datestamp_size];
     m_cache_stream.read(packed_datestamp_data, m_datestamp_size);
     return unpack_date_stamp(reinterpret_cast<unsigned char*>(packed_datestamp_data));
@@ -2330,7 +2330,7 @@ inline size_t StreamedCache<Key, cluster_size>::getEntrySize(Key const& entry_ke
         return static_cast<size_t>(-1);
     }
 
-    m_cache_stream.seekg(static_cast<uint64_t>(entry_base_offset) + m_sequence_overhead + m_datestamp_size, std::ios::beg);
+    m_cache_stream.seekg(*entry_base_offset + m_sequence_overhead + m_datestamp_size, std::ios::beg);
     size_t uncompressed_entry_size{ 0U };
     m_cache_stream.read(reinterpret_cast<char*>(&uncompressed_entry_size), m_uncompressed_size_record);
     return uncompressed_entry_size;
@@ -2349,7 +2349,7 @@ inline bool StreamedCache<Key, cluster_size>::removeEntry(Key const& entry_key)
         return false;
     }
 
-    size_t base_offset = rv;
+    size_t base_offset = *rv;
     m_empty_cluster_table.push_back(base_offset);
     m_index.remove_entry(entry_key);
 
