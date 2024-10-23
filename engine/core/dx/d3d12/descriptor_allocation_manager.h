@@ -107,7 +107,7 @@ protected:
     {
         misc::Optional<UPointer> descriptor_pointer = getDescriptor(descriptor);
         if (descriptor_pointer.isValid())
-            return std::make_pair(static_cast<UPointer>(descriptor_pointer), false);
+            return std::make_pair(*descriptor_pointer, false);
 
         (m_target_descriptor_heap.*descriptor_creator)(offset, descriptor);
         return std::make_pair(UPointer{ offset }, true );

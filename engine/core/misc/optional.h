@@ -151,7 +151,7 @@ public:
     }
 
     //! returns 'true' if the wrapper contains a valid value, returns 'false' otherwise
-    operator bool() const noexcept { return m_is_valid; }
+    explicit operator bool() const noexcept { return m_is_valid; }
 
 
     template<typename U = T>
