@@ -1,4 +1,5 @@
 #include <cassert>
+#include <thread>
 
 #include "resource_data_uploader.h"
 #include "device.h"
@@ -17,19 +18,17 @@ ResourceDataUploader::ResourceDataUploader(Globals& globals, DedicatedUploadData
     , m_is_async_copy_enabled{ globals.get<GlobalSettings>()->isAsyncCopyEnabled() }
     , m_upload_buffer_allocator{ upload_buffer_allocator }
     , m_upload_command_list{ m_device.createCommandList(m_is_async_copy_enabled ? CommandType::copy : CommandType::direct, 0x1) }
-    , m_upload_command_list_needs_reset{ true }
 {
 
 }
 
-void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& destination_descriptor,
+bool ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& destination_descriptor,
     TextureSourceDescriptor const& source_descriptor)
 {
     D3D12_RESOURCE_DESC d3d12_destination_resource_descriptor = destination_descriptor.p_destination_resource->descriptor().native();
     assert(d3d12_destination_resource_descriptor.Dimension >= D3D12_RESOURCE_DIMENSION_TEXTURE1D
         && d3d12_destination_resource_descriptor.Dimension <= D3D12_RESOURCE_DIMENSION_TEXTURE3D);
 
-    beginCopy(destination_descriptor);
     {
         UINT64 task_size;
         uint32_t num_subresources = destination_descriptor.segment.subresources.num_subresources;
@@ -39,18 +38,25 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
         UINT* p_subresource_num_rows = reinterpret_cast<UINT*>(p_placed_subresource_footprints + num_subresources);
         UINT64* p_subresource_row_size_in_bytes = reinterpret_cast<UINT64*>(p_subresource_num_rows + num_subresources);
 
-        assert(num_subresources == source_descriptor.subresources.size());
+        assert(num_subresources <= source_descriptor.subresources.size());
 
         m_device.native()->GetCopyableFootprints(&d3d12_destination_resource_descriptor,
             destination_descriptor.segment.subresources.first_subresource, destination_descriptor.segment.subresources.num_subresources,
             0U, p_placed_subresource_footprints, p_subresource_num_rows, p_subresource_row_size_in_bytes, &task_size);
 
         auto allocation = m_upload_buffer_allocator.allocate(task_size);
+        if (allocation == nullptr)
+        {
+            return false;    // staging buffer is exhausted
+        }
+
+        beginCopy(destination_descriptor);
         for (uint32_t p = 0; p < num_subresources; ++p)
         {
             D3D12_PLACED_SUBRESOURCE_FOOTPRINT& footprint_desc = p_placed_subresource_footprints[p];
-            char* p_dst_subresource = static_cast<char*>(allocation->cpuAddress()) + footprint_desc.Offset;
-            char* p_src_subresource = static_cast<char*>(source_descriptor.subresources[p].p_data);
+            assert(footprint_desc.Offset == 0);
+            uint8_t* p_dst_subresource = static_cast<uint8_t*>(allocation->cpuAddress());
+            uint8_t const* p_src_subresource = static_cast<uint8_t const*>(source_descriptor.subresources[p].p_data);
 
             size_t const dst_subresource_slice_pitch = p_subresource_num_rows[p] * footprint_desc.Footprint.RowPitch;
             size_t const src_subresource_slice_pitch = source_descriptor.subresources[p].slice_pitch;
@@ -58,39 +64,43 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
 
             for (uint32_t k = 0; k < footprint_desc.Footprint.Depth; ++k)
             {
-                char* p_dst_subresource_slice = p_dst_subresource + dst_subresource_slice_pitch * k;
-                char* p_src_subresource_slice = p_src_subresource + src_subresource_slice_pitch * k;
+                uint8_t* p_dst_subresource_slice = p_dst_subresource + dst_subresource_slice_pitch * k;
+                uint8_t const* p_src_subresource_slice = p_src_subresource + src_subresource_slice_pitch * k;
 
                 for (uint32_t i = 0; i < p_subresource_num_rows[p]; ++i)
                 {
-                    char* p_dst_subresource_row = p_dst_subresource_slice + p_subresource_row_size_in_bytes[p] * i;
-                    char* p_src_subresource_row = p_src_subresource_slice + src_subresource_row_pitch * i;
-                    memcpy(p_dst_subresource_row, p_src_subresource_row, src_subresource_row_pitch);
+                    uint8_t* p_dst_subresource_row = p_dst_subresource_slice + p_subresource_row_size_in_bytes[p] * i;
+                    uint8_t const* p_src_subresource_row = p_src_subresource_slice + src_subresource_row_pitch * i;
+                    std::copy(
+                        p_src_subresource_row, 
+                        p_src_subresource_row + src_subresource_row_pitch, 
+                        p_dst_subresource_row
+                    );
                 }
             }
 
             TextureCopyLocation source_location{ m_upload_buffer_allocator.getUploadResource(),
-                allocation->offset() + footprint_desc.Offset,
+                allocation->offset(),
                 footprint_desc.Footprint.Format, footprint_desc.Footprint.Width,
                 footprint_desc.Footprint.Height, footprint_desc.Footprint.Depth,
                 footprint_desc.Footprint.RowPitch };
 
             TextureCopyLocation destination_location{ *destination_descriptor.p_destination_resource, p };
 
-            m_upload_command_list.copyTextureRegion(destination_location, misc::makeEmptyOptional<math::Vector3u>(),
-                source_location, misc::makeEmptyOptional<math::Box>());
+            m_upload_command_list.copyTextureRegion(destination_location, misc::Optional<math::Vector3u>{},
+                source_location, misc::Optional<math::Box>{});
         }
+        endCopy(destination_descriptor);
     }
-    endCopy(destination_descriptor);
+    return true;
 }
 
-void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& destination_descriptor,
+bool ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& destination_descriptor,
     BufferSourceDescriptor const& source_descriptor)
 {
     D3D12_RESOURCE_DESC d3d12_destination_resource_descriptor = destination_descriptor.p_destination_resource->descriptor().native();
     assert(d3d12_destination_resource_descriptor.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER);
 
-    beginCopy(destination_descriptor);
     {
         size_t const subresource_copy_footprints_size = sizeof(D3D12_PLACED_SUBRESOURCE_FOOTPRINT);
         DataChunk placed_subresource_footprints_buffer{ subresource_copy_footprints_size };
@@ -100,13 +110,24 @@ void ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
             static_cast<UINT64>(destination_descriptor.segment.base_offset), p_placed_subresource_footprint, NULL, NULL, NULL);
 
         auto allocation = m_upload_buffer_allocator.allocate(source_descriptor.buffer_size);
-        char* p_upload_buffer_addr = static_cast<char*>(allocation->cpuAddress());
-        memcpy(p_upload_buffer_addr + p_placed_subresource_footprint->Offset, source_descriptor.p_data, source_descriptor.buffer_size);
+        if (allocation == nullptr)
+        {
+            return false;    // staging buffer is exhausted
+        }
+
+        beginCopy(destination_descriptor);
+        uint8_t* p_upload_buffer_addr = static_cast<uint8_t*>(allocation->cpuAddress());
+        std::copy(
+            static_cast<uint8_t const*>(source_descriptor.p_data),
+            static_cast<uint8_t const*>(source_descriptor.p_data) + source_descriptor.buffer_size,
+            p_upload_buffer_addr
+        );
 
         m_upload_command_list.copyBufferRegion(*destination_descriptor.p_destination_resource, destination_descriptor.segment.base_offset,
             m_upload_buffer_allocator.getUploadResource(), allocation->offset(), source_descriptor.buffer_size);
+        endCopy(destination_descriptor);
     }
-    endCopy(destination_descriptor);
+    return true;
 }
 
 
@@ -129,8 +150,8 @@ void ResourceDataUploader::waitUntilUploadIsFinished() const
 {
     while (!isUploadFinished())
     {
-        Sleep(1);
-        YieldProcessor();
+        std::this_thread::sleep_for(std::chrono::milliseconds{ 1 });
+        std::this_thread::yield();
     }
 }
 

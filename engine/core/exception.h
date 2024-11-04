@@ -90,7 +90,7 @@ throw lexgine::core::Exception(lexgine::core::misc::dereference<context_type>::r
 //! Throws exception using provided description text and "dummy" named entity as the throwing context
 #define LEXGINE_THROW_ERROR(description) \
 { \
-misc::Log::retrieve()->out((description), misc::LogMessageType::error); \
+lexgine::core::misc::Log::retrieve()->out((description), lexgine::core::misc::LogMessageType::error); \
 throw lexgine::core::Exception(lexgine::core::Dummy{}, (description), __FILE__, __FUNCTION__, __LINE__); \
 }
 

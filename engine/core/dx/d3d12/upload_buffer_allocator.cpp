@@ -123,7 +123,6 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
         return result;
     }
 
-    assert(false);    // should never get here
     return { nullptr };
 }
 
@@ -152,7 +151,7 @@ UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t s
 {
     if (m_allocation_hint.bucket_iter->empty() || m_allocation_hint.block()->m_controlling_signal_value == nextValueOfControllingSignal()) {
         // Unable to allocate more space, the buffer is exhausted
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
+        LEXGINE_LOG_ERROR(this,
             "Unable to allocate block in upload buffer. Requested size of the allocation ("
                 + std::to_string(size_in_bytes) + " bytes) exceeds the remaining capacity of the buffer ("
                 + std::to_string(m_unpartitioned_chunk_size) + " bytes with total of " + std::to_string(m_fragmentation_capacity)
