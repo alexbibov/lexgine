@@ -671,7 +671,7 @@ namespace lexgine::core::dx::d3d12 {
 class DxgiFormatFetcher
 {
 public:
-    struct key
+    struct format_desc
     {
         bool is_fp;
         bool is_signed;
@@ -679,15 +679,16 @@ public:
         unsigned char element_count;
         unsigned char element_size;
 
-        bool operator ==(key const& other) const;
+        bool operator ==(format_desc const& other) const;
     };
 
     struct key_hasher
     {
-        size_t operator()(key const& k) const;
+        size_t operator()(format_desc const& k) const;
     };
 
-    using dxgi_types_map = std::unordered_map<key, DXGI_FORMAT, key_hasher, std::equal_to<void>>;
+    using dxgi_types_map = std::unordered_map<format_desc, DXGI_FORMAT, key_hasher, std::equal_to<void>>;
+    using dxgi_type_descs_map = std::unordered_map<DXGI_FORMAT, format_desc>;
 
 public:
     DxgiFormatFetcher();
@@ -700,8 +701,11 @@ public:
     DXGI_FORMAT fetch(bool is_floating_point, bool is_signed, bool is_normalized,
         unsigned char element_count, unsigned char element_size) const;
 
+    format_desc fetch(DXGI_FORMAT format) const;
+
 private:
-     dxgi_types_map m_d3d12_formats;
+    dxgi_types_map m_d3d12_formats;
+    dxgi_type_descs_map m_d3d12_format_descriptions;
 };
 
 }

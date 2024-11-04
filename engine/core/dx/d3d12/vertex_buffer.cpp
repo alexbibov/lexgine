@@ -21,6 +21,12 @@ void VertexBuffer::setSegment(VertexAttributeSpecificationList const& va_spec_li
     uint32_t segment_num_vertices, uint8_t target_slot)
 {
     m_vb_specification.push_back(vb_segment{ va_spec_list, segment_num_vertices, target_slot });
+    
+#ifdef DEBUG
+    assert((m_used_slots_mask & (1 << target_slot)) == 0);
+    m_used_slots_mask |= 1 << target_slot;
+#endif
+
 }
 
 void VertexBuffer::build()

@@ -33,9 +33,11 @@ enum class DataFormat
     int64,
     int32,
     int16,
+    int8,
     uint64,
     uint32,
     uint16,
+    uint8,
     unknown
 };
 

@@ -13,7 +13,8 @@ class VertexBuffer
 {
 public:
     VertexBuffer(Device const& device,
-        uint32_t node_mask = 0x1, uint32_t node_exposure_mask = 0x1,
+        uint32_t node_mask = 0x1, 
+        uint32_t node_exposure_mask = 0x1,
         bool allow_cross_adapter = false);
 
     void setSegment(VertexAttributeSpecificationList const& va_spec_list,
@@ -40,6 +41,10 @@ private:
     uint32_t m_node_mask;
     uint32_t m_node_exposure_mask;
     bool m_allow_cross_adapter;
+
+#ifdef DEBUG 
+    uint32_t m_used_slots_mask{ 0 };
+#endif
 
     std::list<vb_segment> m_vb_specification;
 
