@@ -9,7 +9,7 @@
 #include <engine/core/misc/datetime.h>
 #include <engine/core/misc/optional.h>
 #include "class_names.h"
-#include "buffer.h"
+#include "scene_mesh_memory.h"
 #include "buffer_view.h"
 #include "light.h"
 #include "image.h"
@@ -18,6 +18,12 @@
 namespace lexgine::scenegraph
 {
 
+struct SceneMeshDataDesc
+{
+    MeshBufferHandle handle;
+    std::string name;
+};
+
 class Scene : public core::NamedEntity<class_names::Scene>
 {
 public:
@@ -25,6 +31,7 @@ public:
 
 private:
     static constexpr char const* c_khr_light_punctual_ext = "KHR_lights_punctual";
+    static constexpr char const* c_ext_mesh_gpu_instancing = "EXT_mesh_gpu_instancing";
 
 
 private:
@@ -46,8 +53,10 @@ private:
     std::vector<Image> m_images;
     std::vector<Sampler> m_samplers;
 
+    
+    std::unique_ptr<SceneMeshMemory> m_scene_memory;
+    std::vector<SceneMeshDataDesc> m_scene_mesh_datas;
     std::vector<BufferView> m_memory_views;
-    std::unique_ptr<Buffer> m_scene_memory;
 
 };
 

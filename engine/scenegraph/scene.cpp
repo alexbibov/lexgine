@@ -87,13 +87,25 @@ std::shared_ptr<Scene> Scene::loadScene(core::Globals& globals, std::filesystem:
             }
         );
 
-        rv->m_scene_memory.reset(new Buffer{ globals, scene_memory_size });
+        rv->m_scene_memory.reset(new SceneMeshMemory{ globals, scene_memory_size });
         for (tinygltf::Buffer& buffer : gltf_model.buffers)
         {
-
+            rv->m_scene_mesh_datas.push_back(
+                {
+                    .handle = rv->m_scene_memory->addData(buffer.data.data(), buffer.data.size()),
+                    .name = buffer.name
+                }
+            );
         }
-        
-        
+
+        // Parse meshes
+        for (tinygltf::Mesh& mesh : gltf_model.meshes)
+        {
+            if (mesh.extensions.find(c_ext_mesh_gpu_instancing) != mesh.extensions.end())
+            {
+                // Mesh has GPU instancing
+            }
+        }
     }
 
     if (!rv->loadLights(gltf_model)) return nullptr;

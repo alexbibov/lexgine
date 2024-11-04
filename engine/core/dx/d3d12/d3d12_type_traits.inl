@@ -427,6 +427,11 @@ struct DataFormatToStaticType<misc::DataFormat::int16>
     using value_type = std::int16_t;
 };
 
+template <>
+struct DataFormatToStaticType<misc::DataFormat::int8> {
+    using value_type = std::int8_t;
+};
+
 template<>
 struct DataFormatToStaticType<misc::DataFormat::uint64>
 {
@@ -442,6 +447,11 @@ struct DataFormatToStaticType<misc::DataFormat::uint32>
 template<>
 struct DataFormatToStaticType<misc::DataFormat::uint16>
 {
+    using value_type = std::uint8_t;
+};
+
+template <>
+struct DataFormatToStaticType<misc::DataFormat::uint8> {
     using value_type = std::uint16_t;
 };
 
@@ -494,6 +504,10 @@ struct StaticTypeToDataFormat<int16_t>
 {
     static misc::DataFormat const data_format = misc::DataFormat::int16;
 };
+template <>
+struct StaticTypeToDataFormat<int8_t> {
+    static misc::DataFormat const data_format = misc::DataFormat::int8;
+};
 
 
 template<>
@@ -514,6 +528,11 @@ struct StaticTypeToDataFormat<uint16_t>
     static misc::DataFormat const data_format = misc::DataFormat::uint16;
 };
 
+
+template <>
+struct StaticTypeToDataFormat<uint8_t> {
+    static misc::DataFormat const data_format = misc::DataFormat::uint8;
+};
 }
 
 

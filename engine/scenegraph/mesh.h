@@ -1,8 +1,12 @@
 #ifndef LEXGINE_SCENEGRAPH_MESH_H
+#define LEXGINE_SCENEGRAPH_MESH_H
 
 #include <vector>
 
 #include "material.h"
+#include "engine/core/vertex_attributes.h"
+
+#include "submesh.h"
 
 namespace lexgine::scenegraph
 {
@@ -19,25 +23,16 @@ enum class SubmeshTopology
 };
 
 
-class Primitive 
+class Mesh final
 {
 public:
-    Primitive();
-};
-
-class Mesh
-{
-public:
-    Mesh();
 
 
 private:
-
-
+    
 };
 
 }
 
 
-#define LEXGINE_SCENEGRAPH_MESH_H
 #endif

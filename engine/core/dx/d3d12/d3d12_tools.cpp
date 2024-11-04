@@ -6,14 +6,14 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-bool DxgiFormatFetcher::key::operator==(key const& other) const
+bool DxgiFormatFetcher::format_desc::operator==(format_desc const& other) const
 {
     return is_fp == other.is_fp && is_signed == other.is_signed
         && is_normalized == other.is_normalized && element_count == other.element_count
         && element_size == other.element_size;
 }
 
-size_t DxgiFormatFetcher::key_hasher::operator()(key const& k) const
+size_t DxgiFormatFetcher::key_hasher::operator()(format_desc const& k) const
 {
     return static_cast<size_t>(k.is_fp) | (static_cast<size_t>(k.is_signed) << 1) | (static_cast<size_t>(k.is_normalized) << 2)
         | (static_cast<size_t>(k.element_count) << 3) | (static_cast<size_t>(k.element_size) << 6);
@@ -41,7 +41,7 @@ public:
         constexpr auto element_size = misc::get_tuple_element<TupleListType, 4>::value;
 
         DxgiFormatFetcher::dxgi_types_map& d3d12_formats_map = *reinterpret_cast<DxgiFormatFetcher::dxgi_types_map*>(user_data);
-        constexpr DxgiFormatFetcher::key key{ is_fp, is_signed, is_normalized, element_count, element_size };
+        constexpr DxgiFormatFetcher::format_desc key{ is_fp, is_signed, is_normalized, element_count, element_size };
         if constexpr (is_fp) {
             if constexpr (element_size == 2) {
                 DXGI_FORMAT format = d3d12_type_traits<half, element_count, is_normalized>::dxgi_format;
@@ -98,13 +98,22 @@ DxgiFormatFetcher::DxgiFormatFetcher()
         DxgiTypeTraitsArguments::element_count_vals,
         DxgiTypeTraitsArguments::element_size_vals>::loop(&m_d3d12_formats);
 
+    for (auto const& e : m_d3d12_formats) 
+    {
+        m_d3d12_format_descriptions.insert(std::make_pair(e.second, e.first));
+    }
 }
 
 DXGI_FORMAT DxgiFormatFetcher::fetch(bool is_floating_point, bool is_signed, bool is_normalized, unsigned char element_count, unsigned char element_size) const
 {
-    auto it = m_d3d12_formats.find(key{ .is_fp = is_floating_point, .is_signed = is_signed, .is_normalized = is_normalized,
+    auto it = m_d3d12_formats.find(format_desc{ .is_fp = is_floating_point, .is_signed = is_signed, .is_normalized = is_normalized,
         .element_count = element_count, .element_size = element_size });
     return it != m_d3d12_formats.end() ? it->second : DXGI_FORMAT_UNKNOWN;
+}
+
+DxgiFormatFetcher::format_desc DxgiFormatFetcher::fetch(DXGI_FORMAT format) const
+{
+    return m_d3d12_format_descriptions.at(format);
 }
 
 }

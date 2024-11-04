@@ -2,7 +2,7 @@
 #define LEXGINE_CORE_VERTEX_ATTRIBUTES_H
 
 #include <string>
-#include <list>
+#include <vector>
 #include <memory>
 
 #include <dxgi1_5.h>
@@ -115,7 +115,7 @@ private:
 
 
 //! OS- and API- agnostic vertex attribute specification list
-using VertexAttributeSpecificationList = std::list<std::shared_ptr<AbstractVertexAttributeSpecification>>;
+using VertexAttributeSpecificationList = std::vector<std::shared_ptr<AbstractVertexAttributeSpecification>>;
 
 
 }
