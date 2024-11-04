@@ -48,7 +48,7 @@ public:
         // Describes single subresource from the source data 
         struct Subresource
         {
-            void* p_data;    //!< pointer to the source subresource data
+            void const* p_data;    //!< pointer to the source subresource data
             size_t row_pitch;    //!< size in bytes of a single row in the subresource
             size_t slice_pitch;    //!< size in bytes of a single data slice in the subresource
         };
@@ -59,7 +59,7 @@ public:
     //! Describes buffer source dataset
     struct BufferSourceDescriptor
     {
-        void* p_data;    //!< buffer source data
+        void const* p_data;    //!< buffer source data
         size_t buffer_size;    //!< size of the buffer given in bytes
     };
 
@@ -69,11 +69,11 @@ public:
     // ResourceDataUploader(ResourceDataUploader&&) = delete;
 
     //! Schedules new texture resource for upload
-    void addResourceForUpload(DestinationDescriptor const& destination_descriptor,
+    bool addResourceForUpload(DestinationDescriptor const& destination_descriptor,
         TextureSourceDescriptor const& source_descriptor);
 
     //! Schedules new buffer resource for upload
-    void addResourceForUpload(DestinationDescriptor const& destination_descriptor,
+    bool addResourceForUpload(DestinationDescriptor const& destination_descriptor,
         BufferSourceDescriptor const& source_descriptor);
 
 
@@ -96,7 +96,7 @@ private:
     bool m_is_async_copy_enabled;
     DedicatedUploadDataStreamAllocator& m_upload_buffer_allocator;    //!< upload buffer allocation manager
     CommandList m_upload_command_list;    //!< command list intended to contain upload commands
-    bool m_upload_command_list_needs_reset;
+    bool m_upload_command_list_needs_reset{ true };
 };
 
 }
