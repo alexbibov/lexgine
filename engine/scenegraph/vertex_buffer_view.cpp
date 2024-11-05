@@ -12,18 +12,23 @@ size_t VertexAttributeDesc::size() const
     unsigned element_size{};
     switch (format)
     {
-    case VertexAttributeFormat::floating_point_single_precision:
-    case VertexAttributeFormat::integer_32_bit:
-    case VertexAttributeFormat::unsinged_integer_32_bit:
+    case core::misc::DataFormat::float64:
+    case core::misc::DataFormat::int64:
+    case core::misc::DataFormat::uint64:
+        element_size = 8;
+        break;
+    case core::misc::DataFormat::float32:
+    case core::misc::DataFormat::int32:
+    case core::misc::DataFormat::uint32:
         element_size = 4;
         break;
-    case VertexAttributeFormat::floating_point_half_precision:
-    case VertexAttributeFormat::integer_16_bit:
-    case VertexAttributeFormat::unsigned_integer_16_bit:
+    case core::misc::DataFormat::float16:
+    case core::misc::DataFormat::int16:
+    case core::misc::DataFormat::uint16:
         element_size = 2;
         break;
-    case VertexAttributeFormat::integer_8_bit:
-    case VertexAttributeFormat::unsigned_integer_8_bit:
+    case core::misc::DataFormat::int8:
+    case core::misc::DataFormat::uint8:
         element_size = 1;
         break;
     default:
