@@ -5,8 +5,8 @@
 
 #include "material.h"
 #include "engine/core/vertex_attributes.h"
-
-#include "submesh.h"
+#include "engine/scenegraph/scene_mesh_memory.h"
+#include "engine/scenegraph/submesh.h"
 
 namespace lexgine::scenegraph
 {
@@ -26,9 +26,16 @@ enum class SubmeshTopology
 class Mesh final
 {
 public:
+    Mesh(std::string const& name);
+
+    void applyMorphWeights(std::vector<double>& morph_target_weights);
+
 
 
 private:
+    std::vector<Submesh> m_submeshes;
+    std::string m_name;
+    std::vector<double> m_morph_weights;
     
 };
 

@@ -6,6 +6,7 @@ class Image;
 class Material;
 class SceneMeshMemory;
 class BufferView;
+class Mesh;
 
 }
 

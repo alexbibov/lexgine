@@ -4,12 +4,14 @@
 #include <filesystem>
 #include <unordered_map>
 
-#include <engine/core/lexgine_core_fwd.h>
-#include <engine/core/entity.h>
-#include <engine/core/misc/datetime.h>
-#include <engine/core/misc/optional.h>
+#include "engine/core/lexgine_core_fwd.h"
+#include "engine/scenegraph/lexgine_scenegraph_fwd.h"
+#include "engine/core/entity.h"
+#include "engine/core/misc/datetime.h"
+#include "engine/core/misc/optional.h"
 #include "class_names.h"
 #include "scene_mesh_memory.h"
+#include "mesh.h"
 #include "buffer_view.h"
 #include "light.h"
 #include "image.h"
@@ -18,11 +20,6 @@
 namespace lexgine::scenegraph
 {
 
-struct SceneMeshDataDesc
-{
-    MeshBufferHandle handle;
-    std::string name;
-};
 
 class Scene : public core::NamedEntity<class_names::Scene>
 {
@@ -33,6 +30,14 @@ private:
     static constexpr char const* c_khr_light_punctual_ext = "KHR_lights_punctual";
     static constexpr char const* c_ext_mesh_gpu_instancing = "EXT_mesh_gpu_instancing";
 
+private:
+    struct SceneMemory
+    {
+        std::unique_ptr<SceneMeshMemory> scene_memory_buffer;
+        std::vector<SceneMemoryBufferHandle> m_scene_memory_handles;
+
+        SceneMemoryBufferHandle getBuffer(size_t id) { return m_scene_memory_handles[id]; }
+    };
 
 private:
     bool loadLights(tinygltf::Model& model);
@@ -43,7 +48,6 @@ private:
     bool loadNodes(tinygltf::Model& model);
     bool loadAnimations(tinygltf::Model& model);
 
-private:
     Scene() = default;
 
 private:
@@ -53,9 +57,9 @@ private:
     std::vector<Image> m_images;
     std::vector<Sampler> m_samplers;
 
-    
-    std::unique_ptr<SceneMeshMemory> m_scene_memory;
-    std::vector<SceneMeshDataDesc> m_scene_mesh_datas;
+    SceneMemory m_scene_memory;
+
+    std::vector<Mesh> m_scene_meshes;
     std::vector<BufferView> m_memory_views;
 
 };

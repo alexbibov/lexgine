@@ -14,7 +14,7 @@
 namespace lexgine::scenegraph
 {
 
-struct MeshBufferHandle
+struct SceneMemoryBufferHandle
 {
     size_t offset;
     size_t size;
@@ -27,7 +27,7 @@ public:
 
     size_t size() const { return m_gpu_scene_memory_buffer.descriptor().width; }
 
-    MeshBufferHandle addData(void const* p_data, size_t size);    //! Adds new data to be asynchronously uploaded to the scene mesh memory and returns a handle allowing to access it later
+    SceneMemoryBufferHandle addData(void const* p_data, size_t size);    //! Adds new data to be asynchronously uploaded to the scene mesh memory and returns a handle allowing to access it later
     bool isReady() const;
 
     core::dx::d3d12::Resource getGPUResource() const { return m_gpu_scene_memory_buffer; };

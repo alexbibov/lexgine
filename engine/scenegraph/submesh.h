@@ -17,8 +17,8 @@ enum class IndexType
 class Submesh final
 {
 public:
-    Submesh(VertexBufferView const& vertex_buffer_view, size_t instance_count);
-    void setIndexBuffer(MeshBufferHandle const& buffer_handle, IndexType index_data_type);
+    Submesh(VertexBufferView const& vertex_buffer_view);
+    void setIndexBuffer(SceneMemoryBufferHandle const& buffer_handle, IndexType index_data_type);
 
     void draw(core::dx::d3d12::CommandList& recording_command_list) const;
 
@@ -26,7 +26,7 @@ private:
     VertexBufferView m_vb_view;
     size_t m_instance_count;
     IndexType m_ib_data_type;
-    MeshBufferHandle m_ib_view;
+    SceneMemoryBufferHandle m_ib_view;
 };
 
 }

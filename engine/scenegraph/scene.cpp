@@ -79,7 +79,7 @@ std::shared_ptr<Scene> Scene::loadScene(core::Globals& globals, std::filesystem:
 
     // Prepare scene memory
     {
-        uint64_t scene_memory_size = std::accumulate(gltf_model.buffers.begin(), gltf_model.buffers.end(), 
+        uint64_t scene_memory_size = std::accumulate(gltf_model.buffers.begin(), gltf_model.buffers.end(),
             static_cast<uint64_t>(0),
             [](uint64_t acc, tinygltf::Buffer const& e)
             {
@@ -87,32 +87,38 @@ std::shared_ptr<Scene> Scene::loadScene(core::Globals& globals, std::filesystem:
             }
         );
 
-        rv->m_scene_memory.reset(new SceneMeshMemory{ globals, scene_memory_size });
-        for (tinygltf::Buffer& buffer : gltf_model.buffers)
+        rv->m_scene_memory.scene_memory_buffer.reset(new SceneMeshMemory{ globals, scene_memory_size });
+        for (tinygltf::Buffer const& buffer : gltf_model.buffers)
         {
-            rv->m_scene_mesh_datas.push_back(
-                {
-                    .handle = rv->m_scene_memory->addData(buffer.data.data(), buffer.data.size()),
-                    .name = buffer.name
-                }
+            rv->m_scene_memory.m_scene_memory_handles.push_back(
+                rv->m_scene_memory.scene_memory_buffer->addData(buffer.data.data(),
+                    buffer.data.size())
             );
         }
 
-        // Parse meshes
-        for (tinygltf::Mesh& mesh : gltf_model.meshes)
-        {
-            if (mesh.extensions.find(c_ext_mesh_gpu_instancing) != mesh.extensions.end())
-            {
-                // Mesh has GPU instancing
-            }
-        }
     }
+        
+    // Parse scene nodes and construct scene graph
+    //for (tinygltf::Node& node : gltf_model.nodes)
+    //{
+    //    if()
+    //    if (mesh.extensions.find(c_ext_mesh_gpu_instancing) != mesh.extensions.end())
+    //    {
+    //        // Mesh has GPU instancing
+    //        tinygltf::Value const& ext_mesh_gpu_instancing = mesh.extensions.at(c_ext_mesh_gpu_instancing);
+
+    //        for (std::string const& e : ext_mesh_gpu_instancing.Keys())
+    //        {
+
+    //        }
+    //    }
+    //}
 
     if (!rv->loadLights(gltf_model)) return nullptr;
     if (!rv->loadTextures(gltf_model, timestamp, *globals.get<conversion::ImageLoaderPool>())) return nullptr;
     if (!rv->loadMaterials(gltf_model)) return nullptr;
-    /*if (!rv->loadMeshes(gltf_model)) return nullptr;
-    if (!rv->loadCameras(gltf_model)) return nullptr;
+    if (!rv->loadMeshes(gltf_model)) return nullptr;
+    /*if (!rv->loadCameras(gltf_model)) return nullptr;
     if (!rv->loadNodes(gltf_model)) return nullptr;
     if (!rv->loadAnimations(gltf_model)) return nullptr;*/
 
@@ -259,7 +265,21 @@ bool Scene::loadMaterials(tinygltf::Model& model)
 
 bool Scene::loadMeshes(tinygltf::Model& model)
 {
-
+    // Parse meshes
+    for (tinygltf::Mesh const& mesh : model.meshes)
+    {
+        // Parse mesh primitives
+        auto const& morph_weights = mesh.weights;
+        for (tinygltf::Primitive const& mesh_primitive : mesh.primitives)
+        {
+            lexgine::core::VertexAttributeSpecificationList vertex_attributes {};
+            for (auto const& e : mesh_primitive.attributes) 
+            {
+                std::string const& attribute_name = e.first;
+                int accessor_id = e.second;
+            }
+        }
+    }
     return true;
 }
 
