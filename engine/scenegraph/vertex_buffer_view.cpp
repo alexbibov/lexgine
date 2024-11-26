@@ -7,7 +7,7 @@
 namespace lexgine::scenegraph
 {
 
-size_t VertexAttributeDesc::size() const
+size_t VertexBufferView::VertexAttributeDesc::size() const
 {
     unsigned element_size{};
     switch (format)
@@ -39,7 +39,7 @@ size_t VertexAttributeDesc::size() const
 }
 
 
-size_t VertexBufferFormatDesc::vertexStride() const
+size_t VertexBufferView::VertexBufferFormatDesc::vertexStride() const
 {
     size_t rv {};
     for (auto const& e : vertex_attributes) {
@@ -60,7 +60,7 @@ VertexBufferView::VertexBufferView(core::Globals const& globals, SceneMeshMemory
 
 void VertexBufferView::setVertexBuffer(
     size_t input_slot,
-    MeshBufferHandle const& buffer_handle,
+    SceneMemoryBufferHandle const& buffer_handle,
     core::VertexAttributeSpecificationList const& vertexAttributes,
     size_t vertex_count
 )

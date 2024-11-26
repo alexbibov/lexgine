@@ -38,7 +38,7 @@ SceneMeshMemory::SceneMeshMemory(core::Globals& globals, uint64_t size)
 
 }
 
-MeshBufferHandle SceneMeshMemory::addData(void const* p_data, size_t size)
+SceneMemoryBufferHandle SceneMeshMemory::addData(void const* p_data, size_t size)
 {
     std::lock_guard<std::mutex> lock { m_data_upload_mutex };
 
