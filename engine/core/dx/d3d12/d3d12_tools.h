@@ -664,6 +664,7 @@ inline D3D12_DESCRIPTOR_HEAP_TYPE d3d12Convert(DescriptorHeapType descriptor_hea
 #include <3rd_party/half/half.h>
 #include "d3d12_min_mag_filter_converter.inl"
 #include "d3d12_type_traits.inl"
+#include "engine/core/lexgine_core_fwd.h"
 
 
 namespace lexgine::core::dx::d3d12 {
@@ -687,8 +688,21 @@ public:
         size_t operator()(format_desc const& k) const;
     };
 
+
     using dxgi_types_map = std::unordered_map<format_desc, DXGI_FORMAT, key_hasher, std::equal_to<void>>;
     using dxgi_type_descs_map = std::unordered_map<DXGI_FORMAT, format_desc>;
+    
+    struct va_spec 
+    {
+        misc::DataFormat format;
+        unsigned char element_count;
+        bool is_normalized;
+        unsigned char primitive_assembler_input_slot;
+        uint32_t element_offset;
+        char const* name;
+        uint32_t name_index;
+        uint32_t instancing_data_rate;
+    };
 
 public:
     DxgiFormatFetcher();
@@ -702,6 +716,8 @@ public:
         unsigned char element_count, unsigned char element_size) const;
 
     format_desc fetch(DXGI_FORMAT format) const;
+
+    std::shared_ptr<AbstractVertexAttributeSpecification> createVertexAttribute(va_spec const& spec) const;
 
 private:
     dxgi_types_map m_d3d12_formats;
