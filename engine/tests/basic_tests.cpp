@@ -305,7 +305,7 @@ TEST(EngineTests_Concurrency, TestTaskGraphParser)
         Head.addDependent(F);
 
 
-        TaskGraph testGraph{ std::set<TaskGraphRootNode const*>{
+        TaskGraph testGraph{ std::unordered_set<TaskGraphRootNode const*>{
             ROOT_NODE_CAST(&Head),
             ROOT_NODE_CAST(&F),
             ROOT_NODE_CAST(&A) } };
@@ -431,7 +431,7 @@ TEST(EngineTests_Concurrency, TestTaskScheuling)
 
 
 
-        TaskGraph taskGraph(std::set<TaskGraphRootNode const*>{
+        TaskGraph taskGraph(std::unordered_set<TaskGraphRootNode const*>{
             ROOT_NODE_CAST(&op1), ROOT_NODE_CAST(&op2),
                 ROOT_NODE_CAST(&op3), ROOT_NODE_CAST(&op4) });
         taskGraph.createDotRepresentation("task_graph.gv");

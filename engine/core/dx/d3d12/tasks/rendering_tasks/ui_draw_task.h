@@ -18,6 +18,7 @@
 #include "engine/osinteraction/windows/lexgine_osinteraction_windows_fwd.h"
 #include "engine/osinteraction/listener.h"
 #include "engine/osinteraction/windows/window_listeners.h"
+#include "engine/core/dx/dxcompilation/shader_function.h"
 
 #include "rendering_work.h"
 
@@ -92,7 +93,7 @@ private:
     tasks::HLSLCompilationTask* m_ps = nullptr;
     tasks::GraphicsPSOCompilationTask* m_pso = nullptr;
     VertexAttributeSpecificationList m_va_list;
-    std::unique_ptr<dxcompilation::ShaderFunction> m_shader_function;
+    dxcompilation::ShaderFunction m_shader_function;
     GraphicsPSODescriptor m_pso_desc;
 
     ConstantBufferReflection m_constant_buffer_reflection;
@@ -119,6 +120,7 @@ private:
 private:
     static std::string const c_interface_update_section;
     static size_t const c_interface_update_section_size = 1024 * 1024 * 8;
+    tasks::RootSignatureCompilationTask* m_rs;
 };
 
 }

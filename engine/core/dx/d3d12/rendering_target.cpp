@@ -125,12 +125,12 @@ DXGI_FORMAT RenderingTarget::depthFormat() const
     return m_depth_target_format;
 }
 
-RenderTargetViewDescriptorTable const& RenderingTarget::rtvTable() const
+DescriptorTable const& RenderingTarget::rtvTable() const
 {
     return m_rtvs_table;
 }
 
-DepthStencilViewDescriptorTable const& RenderingTarget::dsvTable() const
+DescriptorTable const& RenderingTarget::dsvTable() const
 {
     return m_dsv_table;
 }

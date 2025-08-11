@@ -10,6 +10,7 @@
 #include "engine/core/dx/d3d12/vertex_buffer.h"
 #include "engine/core/dx/d3d12/constant_buffer_data_mapper.h"
 #include "engine/core/dx/d3d12/descriptor_table_builders.h"
+#include "engine/core/dx/dxcompilation/shader_function.h"
 
 #include "rendering_work.h"
 
@@ -56,12 +57,11 @@ private:
     std::array<float, 64> m_box_vertices;
     std::array<short, 36> m_box_indices;
 
-    ShaderResourceDescriptorTable m_srv_table;
-    SamplerResourceDescriptorTable m_sampler_table;
-
     PerFrameUploadDataStreamAllocator::address_type m_allocation;
 
     CommandList* m_cmd_list_ptr = nullptr;
+
+    dxcompilation::ShaderFunction m_shader_function;
 };
 
 }

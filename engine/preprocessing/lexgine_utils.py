@@ -74,6 +74,9 @@ def search_for_lexgine_namespace(source: str, offset: int) -> Optional[common_ty
         lexgine_namespace_begin_idx, lexgine_namespace_end_idx = util.extract_scope(
             source, lexgine_namespace_start_idx, common_types.ScopeType.BRACES
         )
+        if lexgine_namespace_start_idx == -1 or lexgine_namespace_end_idx == -1:
+            return None  # ivalid scope
+
         lexgine_namespace_definition_token = source[lexgine_namespace_start_idx:lexgine_namespace_begin_idx].strip()
 
         lexgine_namespace_begin_line = util.count_lines_till_index(source, 0, lexgine_namespace_begin_idx)

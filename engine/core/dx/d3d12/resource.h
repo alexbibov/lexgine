@@ -144,7 +144,13 @@ class Resource : public NamedEntity<class_names::D3D12_Resource>
 public:
     Resource(ComPtr<ID3D12Resource> const& native = nullptr);
     Resource(ResourceState const& initial_state, ComPtr<ID3D12Resource> const& native = nullptr);
+    Resource(Resource const&) = default;
+    Resource(Resource&&) = default;
     virtual ~Resource() = default;
+
+    Resource& operator=(Resource const&) = default;
+    Resource& operator=(Resource&&) = default;
+    Resource& operator=(std::nullptr_t);
 
     void setStringName(std::string const& entity_string_name) override;
 
@@ -178,13 +184,6 @@ public:
      */
     PlacedResource(Heap const& heap, uint64_t heap_offset, ResourceState const& initial_state,
         misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value, ResourceDescriptor const& descriptor);
-
-    Heap const& heap() const;    //! returns the heap, in which the resource resides
-    uint64_t offset() const;    //! returns offset to the resource in the owning heap    
-
-private:
-    Heap const& m_heap;    //!< reference to the heap, in which the resource resides
-    uint64_t m_offset;    //!< offset to the resource in the owning heap
 };
 
 
@@ -205,16 +204,9 @@ public:
         uint32_t node_mask = 0x1, uint32_t node_exposure_mask = 0x1);
 
 private:
-    void createResource(D3D12_HEAP_PROPERTIES const& owning_heap_properties,
+    void createResource(Device const& device, D3D12_HEAP_PROPERTIES const& owning_heap_properties,
         ResourceState resource_init_state, ResourceDescriptor const& resource_desc,
         HeapCreationFlags resource_usage_flags, misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value);
-
-private:
-    Device const& m_device;
-    CPUPageProperty m_cpu_page_property;
-    GPUMemoryPool m_gpu_memory_pool;
-    uint32_t m_node_mask;
-    uint32_t m_node_exposure_mask;
 };
 
 

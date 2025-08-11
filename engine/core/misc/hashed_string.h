@@ -10,6 +10,9 @@ class HashedString
 public:
     HashedString();
     HashedString(std::string const& str);
+    HashedString(char const* p_chars)
+        : HashedString{ std::string{p_chars} }
+    { }
 
     bool operator<(HashedString const& other) const;
     bool operator==(HashedString const& other) const;

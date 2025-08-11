@@ -77,16 +77,13 @@ public:
 
     //! Returns the total size in bytes required to store currently assembled reflection
     inline size_t size() const { return m_current_offset; }
-
-    //! returns reflection entry corresponding to the given name
-    ReflectionEntry const& operator[](std::string const& name) const;
-
+    
     //! returns reflection entry corresponding to the given hash
     ReflectionEntry const& operator[](misc::HashedString const& hash) const;
 
 private:
     size_t m_current_offset;
-    std::map<misc::HashedString, ReflectionEntry> m_reflection_data;
+    std::unordered_map<misc::HashedString, ReflectionEntry> m_reflection_data;
 };
 
 }

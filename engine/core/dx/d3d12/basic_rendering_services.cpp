@@ -40,11 +40,10 @@ namespace {
 
 
 BasicRenderingServices::BasicRenderingServices(Globals& globals)
-    : m_device{ *globals.get<Device>() }
+    : ProvidesGlobals{ globals }
+    , m_device{ *globals.get<Device>() }
     , m_dx_resources{ *globals.get<DxResourceFactory>() }
     , m_resource_uploader{ globals.get<conversion::TextureConverter>()->getDataUploader() }
-    , m_static_cbv_srv_uav_descriptor_allocator{ m_dx_resources.getStaticAllocationManagerForDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav, 0) }
-    , m_static_sampler_descriptor_allocator{ m_dx_resources.getStaticAllocationManagerForDescriptorHeap(m_device, DescriptorHeapType::sampler, 0) }
     , m_current_rendering_target_ptr{ nullptr }
     , m_rendering_target_color_format{ DXGI_FORMAT_UNKNOWN }
     , m_rendering_target_depth_format{ DXGI_FORMAT_UNKNOWN }
@@ -74,8 +73,6 @@ void BasicRenderingServices::endRendering(CommandList& command_list) const
 void BasicRenderingServices::setDefaultResources(CommandList& command_list) const
 {
     command_list.setDescriptorHeaps(m_page0_descriptor_heaps);
-    command_list.setRootDescriptorTable(static_cast<uint32_t>(dxcompilation::ShaderFunctionConstantBufferRootIds::count), m_static_cbv_srv_uav_descriptor_allocator.getBaseGpuAddress());
-    command_list.setRootDescriptorTable(static_cast<uint32_t>(dxcompilation::ShaderFunctionConstantBufferRootIds::count) + 1, m_static_sampler_descriptor_allocator.getBaseGpuAddress());
 }
 
 void BasicRenderingServices::setDefaultViewport(CommandList& command_list) const
@@ -86,8 +83,8 @@ void BasicRenderingServices::setDefaultViewport(CommandList& command_list) const
 
 void BasicRenderingServices::setDefaultRenderingTarget(CommandList& command_list) const
 {
-    RenderTargetViewDescriptorTable const& rtv_table = m_current_rendering_target_ptr->rtvTable();
-    DepthStencilViewDescriptorTable const& dsv_table_ptr = m_current_rendering_target_ptr->dsvTable();
+    DescriptorTable const& rtv_table = m_current_rendering_target_ptr->rtvTable();
+    DescriptorTable const& dsv_table_ptr = m_current_rendering_target_ptr->dsvTable();
 
     command_list.outputMergerSetRenderTargets(&rtv_table, (1ULL << m_current_rendering_target_ptr->count()) - 1,
         m_current_rendering_target_ptr->hasDepth() ? &dsv_table_ptr : nullptr, 0U);

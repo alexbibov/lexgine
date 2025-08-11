@@ -29,7 +29,7 @@ TaskGraph::TaskGraph(uint8_t num_workers, std::string const& name) :
     setStringName(name);
 }
 
-TaskGraph::TaskGraph(std::set<TaskGraphRootNode const*> const& root_nodes,
+TaskGraph::TaskGraph(std::unordered_set<TaskGraphRootNode const*> const& root_nodes,
     uint8_t num_workers, std::string const& name) :
     TaskGraph{ num_workers, name }
 {
@@ -61,7 +61,7 @@ TaskGraph& TaskGraph::operator=(TaskGraph&& other)
     return *this;
 }
 
-void TaskGraph::setRootNodes(std::set<TaskGraphRootNode const*> const& root_nodes)
+void TaskGraph::setRootNodes(std::unordered_set<TaskGraphRootNode const*> const& root_nodes)
 {
     m_root_nodes = root_nodes;
     m_compiled_task_graph.clear();
@@ -140,7 +140,7 @@ void TaskGraph::createDotRepresentation(std::string const& destination_path)
     }
 }
 
-std::set<TaskGraphRootNode const*> const& TaskGraph::rootNodes() const
+std::unordered_set<TaskGraphRootNode const*> const& TaskGraph::rootNodes() const
 {
     return m_root_nodes;
 }

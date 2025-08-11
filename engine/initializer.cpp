@@ -29,8 +29,10 @@ EngineSettings::EngineSettings()
     : engine_api{ core::EngineApi::Direct3D12 }
     , debug_mode{ false }
     , enable_profiling{ false }
+    , msaa_mode{ core::MSAAMode::none }
     , global_lookup_prefix{ LEXGINE_GLOBAL_LOOKUP_PREFIX }
     , settings_lookup_path{ LEXGINE_SETTINGS_PATH }
+    , shaders_lookup_path{ LEXGINE_SHADERS_PATH }
     , logging_output_path{ "" }
     , log_name{ "lexgine.log" }
 {
@@ -66,10 +68,12 @@ Initializer::Initializer(EngineSettings const& settings)
             d3d12_engine_settings.gpu_based_validation_settings = gpu_based_validation_settings;
         }
         d3d12_engine_settings.enable_profiling = settings.enable_profiling;
+        d3d12_engine_settings.msaa_mode = settings.msaa_mode;
         d3d12_engine_settings.adapter_enumeration_preference = core::dx::dxgi::DxgiGpuPreference::high_performance;
         d3d12_engine_settings.global_lookup_prefix = settings.global_lookup_prefix;
         d3d12_engine_settings.settings_lookup_path = settings.settings_lookup_path;
         d3d12_engine_settings.global_settings_json_file = settings.global_settings_json_file;
+        d3d12_engine_settings.shaders_lookup_path = settings.shaders_lookup_path;
         d3d12_engine_settings.logging_output_path = settings.logging_output_path;
         d3d12_engine_settings.log_name = settings.log_name;
         m_d3d12_initializer = std::make_unique<core::dx::D3D12Initializer>(d3d12_engine_settings);

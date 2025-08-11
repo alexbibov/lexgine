@@ -45,7 +45,10 @@ public:
         return rv;
     }
 
-    std::string resolveIncludeDirectivesInShaderSource(std::string const& shader_source_code)
+    std::string resolveIncludeDirectivesInShaderSource(
+        std::string const& shader_source_code,
+        const std::vector<std::string>& lookup_directories
+    )
     {
         std::regex const include_directive_syntax{ R"%(^\s*//!include\s*(".")\s*$)%" };
         std::string processed_source_code{ shader_source_code };
@@ -63,8 +66,33 @@ public:
             else
             {
                 std::string include_path{ m[1].str().begin() + 1 , m[1].str().end() - 1 };
-                std::string included_source = resolveIncludeDirectivesInShaderSource(readSourceFile(include_path));
-
+                std::string included_source{};
+                bool found{ false };
+                if (misc::doesFileExist(include_path))
+                {
+                    included_source = resolveIncludeDirectivesInShaderSource(readSourceFile(include_path), lookup_directories);
+                    found = true;
+                }
+                else
+                {
+                    for (const std::string& d : lookup_directories)
+                    {
+                        if (misc::doesFileExist(d + include_path))
+                        {
+                            included_source = resolveIncludeDirectivesInShaderSource(readSourceFile(include_path), lookup_directories);
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if (!found)
+                {
+                    LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, 
+                        "Unable to locate include file '" 
+                        + include_path 
+                        + "' referenced from shader source ("
+                        + m_parent.m_path + ")");
+                }
                 processed_source_code = processed_source_code.substr(0, line_start) + included_source + processed_source_code.substr(line_end + 1);
 
                 line_start += included_source.length();
@@ -91,12 +119,15 @@ private:
 };
 
 
-ShaderSourceCodePreprocessor::ShaderSourceCodePreprocessor(std::string const& source, SourceType source_type):
+ShaderSourceCodePreprocessor::ShaderSourceCodePreprocessor(std::string const& source, 
+    SourceType source_type,
+    const std::vector<std::string>& lookup_directories):
     m_impl{ new impl{*this} }
 {
     switch (source_type)
     {
     case ShaderSourceCodePreprocessor::SourceType::file:
+        m_path = source;
         m_shader_source = m_impl->readSourceFile(source);
         break;
 
@@ -105,7 +136,7 @@ ShaderSourceCodePreprocessor::ShaderSourceCodePreprocessor(std::string const& so
         break;
     }
 
-    m_preprocessed_shader_source = m_impl->resolveIncludeDirectivesInShaderSource(m_shader_source);
+    m_preprocessed_shader_source = m_impl->resolveIncludeDirectivesInShaderSource(m_shader_source, lookup_directories);
 }
 
 ShaderSourceCodePreprocessor::~ShaderSourceCodePreprocessor() = default;

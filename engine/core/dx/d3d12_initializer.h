@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "engine/core/lexgine_core_fwd.h"
+#include "engine/core/engine_api.h"
 
 #include "engine/core/dx/dxgi/hw_adapter_enumerator.h"
 
@@ -29,10 +30,12 @@ struct D3D12EngineSettings
     bool debug_mode;
     lexgine::core::dx::d3d12::GpuBasedValidationSettings gpu_based_validation_settings;
     bool enable_profiling;
+    MSAAMode msaa_mode;
     lexgine::core::dx::dxgi::DxgiGpuPreference adapter_enumeration_preference;
     std::string global_lookup_prefix;
     std::string settings_lookup_path;
     std::string global_settings_json_file;
+    std::string shaders_lookup_path;
     std::string logging_output_path;
     std::string log_name;
 

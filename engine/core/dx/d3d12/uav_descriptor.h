@@ -43,7 +43,7 @@ struct UAVTextureArrayInfo final
 };
 
 
-class UAVDescriptor final : public HashableDescriptor<D3D12_UNORDERED_ACCESS_VIEW_DESC>
+class UAVDescriptor final
 {
 public:
     UAVDescriptor(Resource const& resource,

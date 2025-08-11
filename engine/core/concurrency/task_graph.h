@@ -21,7 +21,7 @@ public:
 
 public:
     TaskGraph(uint8_t num_workers = 8U, std::string const& name = "");
-    TaskGraph(std::set<TaskGraphRootNode const*> const& root_nodes,
+    TaskGraph(std::unordered_set<TaskGraphRootNode const*> const& root_nodes,
         uint8_t num_workers = 8U, std::string const& name = "");
     TaskGraph(TaskGraph const& other) = delete;
     TaskGraph(TaskGraph&& other);
@@ -30,13 +30,13 @@ public:
     TaskGraph& operator=(TaskGraph&& other);
 
     //! Sets new root nodes for the task graph
-    void setRootNodes(std::set<TaskGraphRootNode const*> const& root_nodes);    
+    void setRootNodes(std::unordered_set<TaskGraphRootNode const*> const& root_nodes);    
 
     uint8_t getNumberOfWorkerThreads() const;    //! returns number of worker threads assigned to the task graph
 
     void createDotRepresentation(std::string const& destination_path);    //! creates representation of the task graph using DOT language and saves it to the given destination path
 
-    std::set<TaskGraphRootNode const*> const& rootNodes() const; 
+    std::unordered_set<TaskGraphRootNode const*> const& rootNodes() const;
 
     //! Resets execution status of the task graph (effectively, this resets execution status of every node of the graph)
     void resetExecutionStatus();
@@ -76,7 +76,7 @@ private:
 
 private:
     uint8_t m_num_workers;    //!< number of worker threads assigned to the task graph
-    std::set<TaskGraphRootNode const*> m_root_nodes;    //!< set of pointers to task graph root nodes
+    std::unordered_set<TaskGraphRootNode const*> m_root_nodes;    //!< set of pointers to task graph root nodes
     std::list<TaskGraphNode> m_compiled_task_graph;    //!< list of all graph nodes sorted in topological order
     std::unique_ptr<BarrierSyncTask> m_barrier_sync_task;    //!< barrier synchronization dummy task used to determine when execution of compiled task graph is finished
 };

@@ -5,6 +5,7 @@
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
+#include "descriptor_heap.h"
 #include "engine/core/misc/optional.h"
 #include "resource.h"
 #include "resource_barrier_pack.h"
@@ -56,14 +57,14 @@ public:
     */
     DXGI_FORMAT depthFormat() const;
 
-    RenderTargetViewDescriptorTable const& rtvTable() const;
-    DepthStencilViewDescriptorTable const& dsvTable() const;
+    DescriptorTable const& rtvTable() const;
+    DescriptorTable const& dsvTable() const;
 
 private:
     DynamicResourceBarrierPack m_forward_barriers;
     DynamicResourceBarrierPack m_backward_barriers;
-    RenderTargetViewDescriptorTable m_rtvs_table;
-    DepthStencilViewDescriptorTable m_dsv_table;
+    DescriptorTable m_rtvs_table;
+    DescriptorTable m_dsv_table;
 
     std::vector<ColorTarget> m_color_targets;
     misc::Optional<DepthTarget> m_depth_target;

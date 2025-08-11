@@ -15,15 +15,6 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-template<typename TagType>
-struct DescriptorTable final
-{
-    uintptr_t cpu_pointer;
-    uint64_t gpu_pointer;
-    uint32_t descriptor_count;
-    uint32_t descriptor_size;
-};
-
 class ResourceViewDescriptorTableBuilder final
 {
 public:
@@ -33,7 +24,7 @@ public:
     void addDescriptor(SRVDescriptor const& descriptor);
     void addDescriptor(UAVDescriptor const& descriptor);
     
-    ShaderResourceDescriptorTable build() const;
+    DescriptorTable build() const;
 
 private:
     enum class descriptor_cache_type
@@ -76,7 +67,7 @@ public:
 
     void addDescriptor(SamplerDescriptor const& descriptor);
 
-    SamplerResourceDescriptorTable build() const;
+    DescriptorTable build() const;
 
 private:
     Globals& m_globals;
@@ -92,7 +83,7 @@ public:
     RenderTargetViewTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page);
     void addDescriptor(RTVDescriptor const& descriptor);
 
-    RenderTargetViewDescriptorTable build() const;
+    DescriptorTable build() const;
 
 private:
     Globals& m_globals;
@@ -108,7 +99,7 @@ public:
     DepthStencilViewTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page);
     void addDescriptor(DSVDescriptor const& descriptor);
 
-    DepthStencilViewDescriptorTable build() const;
+    DescriptorTable build() const;
 
 private:
     Globals& m_globals;

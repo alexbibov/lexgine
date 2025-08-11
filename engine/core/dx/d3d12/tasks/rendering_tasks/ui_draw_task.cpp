@@ -15,7 +15,6 @@
 #include "engine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
-#include "engine/core/dx/dxcompilation/shader_function.h"
 #include "engine/core/dx/dxcompilation/shader_stage.h"
 #include "engine/core/math/utility.h"
 #include "ui_draw_task.h"
@@ -215,7 +214,7 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
                 + "__" + std::to_string(rendering_configuration.depth_buffer_format), 0);
             m_pso->setVertexShaderCompilationTask(m_vs);
             m_pso->setPixelShaderCompilationTask(m_ps);
-            m_pso->setRootSignatureCompilationTask(m_shader_function->getBindingSignature());
+            m_pso->setRootSignatureCompilationTask(m_shader_function.buildBindingSignature());
         }
         else
         {
@@ -330,6 +329,10 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
     , m_basic_rendering_services{ basic_rendering_services }
     , m_time_counter{ std::chrono::high_resolution_clock::now().time_since_epoch().count() }
     , m_resource_uploader{ basic_rendering_services.resourceDataUploader() }
+    , m_shader_function{
+        m_globals,
+        dxcompilation::ShaderFunctionRootUniformBuffers::base_values::SceneUniforms
+    }
     , m_constant_data_mapper{ m_constant_buffer_reflection }
     , m_ui_data_allocator{ basic_rendering_services.dynamicGeometryStream() }
     , m_scissor_rectangles(1)
@@ -437,18 +440,25 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
         m_vs->execute(0);
         m_ps->execute(0);
 
-        m_shader_function = std::make_unique<dxcompilation::ShaderFunction>(m_globals, 0, "ui_shader_function");
-        dxcompilation::ShaderStage* p_vs_stage = m_shader_function->createShaderStage(m_vs);
-        dxcompilation::ShaderStage* p_ps_stage = m_shader_function->createShaderStage(m_ps);
+        dxcompilation::ShaderStage* p_vs_stage = m_shader_function.createShaderStage(m_vs);
+        dxcompilation::ShaderStage* p_ps_stage = m_shader_function.createShaderStage(m_ps);
+        p_vs_stage->build();
+        p_ps_stage->build();
+        m_rs = m_shader_function.buildBindingSignature();
+        m_rs->execute(0);
 
         m_constant_buffer_reflection = p_vs_stage->buildConstantBufferReflection(std::string{ "constants" });
         m_constant_data_mapper.addDataBinding("ProjectionMatrix", m_projection_matrix);
 
+        DescriptorHeap& resource_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav, 0);
+        DescriptorHeap& sampler_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler, 0);
+
+        m_shader_function.assignResourceDescriptors(dxcompilation::ShaderFunction::ShaderInputKind::srv, 0, DescriptorAllocationManager{ resource_heap });
+        m_shader_function.assignResourceDescriptors(dxcompilation::ShaderFunction::ShaderInputKind::sampler, 0, DescriptorAllocationManager{ sampler_heap });
+
         p_ps_stage->bindTexture(std::string{ "texture0" }, *m_fonts_texture);
         p_ps_stage->bindSampler(std::string{ "sampler0" }, FilterPack{ MinificationFilter::linear, MagnificationFilter::linear, 16,
             WrapMode::clamp, WrapMode::clamp, WrapMode::clamp }, math::Vector4f{ 0.f });
-
-        m_shader_function->prepare(false);
     }
     
 
@@ -578,7 +588,7 @@ void UIDrawTask::drawFrame()
                 p_draw_data->DisplaySize.x, p_draw_data->DisplaySize.y, -1.f, 1.f);
 
             m_cmd_list_ptr->setPipelineState(m_pso->getTaskData());
-            m_cmd_list_ptr->setRootSignature(m_shader_function->getBindingSignature()->getCacheName());
+            m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());
 
             m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
 
@@ -589,7 +599,9 @@ void UIDrawTask::drawFrame()
             m_cmd_list_ptr->outputMergerSetBlendFactor(math::Vector4f{ 0.f });
             m_basic_rendering_services.setDefaultRenderingTarget(*m_cmd_list_ptr);
             auto allocation = m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_constant_data_mapper);
-            m_cmd_list_ptr->setRootConstantBufferView(static_cast<uint32_t>(dxcompilation::ShaderFunctionConstantBufferRootIds::scene_uniforms), allocation->virtualGpuAddress());
+            m_shader_function.bindRootConstantBuffer(*m_cmd_list_ptr, dxcompilation::ShaderFunctionConstantBufferRootIds::scene_uniforms, allocation->virtualGpuAddress());
+            m_shader_function.bindResourceDescriptors(*m_cmd_list_ptr, dxcompilation::ShaderFunction::ShaderInputKind::srv, 0);
+            m_shader_function.bindResourceDescriptors(*m_cmd_list_ptr, dxcompilation::ShaderFunction::ShaderInputKind::sampler, 0);
         };
 
         // upload vertex data and set rendering context state

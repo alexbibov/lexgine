@@ -16,7 +16,7 @@ std::mutex rg_mutex{};
 uint8_t hex_octet_to_int(char c0, char c1)
 {
     uint8_t digit1 = c0 >= '0' && c0 <= '9' ? c0 - '0' : c0 - 'a' + 10;
-    uint8_t digit2 = c1 >= '0' && c1 <= '9' ? c1 - '0' : c1 - 'a' + 10;
+    uint8_t digit2 = c1 >= '0' && c1 <= '9' ? c1 - '0' : std::tolower(c1) - 'a' + 10;
     return digit1 * 16 + digit2;
 }
 

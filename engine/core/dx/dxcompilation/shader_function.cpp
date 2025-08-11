@@ -15,13 +15,32 @@
 
 namespace lexgine::core::dx::dxcompilation {
 
-ShaderFunction::ShaderFunction(Globals& globals, uint32_t descriptor_heap_page_id, std::string const& name)
-    : m_globals { globals }
+namespace
+{
+
+char const* shaderInputKindToString(ShaderFunction::ShaderInputKind kind)
+{
+    switch (kind)
+    {
+    case ShaderFunction::ShaderInputKind::srv:
+        return "srv";
+    case ShaderFunction::ShaderInputKind::uav:
+        return "uav";
+    case ShaderFunction::ShaderInputKind::cbv:
+        return "cbv";
+    case ShaderFunction::ShaderInputKind::sampler:
+        return "sampler";
+    default:
+        return "";
+    }
+}
+
+}
+
+ShaderFunction::ShaderFunction(Globals& globals, ShaderFunctionRootUniformBuffers const& flags/* = ShaderFunctionRootUniformBuffers::base_values::None*/)
+    : ProvidesGlobals { globals }
     , m_device { *globals.get<d3d12::Device>() }
-    , m_static_cbv_srv_uav_descriptor_allocator{ globals.get<d3d12::DxResourceFactory>()->getStaticAllocationManagerForDescriptorHeap(m_device, d3d12::DescriptorHeapType::cbv_srv_uav, descriptor_heap_page_id) }
-    , m_static_sampler_descriptor_allocator{ globals.get<d3d12::DxResourceFactory>()->getStaticAllocationManagerForDescriptorHeap(m_device, d3d12::DescriptorHeapType::sampler, descriptor_heap_page_id) }
-    , m_descriptor_heap_page_id{ descriptor_heap_page_id }
-    , m_name{ name }
+    , m_flags{ flags }
 {
     // Create buffer for atomic counters
     d3d12::ResourceDescriptor counter_resource_desc = d3d12::ResourceDescriptor::CreateBuffer(D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT * c_max_uav_with_counters_count, d3d12::ResourceFlags::base_values::none);
@@ -35,7 +54,9 @@ ShaderFunction::ShaderFunction(Globals& globals, uint32_t descriptor_heap_page_i
     };
 }
 
-ShaderStage* ShaderFunction::createShaderStage(d3d12::tasks::HLSLCompilationTask const* p_shader_compilation_tasks)
+ShaderFunction::~ShaderFunction() = default;
+
+ShaderStage* ShaderFunction::createShaderStage(d3d12::tasks::HLSLCompilationTask* p_shader_compilation_tasks)
 {
    
     std::unique_ptr<ShaderStage> new_shader_stage = ShaderStageAttorney<ShaderFunction>::createShaderStage(m_globals, p_shader_compilation_tasks, this);
@@ -52,67 +73,143 @@ ShaderStage* ShaderFunction::createShaderStage(d3d12::tasks::HLSLCompilationTask
     return m_shader_stages[shader_type_id].get();
 }
 
-void ShaderFunction::prepare(bool prepare_asynchronously)
+
+
+d3d12::tasks::RootSignatureCompilationTask* ShaderFunction::buildBindingSignature()
 {
-    if (!m_shader_function_stale) 
+    buildInternal();
+    return m_root_signature_compilation_task_ptr;
+}
+
+void ShaderFunction::bindRootConstantBuffer(core::dx::d3d12::CommandList& command_list, 
+    ShaderFunctionConstantBufferRootIds id, 
+    uint64_t gpu_virtual_address)
+{
+    command_list.setRootConstantBufferView(m_root_uniforms_to_rs_slots_mapping[id], gpu_virtual_address);
+}
+
+bool ShaderFunction::assignResourceDescriptors(ShaderInputKind resource_kind, uint32_t resource_space_id, const core::dx::d3d12::DescriptorAllocationManager& allocation_manager)
+{
+    DescriptorTableKey key{ .kind = resource_kind, .space_id = resource_space_id };
+    
+    if (m_descriptor_table_keys_to_rs_slots_mapping.count(key) == 0)
     {
-        return; 
+        core::misc::Log::retrieve()->out(
+            std::string{ "WARNING: unable to bind descriptor allocation manager for " }
+            + shaderInputKindToString(resource_kind)
+            + " descriptor table located in space#"
+            + std::to_string(resource_space_id)
+            + ": shader function does not declare inputs with requested properties",
+            core::misc::LogMessageType::exclamation);
+        return false;
     }
 
-    d3d12::RootEntryDescriptorTable cbv_srv_uav_binding_table{}, sampler_binding_table{};
-    d3d12::RootSignature rs{};
-
-    for (auto const& e : m_shader_inputs)
+    if (!m_descriptor_table_allocators.count(key))
     {
-        ShaderBindingPoint const& binding_point = e.first;
-        int resource_index = e.second.bound_resource_index;
-        if (resource_index >= 0)
+        m_descriptor_table_allocators.insert(std::make_pair(key, allocation_manager));
+    }
+    else
+    {
+        m_descriptor_table_allocators.at(key) = allocation_manager;
+    }
+
+    assert(m_descriptor_table_allocators.at(key).build(m_descriptor_table_capacities[key]));
+
+    return true;
+}
+
+bool ShaderFunction::bindResourceDescriptors(core::dx::d3d12::CommandList& command_list, ShaderInputKind kind, uint32_t space_id)
+{
+    DescriptorTableKey key{ .kind = kind, .space_id = space_id };
+    if (m_descriptor_table_allocators.count(key) == 0)
+    {
+        core::misc::Log::retrieve()->out(
+            std::string{ "WARNING: unable to update descriptor table binding for " }
+            + shaderInputKindToString(kind)
+            + " descriptor table located in space#"
+            + std::to_string(space_id)
+            + ": shader function does not declare inputs with requested properties",
+            core::misc::LogMessageType::exclamation);
+        return false;
+    }
+
+    uint32_t root_signature_slot = m_descriptor_table_keys_to_rs_slots_mapping.at(key);
+    core::dx::d3d12::DescriptorAllocationManager const& descriptor_allocation_manager = m_descriptor_table_allocators.at(key);
+    command_list.setRootDescriptorTable(root_signature_slot, descriptor_allocation_manager.getDescriptorTable().gpu_pointer);
+    
+    return true;
+}
+
+void ShaderFunction::buildInternal()
+{
+    if (!m_shader_function_stale) {
+        return;
+    }
+
+    d3d12::RootSignature rs {};
+    m_descriptor_table_keys_to_rs_slots_mapping.clear();
+    
+    for (int shader_stage_id = 0; shader_stage_id < static_cast<int>(ShaderType::count); ++shader_stage_id)
+    {
+        if (ShaderStage* p_shader_stage = m_shader_stages[shader_stage_id].get())
         {
-            d3d12::RootEntryDescriptorTable* p_target_binding_table{ nullptr };
-            uint32_t descriptor_offset{};
-            switch (binding_point.kind)
+            p_shader_stage->build();
+            for (auto const [_, shader_binding_point] : ShaderStageAttorney<ShaderFunction>::getShaderStageBindings(p_shader_stage))
             {
-            case ShaderInputKind::cbv:
-                p_target_binding_table = &cbv_srv_uav_binding_table;
-                descriptor_offset = m_bound_cbv_resources[resource_index].descriptor_offset;
-                break;
-
-            case ShaderInputKind::srv:
-                p_target_binding_table = &cbv_srv_uav_binding_table;
-                descriptor_offset = m_bound_srv_resources[resource_index].descriptor_offset;
-                break;
-
-            case ShaderInputKind::uav:
-                p_target_binding_table = &cbv_srv_uav_binding_table;
-                descriptor_offset = m_bound_uav_resources[resource_index].descriptor_offset;
-                break;
-
-            case ShaderInputKind::sampler:
-                p_target_binding_table = &sampler_binding_table;
-                descriptor_offset = m_bound_sampler_resources[resource_index].descriptor_offset;
-                break;
-
-            default:
-                LEXGINE_ASSUME;
+                auto [p, __] = m_shader_inputs.insert(
+                    std::make_pair(shader_binding_point, ShaderInputDesc{})
+                );
+                p->second.shader_stage_presence.set(static_cast<size_t>(shader_stage_id));
             }
-
-            d3d12::RootEntryDescriptorTable::RangeType range_type = static_cast<d3d12::RootEntryDescriptorTable::RangeType>(binding_point.kind);
-            d3d12::RootEntryDescriptorTable::Range range{ range_type, binding_point.register_count, binding_point.first_register, binding_point.register_space, descriptor_offset };
-            p_target_binding_table->addRange(range);
         }
     }
+    
+    for (auto const [binding_point, shader_input_desc] : m_shader_inputs)
+    {
+        if (binding_point.kind == ShaderInputKind::cbv 
+            && binding_point.register_space == c_reserved_constant_buffer_space_id)
+        {
+            continue;
+        }
 
+        DescriptorTableKey key{ .kind = binding_point.kind, .space_id = binding_point.register_space };
+        m_descriptor_table_capacities[key] = (std::max)(m_descriptor_table_capacities[key], static_cast<size_t>(binding_point.first_register) + binding_point.register_count);
+        if (m_assumed_descriptor_tables.count(key))
+        {
+            continue;
+        }
+        m_assumed_register_spaces.insert(key.space_id);
+
+        d3d12::RootEntryDescriptorTable& target_descriptor_table = m_assumed_descriptor_tables[key];
+        d3d12::RootEntryDescriptorTable::RangeType range_type = static_cast<d3d12::RootEntryDescriptorTable::RangeType>(binding_point.kind);
+        d3d12::RootEntryDescriptorTable::Range range{ range_type, binding_point.register_count, binding_point.first_register, binding_point.register_space, binding_point.first_register };
+        target_descriptor_table.addRange(range);
+    }
+
+    m_occupied_rs_slots = 0;
     for (int id = static_cast<int>(ShaderFunctionConstantBufferRootIds::scene_uniforms); id < static_cast<int>(ShaderFunctionConstantBufferRootIds::count); ++id) {
-        d3d12::RootEntryCBVDescriptor cbv_descriptor { static_cast<uint32_t>(id), c_reserved_constant_buffer_space_id };
-        rs.addParameter(id, cbv_descriptor);
+        if (m_flags.isSet(static_cast<ShaderFunctionRootUniformBuffers::base_values>(1 << id))) 
+        {
+            d3d12::RootEntryCBVDescriptor cbv_descriptor { static_cast<uint32_t>(id), c_reserved_constant_buffer_space_id };
+            m_root_uniforms_to_rs_slots_mapping[static_cast<ShaderFunctionConstantBufferRootIds>(id)] = m_occupied_rs_slots;
+            rs.addParameter(m_occupied_rs_slots++, cbv_descriptor);
+        }
     }
-    if (!cbv_srv_uav_binding_table.empty())
+   
+    for (uint32_t register_space_id : m_assumed_register_spaces)
     {
-        rs.addParameter(static_cast<uint32_t>(ShaderFunctionConstantBufferRootIds::count), cbv_srv_uav_binding_table);
-    }
-    if (!sampler_binding_table.empty())
-    {
-        rs.addParameter(static_cast<uint32_t>(ShaderFunctionConstantBufferRootIds::count) + 1, sampler_binding_table);
+        for (int kind_id = 0; kind_id < static_cast<int>(ShaderInputKind::count); ++kind_id)
+        {
+            ShaderInputKind kind = static_cast<ShaderInputKind>(kind_id);
+            DescriptorTableKey key{ .kind = kind, .space_id = register_space_id };
+            if (m_assumed_descriptor_tables.contains(key))
+            {
+                assert(m_descriptor_table_keys_to_rs_slots_mapping.count(key) == 0);
+                m_descriptor_table_keys_to_rs_slots_mapping[key] = m_occupied_rs_slots;
+
+                rs.addParameter(m_occupied_rs_slots++, m_assumed_descriptor_tables[key]);
+            }
+        }
     }
 
     d3d12::task_caches::RootSignatureCompilationTaskCache* rs_compilation_task_cache = m_globals.get<d3d12::task_caches::RootSignatureCompilationTaskCache>();
@@ -122,16 +219,13 @@ void ShaderFunction::prepare(bool prepare_asynchronously)
         | d3d12::RootSignatureFlags::base_values::deny_geometry_shader
         | d3d12::RootSignatureFlags::base_values::deny_pixel_shader;
 
-    for (int shader_type_id = 0; shader_type_id < static_cast<int>(ShaderType::count); ++shader_type_id)
-    {
+    for (int shader_type_id = 0; shader_type_id < static_cast<int>(ShaderType::count); ++shader_type_id) {
         ShaderType shader_type = static_cast<ShaderType>(shader_type_id);
-        if (!m_shader_stages[shader_type_id])
-        {
+        if (!m_shader_stages[shader_type_id]) {
             continue;
         }
 
-        switch (shader_type)
-        {
+        switch (shader_type) {
         case ShaderType::vertex:
             rs_flags ^= d3d12::RootSignatureFlags::base_values::deny_vertex_shader;
             rs_flags |= d3d12::RootSignatureFlags::base_values::allow_input_assembler;
@@ -151,12 +245,7 @@ void ShaderFunction::prepare(bool prepare_asynchronously)
         }
     }
 
-    m_p_root_signature_compilation_task = rs_compilation_task_cache->findOrCreateTask(m_globals, d3d12::task_caches::RootSignatureCompilationTaskCache::VersionedRootSignature{ std::move(rs) }, rs_flags, m_name + "_root_signature", m_descriptor_heap_page_id);
-    if (!prepare_asynchronously)
-    {
-        m_p_root_signature_compilation_task->execute(0);
-    }
-
+    m_root_signature_compilation_task_ptr = rs_compilation_task_cache->findOrCreateTask(m_globals, d3d12::task_caches::RootSignatureCompilationTaskCache::VersionedRootSignature { std::move(rs) }, rs_flags, getStringName() + "_root_signature", 0);
     m_shader_function_stale = false;
 }
 

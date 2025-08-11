@@ -22,7 +22,9 @@ public:
      the source is treated as path to a file containing the shading code. If source_type=string then
      parameter source is assumed to contain raw shading source code
     */
-    ShaderSourceCodePreprocessor(std::string const& source, SourceType source_type);
+    ShaderSourceCodePreprocessor(std::string const& source, 
+        SourceType source_type, 
+        const std::vector<std::string>& lookup_directories);
 
     ~ShaderSourceCodePreprocessor();
 
@@ -30,7 +32,7 @@ public:
 
 
 private:
-
+    std::string m_path;    //!< contains path to the shader when applicable
     std::string m_shader_source;    //!< contains original shader source code
     std::string m_preprocessed_shader_source;    //!< contains preprocessed shader source code
 
@@ -38,7 +40,6 @@ private:
 private:
 
     class impl;
-
     std::unique_ptr<impl> m_impl;    //!< conceals implementation details
 };
 

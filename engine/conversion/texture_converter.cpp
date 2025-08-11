@@ -229,63 +229,67 @@ std::array<uint8_t, TextureConverter::sha256_provider::c_hash_length> TextureCon
 }
 
 
-TextureConverter::TextureConversionTaskKey::TextureConversionTaskKey(std::string const& name)
+TextureConversionTaskKey::TextureConversionTaskKey(std::string const& name)
     : name{}
 {
     std::copy(name.begin(), name.end(), this->name);
 }
 
-std::string TextureConverter::TextureConversionTaskKey::toString() const
+std::string TextureConversionTaskKey::toString() const
 {
     return std::string{ name };
 }
 
-void TextureConverter::TextureConversionTaskKey::serialize(void* p_serialization_blob) const
+void TextureConversionTaskKey::serialize(void* p_serialization_blob) const
 {
     uint8_t* p_serialization_buffer = reinterpret_cast<uint8_t*>(p_serialization_blob);
     std::copy(name, name + sizeof(name) / sizeof(name[0]), p_serialization_buffer);
 }
 
-void TextureConverter::TextureConversionTaskKey::deserialize(void const* p_serialization_blob)
+void TextureConversionTaskKey::deserialize(void const* p_serialization_blob)
 {
     uint8_t const* p_serialization_buffer = reinterpret_cast<uint8_t const*>(p_serialization_blob);
     std::copy(p_serialization_buffer, p_serialization_buffer + sizeof(name), name);
 }
 
-bool TextureConverter::TextureConversionTaskKey::operator<(TextureConversionTaskKey const& other) const
+bool TextureConversionTaskKey::operator<(TextureConversionTaskKey const& other) const
 {
     SWO_END(std::string{ name }, < , std::string{ other.name });
 }
 
-bool TextureConverter::TextureConversionTaskKey::operator==(TextureConversionTaskKey const& other) const
+bool TextureConversionTaskKey::operator==(TextureConversionTaskKey const& other) const
 {
     return std::equal(name, name + sizeof(name) / sizeof(name[0]), other.name);
 }
 
 
-TextureConverter::TextureConversionTask::TextureConversionTask(TextureConverter& texture_converter, scenegraph::Image& source_image, bool skip_source_image_load)
+TextureConversionTask::TextureConversionTask(
+    TextureConverter& texture_converter, 
+    scenegraph::Image& source_image,
+    bool skip_source_image_load)
     : m_texture_converter{ texture_converter }
     , m_skip_source_image_load{ skip_source_image_load }
     , m_source_image{ source_image }
+    , m_status{ static_cast<int>(TextureConversionStatus::not_started) }
 {
-    std::fill(m_key.name, m_key.name + sizeof(m_key.name), 0);
-    std::string const& image_uri = source_image.uri();
-    assert(image_uri.size() <= sizeof(m_key.name));
-    std::copy(image_uri.begin(), image_uri.end(), m_key.name);
+    
 }
 
 
-TextureConverter::TextureConversionTask::result_type TextureConverter::TextureConversionTask::operator()(void) const
+void TextureConversionTask::operator()(void)
 {
     std::scoped_lock<std::mutex> lock{ m_texture_converter.m_texture_cache_mutex };
+    m_status.store(static_cast<int>(TextureConversionStatus::in_progress), std::memory_order_release);
 
-    bool should_convert = !m_texture_converter.m_compressed_textures_cache->doesEntryExist(m_key);
+    TextureConversionTaskKey key = TextureConverter::createConversionTaskKey(m_source_image);
+
+    bool should_convert = !m_texture_converter.m_compressed_textures_cache->doesEntryExist(key);
     std::array<uint8_t, 32U> sha256{};    // hash value of the source image (calculated only when should_convert is true)
     if (should_convert)
     {
         if (m_skip_source_image_load || !m_source_image.load())
         {
-            return nullptr;
+            m_status.store(static_cast<int>(TextureConversionStatus::error), std::memory_order_release);
         }
 
         sha256 = m_texture_converter.m_sha256_provider->hash(std::span<std::uint8_t const>{m_source_image.data(), m_source_image.size()});
@@ -294,15 +298,15 @@ TextureConverter::TextureConversionTask::result_type TextureConverter::TextureCo
     {
         if (!m_source_image.load())
         {
-            return nullptr;
+            m_status.store(static_cast<int>(TextureConversionStatus::error), std::memory_order_release);
         }
 
-        misc::DateTime datestamp = m_texture_converter.m_compressed_textures_cache->getEntryTimestamp(m_key);
+        misc::DateTime datestamp = m_texture_converter.m_compressed_textures_cache->getEntryTimestamp(key);
         if (datestamp < m_source_image.description().timestamp)
         {
             // Calculate hash value of the source image
             sha256 = m_texture_converter.m_sha256_provider->hash(std::span<std::uint8_t const>{m_source_image.data(), m_source_image.size()});
-            lexgine::core::SharedDataChunk data_chunk = m_texture_converter.m_compressed_textures_cache->retrieveEntry(m_key);
+            lexgine::core::SharedDataChunk data_chunk = m_texture_converter.m_compressed_textures_cache->retrieveEntry(key);
             void* p_data = data_chunk.data();
             std::array<uint8_t, 32U> cached_sha256{};
             std::copy(static_cast<uint8_t*>(p_data), static_cast<uint8_t*>(p_data) + cached_sha256.size(), cached_sha256.begin());
@@ -314,7 +318,7 @@ TextureConverter::TextureConversionTask::result_type TextureConverter::TextureCo
         auto image_desc = m_source_image.description();
 
         misc::UUID uuid = misc::UUID::generate();
-        core::SharedDataChunk scratch_blob_data{ m_source_image.size() + calculateBlobPreambleSizeForImage(image_desc, sha256_provider::c_hash_length) };
+        core::SharedDataChunk scratch_blob_data{ m_source_image.size() + calculateBlobPreambleSizeForImage(image_desc, TextureConverter::sha256_provider::c_hash_length) };
 
         auto p_device = m_texture_converter.m_globals.get<core::dx::d3d12::Device>();
         auto nativeD3d11Device = p_device->nativeD3d11();
@@ -380,6 +384,8 @@ TextureConverter::TextureConversionTask::result_type TextureConverter::TextureCo
 
             default:
                 LEXGINE_ASSUME;
+                m_status.store(static_cast<int>(TextureConversionStatus::error), std::memory_order_release);
+                return;
             }
 
             // Select compression routine (either CPU or GPU)
@@ -425,7 +431,7 @@ TextureConverter::TextureConversionTask::result_type TextureConverter::TextureCo
             auto& layers = image_desc.layers;
 
             std::copy(sha256.begin(), sha256.end(), static_cast<uint8_t*>(scratch_blob_data.data()));
-            size_t blob_data_write_offset{ sha256_provider::c_hash_length };
+            size_t blob_data_write_offset{ TextureConverter::sha256_provider::c_hash_length };
 
 
             packUint64ToArray(uuid.hiPart(), static_cast<uint8_t*>(scratch_blob_data.data()), blob_data_write_offset);
@@ -462,6 +468,13 @@ TextureConverter::TextureConversionTask::result_type TextureConverter::TextureCo
 
                         if (compressor(img, compressed_img))    // when compression is not needed this is a no-op, which returns 'false')
                         {
+                            // Check if texture converter is still in a valid state
+                            if (m_texture_converter.getErrorState())
+                            {
+                                m_status.store(static_cast<int>(TextureConversionStatus::error), std::memory_order_release);
+                                return;
+                            }
+
                             compressed_img_pixels = compressed_img.GetPixels();
                             compressed_img_size = compressed_img.GetPixelsSize();
                             compressed_img_row_pitch = compressed_img.GetImage(0, 0, 0)->rowPitch;
@@ -491,29 +504,24 @@ TextureConverter::TextureConversionTask::result_type TextureConverter::TextureCo
 
             SharedDataChunk blob_data{ blob_data_write_offset };
             std::copy(static_cast<uint8_t*>(scratch_blob_data.data()), static_cast<uint8_t*>(scratch_blob_data.data()) + blob_data_write_offset, static_cast<uint8_t*>(blob_data.data()));
-            m_texture_converter.m_compressed_textures_cache->addEntry(TextureCache::entry_type{ m_key, blob_data });
+            m_texture_converter.m_compressed_textures_cache->addEntry(TextureConverter::TextureCache::entry_type{ key, blob_data });
 
             conversion::ImageLoader::Description compressed_texture_description = image_desc;
             compressed_texture_description.compression_format = target_compression_format;
-            m_texture_upload_task = std::make_unique<TextureUploadTask>(m_texture_converter, m_key, uuid, scratch_blob_data, compressed_texture_description, texture_source_descriptor);
+            m_texture_upload_work = std::make_unique<TextureUploadWork>(m_texture_converter, key, uuid, scratch_blob_data, compressed_texture_description, texture_source_descriptor);
         }
     }
     else {
         misc::UUID uuid{};
-        auto cached_texture_data = m_texture_converter.readTextureFromCache(m_key, uuid);
-        m_texture_upload_task = std::make_unique<TextureUploadTask>(m_texture_converter, m_key, uuid, cached_texture_data.data, cached_texture_data.description, cached_texture_data.source_descriptor);
+        auto cached_texture_data = m_texture_converter.readTextureFromCache(key, uuid);
+        m_texture_upload_work = std::make_unique<TextureUploadWork>(m_texture_converter, key, uuid, cached_texture_data.data, cached_texture_data.description, cached_texture_data.source_descriptor);
     }
 
-    return m_texture_upload_task.get();
+    m_status.store(static_cast<int>(TextureConversionStatus::completed), std::memory_order_release);
 }
 
-size_t TextureConverter::TextureConversionTaskHasher::operator()(TextureConversionTask const& task) const noexcept
-{
-    core::misc::HashedString hashed_string{ task.key().toString() };
-    return static_cast<size_t>(hashed_string.hash());
-}
 
-TextureConverter::TextureUploadTask::TextureUploadTask(TextureConverter& texture_converter,
+TextureUploadWork::TextureUploadWork(TextureConverter& texture_converter,
     TextureConversionTaskKey const& conversion_key,
     core::misc::UUID texture_uuid,
     core::SharedDataChunk const& converted_texture_data,
@@ -523,51 +531,78 @@ TextureConverter::TextureUploadTask::TextureUploadTask(TextureConverter& texture
     , m_conversion_key{ conversion_key }
     , m_texture_uuid{ texture_uuid }
     , m_converted_texture_data{ converted_texture_data }
-    , m_texture_description{ texture_description }
     , m_src_desc{ source_descriptor }
 {
-    auto* pDevice = m_texture_converter.m_globals.get<dx::d3d12::Device>();
-
     glm::uvec3 dimensions = texture_description.layers[0].mipmaps[0].dimensions;
     auto desc = core::dx::d3d12::ResourceDescriptor::CreateTexture2D(static_cast<uint32_t>(dimensions.x), static_cast<uint32_t>(dimensions.y), static_cast<uint32_t>(dimensions.z),
         static_cast<DXGI_FORMAT>(texture_description.compression_format), static_cast<uint32_t>(texture_description.layers[0].mipmaps.size()),
         core::dx::d3d12::ResourceFlags::base_values::none, core::MultiSamplingFormat{ 1, 0 }, core::dx::d3d12::ResourceAlignment::_default, core::dx::d3d12::TextureLayout::unknown);
 
-    m_texture = std::make_shared<core::dx::d3d12::CommittedResource>(*pDevice, core::dx::d3d12::ResourceState::base_values::common, misc::Optional<core::dx::d3d12::ResourceOptimizedClearValue>(), desc, dx::d3d12::AbstractHeapType::_default,
-        core::dx::d3d12::HeapCreationFlags::base_values::allow_all);
+    m_texture = core::dx::d3d12::CommittedResource{ 
+        *m_texture_converter.m_globals.get<core::dx::d3d12::Device>(),
+        core::dx::d3d12::ResourceState::base_values::common,
+        misc::Optional<core::dx::d3d12::ResourceOptimizedClearValue>(), 
+        desc, 
+        dx::d3d12::AbstractHeapType::_default,
+        core::dx::d3d12::HeapCreationFlags::base_values::allow_all 
+    };
+    m_texture.setStringName(texture_description.uri);
 }
 
-
-TextureConverter::TextureUploadTask::result_type TextureConverter::TextureUploadTask::operator()(void)
+bool TextureUploadWork::schedule()
 {
-    core::dx::d3d12::ResourceDataUploader::DestinationDescriptor::DestinationSegment destination_segment{};
-    destination_segment.subresources = core::dx::d3d12::ResourceDataUploader::DestinationDescriptor::SubresourceSegment{ .first_subresource = 0, .num_subresources = static_cast<uint32_t>(m_src_desc.subresources.size()) };
-    
-    core::dx::d3d12::ResourceDataUploader::DestinationDescriptor data_upload_destination_descriptor{
-        .p_destination_resource = m_texture.get(), 
-        .destination_resource_state = core::dx::d3d12::ResourceState::base_values::common, 
-        .segment = destination_segment
-    };
-
-    if (isEvicted())
+    if (m_converted_texture_data.isNull())
     {
         auto cached_texture_data = m_texture_converter.readTextureFromCache(m_conversion_key, m_texture_uuid);
         m_converted_texture_data = cached_texture_data.data;
-        m_texture_description = cached_texture_data.description;
         m_src_desc = cached_texture_data.source_descriptor;
     }
 
-    m_texture_converter.m_data_uploader.addResourceForUpload(data_upload_destination_descriptor, m_src_desc);
+    core::dx::d3d12::ResourceDataUploader::DestinationDescriptor::DestinationSegment destination_segment {};
+    destination_segment.subresources = core::dx::d3d12::ResourceDataUploader::DestinationDescriptor::SubresourceSegment { .first_subresource = 0, .num_subresources = static_cast<uint32_t>(m_src_desc.subresources.size()) };
 
-    return m_texture;
+    core::dx::d3d12::ResourceDataUploader::DestinationDescriptor data_upload_destination_descriptor {
+        .p_destination_resource = &m_texture,
+        .destination_resource_state = core::dx::d3d12::ResourceState::base_values::common,
+        .segment = destination_segment
+    };
+
+
+    if (m_texture_converter.m_data_uploader.availableCapacity() < m_converted_texture_data.size())
+    {
+        // Even theoretically, there's no remaining capacity in staging buffer to add more data for uploading
+        m_texture_converter.m_data_uploader.upload();
+        m_texture_converter.m_data_uploader.waitUntilUploadIsFinished();
+    }
+    if (!m_texture_converter.m_data_uploader.addResourceForUpload(data_upload_destination_descriptor, m_src_desc))
+    {
+        // If allocation is unsuccessful so far, that means too much data is in fragmented state (probably, a rare scenario), so we again need to enforce upload of staged resources
+        m_texture_converter.m_data_uploader.upload();
+        m_texture_converter.m_data_uploader.waitUntilUploadIsFinished();
+
+        if (!m_texture_converter.m_data_uploader.addResourceForUpload(data_upload_destination_descriptor, m_src_desc))
+        {
+            // Last try. If unsuccessful, we are out of options and this can only mean that the staging buffer is too small to upload requested resource
+            LEXGINE_LOG_ERROR(m_texture_converter, "Unable to upload resource " + m_texture.getStringName() + ", UUID{" + m_texture_uuid.toString() + "}: "
+                + "staging buffer is too small to upload " + std::to_string(m_converted_texture_data.size()) + " bytes of data");
+            return false;
+        }
+    }
+    
+    m_controlling_signal = m_texture_converter.m_data_uploader.recordingWork();
+    return true;
 }
 
+bool TextureUploadWork::isCompleted() const
+{
+    return m_texture_converter.m_data_uploader.isWorkCompleted(m_controlling_signal);
+}
 
 TextureConverter::TextureConverter(core::Globals& globals)
     : m_globals{ globals }
     , m_sha256_provider{ new sha256_provider{this} }
     , m_upload_stream_allocator{ createUploadStreamAllocator(globals) }
-    , m_data_uploader{ globals, m_upload_stream_allocator }
+    , m_data_uploader{ globals, m_upload_stream_allocator, core::dx::d3d12::ResourceUploadPolicy::non_blocking }
 {
     Microsoft::WRL::Wrappers::RoInitializeWrapper initialize{ RO_INIT_MULTITHREADED };
     if (FAILED(initialize))
@@ -611,10 +646,15 @@ TextureConverter::~TextureConverter()
     m_cache_stream.close();
 }
 
-void TextureConverter::addTextureConversionTask(scenegraph::Image& source_image, bool skip_source_image_load)
+TextureConversionTask const* TextureConverter::addTextureConversionTask(scenegraph::Image& source_image, bool skip_source_image_load)
 {
-
-    m_texture_conversion_tasks.emplace(*this, source_image, skip_source_image_load);
+    auto [it, _] = m_texture_conversion_tasks.emplace(
+        std::piecewise_construct, 
+        std::forward_as_tuple(createConversionTaskKey(source_image)),
+        std::forward_as_tuple(*this, source_image, skip_source_image_load)
+    );
+    TextureConversionTask const& task = it->second;
+    return &task;
 }
 
 void TextureConverter::convertTextures(uint32_t thread_count)
@@ -624,22 +664,23 @@ void TextureConverter::convertTextures(uint32_t thread_count)
     if (thread_count == static_cast<uint32_t>(-1))
         thread_count = std::thread::hardware_concurrency();
 
-    m_all_conversion_tasks_ordered.clear();
-    m_all_conversion_tasks_ordered.resize(m_texture_conversion_tasks.size());
-    std::transform(m_texture_conversion_tasks.begin(), m_texture_conversion_tasks.end(), m_all_conversion_tasks_ordered.begin(), [](auto& e) {return &e; });
-
-    m_texture_upload_tasks.clear();
-    m_texture_upload_tasks.resize(m_all_conversion_tasks_ordered.size());
-
     struct TextureConversionThreadBucket
     {
         size_t first;
         size_t count;
     };
     std::array<TextureConversionThreadBucket, 128> thread_buckets{};
+    static std::vector<TextureConversionTask*> conversion_tasks_buffer{};
+    conversion_tasks_buffer.resize(m_texture_conversion_tasks.size());
+    std::transform(
+        m_texture_conversion_tasks.begin(), 
+        m_texture_conversion_tasks.end(), 
+        conversion_tasks_buffer.begin(),
+        [](std::pair<TextureConversionTaskKey const, TextureConversionTask>& e) { return &e.second; }
+    );
 
-    size_t bucket_size = m_all_conversion_tasks_ordered.size() / thread_count;
-    size_t remainder = m_all_conversion_tasks_ordered.size() % thread_count;
+    size_t bucket_size = conversion_tasks_buffer.size() / thread_count;
+    size_t remainder = conversion_tasks_buffer.size() % thread_count;
 
     uint32_t active_threads = bucket_size > 0 ? thread_count : remainder;
     for (size_t i = 0; i < active_threads; ++i)
@@ -648,15 +689,15 @@ void TextureConverter::convertTextures(uint32_t thread_count)
         thread_buckets[i].count = bucket_size + (i < remainder ? 1 : 0);
     }
 
-    auto task_workload = [this](TextureConversionThreadBucket const& threadBucket)
+    auto task_workload = [](TextureConversionThreadBucket const& threadBucket)
         {
             size_t first = threadBucket.first;
             size_t last = first + threadBucket.count;
 
             for (size_t i = first; i < last; ++i)
             {
-                TextureConversionTask const* task = m_all_conversion_tasks_ordered[i];
-                m_texture_upload_tasks[i] = (*task)();
+                TextureConversionTask& task = *conversion_tasks_buffer[i];
+                task();
             }
         };
 
@@ -671,11 +712,6 @@ void TextureConverter::convertTextures(uint32_t thread_count)
 void TextureConverter::uploadTextures()
 {
     waitForTextureConversionCompletion();
-    for (auto& texture_upload_task : m_texture_upload_tasks)
-    {
-        (*texture_upload_task)();
-    }
-
     m_data_uploader.upload();
 }
 
@@ -702,9 +738,9 @@ void TextureConverter::waitForTextureUploadCompletion()
 {
     m_data_uploader.waitUntilUploadIsFinished();
 }
-    
 
-TextureConverter::CachedTextureData TextureConverter::readTextureFromCache(TextureConversionTaskKey const& key, core::misc::UUID& uuid)
+
+TextureConverter::CachedTextureData TextureConverter::readTextureFromCache(TextureConversionTaskKey const& key, core::misc::UUID& uuid) const
 {
     size_t valid_blob_size{};
     auto blob_data = m_compressed_textures_cache->retrieveEntry(key, &valid_blob_size);
@@ -767,6 +803,16 @@ TextureConverter::CachedTextureData TextureConverter::readTextureFromCache(Textu
     image_description.subresource_count = texture_source_descriptor.subresources.size();
 
     return { blob_data, image_description, texture_source_descriptor };
+}
+
+TextureConversionTaskKey TextureConverter::createConversionTaskKey(scenegraph::Image& source_image)
+{
+    TextureConversionTaskKey key;
+    std::fill(key.name, key.name + sizeof(key.name), 0);
+    std::string const& image_uri = source_image.uri();
+    assert(image_uri.size() <= sizeof(key.name));
+    std::copy(image_uri.begin(), image_uri.end(), key.name);
+    return key;
 }
 
 } 

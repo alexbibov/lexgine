@@ -4,12 +4,12 @@
 namespace lexgine::scenegraph::class_names {
 
 extern char const Scene[];
+extern char const Node[];
 extern char const Camera[];
 extern char const Light[];
 extern char const Material[];
 extern char const Mesh[];
 extern char const Submesh[];
-extern char const Node[];
 extern char const Texture[];
 extern char const Image[];
 extern char const Sampler[];

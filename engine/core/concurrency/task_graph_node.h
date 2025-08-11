@@ -1,7 +1,7 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_TASK_GRAPH_NODE_H
 #define LEXGINE_CORE_CONCURRENCY_TASK_GRAPH_NODE_H
 
-#include <set>
+#include <unordered_set>
 
 #include "engine/core/entity.h"
 #include "engine/core/misc/optional.h"
@@ -15,7 +15,7 @@ namespace lexgine::core::concurrency {
 class TaskGraphNode
 {
 public:
-    using set_of_nodes = std::set<TaskGraphNode*>;
+    using set_of_nodes = std::unordered_set<TaskGraphNode*>;
 
 public:
     explicit TaskGraphNode(AbstractTask& task);    //! creates task graph node encapsulating given task

@@ -117,6 +117,14 @@ Resource::Resource(ResourceState const& initial_state, ComPtr<ID3D12Resource> co
 {
 }
 
+Resource& lexgine::core::dx::d3d12::Resource::operator=(std::nullptr_t)
+{
+    m_resource.Reset();
+    m_descriptor.invalidate();
+    m_resource_default_state = ResourceState::base_values::common;
+    return *this;
+}
+
 void Resource::setStringName(std::string const& entity_string_name)
 {
     Entity::setStringName(entity_string_name);
@@ -202,8 +210,6 @@ PlacedResource::PlacedResource(Heap const& heap, uint64_t heap_offset,
     misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
     ResourceDescriptor const& descriptor)
     : Resource{ descriptor.dimension == ResourceDimension::buffer ? ResourceState::base_values::common : initial_state }
-    , m_heap{ heap }
-    , m_offset{ heap_offset }
 {
     m_descriptor = descriptor;
     D3D12_RESOURCE_DESC desc = descriptor.native();
@@ -220,18 +226,6 @@ PlacedResource::PlacedResource(Heap const& heap, uint64_t heap_offset,
         heap.device().native()->CreatePlacedResource(heap.native().Get(), heap_offset, &desc, static_cast<D3D12_RESOURCE_STATES>(m_resource_default_state.getValue()), native_clear_value_ptr, IID_PPV_ARGS(&m_resource)),
         S_OK);
 }
-
-Heap const& PlacedResource::heap() const
-{
-    return m_heap;
-}
-
-uint64_t PlacedResource::offset() const
-{
-    return m_offset;
-}
-
-
 
 
 
@@ -282,13 +276,10 @@ CommittedResource::CommittedResource(Device const& device, ResourceState initial
     HeapCreationFlags resource_usage_flags,
     uint32_t node_mask/* = 0x1*/, uint32_t node_exposure_mask/* = 0x1*/)
     : Resource{ descriptor.dimension == ResourceDimension::buffer ? ResourceState::base_values::common : initial_state }
-    , m_device{ device }
-    , m_node_mask{ node_mask }
-    , m_node_exposure_mask{ node_exposure_mask }
+
 {
-    Heap::retrieveAbstractHeapTypeProperties(device, resource_memory_type, node_mask, m_cpu_page_property, m_gpu_memory_pool);
     D3D12_HEAP_PROPERTIES heap_properties = Heap::createNativeHeapProperties(resource_memory_type, node_mask, node_exposure_mask);
-    createResource(heap_properties, m_resource_default_state, descriptor, resource_usage_flags, optimized_clear_value);
+    createResource(device, heap_properties, m_resource_default_state, descriptor, resource_usage_flags, optimized_clear_value);
 }
 
 CommittedResource::CommittedResource(Device const& device, ResourceState initial_state,
@@ -297,17 +288,12 @@ CommittedResource::CommittedResource(Device const& device, ResourceState initial
     GPUMemoryPool gpu_memory_pool, HeapCreationFlags resource_usage_flags,
     uint32_t node_mask/* = 0x1*/, uint32_t node_exposure_mask/* = 0x1*/)
     : Resource{ descriptor.dimension == ResourceDimension::buffer ? ResourceState::base_values::common : initial_state }
-    , m_device{ device }
-    , m_cpu_page_property{ cpu_page_property }
-    , m_gpu_memory_pool{ gpu_memory_pool }
-    , m_node_mask{ node_mask }
-    , m_node_exposure_mask{ node_exposure_mask }
 {
     D3D12_HEAP_PROPERTIES heap_properties = Heap::createNativeHeapProperties(cpu_page_property, gpu_memory_pool, node_mask, node_exposure_mask);
-    createResource(heap_properties, m_resource_default_state, descriptor, resource_usage_flags, optimized_clear_value);
+    createResource(device, heap_properties, m_resource_default_state, descriptor, resource_usage_flags, optimized_clear_value);
 }
 
-void CommittedResource::createResource(D3D12_HEAP_PROPERTIES const& owning_heap_properties,
+void CommittedResource::createResource(Device const& device, D3D12_HEAP_PROPERTIES const& owning_heap_properties,
     ResourceState resource_init_state, ResourceDescriptor const& resource_desc,
     HeapCreationFlags resource_usage_flags, misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value)
 {
@@ -324,7 +310,7 @@ void CommittedResource::createResource(D3D12_HEAP_PROPERTIES const& owning_heap_
 
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        m_device.native()->CreateCommittedResource(&owning_heap_properties, flags, &native_resource_desc,
+        device.native()->CreateCommittedResource(&owning_heap_properties, flags, &native_resource_desc,
             static_cast<D3D12_RESOURCE_STATES>(resource_init_state.getValue()), resource_clear_value_ptr,
             IID_PPV_ARGS(&m_resource)),
         S_OK);

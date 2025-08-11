@@ -15,7 +15,19 @@ class Exception;
 class FilterPack;
 class GlobalSettings;
 struct LoggingStreams;
+
 class Globals;
+class ProvidesGlobals
+{
+public:
+    ProvidesGlobals(Globals& globals) : m_globals{ globals } {}
+    Globals& globals() { return m_globals; }
+    Globals const& globals() const { return m_globals; }
+
+protected:
+    Globals& m_globals;
+};
+
 class RasterizerDescriptor;
 class ShaderSourceCodePreprocessor;
 class Viewport;
@@ -24,7 +36,6 @@ class ProfilingService;
 class CPUTaskProfilingService;
 class GPUTaskProfilingService;
 struct RenderingConfiguration;
-class DxInitializer;
 
 }
 

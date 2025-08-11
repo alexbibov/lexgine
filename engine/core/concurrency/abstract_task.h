@@ -50,7 +50,7 @@ public:
         return rv;
     }
 
-    std::list<std::unique_ptr<ProfilingService>> const& profilingServices() const { return m_profiling_services; }
+    std::vector<std::unique_ptr<ProfilingService>> const& profilingServices() const { return m_profiling_services; }
 
 public:
     /*! Calls the actual implementation of the task.
@@ -69,7 +69,7 @@ public:
 
 private:
     bool m_exposed_in_task_graph;    //!< 'true' if the task1 should be included into DOT representation of the task graph for debugging purposes, 'false' otherwise. Default is 'true'
-    std::list<std::unique_ptr<ProfilingService>> m_profiling_services;    //!< profiling services employed by the task
+    std::vector<std::unique_ptr<ProfilingService>> m_profiling_services;    //!< profiling services employed by the task
 };
 
 template<> class AbstractTaskAttorney<TaskGraph>

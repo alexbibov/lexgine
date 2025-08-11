@@ -4,7 +4,7 @@
 
 #include "device.h"
 #include "descriptor_heap.h"
-#include "static_descriptor_allocation_manager.h"
+#include "unordered_srv_table_allocation_manager.h"
 
 #include "dx_resource_factory.h"
 
@@ -32,9 +32,9 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
         uint32_t node_mask = 1;
 
         // initialize descriptor heaps
-
-        descriptor_heap_page_pool page_pool{};
-        std::array<std::string, descriptor_heap_page_pool::heap_type_count> descriptor_heap_name_suffixes = {
+        uint32_t const descriptor_heaps_count = global_settings.getMaxFramesInFlight();
+        descriptor_heap_pool pool{};
+        std::array<std::string, descriptor_heap_pool::capacity> descriptor_heap_name_suffixes = {
             "_cbv_srv_uav_heap", "_sampler_heap", "_rtv_heap", "_dsv_heap"
         };
         for (auto heap_type :
@@ -43,26 +43,30 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
             DescriptorHeapType::rtv,
             DescriptorHeapType::dsv })
         {
-            uint32_t descriptor_heap_page_count = global_settings.getDescriptorHeapPageCount(heap_type);
-            page_pool.heaps[static_cast<size_t>(heap_type)].resize(descriptor_heap_page_count);
-            page_pool.static_allocators[static_cast<size_t>(heap_type)].resize(descriptor_heap_page_count);
-
-            for (uint32_t page_id = 0U; page_id < descriptor_heap_page_count; ++page_id)
+            pool.heaps[static_cast<size_t>(heap_type)].resize(descriptor_heaps_count);
+            uint32_t const descriptor_count = global_settings.getDescriptorHeapCapacity(heap_type);
+            for (uint32_t i = 0U; i < descriptor_heaps_count; ++i)
             {
-                uint32_t descriptor_count = global_settings.getDescriptorHeapPageCapacity(heap_type);
+                
                 auto& new_descriptor_heap_ref =
-                    page_pool.heaps[static_cast<size_t>(heap_type)][page_id] =
+                    pool.heaps[static_cast<size_t>(heap_type)][i] =
                     dev_ref.createDescriptorHeap(heap_type, descriptor_count, node_mask);
 
                 new_descriptor_heap_ref->setStringName(dev_ref.getStringName()
-                    + descriptor_heap_name_suffixes[static_cast<size_t>(heap_type)] + "_page" + std::to_string(page_id));
+                    + descriptor_heap_name_suffixes[static_cast<size_t>(heap_type)] + "#" + std::to_string(i));
 
-                page_pool.static_allocators[static_cast<size_t>(heap_type)][page_id] =
-                    std::make_unique<StaticDescriptorAllocationManager>(*new_descriptor_heap_ref);
+                if (heap_type == DescriptorHeapType::cbv_srv_uav)
+                {
+                    m_unordered_descriptor_allocators.emplace(
+                        std::piecewise_construct,
+                        std::forward_as_tuple(new_descriptor_heap_ref.get()),
+                        std::forward_as_tuple(*new_descriptor_heap_ref)
+                    );
+                }
             }
         }
 
-        m_descriptor_heaps.emplace(&dev_ref, std::move(page_pool));
+        m_descriptor_heaps.emplace(&dev_ref, std::move(pool));
 
         // initialize upload heaps
         {
@@ -72,6 +76,9 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
 
             m_upload_heaps.emplace(&dev_ref, std::move(upload_heap));
         }
+
+        // Create global texture descriptor tables
+
 
     }
 }
@@ -101,11 +108,10 @@ Heap& DxResourceFactory::retrieveUploadHeap(Device const& device)
     return m_upload_heaps.at(&device);
 }
 
-StaticDescriptorAllocationManager& lexgine::core::dx::d3d12::DxResourceFactory::getStaticAllocationManagerForDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id)
+UnorderedSRVTableAllocationManager& DxResourceFactory::retrieveBindlessSRVAllocationManager(DescriptorHeap const& descriptor_heap)
 {
-    return *m_descriptor_heaps.at(&device).static_allocators[static_cast<size_t>(descriptor_heap_type)][page_id];
+    return m_unordered_descriptor_allocators.at(&descriptor_heap);
 }
-
 
 misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHeap(Heap const& upload_heap, std::string const& section_name, size_t section_size)
 {

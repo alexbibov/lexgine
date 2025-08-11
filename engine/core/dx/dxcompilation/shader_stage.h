@@ -41,6 +41,14 @@ struct ShaderArgumentInfo {
     ShaderArgumentKind kind;
 };
 
+struct BindingResult
+{
+    bool was_successful;
+    size_t binding_register;
+
+    operator bool() const { return was_successful; }
+};
+
 } // namespace lexgine::core::dx::dxcompilation
 
 namespace std {
@@ -63,20 +71,31 @@ namespace lexgine::core::dx::dxcompilation
 class ShaderStage : public NamedEntity<lexgine::core::class_names::ShaderStage> {
     friend class ShaderStageAttorney<ShaderFunction>;
 public:
+    void build();
+
     unsigned int getInstructionCount();
 
-    bool bindConstantBuffer(misc::HashedString const& name, d3d12::Resource const& buffer, uint32_t offset, uint32_t size_in_bytes);
-    bool bindTextureBuffer(misc::HashedString const& name, d3d12::Resource const& buffer_texture, uint64_t first_buffer_element, uint32_t buffer_element_stride);
-    bool bindTexture(misc::HashedString const& name, d3d12::Resource const& texture);
-    bool bindStorageBlock(misc::HashedString const& name, d3d12::Resource const& storage_block, uint64_t first_buffer_element, uint32_t buffer_element_stride);
-    bool bindSampler(misc::HashedString const& name, FilterPack const& filter, math::Vector4f const& border_color);
+    BindingResult bindTexture(misc::HashedString const& name, d3d12::Resource const& texture, uint32_t register_offset = 0);
+    BindingResult bindTextureArray(misc::HashedString const& name, d3d12::Resource const& texture,
+        uint32_t first_array_element, uint32_t array_element_count, uint32_t register_offset = 0);
+    BindingResult bindTextureBuffer(misc::HashedString const& name, d3d12::Resource const& buffer_texture, uint64_t first_buffer_element, uint32_t buffer_element_stride, uint32_t register_offset = 0);
+    
+    BindingResult bindConstantBuffer(misc::HashedString const& name, d3d12::Resource const& buffer, uint32_t offset_from_buffer_start, uint32_t size_in_bytes, uint32_t register_offset = 0);
+    
+    BindingResult bindStorageBlock(misc::HashedString const& name, d3d12::Resource const& storage_block, uint64_t first_buffer_element, uint32_t buffer_element_stride, uint32_t register_offset = 0);
+    
+    BindingResult bindSampler(misc::HashedString const& name, FilterPack const& filter, math::Vector4f const& border_color, uint32_t register_offset = 0);
 
-    d3d12::ConstantBufferReflection const buildConstantBufferReflection(misc::HashedString const& constant_buffer_name) const;
+    lexgine::core::D3DDataBlob getShaderBytecode() const;
+    d3d12::ConstantBufferReflection buildConstantBufferReflection(misc::HashedString const& constant_buffer_name) const;
     ShaderType getShaderType() const;
     ShaderModel getShaderModel() const;
 
     ShaderArgumentInfo const& getShaderArgumentInfo(ShaderArgumentKind kind, ShaderArgumentInfoKey const& key) const;
     std::unordered_map<ShaderArgumentInfoKey, ShaderArgumentInfo> const& getShaderArguments(ShaderArgumentKind kind) const;
+
+    d3d12::tasks::HLSLCompilationTask* getTask() const { return m_shader_compilation_task_ptr; }
+    bool isReady() const { return m_is_ready; }
 
 private:
     enum class TextureResourceDataType {
@@ -126,17 +145,22 @@ private:
 
 
 private:
-    ShaderStage(Globals const& globals, d3d12::tasks::HLSLCompilationTask const* p_shader_compilation_task, ShaderFunction* p_owning_shader_function);
+    ShaderStage(Globals const& globals, d3d12::tasks::HLSLCompilationTask* p_shader_compilation_task, ShaderFunction* p_owning_shader_function);
 
     static uint32_t getDataTypeSize(TextureResourceDataType data_type);
     void collectShaderBindings();
     void collectShaderArguments(ShaderArgumentKind kind);
+
+    BindingResult bindInternal(misc::HashedString const& name, size_t register_offset, 
+        std::function<size_t(ShaderFunction::ShaderBindingPoint const&, d3d12::DescriptorAllocationManager*)> const& descriptor_creator);
     /*void fillDescriptorTableRanges(d3d12::RootEntryDescriptorTable& target_descriptor_table,
         d3d12::RootEntryDescriptorTable::RangeType range_type);*/
 
 private:
     Globals const& m_globals;
+    d3d12::tasks::HLSLCompilationTask* m_shader_compilation_task_ptr;
     ShaderFunction* m_owning_shader_function_ptr;
+    bool m_is_ready{ false };
 
     std::string m_shader_name;
     Microsoft::WRL::ComPtr<IDxcUtils> m_dxc_utils;
@@ -157,9 +181,14 @@ class ShaderStageAttorney<ShaderFunction>
     friend class ShaderFunction;
 
 private:
-    static std::unique_ptr<ShaderStage> createShaderStage(Globals const& globals, d3d12::tasks::HLSLCompilationTask const* p_shader_compilation_task, ShaderFunction* p_owning_shader_function)
+    static std::unique_ptr<ShaderStage> createShaderStage(Globals const& globals, d3d12::tasks::HLSLCompilationTask* p_shader_compilation_task, ShaderFunction* p_owning_shader_function)
     {
         return std::unique_ptr<ShaderStage>{ new ShaderStage{ globals, p_shader_compilation_task, p_owning_shader_function } };
+    }
+
+    static std::unordered_map<misc::HashedString, ShaderFunction::ShaderBindingPoint> const& getShaderStageBindings(ShaderStage const* p_shader_stage)
+    {
+        return p_shader_stage->m_shader_resource_names_pool;
     }
 };
 

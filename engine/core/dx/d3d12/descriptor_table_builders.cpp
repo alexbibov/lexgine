@@ -71,7 +71,7 @@ void ResourceViewDescriptorTableBuilder::addDescriptor(UAVDescriptor const& desc
     m_descriptor_table_footprint.back().end = m_uav_descriptors.size();
 }
 
-ShaderResourceDescriptorTable ResourceViewDescriptorTableBuilder::build() const
+DescriptorTable ResourceViewDescriptorTableBuilder::build() const
 {
     uint32_t total_descriptor_count = std::accumulate(m_descriptor_table_footprint.begin(),
         m_descriptor_table_footprint.end(), 0UI32,
@@ -85,13 +85,8 @@ ShaderResourceDescriptorTable ResourceViewDescriptorTableBuilder::build() const
         m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(*m_globals.get<Device>(),
             DescriptorHeapType::cbv_srv_uav, m_target_descriptor_heap_page_id);
 
-    uint32_t offset = target_descriptor_heap.reserveDescriptors(total_descriptor_count);
-    uint32_t descriptor_size = target_descriptor_heap.getDescriptorSize();
-    size_t cpu_ptr = target_descriptor_heap.getBaseCPUPointer()
-        + offset * static_cast<size_t>(descriptor_size);
-    uint64_t gpu_ptr = target_descriptor_heap.getBaseGPUPointer()
-        + offset * static_cast<size_t>(descriptor_size);
-    ShaderResourceDescriptorTable rv{ cpu_ptr, gpu_ptr, total_descriptor_count, descriptor_size };
+    DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(total_descriptor_count);
+    size_t offset = rv.offset;
     for (auto& range : m_descriptor_table_footprint)
     {
         switch (range.cache_type)
@@ -133,19 +128,13 @@ void SamplerDescriptorTableBuilder::addDescriptor(SamplerDescriptor const& descr
     m_sampler_descriptors.push_back(descriptor);
 }
 
-SamplerResourceDescriptorTable SamplerDescriptorTableBuilder::build() const
+DescriptorTable SamplerDescriptorTableBuilder::build() const
 {
     auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
         *m_globals.get<Device>(), DescriptorHeapType::sampler, m_target_descriptor_heap_page_id);
 
-    uint32_t offset = target_descriptor_heap.reserveDescriptors(static_cast<uint32_t>(m_sampler_descriptors.size()));
-    uint32_t descriptor_size = target_descriptor_heap.getDescriptorSize();
-    size_t cpu_ptr = target_descriptor_heap.getBaseCPUPointer()
-        + offset * descriptor_size;
-    uint64_t gpu_ptr = target_descriptor_heap.getBaseGPUPointer()
-        + offset * descriptor_size;
-    SamplerResourceDescriptorTable rv{ cpu_ptr, gpu_ptr, static_cast<uint32_t>(m_sampler_descriptors.size()), descriptor_size };
-
+    DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(static_cast<uint32_t>(m_sampler_descriptors.size()));
+    size_t offset = rv.offset;
     target_descriptor_heap.createSamplerDescriptors(offset, m_sampler_descriptors);
 
     return rv;
@@ -162,19 +151,13 @@ void RenderTargetViewTableBuilder::addDescriptor(RTVDescriptor const& descriptor
     m_rtv_descriptors.push_back(descriptor);
 }
 
-RenderTargetViewDescriptorTable RenderTargetViewTableBuilder::build() const
+DescriptorTable RenderTargetViewTableBuilder::build() const
 {
     auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
         *m_globals.get<Device>(), DescriptorHeapType::rtv, m_target_descriptor_heap_page_id);
 
-    uint32_t offset = target_descriptor_heap.reserveDescriptors(static_cast<uint32_t>(m_rtv_descriptors.size()));
-    uint32_t descriptor_size = target_descriptor_heap.getDescriptorSize();
-    size_t cpu_ptr = target_descriptor_heap.getBaseCPUPointer()
-        + offset * descriptor_size;
-    /*uint64_t gpu_ptr = target_descriptor_heap.getBaseGPUPointer()
-        + offset * descriptor_size;*/
-    RenderTargetViewDescriptorTable rv{ cpu_ptr, 0, static_cast<uint32_t>(m_rtv_descriptors.size()), descriptor_size };
-
+    DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(static_cast<uint32_t>(m_rtv_descriptors.size()));
+    size_t offset = rv.offset;
     target_descriptor_heap.createRenderTargetViewDescriptors(offset, m_rtv_descriptors);
 
     return rv;
@@ -191,19 +174,13 @@ void DepthStencilViewTableBuilder::addDescriptor(DSVDescriptor const& descriptor
     m_dsv_descriptors.push_back(descriptor);
 }
 
-DepthStencilViewDescriptorTable DepthStencilViewTableBuilder::build() const
+DescriptorTable DepthStencilViewTableBuilder::build() const
 {
     auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
         *m_globals.get<Device>(), DescriptorHeapType::dsv, m_target_descriptor_heap_page_id);
 
-    uint32_t offset = target_descriptor_heap.reserveDescriptors(static_cast<uint32_t>(m_dsv_descriptors.size()));
-    uint32_t descriptor_size = target_descriptor_heap.getDescriptorSize();
-    size_t cpu_ptr = target_descriptor_heap.getBaseCPUPointer()
-        + offset * descriptor_size;
-    /*uint64_t gpu_ptr = target_descriptor_heap.getBaseGPUPointer()
-        + offset * descriptor_size;*/
-    DepthStencilViewDescriptorTable rv{ cpu_ptr, 0, static_cast<uint32_t>(m_dsv_descriptors.size()), descriptor_size };
-
+    DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(static_cast<uint32_t>(m_dsv_descriptors.size()));
+    size_t offset = rv.offset;
     target_descriptor_heap.createDepthStencilViewDescriptors(offset, m_dsv_descriptors);
 
     return rv;

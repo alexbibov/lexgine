@@ -48,13 +48,13 @@ private:
 //! API- and OS- agnostic stream output declaration
 struct StreamOutput
 {
-    std::list<StreamOutputDeclarationEntry> so_declarations;    //!< declaration entries determining how stream output is organized
-    std::list<uint32_t> buffer_strides;    //!< strides for the stream output buffers, each stride is the size of element for that buffer
+    std::vector<StreamOutputDeclarationEntry> so_declarations;    //!< declaration entries determining how stream output is organized
+    std::vector<uint32_t> buffer_strides;    //!< strides for the stream output buffers, each stride is the size of element for that buffer
     uint32_t rasterized_stream = misc::DefaultRasterizedStream;    //!< determines, which stream to send to the rasterizer stage
 
     StreamOutput() = default; //! default stream output declaration: no stream output
 
-    StreamOutput(std::list<StreamOutputDeclarationEntry> const& so_declarations, std::list<uint32_t> const& buffer_strides, uint32_t rasterized_stream = misc::DefaultRasterizedStream);
+    StreamOutput(std::vector<StreamOutputDeclarationEntry> const& so_declarations, std::vector<uint32_t> const& buffer_strides, uint32_t rasterized_stream = misc::DefaultRasterizedStream);
 };
 
 

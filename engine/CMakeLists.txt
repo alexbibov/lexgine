@@ -99,6 +99,7 @@ add_dependencies(${_target} zlib glm imgui pugixml spookyhashv2 ktx_read common 
 target_compile_definitions(${_target} PUBLIC LEXGINE_GLOBAL_LOOKUP_PREFIX="${CMAKE_SOURCE_DIR}")
 target_compile_definitions(${_target} PUBLIC LEXGINE_SETTINGS_PATH="settings/")
 target_compile_definitions(${_target} PUBLIC LEXGINE_SCRIPTS_PATH="scripts/")
+target_compile_definitions(${_target} PRIVATE LEXGINE_SHADERS_PATH="shaders/")
 target_compile_definitions(${_target} PUBLIC USE_PIX)
 
 configure_openmp_support(${_target})

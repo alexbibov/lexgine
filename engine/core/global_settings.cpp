@@ -62,17 +62,10 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
         {
             // Descriptor heaps total and per-page capacity default settings
 
-            m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = 1000000;
-            m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = 1;
-
-            m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::sampler)] = 256;
-            m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::sampler)] = 1;
-
-            m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::rtv)] = 512;
-            m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::rtv)] = 1;
-
-            m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::dsv)] = 512;
-            m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::dsv)] = 1;
+            m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = 1000000;
+            m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::sampler)] = 32;
+            m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::rtv)] = 128;
+            m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::dsv)] = 128;
         }
     }
 
@@ -315,95 +308,48 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path, int
         {
             // Descriptor heaps total and per-page capacity settings
 
-            if ((p = document.find("resource_view_descriptors_per_page")) != document.end()
+            if ((p = document.find("resource_view_descriptors_count")) != document.end()
                 && p->is_number_unsigned())
             {
-                m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = p->get<uint32_t>();
+                m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = p->get<uint32_t>();
             }
             else
             {
-                yield_warning_log_message("resource_view_descriptors_per_page",
-                    m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)]);
+                yield_warning_log_message("resource_view_descriptors_count",
+                    m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)]);
             }
 
-            if ((p = document.find("resource_view_descriptor_heap_page_count")) != document.end()
+            if ((p = document.find("sampler_descriptors_count")) != document.end()
                 && p->is_number_unsigned())
             {
-                m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = p->get<uint32_t>();
+                m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::sampler)] = p->get<uint32_t>();
             }
             else
             {
-                yield_warning_log_message("resource_view_descriptor_heap_page_count",
-                    m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)]);
+                yield_warning_log_message("sampler_descriptors_count",
+                    m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::sampler)]);
             }
 
-
-            if ((p = document.find("sampler_descriptors_per_page")) != document.end()
+            if ((p = document.find("render_target_view_descriptors_count")) != document.end()
                 && p->is_number_unsigned())
             {
-                m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::sampler)] = p->get<uint32_t>();
+                m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::rtv)] = p->get<uint32_t>();
             }
             else
             {
-                yield_warning_log_message("sampler_descriptors_per_page",
-                    m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::sampler)]);
+                yield_warning_log_message("render_target_view_descriptors_count",
+                    m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::rtv)]);
             }
 
-            if ((p = document.find("sampler_descriptor_heap_page_count")) != document.end()
+            if ((p = document.find("depth_stencil_view_descriptors_count")) != document.end()
                 && p->is_number_unsigned())
             {
-                m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::sampler)] = p->get<uint32_t>();
+                m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::dsv)] = p->get<uint32_t>();
             }
             else
             {
-                yield_warning_log_message("sampler_descriptor_heap_page_count",
-                    m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::sampler)]);
-            }
-
-
-            if ((p = document.find("render_target_view_descriptors_per_page")) != document.end()
-                && p->is_number_unsigned())
-            {
-                m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::rtv)] = p->get<uint32_t>();
-            }
-            else
-            {
-                yield_warning_log_message("render_target_view_descriptors_per_page",
-                    m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::rtv)]);
-            }
-
-            if ((p = document.find("render_target_view_descriptor_heap_page_count")) != document.end()
-                && p->is_number_unsigned())
-            {
-                m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::rtv)] = p->get<uint32_t>();
-            }
-            else
-            {
-                yield_warning_log_message("render_target_view_descriptor_heap_page_count",
-                    m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::rtv)]);
-            }
-
-
-            if ((p = document.find("depth_stencil_view_descriptors_per_page")) != document.end()
-                && p->is_number_unsigned())
-            {
-                m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::dsv)] = p->get<uint32_t>();
-            }
-            else
-            {
-                yield_warning_log_message("depth_stencil_view_descriptors_per_page",
-                    m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::dsv)]);
-            }
-
-            if ((p = document.find("depth_stencil_view_descriptor_heap_page_count")) != document.end()
-                && p->is_number_unsigned())
-            {
-                m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::dsv)] = p->get<uint32_t>();
-            }
-            else
-            {
-                yield_warning_log_message("depth_stencil_view_descriptor_heap_page_count",
-                    m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::dsv)]);
+                yield_warning_log_message("depth_stencil_view_descriptors_count",
+                    m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::dsv)]);
             }
         }
 
@@ -472,14 +418,10 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
         { "max_frames_in_flight", m_max_frames_in_flight },
         { "max_non_blocking_upload_buffer_allocation_timeout", m_max_non_blocking_upload_buffer_allocation_timeout },
 
-        { "resource_view_descriptors_per_page", m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] },
-        { "resource_view_descriptor_heap_page_count", m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] },
-        { "sampler_descriptors_per_page", m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::sampler)] },
-        { "sampler_descriptor_heap_page_count", m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::sampler)] },
-        { "render_target_view_descriptors_per_page", m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::rtv)] },
-        { "render_target_view_descriptor_heap_page_count", m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::rtv)] },
-        { "depth_stencil_view_descriptors_per_page", m_descriptors_per_page[static_cast<size_t>(DescriptorHeapType::dsv)] },
-        { "depth_stencil_view_descriptor_heap_page_count", m_descriptor_heap_page_count[static_cast<size_t>(DescriptorHeapType::dsv)] }
+        { "resource_view_descriptors_count", m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] },
+        { "sampler_descriptors_count", m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::sampler)] },
+        { "render_target_view_descriptors_count", m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::rtv)] },
+        { "depth_stencil_view_descriptors_count", m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::dsv)] },
 
     };
 
@@ -536,14 +478,9 @@ uint64_t GlobalSettings::getMaxCombinedTextureCacheSize() const
     return m_max_combined_texture_cache_size;
 }
 
-uint32_t GlobalSettings::getDescriptorHeapPageCapacity(DescriptorHeapType descriptor_heap_type) const
+uint32_t GlobalSettings::getDescriptorHeapCapacity(DescriptorHeapType descriptor_heap_type) const
 {
-    return m_descriptors_per_page[static_cast<size_t>(descriptor_heap_type)];
-}
-
-uint32_t GlobalSettings::getDescriptorHeapPageCount(DescriptorHeapType descriptor_heap_type) const
-{
-    return m_descriptor_heap_page_count[static_cast<size_t>(descriptor_heap_type)];
+    return m_descriptor_heap_capacity[static_cast<size_t>(descriptor_heap_type)];
 }
 
 uint32_t GlobalSettings::getUploadHeapCapacity() const
@@ -579,6 +516,11 @@ bool GlobalSettings::isAsyncCopyEnabled() const
 bool GlobalSettings::isProfilingEnabled() const
 {
     return m_enable_profiling;
+}
+
+MSAAMode GlobalSettings::msaaMode() const
+{
+    return m_msaa_mode;
 }
 
 bool GlobalSettings::isCacheEnabled() const
@@ -667,4 +609,9 @@ void GlobalSettings::setIsAsyncCopyEnabled(bool is_enabled)
 void GlobalSettings::setIsProfilingEnabled(bool is_enabled)
 {
     m_enable_profiling = is_enabled;
+}
+
+void GlobalSettings::setMsaaMode(MSAAMode msaa_mode)
+{
+    m_msaa_mode = msaa_mode;
 }

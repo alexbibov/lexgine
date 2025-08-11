@@ -133,26 +133,26 @@ public:
 
     void outputMergerSetStencilReference(uint32_t reference_value) const;
 
-    void outputMergerSetRenderTargets(RenderTargetViewDescriptorTable const* rtv_descriptor_table, uint64_t active_rtv_descriptors_mask,
-        DepthStencilViewDescriptorTable const* dsv_descriptor_table, uint32_t dsv_descriptor_table_offset) const;
+    void outputMergerSetRenderTargets(DescriptorTable const* rtv_descriptor_table, uint64_t active_rtv_descriptors_mask,
+        DescriptorTable const* dsv_descriptor_table, uint32_t dsv_descriptor_table_offset) const;
 
     // void streamOutputSetTargets(uint32_t start_slot, std::vector<StreamOutputBufferView> const&) const;
 
 
     //! Clear view routines
 
-    void clearDepthStencilView(DepthStencilViewDescriptorTable const& dsv_descriptor_table, uint32_t dsv_descriptor_table_offset,
+    void clearDepthStencilView(DescriptorTable const& dsv_descriptor_table, uint32_t dsv_descriptor_table_offset,
         DSVClearFlags clear_flags, float depth_clear_value, uint8_t stencil_clear_value,
         misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles = {}) const;
 
-    void clearRenderTargetView(RenderTargetViewDescriptorTable const& rtv_descriptor_table, uint32_t rtv_descriptor_table_offset,
+    void clearRenderTargetView(DescriptorTable const& rtv_descriptor_table, uint32_t rtv_descriptor_table_offset,
         math::Vector4f const& rgba_clear_value, misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles = {}) const;
 
-    void clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
+    void clearUnorderedAccessView(DescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
         Resource const& resource_to_clear, math::Vector4u const& rgba_clear_value,
         misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles = {}) const;
 
-    void clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
+    void clearUnorderedAccessView(DescriptorTable const& uav_descriptor_table, uint32_t uav_descriptor_table_offset,
         Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value,
         misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles = {}) const;
 

@@ -288,9 +288,9 @@ struct FeatureD3D12Options final
 //! Thin wrapper over D3D12_FEATURE_DATA_ARCHITECTURE
 struct FeatureArchitecture final
 {
-    bool tileBasedRenderer;
+    bool tile_based_renderer;
     bool UMA;
-    bool cacheCoherentUMA;
+    bool cache_coherent_UMA;
 };
 
 //! Thin wrapper over D3D12_FEATURE_DATA_FORMAT_SUPPORT
@@ -310,14 +310,14 @@ END_FLAGS_DECLARATION(MultisampleQualityLevels);
 struct FeatureMultisampleQualityLevels final
 {
     MultisampleQualityLevels flags;
-    uint32_t numQualityLevels;
+    uint32_t num_quality_levels;
 };
 
 //! Thin wrapper over D3D12_GPU_VIRTUAL_ADDRESS_SUPPORT
 struct FeatureGPUVirtualAddressSupport final
 {
-    uint32_t maxGPUVirtualAddressBitsPerResource;
-    uint32_t maxGPUVirtualAddressBitsPerProcess;
+    uint32_t max_gpu_virtual_address_bits_per_resource;
+    uint32_t max_gpu_virtual_address_bits_per_process;
 };
 
 

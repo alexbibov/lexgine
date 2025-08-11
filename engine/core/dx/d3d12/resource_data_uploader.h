@@ -15,6 +15,12 @@
 
 namespace lexgine::core::dx::d3d12 {
 
+enum class ResourceUploadPolicy
+{
+    blocking, 
+    non_blocking
+};
+
 //! Helper: implements uploading of placed subresources to the GPU-side
 class ResourceDataUploader : public NamedEntity<class_names::D3D12_ResourceDataUploader>
 {
@@ -64,7 +70,7 @@ public:
     };
 
 
-    ResourceDataUploader(Globals& globals, DedicatedUploadDataStreamAllocator& upload_buffer_allocator);
+    ResourceDataUploader(Globals& globals, DedicatedUploadDataStreamAllocator& upload_buffer_allocator, ResourceUploadPolicy upload_policy);
     ResourceDataUploader(ResourceDataUploader const&) = delete;
     // ResourceDataUploader(ResourceDataUploader&&) = delete;
 
@@ -87,6 +93,12 @@ public:
     void waitUntilUploadIsFinished() const;    //! blocks calling thread until all upload tasks are finished
     bool isUploadFinished() const;    //! returns 'true' if all uploads have been finished and 'false' otherwise
 
+    uint64_t scheduledWork() const { return m_upload_buffer_allocator.scheduledWork(); }
+    uint64_t recordingWork() const { return m_upload_buffer_allocator.recordingWork(); }
+    bool isWorkCompleted(uint64_t scheduled_work) { return m_upload_buffer_allocator.completedWork() >= scheduled_work; }
+
+    uint64_t availableCapacity() const;    //! returns best estimate of available capacity of the staging buffer known at that point
+
 private:
     void beginCopy(DestinationDescriptor const& destination_descriptor);
     void endCopy(DestinationDescriptor const& destination_descriptor);
@@ -96,6 +108,7 @@ private:
     bool m_is_async_copy_enabled;
     DedicatedUploadDataStreamAllocator& m_upload_buffer_allocator;    //!< upload buffer allocation manager
     CommandList m_upload_command_list;    //!< command list intended to contain upload commands
+    ResourceUploadPolicy m_upload_policy;    //!< resource upload policy (blocking - internal allocator waits until needed space becomes available; non_blocing - internal allocator fails in case if staging buffer is exhausted)
     bool m_upload_command_list_needs_reset{ true };
 };
 

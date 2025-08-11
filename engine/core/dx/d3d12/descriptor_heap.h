@@ -22,6 +22,16 @@ enum class DescriptorHeapType {
     count
 };
 
+
+struct DescriptorTable final {
+    size_t offset;                   // number of descriptor-sized slots preceding this descriptor table
+    uintptr_t cpu_pointer;           // CPU pointer to the start of descriptor table
+    uint64_t gpu_pointer;            // GPU pointer to the start of descriptor table
+    uint32_t descriptor_count;       // descriptor capacity of the table
+    uint32_t descriptor_size;        // size of singe descriptor
+    DescriptorHeap* p_heap;          // pointer to owning heap
+};
+
 class DescriptorHeap final : public NamedEntity<class_names::D3D12_DescriptorHeap>
 {
     friend class Device;    // only devices are allowed to create the heaps
@@ -49,7 +59,7 @@ public:
 
     uint32_t reserveDescriptors(uint32_t count);    //! reserves "count" descriptors in the descriptor heap and returns offset of the first descriptor reserved
 
-
+    DescriptorTable allocateDescriptorTable(uint32_t capacity);
 
     /*! creates single CBV descriptor and places it into descriptor heap starting at position provided by
      the offset value. The offset can be obtained using reserveDescriptors(...).

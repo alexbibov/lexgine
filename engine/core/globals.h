@@ -83,8 +83,6 @@ public:
     }
 };
 
-
-
 //! Construct the main and the most generalist part of the Globals object pool
 class MainGlobalsBuilder
 {
