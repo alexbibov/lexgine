@@ -310,9 +310,9 @@ FeatureArchitecture Device::queryFeatureArchitecture(uint32_t node_index) const
         S_OK
     );
 
-    rv.tileBasedRenderer = feature_desc.TileBasedRenderer == TRUE;
+    rv.tile_based_renderer = feature_desc.TileBasedRenderer == TRUE;
     rv.UMA = feature_desc.UMA == TRUE;
-    rv.cacheCoherentUMA = feature_desc.CacheCoherentUMA == TRUE;
+    rv.cache_coherent_UMA = feature_desc.CacheCoherentUMA == TRUE;
 
     return rv;
 }
@@ -350,7 +350,7 @@ FeatureMultisampleQualityLevels Device::queryFeatureQualityLevels(DXGI_FORMAT fo
     );
 
     rv.flags = feature_desc.Flags;
-    rv.numQualityLevels = feature_desc.NumQualityLevels;
+    rv.num_quality_levels = feature_desc.NumQualityLevels;
 
     return rv;
 }
@@ -366,8 +366,8 @@ FeatureGPUVirtualAddressSupport Device::queryFeatureGPUVirtualAddressSupport() c
         S_OK
     );
 
-    rv.maxGPUVirtualAddressBitsPerResource = feature_desc.MaxGPUVirtualAddressBitsPerResource;
-    rv.maxGPUVirtualAddressBitsPerProcess = feature_desc.MaxGPUVirtualAddressBitsPerProcess;
+    rv.max_gpu_virtual_address_bits_per_resource = feature_desc.MaxGPUVirtualAddressBitsPerResource;
+    rv.max_gpu_virtual_address_bits_per_process = feature_desc.MaxGPUVirtualAddressBitsPerProcess;
 
     return rv;
 }

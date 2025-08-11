@@ -27,20 +27,10 @@ public:
 
     }
 
-    // This constructor is a special case to be used by UAV descriptors only
-    HashableDescriptor(Resource const& resource, Resource const* p_counter_resource, T const& native_ref)
-        : m_resource_ptr{ reinterpret_cast<uintptr_t>(resource.native().Get()) }
-        , m_counter_resource_ptr{ reinterpret_cast<uintptr_t>(p_counter_resource ? p_counter_resource->native().Get() : nullptr) }
-        , m_native_ref{ native_ref }
-    {
-
-    }
-
     misc::HashValue hash() const
     {
         misc::HashValue hash { &m_native_ref, sizeof(T) };
         hash.combine(&m_resource_ptr, sizeof(uintptr_t));
-        hash.combine(&m_counter_resource_ptr, sizeof(uintptr_t));
         return hash;
     }
 
@@ -53,7 +43,8 @@ public:
         misc::HashValue otherHash = other.hash();
 
         #ifdef _DEBUG
-        assert((thisHash != otherHash || m_resource_ptr == other.m_resource_ptr && m_counter_resource_ptr == other.m_counter_resource_ptr
+        assert((thisHash != otherHash 
+            || m_resource_ptr == other.m_resource_ptr
             && std::equal(reinterpret_cast<uint8_t const*>(&m_native_ref), 
                 reinterpret_cast<uint8_t const*>(&m_native_ref) + sizeof(T), 
                 reinterpret_cast<uint8_t const*>(&other.m_native_ref))) && "Hash collision detected");
@@ -64,7 +55,6 @@ public:
 
 private:
     uintptr_t m_resource_ptr = 0;
-    uintptr_t m_counter_resource_ptr = 0;
     T const& m_native_ref;
 };
 

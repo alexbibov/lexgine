@@ -52,6 +52,7 @@ std::string correct_path(std::string const& original_path)
 D3D12EngineSettings::D3D12EngineSettings()
     : debug_mode{ false }
     , enable_profiling{ false }
+    , msaa_mode{ MSAAMode::none }
     , adapter_enumeration_preference{ dx::dxgi::DxgiGpuPreference::high_performance }
     , global_settings_json_file{ "global_settings.json" }
     , log_name{ "lexgine.log" }
@@ -65,6 +66,7 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
     std::string corrected_logging_output_path = correct_path(settings.logging_output_path);
     std::string corrected_global_lookup_prefix = correct_path(settings.global_lookup_prefix);
     std::string corrected_settings_lookup_path = correct_path(settings.settings_lookup_path);
+    std::string corrected_shaders_lookup_path = correct_path(settings.shaders_lookup_path);
 
 
     m_logging_streams.reset(new LoggingStreams{});

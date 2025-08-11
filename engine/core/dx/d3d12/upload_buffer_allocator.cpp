@@ -123,6 +123,13 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
         return result;
     }
 
+    // Unable to allocate more space, the buffer is exhausted
+    LEXGINE_LOG_ERROR(this,
+        "Unable to allocate block in upload buffer. Requested size of the allocation ("
+            + std::to_string(size_in_bytes) + " bytes) exceeds the remaining capacity of the buffer ("
+            + std::to_string(m_unpartitioned_chunk_size) + " bytes with total of " + std::to_string(m_fragmentation_capacity)
+            + " fragmented bytes)");
+
     return { nullptr };
 }
 
@@ -133,7 +140,12 @@ uint64_t UploadDataAllocator::completedWork() const
 
 uint64_t UploadDataAllocator::scheduledWork() const
 {
-    return nextValueOfControllingSignal() - 1;
+    return lastRecordedValueOfControllingSignal();
+}
+
+uint64_t UploadDataAllocator::recordingWork() const
+{
+    return nextValueOfControllingSignal();
 }
 
 size_t UploadDataAllocator::getPartitionsCount() const
@@ -149,14 +161,8 @@ Resource const& UploadDataAllocator::getUploadResource() const
 
 UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t size_in_bytes, bool is_blocking_call)
 {
-    if (m_allocation_hint.bucket_iter->empty() || m_allocation_hint.block()->m_controlling_signal_value == nextValueOfControllingSignal()) {
-        // Unable to allocate more space, the buffer is exhausted
-        LEXGINE_LOG_ERROR(this,
-            "Unable to allocate block in upload buffer. Requested size of the allocation ("
-                + std::to_string(size_in_bytes) + " bytes) exceeds the remaining capacity of the buffer ("
-                + std::to_string(m_unpartitioned_chunk_size) + " bytes with total of " + std::to_string(m_fragmentation_capacity)
-                + " fragmented bytes)");
-
+    if (m_allocation_hint.bucket_iter->empty() || m_allocation_hint.block()->m_controlling_signal_value == nextValueOfControllingSignal()) 
+    {
         return { nullptr };
     }
 
@@ -180,7 +186,7 @@ UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t s
 
             size_t current_end_addr = memory_block->m_allocation_end;
             space_retrieved += current_end_addr - trailing_end_allocation_addr;
-            m_fragmentation_capacity -= trailing_end_allocation_addr - memory_block->m_allocation_begin;
+            m_fragmentation_capacity -= memory_block->m_allocation_begin - trailing_end_allocation_addr;
             trailing_end_allocation_addr = current_end_addr;
             controlling_signal_value = (std::max)(controlling_signal_value, memory_block->m_controlling_signal_value);
         }
@@ -300,6 +306,11 @@ uint64_t DedicatedUploadDataStreamAllocator::lastSignaledValueOfControllingSigna
     return m_progress_tracking_signal.lastValueSignaled();
 }
 
+uint64_t DedicatedUploadDataStreamAllocator::lastRecordedValueOfControllingSignal() const
+{
+    return m_progress_tracking_signal.lastValueRecorded();
+}
+
 PerFrameUploadDataStreamAllocator::PerFrameUploadDataStreamAllocator(Globals& globals, uint64_t offset_from_heap_start, uint64_t upload_buffer_size,
     FrameProgressTracker const& frame_progress_tracker)
     : UploadDataAllocator{ globals, offset_from_heap_start, upload_buffer_size }
@@ -332,6 +343,11 @@ uint64_t PerFrameUploadDataStreamAllocator::nextValueOfControllingSignal() const
 uint64_t PerFrameUploadDataStreamAllocator::lastSignaledValueOfControllingSignal() const
 {
     return m_frame_progress_tracker.completedFramesCount();
+}
+
+uint64_t PerFrameUploadDataStreamAllocator::lastRecordedValueOfControllingSignal() const
+{
+    return m_frame_progress_tracker.scheduledFramesCount();
 }
 
 }

@@ -9,8 +9,7 @@ using namespace lexgine::core::dx::d3d12;
 UAVDescriptor::UAVDescriptor(Resource const& resource, 
     UAVBufferInfo const& buffer_info,
     Resource const* p_counter_resource)
-    : HashableDescriptor{ resource, p_counter_resource, m_native }
-    , m_resource_ref{ resource }
+    : m_resource_ref{ resource }
     , m_counter_resource_ptr{ p_counter_resource }
 {
     auto resource_desc = resource.descriptor();
@@ -29,8 +28,7 @@ UAVDescriptor::UAVDescriptor(Resource const& resource,
 UAVDescriptor::UAVDescriptor(Resource const& resource, 
     UAVTextureInfo const& texture_info,
     Resource const* p_counter_resource)
-    : HashableDescriptor{ resource, p_counter_resource, m_native }
-    , m_resource_ref{ resource }
+    : m_resource_ref{ resource }
     , m_counter_resource_ptr{ p_counter_resource }
 {
     auto resource_desc = resource.descriptor();
@@ -67,8 +65,7 @@ UAVDescriptor::UAVDescriptor(Resource const& resource,
 UAVDescriptor::UAVDescriptor(Resource const& resource, 
     UAVTextureArrayInfo const& texture_array_info,
     Resource const* p_counter_resource)
-    : HashableDescriptor{ resource, p_counter_resource, m_native }
-    , m_resource_ref{ resource }
+    : m_resource_ref{ resource }
     , m_counter_resource_ptr{ p_counter_resource }
 {
     auto resource_desc = resource.descriptor();

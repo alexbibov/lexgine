@@ -63,6 +63,7 @@ public:
 
     uint64_t completedWork() const;
     uint64_t scheduledWork() const;
+    uint64_t recordingWork() const;
     uint64_t totalCapacity() const { return m_buffer_size; }
 
     size_t getPartitionsCount() const;
@@ -88,6 +89,7 @@ private:
     virtual bool waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const = 0;
     virtual uint64_t nextValueOfControllingSignal() const = 0;
     virtual uint64_t lastSignaledValueOfControllingSignal() const = 0;
+    virtual uint64_t lastRecordedValueOfControllingSignal() const = 0;
 
     address_type allocateInternal(size_t size_in_bytes, bool is_blocking_call);
     memory_block_type& allocateNewMemoryBlock(uint32_t allocation_begin_address, uint32_t allocation_end_address);
@@ -124,6 +126,7 @@ private:
     bool waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const override;
     uint64_t nextValueOfControllingSignal() const override;
     uint64_t lastSignaledValueOfControllingSignal() const override;
+    uint64_t lastRecordedValueOfControllingSignal() const override;
 
 private:
     Signal m_progress_tracking_signal;
@@ -143,6 +146,7 @@ private:
     bool waitUntilControllingSignalValue(uint64_t value, uint32_t timeout_in_milliseconds) const override;
     uint64_t nextValueOfControllingSignal() const override;
     uint64_t lastSignaledValueOfControllingSignal() const override;
+    uint64_t lastRecordedValueOfControllingSignal() const override;
 
 private:
     FrameProgressTracker const& m_frame_progress_tracker;

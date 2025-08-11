@@ -10,7 +10,7 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-class CBVDescriptor final : public HashableDescriptor<D3D12_CONSTANT_BUFFER_VIEW_DESC>
+class CBVDescriptor final
 {
 public:
     CBVDescriptor(Resource const& resource, uint32_t offset_from_start, uint32_t view_size_in_bytes);

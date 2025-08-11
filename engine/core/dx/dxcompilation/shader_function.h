@@ -3,14 +3,14 @@
 
 #include <array>
 #include <bitset>
+#include <unordered_set>
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/entity.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/root_signature.h"
-#include "engine/core/dx/d3d12/static_descriptor_allocation_manager.h"
-
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
+#include "engine/core/dx/d3d12/descriptor_allocation_manager.h"
 
 #include "lexgine_core_dx_dxcompilation_fwd.h"
 #include "common.h"
@@ -24,19 +24,27 @@ class ShaderFunctionAttorney;
 enum class ShaderFunctionConstantBufferRootIds
 {
     scene_uniforms = 0,
-    // model_uniforms,
-    // material_uniforms,
+    material_uniforms,
+    instanced_material_uniforms,
     count
 };
 
-class ShaderFunction : public NamedEntity<class_names::ShaderFunction>
+BEGIN_FLAGS_DECLARATION(ShaderFunctionRootUniformBuffers)
+FLAG(None, 0)
+FLAG(SceneUniforms, 1 << static_cast<int>(ShaderFunctionConstantBufferRootIds::scene_uniforms))
+FLAG(MaterialUniforms, 1 << static_cast<int>(ShaderFunctionConstantBufferRootIds::material_uniforms))
+FLAG(ModelUniforms, 1 << static_cast<int>(ShaderFunctionConstantBufferRootIds::instanced_material_uniforms))
+FLAG(All, static_cast<int>(SceneUniforms) | static_cast<int>(MaterialUniforms) | static_cast<int>(ModelUniforms))
+END_FLAGS_DECLARATION(ShaderFunctionRootUniformBuffers);
+
+class ShaderFunction : public NamedEntity<class_names::ShaderFunction>, public ProvidesGlobals
 {
     friend class ShaderFunctionAttorney<ShaderStage>;
 public:
     constexpr static uint32_t c_reserved_constant_buffer_space_id = 100;
 
     enum class ShaderInputKind {
-        srv, uav, cbv, sampler
+        srv, uav, cbv, sampler, count
     };
 
     struct ShaderBindingPoint {
@@ -45,7 +53,7 @@ public:
         uint32_t register_count;
         uint32_t register_space;
 
-        bool operator==(ShaderBindingPoint const& other) const = default;
+        bool operator==(ShaderBindingPoint const&) const = default;
     };
 
     struct ShaderInputBindingPointHash {
@@ -59,115 +67,107 @@ public:
     };
 
 public:
-    ShaderFunction(Globals& globals, uint32_t descriptor_heap_page_id, std::string const& name);
-    std::string const& name() const { return m_name; }
-    ShaderStage* getShaderStage(ShaderType shader_type) const { return m_shader_stages[static_cast<size_t>(shader_type)].get(); }
-    ShaderStage* createShaderStage(d3d12::tasks::HLSLCompilationTask const* p_shader_compilation_task);
-    void prepare(bool prepare_asynchronously);
+    ShaderFunction(Globals& globals, ShaderFunctionRootUniformBuffers const& flags);
+    ~ShaderFunction();
 
-    d3d12::tasks::RootSignatureCompilationTask* getBindingSignature() const { return m_p_root_signature_compilation_task; }
+    ShaderStage* getShaderStage(ShaderType shader_type) const { return m_shader_stages[static_cast<size_t>(shader_type)].get(); }
+    ShaderStage* createShaderStage(d3d12::tasks::HLSLCompilationTask* p_shader_compilation_task);
+
+    d3d12::tasks::RootSignatureCompilationTask* buildBindingSignature();
+
+    uint32_t occupiedRootSignatureSlotsCount() const { return m_occupied_rs_slots; }
+
+    void bindRootConstantBuffer(core::dx::d3d12::CommandList& command_list, 
+        ShaderFunctionConstantBufferRootIds id, 
+        uint64_t gpu_virtual_address);
+
+    bool assignResourceDescriptors(ShaderInputKind resource_kind, uint32_t resource_space_id, const core::dx::d3d12::DescriptorAllocationManager& allocation_manager);
+    bool bindResourceDescriptors(core::dx::d3d12::CommandList& command_list, ShaderInputKind kind, uint32_t space_id);
 
 private:
     struct ShaderInputDesc
     {
         std::bitset<static_cast<size_t>(ShaderType::count)> shader_stage_presence;
-        int bound_resource_index{ -1 };
+    };
+
+    struct DescriptorTableKey
+    {
+        ShaderInputKind kind;
+        uint32_t space_id;
+
+        bool operator==(DescriptorTableKey const&) const = default;
+    };
+
+    struct DescriptorTableKeyHash
+    {
+        size_t operator()(DescriptorTableKey const& value) const
+        {
+            misc::HashValue hash_value{ &value, sizeof(DescriptorTableKey) };
+            return hash_value.part1() ^ hash_value.part2();
+        }
     };
 
 private:
-    static const size_t c_max_uav_with_counters_count = 128;
+    static const size_t c_max_uav_with_counters_count = 32;
 
 private:
-    Globals& m_globals;
+    void buildInternal();
+
+private:
     d3d12::Device& m_device;
-    d3d12::StaticDescriptorAllocationManager& m_static_cbv_srv_uav_descriptor_allocator;
-    d3d12::StaticDescriptorAllocationManager& m_static_sampler_descriptor_allocator;
-    uint32_t m_descriptor_heap_page_id;
-    std::string m_name;
+    ShaderFunctionRootUniformBuffers m_flags;
 
     std::array<std::unique_ptr<ShaderStage>, static_cast<size_t>(ShaderType::count)> m_shader_stages;
 
     std::unordered_map<ShaderBindingPoint, ShaderInputDesc, ShaderInputBindingPointHash> m_shader_inputs;
 
-    std::vector<d3d12::StaticDescriptorAllocationManager::UPointer> m_bound_cbv_resources;
-    std::vector<d3d12::StaticDescriptorAllocationManager::UPointer> m_bound_srv_resources;
-    std::vector<d3d12::StaticDescriptorAllocationManager::UPointer> m_bound_uav_resources;
-    std::vector<d3d12::StaticDescriptorAllocationManager::UPointer> m_bound_sampler_resources;
+    std::unordered_map<DescriptorTableKey, d3d12::RootEntryDescriptorTable, DescriptorTableKeyHash> m_assumed_descriptor_tables{};
+    std::unordered_set<uint32_t> m_assumed_register_spaces{};
+
+    std::unordered_map<ShaderFunctionConstantBufferRootIds, uint32_t> m_root_uniforms_to_rs_slots_mapping;
+    std::unordered_map<DescriptorTableKey, uint32_t, DescriptorTableKeyHash> m_descriptor_table_keys_to_rs_slots_mapping;
+    std::unordered_map<DescriptorTableKey, size_t, DescriptorTableKeyHash> m_descriptor_table_capacities;
+    std::unordered_map<DescriptorTableKey, core::dx::d3d12::DescriptorAllocationManager, DescriptorTableKeyHash> m_descriptor_table_allocators;
+
+    uint32_t m_occupied_rs_slots{ 0 };
 
     uint64_t m_next_counter_offset { 0 };
     d3d12::Resource m_uav_atomic_counters;
 
-    d3d12::tasks::RootSignatureCompilationTask* m_p_root_signature_compilation_task{ nullptr };
+    d3d12::tasks::RootSignatureCompilationTask* m_root_signature_compilation_task_ptr{ nullptr };
     bool m_shader_function_stale{ true };
 };
+
 
 template<>
 class ShaderFunctionAttorney<ShaderStage>
 {
     friend class ShaderStage;
 
-private:
-    static void bindResourceToShaderFunctionInput(ShaderFunction& target_shader_function,
-        ShaderType binging_shader_stage_type,
-        ShaderFunction::ShaderBindingPoint const& binding_point,
-        d3d12::StaticDescriptorAllocationManager::UPointer const& resource_descriptor_pointer)
+    struct AtomicCounterDesc
     {
-        ShaderFunction::ShaderInputDesc& shader_input_desc = target_shader_function.m_shader_inputs[binding_point];
-        
-        std::vector<d3d12::StaticDescriptorAllocationManager::UPointer>* p_resources{};
-        switch (binding_point.kind)
+        d3d12::Resource& atomic_counter_resource;
+        uint64_t offset;
+    };
+
+    static core::dx::d3d12::DescriptorAllocationManager* getDescriptorAllocationManager(ShaderFunction& shader_function, ShaderFunction::ShaderInputKind kind, uint32_t space_id)
+    {
+        ShaderFunction::DescriptorTableKey key{ .kind = kind, .space_id = space_id };
+        if (shader_function.m_descriptor_table_allocators.count(key) == 0)
         {
-        case ShaderFunction::ShaderInputKind::srv:
-            p_resources = &target_shader_function.m_bound_srv_resources;
-            break;
-        case ShaderFunction::ShaderInputKind::cbv:
-            p_resources = &target_shader_function.m_bound_cbv_resources;
-            break;
-        case ShaderFunction::ShaderInputKind::uav:
-            p_resources = &target_shader_function.m_bound_uav_resources;
-            break;
-        case ShaderFunction::ShaderInputKind::sampler:
-            p_resources = &target_shader_function.m_bound_sampler_resources;
-            break;
-        }
-        
-        if (shader_input_desc.bound_resource_index == -1)
-        {
-            shader_input_desc.bound_resource_index = static_cast<int>(p_resources->size());
-            p_resources->push_back(resource_descriptor_pointer);
-        }
-        else
-        {
-            p_resources->data()[shader_input_desc.bound_resource_index] = resource_descriptor_pointer;
+            return nullptr;
         }
 
-        shader_input_desc.shader_stage_presence.set(static_cast<size_t>(binging_shader_stage_type));
-        target_shader_function.m_shader_function_stale = true;
+        return &shader_function.m_descriptor_table_allocators.at(key);
     }
 
-    static d3d12::StaticDescriptorAllocationManager& getStaticCbvSrvUavDescriptorAllocator(ShaderFunction const& target_shader_function)
+    static AtomicCounterDesc allocateAtomicCounter(ShaderFunction& shader_function)
     {
-        return target_shader_function.m_static_cbv_srv_uav_descriptor_allocator;
-    }
-
-    static d3d12::StaticDescriptorAllocationManager& getStaticSamplerDescriptorAllocator(ShaderFunction const& target_shader_function)
-    {
-        return target_shader_function.m_static_sampler_descriptor_allocator;
-    }
-
-    static d3d12::Resource* getUavAtomicCountersResource(ShaderFunction& target_shader_function)
-    {
-        return &target_shader_function.m_uav_atomic_counters;
-    }
-
-    static uint64_t stepUavCounterOffset(ShaderFunction& target_shader_function)
-    {
-        uint64_t old_value = target_shader_function.m_next_counter_offset;
-        target_shader_function.m_next_counter_offset += D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT;
-        assert(target_shader_function.m_next_counter_offset <= D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT * ShaderFunction::c_max_uav_with_counters_count);
-        return old_value;
+        assert(shader_function.m_next_counter_offset / D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT < ShaderFunction::c_max_uav_with_counters_count);
+        return { shader_function.m_uav_atomic_counters, shader_function.m_next_counter_offset += D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT };
     }
 };
+
 
 }
 

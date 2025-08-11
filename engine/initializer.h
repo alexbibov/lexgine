@@ -27,8 +27,10 @@ struct LEXGINE_CPP_API EngineSettings
     core::EngineApi engine_api;
     bool debug_mode;
     bool enable_profiling;
+    core::MSAAMode msaa_mode;
     std::string global_lookup_prefix;
     std::string settings_lookup_path;
+    std::string shaders_lookup_path;
     std::string global_settings_json_file;
     std::string logging_output_path;
     std::string log_name;

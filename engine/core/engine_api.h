@@ -15,6 +15,14 @@ enum class LEXGINE_CPP_API EngineApi
     OpenGL46    // not sure if ever gets implemented
 };
 
+enum class LEXGINE_CPP_API MSAAMode {
+    none = 1,
+    msaa2x = 2,
+    msaa4x = 4,
+    msaa8x = 8,
+    msaa16x = 16
+};
+
 class LEXGINE_CPP_API DEPENDS_ON(EngineApi) EngineApiAwareObject
 {
 public:

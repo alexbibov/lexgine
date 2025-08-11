@@ -13,11 +13,12 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-ResourceDataUploader::ResourceDataUploader(Globals& globals, DedicatedUploadDataStreamAllocator& upload_buffer_allocator)
+ResourceDataUploader::ResourceDataUploader(Globals& globals, DedicatedUploadDataStreamAllocator& upload_buffer_allocator, ResourceUploadPolicy upload_policy)
     : m_device{ *globals.get<Device>() }
     , m_is_async_copy_enabled{ globals.get<GlobalSettings>()->isAsyncCopyEnabled() }
     , m_upload_buffer_allocator{ upload_buffer_allocator }
     , m_upload_command_list{ m_device.createCommandList(m_is_async_copy_enabled ? CommandType::copy : CommandType::direct, 0x1) }
+    , m_upload_policy{ upload_policy }
 {
 
 }
@@ -44,7 +45,8 @@ bool ResourceDataUploader::addResourceForUpload(DestinationDescriptor const& des
             destination_descriptor.segment.subresources.first_subresource, destination_descriptor.segment.subresources.num_subresources,
             0U, p_placed_subresource_footprints, p_subresource_num_rows, p_subresource_row_size_in_bytes, &task_size);
 
-        auto allocation = m_upload_buffer_allocator.allocate(task_size);
+        bool is_allocation_blocking = m_upload_policy == ResourceUploadPolicy::blocking;
+        auto allocation = m_upload_buffer_allocator.allocate(task_size, is_allocation_blocking);
         if (allocation == nullptr)
         {
             return false;    // staging buffer is exhausted
@@ -158,6 +160,11 @@ void ResourceDataUploader::waitUntilUploadIsFinished() const
 bool ResourceDataUploader::isUploadFinished() const
 {
     return m_upload_buffer_allocator.scheduledWork() == m_upload_buffer_allocator.completedWork();
+}
+
+uint64_t ResourceDataUploader::availableCapacity() const
+{
+    return m_upload_buffer_allocator.getFragmentationCapacity() + m_upload_buffer_allocator.getUnpartitionedCapacity();
 }
 
 void ResourceDataUploader::beginCopy(DestinationDescriptor const& destination_descriptor)

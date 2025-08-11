@@ -74,6 +74,19 @@ uint32_t DescriptorHeap::reserveDescriptors(uint32_t count)
     return offset;
 }
 
+DescriptorTable DescriptorHeap::allocateDescriptorTable(uint32_t capacity)
+{
+    uint32_t offset = reserveDescriptors(capacity);
+    return {
+        .offset = offset,
+        .cpu_pointer = getBaseCPUPointer() + m_descriptor_size * offset,
+        .gpu_pointer = getBaseGPUPointer() + m_descriptor_size * offset,
+        .descriptor_count = capacity,
+        .descriptor_size = m_descriptor_size,
+        .p_heap = this
+    };
+}
+
 uint64_t DescriptorHeap::createConstantBufferViewDescriptor(size_t offset, CBVDescriptor const& cbv_descriptor)
 {
     assert(m_type == DescriptorHeapType::cbv_srv_uav);

@@ -23,5 +23,10 @@
 	"render_target_view_descriptor_heap_page_count" : 1,
 	"depth_stencil_view_descriptors_per_page" : 128,
 	"depth_stencil_view_descriptor_heap_page_count" : 1,
-	"shader_lookup_directories" : ["scripts/d3d12_PSOs/"]
+	"shader_lookup_directories" : [
+	    "scripts/d3d12_PSOs/",
+		"shaders/",
+		"shaders/pbr",
+		"shaders/common"
+	]
 }

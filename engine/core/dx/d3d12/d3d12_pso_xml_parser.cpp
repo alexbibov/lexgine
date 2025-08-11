@@ -34,7 +34,7 @@ namespace {
         boolean,
         primitive_topology,
         unsigned_numeric,
-        list_of_unsigned_numerics,
+        vector_of_unsigned_numerics,
         blend_factor,
         blend_operation,
         blend_logical_operation,
@@ -98,15 +98,15 @@ namespace {
         return attribute.as_uint();
     }
 
-    bool isListOfUnsignedNumerics(pugi::xml_attribute const& attribute)
+    bool isVectorOfUnsignedNumerics(pugi::xml_attribute const& attribute)
     {
-        std::regex list_of_unsigned_numeric_regular_expression{ R"?(\s*[0-9]+(\s*,\s*[0-9]+)*\s*)?" };
-        return std::regex_match(attribute.value(), list_of_unsigned_numeric_regular_expression, std::regex_constants::match_not_null);
+        std::regex vector_of_unsigned_numeric_regular_expression{ R"?(\s*[0-9]+(\s*,\s*[0-9]+)*\s*)?" };
+        return std::regex_match(attribute.value(), vector_of_unsigned_numeric_regular_expression, std::regex_constants::match_not_null);
     }
 
-    std::list<uint32_t> getListOfUnsignedNumericsFromArgument(pugi::xml_attribute const& attribute)
+    std::vector<uint32_t> getVectorOfUnsignedNumericsFromArgument(pugi::xml_attribute const& attribute)
     {
-        std::list<uint32_t> rv{};
+        std::vector<uint32_t> rv{};
         std::string source_string{ attribute.value() };
         int i = 0;
         while (i < source_string.length())
@@ -520,11 +520,11 @@ namespace {
     };
 
     template<>
-    struct attribute_format_to_cpp_format<attribute_type::list_of_unsigned_numerics>
+    struct attribute_format_to_cpp_format<attribute_type::vector_of_unsigned_numerics>
     {
-        using value_type = std::list<uint32_t>;
-        static constexpr bool(*is_correct_format_func)(pugi::xml_attribute const&) = isListOfUnsignedNumerics;
-        static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute const&) = getListOfUnsignedNumericsFromArgument;
+        using value_type = std::vector<uint32_t>;
+        static constexpr bool(*is_correct_format_func)(pugi::xml_attribute const&) = isVectorOfUnsignedNumerics;
+        static constexpr value_type(*extract_attribute_func)(pugi::xml_attribute const&) = getVectorOfUnsignedNumericsFromArgument;
     };
 
     template<>
@@ -902,15 +902,15 @@ public:
                 auto rasterized_stream_attribute = stream_output_descriptor_node.attribute("rasterized_stream");
                 uint32_t rasterized_stream = isNullAttribute(rasterized_stream_attribute) ? lexgine::core::misc::NoRasterizationStream :
                     extractAttribute<attribute_type::unsigned_numeric>(rasterized_stream_attribute, 0);
-                std::list<uint32_t> buffer_strides = extractAttribute<attribute_type::list_of_unsigned_numerics>(stream_output_descriptor_node.attribute("strides"),
-                    std::list<uint32_t>{}, &is_attribute_present);
+                std::vector<uint32_t> buffer_strides = extractAttribute<attribute_type::vector_of_unsigned_numerics>(stream_output_descriptor_node.attribute("strides"),
+                    std::vector<uint32_t>{}, &is_attribute_present);
                 if (!is_attribute_present)
                 {
                     LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "error parsing XML PSO source of graphics PSO " + pso_cache_name 
                         + ": stream output descriptor must define attribute \"strides\"");
                 }
 
-                std::list<lexgine::core::StreamOutputDeclarationEntry> so_entry_descs;
+                std::vector<lexgine::core::StreamOutputDeclarationEntry> so_entry_descs;
                 for (auto& node : stream_output_descriptor_node)
                 {
                     if (std::strcmp(node.name(), "DeclarationEntry") == 0)
@@ -1454,7 +1454,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
         #endif
 
 
-        concurrency::TaskGraph pso_compilation_task_graph{ std::set<concurrency::TaskGraphRootNode const*>{root_tasks.begin(), root_tasks.end()},
+        concurrency::TaskGraph pso_compilation_task_graph{ std::unordered_set<concurrency::TaskGraphRootNode const*>{root_tasks.begin(), root_tasks.end()},
             global_settings.getNumberOfWorkers(), "deferred_pso_compilation_task_graph" };
         
 

@@ -45,12 +45,6 @@ bool ConstantBufferReflection::addElement(std::string const& name, ReflectionEnt
     return m_reflection_data.insert(std::make_pair(hash, entry)).second;
 }
 
-ConstantBufferReflection::ReflectionEntry const& ConstantBufferReflection::operator[](std::string const& name) const
-{
-    HashedString hash{ name };
-    return (*this)[hash];
-}
-
 ConstantBufferReflection::ReflectionEntry const& ConstantBufferReflection::operator[](HashedString const& hash) const
 {
     auto p = m_reflection_data.find(hash);

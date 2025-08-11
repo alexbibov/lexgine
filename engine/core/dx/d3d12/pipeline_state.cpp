@@ -78,7 +78,7 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
     std::vector<D3D12_SO_DECLARATION_ENTRY> so_declaration_entries(so_desc.NumEntries);
 
     uint32_t so_declaration_entry_idx = 0;
-    for (auto p = pso_descriptor.stream_output.so_declarations.begin(); p != pso_descriptor.stream_output.so_declarations.end(); ++p, ++so_declaration_entry_idx)
+    for (auto p = pso_descriptor.stream_output.so_declarations.begin(), end = pso_descriptor.stream_output.so_declarations.end(); p != end; ++p, ++so_declaration_entry_idx)
     {
         std::pair<LPCSTR, UINT> semantic_name_and_index = p->name() == "NULL" ?
             std::make_pair<LPCSTR, UINT>(NULL, 0U)

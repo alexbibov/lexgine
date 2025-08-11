@@ -107,6 +107,8 @@ public:
     //! checks if descriptor table is empty
     bool empty() const { return m_ranges.empty(); }
 
+    std::vector<Range> const& ranges() const { return m_ranges; }
+
 private:
     std::vector<Range> m_ranges;    //!< register ranges contained in the table
 };

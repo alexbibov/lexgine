@@ -290,8 +290,8 @@ void CommandList::outputMergerSetStencilReference(uint32_t reference_value) cons
     m_command_list->OMSetStencilRef(static_cast<UINT>(reference_value));
 }
 
-void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable const* rtv_descriptor_table,
-    uint64_t active_rtv_descriptors_mask, DepthStencilViewDescriptorTable const* dsv_descriptor_table,
+void CommandList::outputMergerSetRenderTargets(DescriptorTable const* rtv_descriptor_table,
+    uint64_t active_rtv_descriptors_mask, DescriptorTable const* dsv_descriptor_table,
     uint32_t dsv_descriptor_table_offset) const
 {
     UINT rtv_count = misc::getSetBitCount(active_rtv_descriptors_mask);
@@ -330,7 +330,7 @@ void CommandList::outputMergerSetRenderTargets(RenderTargetViewDescriptorTable c
     m_command_list->OMSetRenderTargets(rtv_count, p_rtv_base_cpu_handle, FALSE, p_dsv_base_cpu_handle);
 }
 
-void CommandList::clearDepthStencilView(DepthStencilViewDescriptorTable const& dsv_descriptor_table,
+void CommandList::clearDepthStencilView(DescriptorTable const& dsv_descriptor_table,
     uint32_t dsv_descriptor_table_offset, DSVClearFlags clear_flags, 
     float depth_clear_value, uint8_t stencil_clear_value, 
     misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles) const
@@ -347,7 +347,7 @@ void CommandList::clearDepthStencilView(DepthStencilViewDescriptorTable const& d
         static_cast<UINT>(clear_rectangles.size()), clear_rectangles.size() ? native_clear_rectangles.data() : NULL);
 }
 
-void CommandList::clearRenderTargetView(RenderTargetViewDescriptorTable const& rtv_descriptor_table, 
+void CommandList::clearRenderTargetView(DescriptorTable const& rtv_descriptor_table, 
     uint32_t rtv_descriptor_table_offset, math::Vector4f const& rgba_clear_value, 
     misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles) const
 {
@@ -362,7 +362,7 @@ void CommandList::clearRenderTargetView(RenderTargetViewDescriptorTable const& r
         static_cast<UINT>(clear_rectangles.size()), clear_rectangles.size() ? native_clear_rectangles.data() : NULL);
 }
 
-void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, 
+void CommandList::clearUnorderedAccessView(DescriptorTable const& uav_descriptor_table, 
     uint32_t uav_descriptor_table_offset, Resource const& resource_to_clear, math::Vector4u const& rgba_clear_value, 
     misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles) const
 {
@@ -381,7 +381,7 @@ void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& 
         static_cast<UINT>(clear_rectangles.size()), clear_rectangles.size() ? native_clear_rectangles.data() : NULL);
 }
 
-void CommandList::clearUnorderedAccessView(ShaderResourceDescriptorTable const& uav_descriptor_table, 
+void CommandList::clearUnorderedAccessView(DescriptorTable const& uav_descriptor_table, 
     uint32_t uav_descriptor_table_offset, Resource const& resource_to_clear, math::Vector4f const& rgba_clear_value, 
     misc::StaticVector<math::Rectangle, c_maximal_clear_rectangle_count> const& clear_rectangles) const
 {

@@ -71,6 +71,9 @@ public:
     */
     std::string getCacheName() const;
 
+    dxcompilation::ShaderType getShaderType() const { return m_shader_type; }
+    dxcompilation::ShaderModel  getShaderModel() const { return m_shader_model; }
+
 private:
 public:
     static std::pair<uint8_t, uint8_t> unpackShaderModelVersion(dxcompilation::ShaderModel shader_model);

@@ -36,6 +36,7 @@ public:
 
 public:
     ProfilingService(GlobalSettings const& settings, std::string const& service_string_name);
+    virtual ~ProfilingService() = default; 
 
     std::string name() const { return m_name; };    //! user-friendly name of the profiling event
     statistics_t const& statistics();    //! statistics associated with the event

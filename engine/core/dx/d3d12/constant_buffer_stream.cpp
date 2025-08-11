@@ -21,12 +21,12 @@ ConstantBufferStream::ConstantBufferStream(Globals& globals)
 
     auto section_in_upload_heap =
         dx_resources.allocateSectionInUploadHeap(dx_resources.retrieveUploadHeap(device),
-            DxResourceFactory::c_texture_section_name, constant_data_section_size);
+            DxResourceFactory::c_constant_data_section_name, constant_data_section_size);
 
     if (!section_in_upload_heap.isValid())
     {
         LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this,
-            "Unable to reserve section \"" + std::string{ DxResourceFactory::c_texture_section_name } + "\" in the upload heap");
+            "Unable to reserve section \"" + std::string{ DxResourceFactory::c_constant_data_section_name } + "\" in the upload heap");
     }
 
     UploadHeapPartition const& partition = *section_in_upload_heap;

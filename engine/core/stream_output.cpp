@@ -39,7 +39,7 @@ uint8_t StreamOutputDeclarationEntry::slot() const
 }
 
 
-StreamOutput::StreamOutput(std::list<lexgine::core::StreamOutputDeclarationEntry>const& so_declarations, std::list<uint32_t>const & buffer_strides, uint32_t rasterized_stream):
+StreamOutput::StreamOutput(std::vector<lexgine::core::StreamOutputDeclarationEntry>const& so_declarations, std::vector<uint32_t>const & buffer_strides, uint32_t rasterized_stream):
     so_declarations{ so_declarations }, buffer_strides{ buffer_strides }, rasterized_stream{ rasterized_stream }
 {
 }

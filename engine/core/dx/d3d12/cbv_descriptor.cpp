@@ -8,8 +8,7 @@ namespace lexgine::core::dx::d3d12
 
 CBVDescriptor::CBVDescriptor(Resource const& resource,
     uint32_t offset_from_start, uint32_t view_size_in_bytes) 
-    : HashableDescriptor{ resource, m_native }
-    , m_resource_ref{ resource }
+    : m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
 

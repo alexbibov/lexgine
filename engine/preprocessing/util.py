@@ -85,6 +85,8 @@ def locate_closing_token(source: str, opening_token_offset: int) -> int:
 
 def extract_scope(source: str, offset: int, scope_type: common_types.ScopeType) -> Tuple[int, int]:
     opening_brace_idx = source.find(scope_type.value[0], offset)
+    if opening_brace_idx == -1:
+        return -1, -1
     return opening_brace_idx, locate_closing_token(source, opening_brace_idx)
 
 

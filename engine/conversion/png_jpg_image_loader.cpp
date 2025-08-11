@@ -42,7 +42,6 @@ bool PNGJPGImageLoader::doLoad(std::vector<uint8_t> const& raw_binary_data, std:
 
     m_description.layers.push_back(Layer{ .offset = 0, .mipmaps = {Mipmap{.offset = 0, .dimensions = {static_cast<unsigned int>(width), static_cast<unsigned int>(height), 1U} }} });
     m_description.subresource_count = 1;
-
     return true;
 }
 

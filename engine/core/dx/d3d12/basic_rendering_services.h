@@ -15,7 +15,7 @@ namespace lexgine::core::dx::d3d12 {
 
 template<typename T> class BasicRenderingServicesAttorney;
 
-class BasicRenderingServices final : public NamedEntity<class_names::BasicRenderingServices>
+class BasicRenderingServices final : public NamedEntity<class_names::BasicRenderingServices>, public ProvidesGlobals
 {
     friend class BasicRenderingServicesAttorney<RenderingTasks>;
 
@@ -32,6 +32,7 @@ public:
         math::Vector4f const& color_clear_value = math::Vector4f{ 0.f, 0.f, 0.f, 0.f },
         float depth_clear_value = 1.f) const;
 
+    DxResourceFactory& dxResources() const { return m_dx_resources; }
     Viewport const& defaultViewport() const { return m_default_viewports[0]; }
     ConstantBufferStream& constantDataStream() { return m_constant_data_stream; }
     ConstantBufferStream const& constantDataStream() const { return m_constant_data_stream; }
@@ -58,9 +59,6 @@ private:
     Device& m_device;
     DxResourceFactory& m_dx_resources;
     ResourceDataUploader& m_resource_uploader;
-
-    d3d12::StaticDescriptorAllocationManager& m_static_cbv_srv_uav_descriptor_allocator;
-    d3d12::StaticDescriptorAllocationManager& m_static_sampler_descriptor_allocator;
 
     RenderingTarget* m_current_rendering_target_ptr;
     DXGI_FORMAT m_rendering_target_color_format;

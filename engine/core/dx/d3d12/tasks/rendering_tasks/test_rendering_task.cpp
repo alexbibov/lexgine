@@ -12,9 +12,9 @@
 #include "engine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
+#include "engine/core/dx/d3d12/dx_resource_factory.h"
 
 #include "engine/core/dx/dxcompilation/shader_stage.h"
-#include "engine/core/dx/dxcompilation/shader_function.h"
 
 #include "test_rendering_task.h"
 
@@ -40,6 +40,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
     , m_box_rotation_angle{ 0.f }
     , m_allocation{ nullptr }
     , m_cmd_list_ptr{ addCommandList() }
+    , m_shader_function{ m_globals, dx::dxcompilation::ShaderFunctionRootUniformBuffers::base_values::SceneUniforms }
 {
     std::shared_ptr<AbstractVertexAttributeSpecification> position = std::static_pointer_cast<AbstractVertexAttributeSpecification>(
         std::make_shared<VertexAttributeSpecification<float, 3>>(0, 0, "POSITION", 0, 0));
@@ -197,17 +198,23 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         m_vs->execute(0);
         m_ps->execute(0);
 
-        dxcompilation::ShaderFunction shader_function{ m_globals, 0, "test_rendering_shader" };
-        dxcompilation::ShaderStage* p_vs_stage = shader_function.createShaderStage(m_vs);
-        dxcompilation::ShaderStage* p_ps_stage = shader_function.createShaderStage(m_ps);
+        dxcompilation::ShaderStage* p_vs_stage = m_shader_function.createShaderStage(m_vs);
+        dxcompilation::ShaderStage* p_ps_stage = m_shader_function.createShaderStage(m_ps);
+        p_vs_stage->build();
+        p_ps_stage->build();
+        m_rs = m_shader_function.buildBindingSignature();
+        m_rs->execute(0);
 
-        p_ps_stage->bindTexture(std::string{ "SampleTexture" }, m_texture);
-        p_ps_stage->bindSampler(std::string{ "BillinearSampler" },
-            FilterPack{ MinificationFilter::linear, MagnificationFilter::linear, 16, WrapMode::clamp, WrapMode::clamp, WrapMode::clamp }, 
-            math::Vector4f{ 0.f });
+        DescriptorHeap& resource_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav, 0);
+        DescriptorHeap& sampler_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler, 0);
+        m_shader_function.assignResourceDescriptors(dxcompilation::ShaderFunction::ShaderInputKind::srv, 0, DescriptorAllocationManager{ resource_heap });
+        m_shader_function.assignResourceDescriptors(dxcompilation::ShaderFunction::ShaderInputKind::sampler, 0, DescriptorAllocationManager{ sampler_heap });
 
-        shader_function.prepare(false);
-        m_rs = shader_function.getBindingSignature();
+        p_ps_stage->bindTexture(std::string { "SampleTexture" }, m_texture);
+        p_ps_stage->bindSampler(std::string { "BillinearSampler" },
+            FilterPack { MinificationFilter::linear, MagnificationFilter::linear, 16, WrapMode::clamp, WrapMode::clamp, WrapMode::clamp },
+            math::Vector4f { 0.f });
+
          
         m_cb_reflection = p_vs_stage->buildConstantBufferReflection(std::string{ "ConstantData" });
         m_cb_data_mapping.addDataBinding("ProjectionMatrix", m_projection_transform);
@@ -252,7 +259,6 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
     m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());
 
     m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
-    
     m_basic_rendering_services.setDefaultViewport(*m_cmd_list_ptr);
 
     m_cmd_list_ptr->inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
@@ -270,10 +276,9 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
     m_allocation =
         m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_cb_data_mapping);
 
-    /*m_cmd_list_ptr->setRootDescriptorTable(0, m_srv_table.gpu_pointer);
-    m_cmd_list_ptr->setRootDescriptorTable(1, m_sampler_table.gpu_pointer);*/
-    m_cmd_list_ptr->setRootConstantBufferView(static_cast<uint32_t>(dxcompilation::ShaderFunctionConstantBufferRootIds::scene_uniforms), m_allocation->virtualGpuAddress());
-
+    m_shader_function.bindRootConstantBuffer(*m_cmd_list_ptr, dxcompilation::ShaderFunctionConstantBufferRootIds::scene_uniforms, m_allocation->virtualGpuAddress());
+    m_shader_function.bindResourceDescriptors(*m_cmd_list_ptr, dxcompilation::ShaderFunction::ShaderInputKind::srv, 0);
+    m_shader_function.bindResourceDescriptors(*m_cmd_list_ptr, dxcompilation::ShaderFunction::ShaderInputKind::sampler, 0);
     m_cmd_list_ptr->drawIndexedInstanced(36, 1, 0, 0, 0);
 
     //cmd_list.close();

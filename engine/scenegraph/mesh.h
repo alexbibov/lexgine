@@ -24,13 +24,22 @@ enum class SubmeshTopology
 
 
 class Mesh final
-{
+{   
 public:
-    Mesh(std::string const& name);
+    Mesh(std::string const& name)
+        : m_name{ name }
+    {
 
-    void applyMorphWeights(std::vector<double>& morph_target_weights);
+    }
 
+    void addSubmesh(Submesh&& submesh) { m_submeshes.emplace_back(std::move(submesh)); }
+    void clearSubmeshes() { m_submeshes.clear(); }
+    size_t getSubmeshCount() const { return m_submeshes.size(); }
 
+    Submesh const& getSubmesh(size_t index) const { return m_submeshes[index]; }
+    Submesh& getSubmesh(size_t index) { return m_submeshes[index]; }
+
+    void applyMorphWeights(std::vector<double> const& morph_target_weights) { m_morph_weights = morph_target_weights; }
 
 private:
     std::vector<Submesh> m_submeshes;

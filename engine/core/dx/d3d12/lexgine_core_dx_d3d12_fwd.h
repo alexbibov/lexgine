@@ -18,8 +18,8 @@ class ConstantBufferDataMapper;
 class D3D12PSOXMLParser;
 class DebugInterface;
 class DescriptorHeap;
-class StaticDescriptorAllocationManager;
-class DescriptorTable_CBV_UAV_SRV;
+class DescriptorAllocationManager;
+class UnorderedSRVTableAllocationManager;
 class Device;
 class DxResourceFactory;
 class Fence;
@@ -61,16 +61,7 @@ class DSVDescriptor;
 
 class SamplerDescriptor;
 
-template<typename> struct DescriptorTable;
-struct tag_CBV_SRV_UAV;
-struct tag_Sampler;
-struct tag_RTV;
-struct tag_DSV;
-using ShaderResourceDescriptorTable = DescriptorTable<tag_CBV_SRV_UAV>;
-using SamplerResourceDescriptorTable = DescriptorTable<tag_Sampler>;
-using RenderTargetViewDescriptorTable = DescriptorTable<tag_RTV>;
-using DepthStencilViewDescriptorTable = DescriptorTable<tag_DSV>;
-
+struct DescriptorTable;
 
 class ResourceViewDescriptorTableBuilder;
 class SamplerDescriptorTableBuilder;

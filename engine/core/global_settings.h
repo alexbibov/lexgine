@@ -7,6 +7,7 @@
 #include <array>
 
 #include "engine/core/dx/d3d12/descriptor_heap.h"
+#include "engine/core/engine_api.h"
 
 namespace lexgine::core { 
 
@@ -36,8 +37,7 @@ public:
     uint64_t getMaxCombinedCacheSize() const;
     uint64_t getMaxCombinedTextureCacheSize() const;
 
-    uint32_t getDescriptorHeapPageCapacity(dx::d3d12::DescriptorHeapType descriptor_heap_type) const;
-    uint32_t getDescriptorHeapPageCount(dx::d3d12::DescriptorHeapType descriptor_heap_type) const;
+    uint32_t getDescriptorHeapCapacity(dx::d3d12::DescriptorHeapType descriptor_heap_type) const;
     uint32_t getUploadHeapCapacity() const;
     size_t getStreamedConstantDataPartitionSize() const;    //! returns size of upload buffer partition dedicated to constant data streaming
     size_t getStreamedGeometryDataPartitionSize() const;    //! returns size of upload buffer partition dedicated to dynamic geometry data streaming
@@ -46,6 +46,7 @@ public:
     bool isAsyncComputeEnabled() const;
     bool isAsyncCopyEnabled() const;
     bool isProfilingEnabled() const;
+    MSAAMode msaaMode() const;
     bool isCacheEnabled() const;
 
     uint16_t getMaxFramesInFlight() const;
@@ -68,6 +69,7 @@ public:
     void setIsAsyncComputeEnabled(bool is_enabled);
     void setIsAsyncCopyEnabled(bool is_enabled);
     void setIsProfilingEnabled(bool is_enabled);
+    void setMsaaMode(MSAAMode msaa_mode);
 
 
 private:
@@ -91,11 +93,11 @@ private:
     uint16_t m_max_frames_in_flight;
     uint32_t m_max_non_blocking_upload_buffer_allocation_timeout;
     bool m_enable_profiling;
+    MSAAMode m_msaa_mode;
     bool m_enable_cache;
     bool m_enable_gpu_accelerated_texture_conversion;
 
-    std::array<uint32_t, static_cast<size_t>(dx::d3d12::DescriptorHeapType::count)> m_descriptors_per_page;
-    std::array<uint32_t, static_cast<size_t>(dx::d3d12::DescriptorHeapType::count)> m_descriptor_heap_page_count;
+    std::array<uint32_t, static_cast<size_t>(dx::d3d12::DescriptorHeapType::count)> m_descriptor_heap_capacity;
 };
 
 }

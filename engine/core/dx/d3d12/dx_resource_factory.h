@@ -44,8 +44,7 @@ public:
 
     DescriptorHeap& retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id);
     Heap& retrieveUploadHeap(Device const& device);
-    StaticDescriptorAllocationManager& getStaticAllocationManagerForDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id);
-
+    UnorderedSRVTableAllocationManager& retrieveBindlessSRVAllocationManager(DescriptorHeap const& descriptor_heap);
 
     /*! Attempts to allocate a new named section in the given upload heap.
      Returns details of the new allocation in case of success or an empty misc::Optional<T>
@@ -67,11 +66,10 @@ public:
     size_t getUploadHeapFreeSpace(Device const& owning_device) const;    //!< Returns size of unallocated space in the upload heap owned by given device
 
 private:
-    struct descriptor_heap_page_pool
+    struct descriptor_heap_pool
     {
-        static constexpr size_t heap_type_count = static_cast<size_t>(DescriptorHeapType::count);
-        std::array<std::vector<std::unique_ptr<DescriptorHeap>>, heap_type_count> heaps;
-        std::array<std::vector<std::unique_ptr<StaticDescriptorAllocationManager>>, heap_type_count> static_allocators;
+        static constexpr size_t capacity = static_cast<size_t>(DescriptorHeapType::count);
+        std::array<std::vector<std::unique_ptr<DescriptorHeap>>, capacity> heaps;
     };
 
     struct upload_heap_partitioning
@@ -85,9 +83,10 @@ private:
     dxgi::HwAdapterEnumerator m_hw_adapter_enumerator;
     dxcompilation::DXCompilerProxy m_dxc_proxy;
 
-    std::unordered_map<Device const*, descriptor_heap_page_pool> m_descriptor_heaps;
+    std::unordered_map<Device const*, descriptor_heap_pool> m_descriptor_heaps;
     std::unordered_map<Device const*, Heap> m_upload_heaps;
     std::unordered_map<Heap const*, upload_heap_partitioning> m_upload_heap_partitions;
+    std::unordered_map<DescriptorHeap const*, UnorderedSRVTableAllocationManager> m_unordered_descriptor_allocators;
 
     DxgiFormatFetcher const m_dxgiFormatFetcher;
     
