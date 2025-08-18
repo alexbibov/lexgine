@@ -45,10 +45,10 @@ HLSLFileTranslationUnit::HLSLFileTranslationUnit(Globals& globals, std::string c
         auto& global_settings = *globals.get<GlobalSettings>();
 
         // find the full correct path to the shader if the shader exists
-        
+        auto const& shader_lookup_directories = global_settings.getShaderLookupDirectories();
         {
             bool shader_found{ false };
-            for (auto const& path_prefix : global_settings.getShaderLookupDirectories())
+            for (auto const& path_prefix : shader_lookup_directories)
             {
                 m_path_to_shader = path_prefix + file_path;
                 if (misc::doesFileExist(m_path_to_shader))
@@ -64,7 +64,7 @@ HLSLFileTranslationUnit::HLSLFileTranslationUnit(Globals& globals, std::string c
             }
         }
 
-        m_hlsl_source_code = ShaderSourceCodePreprocessor{ m_path_to_shader, ShaderSourceCodePreprocessor::SourceType::file }.getPreprocessedSource();
+        m_hlsl_source_code = ShaderSourceCodePreprocessor{ m_path_to_shader, ShaderSourceCodePreprocessor::SourceType::file, shader_lookup_directories }.getPreprocessedSource();
     }
 
     m_timestamp = *misc::getFileLastUpdatedTimeStamp(m_path_to_shader);
