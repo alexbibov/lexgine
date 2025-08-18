@@ -114,7 +114,7 @@ private:
 
     std::vector<Mesh> m_scene_meshes;
     std::vector<BufferView> m_memory_views;
-    std::vector<MaterialAssemblyTask> m_materialConstructionTasks;
+    std::vector<std::unique_ptr<MaterialAssemblyTask>> m_materialConstructionTasks;
 };
 
 }

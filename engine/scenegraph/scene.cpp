@@ -610,22 +610,6 @@ bool Scene::loadTextures(
     return true;
 }
 
-bool Scene::loadMaterials(
-    tinygltf::Model const& model, 
-    std::unordered_map<int, int>& material_ids,
-    std::unordered_map<int, int> const& texture_ids, 
-    std::unordered_map<int, int> const& sampler_ids
-)
-{
-
-    for (tinygltf::Material const& material : model.materials)
-    {
-        // m_materials.emplace_back();
-    }
-
-    return true;
-}
-
 bool Scene::loadMeshes(
     tinygltf::Model const& model, 
     std::unordered_map<int, int>& mesh_ids,
@@ -733,7 +717,7 @@ bool Scene::loadMeshes(
                     .format = gltfCast<lexgine::core::misc::DataFormat>(accessor.componentType),
                     .element_count = static_cast<unsigned char>(tinygltf::GetNumComponentsInType(accessor.type)),
                     .is_normalized = accessor.normalized,
-                    .primitive_assembler_input_slot = current_vb_slot,
+                    .primitive_assembler_input_slot = static_cast<unsigned char>(current_vb_slot),
                     .element_offset = static_cast<uint32_t>(accessor.byteOffset),
                     .name = va_name.c_str(),
                     .name_index = static_cast<uint32_t>(va_index),
@@ -798,9 +782,9 @@ bool Scene::loadMaterial(const tinygltf::Material& gltfMaterial,
 			"PSMain"
 		);
 	}
-    m_materialConstructionTasks.emplace_back(m_basic_rendering_services, context, shader_desc);
+    m_materialConstructionTasks.push_back(std::make_unique<MaterialAssemblyTask>(m_basic_rendering_services, context, shader_desc));
     
-    Material new_material{ m_materialConstructionTasks.back() };
+    Material new_material{ *m_materialConstructionTasks.back() };
     new_material.setStringName(gltfMaterial.name);
     new_material.setEmissiveFactor(lexgine::core::math::Vector3f{ gltfMaterial.emissiveFactor[0], gltfMaterial.emissiveFactor[1], gltfMaterial.emissiveFactor[2] });
     new_material.setAlphaMode(AlphaMode::opaque);
@@ -843,12 +827,12 @@ bool Scene::loadMaterial(const tinygltf::Material& gltfMaterial,
 
 bool Scene::loadCameras(tinygltf::Model const& model, std::unordered_map<int, int>& camera_ids)
 {
-
+    return false;
 }
 
 bool Scene::loadAnimations(tinygltf::Model const& model, std::unordered_map<int, int>& animation_ids)
 {
-
+    return false;
 }
 
 }

@@ -18,8 +18,6 @@ enum class IndexType
 class Submesh final
 {
 public:
-    static std::unordered_map<std::string, VertexAttributeIASlots> const s_va_name_to_slots_mapping;
-public:
     Submesh(SceneMeshMemory const& scene_mesh_memory);
 
     VertexBufferView* getVertexBufferView() { return m_vb_view.get(); }

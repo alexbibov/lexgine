@@ -7,6 +7,8 @@
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
 #include "engine/core/lexgine_core_fwd.h"
+#include "engine/core/globals.h"
+#include "engine/core/global_settings.h"
 #include "engine/core/shader_source_code_preprocessor.h"
 #include "engine/core/dx/dxcompilation/common.h"
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
@@ -53,7 +55,8 @@ public:
         : HLSLTranslationUnit{ globals }
     {
         m_source_name = source_name;
-        m_hlsl_source_code = ShaderSourceCodePreprocessor{ hlsl_source_code, ShaderSourceCodePreprocessor::SourceType::string }.getPreprocessedSource();
+        auto const* global_settings = globals.get<lexgine::core::GlobalSettings>();
+        m_hlsl_source_code = ShaderSourceCodePreprocessor{ hlsl_source_code, ShaderSourceCodePreprocessor::SourceType::string, global_settings->getShaderLookupDirectories()}.getPreprocessedSource();
         m_timestamp = misc::DateTime::buildTime();
     }
 };
