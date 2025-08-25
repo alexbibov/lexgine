@@ -1,8 +1,8 @@
 #ifndef LEXGINE_CORE_MATH_MATRIX_TYPES_H
 #define LEXGINE_CORE_MATH_MATRIX_TYPES_H
 
-#include "3rd_party/glm/matrix.hpp"
-#include "3rd_party/glm/gtc/matrix_integer.hpp"
+#include "glm/matrix.hpp"
+#include "glm/gtc/matrix_integer.hpp"
 
 
 namespace lexgine::core::math {

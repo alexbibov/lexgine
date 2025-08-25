@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <filesystem>
-#include <3rd_party/glm/glm.hpp>
+#include <glm/glm.hpp>
 
 #include <engine/core/entity.h>
 #include <engine/conversion/lexgine_conversion_fwd.h>

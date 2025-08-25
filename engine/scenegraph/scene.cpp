@@ -9,7 +9,7 @@
 #undef TINYGLTF_NO_STB_IMAGE_WRITE
 #undef TINYGLTF_NO_STB_IMAGE
 
-#include <3rd_party/glm/gtc/constants.hpp>
+#include <glm/gtc/constants.hpp>
 #include <engine/core/globals.h>
 #include <engine/core/misc/misc.h>
 #include <engine/core/dx/d3d12/dx_resource_factory.h>
