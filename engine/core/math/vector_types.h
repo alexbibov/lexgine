@@ -3,9 +3,9 @@
 
 #include <cstdint>
 
-#include "3rd_party/glm/vec2.hpp"
-#include "3rd_party/glm/vec3.hpp"
-#include "3rd_party/glm/vec4.hpp"
+#include "glm/vec2.hpp"
+#include "glm/vec3.hpp"
+#include "glm/vec4.hpp"
 
 namespace lexgine::core::math{
 

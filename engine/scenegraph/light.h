@@ -3,7 +3,7 @@
 
 #include <optional>
 
-#include <3rd_party/glm/glm.hpp>
+#include <glm/glm.hpp>
 #include <engine/core/entity.h>
 #include "class_names.h"
 

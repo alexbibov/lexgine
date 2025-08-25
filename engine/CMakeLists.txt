@@ -75,8 +75,7 @@ target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcomp
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/bin/${CMAKE_VS_PLATFORM_NAME}/")
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
 
-set(_engine_lib_dependencies 
-"glm_static.lib"
+set(_engine_lib_dependencies
 "imgui.lib" 
 "zlib.lib" 
 "pugixml.lib" 
@@ -89,7 +88,7 @@ set(_engine_lib_dependencies
 "runtimeobject.lib"
 "dxcompiler.lib" 
 "WinPixEventRuntime.lib" 
-"common.lib"
+common
 "DirectXTex.lib"
 "BCrypt.lib"
 )

@@ -40,6 +40,42 @@ function(add_subproject name)
     endif()
 endfunction()
 
+# Download CPM when not preset
+set(cpm_download_version 0.42.0)
+set(cpm_download_location ${CMAKE_BINARY_DIR}/cmake/CPM_${cpm_download_version}.cmake)
+if(NOT EXISTS ${cpm_download_location})
+    message(STATUS "Downloading CPM.cmake")
+    file(DOWNLOAD https://github.com/cpm-cmake/CPM.cmake/releases/download/v${cpm_download_version}/CPM.cmake
+    ${cpm_download_location})
+endif()
+
+# Determine use home directory to store CPM cache)
+if(DEFINED ENV{HOME} AND NOT "$ENV{HOME}" STREQUAL "")
+  set(user_home "$ENV{HOME}")
+elseif(DEFINED ENV{USERPROFILE} AND NOT "$ENV{USERPROFILE}" STREQUAL "")
+  set(user_home "$ENV{USERPROFILE}")
+elseif(DEFINED ENV{HOMEDRIVE} AND DEFINED ENV{HOMEPATH})
+  set(user_home "$ENV{HOMEDRIVE}$ENV{HOMEPATH}")
+else()
+  message(FATAL_ERROR "Can't determine the user's home directory.")
+endif()
+cmake_path(APPEND user_home ".CPM" OUTPUT_VARIABLE cpm_cache_location)
+file(MAKE_DIRECTORY ${cpm_cache_location})
+set(ENV{CPM_SOURCE_CACHE} ${cpm_cache_location})
+
+include(${cpm_download_location})
+
+CPMAddPackage(
+    NAME spdlog
+    GITHUB_REPOSITORY gabime/spdlog
+    VERSION 1.15.3
+)
+CPMAddPackage(
+    NAME glm
+    GITHUB_REPOSITORY g-truc/glm
+    GIT_TAG 1.0.1
+)
+
 include(FetchContent)
 FetchContent_Declare(
     googletest
@@ -49,7 +85,6 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_subproject(glm 3rd_party)
 add_subproject(imgui 3rd_party)
 add_subproject(pugixml 3rd_party)
 add_subproject(zlib 3rd_party)
