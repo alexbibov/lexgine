@@ -33,7 +33,7 @@ public:
     union LEXGINE_CPP_API KeyInputSource
     {
         SystemKey system_key;
-        wchar_t character;
+        uint64_t character;
     };
 
     struct LEXGINE_CPP_API KeyInputInfo

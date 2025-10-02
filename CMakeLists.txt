@@ -19,7 +19,14 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/lib)
 
 get_property(isMultiConfigGenerator GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 
-function(add_subproject name)
+function(add_subproject)
+    set(options USE_ABSOLUTE_PATH)
+    set(oneValueArgs NAME PATH)
+    set(multiValueArgs)
+    cmake_parse_arguments(PARSE_ARGV 0 add_subproject_arg
+        ${options} ${oneValueArgs} ${multiValueArgs}
+    )
+
     if (isMultiConfigGenerator)
         foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
             string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
@@ -33,10 +40,13 @@ function(add_subproject name)
         set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${_build_lib_output_directory})
     endif()
 
-    if(${ARGC} EQUAL 2)
-        add_subdirectory(${CMAKE_SOURCE_DIR}/${ARGV1}/${name})
-    elseif(${ARGC} EQUAL 1)
-        add_subdirectory(${CMAKE_SOURCE_DIR}/${name})
+    message(STATUS "Adding sub-project ${add_subproject_arg_NAME}")
+    if(add_subproject_arg_USE_ABSOLUTE_PATH)
+        add_subdirectory(${add_subproject_arg_PATH} ${CMAKE_BINARY_DIR}/${add_subproject_arg_NAME})
+    elseif(add_subproject_arg_PATH)
+        add_subdirectory(${CMAKE_SOURCE_DIR}/${add_subproject_arg_PATH}/${add_subproject_arg_NAME})
+    else()
+        add_subdirectory(${CMAKE_SOURCE_DIR}/${add_subproject_arg_NAME})
     endif()
 endfunction()
 
@@ -76,23 +86,60 @@ CPMAddPackage(
     GIT_TAG 1.0.1
 )
 
+######### Configure ImGui source ########
+CPMAddPackage(
+    NAME imgui
+    GITHUB_REPOSITORY ocornut/imgui
+    VERSION 1.92.2b
+    DOWNLOAD_ONLY TRUE
+)
+if(imgui_ADDED)
+file(
+    DOWNLOAD
+    "https://gist.githubusercontent.com/rokups/f771217b2d530d170db5cb1e08e9a8f4/raw/4c2c14374ab878ca2f45daabfed4c156468e4e27/CMakeLists.txt"
+    "${imgui_SOURCE_DIR}/CMakeLists.txt"
+    EXPECTED_HASH SHA256=fd62f69364ce13a4f7633a9b50ae6672c466bcc44be60c69c45c0c6e225bb086
+)
+set(IMGUI_EXAMPLES FALSE)
+set(IMGUI_DEMO FALSE)
+set(IMGUI_ENABLE_STDLIB_SUPPORT TRUE)
+set(IMGUI_IMPL_SDL FALSE)
+set(IMGUI_IMPL_GLUT FALSE)
+else()
+message(ERROR "Unable to configure ImGui")
+endif()
+#########################################
+
+CPMAddPackage(
+  NAME freetype
+  GIT_REPOSITORY https://github.com/aseprite/freetype2.git
+  GIT_TAG VER-2-10-0
+  VERSION 2.10.0
+)
+if (freetype_ADDED)
+  set(FREETYPE_FOUND TRUE)
+  set(FREETYPE_INCLUDE_DIRS "")
+  set(FREETYPE_LIBRARIES freetype)
+  message(STATUS "Found freetype")
+endif()
+
 include(FetchContent)
 FetchContent_Declare(
     googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG release-1.12.1
+    GIT_REPOSITORY https://github.com/google/googletest
+    GIT_TAG v1.17.0
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_subproject(imgui 3rd_party)
-add_subproject(pugixml 3rd_party)
-add_subproject(zlib 3rd_party)
-add_subproject(SpookyHash 3rd_party)
-add_subproject(ktx 3rd_party)
-add_subproject(engine)
-add_subproject(common)
-add_subproject(texture_converter)
-add_subproject(api)
-add_subproject(swe_demo demos)
-add_subproject(DirectXTex 3rd_party)
+add_subproject(NAME pugixml PATH 3rd_party)
+add_subproject(NAME zlib PATH 3rd_party)
+add_subproject(NAME SpookyHash PATH 3rd_party)
+add_subproject(NAME ktx PATH 3rd_party)
+add_subproject(NAME common)
+add_subproject(NAME imgui PATH ${imgui_SOURCE_DIR} USE_ABSOLUTE_PATH)
+add_subproject(NAME engine)
+add_subproject(NAME texture_converter)
+add_subproject(NAME api)
+add_subproject(NAME swe_demo PATH demos)
+add_subproject(NAME DirectXTex PATH 3rd_party)

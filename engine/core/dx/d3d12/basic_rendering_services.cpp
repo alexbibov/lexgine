@@ -49,13 +49,16 @@ BasicRenderingServices::BasicRenderingServices(Globals& globals)
     , m_rendering_target_depth_format{ DXGI_FORMAT_UNKNOWN }
     , m_constant_data_stream{ globals }
     , m_dynamic_geometry_allocator{ createDynamicGeometryStreamAllocator(globals) }
+    , m_max_frames_in_flight{ globals.get<GlobalSettings>()->getMaxFramesInFlight() }
 {
     {    // initialize descriptor heap pages
-        m_page0_descriptor_heaps.resize(2);
-        for (size_t i = 0; i < static_cast<size_t>(DescriptorHeapType::rtv); ++i)
+        m_descriptor_heap_pointers.resize(m_max_frames_in_flight);
+        for (uint32_t i = 0; i < m_max_frames_in_flight; ++i)
         {
-            DescriptorHeap const& descriptor_heap = m_dx_resources.retrieveDescriptorHeap(m_device, static_cast<DescriptorHeapType>(i), 0);
-            m_page0_descriptor_heaps[i] = &descriptor_heap;
+            DescriptorHeap const& cbv_srv_uav_descriptor_heap = m_dx_resources.retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav, i);
+            DescriptorHeap const& sampler_descriptor_heap = m_dx_resources.retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler, i);
+            m_descriptor_heap_pointers[i][0] = &cbv_srv_uav_descriptor_heap;
+            m_descriptor_heap_pointers[i][1] = &sampler_descriptor_heap;
         }
     }
 }
@@ -72,7 +75,9 @@ void BasicRenderingServices::endRendering(CommandList& command_list) const
 
 void BasicRenderingServices::setDefaultResources(CommandList& command_list) const
 {
-    command_list.setDescriptorHeaps(m_page0_descriptor_heaps);
+    uint32_t heap_descriptors_page_index =
+        static_cast<uint32_t>(m_device.frameProgressTracker().currentFrameIndex() % m_max_frames_in_flight);
+    command_list.setDescriptorHeaps(m_descriptor_heap_pointers[0]);
 }
 
 void BasicRenderingServices::setDefaultViewport(CommandList& command_list) const

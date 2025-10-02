@@ -117,7 +117,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
                 texture_data[4 * (i * 256ULL + j)] = static_cast<unsigned char>(((i & j & 0x8) >> 3) * 255);
 
         ResourceDataUploader::TextureSourceDescriptor source_descriptor;
-        source_descriptor.subresources.push_back({ texture_data.data(), 256 * 4, 256 * 256 * 4 });
+        source_descriptor.subresources.push_back({ texture_data.data(), 256 * 4, 256 * 4, 256 * 256 * 4 });
 
         ResourceDataUploader::DestinationDescriptor destination_descriptor;
         destination_descriptor.destination_resource_state = m_texture.defaultState();

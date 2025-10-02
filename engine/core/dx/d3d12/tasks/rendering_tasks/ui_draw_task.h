@@ -1,7 +1,9 @@
 #ifndef LEXGINE_CORE_DX_D3D12_TASKS_RENDERING_TASKS_UI_DRAW_TASK_H
 #define LEXGINE_CORE_DX_D3D12_TASKS_RENDERING_TASKS_UI_DRAW_TASK_H
 
-#include "3rd_party/imgui/imgui.h"
+#include <chrono>
+
+#include "imgui.h"
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/ui/lexgine_core_ui_fwd.h"
@@ -24,13 +26,39 @@
 
 namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
 
+enum class MouseTrackedArea
+{
+	none,
+	client,
+	nonclient
+};
+struct OsInterationData
+{
+	std::chrono::high_resolution_clock::time_point system_time;
+	ImGuiMouseCursor last_mouse_cursor;
+	osinteraction::windows::Window* rendering_window_ptr;
+	uint32_t keyboard_code_page;
+	MouseTrackedArea mouse_tracked_area;
+
+	OsInterationData()
+		: system_time{ std::chrono::high_resolution_clock::now() }
+		, last_mouse_cursor{ ImGuiMouseCursor_COUNT }
+		, rendering_window_ptr{ nullptr }
+		, keyboard_code_page{ std::numeric_limits<uint32_t>::max() }
+		, mouse_tracked_area{ MouseTrackedArea::none }
+	{
+	}
+};
+
 class UIDrawTask final :
     public RenderingWork,
     public osinteraction::Listeners<
     osinteraction::windows::KeyInputListener,
     osinteraction::windows::MouseButtonListener,
     osinteraction::windows::MouseMoveListener,
-    osinteraction::windows::CursorUpdateListener
+    osinteraction::windows::CursorUpdateListener,
+    osinteraction::windows::FocusUpdateListener,
+    osinteraction::windows::InputLanguageChangeListener
     >,
     public std::enable_shared_from_this<UIDrawTask>
 {
@@ -51,7 +79,7 @@ public:    // RenderingWork interface
 public:    // KeyInputListener events
     bool keyDown(osinteraction::SystemKey key) override;
     bool keyUp(osinteraction::SystemKey key) override;
-    bool character(wchar_t char_key) override;
+    bool character(uint64_t char_key_code) override;
     bool systemKeyDown(osinteraction::SystemKey key) override;
     bool systemKeyUp(osinteraction::SystemKey key) override;
 
@@ -67,7 +95,14 @@ public:    // MouseMoveListener events
     bool leave_client_area() override;
 
 public:    // CursorUpdateListener events
-    bool setCursor() override;
+    bool setCursor(uint64_t wparam, uint64_t lparam) override;
+
+public:    // FocusUpdateListener
+    bool setFocus(uint64_t param) override;
+    bool killFocus(uint64_t param) override;
+
+public:    // InputLanguageChangedListener
+    bool inputLanguageChanged() override;
 
 private:
     UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services);
@@ -77,17 +112,18 @@ private:    // required by AbstractTask interface
     concurrency::TaskType type() const override { return concurrency::TaskType::cpu; }
 
 private:
-    void processEvents() const;
+    void updateTexture(ImTextureData* p_texture);
+    void processEvents();
     void drawFrame();
 
 private:
     Globals& m_globals;
     Device& m_device;
     BasicRenderingServices& m_basic_rendering_services;
-    osinteraction::windows::Window* m_rendering_window_ptr = nullptr;
-    mutable long long m_time_counter;
-    mutable ImGuiMouseCursor m_mouse_cursor;
     ResourceDataUploader& m_resource_uploader;
+
+    ImGuiContext* m_im_gui_context = nullptr;
+    OsInterationData m_os_data;
 
     tasks::HLSLCompilationTask* m_vs = nullptr;
     tasks::HLSLCompilationTask* m_ps = nullptr;
@@ -100,9 +136,8 @@ private:
     ConstantBufferDataMapper m_constant_data_mapper;
     math::Matrix4f m_projection_matrix;
 
-    ImGuiContext* m_gui_context = nullptr;
-
-    std::unique_ptr<CommittedResource> m_fonts_texture;
+    std::unordered_map<ImTextureID, std::unique_ptr<CommittedResource>> m_imgui_textures;
+    ImTextureID m_currentlyBoundImGuiTextureId{ ImTextureID_Invalid };
 
     std::unique_ptr<VertexBufferBinding> m_ui_vertex_data_binding;
     std::unique_ptr<IndexBufferBinding> m_ui_index_data_binding;

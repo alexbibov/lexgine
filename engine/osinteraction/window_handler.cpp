@@ -30,7 +30,7 @@ public:    // KeyInputListener
         return m_key_input_handler(info, KeyInputEvent::KEY_UP);
     }
 
-    bool character(wchar_t char_key) override
+    bool character(uint64_t char_key) override
     {
         if (!m_key_input_handler) return true;
 

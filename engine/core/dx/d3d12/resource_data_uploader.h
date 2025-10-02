@@ -28,23 +28,35 @@ public:
     //! Structure that describes destination of the data being uploaded
     struct DestinationDescriptor
     {
+        //! Subresource region, which will receive the data
+        struct SubresourceRegion
+        {
+            uint32_t offset_x;
+            uint32_t offset_y;
+            uint32_t offset_z;
+            uint32_t width;
+            uint32_t height;
+            uint32_t depth;
+        };
+
         //! Subresource segment of the destination resource that will get the data (valid only for textures)
         struct SubresourceSegment
         {
-            uint32_t first_subresource;    //!< first sub-resource of the destination resource, to which the data being uploaded will get written
-            uint32_t num_subresources;    //!< number of sub-resources that will receive the data
+            uint32_t first_subresource;  //!< first sub-resource of the destination resource, to which the data being uploaded will get written
+            uint32_t num_subresources;   //!< number of sub-resources that will receive the data
         };
 
         //! Memory segment of the destination resource that will receive the data
         union DestinationSegment
         {
-            SubresourceSegment subresources;    //!< sub-resources of the destination resource that will get the source data (valid only for texture resources)
-            uint64_t base_offset;    //!< base offset, at which to start writing the data in the destination resource (valid only for buffer resources)
+            SubresourceSegment subresources;  //!< sub-resources of the destination resource that will get the source data (valid only for texture resources)
+            uint64_t base_offset;             //!< base offset, at which to start writing the data in the destination resource (valid only for buffer resources)
         };
 
-        Resource const* p_destination_resource;    //!< destination resource receiving the data being uploaded
-        ResourceState destination_resource_state;    //!< state, in which the destination resource is expected to reside at the moment when the data upload happens
-        DestinationSegment segment;    //!< segment of the destination resource that will receive the source data
+        Resource const* p_destination_resource;              //!< destination resource receiving the data being uploaded
+        ResourceState destination_resource_state;            //!< state, in which the destination resource is expected to reside at the moment when the data upload happens
+        DestinationSegment segment;                          //!< segment of the destination resource that will receive the source data
+        std::vector<SubresourceRegion> destination_regions;  //!< destination region of each subresource, which receives the data. If there is not enough elements in the vector to correspond to each of the subresources, it is assumed that entire subresource will be written into.
     };
 
 
@@ -54,9 +66,10 @@ public:
         // Describes single subresource from the source data 
         struct Subresource
         {
-            void const* p_data;    //!< pointer to the source subresource data
-            size_t row_pitch;    //!< size in bytes of a single row in the subresource
-            size_t slice_pitch;    //!< size in bytes of a single data slice in the subresource
+            void const* p_data;  //!< pointer to the source subresource data
+            size_t row_pitch;    //!< stride in bytes between consequent rows in the subresource
+            size_t row_size;     //!< size in bytes of a single row in the subresource
+            size_t slice_pitch;  //!< size in bytes of a single data slice in the subresource
         };
 
         std::vector<Subresource> subresources;
@@ -65,8 +78,8 @@ public:
     //! Describes buffer source dataset
     struct BufferSourceDescriptor
     {
-        void const* p_data;    //!< buffer source data
-        size_t buffer_size;    //!< size of the buffer given in bytes
+        void const* p_data;  //!< buffer source data
+        size_t buffer_size;  //!< size of the buffer given in bytes
     };
 
 
@@ -75,12 +88,16 @@ public:
     // ResourceDataUploader(ResourceDataUploader&&) = delete;
 
     //! Schedules new texture resource for upload
-    bool addResourceForUpload(DestinationDescriptor const& destination_descriptor,
-        TextureSourceDescriptor const& source_descriptor);
+    bool addResourceForUpload(
+        DestinationDescriptor const& destination_descriptor,
+        TextureSourceDescriptor const& source_descriptor
+    );
 
     //! Schedules new buffer resource for upload
-    bool addResourceForUpload(DestinationDescriptor const& destination_descriptor,
-        BufferSourceDescriptor const& source_descriptor);
+    bool addResourceForUpload(
+        DestinationDescriptor const& destination_descriptor,
+        BufferSourceDescriptor const& source_descriptor
+    );
 
 
     /*! executes all previously schedules upload tasks. This function returns immediately

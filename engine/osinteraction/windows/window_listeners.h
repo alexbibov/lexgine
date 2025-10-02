@@ -20,18 +20,18 @@ namespace lexgine::osinteraction::windows {
 class KeyInputListener : public ConcreteListener<WM_KEYDOWN, WM_KEYUP, WM_CHAR, WM_SYSKEYDOWN, WM_SYSKEYUP>
 {
 public:
-    virtual bool keyDown(SystemKey key) = 0;    //! called when a system key is pressed; must be implemented by derived classes. The function should return 'true' on success
+    virtual bool keyDown(SystemKey key) { return true; }  //! called when a system key is pressed; The function returns 'true' on success
 
-    virtual bool keyUp(SystemKey key) = 0;    //! called when a system key is released; must be implemented by derived classes. The function should return 'true' on success
+    virtual bool keyUp(SystemKey key) { return true; }  //! called when a system key is released; The function returns 'true' on success
 
-    virtual bool character(wchar_t char_key) = 0;    //! called when a character key is pressed; must be implemented by derived classes. The function should return 'true' on success
+    virtual bool character(uint64_t char_key_code) { return true; }  //! called when a character key is pressed; The should returns 'true' on success
 
-    virtual bool systemKeyDown(SystemKey key) = 0;    //! called when the user presses F10 to activate menu or holds down the alt key and then presses one of the system keys.
+    virtual bool systemKeyDown(SystemKey key) { return true; }  //! called when the user presses F10 to activate menu or holds down the alt key and then presses one of the system keys.
 
-    virtual bool systemKeyUp(SystemKey key) = 0;    //! called after the user releases a key that was pressed while the alt key was held
+    virtual bool systemKeyUp(SystemKey key) { return true; }  //! called after the user releases a key that was pressed while the alt key was held
 
 protected:
-    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
+    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
@@ -50,19 +50,19 @@ class MouseButtonListener : public ConcreteListener<
 {
 public:
     //! called when one of the mouse buttons is pressed. The function should return 'true' on success
-    virtual bool buttonDown(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
+    virtual bool buttonDown(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) { return true; }
 
     //! called when one of the mouse buttons is released. The function should return 'true' on success
-    virtual bool buttonUp(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
+    virtual bool buttonUp(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) { return true; }
 
     //! called when one of the mouse buttons is double-clicked. The function should return 'true' on success
-    virtual bool doubleClick(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
+    virtual bool doubleClick(MouseButton button, uint16_t xbutton_id, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) { return true; }
 
     //! called when mouse wheel is moved. The function should return 'true' on success
-    virtual bool wheelMove(double move_delta, bool is_horizontal_wheel, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) = 0;
+    virtual bool wheelMove(double move_delta, bool is_horizontal_wheel, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) { return true; }
 
 protected:
-    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
+    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
@@ -76,15 +76,15 @@ public:
       which virtual control keys were pressed when the action was fired.
       The function should return 'true' on success and 'false' on failure
     */
-    virtual bool move(uint16_t x, uint16_t y, ControlKeyFlag const& control_key_flag) = 0;
+    virtual bool move(uint16_t x, uint16_t y, ControlKeyFlag const& control_key_flag) { return true; }
 
-    virtual bool leave_client_area() = 0;    //! called when mouse cursor leaves client area of the listening window. The function should return 'true' on success
-    virtual bool enter_client_area() = 0;    //! called when mouse cursor enters client area of the listening window. The function should return 'true' on success
+    virtual bool leave_client_area() { return true; }    //! called when mouse cursor leaves client area of the listening window. The function should return 'true' on success
+    virtual bool enter_client_area() { return true; }    //! called when mouse cursor enters client area of the listening window. The function should return 'true' on success
 
     MouseMoveListener();
 
 protected:
-    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
+    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 
 private:
@@ -97,12 +97,12 @@ private:
 class WindowSizeChangeListener : public ConcreteListener<WM_SIZE>
 {
 public:
-    virtual bool minimized() = 0;    //! called when the window has been minimized
-    virtual bool maximized(uint16_t new_width, uint16_t new_height) = 0;    //! called when the window has been maximized
-    virtual bool size_changed(uint16_t new_width, uint16_t new_height) = 0;    //! called when size of the window has been changed, but neither minimize() nor maximize() does apply
+    virtual bool minimized() { return true; }    //! called when the window has been minimized
+    virtual bool maximized(uint16_t new_width, uint16_t new_height) { return true; }    //! called when the window has been maximized
+    virtual bool size_changed(uint16_t new_width, uint16_t new_height) { return true; }    //! called when size of the window has been changed, but neither minimize() nor maximize() does apply
 
 protected:
-    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
+    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
@@ -120,7 +120,7 @@ public:
     virtual bool paint(core::math::Rectangle const& update_region) = 0;
 
 protected:
-    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
+    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
@@ -129,11 +129,34 @@ protected:
 class CursorUpdateListener : public ConcreteListener<WM_SETCURSOR>
 {
 public:
-    virtual bool setCursor() = 0;
+    virtual bool setCursor(uint64_t wparam, uint64_t lparam) = 0;
 
 protected:
-    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wParam, uint64_t lParam, uint64_t reserved1,
+    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
+};
+
+// Listener implementing handling of focus events
+class FocusUpdateListener : public ConcreteListener<WM_SETFOCUS, WM_KILLFOCUS>
+{
+public:
+    virtual bool setFocus(uint64_t param) { return true; }
+    virtual bool killFocus(uint64_t param) { return true; }
+
+protected:
+	int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+		uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
+};
+
+// Listener implementing language switch
+class InputLanguageChangeListener : public ConcreteListener<WM_INPUTLANGCHANGE>
+{
+public:
+    virtual bool inputLanguageChanged() = 0;
+
+protected:
+int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+	uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
 }

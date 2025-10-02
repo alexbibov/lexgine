@@ -67,11 +67,12 @@ private:
     misc::StaticVector<Viewport, CommandList::c_maximal_viewport_count> m_default_viewports;
     misc::StaticVector<math::Rectangle, CommandList::c_maximal_viewport_count> m_default_scissor_rectangles;
 
-    misc::StaticVector<DescriptorHeap const*, 4U> m_page0_descriptor_heaps;
+    std::vector<std::array<DescriptorHeap const*, 2>> m_descriptor_heap_pointers;
     ConstantBufferStream m_constant_data_stream;
     PerFrameUploadDataStreamAllocator m_dynamic_geometry_allocator;
 
     osinteraction::windows::Window* m_rendering_window_ptr = nullptr;
+    uint32_t m_max_frames_in_flight;
 };
 
 template<> class BasicRenderingServicesAttorney<RenderingTasks>

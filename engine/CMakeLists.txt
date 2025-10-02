@@ -69,14 +69,14 @@ target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/inc/"
                                               "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/Include/WinPixEventRuntime/"
                                               "${CMAKE_BINARY_DIR}"
-                                              "${CMAKE_SOURCE_DIR}/3rd_party/DirectXTex/")
+                                              "${CMAKE_SOURCE_DIR}/3rd_party/DirectXTex/"
+                                              "${imgui_SOURCE_DIR}")
 
 target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/bin/${CMAKE_VS_PLATFORM_NAME}/")
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
 
 set(_engine_lib_dependencies
-"imgui.lib" 
 "zlib.lib" 
 "pugixml.lib" 
 "spookyhashv2.lib"
@@ -93,6 +93,7 @@ common
 "BCrypt.lib"
 )
 target_link_libraries(${_target} PRIVATE ${_engine_lib_dependencies})
+target_link_libraries(${_target} PRIVATE imgui)
 
 add_dependencies(${_target} zlib glm imgui pugixml spookyhashv2 ktx_read common DirectXTex)
 target_compile_definitions(${_target} PUBLIC LEXGINE_GLOBAL_LOOKUP_PREFIX="${CMAKE_SOURCE_DIR}")
@@ -130,28 +131,38 @@ file(COPY ${_dxc_binary_path}/dxil.dll DESTINATION ${_build_runtime_output_direc
 
 set_property(TARGET ${_target} PROPERTY OUTPUT_NAME "lexgine")
 
+# ******************************************************* Tests *******************************************************
+enable_testing()
+
 add_executable(basic_tests tests/basic_tests.cpp)
+
+add_dependencies(basic_tests ${_target})
 
 target_include_directories(basic_tests PRIVATE "${CMAKE_SOURCE_DIR}"
                                                "${CMAKE_SOURCE_DIR}/api"
                                                "${CMAKE_SOURCE_DIR}/3rd_party/"
                                                "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/inc/"
                                                "${CMAKE_BINARY_DIR}"
-                                               "${CMAKE_SOURCE_DIR}/3rd_party/DirectXTex/")
+                                               "${CMAKE_SOURCE_DIR}/3rd_party/DirectXTex/"
+                                               "${glm_SOURCE_DIR}")
 
 target_link_directories(basic_tests PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
 target_link_directories(basic_tests PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/bin/${CMAKE_VS_PLATFORM_NAME}/")
 target_link_directories(basic_tests PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
 
 target_link_libraries(basic_tests PRIVATE GTest::gtest_main)
-target_link_libraries(basic_tests PRIVATE ${_engine_lib_dependencies})
 target_link_libraries(basic_tests PRIVATE $<TARGET_OBJECTS:${_target}>)
+target_link_libraries(basic_tests PRIVATE ${_engine_lib_dependencies})
 target_link_libraries(basic_tests PRIVATE ${_target})
+target_link_libraries(basic_tests PRIVATE pugixml spookyhashv2 ktx_read DirectXTex freetype)
 
 configure_openmp_support(basic_tests)
 
-add_dependencies(basic_tests ${_target})
-
-enable_testing()
-include(googletest)
-gtest_discover_tests(basic_tests TEST_FILTER CacheTest.*:EngineTests_Basic.*:EngineTests_Concurrency.*)
+include(GoogleTest)
+gtest_discover_tests(
+    basic_tests
+    DISCOVERY_TIMEOUT 30
+    DISCOVERY_MODE POST_BUILD
+    WORKING_DIRECTORY $<TARGET_FILE_DIR:basic_tests>
+    TEST_FILTER CacheTest.*:EngineTests_Basic.*:EngineTests_Concurrency.*
+)

@@ -159,7 +159,7 @@ public:
 
     //! Data binding routines
 
-    void setDescriptorHeaps(misc::StaticVector<DescriptorHeap const*, static_cast<size_t>(DescriptorHeapType::count)> const& descriptor_heaps) const;
+    void setDescriptorHeaps(std::array<DescriptorHeap const*, 2> const& descriptor_heaps) const;
 
     void setRootSignature(std::string const& cached_root_signature_friendly_name,
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
