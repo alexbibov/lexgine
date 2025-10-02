@@ -42,7 +42,7 @@ public:
     dxgi::HwAdapterEnumerator const& hardwareAdapterEnumerator() const;
     dxcompilation::DXCompilerProxy& shaderModel6xDxCompilerProxy();
 
-    DescriptorHeap& retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t page_id);
+    DescriptorHeap& retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type, uint32_t frame_index);
     Heap& retrieveUploadHeap(Device const& device);
     UnorderedSRVTableAllocationManager& retrieveBindlessSRVAllocationManager(DescriptorHeap const& descriptor_heap);
 
@@ -68,8 +68,10 @@ public:
 private:
     struct descriptor_heap_pool
     {
-        static constexpr size_t capacity = static_cast<size_t>(DescriptorHeapType::count);
-        std::array<std::vector<std::unique_ptr<DescriptorHeap>>, capacity> heaps;
+        std::vector<std::unique_ptr<DescriptorHeap>> cbv_srv_uav_heaps;
+        std::vector<std::unique_ptr<DescriptorHeap>> sampler_heaps;
+        std::unique_ptr<DescriptorHeap> rtv_heap;
+        std::unique_ptr<DescriptorHeap> dsv_heap;
     };
 
     struct upload_heap_partitioning

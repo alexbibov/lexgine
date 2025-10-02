@@ -4,7 +4,7 @@
 #include <chrono>
 #include <unordered_map>
 
-#include "3rd_party/imgui/imgui.h"
+#include "imgui.h"
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"

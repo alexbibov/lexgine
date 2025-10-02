@@ -496,7 +496,7 @@ void TextureConversionTask::operator()(void)
                     std::copy(compressed_img_pixels, compressed_img_pixels + compressed_img_size, subresource_address);
                     blob_data_write_offset += compressed_img_size;
 
-                    texture_source_descriptor.subresources.push_back({ .p_data = subresource_address, .row_pitch = compressed_img_row_pitch, .slice_pitch = compressed_img_slice_pitch });
+                    texture_source_descriptor.subresources.push_back({ .p_data = subresource_address, .row_pitch = compressed_img_row_pitch, .row_size = compressed_img_row_pitch, .slice_pitch = compressed_img_slice_pitch });
                 }
             }
 
@@ -798,7 +798,7 @@ TextureConverter::CachedTextureData TextureConverter::readTextureFromCache(Textu
         uint8_t* subresource_address = static_cast<uint8_t*>(blob_data.data()) + blob_data_read_offset;
         blob_data_read_offset += compressed_img_size;
 
-        texture_source_descriptor.subresources.push_back({ .p_data = subresource_address, .row_pitch = compressed_img_row_pitch, .slice_pitch = compressed_img_slice_pitch });
+        texture_source_descriptor.subresources.push_back({ .p_data = subresource_address, .row_pitch = compressed_img_row_pitch, .row_size = compressed_img_row_pitch, .slice_pitch = compressed_img_slice_pitch });
     }
     image_description.subresource_count = texture_source_descriptor.subresources.size();
 

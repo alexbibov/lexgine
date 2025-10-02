@@ -15,6 +15,7 @@ enum class LEXGINE_CPP_API SystemKey
     lalt,
     backspace,
     enter,
+    keypad_enter,
     rshift,
     rctrl,
     ralt,

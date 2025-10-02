@@ -405,7 +405,7 @@ void CommandList::setPipelineState(PipelineState const& pipeline_state) const
     m_command_list->SetPipelineState(pipeline_state.native().Get());
 }
 
-void CommandList::setDescriptorHeaps(misc::StaticVector<DescriptorHeap const*, static_cast<size_t>(DescriptorHeapType::count)> const& descriptor_heaps) const
+void CommandList::setDescriptorHeaps(std::array<DescriptorHeap const*, 2> const& descriptor_heaps) const
 {
     auto cmd_list_type = commandType();
 
@@ -414,10 +414,10 @@ void CommandList::setDescriptorHeaps(misc::StaticVector<DescriptorHeap const*, s
     // essentially useless for bundles and therefore, we disallow it
     assert((cmd_list_type == CommandType::direct || cmd_list_type == CommandType::compute));
 
-    misc::StaticVector<ID3D12DescriptorHeap*, static_cast<size_t>(DescriptorHeapType::count)> native_descriptor_heaps(descriptor_heaps.size());
-    std::transform(descriptor_heaps.begin(), descriptor_heaps.end(), native_descriptor_heaps.begin(),
-        [](DescriptorHeap const* dh) { return dh->native().Get(); });
-
+    std::array<ID3D12DescriptorHeap*, 2> native_descriptor_heaps{};
+    native_descriptor_heaps[0] = descriptor_heaps[0]->native().Get();
+    native_descriptor_heaps[1] = descriptor_heaps[1]->native().Get();
+   
     m_command_list->SetDescriptorHeaps(static_cast<UINT>(descriptor_heaps.size()), native_descriptor_heaps.data());
 }
 
