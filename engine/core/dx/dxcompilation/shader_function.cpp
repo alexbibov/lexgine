@@ -113,7 +113,9 @@ bool ShaderFunction::assignResourceDescriptors(ShaderInputKind resource_kind, ui
         m_descriptor_table_allocators.at(key) = allocation_manager;
     }
 
-    assert(m_descriptor_table_allocators.at(key).build(m_descriptor_table_capacities[key]));
+    bool buildResult = m_descriptor_table_allocators.at(key).build(m_descriptor_table_capacities[key]);
+    buildResult;
+    assert(buildResult);
 
     return true;
 }
