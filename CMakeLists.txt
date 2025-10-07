@@ -112,9 +112,9 @@ endif()
 
 CPMAddPackage(
   NAME freetype
-  GIT_REPOSITORY https://github.com/aseprite/freetype2.git
-  GIT_TAG VER-2-10-0
-  VERSION 2.10.0
+  GIT_REPOSITORY https://github.com/freetype/freetype
+  GIT_TAG VER-2-14-1
+  VERSION 2.14.1
 )
 if (freetype_ADDED)
   set(FREETYPE_FOUND TRUE)
