@@ -671,8 +671,8 @@ void UIDrawTask::updateTexture(ImTextureData* p_texture)
 	{
 		// Create and upload new texture to graphics system
 		//IMGUI_DEBUG_LOG("UpdateTexture #%03d: WantCreate %dx%d\n", tex->UniqueID, tex->Width, tex->Height);
-		IM_ASSERT(p_texture->TexID == ImTextureID_Invalid && p_texture->BackendUserData == nullptr);
-		IM_ASSERT(p_texture->Format == ImTextureFormat_RGBA32);
+		assert(p_texture->TexID == ImTextureID_Invalid && p_texture->BackendUserData == nullptr);
+        assert(p_texture->Format == ImTextureFormat_RGBA32);
         auto backend_tex = std::make_unique<CommittedResource>(
             m_device,
             ResourceState::base_values::common,
@@ -689,7 +689,7 @@ void UIDrawTask::updateTexture(ImTextureData* p_texture)
 
 	if (p_texture->Status == ImTextureStatus_WantCreate || p_texture->Status == ImTextureStatus_WantUpdates)
 	{
-		IM_ASSERT(p_texture->Format == ImTextureFormat_RGBA32);
+        assert(p_texture->Format == ImTextureFormat_RGBA32);
 
 	    uint32_t const upload_x = (p_texture->Status == ImTextureStatus_WantCreate) ? 0 : p_texture->UpdateRect.x;
         uint32_t const upload_y = (p_texture->Status == ImTextureStatus_WantCreate) ? 0 : p_texture->UpdateRect.y;

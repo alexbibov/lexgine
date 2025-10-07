@@ -133,7 +133,7 @@ bool ResourceDataUploader::addResourceForUpload(
                 dst_width,
                 dst_height,
                 dst_depth,
-                footprint_desc.Footprint.RowPitch 
+                p < dst_regions.size() ? static_cast<uint32_t>(row_pitches[p]) : static_cast<uint32_t>(footprint_desc.Footprint.RowPitch) 
             };
 
             TextureCopyLocation destination_location{ 
@@ -145,7 +145,7 @@ bool ResourceDataUploader::addResourceForUpload(
                 destination_location, 
                 misc::Optional<math::Vector3f>{dst_offset},
                 source_location, 
-                misc::Optional<math::Box>{}
+                {}
             );
         }
         endCopy(destination_descriptor);
