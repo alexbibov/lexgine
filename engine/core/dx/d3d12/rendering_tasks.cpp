@@ -144,8 +144,8 @@ void RenderingTasks::render(RenderingTarget& rendering_target, const std::functi
 
     m_device.queryCache()->markFrameBegin();
     m_task_sink.submit(m_frame_progress_tracker.currentFrameIndex());
-    presenter();
     m_device.queryCache()->markFrameEnd();
+    presenter();
 }
 
 void RenderingTasks::flush()
