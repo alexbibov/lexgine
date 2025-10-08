@@ -128,7 +128,9 @@ def main(arguments: argparse.Namespace):
 
         try:
             parsed_header = CppHeader(header_source, argType="string")
-            using_directives.update(parsed_header.using)
+            # Some CppHeaderParser versions do not expose 'using'; guard access
+            if hasattr(parsed_header, 'using'):
+                using_directives.update(getattr(parsed_header, 'using'))
         except CppParseError as e:
             print(f'Problem parsing header "{export_billet.exporting_header_path.as_posix()}": {e}')
             continue

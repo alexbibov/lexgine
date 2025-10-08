@@ -125,9 +125,11 @@ if (MSVC)
 	file(COPY ${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/bin/${CMAKE_VS_PLATFORM_NAME}/WinPixEventRuntime.dll DESTINATION ${_build_runtime_output_directory})
 endif()
 
-set(_dxc_binary_path ${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/bin/${CMAKE_VS_PLATFORM_NAME}/)
-file(COPY ${_dxc_binary_path}/dxcompiler.dll DESTINATION ${_build_runtime_output_directory})
-file(COPY ${_dxc_binary_path}/dxil.dll DESTINATION ${_build_runtime_output_directory})
+if (MSVC)
+    set(_dxc_binary_path ${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/bin/${CMAKE_VS_PLATFORM_NAME}/)
+    file(COPY ${_dxc_binary_path}/dxcompiler.dll DESTINATION ${_build_runtime_output_directory})
+    file(COPY ${_dxc_binary_path}/dxil.dll DESTINATION ${_build_runtime_output_directory})
+endif()
 
 set_property(TARGET ${_target} PROPERTY OUTPUT_NAME "lexgine")
 

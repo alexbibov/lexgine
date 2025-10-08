@@ -31,12 +31,20 @@ source_group(TREE ${_src_root_path} PREFIX "Header files" FILES ${_headers_list}
                       
 set_property(TARGET ${_target} PROPERTY OUTPUT_NAME "spookyhashv2")
 
-enable_testing()
-add_executable(spookyhashv2_tests tests/test_spooky_v2.cpp)
-target_include_directories(spookyhashv2_tests PRIVATE "${CMAKE_SOURCE_DIR}")
-target_link_libraries(spookyhashv2_tests GTest::gtest_main)
-target_link_libraries(spookyhashv2_tests $<TARGET_OBJECTS:${_target}>)
-add_dependencies(spookyhashv2_tests ${_target})
+if(BUILD_TESTING)
+  enable_testing()
+  # Only add tests when GoogleTest is available. If not, skip tests gracefully.
+  find_package(GTest CONFIG QUIET)
+  if(GTest_FOUND)
+    add_executable(spookyhashv2_tests tests/test_spooky_v2.cpp)
+    target_include_directories(spookyhashv2_tests PRIVATE "${CMAKE_SOURCE_DIR}")
+    target_link_libraries(spookyhashv2_tests GTest::gtest_main)
+    target_link_libraries(spookyhashv2_tests $<TARGET_OBJECTS:${_target}>)
+    add_dependencies(spookyhashv2_tests ${_target})
 
-include(googletest)
-gtest_discover_tests(spookyhashv2_tests)
+    include(GoogleTest)
+    gtest_discover_tests(spookyhashv2_tests)
+  else()
+    message(STATUS "GTest not found; skipping spookyhashv2 tests")
+  endif()
+endif()

@@ -13,11 +13,15 @@ def extract_engine_path(supplied_include_path: Path) -> Optional[Path]:
     try:
         engine_folder_part_idx = path_parts.index("engine")
 
+        # Build the engine root path using Path joins to avoid duplicate slashes
         engine_path_prefix_parts = path_parts[:engine_folder_part_idx]
-        engine_path = ""
-        for p in engine_path_prefix_parts:
-            engine_path += f"{p}/"
-        return Path(engine_path)
+        if len(engine_path_prefix_parts) == 0:
+            return Path("/")
+
+        engine_path = Path(engine_path_prefix_parts[0])
+        for part in engine_path_prefix_parts[1:]:
+            engine_path = engine_path / part
+        return engine_path
 
     except ValueError:
         return None
