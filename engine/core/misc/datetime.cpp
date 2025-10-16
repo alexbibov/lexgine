@@ -10,34 +10,6 @@
 using namespace lexgine::core::misc;
 
 
-namespace
-{
-
-// Helper: transforms provided day to the given time zone
-void adjustTimeShift(uint16_t year, uint8_t const days_in_month[], uint8_t month, uint8_t day, uint8_t hour, int8_t time_shift_from_utc,
-    uint16_t& adjusted_year, uint8_t& adjusted_month, uint8_t& adjusted_day, uint8_t& adjusted_hour)
-{
-    int8_t raw_hour = static_cast<int8_t>(hour) + time_shift_from_utc;
-    int8_t day_shift = raw_hour / 24; raw_hour %= 24;
-    if (raw_hour < 0) --day_shift;
-
-    int8_t raw_day = static_cast<int8_t>(day) - 1 + day_shift;
-    int8_t month_shift = raw_day / days_in_month[month - 1]; raw_day %= days_in_month[month - 1];
-    if (raw_day < 0) --month_shift;
-
-    int8_t raw_month = static_cast<int8_t>(month) - 1 + month_shift;
-    int8_t year_shift = raw_month / 12; raw_month %= 12;
-    if (raw_month < 0) --year_shift;
-
-    adjusted_year = year + year_shift;
-    adjusted_month = raw_month < 0 ? 12 : raw_month + 1;
-    adjusted_day = raw_day < 0 ? days_in_month[adjusted_month - 1] : raw_day + 1;
-    adjusted_hour = (raw_hour < 0 ? 24 : 0) + raw_hour;
-}
-
-}
-
-
 TimeSpan::TimeSpan() : m_years{ 0 }, m_months{ 0 }, m_days{ 0 }, m_hours{ 0 }, m_minutes{ 0 }, m_seconds{ 0 }
 {
 
@@ -93,39 +65,41 @@ TimeSpan TimeSpan::operator-() const
 }
 
 
-DateTime::DateTime(int8_t time_zone /* = 0 */, bool daylight_saving_time /* = false */) :
-    m_year{ 1970 }, 
-    m_is_leap_year{ false },
-    m_days_in_month{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-    m_month{ 1 }, 
-    m_day{ 1 }, 
-    m_hour{ 0 }, 
-    m_minute{ 0 }, 
-    m_second{ 0.0 },
-    m_time_shift_from_utc{ time_zone + static_cast<int8_t>(daylight_saving_time) },
-    m_is_dts{ daylight_saving_time }
+DateTime::DateTime() : DateTime{ 1979, 1, 1, 0, 0, 0, "UTC" }
 {
-    if (time_zone || daylight_saving_time)
-    {
-        adjustTimeShift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
-            m_year, m_month, m_day, m_hour);
-    }
 }
 
-DateTime::DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, double second,
-    int8_t time_zone /* = 0 */, bool daylight_saving_time /* = false */) :
-    m_year{ year }, 
-    m_is_leap_year{ m_year % 400 == 0 || m_year % 4 == 0 && m_year % 100 != 0 },
-    m_days_in_month{ 31, static_cast<uint8_t>(28 + m_is_leap_year), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-    m_month{ month <= 12 ? month : 12U }, 
-    m_day{ day <= m_days_in_month[month - 1] ? day : m_days_in_month[month - 1] },
-    m_hour{ hour <= 23 ? hour : 23U }, 
-    m_minute{ minute <= 59 ? minute : 59U }, 
-    m_second{ second < 60 ? second : 59.999999999 },
-    m_time_shift_from_utc{ time_zone + static_cast<int8_t>(daylight_saving_time) },
-    m_is_dts{ daylight_saving_time }
+DateTime::DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second,
+    std::optional<std::string> const& time_zone /* = nullopt */)
+    : m_ztime{
+        time_zone.has_value() ? std::chrono::locate_zone(time_zone.value()) : std::chrono::current_zone(),
+        static_cast<std::chrono::sys_days>(std::chrono::year_month_day{std::chrono::year{year}, std::chrono::month{month}, std::chrono::day{day}})
+    }
+    , m_time_info{ m_ztime.get_info() }
+    , m_is_dts{ m_time_info.save != std::chrono::minutes{0} }
+	/*   m_year{ year },
+	   m_is_leap_year{ m_year % 400 == 0 || m_year % 4 == 0 && m_year % 100 != 0 },
+	   m_days_in_month{ 31, static_cast<uint8_t>(28 + m_is_leap_year), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+	   m_month{ month <= 12 ? month : 12U },
+	   m_day{ day <= m_days_in_month[month - 1] ? day : m_days_in_month[month - 1] },
+	   m_hour{ hour <= 23 ? hour : 23U },
+	   m_minute{ minute <= 59 ? minute : 59U },
+	   m_second{ second < 60 ? second : 59.999999999 },
+	   m_time_shift_from_utc{ time_zone + static_cast<int8_t>(daylight_saving_time) },
+	   m_is_dts{ daylight_saving_time }*/
 {
-    assert(second >= 0);
+	auto local_time = m_ztime.get_local_time();
+	auto local_days = std::chrono::floor<days>(local_time);
+	m_ymd = std::chrono::year_month_day{ m_ymd };
+
+	auto day_fraction = local_time - local_days;
+	m_hour = static_cast<uint8_t>(std::chrono::duration_cast<std::chrono::hours>(day_fraction).count());
+
+	auto hour_fraction = day_fraction - std::chrono::floor<std::chrono::hours>(day_fraction);
+	m_minute = static_cast<uint8_t>(std::chrono::duration_cast<std::chrono::minutes>(hour_fraction).count());
+
+	auto minute_fraction = hour_fraction - std::chrono::floor<std::chrono::minutes>(hour_fraction);
+	m_second = static_cast<uint8_t>(std::chrono::duration_cast<std::chrono::seconds>(minute_fraction).count());
 
     if (time_zone || daylight_saving_time)
     {
@@ -139,21 +113,7 @@ DateTime::DateTime(unsigned long long nanoseconds)
     *this = DateTime::convertNanosecondsToDate(nanoseconds);
 }
 
-uint16_t DateTime::year() const { return m_year; }
-
-uint8_t DateTime::month() const { return m_month; }
-
-uint8_t DateTime::day() const { return m_day; }
-
-uint8_t DateTime::hour() const { return m_hour; }
-
-uint8_t DateTime::minute() const { return m_minute; }
-
-double DateTime::second() const { return m_second; }
-
-bool DateTime::isLeapYear() const { return m_is_leap_year; }
-
-int8_t DateTime::getTimeZone() const { return m_time_shift_from_utc - m_is_dts; }
+int8_t DateTime::getTimeZoneOffset() const { return m_time_shift_from_utc - m_is_dts; }
 
 bool DateTime::isDTS() const { return m_is_dts; }
 
@@ -481,7 +441,7 @@ DateTime DateTime::convertNanosecondsToDate(unsigned long long nanoseconds, int8
 
 std::string lexgine::core::misc::DateTime::toString(unsigned char mask, DateOutputStyle style) const
 {
-    std::string month_name[] = { "January", "February", 
+    static std::string month_name[] = { "January", "February", 
         "March", "April", "May", 
         "June", "July", "August",
         "September", "October", "November", 

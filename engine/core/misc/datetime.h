@@ -1,14 +1,11 @@
 #ifndef LEXGINE_CORE_MISC_DATE_TIME_H
 
-#include <stdint.h>
-#include <string>
-#include <algorithm>
 #include <cstdint>
+#include <string>
+#include <chrono>
+#include <optional>
 
-// not portable, must be put between guarding defines
-#include <windows.h>
-
-namespace lexgine { namespace core { namespace misc {
+namespace lexgine::core::misc {
 
 
 //! Time period represented by tuple of year, month, day, hour, minute and fractional second. Time spans can be negative.
@@ -43,6 +40,16 @@ private:
     double m_seconds;
 };
 
+enum class Weekday
+{
+    sunday,
+    monday,
+    tuesday,
+    wednesday,
+    thursday,
+    friday,
+    saturday
+};
 
 //! Implements primitive Gregorian style date and time wrapper with the origin at January 1, 1970
 //! Note that this calendar can only represent the dates after Christ
@@ -66,22 +73,17 @@ public:
 
 public:
     //! Initializes the date-time object to January 1, 1970 UTC.
-    //! time_zone determines the time shift in hours from the UTC time calculated as the winter time (i.e. without taking the daylight saving into account).
-    //! When daylight_saving_time is 'true' an extra hour is added to the time shift from UTC
-    DateTime(int8_t time_zone = 0, bool daylight_saving_time = false);
+    DateTime();
 
-    //! Initializes the date-time object to the given moment in time. The time moment supplied to constructor must be UTC time.
+    //! Initializes the date-time object to the given moment in time.
     //! Here year is the year represented by the date-time object
     //! month is the month of the year encapsulated by the date-time object. The value is clamped to 12 during initialization to enforce validity of the date.
     //! day is the current day of the month. The value is clamped to the last day of month in order to enforce validity of the date.
     //! hour is the current hour of the day. The value is clamped to 23 to enforce validity of the date.
     //! minute is the current minute of the hour. The value is clamped to 59 to enforce validity of the date.
-    //! second is the current second of minute. The value is clamped to 59.999999999 to enforce validity of the date.
-    //! time_zone determines the time shift in hours from the UTC time calculated as the winter time (i.e. without taking the daylight saving into account).
-    //! When daylight_saving_time is 'true' an extra hour is added to the time shift from UTC
-    DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, double second, int8_t time_zone = 0, bool daylight_saving_time = false);
-
-    DateTime(DateTime const& other) = default; //! default copy constructor
+    //! second is the current second of minute. The value is clamped to 59 to enforce validity of the date.
+    //! time_zone is the abbreviated name of the time zone as specified in IANA time zone database. When not provided defaults to the current time zone used by the host system.
+    DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, std::optional<std::string> const& time_zone = std::nullopt);
 
     //! Constructs date-time object using @param nanoseconds passed since January 1, 1970, 00:00:00
     DateTime(unsigned long long nanoseconds);
@@ -106,15 +108,15 @@ public:
     bool operator<(DateTime const& other) const;    //! returns 'true' if this date is earlier than the other date
     bool operator==(DateTime const& other) const;    //! returns 'true' if this and other dates refer to the same points in time
 
-    uint16_t year() const;
-    uint8_t month() const;
-    uint8_t day() const;
+    uint16_t year() const { return static_cast<uint16_t>(static_cast<int>(m_ymd.year())); }
+    uint8_t month() const { return static_cast<uint16_t>(static_cast<unsigned int>(m_ymd.month())); }
+    uint8_t day() const { return static_cast<uint16_t>(static_cast<unsigned int>(m_ymd.day())); }
     uint8_t hour() const;
     uint8_t minute() const;
     double second() const;
-    bool isLeapYear() const;
+    bool isLeapYear() const { return m_ymd.year().is_leap(); }
 
-    int8_t getTimeZone() const;	//! returns time shift in hours from the UNC time, without accounting for the daylight saving shift
+    int8_t getTimeZoneOffset() const;	//! returns time shift in hours from the UNC time, without accounting for the daylight saving shift
     bool isDTS() const;	//! returns 'true' if the time represented by the date time object is in daylight saving mode
     DateTime getUTC() const;	//! returns date and time equivalent to the date and time represented by this object converted to the UNC time zone
     DateTime getLocalTime(int8_t time_zone, bool daylight_saving) const;	//! returns date and time equivalent to the date and time represented by this object converted to requested time zone
@@ -131,7 +133,7 @@ public:
     //! Retrieves compilation timestamp of the calling translation unit
     static DateTime buildTime()
     {
-        std::string month_name_as_encoded_in__DATE__[] = { "Jan", "Feb", "Mar", "Apr", "May",
+        static std::string month_name_as_encoded_in__DATE__[] = { "Jan", "Feb", "Mar", "Apr", "May",
         "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
         uint8_t month{}, day{};
@@ -179,19 +181,17 @@ public:
     }
 
 private:
-    uint16_t m_year;
-    bool m_is_leap_year;
-    uint8_t m_days_in_month[12];
-    uint8_t m_month;
-    uint8_t m_day;
+    std::chrono::zoned_time<std::chrono::system_clock::duration> m_ztime;
+    std::chrono::sys_info m_time_info;
+    bool m_is_dts;	//!< 'true' if the time is a daylight saving time
+    std::chrono::year_month_day m_ymd;
+    
     uint8_t m_hour;
     uint8_t m_minute;
-    double m_second;
-    int8_t m_time_shift_from_utc;    //!< total time shift to be added to the UNC time to get local time of the host
-    bool m_is_dts;	//!< 'true' if the time is a daylight saving time
+    uint8_t m_second;
 };
 
-}}}
+}
 
 #define LEXGINE_CORE_MISC_DATE_TIME_H
 #endif

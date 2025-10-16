@@ -4,21 +4,66 @@
 #include <chrono>
 #include <sstream>
 
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/logger.h>
 
 namespace lexgine::core::misc
 {
 
-namespace
+class SpdlogHtmlFormatter : public spdlog::formatter
 {
-static thread_local Log const* p_thread_logger = nullptr;
-}
+public:
+    void format(const spdlog::details::log_msg& msg, spdlog::memory_buf_t& dest) override
+    {
 
-Log const* Log::m_main_logging_stream = nullptr;
-std::mutex Log::m_main_thread_log_mutex{};
+    }
 
+    std::unique_ptr<spdlog::formatter> clone() const override
+    {
+        return std::make_unique<SpdlogHtmlFormatter>();
+    }
+};
 
-Log const& Log::create(std::ostream& output_logging_stream, std::string const& log_name, int8_t time_zone /* = 0 */, bool is_dts /* = false */)
+Log const& Log::create(std::filesystem::path& log_path, std::string const& log_name)
 {
+	static std::string month_name[] = { "January", "February",
+		"March", "April", "May",
+		"June", "July", "August",
+		"September", "October", "November",
+		"December" };
+
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+
+    spdlog::file_event_handlers handlers{};
+    handlers.after_open = [&log_name](const spdlog::filename_t& filename, std::FILE* file_stream)
+        {
+            std::stringstream s{};
+            std::chrono::zoned_time ztime{ std::chrono::current_zone(), std::chrono::system_clock::now() };
+            auto local_time = ztime.get_local_time();
+            std::chrono::year_month_day ymd{ std::chrono::floor<std::chrono::days>(local_time) };
+            auto day = static_cast<unsigned int>(ymd.day());
+            std::string& month = month_name[static_cast<unsigned int>(ymd.month())];
+
+            
+            // std::string log_header_string = log_name + std::to_string()
+
+			s << "<!DOCTYPE html>" << std::endl;
+			s << "<html>" << std::endl;
+			s << "<head><title>" << log_header_string << "</title></head>" << std::endl;
+			s << "<body>" << std::endl;
+			s << "<table>" << std::endl;
+			s << "<thead><tr>" << std::endl;
+			s << "<th colspan=\"2\">" << log_header_string << "</th>" << std::endl;
+			s << "</tr></thead>" << std::endl;
+			s << "<tbody>" << std::endl;
+        };
+
+
+    auto log_file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_path.string(), false, handlers);
+
+
     if (!p_thread_logger)
     {
         p_thread_logger = new Log(output_logging_stream, time_zone, is_dts);
