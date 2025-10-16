@@ -89,7 +89,7 @@ DateTime::DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint
 	   m_is_dts{ daylight_saving_time }*/
 {
 	auto local_time = m_ztime.get_local_time();
-	auto local_days = std::chrono::floor<days>(local_time);
+	auto local_days = std::chrono::floor<std::chrono::days>(local_time);
 	m_ymd = std::chrono::year_month_day{ local_days };
 
 	auto day_fraction = local_time - local_days;
@@ -119,18 +119,35 @@ DateTime DateTime::getUTC() const
     auto system_time = m_ztime.get_sys_time();
     auto duration = system_time.time_since_epoch();
     auto years = std::chrono::floor<std::chrono::years>(duration);
-    auto months = std::chrono::floor<std::chrono::months>(duration) - std::chrono::duration_cast<std::chrono::months>(years);
-    auto days = std::chrono::floor<std::chrono::days>(duration) - std::chrono::duration_cast<std::chrono::days>()
+
+    auto months_fraction = duration - years;
+    auto months = std::chrono::duration_cast<std::chrono::months>(months_fraction);
+
+    auto days_fraction = months_fraction - months;
+    auto days = std::chrono::duration_cast<std::chrono::days>(days_fraction);
+
+    auto hours_fraction = days_fraction - days;
+    auto hours = std::chrono::duration_cast<std::chrono::hours>(hours_fraction);
+
+    auto minutes_fraction = hours_fraction - hours;
+    auto minutes = std::chrono::duration_cast<std::chrono::minutes>(minutes_fraction);
+
+    auto seconds_fraction = minutes_fraction - minutes;
+    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration - std::chrono::floor<std::chrono::minutes>(duration));
     
     uint8_t utc_year = static_cast<uint8_t>(years.count());
+    uint8_t utc_month = static_cast<uint8_t>(months.count());
+    uint8_t utc_day = static_cast<uint8_t>(days.count());
+    uint8_t utc_hour = static_cast<uint8_t>(hours.count());
+    uint8_t utc_minute = static_cast<uint8_t>(minutes.count());
+    uint8_t utc_second = static_cast<uint8_t>(seconds.count());
 
-    auto days_fraction = std::chrono::floor<std::chrono::days>(duration)
+    return DateTime{ utc_year, utc_month, utc_day, utc_hour, utc_minute, utc_second, "UTC" };
 }
 
 DateTime DateTime::getLocalTime(int8_t time_zone, bool daylight_saving) const
 {
-    DateTime aux = getUTC();
-    return DateTime{ aux.m_year, aux.m_month, aux.m_day, aux.m_hour, aux.m_minute, aux.m_second, time_zone, daylight_saving };
+    
 }
 
 DateTime DateTime::operator+(TimeSpan const& span) const
@@ -285,35 +302,7 @@ TimeSpan DateTime::timeSince(DateTime const& other) const
     return TimeSpan{ 0, 0, 0, 0, 0, (std::max)(other.m_second - m_second, 0.0) };
 }
 
-
-
-namespace
-{
-//Retrieves number of integers in the range [s, e] with common multiplier m
-inline uint32_t getNumberOfMultiples(uint32_t s, uint32_t e, uint32_t m)
-{
-    uint32_t rv = static_cast<uint32_t>(std::floor(static_cast<double>(e) / m) - std::ceil(static_cast<double>(s) / m)) + 1;
-    return rv;
-}
-
-
-// Computes number of days in time period [start_year, end_year]
-uint32_t getNumberOfDaysInPeriod(uint16_t start_year, uint16_t end_year)
-{
-    uint8_t num_leap_century_years = getNumberOfMultiples(start_year, end_year, 400);
-    uint8_t num_century_years = getNumberOfMultiples(start_year, end_year, 100);
-    uint16_t num_leap_years = getNumberOfMultiples(start_year, end_year, 4);
-
-    uint32_t num_days = 365 * (end_year - start_year + 1) + num_leap_years - num_century_years + num_leap_century_years;
-
-    return num_days;
-}
-}
-
-
-using days = std::chrono::duration<int, std::ratio<86400, 1>>;
-
-DateTime DateTime::now(int8_t time_zone /* = 0 */, bool daylight_saving /* = 0 */)
+DateTime DateTime::now(std::optional<std::string> const& time_zone/* = std::nullopt*/)
 {
     static bool init_call = true;	// this is needed for technical optimization, since usually after the previous call it is enough to count seconds, or minutes, not months or years
     static DateTime last_date;	// date-time object obtain on the last invocation of this function

@@ -125,7 +125,7 @@ public:
     //! the function returns 0 time span
     TimeSpan timeSince(DateTime const& other) const;
 
-    static DateTime now(int8_t time_zone = 0, bool daylight_saving = 0);	//! Returns date-time object encapsulating current date and time with the given time zone and DTS mode
+    static DateTime now(std::optional<std::string> const& time_zone = std::nullopt);	//! Returns date-time object encapsulating current date and time with the given time zone. If time zone is not provided, returns current local time
     static DateTime convertNanosecondsToDate(unsigned long long nanoseconds, int8_t time_zone = 0, bool daylight_saving = 0);	//! Converts amount of nanoseconds passed from January 1, 1970, 00:00:00 into date-time representation
 
     std::string toString(unsigned char mask = 0x3F, DateOutputStyle style = DateOutputStyle::european) const;
