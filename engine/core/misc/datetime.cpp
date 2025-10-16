@@ -1,5 +1,4 @@
 #include "datetime.h"
-#include "strict_weak_ordering.h"
 
 #include <chrono>
 #include <cassert>
@@ -7,43 +6,68 @@
 #include <sstream>
 
 
-using namespace lexgine::core::misc;
+namespace lexgine::core::misc {
 
+namespace {
 
-namespace
+template<typename Duration>
+DateTime convertSystemTimePointToDateTime(std::chrono::time_point<std::chrono::system_clock, Duration> const& tp, std::optional<std::string> const& time_zone)
 {
+    std::chrono::sys_days system_days = std::chrono::time_point_cast<std::chrono::days>(tp);
+    std::string tz = time_zone.value_or(std::string{ std::chrono::current_zone()->name() });
+    std::chrono::zoned_time ztime{ tz, system_days };
 
-// Helper: transforms provided day to the given time zone
-void adjustTimeShift(uint16_t year, uint8_t const days_in_month[], uint8_t month, uint8_t day, uint8_t hour, int8_t time_shift_from_utc,
-    uint16_t& adjusted_year, uint8_t& adjusted_month, uint8_t& adjusted_day, uint8_t& adjusted_hour)
+    auto local_tp = ztime.get_local_time();
+    std::chrono::year_month_day ymd{ std::chrono::time_point_cast<std::chrono::days>(local_tp) };
+    int year = static_cast<int>(ymd.year());
+    uint8_t month = static_cast<uint8_t>(static_cast<unsigned int>(ymd.month()));
+    uint8_t day = static_cast<uint8_t>(static_cast<unsigned int>(ymd.day()));
+
+    auto hours_fraction = local_tp - std::chrono::floor<std::chrono::days>(local_tp);
+    auto hours = std::chrono::floor<std::chrono::hours>(hours_fraction);
+
+    auto minutes_fraction = hours_fraction - hours;
+    auto minutes = std::chrono::floor<std::chrono::minutes>(minutes_fraction);
+
+    auto seconds_fraction = minutes_fraction - minutes;
+    auto seconds = std::chrono::floor<std::chrono::seconds>(seconds_fraction);
+
+    return DateTime{
+        year,
+        static_cast<Month>(month - 1),
+        day,
+        static_cast<uint8_t>(hours.count()),
+        static_cast<uint8_t>(minutes.count()),
+        static_cast<uint8_t>(seconds.count()),
+        tz
+    };
+}
+
+long long floordiv(long long a, long long b)
 {
-    int8_t raw_hour = static_cast<int8_t>(hour) + time_shift_from_utc;
-    int8_t day_shift = raw_hour / 24; raw_hour %= 24;
-    if (raw_hour < 0) --day_shift;
+    assert(b != 0);
+    long long q = a / b;
+    long long r = a % b;
+    if (r < 0) --q;
+    return q;
+}
 
-    int8_t raw_day = static_cast<int8_t>(day) - 1 + day_shift;
-    int8_t month_shift = raw_day / days_in_month[month - 1]; raw_day %= days_in_month[month - 1];
-    if (raw_day < 0) --month_shift;
-
-    int8_t raw_month = static_cast<int8_t>(month) - 1 + month_shift;
-    int8_t year_shift = raw_month / 12; raw_month %= 12;
-    if (raw_month < 0) --year_shift;
-
-    adjusted_year = year + year_shift;
-    adjusted_month = raw_month < 0 ? 12 : raw_month + 1;
-    adjusted_day = raw_day < 0 ? days_in_month[adjusted_month - 1] : raw_day + 1;
-    adjusted_hour = (raw_hour < 0 ? 24 : 0) + raw_hour;
+long long floormod(long long a, long long b)
+{
+    assert(b != 0);
+    long long r = a % b;
+    if (r < 0) r += b;
+	return r;
 }
 
 }
-
 
 TimeSpan::TimeSpan() : m_years{ 0 }, m_months{ 0 }, m_days{ 0 }, m_hours{ 0 }, m_minutes{ 0 }, m_seconds{ 0 }
 {
 
 }
 
-TimeSpan::TimeSpan(int years, int months, int days, int hours, int minutes, double seconds) :
+TimeSpan::TimeSpan(int years, int months, int days, int hours, int minutes, int seconds) :
     m_years{ years }, m_months{ months }, m_days{ days }, m_hours{ hours }, m_minutes{ minutes }, m_seconds{ seconds }
 {
 
@@ -59,21 +83,7 @@ int TimeSpan::hours() const { return m_hours; }
 
 int TimeSpan::minutes() const { return m_minutes; }
 
-double TimeSpan::seconds() const { return m_seconds; }
-
-TimeSpan& TimeSpan::operator=(TimeSpan const& other)
-{
-    if (this == &other) return *this;
-
-    m_years = other.m_years;
-    m_months = other.m_months;
-    m_days = other.m_days;
-    m_hours = other.m_hours;
-    m_minutes = other.m_minutes;
-    m_seconds = other.m_seconds;
-
-    return *this;
-}
+int TimeSpan::seconds() const { return m_seconds; }
 
 TimeSpan TimeSpan::operator+(TimeSpan const& other) const
 {
@@ -93,45 +103,24 @@ TimeSpan TimeSpan::operator-() const
 }
 
 
-DateTime::DateTime(int8_t time_zone /* = 0 */, bool daylight_saving_time /* = false */) :
-    m_year{ 1970 }, 
-    m_is_leap_year{ false },
-    m_days_in_month{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-    m_month{ 1 }, 
-    m_day{ 1 }, 
-    m_hour{ 0 }, 
-    m_minute{ 0 }, 
-    m_second{ 0.0 },
-    m_time_shift_from_utc{ time_zone + static_cast<int8_t>(daylight_saving_time) },
-    m_is_dts{ daylight_saving_time }
+DateTime::DateTime() : DateTime{ 1970, Month::january, 1, 0, 0, 0, "UTC" }
 {
-    if (time_zone || daylight_saving_time)
-    {
-        adjustTimeShift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
-            m_year, m_month, m_day, m_hour);
-    }
 }
 
-DateTime::DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, double second,
-    int8_t time_zone /* = 0 */, bool daylight_saving_time /* = false */) :
-    m_year{ year }, 
-    m_is_leap_year{ m_year % 400 == 0 || m_year % 4 == 0 && m_year % 100 != 0 },
-    m_days_in_month{ 31, static_cast<uint8_t>(28 + m_is_leap_year), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-    m_month{ month <= 12 ? month : 12U }, 
-    m_day{ day <= m_days_in_month[month - 1] ? day : m_days_in_month[month - 1] },
-    m_hour{ hour <= 23 ? hour : 23U }, 
-    m_minute{ minute <= 59 ? minute : 59U }, 
-    m_second{ second < 60 ? second : 59.999999999 },
-    m_time_shift_from_utc{ time_zone + static_cast<int8_t>(daylight_saving_time) },
-    m_is_dts{ daylight_saving_time }
-{
-    assert(second >= 0);
-
-    if (time_zone || daylight_saving_time)
-    {
-        adjustTimeShift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
-            m_year, m_month, m_day, m_hour);
+DateTime::DateTime(int year, Month month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second,
+    std::optional<std::string> const& time_zone /* = nullopt */)
+    : m_ymd{ std::chrono::year{year} / std::chrono::month{static_cast<unsigned int>(month) + 1} / std::chrono::day{day}}
+	, m_hour{ hour }
+	, m_minute{ minute }
+	, m_second{ second }
+    , m_ztime{
+        time_zone.has_value() ? std::chrono::locate_zone(time_zone.value()) : std::chrono::current_zone(),
+        static_cast<std::chrono::local_days>(m_ymd)
     }
+    , m_time_info{ m_ztime.get_info() }
+    , m_is_dts{ m_time_info.save != std::chrono::minutes{0} } 
+{
+
 }
 
 DateTime::DateTime(unsigned long long nanoseconds)
@@ -139,106 +128,64 @@ DateTime::DateTime(unsigned long long nanoseconds)
     *this = DateTime::convertNanosecondsToDate(nanoseconds);
 }
 
-uint16_t DateTime::year() const { return m_year; }
-
-uint8_t DateTime::month() const { return m_month; }
-
-uint8_t DateTime::day() const { return m_day; }
-
-uint8_t DateTime::hour() const { return m_hour; }
-
-uint8_t DateTime::minute() const { return m_minute; }
-
-double DateTime::second() const { return m_second; }
-
-bool DateTime::isLeapYear() const { return m_is_leap_year; }
-
-int8_t DateTime::getTimeZone() const { return m_time_shift_from_utc - m_is_dts; }
-
-bool DateTime::isDTS() const { return m_is_dts; }
+int DateTime::getTimeZoneOffset() const 
+{
+    return std::chrono::duration_cast<std::chrono::hours>(m_time_info.offset).count() - static_cast<int>(m_is_dts); 
+}
 
 DateTime DateTime::getUTC() const
 {
-    uint16_t utc_year;
-    uint8_t utc_month, utc_day, utc_hour;
-    adjustTimeShift(m_year, m_days_in_month, m_month, m_day, m_hour, -m_time_shift_from_utc,
-        utc_year, utc_month, utc_day, utc_hour);
-
-    return DateTime{ utc_year, utc_month, utc_day, utc_hour, m_minute, m_second, 0, false };
+    return getLocalTime("UTC");
 }
 
-DateTime DateTime::getLocalTime(int8_t time_zone, bool daylight_saving) const
+DateTime DateTime::getLocalTime(std::string const& time_zone) const
 {
-    DateTime aux = getUTC();
-    return DateTime{ aux.m_year, aux.m_month, aux.m_day, aux.m_hour, aux.m_minute, aux.m_second, time_zone, daylight_saving };
+    return convertSystemTimePointToDateTime(m_ztime.get_sys_time(), time_zone);
 }
 
 DateTime DateTime::operator+(TimeSpan const& span) const
 {
-    int year = static_cast<int>(m_year) + span.years();
+    int y = year();
+    int m = static_cast<int>(month());
+    int d = static_cast<int>(day());
+    int h = static_cast<int>(hour());
+    int mi = static_cast<int>(minute());
+    int s = static_cast<int>(second());
 
+    y += span.years();
+    m += span.months();
+    d += span.days();
+    h += span.hours();
+    mi += span.minutes();
+    s += span.seconds();
 
-    int month = static_cast<int>(m_month) + span.months();
-    auto align_months = [&month, &year]()->void
-    {
-        year += (month - 1) / 12U;
-        month = (month - 1) % 12U + 1;
+    long long time_of_day = h * 3600LL + mi * 60LL + s;
+    long long total_hours = floordiv(time_of_day, 3600LL);
+    long long spillover_seconds = floormod(time_of_day, 3600LL);
+	h = static_cast<int>(floormod(total_hours, 24LL));
+	mi = static_cast<int>(spillover_seconds / 60LL);
+	s = static_cast<int>(spillover_seconds % 60LL);
+
+    y += floordiv(m, 12LL);
+	m = static_cast<int>(floormod(m, 12LL));
+    
+    std::chrono::year_month_day ymd = std::chrono::year{ y } / std::chrono::month{ static_cast<unsigned int>(m + 1) } / std::chrono::day{ 1 };
+    std::chrono::sys_days sdays = static_cast<std::chrono::sys_days>(ymd);
+    sdays += std::chrono::days{ floordiv(total_hours, 24LL) + d - 1 };
+    ymd = std::chrono::year_month_day{ sdays };
+    y = static_cast<int>(ymd.year());
+    m = static_cast<int>(static_cast<unsigned int>(ymd.month())) - 1;
+    d = static_cast<int>(static_cast<unsigned int>(ymd.day()));
+    
+    return DateTime{
+        y,
+        static_cast<Month>(m),
+        static_cast<uint8_t>(d),
+        static_cast<uint8_t>(h),
+        static_cast<uint8_t>(mi),
+        static_cast<uint8_t>(s),
+        std::string{m_ztime.get_time_zone()->name()}
     };
-    align_months();
-
-
-    int day = static_cast<int>(m_day) + span.days();
-    auto align_days = [&day, &month, this]()->void
-    {
-        while (day > m_days_in_month[month - 1]) day -= m_days_in_month[month++ - 1];
-    };
-    align_days();
-    align_months();
-
-
-    int hour = static_cast<int>(m_hour) + span.hours();
-    auto align_hours = [&hour, &day]()->void
-    {
-        day += hour / 24U;
-        hour = hour % 24U;
-    };
-    align_hours();
-    align_days();
-    align_months();
-
-
-    int minute = static_cast<int>(m_minute) + span.minutes();
-    auto align_minutes = [&minute, &hour]()->void
-    {
-        hour += minute / 60U;
-        minute = minute % 60U;
-    };
-    align_minutes();
-    align_hours();
-    align_days();
-    align_months();
-
-
-    double second = static_cast<double>(m_second) + span.seconds();
-    auto align_seconds = [&second, &minute]()->void
-    {
-        minute += static_cast<int>(second / 60);
-        second -= static_cast<int>(second / 60) * 60;
-    };
-    align_seconds();
-    align_minutes();
-    align_hours();
-    align_days();
-    align_months();
-
-    assert(year >= 0 && year <= 65535 &&
-        month >= 0 && month <= 255 &&
-        day >= 0 && day <= 255 &&
-        hour >= 0 && hour <= 255 &&
-        minute >= 0 && minute <= 255 &&
-        second >= 0);
-    return DateTime{ static_cast<uint16_t>(year), static_cast<uint8_t>(month), static_cast<uint8_t>(day),
-        static_cast<uint8_t>(hour), static_cast<uint8_t>(minute), second };
 }
 
 DateTime DateTime::operator-(TimeSpan const& span) const
@@ -248,240 +195,137 @@ DateTime DateTime::operator-(TimeSpan const& span) const
 
 bool DateTime::operator>=(DateTime const& other) const
 {
-    return (*this) > other || (*this == other);
+    return m_ztime.get_sys_time() >= other.m_ztime.get_sys_time();
 }
 
 bool DateTime::operator<=(DateTime const& other) const
 {
-    return (*this) < other || (*this == other);
+    return m_ztime.get_sys_time() <= other.m_ztime.get_sys_time();
 }
 
 bool DateTime::operator<(DateTime const & other) const
 {
-    DateTime this_in_utc = this->getUTC();
-    DateTime other_in_utc = other.getUTC();
-
-    SWO_STEP(this_in_utc.m_year, < , other_in_utc.m_year);
-    SWO_STEP(this_in_utc.m_month, < , other_in_utc.m_month);
-    SWO_STEP(this_in_utc.m_day, < , other_in_utc.m_day);
-    SWO_STEP(this_in_utc.m_hour, < , other_in_utc.m_hour);
-    SWO_STEP(this_in_utc.m_minute, < , other_in_utc.m_minute);
-    SWO_END(this_in_utc.m_second, < , other_in_utc.m_second);
+    return m_ztime.get_sys_time() < other.m_ztime.get_sys_time();
 }
 
 bool DateTime::operator>(DateTime const & other) const
 {
-    DateTime this_in_utc = this->getUTC();
-    DateTime other_in_utc = other.getUTC();
-
-    SWO_STEP(this_in_utc.m_year, > , other_in_utc.m_year);
-    SWO_STEP(this_in_utc.m_month, > , other_in_utc.m_month);
-    SWO_STEP(this_in_utc.m_day, > , other_in_utc.m_day);
-    SWO_STEP(this_in_utc.m_hour, > , other_in_utc.m_hour);
-    SWO_STEP(this_in_utc.m_minute, > , other_in_utc.m_minute);
-    SWO_END(this_in_utc.m_second, > , other_in_utc.m_second);
+    return m_ztime.get_sys_time() > other.m_ztime.get_sys_time();
 }
 
 bool DateTime::operator==(DateTime const& other) const
 {
-    DateTime this_in_utc = this->getUTC();
-    DateTime other_in_utc = other.getUTC();
-
-    return this_in_utc.m_year == other_in_utc.m_year
-        && this_in_utc.m_month == other_in_utc.m_month
-        && this_in_utc.m_day == other_in_utc.m_day
-        && this_in_utc.m_hour == other_in_utc.m_hour
-        && this_in_utc.m_minute == other_in_utc.m_minute
-        && this_in_utc.m_second == other_in_utc.m_second;
+    return m_ztime.get_sys_time() == other.m_ztime.get_sys_time();
 }
 
-TimeSpan DateTime::timeSince(DateTime const& other) const
+Weekday DateTime::weekday() const
 {
-    if (other <= *this) return TimeSpan{};
-
-    uint8_t months_till_next_year = 12U - m_month;
-    uint8_t days_till_next_month = m_days_in_month[m_month - 1] - m_day;
-    uint8_t hours_till_next_day = 23 - m_hour;
-    uint8_t minutes_till_next_hour = 59 - m_minute;
-    double seconds_till_next_minute = (std::max)(59.999999999 - m_second, 0.0);
-
-    if (m_year != other.m_year)
-        return TimeSpan{ other.m_year - m_year, months_till_next_year, days_till_next_month,
-        hours_till_next_day, minutes_till_next_hour, seconds_till_next_minute };
-
-    if (m_month != other.m_month)
-        return TimeSpan{ 0, other.m_month - m_month, days_till_next_month,
-        hours_till_next_day, minutes_till_next_hour, seconds_till_next_minute };
-
-    if (m_day != other.m_day)
-        return TimeSpan{ 0, 0, other.m_day - m_day, hours_till_next_day, minutes_till_next_hour, seconds_till_next_minute };
-
-    if (m_hour != other.m_hour)
-        return TimeSpan{ 0, 0, 0, other.m_hour - m_hour, minutes_till_next_hour, seconds_till_next_minute };
-
-    if (m_minute != other.m_minute)
-        return TimeSpan{ 0, 0, 0, 0, other.m_minute - m_minute, seconds_till_next_minute };
-
-    return TimeSpan{ 0, 0, 0, 0, 0, (std::max)(other.m_second - m_second, 0.0) };
+    std::chrono::year_month_weekday ymw{ static_cast<std::chrono::sys_days>(m_ymd) };
+    return static_cast<Weekday>(ymw.weekday().c_encoding());
 }
 
-
-
-namespace
+TimeSpan DateTime::timeTill(DateTime const& other) const
 {
-//Retrieves number of integers in the range [s, e] with common multiplier m
-inline uint32_t getNumberOfMultiples(uint32_t s, uint32_t e, uint32_t m)
-{
-    uint32_t rv = static_cast<uint32_t>(std::floor(static_cast<double>(e) / m) - std::ceil(static_cast<double>(s) / m)) + 1;
-    return rv;
-}
-
-
-// Computes number of days in time period [start_year, end_year]
-uint32_t getNumberOfDaysInPeriod(uint16_t start_year, uint16_t end_year)
-{
-    uint8_t num_leap_century_years = getNumberOfMultiples(start_year, end_year, 400);
-    uint8_t num_century_years = getNumberOfMultiples(start_year, end_year, 100);
-    uint16_t num_leap_years = getNumberOfMultiples(start_year, end_year, 4);
-
-    uint32_t num_days = 365 * (end_year - start_year + 1) + num_leap_years - num_century_years + num_leap_century_years;
-
-    return num_days;
-}
-}
-
-
-using days = std::chrono::duration<int, std::ratio<86400, 1>>;
-
-DateTime DateTime::now(int8_t time_zone /* = 0 */, bool daylight_saving /* = 0 */)
-{
-    static bool init_call = true;	// this is needed for technical optimization, since usually after the previous call it is enough to count seconds, or minutes, not months or years
-    static DateTime last_date;	// date-time object obtain on the last invocation of this function
-    static std::chrono::system_clock::duration last_time;	// the time of the last invocation
-
-    std::chrono::system_clock::duration current_time = std::chrono::system_clock::now().time_since_epoch();
-    auto delta_ns = current_time - last_time;
-
-    DateTime rv;
-    if (init_call || std::chrono::duration_cast<days>(delta_ns).count())
+    DateTime const* p_lhs{ this };
+    DateTime const* p_rhs{ &other };
+	DateTime utcLhs{}, utcRhs{};
+    bool same_tzone = m_ztime.get_time_zone() == other.m_ztime.get_time_zone();
+    if (!same_tzone)
     {
-        rv = convertNanosecondsToDate(static_cast<unsigned long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(current_time).count()), time_zone, daylight_saving);
-        init_call = false;
+        utcLhs = this->getUTC();
+        utcRhs = other.getUTC();
+        p_lhs = &utcLhs;
+        p_rhs = &utcRhs;
     }
-    else
+    bool normal_order = *p_lhs <= *p_rhs;
+	DateTime const& lhs = normal_order ? *p_lhs : *p_rhs;
+	DateTime const& rhs = normal_order ? *p_rhs : *p_lhs;
+
+    int y = rhs.year() - lhs.year();
+    int m = 0;
     {
-        rv = DateTime{ last_date.year(), last_date.month(), last_date.day(),
-            static_cast<uint8_t>(last_date.hour() + std::chrono::duration_cast<std::chrono::hours>(delta_ns).count()),
-            static_cast<uint8_t>(last_date.minute() + std::chrono::duration_cast<std::chrono::minutes>(delta_ns).count()),
-            last_date.second() + std::chrono::duration_cast<std::chrono::nanoseconds>(delta_ns).count() / 1e9, time_zone, daylight_saving };
+        DateTime anniversary_date{ lhs.year() + y, lhs.month(), lhs.day(), lhs.hour(), lhs.minute(), lhs.second(), std::string{lhs.m_ztime.get_time_zone()->name()} };
+        if (anniversary_date > rhs)
+        {
+            // move one year back if the full year anniversary is past the final date and account for the remaining months from the past year
+            --y;
+            m += 12 - static_cast<int>(lhs.month()) + static_cast<int>(rhs.month());
+        }
+        else
+        {
+			m += static_cast<int>(rhs.month()) - static_cast<int>(lhs.month());
+        }
     }
 
-    last_date = rv.getUTC();
-    last_time = current_time;
-    return rv;
+    long long diff_seconds{};
+    int days_in_month[] = { 31, rhs.isLeapYear() ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    {
+		int rhs_month = static_cast<int>(rhs.month());
+        int anchor_day = (std::min)(static_cast<int>(lhs.day()), days_in_month[rhs_month]);
+        DateTime anchor_date{ 
+            rhs.year(), 
+            rhs.month(), 
+            static_cast<uint8_t>(anchor_day), 
+            lhs.hour(), 
+            lhs.minute(), 
+            lhs.second(), 
+            std::string{rhs.m_ztime.get_time_zone()->name()} 
+        };
+
+        int rhs_day = static_cast<int>(rhs.day());
+        if (anchor_date > rhs)
+        {
+            --m;
+            int prev_month = static_cast<int>(floormod(rhs_month - 1LL, 12LL));
+            anchor_day = (std::min)(static_cast<int>(lhs.day()), days_in_month[prev_month]);
+			diff_seconds += (days_in_month[prev_month] - anchor_day + rhs_day) * 86400LL;
+        }
+        else
+        {
+			diff_seconds += (rhs_day - anchor_day) * 86400LL;
+        }
+    }
+
+    // Calculate difference between lhs moved forward by y years and m months and rhs as the total number of seconds
+    long long lhs_tod = lhs.hour() * 3600LL + lhs.minute() * 60LL + lhs.second();
+    long long rhs_tod = rhs.hour() * 3600LL + rhs.minute() * 60LL + rhs.second();
+    diff_seconds = diff_seconds + rhs_tod - lhs_tod;
+
+    int d = static_cast<int>(floordiv(diff_seconds, 86400LL));
+    diff_seconds = floormod(diff_seconds, 86400LL);
+
+    int h = static_cast<int>(floordiv(diff_seconds, 3600LL));
+    diff_seconds = floormod(diff_seconds, 3600LL);
+
+    int mi = static_cast<int>(floordiv(diff_seconds, 60LL));
+    int s = static_cast<int>(floormod(diff_seconds, 60LL));
+
+    assert(y >= 0);
+    assert(m >= 0);
+    assert(d >= 0);
+    assert(h >= 0);
+    assert(mi >= 0);
+    assert(s >= 0);
+    TimeSpan rv{ y, m, d, h, mi, s };
+    return normal_order ? rv : -rv;
 }
 
-DateTime DateTime::convertNanosecondsToDate(unsigned long long nanoseconds, int8_t time_zone /* = 0 */, bool daylight_saving /* = 0 */)
+DateTime DateTime::now(std::optional<std::string> const& time_zone/* = std::nullopt*/)
 {
-    uint16_t year = 1970;
-    uint8_t month = 0;
-    uint8_t day = 0;
-    uint8_t hour = 0;
-    uint8_t minute = 0;
-    double second = 0.0;
-
-    std::chrono::nanoseconds duration_since_epoch{ static_cast<std::chrono::nanoseconds::rep>(nanoseconds) };
-    uint32_t days_since_epoch = std::chrono::duration_cast<days>(duration_since_epoch).count();
-
-    uint16_t const year1970_year2001_days = 11323U;	// hard-coded number of days between January 1, 1970, 00:00:00 and January 1, 2001, 00:00:00
-    uint16_t const year1970_year1973_days = 1096;	// hard-coded number of days between January 1, 1970, 00:00:00 and January 1, 1973, 00:00:00
-    uint32_t const num_days_in_400year_period = 146097U;	//number of days in 400-year period between January 1, 1, 00:00:00 and January 1, 400, 00:00:00
-    uint32_t const num_days_in_100year_period = 36524U;	//number of days in 100-year period between January 1, 1, 00:00:00 and January 1, 100, 00:00:00
-    uint32_t const num_days_in_4year_period = 1461U;	//number of days in 4-year period between January 1, 1, 00:00:00 and January 1, 4, 00:00:00
-    int days_since_jan1;
-
-    if (days_since_epoch <= year1970_year1973_days)
-    {
-        uint8_t years_since_epoch = days_since_epoch / 365;
-        if (years_since_epoch == 3 && days_since_epoch == 1095) years_since_epoch = 2;	// account for the leap in 1972
-
-        days_since_jan1 = years_since_epoch <= 2 ? days_since_epoch - years_since_epoch * 365 : 0;
-        year += years_since_epoch;
-    }
-    else if (days_since_epoch <= year1970_year2001_days)
-    {
-        uint8_t years_since_epoch = 3;
-        uint32_t days_since_1973 = days_since_epoch - year1970_year1973_days;
-
-        uint16_t num_full_4year_periods = days_since_1973 / num_days_in_4year_period;
-        years_since_epoch += num_full_4year_periods * 4;
-        uint8_t years_since_last_leap = (days_since_1973 - num_full_4year_periods * num_days_in_4year_period) / 365;
-        if (years_since_last_leap == 4) years_since_last_leap = 3;	// this is only possible when the current date is a leap day
-        years_since_epoch += years_since_last_leap;
-
-        days_since_jan1 = days_since_1973 - num_full_4year_periods * num_days_in_4year_period - years_since_last_leap * 365;
-        year += years_since_epoch;
-    }
-    else
-    {
-        // here we start counting from January 1, 2001, 00:00:00
-        uint8_t years_since_epoch = 31;
-        uint32_t days_since_2001 = days_since_epoch - year1970_year2001_days;
-
-
-        uint16_t num_full_400_periods = days_since_2001 / num_days_in_400year_period;
-        uint32_t days_since_last_400year_period = days_since_2001 - num_full_400_periods * num_days_in_400year_period;
-        years_since_epoch += num_full_400_periods * 400;
-
-        uint16_t num_full_100_periods = days_since_last_400year_period / num_days_in_100year_period;
-        uint32_t days_since_last_100year_period = days_since_last_400year_period - num_full_100_periods * num_days_in_100year_period;
-        years_since_epoch += num_full_100_periods * 100;
-
-        uint16_t num_full_4_year_periods = days_since_last_100year_period / num_days_in_4year_period;
-        uint32_t days_since_last_4year_period = days_since_last_100year_period - num_full_4_year_periods * num_days_in_4year_period;
-        years_since_epoch += num_full_4_year_periods * 4;
-
-        uint8_t years_since_last_leap = days_since_last_4year_period / 365;
-        if (years_since_last_leap == 4) years_since_last_leap = 3;	// this is only possible if the current date is a leap day
-        years_since_epoch += years_since_last_leap;
-
-        days_since_jan1 = days_since_last_4year_period - years_since_last_leap * 365;
-        year += years_since_epoch;
-    }
-
-
-    bool is_leap_year = year % 400 == 0 || year % 4 == 0 && year % 100 != 0;
-    uint8_t days_in_month[] = { 31, static_cast<uint8_t>(28 + is_leap_year), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-    for (uint32_t i = 0; i <= 11; ++i)
-    {
-        ++month;
-        day = days_since_jan1 + 1;
-
-        days_since_jan1 -= days_in_month[i];
-        if (i == 1 && is_leap_year) --days_since_jan1;
-
-        if (days_since_jan1 < 0) break;
-    }
-
-
-    auto check1 = std::chrono::duration_cast<std::chrono::hours>(duration_since_epoch).count();
-    auto check2 = std::chrono::duration_cast<days>(duration_since_epoch).count();
-    hour = std::chrono::duration_cast<std::chrono::hours>(duration_since_epoch).count()
-        - std::chrono::duration_cast<days>(duration_since_epoch).count() * 24;
-
-    minute = std::chrono::duration_cast<std::chrono::minutes>(duration_since_epoch).count()
-        - std::chrono::duration_cast<std::chrono::hours>(duration_since_epoch).count() * 60;
-
-    unsigned long long const minutes_to_nanoseconds = 60000000000ULL;
-    second = (std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch).count()
-        - std::chrono::duration_cast<std::chrono::minutes>(duration_since_epoch).count() * minutes_to_nanoseconds) / 1e9;
-
-    return DateTime{ year, month, day, hour, minute, second, time_zone, daylight_saving };
+    auto current_time_point = std::chrono::system_clock::now();
+    return convertSystemTimePointToDateTime(current_time_point, time_zone);
 }
 
-std::string lexgine::core::misc::DateTime::toString(unsigned char mask, DateOutputStyle style) const
+DateTime DateTime::convertNanosecondsToDate(unsigned long long nanoseconds, std::optional<std::string> const& time_zone/* = std::nullopt*/)
 {
-    std::string month_name[] = { "January", "February", 
+    std::chrono::nanoseconds ns{ nanoseconds };
+    std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> system_tp{ ns };
+    return convertSystemTimePointToDateTime(system_tp, time_zone);
+}
+
+std::string DateTime::toString(unsigned char mask, DateOutputStyle style) const
+{
+    static std::string month_name[] = { "January", "February", 
         "March", "April", "May", 
         "June", "July", "August",
         "September", "October", "November", 
@@ -495,7 +339,7 @@ std::string lexgine::core::misc::DateTime::toString(unsigned char mask, DateOutp
     case DateOutputStyle::european:
         if (mask & DateOutputMask::day)
         {
-            output_string_stream << std::to_string(m_day);
+            output_string_stream << std::to_string(day());
             preceeding_date_token_exists = true;
         }
 
@@ -503,7 +347,7 @@ std::string lexgine::core::misc::DateTime::toString(unsigned char mask, DateOutp
         {
             if (preceeding_date_token_exists) output_string_stream << "/";
 
-            output_string_stream << month_name[m_month - 1];
+            output_string_stream << month_name[static_cast<int>(month())];
             preceeding_date_token_exists = true;
         }
 
@@ -512,7 +356,7 @@ std::string lexgine::core::misc::DateTime::toString(unsigned char mask, DateOutp
     case DateOutputStyle::american:
         if (mask & DateOutputMask::month)
         {
-            output_string_stream << month_name[m_month - 1];
+            output_string_stream << month_name[static_cast<int>(month())];
             preceeding_date_token_exists = true;
         }
 
@@ -520,7 +364,7 @@ std::string lexgine::core::misc::DateTime::toString(unsigned char mask, DateOutp
         {
             if (preceeding_date_token_exists) output_string_stream << "/";
 
-            output_string_stream << std::to_string(m_day);
+            output_string_stream << std::to_string(day());
             preceeding_date_token_exists = true;
         }
 
@@ -530,7 +374,7 @@ std::string lexgine::core::misc::DateTime::toString(unsigned char mask, DateOutp
     if (mask & DateOutputMask::year)
     {
         if (preceeding_date_token_exists) output_string_stream << "/";
-        output_string_stream << std::to_string(m_year);
+        output_string_stream << std::to_string(year());
         preceeding_date_token_exists = true;
     }
 
@@ -567,3 +411,5 @@ std::string lexgine::core::misc::DateTime::toString(unsigned char mask, DateOutp
     return output_string_stream.str();
 }
 
+
+}
