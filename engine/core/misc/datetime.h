@@ -116,7 +116,7 @@ public:
     double second() const;
     bool isLeapYear() const { return m_ymd.year().is_leap(); }
 
-    int8_t getTimeZoneOffset() const;	//! returns time shift in hours from the UNC time, without accounting for the daylight saving shift
+    int getTimeZoneOffset() const;	//! returns time shift in hours from the UNC time, without accounting for the daylight saving shift
     bool isDTS() const;	//! returns 'true' if the time represented by the date time object is in daylight saving mode
     DateTime getUTC() const;	//! returns date and time equivalent to the date and time represented by this object converted to the UNC time zone
     DateTime getLocalTime(int8_t time_zone, bool daylight_saving) const;	//! returns date and time equivalent to the date and time represented by this object converted to requested time zone

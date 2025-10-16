@@ -90,7 +90,7 @@ DateTime::DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint
 {
 	auto local_time = m_ztime.get_local_time();
 	auto local_days = std::chrono::floor<days>(local_time);
-	m_ymd = std::chrono::year_month_day{ m_ymd };
+	m_ymd = std::chrono::year_month_day{ local_days };
 
 	auto day_fraction = local_time - local_days;
 	m_hour = static_cast<uint8_t>(std::chrono::duration_cast<std::chrono::hours>(day_fraction).count());
@@ -100,12 +100,6 @@ DateTime::DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint
 
 	auto minute_fraction = hour_fraction - std::chrono::floor<std::chrono::minutes>(hour_fraction);
 	m_second = static_cast<uint8_t>(std::chrono::duration_cast<std::chrono::seconds>(minute_fraction).count());
-
-    if (time_zone || daylight_saving_time)
-    {
-        adjustTimeShift(m_year, m_days_in_month, m_month, m_day, m_hour, m_time_shift_from_utc,
-            m_year, m_month, m_day, m_hour);
-    }
 }
 
 DateTime::DateTime(unsigned long long nanoseconds)
@@ -113,18 +107,24 @@ DateTime::DateTime(unsigned long long nanoseconds)
     *this = DateTime::convertNanosecondsToDate(nanoseconds);
 }
 
-int8_t DateTime::getTimeZoneOffset() const { return m_time_shift_from_utc - m_is_dts; }
+int DateTime::getTimeZoneOffset() const 
+{
+    return std::chrono::duration_cast<std::chrono::hours>(m_time_info.offset).count() - static_cast<int>(m_is_dts); 
+}
 
 bool DateTime::isDTS() const { return m_is_dts; }
 
 DateTime DateTime::getUTC() const
 {
-    uint16_t utc_year;
-    uint8_t utc_month, utc_day, utc_hour;
-    adjustTimeShift(m_year, m_days_in_month, m_month, m_day, m_hour, -m_time_shift_from_utc,
-        utc_year, utc_month, utc_day, utc_hour);
+    auto system_time = m_ztime.get_sys_time();
+    auto duration = system_time.time_since_epoch();
+    auto years = std::chrono::floor<std::chrono::years>(duration);
+    auto months = std::chrono::floor<std::chrono::months>(duration) - std::chrono::duration_cast<std::chrono::months>(years);
+    auto days = std::chrono::floor<std::chrono::days>(duration) - std::chrono::duration_cast<std::chrono::days>()
+    
+    uint8_t utc_year = static_cast<uint8_t>(years.count());
 
-    return DateTime{ utc_year, utc_month, utc_day, utc_hour, m_minute, m_second, 0, false };
+    auto days_fraction = std::chrono::floor<std::chrono::days>(duration)
 }
 
 DateTime DateTime::getLocalTime(int8_t time_zone, bool daylight_saving) const
