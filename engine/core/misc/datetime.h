@@ -111,22 +111,23 @@ public:
     uint16_t year() const { return static_cast<uint16_t>(static_cast<int>(m_ymd.year())); }
     uint8_t month() const { return static_cast<uint16_t>(static_cast<unsigned int>(m_ymd.month())); }
     uint8_t day() const { return static_cast<uint16_t>(static_cast<unsigned int>(m_ymd.day())); }
-    uint8_t hour() const;
-    uint8_t minute() const;
-    double second() const;
+    Weekday weekday() const;
+    uint8_t hour() const { return m_hour; }
+    uint8_t minute() const { return m_minute; }
+    double second() const { return m_second; }
     bool isLeapYear() const { return m_ymd.year().is_leap(); }
 
     int getTimeZoneOffset() const;	//! returns time shift in hours from the UNC time, without accounting for the daylight saving shift
     bool isDTS() const;	//! returns 'true' if the time represented by the date time object is in daylight saving mode
     DateTime getUTC() const;	//! returns date and time equivalent to the date and time represented by this object converted to the UNC time zone
-    DateTime getLocalTime(int8_t time_zone, bool daylight_saving) const;	//! returns date and time equivalent to the date and time represented by this object converted to requested time zone
+    DateTime getLocalTime(std::string const& time_zone) const;	//! returns date and time equivalent to the date and time represented by this object converted to requested time zone
 
     //! Calculates time passed since this date till the @param other date. If the @param other date is same or earlier than this date
     //! the function returns 0 time span
     TimeSpan timeSince(DateTime const& other) const;
 
-    static DateTime now(std::optional<std::string> const& time_zone = std::nullopt);	//! Returns date-time object encapsulating current date and time with the given time zone. If time zone is not provided, returns current local time
-    static DateTime convertNanosecondsToDate(unsigned long long nanoseconds, int8_t time_zone = 0, bool daylight_saving = 0);	//! Converts amount of nanoseconds passed from January 1, 1970, 00:00:00 into date-time representation
+    static DateTime now(std::optional<std::string> const& time_zone = std::nullopt);	//! Returns date-time object encapsulating current date and time in the given time zone. If time zone is not provided, returns current local time
+    static DateTime convertNanosecondsToDate(unsigned long long nanoseconds, std::optional<std::string> const& time_zone = std::nullopt);	//! Converts amount of nanoseconds passed from January 1, 1970, 00:00:00 into date-time representation
 
     std::string toString(unsigned char mask = 0x3F, DateOutputStyle style = DateOutputStyle::european) const;
 

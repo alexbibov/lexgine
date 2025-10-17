@@ -7,7 +7,38 @@
 #include <sstream>
 
 
-using namespace lexgine::core::misc;
+namespace lexgine::core::misc {
+
+namespace {
+
+template<typename Clock, typename Duration>
+DateTime convertTimePointToDateTime(std::chrono::time_point<Clock, Duration> const& tp, std::string const& time_zone)
+{
+    auto system_clock_tp = std::chrono::clock_cast<std::chrono::system_clock>(tp);
+    std::chrono::sys_days system_days = std::chrono::time_point_cast<std::chrono::days>(system_clock_tp);
+    std::chrono::year_month_day ymd{ system_days };
+
+    auto hours_fraction = system_clock_tp - system_days;
+    auto hours = std::chrono::floor<std::chrono::hours>(hours_fraction);
+
+    auto minutes_fraction = hours_fraction - hours;
+    auto minutes = std::chrono::floor<std::chrono::minutes>(minutes_fraction);
+
+    auto seconds_fraction = minutes_fraction - minutes;
+    auto seconds = std::chrono::floor<std::chrono::seconds>(seconds_fraction);
+
+    return DateTime{
+        static_cast<uint16_t>(static_cast<int>(ymd.year())),
+        static_cast<uint8_t>(static_cast<unsigned int>(ymd.month())),
+        static_cast<uint8_t>(static_cast<unsigned int>(ymd.day())),
+        static_cast<uint8_t>(hours.time_since_epoch().count()),
+        static_cast<uint8_t>(minutes.time_since_epoch().count()),
+        static_cast<uint8_t>(seconds.time_since_epoch().count()),
+        time_zone
+    };
+}
+
+}
 
 
 TimeSpan::TimeSpan() : m_years{ 0 }, m_months{ 0 }, m_days{ 0 }, m_hours{ 0 }, m_minutes{ 0 }, m_seconds{ 0 }
@@ -77,29 +108,13 @@ DateTime::DateTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint
     }
     , m_time_info{ m_ztime.get_info() }
     , m_is_dts{ m_time_info.save != std::chrono::minutes{0} }
-	/*   m_year{ year },
-	   m_is_leap_year{ m_year % 400 == 0 || m_year % 4 == 0 && m_year % 100 != 0 },
-	   m_days_in_month{ 31, static_cast<uint8_t>(28 + m_is_leap_year), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-	   m_month{ month <= 12 ? month : 12U },
-	   m_day{ day <= m_days_in_month[month - 1] ? day : m_days_in_month[month - 1] },
-	   m_hour{ hour <= 23 ? hour : 23U },
-	   m_minute{ minute <= 59 ? minute : 59U },
-	   m_second{ second < 60 ? second : 59.999999999 },
-	   m_time_shift_from_utc{ time_zone + static_cast<int8_t>(daylight_saving_time) },
-	   m_is_dts{ daylight_saving_time }*/
+    , m_hour{ hour }
+    , m_minute{ minute }
+    , m_second{ second }
 {
 	auto local_time = m_ztime.get_local_time();
 	auto local_days = std::chrono::floor<std::chrono::days>(local_time);
 	m_ymd = std::chrono::year_month_day{ local_days };
-
-	auto day_fraction = local_time - local_days;
-	m_hour = static_cast<uint8_t>(std::chrono::duration_cast<std::chrono::hours>(day_fraction).count());
-
-	auto hour_fraction = day_fraction - std::chrono::floor<std::chrono::hours>(day_fraction);
-	m_minute = static_cast<uint8_t>(std::chrono::duration_cast<std::chrono::minutes>(hour_fraction).count());
-
-	auto minute_fraction = hour_fraction - std::chrono::floor<std::chrono::minutes>(hour_fraction);
-	m_second = static_cast<uint8_t>(std::chrono::duration_cast<std::chrono::seconds>(minute_fraction).count());
 }
 
 DateTime::DateTime(unsigned long long nanoseconds)
@@ -117,37 +132,15 @@ bool DateTime::isDTS() const { return m_is_dts; }
 DateTime DateTime::getUTC() const
 {
     auto system_time = m_ztime.get_sys_time();
-    auto duration = system_time.time_since_epoch();
-    auto years = std::chrono::floor<std::chrono::years>(duration);
-
-    auto months_fraction = duration - years;
-    auto months = std::chrono::duration_cast<std::chrono::months>(months_fraction);
-
-    auto days_fraction = months_fraction - months;
-    auto days = std::chrono::duration_cast<std::chrono::days>(days_fraction);
-
-    auto hours_fraction = days_fraction - days;
-    auto hours = std::chrono::duration_cast<std::chrono::hours>(hours_fraction);
-
-    auto minutes_fraction = hours_fraction - hours;
-    auto minutes = std::chrono::duration_cast<std::chrono::minutes>(minutes_fraction);
-
-    auto seconds_fraction = minutes_fraction - minutes;
-    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration - std::chrono::floor<std::chrono::minutes>(duration));
-    
-    uint8_t utc_year = static_cast<uint8_t>(years.count());
-    uint8_t utc_month = static_cast<uint8_t>(months.count());
-    uint8_t utc_day = static_cast<uint8_t>(days.count());
-    uint8_t utc_hour = static_cast<uint8_t>(hours.count());
-    uint8_t utc_minute = static_cast<uint8_t>(minutes.count());
-    uint8_t utc_second = static_cast<uint8_t>(seconds.count());
-
-    return DateTime{ utc_year, utc_month, utc_day, utc_hour, utc_minute, utc_second, "UTC" };
+    return convertTimePointToDateTime(system_time, "UTC");
 }
 
-DateTime DateTime::getLocalTime(int8_t time_zone, bool daylight_saving) const
+DateTime DateTime::getLocalTime(std::string const& time_zone) const
 {
-    
+    auto system_time = m_ztime.get_sys_time();
+    std::chrono::zoned_time local_ztime{ , system_time };
+    auto local_time = local_ztime.get_local_time();
+
 }
 
 DateTime DateTime::operator+(TimeSpan const& span) const
@@ -272,6 +265,12 @@ bool DateTime::operator==(DateTime const& other) const
         && this_in_utc.m_second == other_in_utc.m_second;
 }
 
+Weekday DateTime::weekday() const
+{
+    std::chrono::year_month_weekday ymw{ static_cast<std::chrono::sys_days>(m_ymd) };
+    return static_cast<Weekday>(ymw.weekday().c_encoding());
+}
+
 TimeSpan DateTime::timeSince(DateTime const& other) const
 {
     if (other <= *this) return TimeSpan{};
@@ -330,7 +329,7 @@ DateTime DateTime::now(std::optional<std::string> const& time_zone/* = std::null
     return rv;
 }
 
-DateTime DateTime::convertNanosecondsToDate(unsigned long long nanoseconds, int8_t time_zone /* = 0 */, bool daylight_saving /* = 0 */)
+DateTime DateTime::convertNanosecondsToDate(unsigned long long nanoseconds, std::optional<std::string> const& time_zone/* = std::nullopt*/)
 {
     uint16_t year = 1970;
     uint8_t month = 0;
@@ -516,3 +515,5 @@ std::string lexgine::core::misc::DateTime::toString(unsigned char mask, DateOutp
     return output_string_stream.str();
 }
 
+
+}
