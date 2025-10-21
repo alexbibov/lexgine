@@ -11,11 +11,6 @@ void ErrorBehavioral::registerErrorCallback(std::function<void(std::string const
     m_error_callback = error_callback;
 }
 
-void ErrorBehavioral::addLoggingStream(std::ostream& log_stream, std::string const& log_name)
-{
-   misc::Log::create(log_stream, log_name);
-}
-
 bool ErrorBehavioral::resetErrorState()
 {
     bool rv = m_error_state;

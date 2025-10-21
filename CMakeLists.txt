@@ -78,7 +78,7 @@ include(${cpm_download_location})
 CPMAddPackage(
     NAME spdlog
     GITHUB_REPOSITORY gabime/spdlog
-    VERSION 1.15.3
+    VERSION 1.16.0
 )
 CPMAddPackage(
     NAME glm

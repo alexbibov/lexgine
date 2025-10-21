@@ -17,11 +17,7 @@ class GlobalSettings
 {
 public:
     GlobalSettings() = default;
-    GlobalSettings(std::string const& json_settings_source_path, 
-        int8_t time_zone, bool dts);
-
-    int8_t getTimeZone() const;    //! retrieves the time zone of the host
-    bool isDTS() const;    //! identifies, whether the time zone, in which the host is running is using daylight time saving
+    GlobalSettings(std::string const& json_settings_source_path);
 
     void serialize(std::string const& json_serialization_path) const;
 
@@ -73,9 +69,6 @@ public:
 
 
 private:
-    int8_t m_time_zone;
-    bool m_dts;
-
     uint8_t m_number_of_workers;
     bool m_deferred_pso_compilation;
     bool m_deferred_shader_compilation;

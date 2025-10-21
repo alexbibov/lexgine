@@ -2,6 +2,7 @@
 #include <sstream>
 #include <limits>
 #include <cstdio>
+#include <algorithm>
 
 #include <windows.h>
 
@@ -130,7 +131,7 @@ Optional<DateTime> getFileLastUpdatedTimeStamp(std::string const& file_path)
     SYSTEMTIME systime{};
     if (!FileTimeToSystemTime(&last_updated_time, &systime)) return Optional<DateTime>{};
 
-    return DateTime{ systime.wYear, static_cast<uint8_t>(systime.wMonth), static_cast<uint8_t>(systime.wDay),
+    return DateTime{ systime.wYear, static_cast<misc::Month>(systime.wMonth), static_cast<uint8_t>(systime.wDay),
         static_cast<uint8_t>(systime.wHour), static_cast<uint8_t>(systime.wMinute),
         systime.wSecond + systime.wMilliseconds / 1000.0 };
 }

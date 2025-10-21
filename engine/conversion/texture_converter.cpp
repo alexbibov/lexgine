@@ -7,7 +7,6 @@
 #include <filesystem>
 
 #include <engine/core/global_settings.h>
-#include <engine/core/logging_streams.h>
 #include <engine/core/dx/d3d12/device.h>
 #include <engine/core/dx/d3d12/dx_resource_factory.h>
 #include <engine/core/dx/d3d12/d3d12_tools.h>
