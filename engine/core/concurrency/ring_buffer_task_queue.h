@@ -15,7 +15,7 @@ class RingBufferTaskQueue final
 public:
     using task_type = TaskType;
 
-    RingBufferTaskQueue(uint16_t num_consumers) 
+    RingBufferTaskQueue() 
     {
         // m_lock_free_queue.setGarbageCollectionThreshold(garbage_collection_threshold);
     }

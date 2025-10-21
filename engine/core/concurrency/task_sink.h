@@ -14,7 +14,6 @@ class TaskSink final : public NamedEntity<class_names::TaskSink>
 public:
     TaskSink(
         TaskGraph& source_task_graph,
-        std::vector<std::ostream*> const& worker_thread_logging_streams,
         std::string const& debug_name = "");
 
     ~TaskSink();
@@ -25,22 +24,16 @@ public:
      to forward arbitrary user data to tasks in the source task graph.
     */
     void submit(uint64_t user_data);
-
     void shutdown();    //! shutdowns the sink
-
     bool isRunning() const;    //! returns 'true' if the task sink is running
 
-
 private:
-    using worker_thread_context = std::pair<std::thread, std::ostream*>;
-
-private:
-    void dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t logging_time_zone, bool logging_dts);    //! function looped by worker threads
+    void dispatch(uint8_t worker_id);    //! function looped by worker threads
     
 private:
     TaskGraph& m_source_task_graph;    //!< the task graph executed by the sink
 
-    std::list<worker_thread_context> m_workers_list;    //!< list of work threads
+    std::vector<std::thread> m_workers_list;    //!< vector of worker threads
     RingBufferTaskQueue<TaskGraphNode*> m_task_queue;    //!< concurrent task queue
 
 

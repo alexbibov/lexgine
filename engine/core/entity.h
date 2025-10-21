@@ -83,7 +83,7 @@ public:
     //! adds information regarding construction of the named entity into the log
     NamedEntity()
     {
-        logger().out(name + std::string{ " created, id=" } + getId().toString(), lexgine::core::misc::LogMessageType::information);
+        logger().out(name + std::string{ " created, id=" } + getId().toString(), lexgine::core::misc::LogMessageType::trace);
     }
 
     //! adds information regarding copy-construction of the named entity into the log
@@ -92,7 +92,7 @@ public:
     {
         logger().out(name + std::string{ " copied from object with id=" } + other.getId().toString()
             + " to new " + name + ". New id=" + getId().toString(),
-            lexgine::core::misc::LogMessageType::information);
+            lexgine::core::misc::LogMessageType::trace);
     }
 
     //! adds information regarding move-construction of the named entity into the log
@@ -101,7 +101,7 @@ public:
     {
         logger().out(name + std::string{ " moved from object with id=" } + other.getId().toString()
             + " to new " + name + ". New id=" + getId().toString(),
-            lexgine::core::misc::LogMessageType::information);
+            lexgine::core::misc::LogMessageType::trace);
     }
 
     NamedEntity& operator=(NamedEntity const&) = default;
@@ -110,7 +110,7 @@ public:
     //! adds information regarding destruction of the named entity into the log
     virtual ~NamedEntity()
     {
-        logger().out(name + std::string{ " with id=" } + getId().toString() + " destroyed", lexgine::core::misc::LogMessageType::information);
+        logger().out(name + std::string{ " with id=" } + getId().toString() + " destroyed", lexgine::core::misc::LogMessageType::trace);
     }
 
     //! returns user-friendly string of the named entity

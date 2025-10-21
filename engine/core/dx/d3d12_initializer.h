@@ -38,6 +38,7 @@ struct D3D12EngineSettings
     std::string shaders_lookup_path;
     std::string logging_output_path;
     std::string log_name;
+    misc::LogMessageType log_level;
 
     D3D12EngineSettings();
 };
@@ -81,8 +82,7 @@ public:
         dx::d3d12::SwapChainDepthBufferFormat depth_buffer_format, dx::d3d12::RenderingTasks& source_rendering_tasks) const;
 
 private:
-    std::unique_ptr<GlobalSettings> m_global_settings;
-    std::unique_ptr<LoggingStreams> m_logging_streams;
+	std::unique_ptr<GlobalSettings> m_global_settings;
     std::unique_ptr<core::Globals> m_globals;
     std::unique_ptr<dx::d3d12::DxResourceFactory> m_resource_factory;
     std::unique_ptr<dx::d3d12::task_caches::HLSLCompilationTaskCache> m_shader_cache;

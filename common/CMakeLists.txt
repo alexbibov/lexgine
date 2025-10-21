@@ -16,9 +16,10 @@ list(APPEND _headers_list "${PROJECT_BINARY_DIR}/ioc_traits.h")
 add_library(${_target} STATIC ${_sources_list} ${_headers_list})
 
 target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/")
-target_include_directories(${_target} PUBLIC ${glm_SOURCE_DIR})
+target_include_directories(${_target} PUBLIC ${glm_SOURCE_DIR} "${spdlog_SOURCE_DIR}/include")
 target_link_directories(${_target} PUBLIC "${CMAKE_BINARY_DIR}/bin/lib")
 target_link_libraries(${_target} PUBLIC  glm "zlib.lib" "pugixml.lib")
+target_compile_options(${_target} PUBLIC $<$<C_COMPILER_ID:MSVC>:/utf-8> $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 
 
 add_dependencies(${_target} zlib glm)

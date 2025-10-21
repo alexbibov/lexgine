@@ -5,6 +5,11 @@
 #include <list>
 #include <filesystem>
 
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/logger.h>
+
 #include "datetime.h"
 #include "misc.h"
 
@@ -25,46 +30,28 @@ class Log
 {
 public:
     //<! Initializes the logging system and associates it with provided output stream.
-    static Log const& create(std::filesystem::path& log_path, std::string const& log_name);
+    static Log const& create(std::filesystem::path const& log_path, std::string const& log_name, LogMessageType log_level);
 
     /*! Retrieves pointer referring to the logging object assigned to the calling thread.
      If no logger has been assigned to the thread, the function will return nullptr.
      */
     static Log const* retrieve();
-
-    //! Attempts to shutdown the logging system and returns 'true' on success or 'false' on failure
-    static bool shutdown();
-
-    static void registerMainLogger(Log const* p_logger);	//!< registers main logger
-
-    void out(std::string const& message, LogMessageType message_type) const;	//! logs supplied message out
-
-    DateTime const& getLastEntryTimeStamp() const;	//! returns the time stamp of the last logging entry
-
-    //! Helper to support scoped tabulations
-    class scoped_tabulation_helper
-    {
-    public:
-        scoped_tabulation_helper(Log& logger);
-        ~scoped_tabulation_helper();
-
-    private:
-        Log& m_logger;
-    };
+    static bool shutdown();  // !Attempts to shutdown the logging system and returns 'true' on success or 'false' on failure
+    void out(std::string const& message, LogMessageType message_type) const;  //! logs supplied message out
+    std::filesystem::path const& logPath() const { return m_log_path; }
+    std::string const& logName() const { return m_logger->name(); }
 
 private:
-    Log(std::ostream& output_logging_stream, int8_t time_zone, bool is_dts);
+    Log(std::filesystem::path const& log_path) : m_log_path{ log_path } {};
     Log(Log const&) = delete;
     Log(Log&&) = delete;
     Log& operator=(Log const&) = delete;
     Log& operator=(Log&&) = delete;
-
-    mutable DateTime m_time_stamp;	//!< time stamp of the last logging entry (needed mostly for debugging purposes)
-    int16_t m_tabs;    //!< number of tabulations to be added in front of the next logging entry
-    std::list<std::ostream*> m_out_streams;	//!< list of output streams used by the logging system
-
-    static Log const* m_main_logging_stream;    //!< pointer to the main logger
-    static std::mutex m_main_thread_log_mutex;    //!< mutex used to lock main thread logger
+    
+private:
+    static std::unique_ptr<Log> m_ptr;
+    std::shared_ptr<spdlog::logger> m_logger;
+    std::filesystem::path const& m_log_path;
 };
 
 }
