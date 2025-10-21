@@ -1,3 +1,5 @@
+#include <windows.h>
+
 #include "engine/core/exception.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/profiling_services.h"

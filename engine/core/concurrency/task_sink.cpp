@@ -7,22 +7,15 @@ using namespace lexgine::core::concurrency;
 using namespace lexgine::core::misc;
 
 TaskSink::TaskSink(TaskGraph& source_task_graph,
-    std::vector<std::ostream*> const& worker_thread_logging_streams,
     std::string const& debug_name) :
     m_source_task_graph{ source_task_graph },
-    m_task_queue{ source_task_graph.getNumberOfWorkerThreads() },
+    m_task_queue{},
     m_num_threads_finished{ source_task_graph.getNumberOfWorkerThreads() },
     m_stop_signal{ true },
     m_error_watchdog{ 0 }
 {
-    assert(worker_thread_logging_streams.size() == source_task_graph.getNumberOfWorkerThreads());
-
+    m_workers_list.resize(source_task_graph.getNumberOfWorkerThreads());
     setStringName(debug_name);
-
-    for (uint8_t i = 0; i < source_task_graph.getNumberOfWorkerThreads(); ++i)
-    {
-        m_workers_list.push_back(std::make_pair(std::thread{}, worker_thread_logging_streams[i]));
-    }
 }
 
 TaskSink::~TaskSink()
@@ -51,15 +44,14 @@ void TaskSink::start()
     for (auto worker = m_workers_list.begin(); worker != m_workers_list.end(); ++worker, ++i)
     {
         logger().out(misc::formatString("Starting worker thread %i", i), LogMessageType::information);
-        auto last_stamp_time = logger().getLastEntryTimeStamp();
-        worker->first = std::thread{ &TaskSink::dispatch, this, i, worker->second, last_stamp_time.getTimeZone(), last_stamp_time.isDTS() };
+        *worker = std::thread{ &TaskSink::dispatch, this, i };
 
         #ifdef _WIN32
-        HANDLE threadNativeHandle = worker->first.native_handle();
+        HANDLE threadNativeHandle = worker->native_handle();
         SetThreadDescription(threadNativeHandle, (L"Rendering thread #" + std::to_wstring(i)).c_str());
         #endif
 
-        worker->first.detach();
+        worker->detach();
     }
 }
 
@@ -129,13 +121,9 @@ bool TaskSink::isRunning() const
 }
 
 
-void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t logging_time_zone, bool logging_dts)
+void TaskSink::dispatch(uint8_t worker_id)
 {
-    if (logging_stream)
-    {
-        Log::create(*logging_stream, misc::formatString("Worker #%i", worker_id), logging_time_zone, logging_dts);
-        logger().out(misc::formatString("###### Worker thread %i log start ######", worker_id), LogMessageType::information);
-    }
+    logger().out(misc::formatString("###### Worker thread %i log start ######", worker_id), LogMessageType::information);
 
     Optional<TaskGraphNode*> task;
     while (!m_error_watchdog.load(std::memory_order_acquire)
@@ -170,7 +158,6 @@ void TaskSink::dispatch(uint8_t worker_id, std::ostream* logging_stream, int8_t 
 
     m_task_queue.shutdown();
     logger().out(misc::formatString("###### Worker thread %i log end ######", worker_id), LogMessageType::information);
-    Log::shutdown();
 
     ++m_num_threads_finished;
 }

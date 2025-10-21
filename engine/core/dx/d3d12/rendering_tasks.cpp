@@ -2,7 +2,6 @@
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/profiling_services.h"
-#include "engine/core/logging_streams.h"
 #include "engine/core/exception.h"
 
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/test_rendering_task.h"
@@ -26,13 +25,6 @@ using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
 
 
 namespace {
-
-std::vector<std::ostream*> convertFileStreamsToGenericStreams(std::vector<std::ofstream>& fstreams)
-{
-    std::vector<std::ostream*> res(fstreams.size());
-    std::transform(fstreams.begin(), fstreams.end(), res.begin(), [](std::ofstream& fs)->std::ostream* { return &fs; });
-    return res;
-}
 
 RenderingWork::RenderingConfigurationUpdateFlags getRenderingConfigurationUpdateFlags(RenderingConfiguration const& old_configuration,
     RenderingConfiguration const& new_configuration)
@@ -60,7 +52,7 @@ RenderingTasks::RenderingTasks(Globals& globals)
     , m_device{ *globals.get<Device>() }
     , m_frame_progress_tracker{ m_device.frameProgressTracker() }
     , m_task_graph{ globals.get<GlobalSettings>()->getNumberOfWorkers(), "RenderingTasksGraph" }
-    , m_task_sink{ m_task_graph, convertFileStreamsToGenericStreams(globals.get<LoggingStreams>()->worker_logging_streams), "RenderingTasksSink" }
+    , m_task_sink{ m_task_graph, "RenderingTasksSink" }
     , m_basic_rendering_services{ globals }
     , m_rendering_configuration{ Viewport{math::Vector2f{}, math::Vector2f{}, math::Vector2f{}},
                                  DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, nullptr }

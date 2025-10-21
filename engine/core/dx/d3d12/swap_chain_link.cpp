@@ -2,7 +2,6 @@
 
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
-#include "engine/core/logging_streams.h"
 #include "engine/core/dx/dxgi/swap_chain.h"
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 

@@ -16,14 +16,14 @@ public:
     TimeSpan(); //! Initializes zero-length time span
 
     //! Initializes time span with given length of years, months, days, hours, minutes, and fractional seconds
-    TimeSpan(int years, int months, int days, int hours, int minutes, int seconds);
+    TimeSpan(int years, int months, int days, int hours, int minutes, double seconds);
 
     int years() const; //! Returns number of years in the time span
     int months() const;    //! Returns number of months in the time span
     int days() const;  //! Returns number of days in the time span
     int hours() const; //! Returns number of hours in the time span
     int minutes() const;   //! Returns number of minutes in the time span
-    int seconds() const; //! Returns number of seconds in the time span
+    double seconds() const; //! Returns number of seconds in the time span
 
     TimeSpan& operator=(TimeSpan const& other);    //! Assigns this time span to the @param other
     TimeSpan operator+(TimeSpan const& other) const;    //! Adds @param other time span to this time span
@@ -36,7 +36,7 @@ private:
     int m_days;
     int m_hours;
     int m_minutes;
-    int m_seconds;
+    double m_seconds;
 };
 
 enum class Weekday
@@ -90,6 +90,8 @@ public:
     //! Initializes the date-time object to January 1, 1970 UTC.
     DateTime();
 
+    DateTime(std::chrono::system_clock::time_point const& tp, std::optional<std::string> const& time_zone = std::nullopt);
+
     //! Initializes the date-time object to the given moment in time.
     //! Here year is the year represented by the date-time object
     //! month is the month of the year encapsulated by the date-time object. The value is clamped to 12 during initialization to enforce validity of the date.
@@ -98,7 +100,7 @@ public:
     //! minute is the current minute of the hour. The value is clamped to 59 to enforce validity of the date.
     //! second is the current second of minute. The value is clamped to 59 to enforce validity of the date.
     //! time_zone is the abbreviated name of the time zone as specified in IANA time zone database. When not provided defaults to the current time zone used by the host system.
-    DateTime(int year, Month month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, std::optional<std::string> const& time_zone = std::nullopt);
+    DateTime(int year, Month month, uint8_t day, uint8_t hour, uint8_t minute, double second, std::optional<std::string> const& time_zone = std::nullopt);
 
     //! Constructs date-time object using @param nanoseconds passed since January 1, 1970, 00:00:00
     DateTime(unsigned long long nanoseconds);
@@ -127,7 +129,7 @@ public:
     Weekday weekday() const;
     uint8_t hour() const { return m_hour; }
     uint8_t minute() const { return m_minute; }
-    uint8_t second() const { return m_second; }
+    double second() const { return m_second; }
     bool isLeapYear() const { return m_ymd.year().is_leap(); }
 
     int getTimeZoneOffset() const;	//! returns time shift in hours from the UNC time, without accounting for the daylight saving shift
@@ -149,14 +151,9 @@ public:
         static std::string month_name_as_encoded_in__DATE__[] = { "Jan", "Feb", "Mar", "Apr", "May",
         "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-        uint8_t month{}, day{};
-        uint16_t year{};
-
-        uint8_t hour{}, minute{}, second{};
-
-        int8_t utc_bias{};
-        bool is_dts{};
-
+        uint8_t month{}, day{}, year{};
+        uint8_t hour{}, minute{};
+        double second{};
 
         // TODO: __DATE__ and __TIME__ are not part of C language standard. Especially __TIME__ seems to return GMT time
         // in most cases, which is OK, but this behavior cannot be relied upon. Consider establishing more robust way to 
@@ -180,7 +177,7 @@ public:
         {
             hour = static_cast<uint8_t>(std::atoi(__time__.substr(0, 2).c_str()));
             minute = static_cast<uint8_t>(std::atoi(__time__.substr(3, 2).c_str()));
-            second = static_cast<uint8_t>(std::atoi(__time__.substr(6, 2).c_str()));
+            second = static_cast<double>(std::atoi(__time__.substr(6, 2).c_str()));
         }
 
         return DateTime{ year, static_cast<Month>(month), day, hour, minute, second };
@@ -190,7 +187,7 @@ private:
 	std::chrono::year_month_day m_ymd;
 	uint8_t m_hour;
 	uint8_t m_minute;
-	uint8_t m_second;
+	double m_second;
     std::chrono::zoned_time<std::chrono::system_clock::duration> m_ztime;
     std::chrono::sys_info m_time_info;
     bool m_is_dts;	//!< 'true' if the time is a daylight saving time

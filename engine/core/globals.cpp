@@ -2,7 +2,6 @@
 
 #include "globals.h"
 #include "global_settings.h"
-#include "logging_streams.h"
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 #include "engine/core/dx/d3d12/task_caches/hlsl_compilation_task_cache.h"
 #include "engine/core/dx/d3d12/task_caches/pso_compilation_task_cache.h"
@@ -51,15 +50,6 @@ void MainGlobalsBuilder::defineGlobalSettings(GlobalSettings& global_settings)
     m_global_settings = &global_settings;
 }
 
-void MainGlobalsBuilder::defineLoggingStreams(LoggingStreams& logging_streams)
-{
-    assert(m_global_settings);
-    uint8_t num_workers = m_global_settings->getNumberOfWorkers();
-    assert(logging_streams.worker_logging_streams.size() == num_workers);
-
-    m_logging_streams = &logging_streams;
-}
-
 void MainGlobalsBuilder::registerDxResourceFactory(dx::d3d12::DxResourceFactory& dx_resource_factory)
 {
     m_dx_resource_factory = &dx_resource_factory;
@@ -85,7 +75,6 @@ std::unique_ptr<Globals> MainGlobalsBuilder::build()
     std::unique_ptr<Globals> rv = std::make_unique<Globals>();
     rv->put(reinterpret_cast<EngineApi*>(static_cast<std::uintptr_t>(m_engine_api)));
     rv->put(m_global_settings);
-    rv->put(m_logging_streams);
     rv->put(m_dx_resource_factory);
     rv->put(m_shader_cache);
     rv->put(m_pso_cache);

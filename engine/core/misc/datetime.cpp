@@ -13,9 +13,8 @@ namespace {
 template<typename Duration>
 DateTime convertSystemTimePointToDateTime(std::chrono::time_point<std::chrono::system_clock, Duration> const& tp, std::optional<std::string> const& time_zone)
 {
-    std::chrono::sys_days system_days = std::chrono::time_point_cast<std::chrono::days>(tp);
     std::string tz = time_zone.value_or(std::string{ std::chrono::current_zone()->name() });
-    std::chrono::zoned_time ztime{ tz, system_days };
+    std::chrono::zoned_time ztime{ tz, tp };
 
     auto local_tp = ztime.get_local_time();
     std::chrono::year_month_day ymd{ std::chrono::time_point_cast<std::chrono::days>(local_tp) };
@@ -30,7 +29,7 @@ DateTime convertSystemTimePointToDateTime(std::chrono::time_point<std::chrono::s
     auto minutes = std::chrono::floor<std::chrono::minutes>(minutes_fraction);
 
     auto seconds_fraction = minutes_fraction - minutes;
-    auto seconds = std::chrono::floor<std::chrono::seconds>(seconds_fraction);
+    double seconds = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(seconds_fraction).count()) / std::nano::den;
 
     return DateTime{
         year,
@@ -38,7 +37,7 @@ DateTime convertSystemTimePointToDateTime(std::chrono::time_point<std::chrono::s
         day,
         static_cast<uint8_t>(hours.count()),
         static_cast<uint8_t>(minutes.count()),
-        static_cast<uint8_t>(seconds.count()),
+        seconds,
         tz
     };
 }
@@ -67,7 +66,7 @@ TimeSpan::TimeSpan() : m_years{ 0 }, m_months{ 0 }, m_days{ 0 }, m_hours{ 0 }, m
 
 }
 
-TimeSpan::TimeSpan(int years, int months, int days, int hours, int minutes, int seconds) :
+TimeSpan::TimeSpan(int years, int months, int days, int hours, int minutes, double seconds) :
     m_years{ years }, m_months{ months }, m_days{ days }, m_hours{ hours }, m_minutes{ minutes }, m_seconds{ seconds }
 {
 
@@ -83,7 +82,7 @@ int TimeSpan::hours() const { return m_hours; }
 
 int TimeSpan::minutes() const { return m_minutes; }
 
-int TimeSpan::seconds() const { return m_seconds; }
+double TimeSpan::seconds() const { return m_seconds; }
 
 TimeSpan TimeSpan::operator+(TimeSpan const& other) const
 {
@@ -107,7 +106,7 @@ DateTime::DateTime() : DateTime{ 1970, Month::january, 1, 0, 0, 0, "UTC" }
 {
 }
 
-DateTime::DateTime(int year, Month month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second,
+DateTime::DateTime(int year, Month month, uint8_t day, uint8_t hour, uint8_t minute, double second,
     std::optional<std::string> const& time_zone /* = nullopt */)
     : m_ymd{ std::chrono::year{year} / std::chrono::month{static_cast<unsigned int>(month) + 1} / std::chrono::day{day}}
 	, m_hour{ hour }
@@ -126,6 +125,27 @@ DateTime::DateTime(int year, Month month, uint8_t day, uint8_t hour, uint8_t min
 DateTime::DateTime(unsigned long long nanoseconds)
 {
     *this = DateTime::convertNanosecondsToDate(nanoseconds);
+}
+
+DateTime::DateTime(std::chrono::system_clock::time_point const& tp, std::optional<std::string> const& time_zone/* = std::nullopt*/)
+    : m_ymd{ std::chrono::time_point_cast<std::chrono::days>(tp) }
+{
+    auto time_fraction = tp - std::chrono::floor<std::chrono::days>(tp);
+    auto hour = std::chrono::floor<std::chrono::hours>(time_fraction);
+    time_fraction = time_fraction - hour;
+    auto minute = std::chrono::floor<std::chrono::minutes>(time_fraction);
+    time_fraction = time_fraction - minute;
+
+    m_hour = static_cast<uint8_t>(hour.count());
+    m_minute = static_cast<uint8_t>(minute.count());
+    m_second = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(time_fraction).count()) / std::nano::den;
+
+    m_ztime = std::chrono::zoned_time{
+        time_zone.has_value() ? std::chrono::locate_zone(time_zone.value()) : std::chrono::current_zone(),
+        static_cast<std::chrono::local_days>(m_ymd)
+    };
+    m_time_info = m_ztime.get_info();
+    m_is_dts = m_time_info.save != std::chrono::minutes{ 0 };
 }
 
 int DateTime::getTimeZoneOffset() const 
@@ -150,7 +170,7 @@ DateTime DateTime::operator+(TimeSpan const& span) const
     int d = static_cast<int>(day());
     int h = static_cast<int>(hour());
     int mi = static_cast<int>(minute());
-    int s = static_cast<int>(second());
+    double s = second();
 
     y += span.years();
     m += span.months();
@@ -159,12 +179,14 @@ DateTime DateTime::operator+(TimeSpan const& span) const
     mi += span.minutes();
     s += span.seconds();
 
-    long long time_of_day = h * 3600LL + mi * 60LL + s;
+    double integer_seconds{};
+    double fractional_seconds = std::modf(s, &integer_seconds);
+    long long time_of_day = h * 3600LL + mi * 60LL + static_cast<long long>(integer_seconds);
     long long total_hours = floordiv(time_of_day, 3600LL);
     long long spillover_seconds = floormod(time_of_day, 3600LL);
 	h = static_cast<int>(floormod(total_hours, 24LL));
 	mi = static_cast<int>(spillover_seconds / 60LL);
-	s = static_cast<int>(spillover_seconds % 60LL);
+	s = static_cast<int>(spillover_seconds % 60LL) + fractional_seconds;
 
     y += floordiv(m, 12LL);
 	m = static_cast<int>(floormod(m, 12LL));
@@ -183,7 +205,7 @@ DateTime DateTime::operator+(TimeSpan const& span) const
         static_cast<uint8_t>(d),
         static_cast<uint8_t>(h),
         static_cast<uint8_t>(mi),
-        static_cast<uint8_t>(s),
+        s,
         std::string{m_ztime.get_time_zone()->name()}
     };
 }
@@ -287,18 +309,20 @@ TimeSpan DateTime::timeTill(DateTime const& other) const
     }
 
     // Calculate difference between lhs moved forward by y years and m months and rhs as the total number of seconds
-    long long lhs_tod = lhs.hour() * 3600LL + lhs.minute() * 60LL + lhs.second();
-    long long rhs_tod = rhs.hour() * 3600LL + rhs.minute() * 60LL + rhs.second();
-    diff_seconds = diff_seconds + rhs_tod - lhs_tod;
+    double lhs_tod = lhs.hour() * 3600LL + lhs.minute() * 60LL + lhs.second();
+    double rhs_tod = rhs.hour() * 3600LL + rhs.minute() * 60LL + rhs.second();
+    double total_diff = diff_seconds + rhs_tod - lhs_tod;
+    double diff_seconds_d{};
+    double fractional_diff = std::modf(total_diff, &diff_seconds_d);
 
-    int d = static_cast<int>(floordiv(diff_seconds, 86400LL));
-    diff_seconds = floormod(diff_seconds, 86400LL);
+    int d = static_cast<int>(floordiv(static_cast<long long>(diff_seconds_d), 86400LL));
+    diff_seconds = floormod(static_cast<long long>(diff_seconds_d), 86400LL);
 
     int h = static_cast<int>(floordiv(diff_seconds, 3600LL));
     diff_seconds = floormod(diff_seconds, 3600LL);
 
     int mi = static_cast<int>(floordiv(diff_seconds, 60LL));
-    int s = static_cast<int>(floormod(diff_seconds, 60LL));
+    double s = static_cast<double>(floormod(diff_seconds, 60LL)) + fractional_diff;
 
     assert(y >= 0);
     assert(m >= 0);

@@ -70,8 +70,7 @@ target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}"
                                               "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/Include/WinPixEventRuntime/"
                                               "${CMAKE_BINARY_DIR}"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/DirectXTex/"
-                                              "${imgui_SOURCE_DIR}"
-                                              "${spdlog_SOURCE_DIR}/include")
+                                              "${imgui_SOURCE_DIR}")
 
 target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/bin/${CMAKE_VS_PLATFORM_NAME}/")

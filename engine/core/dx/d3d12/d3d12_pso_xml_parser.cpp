@@ -8,8 +8,6 @@
 
 #include "engine/core/global_settings.h"
 #include "engine/core/exception.h"
-#include "engine/core/logging_streams.h"
-
 #include "engine/core/misc/template_argument_iterator.h"
 
 #include "engine/core/dx/dxcompilation/common.h"
@@ -1463,11 +1461,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
         #endif
 
         std::vector<std::ostream*> worker_log_streams(global_settings.getNumberOfWorkers());
-        auto& worker_file_logging_streams = globals.get<LoggingStreams>()->worker_logging_streams;
-        std::transform(worker_file_logging_streams.begin(), worker_file_logging_streams.end(),
-            worker_log_streams.begin(), [](std::ofstream& fs)->std::ostream* {return &fs; });
-
-        concurrency::TaskSink task_sink{ pso_compilation_task_graph, worker_log_streams, "pso_compilation_task_sink_" + getId().toString() };
+        concurrency::TaskSink task_sink{ pso_compilation_task_graph, "pso_compilation_task_sink_" + getId().toString() };
         task_sink.start();
 
         #if 0

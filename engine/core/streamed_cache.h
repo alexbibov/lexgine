@@ -1484,7 +1484,7 @@ template<typename Key, size_t cluster_size>
 inline void StreamedCache<Key, cluster_size>::pack_date_stamp(misc::DateTime const& date_stamp, unsigned char packed_date_stamp[13])
 {
     *reinterpret_cast<uint16_t*>(packed_date_stamp) = date_stamp.year();    // 16-bit storage for year
-    uint8_t month = date_stamp.month();
+    uint8_t month = static_cast<uint8_t>(date_stamp.month());
     uint8_t day = date_stamp.day();
     uint8_t hour = date_stamp.hour();
     uint8_t minute = date_stamp.minute();
@@ -1504,7 +1504,7 @@ template<typename Key, size_t cluster_size>
 inline misc::DateTime StreamedCache<Key, cluster_size>::unpack_date_stamp(unsigned char packed_date_stamp[13])
 {
     uint16_t year = *reinterpret_cast<uint16_t*>(packed_date_stamp);
-    uint8_t month = packed_date_stamp[2] & 0xF;
+    misc::Month month = static_cast<misc::Month>(packed_date_stamp[2] & 0xF);
     uint8_t day = packed_date_stamp[2] >> 4; day |= (packed_date_stamp[3] & 0x1) << 4;
     uint8_t hour = (packed_date_stamp[3] & 0x3E) >> 1;
     uint8_t minute = packed_date_stamp[3] >> 6; minute |= packed_date_stamp[4] << 2;
@@ -2038,7 +2038,7 @@ inline std::pair<size_t, size_t> StreamedCache<Key, cluster_size>::optimize_rese
 template<typename Key, size_t cluster_size>
 inline void StreamedCache<Key, cluster_size>::remove_oldest_entry_record()
 {
-    misc::DateTime oldest_entry_datestampt{ 0xFFFF, 12, 31, 23, 59, 59.9999 };
+    misc::DateTime oldest_entry_datestampt{ 0xFFFF, misc::Month::december, 31, 23, 59, 59.9999 };
     StreamedCacheIndexTreeEntry<Key>* p_oldest_entry{ nullptr };
     for (StreamedCacheIndexTreeEntry<Key>& e : m_index)
     {

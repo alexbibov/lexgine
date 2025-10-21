@@ -14,7 +14,6 @@ class ErrorBehavioral;
 class Exception;
 class FilterPack;
 class GlobalSettings;
-struct LoggingStreams;
 
 class Globals;
 class ProvidesGlobals

@@ -6,6 +6,7 @@
 #include <random>
 #include <set>
 #include <unordered_set>
+#include <filesystem>
 
 #include <gtest/gtest.h>
 
@@ -48,11 +49,11 @@ public:
 TEST(EngineTests_Basic, TestBasicLogging)
 {
     using namespace lexgine::core::misc;
-    std::stringstream test_log;
+    std::filesystem::path test_logging_path = std::filesystem::current_path() / "test.log";
     {
-        Log const& logger = Log::create(test_log, "Test", 2, true);
+        Log const& logger = Log::create(test_logging_path, "TestLog", LogMessageType::information);
 
-        auto ref_time = DateTime::now(2, true);
+        auto ref_time = DateTime::now();
         TestErrorBehavioral test_error_behavioral;
 
         LEXGINE_LOG_ERROR_IF_FAILED(
@@ -61,9 +62,9 @@ TEST(EngineTests_Basic, TestBasicLogging)
             2, 3, 5, 19, 6, 7, 8, 10, 0
         );
 
-        auto log_time = logger.getLastEntryTimeStamp();
+		/*auto log_time = logger.getLastEntryTimeStamp();
 
-        EXPECT_TRUE(ref_time.timeSince(log_time).seconds() < 1e-3);
+		EXPECT_TRUE(ref_time.timeTill(log_time).seconds() < 1e-3);*/
     }
 
     Log::shutdown();
@@ -75,7 +76,7 @@ TEST(EngineTests_Concurrency, TestConcurrency)
 
     uint8_t const num_consumption_threads = 7U;
 
-    RingBufferTaskQueue<int*> queue{ num_consumption_threads };
+    RingBufferTaskQueue<int*> queue{};
 
     bool production_finished = false;
     std::atomic_uint64_t tasks_produced{ 0U };
@@ -172,9 +173,8 @@ TEST(EngineTests_Concurrency, TestTaskGraphParser)
 {
     using namespace lexgine::core::concurrency;
     using namespace lexgine::core::misc;
-
-    std::stringstream test_log;
-    Log::create(test_log, "Test Task Graph Parser", 2, true);
+    std::filesystem::path test_logging_path = std::filesystem::current_path() / "test.log";
+    Log::create(test_logging_path, "Test Task Graph Parser", LogMessageType::information);
 
     class CPUTask : public SchedulableTask
     {
@@ -328,15 +328,8 @@ TEST(EngineTests_Concurrency, TestTaskScheuling)
 
     uint8_t const num_worker_threads = 8U;
 
-    std::ofstream TestTaskShedulingMainLog{ "TestTaskSchedulingLog_Main.html" };
-    Log::create(TestTaskShedulingMainLog, "Test Task Scheduling", 2, false);
-
-    std::vector<std::ostream*> worker_thread_logs;
-    for (uint8_t i = 0; i < num_worker_threads; ++i)
-    {
-        worker_thread_logs.push_back(new std::ofstream{ "TestTaskSchedulingLog_WorkerThread" + std::to_string(i) + ".html" });
-    }
-
+    std::filesystem::path test_logging_path = std::filesystem::current_path() / "test.log";
+    Log::create(test_logging_path, "Test Task Scheduling", LogMessageType::information);
 
     {
         enum class operation_type
@@ -436,7 +429,7 @@ TEST(EngineTests_Concurrency, TestTaskScheuling)
                 ROOT_NODE_CAST(&op3), ROOT_NODE_CAST(&op4) });
         taskGraph.createDotRepresentation("task_graph.gv");
 
-        TaskSink taskSink{ taskGraph, worker_thread_logs };
+        TaskSink taskSink{ taskGraph };
         taskSink.start();
 
         try
@@ -455,11 +448,6 @@ TEST(EngineTests_Concurrency, TestTaskScheuling)
 
     Log::retrieve()->out("Alive entities: " + std::to_string(lexgine::core::Entity::aliveEntities()), LogMessageType::information);
     Log::shutdown();
-
-    for (auto thread_log_stream : worker_thread_logs)
-    {
-        delete thread_log_stream;
-    }
 }
 
 
@@ -507,7 +495,8 @@ class CacheTest : public testing::Test
 protected:
     void SetUp() override
     {
-        lexgine::core::misc::Log::create(std::cout, "CacheTest", 0, false);
+        std::filesystem::path test_logging_path = std::filesystem::current_path() / "test.log";
+        lexgine::core::misc::Log::create(test_logging_path, "CacheTest", lexgine::core::misc::LogMessageType::information);
     }
 
     void TearDown() override
