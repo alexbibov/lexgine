@@ -137,6 +137,18 @@ Log const& Log::create(std::filesystem::path const& log_path, std::string const&
 		file_sink->set_formatter(std::make_unique<SpdlogHtmlFormatter>());
         sinks.push_back(file_sink);
 	}
+	{
+		// callback sink
+		auto callback_sink = std::make_shared<spdlog::sinks::callback_sink_mt>(
+			[](spdlog::details::log_msg const& msg)
+			{
+				for (auto const& l : m_ptr->m_log_listeners)
+				{
+					l(msg);
+				}
+			}
+		);
+	}
 
     m_ptr->m_logger = std::make_shared<spdlog::logger>(log_name, sinks.begin(), sinks.end());
 	m_ptr->m_logger->set_level(static_cast<spdlog::level::level_enum>(static_cast<int>(log_level)));
