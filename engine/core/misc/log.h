@@ -4,10 +4,12 @@
 #include <sstream>
 #include <list>
 #include <filesystem>
+#include <functional>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/callback_sink.h>
 #include <spdlog/logger.h>
 
 #include "datetime.h"
@@ -40,6 +42,7 @@ public:
     void out(std::string const& message, LogMessageType message_type) const;  //! logs supplied message out
     std::filesystem::path const& logPath() const { return m_log_path; }
     std::string const& logName() const { return m_logger->name(); }
+    void registerLogListener(spdlog::custom_log_callback const& listener_function) { m_log_listeners.push_back(listener_function); }
 
 private:
     Log(std::filesystem::path const& log_path) : m_log_path{ log_path } {};
@@ -52,6 +55,7 @@ private:
     static std::unique_ptr<Log> m_ptr;
     std::shared_ptr<spdlog::logger> m_logger;
     std::filesystem::path const& m_log_path;
+    std::vector<spdlog::custom_log_callback> m_log_listeners;
 };
 
 }
