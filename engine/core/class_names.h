@@ -44,6 +44,7 @@ extern char const ConstantBufferStream[];
 extern char const SwapChain[];
 extern char const ShaderStage[];
 extern char const ShaderFunction[];
+extern char const ConsoleCommandRegistry[];
 
 }
 
