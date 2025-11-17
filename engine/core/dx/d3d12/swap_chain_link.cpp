@@ -112,8 +112,8 @@ void SwapChainLink::render()
         uint64_t completed_frames_count = frame_progress_tracker.completedFramesCount();
         while (scheduled_frames_count - completed_frames_count >= m_global_settings.getMaxFramesInFlight())
         {
-            frame_progress_tracker.waitForFrameCompletion(completed_frames_count);
             ++completed_frames_count;
+            frame_progress_tracker.waitForFrameCompletion(completed_frames_count);
         }
 
         m_linked_rendering_tasks_ptr->render(target, [this](void) { m_linked_swap_chain.present(); });

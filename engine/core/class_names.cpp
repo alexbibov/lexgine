@@ -43,5 +43,6 @@ extern char const ConstantBufferStream[] = "lexgine::core::dx::d3d12::ConstantBu
 extern char const SwapChain[] = "lexgine::core::SwapChain";
 extern char const ShaderStage[] = "lexgine::core::dx::dxcompilation::ShaderStage";
 extern char const ShaderFunction[] = "lexgine::core::dx::dxcompilation::ShaderFunction";
+extern char const ConsoleCommandRegistry[] = "lexgine::interaction::console::CommandRegistry";
 
 }
