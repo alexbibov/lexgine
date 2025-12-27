@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <limits>
+#include <numeric>
 
 namespace lexgine::interaction::console
 {
@@ -14,7 +14,7 @@ class ConsoleTokenAutocomplete
 private:
 	static constexpr size_t c_preReservedCommandCount = 100;
 public:
-	explicit ConsoleTokenAutocomplete(std::size_t suggestion_count = 10)
+	ConsoleTokenAutocomplete(std::size_t suggestion_count = 10)
 		: m_suggestion_count{ suggestion_count } 
 	{
 		m_pool.reserve(c_preReservedCommandCount);  // pre-reserve space for 100 tokens
@@ -26,7 +26,7 @@ public:
 	void addToken(const std::string& token_name);
 	void clearQuery();
 	void setQuery(const std::string_view& query);
-	void append(char c, uint16_t tau = std::numeric_limits<uint16_t>::max());
+	void append(char c, uint16_t tau = (std::numeric_limits<uint16_t>::max)());
 	void backspace();
 	std::vector<std::pair<std::string, uint16_t>> suggestions(size_t suggestion_count_override = 0) const;
 	std::string_view query() const { return m_query; }

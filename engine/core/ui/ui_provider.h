@@ -16,6 +16,9 @@ public:
 
     virtual void constructUI() = 0;
 
+protected:
+    UIProvider() = default;
+
 private:
     bool m_is_enabled = true;
 };
