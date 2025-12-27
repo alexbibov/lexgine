@@ -195,9 +195,9 @@ UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t s
             break;
         }
 
-        if ((*q)->m_controlling_signal_value == nextValueOfControllingSignal()) {
+        /*if ((*q)->m_controlling_signal_value == nextValueOfControllingSignal()) {
             break;
-        }
+        }*/
     }
 
     if (p == m_blocks.end()) {
