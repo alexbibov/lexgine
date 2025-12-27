@@ -31,7 +31,7 @@ public:
     virtual bool systemKeyUp(SystemKey key) { return true; }  //! called after the user releases a key that was pressed while the alt key was held
 
 protected:
-    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+    bool process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
@@ -62,7 +62,7 @@ public:
     virtual bool wheelMove(double move_delta, bool is_horizontal_wheel, ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y) { return true; }
 
 protected:
-    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+    bool process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
@@ -84,7 +84,7 @@ public:
     MouseMoveListener();
 
 protected:
-    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+    bool process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 
 private:
@@ -102,7 +102,7 @@ public:
     virtual bool size_changed(uint16_t new_width, uint16_t new_height) { return true; }    //! called when size of the window has been changed, but neither minimize() nor maximize() does apply
 
 protected:
-    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+    bool process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
@@ -120,7 +120,7 @@ public:
     virtual bool paint(core::math::Rectangle const& update_region) = 0;
 
 protected:
-    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+    bool process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
@@ -132,7 +132,7 @@ public:
     virtual bool setCursor(uint64_t wparam, uint64_t lparam) = 0;
 
 protected:
-    int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+    bool process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
         uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
@@ -144,7 +144,7 @@ public:
     virtual bool killFocus(uint64_t param) { return true; }
 
 protected:
-	int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+    bool process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
 		uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
@@ -155,7 +155,7 @@ public:
     virtual bool inputLanguageChanged() = 0;
 
 protected:
-int64_t process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+    bool process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
 	uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 

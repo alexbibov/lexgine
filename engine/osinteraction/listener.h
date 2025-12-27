@@ -7,22 +7,26 @@
 
 namespace lexgine::osinteraction {
 
+enum class MessageHandlingResult
+{
+    fail, 
+    success,
+    not_supported
+};
+
 //! OS-agnostic abstract listener object
 class AbstractListener
 {
 public:
-    static const int64_t not_supported = static_cast<int64_t>(0xFFFFFFFFFFFFFFFF);
-
     /*! handles the given message. param0 - param7 are reserved for system- and user- defined data that may accompany the message being handled.
-      The function returns system-defined value depending on the incoming message and on the message processing status.
-      It can also return special value AbstractListener::not_supported in case if requested message cannot be handled by this listener.
+    * The function returns true on success and false in case if message processing has failed
     */
-    int64_t handle(uint64_t message, uint64_t param0, uint64_t param1, uint64_t param2, uint64_t param3,
+    MessageHandlingResult handle(uint64_t message, uint64_t param0, uint64_t param1, uint64_t param2, uint64_t param3,
         uint64_t param4, uint64_t param5, uint64_t param6, uint64_t param7);
 
 protected:
     //! this function performs actual processing of received message; it must be implemented by derived class
-    virtual int64_t process_message(uint64_t message, uint64_t param0, uint64_t param1, uint64_t param2, uint64_t param3,
+    virtual bool process_message(uint64_t message, uint64_t param0, uint64_t param1, uint64_t param2, uint64_t param3,
         uint64_t param4, uint64_t param5, uint64_t param6, uint64_t param7) = 0;
 
     virtual bool doesHandle(uint64_t message) const = 0;    //! returns 'true' if the listener is aimed to handle the given message; returns 'false' otherwise
@@ -65,7 +69,7 @@ protected:
         return Listener::doesHandle(message);
     }
 
-    virtual int64_t process_message(uint64_t message, uint64_t param0, uint64_t param1, uint64_t param2, uint64_t param3, uint64_t param4,
+    virtual bool process_message(uint64_t message, uint64_t param0, uint64_t param1, uint64_t param2, uint64_t param3, uint64_t param4,
         uint64_t param5, uint64_t param6, uint64_t param7) override
     {
         return Listener::process_message(message, param0, param1, param2, param3, param4, param5, param6, param7);
@@ -81,7 +85,7 @@ protected:
         return Listener::doesHandle(message) || Listeners<OtherListeners...>::doesHandle(message);
     }
 
-    virtual int64_t process_message(uint64_t message, uint64_t param0, uint64_t param1, uint64_t param2, uint64_t param3, uint64_t param4,
+    virtual bool process_message(uint64_t message, uint64_t param0, uint64_t param1, uint64_t param2, uint64_t param3, uint64_t param4,
         uint64_t param5, uint64_t param6, uint64_t param7) override
     {
         int64_t rv = Listener::doesHandle(message) ?

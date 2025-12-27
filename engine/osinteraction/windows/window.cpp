@@ -315,21 +315,27 @@ LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wPar
     default:
     {
         Window* p_window = window_pool[hWnd];
-        int64_t success_status = DefWindowProc(hWnd, uMsg, wParam, lParam);
-        if (p_window == nullptr) return static_cast<LRESULT>(success_status);
+        if (p_window == nullptr)
+        {
+            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        }
 
         for (auto listener : p_window->m_listener_list)
         {
             if (auto ptr = listener.lock())
             {
-                int64_t status = ptr->handle(uMsg, reinterpret_cast<uint64_t>(p_window), wParam, lParam, 0, 0, 0, 0, 0);
-
-                if (status != AbstractListener::not_supported && status != success_status)
-                    return static_cast<LRESULT>(status);
+                MessageHandlingResult result = ptr->handle(uMsg, reinterpret_cast<uint64_t>(p_window), wParam, lParam, 0, 0, 0, 0, 0);
+                if (result == MessageHandlingResult::fail)
+                {
+                    p_window->logger().out(
+                        std::format("Failed to handle message {} for window {}", uMsg, p_window->getStringName()),
+                        core::misc::LogMessageType::exclamation
+                    );
+                }
             }
         }
 
-        return static_cast<LRESULT>(success_status);
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
     }
 }

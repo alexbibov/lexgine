@@ -6,12 +6,6 @@ using namespace lexgine::osinteraction::windows;
 namespace
 {
 
-bool keyDownKeyUpSelector(KeyInputListener& key_input_listener, lexgine::osinteraction::SystemKey key, bool is_key_down)
-{
-    return is_key_down ? key_input_listener.keyDown(key) : key_input_listener.keyUp(key);
-}
-
-
 ControlKeyFlag transformControlFlag(WPARAM wparam)
 {
     ControlKeyFlag rv{ 0 };
@@ -154,45 +148,40 @@ template<> struct pointer_sized_int<8> { using type = uint64_t; };
 }
 
 
-int64_t KeyInputListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+bool KeyInputListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
     uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
     bool is_key_down = false;
-    bool success = false;    // 'true' if the message processing succeeds
 
     switch (message)
     {
     case WM_KEYDOWN:
-        is_key_down = true;
+        return keyDown(transformSystemKey(wparam, lparam));
 
     case WM_KEYUP:
-        success = keyDownKeyUpSelector(*this, transformSystemKey(wparam, lparam), is_key_down);
-        break;
+        return keyUp(transformSystemKey(wparam, lparam));
 
     case WM_CHAR:
     {
-        success = character(wparam);
-        break;
+        return character(wparam);
     }
 
     case WM_SYSKEYDOWN:
-        success = systemKeyDown(transformSystemKey(wparam, lparam));
-        break;
+        return systemKeyDown(transformSystemKey(wparam, lparam));
 
     case WM_SYSKEYUP:
-        success = systemKeyUp(transformSystemKey(wparam, lparam));
-        break;
+        return systemKeyUp(transformSystemKey(wparam, lparam));
 
     default:
         __assume(0);
     }
 
-    return static_cast<uint64_t>(success);
+    return false;
 }
 
 
 
-int64_t MouseButtonListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+bool MouseButtonListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
     uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
     uint16_t x = static_cast<uint16_t>(lparam & 0xFFFF);
@@ -252,7 +241,7 @@ int64_t MouseButtonListener::process_message(uint64_t message, uint64_t p_window
     case WM_MOUSEHWHEEL:
         is_horizontal_wheel_moved = true;
     case WM_MOUSEWHEEL:
-        return static_cast<uint64_t>(wheelMove(static_cast<double>(GET_WHEEL_DELTA_WPARAM(wparam)) / WHEEL_DELTA, is_horizontal_wheel_moved, control_key_flag, x, y));
+        return wheelMove(static_cast<double>(GET_WHEEL_DELTA_WPARAM(wparam)) / WHEEL_DELTA, is_horizontal_wheel_moved, control_key_flag, x, y);
 
     default:
         __assume(0);
@@ -260,14 +249,11 @@ int64_t MouseButtonListener::process_message(uint64_t message, uint64_t p_window
 
     if (is_button_double_clicked)
     {
-        return static_cast<uint64_t>(doubleClick(button, x_button_id, control_key_flag, x, y));
+        return doubleClick(button, x_button_id, control_key_flag, x, y);
     }
-    else
-    {
-        return static_cast<uint64_t>(is_button_pressed
-            ? buttonDown(button, x_button_id, control_key_flag, x, y) 
-            : buttonUp(button, x_button_id, control_key_flag, x, y));
-    }
+    return is_button_pressed
+        ? buttonDown(button, x_button_id, control_key_flag, x, y)
+        : buttonUp(button, x_button_id, control_key_flag, x, y);
 }
 
 
@@ -279,7 +265,7 @@ MouseMoveListener::MouseMoveListener():
 }
 
 
-int64_t MouseMoveListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+bool MouseMoveListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
     uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
     uint16_t x = lparam & 0xFFFF;
@@ -314,12 +300,12 @@ int64_t MouseMoveListener::process_message(uint64_t message, uint64_t p_window, 
 
     TrackMouseEvent(&track_mouse_event);
 
-    return static_cast<uint64_t>(success);
+    return success;
 }
 
 
 
-int64_t WindowSizeChangeListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam,
+bool WindowSizeChangeListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam,
     uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
     uint16_t new_width = lparam & 0xFFFF;
@@ -328,13 +314,13 @@ int64_t WindowSizeChangeListener::process_message(uint64_t message, uint64_t p_w
     switch (wparam)
     {
     case SIZE_MAXIMIZED:
-        return static_cast<uint64_t>(maximized(new_width, new_height));
+        return maximized(new_width, new_height);
 
     case SIZE_MINIMIZED:
-        return static_cast<uint64_t>(minimized());
+        return minimized();
 
     case SIZE_RESTORED:
-        return static_cast<uint64_t>(size_changed(new_width, new_height));
+        return size_changed(new_width, new_height);
 
     default:
         __assume(0);
@@ -344,7 +330,7 @@ int64_t WindowSizeChangeListener::process_message(uint64_t message, uint64_t p_w
 
 
 
-int64_t ClientAreaUpdateListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+bool ClientAreaUpdateListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
     uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
     bool success = false;    // 'true' if the message processing succeeds
@@ -374,20 +360,20 @@ int64_t ClientAreaUpdateListener::process_message(uint64_t message, uint64_t p_w
         EndPaint(hWnd, &ps);
     }
 
-    return static_cast<uint64_t>(success);
+    return success;
 }
 
 
 
-int64_t CursorUpdateListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
+bool CursorUpdateListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
-    if ((lparam & 0xFFFF) == HTCLIENT) return static_cast<uint64_t>(setCursor(wparam, lparam));
-    return 0;
+    if ((lparam & 0xFFFF) == HTCLIENT) return setCursor(wparam, lparam);
+    return true;
 }
 
 
 
-int64_t FocusUpdateListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
+bool FocusUpdateListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
     switch (message)
     {
@@ -397,12 +383,12 @@ int64_t FocusUpdateListener::process_message(uint64_t message, uint64_t p_window
     case WM_KILLFOCUS:
         return killFocus(wparam);
     }
-    return 0;
+    return true;
 }
 
 
 
-int64_t lexgine::osinteraction::windows::InputLanguageChangeListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
+bool lexgine::osinteraction::windows::InputLanguageChangeListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
 {
     return inputLanguageChanged();
 }
