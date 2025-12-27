@@ -37,7 +37,7 @@ public:
     /*! Retrieves pointer referring to the logging object assigned to the calling thread.
      If no logger has been assigned to the thread, the function will return nullptr.
      */
-    static Log const* retrieve();
+    static Log* retrieve();
     static bool shutdown();  // !Attempts to shutdown the logging system and returns 'true' on success or 'false' on failure
     void out(std::string const& message, LogMessageType message_type) const;  //! logs supplied message out
     std::filesystem::path const& logPath() const { return m_log_path; }
