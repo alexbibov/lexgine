@@ -17,6 +17,7 @@ ComPtr<ID3D12Fence> lexgine::core::dx::d3d12::Fence::native() const
 
 void Fence::setEvent(uint64_t signaling_value, lexgine::osinteraction::windows::FenceEvent const& event) const
 {
+    assert(signaling_value != 0);
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_fence->SetEventOnCompletion(signaling_value, event.native()),
