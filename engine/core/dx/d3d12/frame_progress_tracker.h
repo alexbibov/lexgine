@@ -17,6 +17,7 @@ class FrameProgressTracker
 public:
     FrameProgressTracker(Device& device);
 
+    bool started() const { return scheduledFramesCount() > 0; }
     uint64_t lastScheduledFrameIndex() const { return scheduledFramesCount() - 1; }
     uint64_t lastCompletedFrameIndex() const { return completedFramesCount() - 1; }
     uint64_t scheduledFramesCount() const;

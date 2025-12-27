@@ -59,9 +59,11 @@ RenderingTasks::RenderingTasks(Globals& globals)
 {
     m_test_rendering_task_build_cmd_list = RenderingTaskFactory::create<TestRenderingTask>(m_globals, m_basic_rendering_services);
     m_ui_draw_build_cmd_list = RenderingTaskFactory::create<UIDrawTask>(globals, m_basic_rendering_services);
+    m_console = ui::Console::create(globals, m_basic_rendering_services, m_task_graph);
     m_gpu_profiling_queries_flush_build_cmd_list = RenderingTaskFactory::create<GpuProfilingQueriesFlushTask>(globals);
     m_profiler = RenderingTaskFactory::create<Profiler>(globals, m_basic_rendering_services, m_task_graph);
     m_ui_draw_build_cmd_list->addUIProvider(m_profiler);
+    m_ui_draw_build_cmd_list->addUIProvider(m_console);
 
     m_post_rendering_gpu_tasks = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device,
         "GPU draw tasks", m_basic_rendering_services);
@@ -111,6 +113,7 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
     if (flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::rendering_window_changed))
     {
         BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingWindow(m_basic_rendering_services, rendering_configuration.p_rendering_window);
+        rendering_configuration.p_rendering_window->addListener(m_console);
     }
 
 
@@ -136,13 +139,16 @@ void RenderingTasks::render(RenderingTarget& rendering_target, const std::functi
 
     m_device.queryCache()->markFrameBegin();
     m_task_sink.submit(m_frame_progress_tracker.currentFrameIndex());
-    m_device.queryCache()->markFrameEnd();
     presenter();
+    m_device.queryCache()->markFrameEnd();
 }
 
 void RenderingTasks::flush()
 {
-    m_frame_progress_tracker.waitForFrameCompletion(m_frame_progress_tracker.lastScheduledFrameIndex());
+    if (m_frame_progress_tracker.started())
+    {
+        m_frame_progress_tracker.waitForFrameCompletion(m_frame_progress_tracker.lastScheduledFrameIndex());
+    }
 }
 
 void RenderingTasks::cleanup()

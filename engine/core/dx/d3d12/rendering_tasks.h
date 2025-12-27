@@ -15,6 +15,7 @@
 #include "engine/core/misc/static_vector.h"
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h"
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/rendering_work.h"
+#include "engine/core/ui/console.h"
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "basic_rendering_services.h"
@@ -71,6 +72,7 @@ private:
 
 private:    // rendering tasks
     std::shared_ptr<tasks::rendering_tasks::UIDrawTask> m_ui_draw_build_cmd_list;
+    std::shared_ptr<ui::Console> m_console;
     std::shared_ptr<ui::Profiler> m_profiler;
     std::shared_ptr<tasks::rendering_tasks::TestRenderingTask> m_test_rendering_task_build_cmd_list;
     std::shared_ptr<tasks::rendering_tasks::GpuProfilingQueriesFlushTask> m_gpu_profiling_queries_flush_build_cmd_list;
