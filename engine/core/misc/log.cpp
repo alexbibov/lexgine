@@ -148,6 +148,7 @@ Log const& Log::create(std::filesystem::path const& log_path, std::string const&
 				}
 			}
 		);
+		sinks.push_back(callback_sink);
 	}
 
     m_ptr->m_logger = std::make_shared<spdlog::logger>(log_name, sinks.begin(), sinks.end());
@@ -157,7 +158,7 @@ Log const& Log::create(std::filesystem::path const& log_path, std::string const&
 	return *m_ptr.get();
 }
 
-Log const* Log::retrieve()
+Log* Log::retrieve()
 {
     return m_ptr.get();
 }
