@@ -53,9 +53,9 @@ void ErrorBehavioral::raiseError(std::string const& error_message) const
     logger().out(error_message, lexgine::core::misc::LogMessageType::error);
 }
 
-misc::Log const& ErrorBehavioral::logger() const 
+misc::Log& ErrorBehavioral::logger() const 
 { 
-    misc::Log const* p_logger = misc::Log::retrieve();
+    misc::Log* p_logger = misc::Log::retrieve();
     assert(p_logger);
 
     return *p_logger;

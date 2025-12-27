@@ -11,6 +11,7 @@
 
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
+#include "console_command_autocomplete.h"
 
 namespace lexgine::interaction::console
 {
@@ -46,6 +47,7 @@ struct CommandSpec
 	std::string summary;
 	std::vector<ArgSpec> args;
 	ConsoleTokenAutocomplete autocompleter;  //!< context auto-completion for argument names when using name=value argument assignment syntax
+	std::vector<std::string> autocompleteSuggestions(size_t max_count) const;
 	std::pair<std::string_view, uint16_t> findMostLikelyArgName(std::string_view const& requested_arg_name) const;
 	void initAutocompleter();
 };
@@ -72,9 +74,6 @@ struct CommandExecutionSchema
 
 class CommandRegistry : public core::NamedEntity<core::class_names::ConsoleCommandRegistry>
 {
-private:
-	static const char s_token_separators[];
-	static const char s_separating_tokens[];
 public:
 	CommandRegistry();
 	void addNamespace(std::string const& namespace_name, std::string const& namespace_summary);
@@ -83,16 +82,36 @@ public:
 	void setQuery(std::string const& query);
 	void append(char c);
 	void backspace();
-	std::vector<std::string> autocompleteSuggestions(uint16_t max_allowed_distance) const;
+	std::string_view getCurrentQuery() const { return m_current_query; }
+	std::vector<std::string> autocompleteSuggestions(size_t max_count) const;
 	std::optional<CommandExecutionSchema> invokeQuery() const;
 
 private:
+	static char s_separators[];
+	static char s_operators[];
+
+private:
+	struct LookupHasher
+	{
+		using is_transparent = int;
+
+		[[nodiscard]] size_t operator()(std::string_view const& value) const
+		{
+			return std::hash<std::string_view>{}(value);
+		}
+
+		[[nodiscard]] size_t operator()(char const* value) const
+		{
+			return std::hash<std::string_view>{}(value);
+		}
+	};
+
 	struct NamespaceSpec
 	{
 		std::string name;
 		std::string summary;
 		ConsoleTokenAutocomplete autocompleter;  //!< context autocompleter for command names completion
-		std::unordered_map<std::string, Command> commands;
+		std::unordered_map<std::string, Command, LookupHasher, std::equal_to<>> commands;
 
 		NamespaceSpec(std::string const& namespace_name, std::string const& namespace_summary)
 			: name{ namespace_name }
@@ -100,41 +119,49 @@ private:
 		{
 
 		}
-		std::pair<std::string_view, uint16_t> findMostLikelyCommandName(std::string_view const& requested_command_id) const;
+		std::vector<std::string> autocompleteSuggestions(size_t max_count) const;
+		std::pair<std::string_view, uint16_t> findMostLikelyCommandName(std::string_view const& requested_command_name) const;
 	};
 
-	enum class TokenContext
+	enum class TokenTag
 	{
-		_namespace,
-		command,
-		argument_name,
-		argument_value,
-		_operator,
-		expecting_new_token,
+		operation,
+		idendifier,
+		value,
 		unknown
 	};
 
-	struct QueryContext
+	struct Token
 	{
-		std::variant<std::monostate, NamespaceSpec*, CommandSpec*, ArgSpec*> spec;
-		TokenContext context;
+		size_t start_index{ };
+		size_t count{ 0 };
+		TokenTag tag{ TokenTag::unknown };
+		operator bool() const
+		{
+			return count > 0 && tag != TokenTag::unknown;
+		}
 	};
 
+	using QueryContext = std::variant<NamespaceSpec*, Command*>;
 
 private:
-	static std::vector<std::string_view> tokenize(std::string_view const& s);
-	static std::vector<std::pair<std::string_view, TokenContext>> parseTokensContext(std::vector<std::string_view> const& tokens);
-	std::optional<CommandExecutionSchema> parse(std::vector<std::pair<std::string_view, TokenContext>> const& contextualized_tokens) const;
-
-	std::pair<std::string_view, uint16_t> findMostLikelyNamespaceName(std::string_view const& requested_namespace_id) const;
+	std::string_view extractToken(Token const& token) const;
+	void tokenize(size_t start_position);
+	Token extractCommandIdToken() const;
+	Token extractCommandNameTokenFromCommandIdToken(Token const& command_id) const;
+	Token extractNamespaceNameTokenFromCommandIdToken(Token const& command_id) const;
+	std::optional<CommandExecutionSchema> parse() const;
+	static bool isSeparator(char c);
+	static bool isOperator(char c);
+	bool isOperator(Token const& t) const;
+	std::pair<std::string_view, uint16_t> findMostLikelyNamespaceName(std::string_view const& requested_namespace_name) const;
 
 private:
-	std::unordered_map<std::string, NamespaceSpec> m_namespaces;
+	std::unordered_map<std::string, NamespaceSpec, LookupHasher, std::equal_to<>> m_namespaces;
 	ConsoleTokenAutocomplete m_autocompleter;  //!< context autocompleter for namespace names completion
 	std::string m_current_query;
-	std::vector<std::string_view> m_query_tokens;
-	std::vector<std::pair<std::string_view, TokenContext>> m_contextualized_query_tokens;
-	std::stack<QueryContext> m_current_context;
+	std::vector<Token> m_query_tokens;
+	std::stack<QueryContext> m_current_autompletion_context;
 };
 
 }

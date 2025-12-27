@@ -49,7 +49,7 @@ protected:
     void raiseError(std::string const& error_message) const;
 
     //! Returns reference to the logging system used by the thread
-    misc::Log const& logger() const;
+    misc::Log& logger() const;
 
 
 
