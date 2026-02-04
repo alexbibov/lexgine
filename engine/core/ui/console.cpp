@@ -136,7 +136,7 @@ void Console::constructUI()
 
 	// Layout: Child for log (scrollable), separator, then input line
 	const float footer_h = ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y * 2.0f;
-	ImGui::BeginChild("ScrollRegion", ImVec2(0, -footer_h), false, ImGuiWindowFlags_HorizontalScrollbar);
+	ImGui::BeginChild("ScrollRegion", ImVec2(0, -footer_h), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar);
 
 	// Log lines
 	ImGuiListClipper clipper;
