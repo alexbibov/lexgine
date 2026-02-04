@@ -1,6 +1,7 @@
 #include <numeric>
 #include <algorithm>
 #include <array>
+#include <iterator>
 #include "console_command_autocomplete.h"
 
 namespace lexgine::interaction::console
@@ -208,6 +209,13 @@ uint16_t ConsoleTokenAutocomplete::computeDLDistance(std::string_view const& a, 
 	}
 
 	return d.back();
+}
+
+std::vector<std::string> ConsoleTokenAutocomplete::allTokens() const
+{
+	std::vector<std::string> rv{};
+	std::transform(m_pool.begin(), m_pool.end(), std::back_inserter(rv), [](Candidate const& e) { return e.name; });
+	return rv;
 }
 
 ConsoleTokenAutocomplete::Candidate::Candidate(const std::string_view& command_name)

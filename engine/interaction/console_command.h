@@ -47,7 +47,6 @@ struct CommandSpec
 	std::string summary;
 	std::vector<ArgSpec> args;
 	ConsoleTokenAutocomplete autocompleter;  //!< context auto-completion for argument names when using name=value argument assignment syntax
-	std::vector<std::string> autocompleteSuggestions(size_t max_count) const;
 	std::pair<std::string_view, uint16_t> findMostLikelyArgName(std::string_view const& requested_arg_name) const;
 	void initAutocompleter();
 };
@@ -63,7 +62,6 @@ struct Command
 {
 	CommandSpec spec;
 	CommandExecFn exec;
-	CommandExecResult operator()(ArgMap const& args) const { return exec(args); }
 };
 
 struct CommandExecutionSchema
@@ -80,15 +78,15 @@ public:
 	void addCommand(CommandSpec const& command_spec, CommandExecFn const& command_op);
 	void addCommand(std::string const& namespace_name, CommandSpec const& command_spec, CommandExecFn const& command_op);
 	void setQuery(std::string const& query);
-	void append(char c);
-	void backspace();
-	std::string_view getCurrentQuery() const { return m_current_query; }
-	std::vector<std::string> autocompleteSuggestions(size_t max_count) const;
+	std::vector<std::string> autocompleteSuggestions(uint16_t max_allowed_distance) const;
 	std::optional<CommandExecutionSchema> invokeQuery() const;
 
 private:
 	static char s_separators[];
-	static char s_operators[];
+	static std::string s_dereference;
+	static std::string s_assignment;
+	static std::string s_comma;
+	static std::string s_operators[];
 
 private:
 	struct LookupHasher
@@ -119,49 +117,44 @@ private:
 		{
 
 		}
-		std::vector<std::string> autocompleteSuggestions(size_t max_count) const;
-		std::pair<std::string_view, uint16_t> findMostLikelyCommandName(std::string_view const& requested_command_name) const;
+		std::pair<std::string_view, uint16_t> findMostLikelyCommandName(std::string_view const& requested_command_id) const;
 	};
 
 	enum class TokenTag
 	{
 		operation,
-		idendifier,
-		value,
-		unknown
+		idendifier
 	};
 
 	struct Token
 	{
 		size_t start_index{ };
 		size_t count{ 0 };
-		TokenTag tag{ TokenTag::unknown };
-		operator bool() const
-		{
-			return count > 0 && tag != TokenTag::unknown;
-		}
+		TokenTag tag{ TokenTag::idendifier };
 	};
 
-	using QueryContext = std::variant<NamespaceSpec*, Command*>;
+	struct AutocompletionContext
+	{
+		ConsoleTokenAutocomplete autocompleter;
+		std::string_view current_input;
+	};
 
 private:
 	std::string_view extractToken(Token const& token) const;
-	void tokenize(size_t start_position);
-	Token extractCommandIdToken() const;
-	Token extractCommandNameTokenFromCommandIdToken(Token const& command_id) const;
-	Token extractNamespaceNameTokenFromCommandIdToken(Token const& command_id) const;
+	std::pair<Token, size_t> extractNamespaceToken() const;
+	std::pair<Token, size_t> extractCommandToken(Token const& namespace_token, size_t token_position_hint) const;
+	void tokenize();
 	std::optional<CommandExecutionSchema> parse() const;
 	static bool isSeparator(char c);
-	static bool isOperator(char c);
-	bool isOperator(Token const& t) const;
-	std::pair<std::string_view, uint16_t> findMostLikelyNamespaceName(std::string_view const& requested_namespace_name) const;
+	bool isOperatorToken(Token const& t) const;
+	std::pair<std::string_view, uint16_t> findMostLikelyNamespaceName(std::string_view const& requested_namespace_id) const;
 
 private:
 	std::unordered_map<std::string, NamespaceSpec, LookupHasher, std::equal_to<>> m_namespaces;
 	ConsoleTokenAutocomplete m_autocompleter;  //!< context autocompleter for namespace names completion
+	mutable std::optional<AutocompletionContext> m_autocompletion_context{ std::nullopt };
 	std::string m_current_query;
 	std::vector<Token> m_query_tokens;
-	std::stack<QueryContext> m_current_autompletion_context;
 };
 
 }

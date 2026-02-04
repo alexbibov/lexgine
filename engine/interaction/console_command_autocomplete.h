@@ -30,6 +30,7 @@ public:
 	void backspace();
 	std::vector<std::pair<std::string, uint16_t>> suggestions(size_t suggestion_count_override = 0) const;
 	std::string_view query() const { return m_query; }
+	std::vector<std::string> allTokens() const;
 
 	static uint16_t computeDLDistance(std::string_view const& a, std::string_view const& b);
 
