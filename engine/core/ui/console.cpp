@@ -1,5 +1,7 @@
 #include "imgui.h"
 
+#include <cstring>
+
 #include "console.h"
 
 namespace lexgine::core::ui {
@@ -24,6 +26,15 @@ ImVec4 getColorForLogMessage(misc::LogMessageType message_type)
 	default:
 		return { 230.f / 255, 230.f / 255, 230.f / 255, 1.f };
 	}
+}
+
+int InputTextCaretCallback(ImGuiInputTextCallbackData* data)
+{
+	if (data && data->UserData)
+	{
+		*static_cast<int*>(data->UserData) = data->CursorPos;
+	}
+	return 0;
 }
 
 }  // namespace
@@ -93,6 +104,7 @@ std::shared_ptr<Console> Console::create(
 				.parser = log_message_type_parser
 			}
 		);
+		logging_test_command.initAutocompleter();
 
 		rv->m_command_registry.addCommand(
 			logging_test_command, 
@@ -162,19 +174,13 @@ void Console::constructUI()
 	ImGuiInputTextFlags input_flags =
 		ImGuiInputTextFlags_EnterReturnsTrue |
 		ImGuiInputTextFlags_CallbackHistory |
-		ImGuiInputTextFlags_CallbackCompletion;
+		ImGuiInputTextFlags_CallbackCompletion |
+		ImGuiInputTextFlags_CallbackAlways;
 
 	// Track rect for popup placement
 	ImGui::SetNextItemAllowOverlap();
 	bool submit = false;
 	static int caret = 0;
-
-	auto InputCallback = []
-	(ImGuiInputTextCallbackData* data) -> int
-		{
-			return 0;
-		};
-
 
 	static char console_query_buf[100];
 	ImGui::PushID("ConsoleInput");
@@ -182,58 +188,95 @@ void Console::constructUI()
 		console_query_buf,
 		sizeof(console_query_buf),
 		input_flags,
-		InputCallback)) {
+		InputTextCaretCallback,
+		&caret)) {
 		submit = true;
 	}
-	//// Open/refresh suggestions based on current input
-	//{
-	//	const std::string text = ui.input;
-	//	ui.suggestions = QuerySuggestions(text, caret);
-	//	ui.sugg_open = !ui.suggestions.empty() && ImGui::IsItemActive();
-	//}
 
-	// Popup: position just above the input or right on top of it
-	//if (ui.sugg_open) {
-	//	ImVec2 min = ImGui::GetItemRectMin();
-	//	ImVec2 max = ImGui::GetItemRectMax();
-	//	ImGui::SetNextWindowPos(ImVec2(min.x, min.y - ImGui::GetTextLineHeightWithSpacing() * 8.0f));
-	//	ImGui::SetNextWindowSizeConstraints(ImVec2(300, 0), ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * 8.0f));
-	//	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6, 6));
-	//	if (ImGui::BeginPopup("CmdSuggest")) {
-	//		// If already open, just draw; if not, close
-	//		ImGui::EndPopup();
-	//	}
-	//	ImGui::OpenPopup("CmdSuggest");
-	//	if (ImGui::BeginPopup("CmdSuggest", ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize)) {
-	//		// Keyboard nav
-	//		if (ImGui::IsKeyPressed(ImGuiKey_Escape)) { ImGui::CloseCurrentPopup(); ui.sugg_open = false; }
-	//		if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) ui.sugg_selected = (ui.sugg_selected + 1) % (int)ui.suggestions.size();
-	//		if (ImGui::IsKeyPressed(ImGuiKey_UpArrow))   ui.sugg_selected = (ui.sugg_selected + (int)ui.suggestions.size() - 1) % (int)ui.suggestions.size();
+	static std::string last_query{};
+	static std::vector<std::string> suggestions{};
+	static bool sugg_open = false;
+	static int sugg_selected = 0;
+	std::string current_query{ console_query_buf };
+	if(current_query != last_query)
+	{
+		m_command_registry.setQuery(current_query);
+		std::vector<std::string> new_suggestions = m_command_registry.autocompleteSuggestions(2);
+		sugg_open = ImGui::IsItemActive() && !new_suggestions.empty();
+		if (new_suggestions != suggestions)
+		{
+			suggestions = std::move(new_suggestions);
+			sugg_selected = 0;
+		}
+		last_query = current_query;
+	}
 
-	//		bool accept_now = ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_Tab);
+	auto applySuggestion = [&](std::string const& suggestion)
+	{
+		std::string updated{ console_query_buf };
+		size_t last_sep = updated.find_last_of(" \t\r\n");
+		if (last_sep == std::string::npos)
+		{
+			updated = suggestion;
+		}
+		else if (last_sep + 1 >= updated.size())
+		{
+			updated += suggestion;
+		}
+		else
+		{
+			updated.erase(last_sep + 1);
+			updated += suggestion;
+		}
+		std::strncpy(console_query_buf, updated.c_str(), sizeof(console_query_buf));
+		console_query_buf[sizeof(console_query_buf) - 1] = '\0';
+		caret = static_cast<int>(std::strlen(console_query_buf));
+	};
 
-	//		for (int i = 0; i < (int)ui.suggestions.size(); ++i) {
-	//			const bool sel = (i == ui.sugg_selected);
-	//			if (ImGui::Selectable((ui.suggestions[i].text + "  ##" + std::to_string(i)).c_str(), sel)) {
-	//				ui.sugg_selected = i; accept_now = true;
-	//			}
-	//			if (!ui.suggestions[i].note.empty()) {
-	//				ImGui::SameLine();
-	//				ImGui::TextDisabled(" %s", ui.suggestions[i].note.c_str());
-	//			}
-	//		}
+	if (sugg_open) {
+		ImVec2 min = ImGui::GetItemRectMin();
+		ImVec2 max = ImGui::GetItemRectMax();
+		ImVec2 text_start = ImVec2(min.x + ImGui::GetStyle().FramePadding.x, min.y + ImGui::GetStyle().FramePadding.y);
+		ImVec2 text_size = ImGui::CalcTextSize(console_query_buf, console_query_buf + caret);
+		float caret_x = text_start.x + text_size.x;
+		if (caret_x > max.x)
+		{
+			caret_x = max.x;
+		}
+		ImGui::SetNextWindowPos(ImVec2(caret_x, max.y));
+		ImGui::SetNextWindowSizeConstraints(ImVec2(300, 0), ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * 8.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6, 6));
+		ImGui::OpenPopup("CmdSuggest");
+		if (ImGui::BeginPopup("CmdSuggest",
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_AlwaysAutoResize |
+			ImGuiWindowFlags_NoFocusOnAppearing |
+			ImGuiWindowFlags_NoNav)) {
+			if (ImGui::IsKeyPressed(ImGuiKey_Escape)) { ImGui::CloseCurrentPopup(); sugg_open = false; }
+			if (!suggestions.empty()) {
+				if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) sugg_selected = (sugg_selected + 1) % static_cast<int>(suggestions.size());
+				if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) sugg_selected = (sugg_selected + static_cast<int>(suggestions.size()) - 1) % static_cast<int>(suggestions.size());
+			}
 
-	//		if (accept_now && !ui.suggestions.empty()) {
-	//			std::strncpy(ui.input, ui.suggestions[ui.sugg_selected].text.c_str(), sizeof(ui.input));
-	//			ui.input[sizeof(ui.input) - 1] = '\0';
-	//			caret = (int)std::strlen(ui.input);
-	//			ImGui::CloseCurrentPopup();
-	//			ui.sugg_open = false;
-	//		}
-	//		ImGui::EndPopup();
-	//	}
-	//	ImGui::PopStyleVar();
-	//}
+			bool accept_now = ImGui::IsKeyPressed(ImGuiKey_Tab);
+			for (int i = 0; i < static_cast<int>(suggestions.size()); ++i) {
+				const bool sel = (i == sugg_selected);
+				if (ImGui::Selectable((suggestions[i] + "##" + std::to_string(i)).c_str(), sel)) {
+					sugg_selected = i;
+					accept_now = true;
+				}
+			}
+
+			if (accept_now && !suggestions.empty()) {
+				applySuggestion(suggestions[sugg_selected]);
+				ImGui::CloseCurrentPopup();
+				sugg_open = false;
+			}
+			ImGui::EndPopup();
+		}
+		ImGui::PopStyleVar();
+	}
 	ImGui::PopID();
 
 	//// Submit on Enter
