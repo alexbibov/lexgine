@@ -12,7 +12,7 @@
 namespace lexgine::core::concurrency {
 
 /*! Implements generic lock-free queue supporting multiple producers and consumers.
- The implementation is based on the ideas from paper "Simple, Fast, and Practical Non-blocking and Blocking Concurrent Queue Algorithms" by Michael, M.M., and Scott, M.L.
+ The implementation is loosely based on the ideas from paper "Simple, Fast, and Practical Non-blocking and Blocking Concurrent Queue Algorithms" by Michael, M.M., and Scott, M.L.
 */
 template<typename T>
 class LockFreeQueue final
@@ -27,9 +27,11 @@ public:
 #endif
     {
         auto p_dummy_node = m_allocator.allocate();
-        std::atomic_init(&p_dummy_node->next, 0xffffffff);    // next = 0xffffffff encodes invalid pointer
-        std::atomic_init(&m_head, 0x0000000100000000 | static_cast<allocator_type::address_type::value_type>(p_dummy_node));
-        std::atomic_init(&m_tail, 0x0000000100000000 | static_cast<allocator_type::address_type::value_type>(p_dummy_node));
+        p_dummy_node.setTag(m_allocator.createTag());
+        auto next = typename allocator_type::address_type{ &m_allocator }; next.setTag(p_dummy_node.getTag());
+        std::atomic_init(&p_dummy_node->next, static_cast<uint64_t>(next));    // next = 0xffffffff encodes invalid pointer
+        std::atomic_init(&m_head.value, static_cast<uint64_t>(p_dummy_node));
+        std::atomic_init(&m_tail.value, static_cast<uint64_t>(p_dummy_node));
     }
 
     LockFreeQueue(LockFreeQueue const&) = delete;
@@ -41,24 +43,25 @@ public:
         typename allocator_type::address_type new_node_ptr{ &m_allocator };
         
         new_node_ptr = m_allocator.allocate();
+        new_node_ptr.setTag(m_allocator.createTag());
         new_node_ptr->data = value;
-        std::atomic_init(&new_node_ptr->next, 0xffffffff);    // next = 0xffffffff encodes invalid pointer
+        auto next = typename allocator_type::address_type{ &m_allocator }; next.setTag(new_node_ptr.getTag());
+        std::atomic_init(&new_node_ptr->next, static_cast<uint64_t>(next));    // next = 0xffffffff encodes invalid pointer
         uint64_t tail{};
         while (true)
         {
-            tail = m_tail.load(std::memory_order::memory_order_acquire);
-            typename allocator_type::address_type tail_ptr{ tail & 0x00000000ffffffff, &m_allocator };
+            tail = m_tail.value.load(std::memory_order::memory_order_acquire);
+            typename allocator_type::address_type tail_ptr{ tail, &m_allocator };
             uint64_t next = tail_ptr->next.load(std::memory_order::memory_order_acquire);
-            uint64_t next_ptr = next & 0x00000000ffffffff;
-
-            if (tail == m_tail.load(std::memory_order::memory_order_consume))    // check if p_tail is still related to the queue...
+            typename allocator_type::address_type next_ptr{ next, &m_allocator };
+            if (tail == m_tail.value.load(std::memory_order::memory_order_consume))    // check if p_tail is still related to the queue...
             {
-                if (next_ptr == 0xffffffff)
+                if (!next_ptr.isValid())
                 {
                     // the tail node still points at the tail of the queue, hence we can try to add the new node into the queue
                     if (tail_ptr->next.compare_exchange_strong(
                         next, 
-                        0x0000000100000000 | static_cast<uint32_t>(new_node_ptr), 
+                        static_cast<uint64_t>(new_node_ptr), 
                         std::memory_order::memory_order_acq_rel,
                         std::memory_order::acquire
                     ))
@@ -69,20 +72,19 @@ public:
                 else
                 {
                     // the tail node is not actually the tail any longer, attempt to move it forward...
-                    m_tail.compare_exchange_strong(
+                    m_tail.value.compare_exchange_strong(
                         tail, 
-                        ((tail & 0xffffffff00000000) + 0x0000000100000000) | next_ptr,
+                        next,
                         std::memory_order::memory_order_acq_rel, 
-                        std::memory_order_relaxed)
-                        ;
+                        std::memory_order_relaxed);
                 }
             }
         }
 
         // Enqueue is done: move the tail node pointer forward
-        m_tail.compare_exchange_strong(
+        m_tail.value.compare_exchange_strong(
             tail, 
-            ((tail & 0xffffffff00000000) + 0x0000000100000000) | static_cast<uint32_t>(new_node_ptr), 
+            static_cast<uint64_t>(new_node_ptr), 
             std::memory_order::memory_order_acq_rel,
             std::memory_order::acquire
         );
@@ -90,8 +92,6 @@ public:
 #ifdef _DEBUG
         ++m_num_elements_enqueued;
 #endif
-
-        return;
     }
 
 
@@ -102,39 +102,39 @@ public:
     {
         while (true)
         {
-            uint64_t head = m_head.load(std::memory_order::memory_order_acquire);
-            uint64_t tail = m_tail.load(std::memory_order::memory_order_acquire);
-            typename allocator_type::address_type head_ptr { head & 0x00000000ffffffff, &m_allocator };
-            typename allocator_type::address_type tail_ptr { tail & 0x00000000ffffffff, &m_allocator };
+            uint64_t head = m_head.value.load(std::memory_order::memory_order_acquire);
+            uint64_t tail = m_tail.value.load(std::memory_order::memory_order_acquire);
+            typename allocator_type::address_type head_ptr { head, &m_allocator };
+            typename allocator_type::address_type tail_ptr { tail, &m_allocator };
 
             uint64_t next = head_ptr->next.load(std::memory_order::memory_order_acquire);
-            typename allocator_type::address_type next_ptr { next & 0x00000000ffffffff, &m_allocator };
+            typename allocator_type::address_type next_ptr { next, &m_allocator };
 
-            if (head == m_head.load(std::memory_order::memory_order_consume))    // verify if head is consistent
+            if (head == m_head.value.load(std::memory_order::memory_order_consume))    // verify if head is consistent
             {
                 // Check if the queue is empty or tail needs to be advanced in order to avoid spuriously assuming that the queue was exhausted
-                if (head_ptr == tail_ptr)
+                if (head == tail)
                 {
                     // the queue is empty or the tail has fallen behind
-                    if (next_ptr == typename allocator_type::address_type{ 0xffffffff, &m_allocator })
+                    if (!next_ptr.isValid())
                     {
                         return misc::Optional<T>{};    // the queue is empty. Return invalid value container.
                     }
 
                     // We end up here if the queue is not empty, but the head and the tail pointers refer to the same node.
                     // In this case we attempt to move the tail pointer forward
-                    m_tail.compare_exchange_strong(
+                    m_tail.value.compare_exchange_strong(
                         tail, 
-                        static_cast<allocator_type::address_type::value_type>(next_ptr) | ((tail & 0xffffffff00000000) + 0x0000000100000000), 
+                        next, 
                         std::memory_order::memory_order_acq_rel
                     );
                 }
                 else
                 {
                     T data = next_ptr->data;
-                    if (m_head.compare_exchange_strong(
+                    if (m_head.value.compare_exchange_strong(
                         head,
-                        static_cast<allocator_type::address_type::value_type>(next_ptr) | ((head & 0xffffffff00000000) + 0x0000000100000000),
+                        next,
                         std::memory_order::memory_order_acq_rel,
                         std::memory_order_acquire
                     )) 
@@ -171,24 +171,18 @@ public:
     //! Returns 'true' if the queue is empty; returns 'false' otherwise
     bool isEmpty() const
     {
-        return m_head.load(std::memory_order::memory_order_consume) == m_tail.load(std::memory_order::memory_order_consume);
+        uint64_t head = m_head.value.load(std::memory_order::memory_order_consume);
+        uint64_t tail = m_tail.value.load(std::memory_order::memory_order_consume);
+        return head == tail;
     }
-
-    /*void setGarbageCollectionThreshold(uint32_t threshold)
-    {
-        m_hp_pool.setGCThreshold(threshold);
-    }*/
-
 
     ~LockFreeQueue()
     {
-        uint64_t last_node = m_head.load(std::memory_order::memory_order_consume);
-        uint64_t tail = m_tail.load(std::memory_order::memory_order_acquire);
+        uint64_t last_node = m_head.value.load(std::memory_order::memory_order_consume);
 
-        typename allocator_type::address_type last_node_ptr{ last_node & 0x00000000ffffffff, &m_allocator };
-        typename allocator_type::address_type tail_ptr{ tail & 0x00000000ffffffff, &m_allocator };
+        typename allocator_type::address_type last_node_ptr{ last_node, &m_allocator };
 
-        assert(last_node_ptr == tail_ptr);    // the queue must be empty when getting destructed
+        assert(isEmpty());    // the queue must be empty when getting destructed
 
 #ifdef _DEBUG
         assert(m_num_elements_enqueued == m_num_elements_dequeued);
@@ -206,10 +200,15 @@ private:
         std::atomic_uint64_t next;    //!< atomic pointer to the next member of the queue
     };
 
+    struct alignas(std::hardware_destructive_interference_size) PaddedAtomic
+    {
+        std::atomic_uint64_t value;
+    };
+
     using allocator_type = RingBufferAllocator<Node>;
 
-    std::atomic_uint64_t m_head, m_tail;    //!< head and tail of the underlying queue data structure
-    allocator_type m_allocator;    //!< allocator used by the queue
+    PaddedAtomic m_head, m_tail;  //!< head and tail of the underlying queue data structure
+    allocator_type m_allocator;   //!< allocator used by the queue
 
 #ifdef _DEBUG
     std::atomic_uint32_t m_num_elements_enqueued;    //!< total number of elements ever added into the queue
