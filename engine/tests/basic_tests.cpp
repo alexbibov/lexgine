@@ -33,6 +33,7 @@
 #include <engine/core/dx/d3d12/task_caches/root_signature_compilation_task_cache.h>
 
 #include <engine/core/misc/uuid.h>
+#include <engine/interaction/console_command.h>
 
 
 class TestErrorBehavioral
@@ -490,18 +491,36 @@ TEST(EngineTests_gpu, TestD3D12PSOXMLParser)
 
 }
 
-class CacheTest : public testing::Test
+class LogTestBase : public testing::Test
 {
+protected:
+    explicit LogTestBase(char const* log_name)
+        : m_log_name{ log_name }
+    {
+    }
+
 protected:
     void SetUp() override
     {
         std::filesystem::path test_logging_path = std::filesystem::current_path() / "test.log";
-        lexgine::core::misc::Log::create(test_logging_path, "CacheTest", lexgine::core::misc::LogMessageType::information);
+        lexgine::core::misc::Log::create(test_logging_path, m_log_name, lexgine::core::misc::LogMessageType::information);
     }
 
     void TearDown() override
     {
         lexgine::core::misc::Log::shutdown();
+    }
+
+private:
+    char const* m_log_name;
+};
+
+class CacheTest : public LogTestBase
+{
+public:
+    CacheTest()
+        : LogTestBase{ "CacheTest" }
+    {
     }
 };
 
@@ -772,6 +791,48 @@ TEST(EngineTests_Basic, TestUuid)
     lexgine::core::misc::UUID uuid1{"abcdef12-3456-7890-1234-567890abcdef"};
     EXPECT_TRUE(uuid1.loPart() == 0x1234567890abcdef);
     EXPECT_TRUE(uuid1.hiPart() == 0xabcdef1234567890);
+}
+
+class ConsoleCommandTest : public LogTestBase
+{
+public:
+    ConsoleCommandTest()
+        : LogTestBase{ "ConsoleCommandTest" }
+    {
+    }
+};
+
+TEST_F(ConsoleCommandTest, TestConsoleCommandParsing)
+{
+    using namespace lexgine::interaction::console;
+
+    CommandRegistry registry{};
+    registry.addNamespace("ns", "test namespace");
+
+    CommandSpec spec{};
+    spec.name = "testcmd";
+    spec.summary = "test command";
+    spec.args = {
+        { "x", "first arg", value_parsers::int_parser, std::nullopt },
+        { "y", "second arg", value_parsers::int_parser, std::nullopt },
+        { "z", "third arg", value_parsers::int_parser, std::nullopt }
+    };
+    spec.initAutocompleter();
+
+    registry.addCommand("ns", spec, [](ArgMap const&) -> CommandExecResult
+        {
+            return { true, "" };
+        });
+
+    registry.setQuery("ns.testcmd 1,2,z=3");
+    auto schema = registry.invokeQuery();
+    ASSERT_TRUE(schema.has_value());
+
+    ArgMap const& args = schema->args;
+    EXPECT_EQ(args.size(), 3U);
+    EXPECT_EQ(std::get<int>(args.at("x")), 1);
+    EXPECT_EQ(std::get<int>(args.at("y")), 2);
+    EXPECT_EQ(std::get<int>(args.at("z")), 3);
 }
 
 

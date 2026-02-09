@@ -180,7 +180,7 @@ void CommandRegistry::setQuery(std::string const& query)
 				{
 					// Found command and namespace, auto-complete command arguments
 					Token const& id = m_query_tokens.back();
-					std::string_view current_input = id.tag == TokenTag::idendifier ? extractToken(id) : std::string_view{};
+					std::string_view current_input = id.tag == TokenTag::idendifier && id.start_index > command_token.start_index ? extractToken(id) : std::string_view{};
 					m_autocompletion_context = { .autocompleter = command_iter->second.spec.autocompleter, .current_input = current_input };
 				}
 				else
@@ -270,20 +270,64 @@ void CommandRegistry::tokenize()
 {
 	m_query_tokens.clear();
 	Token current_token{.start_index = 0, .count = 0};
-	for (size_t i = 0; i < m_current_query.size(); ++i)
-	{
-		if (isSeparator(m_current_query[i]))
+	auto is_operator = [](std::string const& str, size_t start_position) -> int
 		{
-			if (current_token.count > 0)
+			for (std::string& op : s_operators)
 			{
-				m_query_tokens.push_back(current_token);
+				if (start_position + op.length() <= str.size()
+					&& op == std::string_view{ str.data() + start_position, op.length() })
+				{
+					return op.length();
+				}
 			}
-			current_token.start_index = i + 1;
-			current_token.count = 0;
-			continue;
+			return -1;
+		};
+
+	{
+		size_t i = 0;
+		while (i < m_current_query.size())
+		{
+			if (isSeparator(m_current_query[i]))
+			{
+				if (current_token.count)
+				{
+					m_query_tokens.push_back(current_token);
+					current_token = { .start_index = i + 1 };
+				}
+				else
+				{
+					++current_token.start_index;
+				}
+				++i;
+				continue;
+			}
+			{
+				int operator_token_length = is_operator(m_current_query, i);
+				if (operator_token_length != -1)
+				{
+					if (current_token.count)
+					{
+						m_query_tokens.push_back(current_token);
+						current_token = { .start_index = i + operator_token_length };
+					}
+					else
+					{
+						current_token.start_index += operator_token_length;
+					}
+					m_query_tokens.push_back({ .start_index = i, .count = static_cast<size_t>(operator_token_length) });
+					i += operator_token_length;
+					continue;
+				}
+			}
+			++i;
+			++current_token.count;
 		}
-		++current_token.count;
+		if (current_token.count)
+		{
+			m_query_tokens.push_back(current_token);
+		}
 	}
+	
 	for (size_t i = 0; i < m_query_tokens.size(); ++i)
 	{
 		Token& t = m_query_tokens[i];
@@ -307,7 +351,7 @@ std::pair<CommandRegistry::Token, size_t> CommandRegistry::extractNamespaceToken
 		&& m_query_tokens[c].tag == TokenTag::idendifier
 		&& extractToken(m_query_tokens[c + 1]) == s_dereference)
 	{
-		namespace_token.count += m_query_tokens[c + 1].start_index + m_query_tokens[c + 1].count - namespace_token.start_index;
+		namespace_token.count += m_query_tokens[c].start_index + m_query_tokens[c].count - namespace_token.start_index;
 		c += 2;
 	}
 	return { namespace_token, c };
@@ -460,7 +504,7 @@ std::optional<CommandExecutionSchema> CommandRegistry::parse() const
 		}
 
 		// parse trailing named arguments
-		while (c + 3 < m_query_tokens.size()
+		while (c + 2 < m_query_tokens.size()
 			&& m_query_tokens[c].tag == TokenTag::idendifier
 			&& m_query_tokens[c + 1].tag == TokenTag::operation
 			&& m_query_tokens[c + 2].tag == TokenTag::idendifier)
