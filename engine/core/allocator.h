@@ -23,16 +23,22 @@ public:
     public:
         template <typename... Args>
         inline memory_block_type(Args&&... args)
-            : obj { std::forward<Args>(args)... }
+            : m_obj { std::forward<Args>(args)... }
         {
         }
 
     public:
-        inline T* operator->() { return &obj; }
-        inline T const* operator->() const { return &obj; }
+        inline T* operator->() { return &m_obj; }
+        inline T const* operator->() const { return &m_obj; }
+
+    protected:
+        void freeInternal()
+        {
+            m_obj.~T();
+        }
 
     private:
-        T obj; //!< allocated object instance
+        T m_obj; //!< allocated object instance
     };
 
     
