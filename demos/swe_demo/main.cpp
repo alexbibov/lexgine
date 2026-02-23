@@ -26,7 +26,7 @@ lexgine::EngineSettings createEngineSettings()
     settings.setEngineApi(EngineApi::Direct3D12);
     auto engineApi = settings.getEngineApi();
 
-    settings.setDebugMode(false);
+    settings.setDebugMode(true);
     settings.setEnableProfiling(true);
     settings.setGlobalSettingsJsonFile("global_settings.json");
     settings.setLoggingOutputPath("");
