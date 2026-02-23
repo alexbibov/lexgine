@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <array>
 #include <iterator>
-#include "console_command_autocomplete.h"
+#include "console_token_autocomplete.h"
 
 namespace lexgine::interaction::console
 { 
@@ -17,6 +17,7 @@ void ConsoleTokenAutocomplete::clearTokenPool()
 void ConsoleTokenAutocomplete::addToken(const std::string& token_name)
 {
 	m_pool.push_back(Candidate{ token_name });
+    m_token_filter.addToken(token_name);
 	size_t id = m_pool.size() - 1;
 	placeInBucket(id, m_pool[id].dist);
 }
@@ -132,7 +133,6 @@ void ConsoleTokenAutocomplete::placeInBucket(size_t id, size_t d)
 	if (d >= m_buckets.size()) m_buckets.resize(d + 1);
 	m_buckets[d].reserve(std::max(m_pool.size(), c_preReservedCommandCount));
 	m_buckets[d].push_back(id);
-	m_pool[id].bucket_idx = d;
 	m_pool[id].place_in_bucket = m_buckets[d].size() - 1;
 	m_pool[id].placed = true;
 }
@@ -279,7 +279,6 @@ void ConsoleTokenAutocomplete::Candidate::reset()
 	std::iota(prev.begin(), prev.end(), 0);  // Initialize Levenshtein distance DP-iterations
 	dist = static_cast<uint16_t>(n);
 	placed = false;
-	bucket_idx = 0;
 }
 
 void ConsoleTokenAutocomplete::Candidate::rotateRows()

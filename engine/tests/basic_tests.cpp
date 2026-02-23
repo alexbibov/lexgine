@@ -817,7 +817,6 @@ TEST_F(ConsoleCommandTest, TestConsoleCommandParsing)
         { "y", "second arg", value_parsers::int_parser, std::nullopt },
         { "z", "third arg", value_parsers::int_parser, std::nullopt }
     };
-    spec.initAutocompleter();
 
     registry.addCommand("ns", spec, [](ArgMap const&) -> CommandExecResult
         {

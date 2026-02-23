@@ -11,7 +11,7 @@
 
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
-#include "console_command_autocomplete.h"
+#include "console_token_autocomplete.h"
 
 namespace lexgine::interaction::console
 {
@@ -48,7 +48,6 @@ struct CommandSpec
 	std::vector<ArgSpec> args;
 	ConsoleTokenAutocomplete autocompleter;  //!< context auto-completion for argument names when using name=value argument assignment syntax
 	std::pair<std::string_view, uint16_t> findMostLikelyArgName(std::string_view const& requested_arg_name) const;
-	void initAutocompleter();
 };
 
 struct CommandExecResult

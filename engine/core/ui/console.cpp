@@ -104,7 +104,6 @@ std::shared_ptr<Console> Console::create(
 				.parser = log_message_type_parser
 			}
 		);
-		logging_test_command.initAutocompleter();
 
 		rv->m_command_registry.addCommand(
 			logging_test_command, 

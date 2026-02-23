@@ -1,10 +1,12 @@
-#ifndef CONSOLE_COMMAND_AUTOCOMPLETE_H
-#define CONSOLE_COMMAND_AUTOCOMPLETE_H
+#ifndef CONSOLE_TOKEN_AUTOCOMPLETE_H
+#define CONSOLE_TOKEN_AUTOCOMPLETE_H
 
 #include <vector>
 #include <string>
 #include <unordered_map>
 #include <numeric>
+
+#include "console_token_filter.h"
 
 namespace lexgine::interaction::console
 {
@@ -42,7 +44,6 @@ private:
 		std::vector<uint16_t> curr;   // scratch row reused to avoid realloc
 		uint16_t dist;                // current OSA distance
 		// bucket bookkeeping
-		size_t bucket_idx{ 0 };
 		size_t place_in_bucket;
 		bool placed{ false };
 
@@ -61,6 +62,7 @@ private:
 	std::vector<std::vector<size_t>> m_buckets; // buckets[d] = list of ids at distance d
 	std::string m_query;
 	size_t m_suggestion_count = 10;	
+	ConsoleTokenFilter m_token_filter;
 };
 
 }
