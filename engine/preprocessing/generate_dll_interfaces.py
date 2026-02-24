@@ -115,7 +115,7 @@ def main(arguments: argparse.Namespace):
 
     all_exported_resources: List[common_types.ExportedResourceDescriptor] = []
     inherited_types: List[Tuple[common_types.LexgineNamespace, str]] = []
-    using_directives: Dict[str, str] = {}
+    using_directives: Dict[str, CppVariable] = {}
 
     api_resources = [Path(e) for e in configuration.get("api_resources", [])]
 
@@ -207,8 +207,6 @@ def main(arguments: argparse.Namespace):
             inherited_types.extend(new_inherited_types)
 
             if len(exported_nested_classes):
-                if parsed_class.get("line_number", -1) <= 0:
-                    return rv
                 parsed_class_line_number_zb = parsed_class["line_number"] - 1
                 parsed_class_begin_idx = util.get_line_offset(header_source, parsed_class_line_number_zb)
                 _, parsed_class_end_idx = util.extract_scope(header_source, parsed_class_begin_idx,
