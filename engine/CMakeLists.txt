@@ -67,13 +67,11 @@ target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}"
                                               "${CMAKE_SOURCE_DIR}/api"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/inc/"
-                                              "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/Include/WinPixEventRuntime/"
                                               "${CMAKE_BINARY_DIR}"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/DirectXTex/"
                                               "${imgui_SOURCE_DIR}")
 
 target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
-target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/bin/${CMAKE_VS_PLATFORM_NAME}/")
 target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
 
 set(_engine_lib_dependencies
@@ -104,37 +102,61 @@ target_compile_definitions(${_target} PUBLIC USE_PIX)
 
 configure_openmp_support(${_target})
 
+add_executable(basic_tests tests/basic_tests.cpp)  # target for tests
+
 if (MSVC)
     add_compile_definitions(_UNICODE)
     add_compile_definitions(UNICODE)
 
-    find_program(NUGET nuget ${CMAKE_SOURCE_DIR})
-    if(NOT NUGET)
-        message(FATAL_ERROR "CMake was not able to locate nuget command line tool")
+    set(PIX_VER "1.0.240308001")
+    set(PIX_ROOT "${CMAKE_BINARY_DIR}/nuget_packages/WinPixEventRuntime.${PIX_VER}")
+    set(PIX_NUPKG "${CMAKE_BINARY_DIR}/nuget_packages/WinPixEventRuntime.${PIX_VER}.nupkg")
+
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/nuget_packages")
+
+    if(NOT EXISTS "${PIX_ROOT}")
+        file(
+            DOWNLOAD
+            "https://www.nuget.org/api/v2/package/WinPixEventRuntime/${PIX_VER}"
+            "${PIX_NUPKG}"
+            TLS_VERIFY ON
+        )
+        file(
+            ARCHIVE_EXTRACT
+            INPUT "${PIX_NUPKG}"
+            DESTINATION "${PIX_ROOT}"
+        )
     endif()
 
-    set_property(TARGET ${_target} PROPERTY VS_PACKAGE_REFERENCES "WinPixEventRuntime_1.0.240308001")
+    # choose arch folder (expand as needed)
+    set(_pix_arch "$<$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},ARM64>:ARM64>$<$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},x64>:x64>")
 
-    # Configure Nuget packages for the project
-    configure_file(packages.config.in packages.config COPYONLY)
+    add_library(WinPixEventRuntime INTERFACE)
+    target_include_directories(WinPixEventRuntime INTERFACE "${PIX_ROOT}/include/WinPixEventRuntime")
+    target_link_directories(WinPixEventRuntime INTERFACE "${PIX_ROOT}/bin/${_pix_arch}")
+    target_link_libraries(WinPixEventRuntime INTERFACE WinPixEventRuntime.lib)
+    target_link_libraries(${_target} PRIVATE WinPixEventRuntime)
+    target_link_libraries(basic_tests PRIVATE WinPixEventRuntime)
 
-    # Run Nuget to install any missing dependencies using packages.config
-    execute_process(COMMAND ${NUGET} restore packages.config -SolutionDirectory ${CMAKE_BINARY_DIR}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-		
-	file(COPY ${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/bin/${CMAKE_VS_PLATFORM_NAME}/WinPixEventRuntime.dll DESTINATION ${_build_runtime_output_directory})
+    add_custom_command(
+        TARGET ${_target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PIX_ROOT}/bin/${_pix_arch}/WinPixEventRuntime.dll"
+        "${_build_runtime_output_directory}/WinPixEventRuntime.dll"
+         VERBATIM
+    )
+
 endif()
 
-set(_dxc_binary_path ${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/bin/${CMAKE_VS_PLATFORM_NAME}/)
+set(_dxc_binary_path ${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/bin/${CMAKE_GENERATOR_PLATFORM}/)
 file(COPY ${_dxc_binary_path}/dxcompiler.dll DESTINATION ${_build_runtime_output_directory})
 file(COPY ${_dxc_binary_path}/dxil.dll DESTINATION ${_build_runtime_output_directory})
+
 
 set_property(TARGET ${_target} PROPERTY OUTPUT_NAME "lexgine")
 
 # ******************************************************* Tests *******************************************************
 enable_testing()
-
-add_executable(basic_tests tests/basic_tests.cpp)
 
 add_dependencies(basic_tests ${_target})
 
@@ -147,7 +169,6 @@ target_include_directories(basic_tests PRIVATE "${CMAKE_SOURCE_DIR}"
                                                "${glm_SOURCE_DIR}")
 
 target_link_directories(basic_tests PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
-target_link_directories(basic_tests PRIVATE "${CMAKE_BINARY_DIR}/packages/WinPixEventRuntime.1.0.240308001/bin/${CMAKE_VS_PLATFORM_NAME}/")
 target_link_directories(basic_tests PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
 
 target_link_libraries(basic_tests PRIVATE GTest::gtest_main)
