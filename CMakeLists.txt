@@ -94,19 +94,19 @@ CPMAddPackage(
     DOWNLOAD_ONLY TRUE
 )
 if(imgui_ADDED)
-file(
-    DOWNLOAD
-    "https://gist.githubusercontent.com/rokups/f771217b2d530d170db5cb1e08e9a8f4/raw/4c2c14374ab878ca2f45daabfed4c156468e4e27/CMakeLists.txt"
-    "${imgui_SOURCE_DIR}/CMakeLists.txt"
-    EXPECTED_HASH SHA256=fd62f69364ce13a4f7633a9b50ae6672c466bcc44be60c69c45c0c6e225bb086
-)
-set(IMGUI_EXAMPLES FALSE)
-set(IMGUI_DEMO FALSE)
-set(IMGUI_ENABLE_STDLIB_SUPPORT TRUE)
-set(IMGUI_IMPL_SDL FALSE)
-set(IMGUI_IMPL_GLUT FALSE)
+    file(
+        DOWNLOAD
+        "https://gist.githubusercontent.com/rokups/f771217b2d530d170db5cb1e08e9a8f4/raw/4c2c14374ab878ca2f45daabfed4c156468e4e27/CMakeLists.txt"
+        "${imgui_SOURCE_DIR}/CMakeLists.txt"
+        EXPECTED_HASH SHA256=fd62f69364ce13a4f7633a9b50ae6672c466bcc44be60c69c45c0c6e225bb086
+    )
+    set(IMGUI_EXAMPLES FALSE)
+    set(IMGUI_DEMO FALSE)
+    set(IMGUI_ENABLE_STDLIB_SUPPORT TRUE)
+    set(IMGUI_IMPL_SDL FALSE)
+    set(IMGUI_IMPL_GLUT FALSE)
 else()
-message(ERROR "Unable to configure ImGui")
+    message(ERROR "Unable to configure ImGui")
 endif()
 #########################################
 

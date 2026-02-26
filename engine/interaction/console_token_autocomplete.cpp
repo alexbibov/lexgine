@@ -17,7 +17,7 @@ void ConsoleTokenAutocomplete::clearTokenPool()
 void ConsoleTokenAutocomplete::addToken(const std::string& token_name)
 {
 	m_pool.push_back(Candidate{ token_name });
-    m_token_filter.addToken(token_name);
+    m_token_filter.addToken(token_name, static_cast<size_t>(m_pool.size() - 1));
 	size_t id = m_pool.size() - 1;
 	placeInBucket(id, m_pool[id].dist);
 }

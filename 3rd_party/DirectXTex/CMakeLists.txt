@@ -94,8 +94,9 @@ if(DirectXTex_BUILD_DX11 AND WIN32)
       MAIN_DEPENDENCY "${PROJECT_SOURCE_DIR}/Shaders/CompileShaders.cmd"
       DEPENDS ${SHADER_SOURCES}
       COMMENT "Generating HLSL shaders..."
-      COMMAND ${CMAKE_COMMAND} -E env CompileShadersOutput="${COMPILED_SHADERS}" CompileShaders.cmd > "${COMPILED_SHADERS}/compileshaders.log"
+      COMMAND ${CMAKE_COMMAND} -E env CompileShadersOutput="${COMPILED_SHADERS}" cmd /c call CompileShaders.cmd > "${COMPILED_SHADERS}/compileshaders.log"
       WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/Shaders"
+      VERBATIM
       USES_TERMINAL
     )
 endif()
