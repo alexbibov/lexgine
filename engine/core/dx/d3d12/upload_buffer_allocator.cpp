@@ -89,23 +89,18 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
     assert(size_in_bytes != 0);
 
     std::lock_guard<std::mutex> lock{ m_access_semaphore };
+	size_in_bytes = misc::align(size_in_bytes, 256);
     
     // try to allocate space in unpartitioned part of the buffer
     if (m_unpartitioned_chunk_size >= size_in_bytes)
     {
         uint32_t new_allocation_start = m_buffer_size - m_unpartitioned_chunk_size;
-        uint32_t new_allocation_end = static_cast<uint32_t>(misc::align(new_allocation_start + size_in_bytes, 256));
-
+        uint32_t new_allocation_end = static_cast<uint32_t>(new_allocation_start + size_in_bytes);
+        assert(new_allocation_end - new_allocation_start <= m_unpartitioned_chunk_size);
+		assert(new_allocation_end <= m_buffer_size);
         memory_block_type& new_memory_block = allocateNewMemoryBlock(new_allocation_start, new_allocation_end);
-        
-        if (new_allocation_end <= m_unpartitioned_chunk_size)
-        {
-            m_unpartitioned_chunk_size -= new_allocation_end;
-        } else 
-        {
-            m_unpartitioned_chunk_size = 0;
-        }
-
+        m_unpartitioned_chunk_size -= (new_allocation_end - new_allocation_start);
+        assert(m_unpartitioned_chunk_size <= m_buffer_size);
         return { &new_memory_block };
     }
 
@@ -125,10 +120,8 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
 
     // Unable to allocate more space, the buffer is exhausted
     LEXGINE_LOG_ERROR(this,
-        "Unable to allocate block in upload buffer. Requested size of the allocation ("
-            + std::to_string(size_in_bytes) + " bytes) exceeds the remaining capacity of the buffer ("
-            + std::to_string(m_unpartitioned_chunk_size) + " bytes with total of " + std::to_string(m_fragmentation_capacity)
-            + " fragmented bytes)");
+        std::format("Unable to allocate {} bytes in upload buffer. Requested size exceeds the remaining capacity of the buffer ({} bytes)",
+            size_in_bytes, m_unpartitioned_chunk_size));
 
     return { nullptr };
 }
@@ -161,17 +154,17 @@ Resource const& UploadDataAllocator::getUploadResource() const
 
 UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t size_in_bytes, bool is_blocking_call)
 {
-    if (m_allocation_hint.bucket_iter->empty() || m_allocation_hint.block()->m_controlling_signal_value == nextValueOfControllingSignal()) 
+	uint64_t next_controlling_signal_value = nextValueOfControllingSignal();
+    if (m_allocation_hint.bucket_iter->empty() || m_allocation_hint.block()->m_controlling_signal_value == next_controlling_signal_value)
     {
         return { nullptr };
     }
 
     // attempt to allocate space within the "allocation hint" (wrap-around mode)
-
     size_t space_retrieved{ 0 };
-    uint32_t trailing_end_allocation_addr{ m_allocation_hint.block()->m_allocation_begin };
     uint64_t controlling_signal_value{ 0 };
-
+	size_t begin_of_new_allocation = m_allocation_hint.block()->m_allocation_begin;
+	size_t trailing_end_allocation_addr{ begin_of_new_allocation };
     list_of_allocation_buckets::iterator p{};
     allocation_bucket::iterator q{};
     for (p = m_allocation_hint.bucket_iter; p != m_blocks.end(); ++p) {
@@ -179,25 +172,27 @@ UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t s
             space_retrieved < size_in_bytes && q != p->end();
             ++q) {
             memory_block_type& memory_block = *q;
-            if (memory_block->m_controlling_signal_value == nextValueOfControllingSignal())
+            if (memory_block->m_controlling_signal_value == next_controlling_signal_value)
             {
                 break;
             }
 
             size_t current_end_addr = memory_block->m_allocation_end;
-            space_retrieved += current_end_addr - trailing_end_allocation_addr;
-            m_fragmentation_capacity -= memory_block->m_allocation_begin - trailing_end_allocation_addr;
-            trailing_end_allocation_addr = current_end_addr;
-            controlling_signal_value = (std::max)(controlling_signal_value, memory_block->m_controlling_signal_value);
+            if (current_end_addr >= trailing_end_allocation_addr)
+            {
+                space_retrieved += (current_end_addr - trailing_end_allocation_addr);
+                trailing_end_allocation_addr = current_end_addr; 
+            }
+			controlling_signal_value = (std::max)(controlling_signal_value, memory_block->m_controlling_signal_value);
         }
 
         if (space_retrieved >= size_in_bytes) {
             break;
         }
 
-        /*if ((*q)->m_controlling_signal_value == nextValueOfControllingSignal()) {
+        if (q != p->end() && (*q)->m_controlling_signal_value == next_controlling_signal_value) {
             break;
-        }*/
+        }
     }
 
     if (p == m_blocks.end()) {
@@ -215,11 +210,23 @@ UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t s
             return { nullptr };
         }
 
+        // Reclaim memory
+        for (auto p1 = m_allocation_hint.bucket_iter; p1 != (p != m_blocks.end() ? std::next(p) : m_blocks.end()); ++p1)
+        {
+            for (auto q1 = (p1 == m_allocation_hint.bucket_iter ? m_allocation_hint.block_iter : p1->begin());
+                q1 != (p1 != p ? p1->end() : q);
+                ++q1)
+            {
+                memory_block_type& memory_block = *q1;
+                memory_block->m_allocation_begin = memory_block->m_allocation_end = trailing_end_allocation_addr;
+            }
+        }
+        
         memory_block_type& reused_memory_block = m_allocation_hint.block();
-
-        size_t end_of_new_allocation = reused_memory_block->m_allocation_begin + static_cast<uint32_t>(misc::align(size_in_bytes, 256));
+        size_t end_of_new_allocation = begin_of_new_allocation + size_in_bytes;
+        reused_memory_block->m_allocation_begin = begin_of_new_allocation;
         reused_memory_block->m_allocation_end = end_of_new_allocation;
-        reused_memory_block->m_controlling_signal_value = nextValueOfControllingSignal();
+        reused_memory_block->m_controlling_signal_value = next_controlling_signal_value;
 
         ++m_allocation_hint.block_iter;
         if (m_allocation_hint.block_iter == m_allocation_hint.bucket_iter->end()) {
@@ -229,22 +236,36 @@ UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t s
             }
         }
 
-        if (trailing_end_allocation_addr > end_of_new_allocation) {
+        if (trailing_end_allocation_addr > end_of_new_allocation) 
+        {
             // some unpartitioned space remained, attempt to track it within one of retired memory blocks
             if (m_allocation_hint.bucket_iter != m_blocks.end()) {
                 memory_block_type& memory_block = m_allocation_hint.block();
-                if (memory_block->m_controlling_signal_value <= lastSignaledValueOfControllingSignal()) {
+                uint64_t last_value_of_control_signal = lastSignaledValueOfControllingSignal();
+                if (memory_block->m_controlling_signal_value <= last_value_of_control_signal)
+                {
                     memory_block->m_allocation_begin = end_of_new_allocation;
-                    memory_block->m_allocation_end = (std::max)(trailing_end_allocation_addr, memory_block->m_allocation_end);
+                    memory_block->m_allocation_end = (std::max)(static_cast<uint32_t>(trailing_end_allocation_addr), memory_block->m_allocation_end);
                 }
-                else {
-                    m_fragmentation_capacity += trailing_end_allocation_addr - end_of_new_allocation;
+                else
+                {
+                    reused_memory_block->m_allocation_end = trailing_end_allocation_addr;
                 }
             }
-            else {
+            else 
+            {
                 // trailing memory partitions are exhausted, add the remaining space to unpartitioned chunk
-                m_unpartitioned_chunk_size += trailing_end_allocation_addr - end_of_new_allocation;
+                m_unpartitioned_chunk_size += (trailing_end_allocation_addr - end_of_new_allocation);
+                assert(m_unpartitioned_chunk_size <= m_buffer_size);
             }
+        }
+        else if(p == m_blocks.end())
+        {
+            m_unpartitioned_chunk_size -= (end_of_new_allocation - trailing_end_allocation_addr);
+            assert(m_unpartitioned_chunk_size <= m_buffer_size);
+        }
+        else {
+            assert(trailing_end_allocation_addr == end_of_new_allocation);
         }
 
         if (m_allocation_hint.bucket_iter == m_blocks.end()) {
@@ -253,6 +274,9 @@ UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t s
             m_allocation_hint.block_iter = m_blocks.front().begin();
         }
 
+        ++reused_memory_block->m_memory_reclamation_counter;
+		assert(reused_memory_block->m_allocation_end - reused_memory_block->m_allocation_begin >= size_in_bytes);
+		assert(reused_memory_block->m_allocation_end <= m_buffer_size);
         return { &reused_memory_block };
     }
 

@@ -159,7 +159,6 @@ void Profiler::constructUI()
             ImGui::Text("FPS: %f", getFPS());
             ImGui::Text("Constant data stream partition count: %u", m_basic_rendering_services.constantDataStream().getPartitionsCount());
             ImGui::Text("Unpartitioned constant buffer capacity: %u bytes", m_basic_rendering_services.constantDataStream().getUpartitionedCapacity());
-            ImGui::Text("Fragmented constant buffer capacity: %u bytes", m_basic_rendering_services.constantDataStream().getFragmentationCapacity());
             ImGui::EndGroup();
         }
     }
