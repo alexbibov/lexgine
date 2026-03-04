@@ -802,6 +802,8 @@ void UIDrawTask::drawFrame()
         };
 
         // upload vertex data and set rendering context state
+        Resource const& upload_buffer = m_ui_data_allocator.getUploadResource();
+        D3D12_GPU_VIRTUAL_ADDRESS upload_buffer_gpu_address = upload_buffer.getGPUVirtualAddress();
         {
             if (p_draw_data->DisplaySize.x <= 0 || p_draw_data->DisplaySize.y <= 0)
                 return;

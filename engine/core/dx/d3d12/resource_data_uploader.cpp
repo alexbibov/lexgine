@@ -212,7 +212,7 @@ bool ResourceDataUploader::isUploadFinished() const
 
 uint64_t ResourceDataUploader::availableCapacity() const
 {
-    return m_upload_buffer_allocator.getFragmentationCapacity() + m_upload_buffer_allocator.getUnpartitionedCapacity();
+    return m_upload_buffer_allocator.getUnpartitionedCapacity();
 }
 
 void ResourceDataUploader::beginCopy(DestinationDescriptor const& destination_descriptor)

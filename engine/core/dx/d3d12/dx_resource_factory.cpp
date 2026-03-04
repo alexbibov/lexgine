@@ -143,15 +143,23 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHe
     auto p = m_upload_heap_partitions.find(&upload_heap);
     if (p == m_upload_heap_partitions.end())
     {
-        upload_heap_partitioning new_partitioning{};
-        new_partitioning.partitioned_space_size = aligned_section_size;
-        auto q = new_partitioning.partitioning.insert(std::make_pair(
-            misc::HashedString{ section_name },
-            UploadHeapPartition{ 0ULL, aligned_section_size }
-        )).first;
+        if (aligned_section_size <= upload_heap.capacity())
+        {
+            upload_heap_partitioning new_partitioning{};
+            new_partitioning.partitioned_space_size = aligned_section_size;
+            auto q = new_partitioning.partitioning.insert(std::make_pair(
+                misc::HashedString{ section_name },
+                UploadHeapPartition{ 0ULL, aligned_section_size }
+            )).first;
 
-        m_upload_heap_partitions.insert(std::make_pair(&upload_heap, new_partitioning));
-        return q->second;
+            m_upload_heap_partitions.insert(std::make_pair(&upload_heap, new_partitioning));
+            return q->second;
+        }
+        else
+        {
+            LEXGINE_THROW_ERROR(std::format("Unable to allocate named section {} in upload heap {}: requested {} bytes, when only {} is avaialble",
+                section_name, upload_heap.getStringName(), aligned_section_size, upload_heap.capacity()));
+        }
     }
     else
     {
@@ -169,8 +177,8 @@ misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHe
             }
             else
             {
-                LEXGINE_THROW_ERROR("Unable to allocated named section \"" + section_name
-                    + "\" in upload heap \"" + upload_heap.getStringName() + "\": the heap is exhausted");
+				LEXGINE_THROW_ERROR(std::format("Unable to allocate named section {} in upload heap {}: requested {} bytes, when only {} is avaialble",
+					section_name, upload_heap.getStringName(), aligned_section_size, upload_heap.capacity() - p->second.partitioned_space_size));
             }
         }
         else

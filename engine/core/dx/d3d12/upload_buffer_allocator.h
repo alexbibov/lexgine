@@ -45,6 +45,7 @@ private:
     uint64_t m_controlling_signal_value;
     uint32_t m_allocation_begin;
     uint32_t m_allocation_end;
+    uint64_t m_memory_reclamation_counter{ 0 };
 };
 
 class UploadDataAllocator : public Allocator<UploadDataBlock>,
@@ -68,7 +69,6 @@ public:
 
     size_t getPartitionsCount() const;
     uint64_t getUnpartitionedCapacity() const { return m_unpartitioned_chunk_size; }
-    uint64_t getFragmentationCapacity() const { return m_fragmentation_capacity; }
 
     Resource const& getUploadResource() const;
 
@@ -101,7 +101,6 @@ private:
 
     uint64_t const m_buffer_size{};
     uint64_t m_unpartitioned_chunk_size;
-    uint64_t m_fragmentation_capacity{ 0 };
 
     void* m_upload_buffer_cpu_address;
     uint64_t m_upload_buffer_gpu_virtual_address;

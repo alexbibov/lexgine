@@ -48,12 +48,6 @@ uint64_t lexgine::core::dx::d3d12::ConstantBufferStream::getUpartitionedCapacity
 {
     return m_allocator->getUnpartitionedCapacity();
 }
-
-uint64_t lexgine::core::dx::d3d12::ConstantBufferStream::getFragmentationCapacity() const
-{
-    return m_allocator->getFragmentationCapacity();
-}
-
 PerFrameUploadDataStreamAllocator::address_type ConstantBufferStream::allocate(uint64_t size)
 {
     return m_allocator->allocate(size);

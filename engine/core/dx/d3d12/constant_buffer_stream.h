@@ -18,7 +18,6 @@ public:
     uint64_t totalCapacity() const;
     size_t getPartitionsCount() const;
     uint64_t getUpartitionedCapacity() const;
-    uint64_t getFragmentationCapacity() const;
 
     typename PerFrameUploadDataStreamAllocator::address_type allocate(uint64_t size);
 
