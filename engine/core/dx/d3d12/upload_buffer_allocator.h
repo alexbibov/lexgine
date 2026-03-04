@@ -45,7 +45,6 @@ private:
     uint64_t m_controlling_signal_value;
     uint32_t m_allocation_begin;
     uint32_t m_allocation_end;
-    uint64_t m_memory_reclamation_counter{ 0 };
 };
 
 class UploadDataAllocator : public Allocator<UploadDataBlock>,

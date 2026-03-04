@@ -107,6 +107,82 @@ std::pair<std::string_view, uint16_t> CommandSpec::findMostLikelyArgName(std::st
 CommandRegistry::CommandRegistry()
 {
 	addNamespace("global", "global namespace");
+
+	CommandSpec help_spec{
+		.name = "help",
+		.summary = "Displays help information for a registered command"
+	};
+	help_spec.args.push_back({
+		.name = "function",
+		.description = "Name of the command (omit to show namespace description)",
+		.parser = value_parsers::string_parser,
+		._default = std::string{}
+	});
+	help_spec.args.push_back({
+		.name = "namespace",
+		.description = "Namespace of the command",
+		.parser = value_parsers::string_parser,
+		._default = std::string{ "global" }
+	});
+	addCommand(help_spec, [this](ArgMap const& args) -> CommandExecResult
+	{
+		std::string function_name  = std::get<std::string>(args.at("function"));
+		std::string namespace_name = std::get<std::string>(args.at("namespace"));
+
+		auto ns_it = m_namespaces.find(namespace_name);
+		if (ns_it == m_namespaces.end())
+		{
+			LEXGINE_LOG_ERROR(this, std::format("Namespace '{}' not found", namespace_name));
+			return { .succeeded = false, .msg = std::format("Namespace '{}' not found", namespace_name) };
+		}
+
+		lexgine::core::misc::Log* log = lexgine::core::misc::Log::retrieve();
+		if (!log) return { .succeeded = false, .msg = "Logger unavailable" };
+
+		NamespaceSpec const& ns_spec = ns_it->second;
+
+		if (function_name.empty())
+		{
+			log->out(std::format("{} -- {}", namespace_name, ns_spec.summary),
+				lexgine::core::misc::LogMessageType::information);
+			for (auto const& [cmd_name, cmd] : ns_spec.commands)
+			{
+				log->out(std::format("  {}", cmd_name), lexgine::core::misc::LogMessageType::information);
+			}
+			return { .succeeded = true };
+		}
+
+		auto cmd_it = ns_spec.commands.find(function_name);
+		if (cmd_it == ns_spec.commands.end())
+		{
+			LEXGINE_LOG_ERROR(this, std::format("Command '{}' not found in namespace '{}'", function_name, namespace_name));
+			return { .succeeded = false, .msg = std::format("Command '{}' not found in namespace '{}'", function_name, namespace_name) };
+		}
+
+		CommandSpec const& spec = cmd_it->second.spec;
+		log->out(std::format("{}:{} -- {}", namespace_name, function_name, spec.summary),
+			lexgine::core::misc::LogMessageType::information);
+		for (ArgSpec const& arg : spec.args)
+		{
+			std::string line = std::format("  [{}]: {}", arg.name, arg.description);
+			if (arg._default)
+			{
+				std::string dval;
+				std::visit([&dval](auto const& v)
+				{
+					if constexpr (std::is_same_v<std::decay_t<decltype(v)>, bool>)
+						dval = v ? "true" : "false";
+					else if constexpr (std::is_same_v<std::decay_t<decltype(v)>, std::string>)
+						dval = '"' + v + '"';
+					else
+						dval = std::to_string(v);
+				}, *arg._default);
+				line += std::format(" (default: {})", dval);
+			}
+			log->out(line, lexgine::core::misc::LogMessageType::information);
+		}
+		return { .succeeded = true };
+	});
 }
 
 void CommandRegistry::addNamespace(std::string const& namespace_name, std::string const& namespace_summary)
@@ -126,6 +202,7 @@ void CommandRegistry::addNamespace(std::string const& namespace_name, std::strin
 void CommandRegistry::addCommand(CommandSpec const& command_spec, CommandExecFn const& command_op)
 {
     addCommand("global", command_spec, command_op);
+	m_autocompleter.addToken(command_spec.name);
 }
 
 void CommandRegistry::addCommand(std::string const& namespace_name, CommandSpec const& command_spec, CommandExecFn const& command_op)
@@ -181,14 +258,23 @@ void CommandRegistry::setQuery(std::string const& query)
 				}
 				else
 				{
-					// Found namespace, but cannot find command. Suggest command names
-					m_autocompletion_context = { .autocompleter = namespace_iter->second.autocompleter, .current_input = command_id };
+					if (namespace_token.count > 0)
+					{
+						// Found namespace, but cannot find command. Suggest command names
+						m_autocompletion_context = { .autocompleter = namespace_iter->second.autocompleter, .current_input = command_id };
+					}
+					else
+					{
+						// Unable to find command, but already started entering namespace identifier. Use default suggestion context
+						m_autocompletion_context = { .autocompleter = m_autocompleter, .current_input = std::string_view{} };
+						return;
+					}
 				}
 			}
 			else
 			{
-				// Unable to find namespace, but already started entering command identifier. Suggestion context is undefined
-				m_autocompletion_context = std::nullopt;
+				// Unable to find namespace, but already started entering command identifier. Use default suggestion context
+				m_autocompletion_context = { .autocompleter = m_autocompleter, .current_input = std::string_view{} };
 				return;
 			}
 		}
@@ -245,7 +331,7 @@ std::pair<std::string_view, uint16_t> CommandRegistry::NamespaceSpec::findMostLi
 {
 	uint16_t d = requested_command_id.length();
 	std::string_view suggestion{};
-	for (auto [name, spec] : commands)
+	for (auto const& [name, spec] : commands)
 	{
 		uint16_t new_d = ConsoleTokenAutocomplete::computeDLDistance(requested_command_id, name);
 		if (new_d < d)
@@ -266,69 +352,101 @@ void CommandRegistry::tokenize()
 {
 	m_query_tokens.clear();
 	Token current_token{.start_index = 0, .count = 0};
-	auto is_operator = [](std::string const& str, size_t start_position) -> int
+	auto is_separator = [](char c) -> bool
+	{
+		for (char e : s_separators)
 		{
-			for (std::string const& op : s_operators)
+			if (e == c)
 			{
-				if (start_position + op.length() <= str.size()
-					&& op == std::string_view{ str.data() + start_position, op.length() })
-				{
-					return op.length();
-				}
+				return true;
 			}
-			return -1;
-		};
-
+		}
+		return false;
+	};
+	auto is_operator = [](std::string const& str, size_t start_position) -> int
+	{
+		for (std::string const& op : s_operators)
+		{
+			if (start_position + op.length() <= str.size()
+				&& op == std::string_view{ str.data() + start_position, op.length() })
+			{
+				return op.length();
+			}
+		}
+		return -1;
+	};
+	auto extract_string = [](std::string const& str, size_t start_position) -> Token
+	{
+		if (start_position >= str.size()
+			|| (str[start_position] != '"' && str[start_position] != '\''))
+		{
+			return Token{};
+		}
+		size_t i = start_position + 1;
+		char quote_char = str[start_position];
+		while (i < str.size() && str[i] != quote_char)
+			++i;
+		if (i >= str.size())
+		{
+			return Token{};
+		}
+		return Token{ .start_index = start_position + 1, .count = i - start_position - 1, .tag = TokenTag::string };
+	};
 	{
 		size_t i = 0;
 		while (i < m_current_query.size())
 		{
-			size_t advance = 1;
 			char c = m_current_query[i];
-
-			if (isSeparator(c))
+			if (is_separator(c))
 			{
 				if (current_token.count)
 				{
 					m_query_tokens.push_back(current_token);
 					current_token.count = 0;
 				}
-				current_token.start_index = i + advance;
+				i = current_token.start_index = i + 1;
 			}
 			else
 			{
+				bool token_found = false;
 				int operator_token_length = is_operator(m_current_query, i);
 				if (operator_token_length != -1)
 				{
+					// Found operator token
 					if (current_token.count)
 					{
 						m_query_tokens.push_back(current_token);
 						current_token.count = 0;
 					}
-					m_query_tokens.push_back({ .start_index = i, .count = static_cast<size_t>(operator_token_length) });
-					advance = static_cast<size_t>(operator_token_length);
-					current_token.start_index = i + advance;
+					m_query_tokens.push_back({ .start_index = i, .count = static_cast<size_t>(operator_token_length), .tag = TokenTag::operation });
+					i = current_token.start_index = i + static_cast<size_t>(operator_token_length);
+					token_found = true;
 				}
-				else
+				{
+					// Look-ahead for string token
+                    Token string_token = extract_string(m_current_query, i);
+					if (string_token.count)
+					{
+						if (current_token.count)
+						{
+							m_query_tokens.push_back(current_token);
+							current_token.count = 0;
+						}
+						m_query_tokens.push_back(string_token);
+						i = current_token.start_index = string_token.start_index + string_token.count + 1;  // +1 for closing quote
+						token_found = true;
+                    }
+				}
+				if(!token_found)
 				{
 					++current_token.count;
+					++i;
 				}
 			}
-
-			i += advance;
 		}
 		if (current_token.count)
 		{
 			m_query_tokens.push_back(current_token);
-		}
-	}
-	
-	for (size_t i = 0; i < m_query_tokens.size(); ++i)
-	{
-		Token& t = m_query_tokens[i];
-		if (isOperatorToken(t))
-		{
-			t.tag = TokenTag::operation;
 		}
 	}
 }
@@ -346,7 +464,7 @@ std::pair<CommandRegistry::Token, size_t> CommandRegistry::extractNamespaceToken
 		&& m_query_tokens[c].tag == TokenTag::idendifier
 		&& extractToken(m_query_tokens[c + 1]) == s_dereference)
 	{
-		namespace_token.count += m_query_tokens[c + 1].start_index + m_query_tokens[c + 1].count - namespace_token.start_index;
+		namespace_token.count = m_query_tokens[c].start_index + m_query_tokens[c].count - namespace_token.start_index;
 		c += 2;
 	}
 	return { namespace_token, c };
@@ -450,10 +568,15 @@ std::optional<CommandExecutionSchema> CommandRegistry::parse() const
 
 		// parse value arguments
 		size_t command_argument_counter = 0;
-		while (c < m_query_tokens.size() && m_query_tokens[c].tag == TokenTag::idendifier)
+		while (c < m_query_tokens.size() 
+			&& (m_query_tokens[c].tag == TokenTag::idendifier || m_query_tokens[c].tag == TokenTag::string))
 		{
+			TokenTag token_tag = m_query_tokens[c].tag;
+
 			// Look-ahead to check if we began parsing named arguments
-			if (c + 1 < m_query_tokens.size() && extractToken(m_query_tokens[c + 1]) == s_assignment)
+			if (token_tag == TokenTag::idendifier 
+				&& c + 1 < m_query_tokens.size() 
+				&& extractToken(m_query_tokens[c + 1]) == s_assignment)
 			{
 				break;
 			}
@@ -502,7 +625,7 @@ std::optional<CommandExecutionSchema> CommandRegistry::parse() const
 		while (c + 2 < m_query_tokens.size()
 			&& m_query_tokens[c].tag == TokenTag::idendifier
 			&& m_query_tokens[c + 1].tag == TokenTag::operation
-			&& m_query_tokens[c + 2].tag == TokenTag::idendifier)
+			&& (m_query_tokens[c + 2].tag == TokenTag::idendifier || m_query_tokens[c + 2].tag == TokenTag::string))
 		{
 			Token const& argument_token = m_query_tokens[c];
 			std::string_view argument_id = extractToken(argument_token);
@@ -510,8 +633,8 @@ std::optional<CommandExecutionSchema> CommandRegistry::parse() const
 			{
 				LEXGINE_LOG_ERROR(
 					this,
-					std::format("Invalid named argument invocation syntax invoking command '{}'. Argument name {} is followed by {}, when operator '=' is expected",
-						command_id, argument_id, extractToken(m_query_tokens[c + 1]))
+					std::format("Invalid named argument invocation syntax invoking command '{}'. Argument name {} is followed by {}, when operator '{}' is expected",
+						command_id, argument_id, extractToken(m_query_tokens[c + 1]), s_assignment)
 				);
 				return std::nullopt;
 			}
@@ -552,9 +675,20 @@ std::optional<CommandExecutionSchema> CommandRegistry::parse() const
 			}
 			rv.args[arg_spec.name] = *value_parsing_result.value;
 			set_arguments[arg_index] = true;
-
-			++command_arg_count;
+			++command_argument_counter;
 			c += 3;
+			if (command_argument_counter < command_arg_count)
+			{
+				if (c >= m_query_tokens.size() || extractToken(m_query_tokens[c]) != s_comma)
+				{
+					LEXGINE_LOG_ERROR(
+						this,
+						std::format("Expected ',' after {}", value_token)
+					);
+					return std::nullopt;
+				}
+				++c;    // take comma between the arguments into account
+			}
 		}
 
 		if(c < m_query_tokens.size())
@@ -595,35 +729,11 @@ std::optional<CommandExecutionSchema> CommandRegistry::parse() const
 	return rv;
 }
 
-bool CommandRegistry::isSeparator(char c)
-{
-	for (char e : s_separators)
-	{
-		if (e == c)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-bool CommandRegistry::isOperatorToken(Token const& t) const
-{
-	for (const auto& op : s_operators)
-	{
-		if (op == extractToken(t))
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
 std::pair<std::string_view, uint16_t> CommandRegistry::findMostLikelyNamespaceName(std::string_view const& requested_namespace_id) const
 {
 	uint16_t d = requested_namespace_id.length();
 	std::string_view suggestion{};
-	for (auto [name, spec] : m_namespaces)
+	for (auto const& [name, spec] : m_namespaces)
 	{
 		uint16_t new_d = ConsoleTokenAutocomplete::computeDLDistance(requested_namespace_id, name);
 		if (new_d < d)

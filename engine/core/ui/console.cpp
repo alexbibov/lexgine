@@ -1,12 +1,12 @@
-#include "imgui.h"
-
 #include <cstring>
-
+#include "imgui.h"
 #include "console.h"
 
-namespace lexgine::core::ui {
+namespace lexgine::core::ui
+{
 
-namespace{
+namespace
+{
 
 ImVec4 getColorForLogMessage(misc::LogMessageType message_type)
 {
@@ -28,20 +28,20 @@ ImVec4 getColorForLogMessage(misc::LogMessageType message_type)
 	}
 }
 
-int InputTextCaretCallback(ImGuiInputTextCallbackData* data)
-{
-	if (data && data->UserData)
-	{
-		*static_cast<int*>(data->UserData) = data->CursorPos;
-	}
-	return 0;
-}
+//int InputTextCaretCallback(ImGuiInputTextCallbackData* data)
+//{
+//	if (data && data->UserData)
+//	{
+//		*static_cast<int*>(data->UserData) = data->CursorPos;
+//	}
+//	return 0;
+//}
 
 }  // namespace
 
 std::shared_ptr<Console> Console::create(
-	Globals const& globals, 
-	dx::d3d12::BasicRenderingServices const& basic_rendering_services, 
+	Globals const& globals,
+	dx::d3d12::BasicRenderingServices const& basic_rendering_services,
 	concurrency::TaskGraph const& task_graph
 )
 {
@@ -49,13 +49,13 @@ std::shared_ptr<Console> Console::create(
 	std::weak_ptr<Console> console_ptr{ rv };
 	misc::Log::retrieve()->registerLogListener(
 		[console_ptr]
-		(spdlog::details::log_msg const& msg) 
+		(spdlog::details::log_msg const& msg)
+	{
+		if (!console_ptr.expired())
 		{
-			if (!console_ptr.expired())
-			{
-				console_ptr.lock()->addLogEntry(msg);
-			}
+			console_ptr.lock()->addLogEntry(msg);
 		}
+	}
 	);
 
 	{
@@ -65,30 +65,30 @@ std::shared_ptr<Console> Console::create(
 		};
 
 		auto log_message_type_parser = [console_ptr](std::string_view const& token) -> interaction::console::ParserOutput
+		{
+			interaction::console::ParserOutput output = interaction::console::value_parsers::int_parser(token);
+			if (output.value.has_value())
 			{
-				interaction::console::ParserOutput output = interaction::console::value_parsers::int_parser(token);
-				if (output.value.has_value())
-				{
-					int value = std::get<int>(*output.value);
-					if (value >= 0 && value <= static_cast<int>(misc::LogMessageType::critical))
-					{
-						return output;
-					}
-					else
-					{
-						return interaction::console::ParserOutput{ .value = std::nullopt, .error_message = "Invalid log messsage type" };
-					}
-				}
-				else
+				int value = std::get<int>(*output.value);
+				if (value >= 0 && value <= static_cast<int>(misc::LogMessageType::critical))
 				{
 					return output;
 				}
-			};
+				else
+				{
+					return interaction::console::ParserOutput{ .value = std::nullopt, .error_message = "Invalid log messsage type" };
+				}
+			}
+			else
+			{
+				return output;
+			}
+		};
 		logging_test_command.args.push_back(
-			{ 
-				.name = "message", 
-				.description = "Message to log", 
-				.parser = interaction::console::value_parsers::string_parser 
+			{
+				.name = "message",
+				.description = "Message to log",
+				.parser = interaction::console::value_parsers::string_parser
 			}
 		);
 		logging_test_command.args.push_back(
@@ -106,18 +106,18 @@ std::shared_ptr<Console> Console::create(
 		);
 
 		rv->m_command_registry.addCommand(
-			logging_test_command, 
+			logging_test_command,
 			[](interaction::console::ArgMap const& args) -> interaction::console::CommandExecResult
+		{
+			std::string message = std::get<std::string>(args.at("message"));
+			misc::LogMessageType message_type = static_cast<misc::LogMessageType>(std::get<int>(args.at("type")));
+			if (misc::Log* p_log = misc::Log::retrieve())
 			{
-				std::string message = std::get<std::string>(args.at("message"));
-				misc::LogMessageType message_type = static_cast<misc::LogMessageType>(std::get<int>(args.at("type")));
-				if (misc::Log* p_log = misc::Log::retrieve())
-				{
-					p_log->out(message, message_type);
-					return interaction::console::CommandExecResult{ .succeeded = true };
-				}
-				return interaction::console::CommandExecResult{ .succeeded = false, .msg = "Logger is not available" };
+				p_log->out(message, message_type);
+				return interaction::console::CommandExecResult{ .succeeded = true };
 			}
+			return interaction::console::CommandExecResult{ .succeeded = false, .msg = "Logger is not available" };
+		}
 		);
 	}
 
@@ -154,8 +154,10 @@ void Console::constructUI()
 	if (!m_logging_buffer.empty())
 	{
 		clipper.Begin(m_logging_buffer.size());
-		while (clipper.Step()) {
-			for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+		while (clipper.Step())
+		{
+			for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
+			{
 				LogEntry& log_entry = m_logging_buffer[(i + m_logging_buffer_oldest_entry) % m_logging_buffer.size()];
 				ImGui::PushStyleColor(ImGuiCol_Text, getColorForLogMessage(log_entry.message_type));
 				ImGui::TextUnformatted(log_entry.message.c_str());
@@ -163,6 +165,10 @@ void Console::constructUI()
 			}
 		}
 		clipper.End();
+	}
+	if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+	{
+		ImGui::SetScrollHereY(1.0f);
 	}
 	ImGui::EndChild();
 	ImGui::Separator();
@@ -178,65 +184,62 @@ void Console::constructUI()
 
 	// Track rect for popup placement
 	ImGui::SetNextItemAllowOverlap();
-	bool submit = false;
-	static int caret = 0;
 
-	static char console_query_buf[100];
+	m_command_line_state.command_submitted = false;
 	ImGui::PushID("ConsoleInput");
 	if (ImGui::InputText("##input",
-		console_query_buf,
-		sizeof(console_query_buf),
+		m_command_line_state.input_buffer,
+		sizeof(m_command_line_state.input_buffer),
 		input_flags,
-		InputTextCaretCallback,
-		&caret)) {
-		submit = true;
-	}
-
-	static std::string last_query{};
-	static std::vector<std::string> suggestions{};
-	static bool sugg_open = false;
-	static int sugg_selected = 0;
-	std::string current_query{ console_query_buf };
-	if(current_query != last_query)
+		InputTextCallbackFn,
+		&m_command_line_state))
 	{
-		m_command_registry.setQuery(current_query);
-		std::vector<std::string> new_suggestions = m_command_registry.autocompleteSuggestions(2);
-		sugg_open = ImGui::IsItemActive() && !new_suggestions.empty();
-		if (new_suggestions != suggestions)
+		m_command_line_state.command_submitted = true;
+	}
+	m_command_line_state.suggestion_accepted = false;
+
+	if (m_command_line_state.last_query != m_command_line_state.input_buffer)
+	{
+		m_command_registry.setQuery(m_command_line_state.input_buffer);
+		std::vector<std::string> new_suggestions = m_command_registry.autocompleteSuggestions(10);
+		m_command_line_state.open_autocomplete_suggestions = ImGui::IsItemActive() && !new_suggestions.empty();
+		if (new_suggestions != m_command_line_state.autocomplete_suggestions)
 		{
-			suggestions = std::move(new_suggestions);
-			sugg_selected = 0;
+			m_command_line_state.autocomplete_suggestions = std::move(new_suggestions);
+			m_command_line_state.selected_suggestion = 0;
 		}
-		last_query = current_query;
+		m_command_line_state.last_query = m_command_line_state.input_buffer;
 	}
 
-	auto applySuggestion = [&](std::string const& suggestion)
+	auto applySuggestion = [this](std::string const& suggestion)
 	{
-		std::string updated{ console_query_buf };
-		size_t last_sep = updated.find_last_of(" \t\r\n");
+		std::string current_input{ m_command_line_state.input_buffer };
+		size_t last_sep = current_input.find_last_of(" \t\r\n.,=");
 		if (last_sep == std::string::npos)
 		{
-			updated = suggestion;
+			current_input = suggestion;
 		}
-		else if (last_sep + 1 >= updated.size())
+		else if (last_sep + 1 >= current_input.size())
 		{
-			updated += suggestion;
+			current_input += suggestion;
 		}
 		else
 		{
-			updated.erase(last_sep + 1);
-			updated += suggestion;
+			current_input.erase(last_sep + 1);
+			current_input += suggestion;
 		}
-		std::strncpy(console_query_buf, updated.c_str(), sizeof(console_query_buf));
-		console_query_buf[sizeof(console_query_buf) - 1] = '\0';
-		caret = static_cast<int>(std::strlen(console_query_buf));
+		std::strncpy(m_command_line_state.input_buffer, current_input.c_str(), current_input.length());
+		m_command_line_state.input_buffer[current_input.length()] = '\0';
+		m_command_line_state.carret_position = static_cast<int>(current_input.length());
+		m_command_line_state.suggestion_accepted = true;
 	};
 
-	if (sugg_open) {
+	if (m_command_line_state.open_autocomplete_suggestions)
+	{
 		ImVec2 min = ImGui::GetItemRectMin();
 		ImVec2 max = ImGui::GetItemRectMax();
 		ImVec2 text_start = ImVec2(min.x + ImGui::GetStyle().FramePadding.x, min.y + ImGui::GetStyle().FramePadding.y);
-		ImVec2 text_size = ImGui::CalcTextSize(console_query_buf, console_query_buf + caret);
+		ImVec2 text_size = ImGui::CalcTextSize(m_command_line_state.input_buffer, m_command_line_state.input_buffer + m_command_line_state.carret_position);
 		float caret_x = text_start.x + text_size.x;
 		if (caret_x > max.x)
 		{
@@ -252,25 +255,31 @@ void Console::constructUI()
 			ImGuiWindowFlags_AlwaysAutoResize |
 			ImGuiWindowFlags_NoFocusOnAppearing |
 			ImGuiWindowFlags_NoNav)) {
-			if (ImGui::IsKeyPressed(ImGuiKey_Escape)) { ImGui::CloseCurrentPopup(); sugg_open = false; }
-			if (!suggestions.empty()) {
-				if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) sugg_selected = (sugg_selected + 1) % static_cast<int>(suggestions.size());
-				if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) sugg_selected = (sugg_selected + static_cast<int>(suggestions.size()) - 1) % static_cast<int>(suggestions.size());
-			}
-
-			bool accept_now = ImGui::IsKeyPressed(ImGuiKey_Tab);
-			for (int i = 0; i < static_cast<int>(suggestions.size()); ++i) {
-				const bool sel = (i == sugg_selected);
-				if (ImGui::Selectable((suggestions[i] + "##" + std::to_string(i)).c_str(), sel)) {
-					sugg_selected = i;
-					accept_now = true;
+			if (ImGui::IsKeyPressed(ImGuiKey_Escape)) { ImGui::CloseCurrentPopup(); m_command_line_state.open_autocomplete_suggestions = false; }
+			if (!m_command_line_state.autocomplete_suggestions.empty())
+			{
+				if (ImGui::IsKeyPressed(ImGuiKey_DownArrow))
+				{
+					m_command_line_state.selected_suggestion =
+						(m_command_line_state.selected_suggestion + 1) % static_cast<int>(m_command_line_state.autocomplete_suggestions.size());
+				}
+				if (ImGui::IsKeyPressed(ImGuiKey_UpArrow))
+				{
+					m_command_line_state.selected_suggestion
+						= (m_command_line_state.selected_suggestion - 1) % static_cast<int>(m_command_line_state.autocomplete_suggestions.size());
 				}
 			}
 
-			if (accept_now && !suggestions.empty()) {
-				applySuggestion(suggestions[sugg_selected]);
+			for (int i = 0; i < static_cast<int>(m_command_line_state.autocomplete_suggestions.size()); ++i)
+			{
+				ImGui::Selectable((m_command_line_state.autocomplete_suggestions[i] + "##" + std::to_string(i)).c_str(), (i == m_command_line_state.selected_suggestion));
+			}
+
+			if (ImGui::IsKeyPressed(ImGuiKey_Tab) && !m_command_line_state.autocomplete_suggestions.empty())
+			{
+				applySuggestion(m_command_line_state.autocomplete_suggestions[m_command_line_state.selected_suggestion]);
 				ImGui::CloseCurrentPopup();
-				sugg_open = false;
+				m_command_line_state.open_autocomplete_suggestions = false;
 			}
 			ImGui::EndPopup();
 		}
@@ -278,17 +287,14 @@ void Console::constructUI()
 	}
 	ImGui::PopID();
 
-	//// Submit on Enter
-	//if (submit) {
-	//	std::string cmd = ui.input;
-	//	if (!cmd.empty()) {
-	//		ExecCommand(ui, cmd);
-	//		ui.history.erase(std::remove(ui.history.begin(), ui.history.end(), cmd), ui.history.end());
-	//		ui.history.push_back(cmd);
-	//	}
-	//	ui.history_pos = -1;
-	//	ui.input[0] = '\0';
-	//}
+	// Submit on Enter
+	if (m_command_line_state.command_submitted) {
+		std::optional<lexgine::interaction::console::CommandExecutionSchema> cmd = m_command_registry.invokeQuery();
+		if (cmd) 
+		{
+			cmd->exec(cmd->args);
+		}
+	}
 
 	//// Hotkeys
 	//if (ImGui::IsItemActive()) {
@@ -349,14 +355,29 @@ void Console::addLogEntry(spdlog::details::log_msg const& msg)
 	}
 	if (m_logging_buffer.size() < c_logging_buffer_size)
 	{
-		
-		m_logging_buffer.push_back({ .message = msg.payload.data(), .message_type = message_type});
+
+		m_logging_buffer.push_back({ .message = msg.payload.data(), .message_type = message_type });
 	}
 	else
 	{
-		m_logging_buffer[m_logging_buffer_oldest_entry] = { .message = msg.payload.data(), .message_type = message_type};
+		m_logging_buffer[m_logging_buffer_oldest_entry] = { .message = msg.payload.data(), .message_type = message_type };
 		m_logging_buffer_oldest_entry = (m_logging_buffer_oldest_entry + 1) % c_logging_buffer_size;
 	}
+}
+
+int Console::InputTextCallbackFn(ImGuiInputTextCallbackData* data)
+{
+	if (data && data->UserData)
+	{
+		ConsoleCommandLineState* state = static_cast<ConsoleCommandLineState*>(data->UserData);
+		state->carret_position = data->CursorPos;
+		if (state->suggestion_accepted)
+		{
+			data->DeleteChars(0, data->BufTextLen);
+			data->InsertChars(0, state->input_buffer);
+		}
+	}
+	return 0;
 }
 
 }

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <array>
 #include <iterator>
+#include <unordered_set>
 #include "console_token_autocomplete.h"
 
 namespace lexgine::interaction::console
@@ -91,10 +92,19 @@ std::vector<std::pair<std::string, uint16_t>> ConsoleTokenAutocomplete::suggesti
 	std::vector<std::string> out;
 	out.reserve(want);
 
-	for (size_t d = 0; d < m_buckets.size() && out.size() < want; ++d) {
-		for (auto id : m_buckets[d]) {
-			out.emplace_back(m_pool[id].name);
-			if (out.size() == want) break;
+	auto ids = m_token_filter.filter(m_query);
+	std::unordered_set<size_t> filtered_ids(ids.begin(), ids.end());
+
+	for (size_t d = 0; d < m_buckets.size() && out.size() < want; ++d) 
+	{
+		for (auto id : m_buckets[d]) 
+		{
+            if (filtered_ids.count(id)) 
+			{
+                out.emplace_back(m_pool[id].name);
+                if (out.size() == want)
+                    break;
+            }
 		}
 	}
 	// If we didn't fill K, scan any "overflow" distances beyond m_buckets.size()
@@ -103,9 +113,10 @@ std::vector<std::pair<std::string, uint16_t>> ConsoleTokenAutocomplete::suggesti
 	{
 		// Fallback: compute remaining by linear scan, ordered by distance then stable id.
 		// (No extra sorting; just do an extra pass.)
-		for (size_t id = 0; id < m_pool.size() && out.size() < want; ++id) {
+		for (size_t id = 0; id < m_pool.size() && out.size() < want; ++id) 
+		{
 			auto d = m_pool[id].dist;
-			if (d >= m_buckets.size()) {
+			if (filtered_ids.count(id) && d >= m_buckets.size()) {
 				out.emplace_back(m_pool[id].name);
 			}
 		}

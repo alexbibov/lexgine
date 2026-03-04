@@ -122,7 +122,8 @@ private:
 	enum class TokenTag
 	{
 		operation,
-		idendifier
+		idendifier,
+		string
 	};
 
 	struct Token
@@ -144,8 +145,6 @@ private:
 	std::pair<Token, size_t> extractCommandToken(Token const& namespace_token, size_t token_position_hint) const;
 	void tokenize();
 	std::optional<CommandExecutionSchema> parse() const;
-	static bool isSeparator(char c);
-	bool isOperatorToken(Token const& t) const;
 	std::pair<std::string_view, uint16_t> findMostLikelyNamespaceName(std::string_view const& requested_namespace_id) const;
 
 private:
