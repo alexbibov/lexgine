@@ -11,6 +11,8 @@
 #include "engine/interaction/console_command.h"
 #include "engine/osinteraction/windows/window_listeners.h"
 
+struct ImGuiInputTextCallbackData;
+
 namespace lexgine::core::ui {
 
 class Console : public UIProvider, public osinteraction::Listeners<osinteraction::windows::KeyInputListener>
@@ -38,6 +40,8 @@ private:
 
 	void addLogEntry(spdlog::details::log_msg const& msg);
 
+	static int InputTextCallbackFn(ImGuiInputTextCallbackData* data);
+
 private:
 	static constexpr size_t c_logging_buffer_size = 150;
 
@@ -48,12 +52,25 @@ private:
 		misc::LogMessageType message_type;
 	};
 
+	struct ConsoleCommandLineState
+	{
+		char input_buffer[256]{};
+		int carret_position{ 0 };
+		std::string last_query{};
+		bool open_autocomplete_suggestions{ false };
+		bool suggestion_accepted{ false };
+		std::vector<std::string> autocomplete_suggestions{};
+		int selected_suggestion{ 0 };
+		bool command_submitted{ false };
+	};
+
 private:
 	Globals const& m_globals;
 	dx::d3d12::BasicRenderingServices const& m_basic_rendering_services;
 	lexgine::interaction::console::CommandRegistry m_command_registry;
 	misc::StaticVector<LogEntry, c_logging_buffer_size> m_logging_buffer;
 	size_t m_logging_buffer_oldest_entry = 0;
+	ConsoleCommandLineState m_command_line_state{};
 };
 
 }

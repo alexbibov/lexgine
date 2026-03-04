@@ -274,7 +274,6 @@ UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t s
             m_allocation_hint.block_iter = m_blocks.front().begin();
         }
 
-        ++reused_memory_block->m_memory_reclamation_counter;
 		assert(reused_memory_block->m_allocation_end - reused_memory_block->m_allocation_begin >= size_in_bytes);
 		assert(reused_memory_block->m_allocation_end <= m_buffer_size);
         return { &reused_memory_block };
