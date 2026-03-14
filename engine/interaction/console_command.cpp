@@ -593,15 +593,31 @@ std::optional<CommandExecutionSchema> CommandRegistry::parse() const
 			std::string_view const& value_str = extractToken(m_query_tokens[c]);
 			if (command_argument_counter + 1 < arg_names_lut.size())
 			{
-				if (c + 1 >= m_query_tokens.size() || extractToken(m_query_tokens[c + 1]) != s_comma)
+				if (c + 1 >= m_query_tokens.size())
 				{
-					LEXGINE_LOG_ERROR(
-						this,
-						std::format("Expected ',' after {}", value_str)
-					);
-					return std::nullopt;
+					break;  // no more input; remaining args will use defaults
 				}
-				++c;    // take comma between the arguments into account
+				if (extractToken(m_query_tokens[c + 1]) == s_comma)
+				{
+					++c;    // consume comma separator
+				}
+				else
+				{
+					// Check whether next token begins a named argument (id followed by '=')
+					bool next_is_named_arg =
+						m_query_tokens[c + 1].tag == TokenTag::idendifier
+						&& c + 2 < m_query_tokens.size()
+						&& extractToken(m_query_tokens[c + 2]) == s_assignment;
+					if (!next_is_named_arg)
+					{
+						LEXGINE_LOG_ERROR(
+							this,
+							std::format("Expected ',' after {}", value_str)
+						);
+						return std::nullopt;
+					}
+					break;  // transition to named-arg section
+				}
 			}
 
 			ArgSpec const& arg_spec = command_args[command_argument_counter];
@@ -679,7 +695,11 @@ std::optional<CommandExecutionSchema> CommandRegistry::parse() const
 			c += 3;
 			if (command_argument_counter < command_arg_count)
 			{
-				if (c >= m_query_tokens.size() || extractToken(m_query_tokens[c]) != s_comma)
+				if (c >= m_query_tokens.size())
+				{
+					break;  // no more input; remaining args will use defaults
+				}
+				if (extractToken(m_query_tokens[c]) != s_comma)
 				{
 					LEXGINE_LOG_ERROR(
 						this,
@@ -687,7 +707,7 @@ std::optional<CommandExecutionSchema> CommandRegistry::parse() const
 					);
 					return std::nullopt;
 				}
-				++c;    // take comma between the arguments into account
+				++c;    // consume comma separator
 			}
 		}
 
