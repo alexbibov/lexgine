@@ -94,13 +94,13 @@ std::shared_ptr<Console> Console::create(
 		logging_test_command.args.push_back(
 			{
 				.name = "type",
-				.description = "Type of the message to add to the log. Accepted values are: \n"
-				"0 trace\n"
-				"1 debug\n"
-				"2 information\n"
-				"3 exclamation\n"
-				"4 error"
-				"5 critical",
+				.description = "Type of the message to add to the log. Accepted values are: \r\n"
+				"0 trace\r\n"
+				"1 debug\r\n"
+				"2 information\r\n"
+				"3 exclamation\r\n"
+				"4 error\r\n"
+				"5 critical\r\n",
 				.parser = log_message_type_parser
 			}
 		);
@@ -353,16 +353,41 @@ void Console::addLogEntry(spdlog::details::log_msg const& msg)
 	case spdlog::level::off:
 		return;
 	}
-	if (m_logging_buffer.size() < c_logging_buffer_size)
-	{
 
-		m_logging_buffer.push_back({ .message = msg.payload.data(), .message_type = message_type });
-	}
-	else
+	// Split the payload on newlines so each LogEntry is always a single visual line.
+	// This is required for ImGuiListClipper (which assumes uniform item height) and
+	// for correct scroll-to-bottom behaviour.
+	std::string_view payload{ msg.payload.data(), msg.payload.size() };
+	size_t start = 0;
+	do
 	{
-		m_logging_buffer[m_logging_buffer_oldest_entry] = { .message = msg.payload.data(), .message_type = message_type };
-		m_logging_buffer_oldest_entry = (m_logging_buffer_oldest_entry + 1) % c_logging_buffer_size;
+		size_t eol = payload.find_first_of("\r\n", start);
+		if (eol == std::string_view::npos)
+		{
+			eol = payload.find_first_of("\n", start);
+		}
+		size_t line_end = (eol == std::string_view::npos) ? payload.size() : eol;
+		
+		std::string line{ payload.substr(start, line_end - start) };
+
+		// Advance past the line ending (\r, \n, or \r\n).
+		start = line_end;
+		while (start < payload.size() && (payload[start] == '\r' || payload[start] == '\n'))
+		{
+			++start;
+		}
+
+		if (m_logging_buffer.size() < c_logging_buffer_size)
+		{
+			m_logging_buffer.push_back({ .message = std::move(line), .message_type = message_type });
+		}
+		else
+		{
+			m_logging_buffer[m_logging_buffer_oldest_entry] = { .message = std::move(line), .message_type = message_type };
+			m_logging_buffer_oldest_entry = (m_logging_buffer_oldest_entry + 1) % c_logging_buffer_size;
+		}
 	}
+	while (start < payload.size());
 }
 
 int Console::InputTextCallbackFn(ImGuiInputTextCallbackData* data)
