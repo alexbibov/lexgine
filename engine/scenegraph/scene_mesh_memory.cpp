@@ -59,7 +59,8 @@ SceneMemoryBufferHandle SceneMeshMemory::addData(void const* p_data, size_t size
     {
         uploadAllData();
         m_resource_data_uploader.waitUntilUploadIsFinished();
-        assert(m_resource_data_uploader.addResourceForUpload(destination_desc, source_desc));
+        bool result = m_resource_data_uploader.addResourceForUpload(destination_desc, source_desc);
+        assert(result);
     }
 
     size_t data_offset = m_data_upload_offset;
