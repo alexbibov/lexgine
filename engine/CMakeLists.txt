@@ -149,8 +149,8 @@ if (MSVC)
 endif()
 
 set(_dxc_binary_path ${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/bin/${CMAKE_GENERATOR_PLATFORM}/)
-file(COPY ${_dxc_binary_path}/dxcompiler.dll DESTINATION ${_build_runtime_output_directory})
-file(COPY ${_dxc_binary_path}/dxil.dll DESTINATION ${_build_runtime_output_directory})
+file(COPY ${_dxc_binary_path}dxcompiler.dll DESTINATION ${_build_runtime_output_directory})
+file(COPY ${_dxc_binary_path}dxil.dll DESTINATION ${_build_runtime_output_directory})
 
 
 set_property(TARGET ${_target} PROPERTY OUTPUT_NAME "lexgine")
