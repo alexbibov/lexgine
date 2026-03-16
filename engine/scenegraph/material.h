@@ -84,7 +84,10 @@ public:
 
     core::dx::d3d12::ConstantBufferReflection const& getMaterialParametersUniformBufferReflection() const { return m_material_parameters_cb_reflection; }
     core::dx::d3d12::ConstantBufferReflection const& getSceneParametersUniformBufferReflection() const { return m_scene_parameters_cb_reflection; }
-    core::dx::dxcompilation::ShaderStage* getPixelShaderStage() const { return m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::pixel); }
+    core::dx::dxcompilation::ShaderStage* getShaderStage(core::dx::dxcompilation::ShaderType shader_type) const 
+    { 
+        return m_shader_function.getShaderStage(shader_type); 
+    }
 
     void bindMaterialParameters(
         core::dx::d3d12::CommandList& target_command_list,
@@ -140,7 +143,6 @@ public:
     void setEmissiveTexture(Texture* p_texture);
 
     void bindMaterialConstants(core::dx::d3d12::CommandList& target_command_list);
-
 
 private:
     MaterialAssemblyTask& m_material_assembly;

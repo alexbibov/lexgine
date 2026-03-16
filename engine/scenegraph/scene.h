@@ -2,6 +2,7 @@
 #define LEXGINE_SCENEGRAPH_SCENE_H
 
 #include <filesystem>
+#include <future>
 #include <unordered_map>
 
 #include "engine/core/lexgine_core_fwd.h"
@@ -85,6 +86,8 @@ private:
         const tinygltf::Material& gltfMaterial,
         const lexgine::core::VertexAttributeSpecificationList& vertex_attributes
     );
+    void scheduleMaterialConstruction();
+    std::shared_future<void> const& materialConstructionFuture() const;
     bool loadCameras(
         tinygltf::Model const& model, 
         std::unordered_map<int, int>& camera_ids
@@ -93,7 +96,6 @@ private:
         tinygltf::Model const& model, 
         std::unordered_map<int, int>& animation_ids
     );
-    
 
 private:
     core::Globals& m_globals;
@@ -115,6 +117,7 @@ private:
     std::vector<Mesh> m_scene_meshes;
     std::vector<BufferView> m_memory_views;
     std::vector<std::unique_ptr<MaterialAssemblyTask>> m_materialConstructionTasks;
+    std::shared_future<void> m_materialConstructionFuture;
 };
 
 }
