@@ -1,5 +1,8 @@
 
+#include <algorithm>
 #include <cctype>
+#include <future>
+#include <thread>
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE_WRITE
@@ -152,7 +155,8 @@ std::pair<std::string, unsigned> extractNameAndIndexFromAttributeName(std::strin
     std::vector<char> uppercase_name; uppercase_name.resize(name.length());
     std::transform(name.begin(), name.end(), uppercase_name.begin(), [](char e) { return static_cast<char>(std::toupper(e)); });
     name = std::string{ uppercase_name.data(), uppercase_name.size() };
-    return { name, std::stoi(attribute_name.substr(name_length)) };
+    unsigned index = (name_length < attribute_name.size()) ? static_cast<unsigned>(std::stoul(attribute_name.substr(name_length))) : 0;
+    return { name, index };
 }
 
 }
@@ -298,67 +302,21 @@ bool Scene::readScene(tinygltf::Model& model, unsigned scene_index)
                 tinygltf::Mesh& mesh = model.meshes[node.mesh];
                 for (auto& p : mesh.primitives)
                 {
-                    if (p.material >= 0)
+                    if (p.indices >= 0)
                     {
-                        scene_material_ids.insert({ p.material, -1 });
-
-                        tinygltf::Material& material = model.materials[p.material];
-
-                        tinygltf::PbrMetallicRoughness& pbr_metallic_roughness = material.pbrMetallicRoughness;
-                        if (pbr_metallic_roughness.baseColorTexture.index >= 0) 
+                        // primitive has index buffer
+                        tinygltf::Accessor const& accessor = model.accessors[p.indices];
+                        if (accessor.bufferView >= 0)
                         {
-                            scene_texture_ids.insert({ pbr_metallic_roughness.baseColorTexture.index, -1 });
-                            int sampler_id = model.textures[pbr_metallic_roughness.baseColorTexture.index].sampler;
-                            if (sampler_id >= 0) 
-                            {
-                                scene_sampler_ids.insert({ sampler_id, -1 });
-                            }
-                        }
-
-                        if (pbr_metallic_roughness.metallicRoughnessTexture.index >= 0) 
-                        {
-                            scene_texture_ids.insert({ pbr_metallic_roughness.metallicRoughnessTexture.index, -1 });
-                            int sampler_id = model.textures[pbr_metallic_roughness.metallicRoughnessTexture.index].sampler;
-                            if (sampler_id >= 0) 
-                            {
-                                scene_sampler_ids.insert({ sampler_id, -1 });
-                            }
-                        }
-
-                        if (material.normalTexture.index >= 0)
-                        {
-                            scene_texture_ids.insert({ material.normalTexture.index, -1 });
-                            int sampler_id = model.textures[material.normalTexture.index].sampler;
-                            if (sampler_id >= 0) 
-                            {
-                                scene_sampler_ids.insert({ sampler_id, -1 });
-                            }
-                        }
-
-                        if (material.occlusionTexture.index >= 0)
-                        {
-                            scene_texture_ids.insert({ material.occlusionTexture.index, -1 });
-                            int sampler_id = model.textures[material.occlusionTexture.index].sampler;
-                            if (sampler_id >= 0) 
-                            {
-                                scene_sampler_ids.insert({ sampler_id, -1 });
-                            }
-                        }
-
-                        if (material.emissiveTexture.index >= 0) 
-                        {
-                            scene_texture_ids.insert({ material.emissiveTexture.index, -1 });
-                            int sampler_id = model.textures[material.emissiveTexture.index].sampler;
-                            if (sampler_id >= 0)
-                            {
-                                scene_sampler_ids.insert({ sampler_id, -1 });
-                            }
+                            tinygltf::BufferView const& buffer_view = model.bufferViews[accessor.bufferView];
+                            int buffer_id = buffer_view.buffer;
+                            scene_buffer_ids.insert({ buffer_id, -1 });
                         }
                     }
+
                     for (auto const& attr : p.attributes)
                     {
                         tinygltf::Accessor const& accessor = model.accessors[attr.second];
-
                         if (accessor.bufferView >= 0) 
                         {
                             tinygltf::BufferView const& buffer_view = model.bufferViews[accessor.bufferView];
@@ -366,6 +324,64 @@ bool Scene::readScene(tinygltf::Model& model, unsigned scene_index)
                             scene_buffer_ids.insert({ buffer_id, -1 });
                         }
                     }
+
+					if (p.material >= 0)
+					{
+						scene_material_ids.insert({ p.material, -1 });
+
+						tinygltf::Material& material = model.materials[p.material];
+
+						tinygltf::PbrMetallicRoughness& pbr_metallic_roughness = material.pbrMetallicRoughness;
+						if (pbr_metallic_roughness.baseColorTexture.index >= 0)
+						{
+							scene_texture_ids.insert({ pbr_metallic_roughness.baseColorTexture.index, -1 });
+							int sampler_id = model.textures[pbr_metallic_roughness.baseColorTexture.index].sampler;
+							if (sampler_id >= 0)
+							{
+								scene_sampler_ids.insert({ sampler_id, -1 });
+							}
+						}
+
+						if (pbr_metallic_roughness.metallicRoughnessTexture.index >= 0)
+						{
+							scene_texture_ids.insert({ pbr_metallic_roughness.metallicRoughnessTexture.index, -1 });
+							int sampler_id = model.textures[pbr_metallic_roughness.metallicRoughnessTexture.index].sampler;
+							if (sampler_id >= 0)
+							{
+								scene_sampler_ids.insert({ sampler_id, -1 });
+							}
+						}
+
+						if (material.normalTexture.index >= 0)
+						{
+							scene_texture_ids.insert({ material.normalTexture.index, -1 });
+							int sampler_id = model.textures[material.normalTexture.index].sampler;
+							if (sampler_id >= 0)
+							{
+								scene_sampler_ids.insert({ sampler_id, -1 });
+							}
+						}
+
+						if (material.occlusionTexture.index >= 0)
+						{
+							scene_texture_ids.insert({ material.occlusionTexture.index, -1 });
+							int sampler_id = model.textures[material.occlusionTexture.index].sampler;
+							if (sampler_id >= 0)
+							{
+								scene_sampler_ids.insert({ sampler_id, -1 });
+							}
+						}
+
+						if (material.emissiveTexture.index >= 0)
+						{
+							scene_texture_ids.insert({ material.emissiveTexture.index, -1 });
+							int sampler_id = model.textures[material.emissiveTexture.index].sampler;
+							if (sampler_id >= 0)
+							{
+								scene_sampler_ids.insert({ sampler_id, -1 });
+							}
+						}
+					}
                 }
             }
 
@@ -394,7 +410,7 @@ bool Scene::readScene(tinygltf::Model& model, unsigned scene_index)
         for (auto& [buffer_id, buffer_id_in_scene] : scene_buffer_ids)
         {
             buffer_id_in_scene = m_scene_memory.m_scene_memory_handles.size();
-            tinygltf::Buffer& buffer = model.buffers[buffer_id];
+            tinygltf::Buffer const& buffer = model.buffers[buffer_id];
             m_scene_memory.m_scene_memory_handles.push_back(
                 m_scene_memory.scene_memory_buffer->addData(
                     buffer.data.data(),
@@ -424,14 +440,16 @@ bool Scene::readScene(tinygltf::Model& model, unsigned scene_index)
         load_result = false;
     }
     if (!loadMeshes(
-        model, 
+        model,
         scene_mesh_ids,
         scene_buffer_ids
     ))
     {
         LEXGINE_LOG_ERROR(this, "Unable to load meshes when reading scene source \"" + m_scene_path.string() + "\"");
-        load_result = false; 
+        load_result = false;
     }
+
+    scheduleMaterialConstruction();
 
     return load_result;
 }
@@ -444,6 +462,8 @@ bool Scene::loadLights(
 {
     if (m_enabled_extensions[c_khr_light_punctual_ext])
     {
+        if (light_ids.empty()) return true;
+
         if (model.extensions.find(c_khr_light_punctual_ext) == model.extensions.end()
             || !model.extensions.at(c_khr_light_punctual_ext).Has("lights"))
         {
@@ -486,7 +506,8 @@ bool Scene::loadLights(
             }
 
             Light lexgineLight{ lightType };
-            lexgineLight.setStringName(light.Get("name").Get<std::string>());
+            if (light.Has("name"))
+                lexgineLight.setStringName(light.Get("name").Get<std::string>());
 
 
             // Retrieve light properties
@@ -534,10 +555,12 @@ bool Scene::loadLights(
                 {
                     lexgineLight.setOuterConeAngle(glm::pi<float>() / 4.f);
                 }
+                [[fallthrough]];    // spot lights also support range per KHR_lights_punctual
             }
 
             case LightType::point:
-                lexgineLight.setRange(static_cast<float>(light.Get("range").Get<double>()));
+                if (light.Has("range"))
+                    lexgineLight.setRange(static_cast<float>(light.Get("range").Get<double>()));
                 break;
 
             }
@@ -560,7 +583,7 @@ bool Scene::loadTextures(
     conversion::TextureConverter& texture_converter = *m_globals.get<conversion::TextureConverter>();
     
     m_textures.reserve(texture_ids.size());
-    m_samplers.reserve(sampler_ids.size());
+    m_samplers.reserve(sampler_ids.size() + 1);   // +1 for default sampler appended below
 
     for (auto& [sampler_id, sampler_id_in_scene] : sampler_ids)
     {
@@ -576,6 +599,11 @@ bool Scene::loadTextures(
     for (auto& [texture_id, texture_id_in_scene] : texture_ids)
     {
         tinygltf::Texture& texture = model.textures[texture_id];
+        if (texture.source < 0)
+        {
+            LEXGINE_LOG_ERROR(this, "texture " + std::to_string(texture_id) + " has no image source");
+            return false;
+        }
         tinygltf::Image& gltf_image = model.images[texture.source];
         int sampler_id_in_scene = texture.sampler >= 0 ? sampler_ids[texture.sampler] : static_cast<int>(m_samplers.size() - 1);
         texture_id_in_scene = m_textures.size();
@@ -619,8 +647,10 @@ bool Scene::loadMeshes(
     core::dx::d3d12::DxgiFormatFetcher const& dxgi_format_fetcher = m_globals.get<core::dx::d3d12::DxResourceFactory>()->dxgiFormatFetcher();
 
     // Parse meshes
-    for (tinygltf::Mesh const& mesh : model.meshes)
+    for (auto& [mesh_id, mesh_id_in_scene] : mesh_ids)
     {
+        tinygltf::Mesh const& mesh = model.meshes[mesh_id];
+
         // Parse mesh primitives
         auto& morph_weights = mesh.weights;
 
@@ -631,11 +661,12 @@ bool Scene::loadMeshes(
         {
             Submesh submesh{ *m_scene_memory.scene_memory_buffer };
             VertexBufferView* vb_view = submesh.getVertexBufferView();
-
-            SceneMemoryBufferHandle index_buffer{};
-            IndexType index_type{};
-
+            
+            if(mesh_primitive.indices >= 0)
             {
+				SceneMemoryBufferHandle index_buffer{};
+				IndexType index_type{};
+
                 tinygltf::Accessor const& indices_accessor = model.accessors.at(mesh_primitive.indices);
                 assert(indices_accessor.type == TINYGLTF_TYPE_SCALAR);
 
@@ -661,27 +692,20 @@ bool Scene::loadMeshes(
                 index_buffer = m_scene_memory.getBuffer(buffer_ids.at(indices_buffer_view.buffer));
                 index_buffer.offset += indices_buffer_view.byteOffset;
                 index_buffer.size = indices_buffer_view.byteLength;
+
+                submesh.setIndexBuffer(index_buffer, index_type);
             }
 
-            int current_buffer_view = -1;
+            int current_buffer = -1;
             int current_vb_slot = -1;
+            size_t const invalid_value = std::numeric_limits<size_t>::max();
+            size_t current_element_count = invalid_value;
+            size_t current_buffer_stride = invalid_value;
             std::array<SceneMemoryBufferHandle, D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT> vertex_buffers{};
 
             lexgine::core::VertexAttributeSpecificationList vertex_attributes_for_vb_slot{};
             lexgine::core::VertexAttributeSpecificationList all_vertex_attributes{};
-            vertex_attributes_for_vb_slot.reserve(16);
-
-            auto set_vertex_buffer_lambda = [&current_vb_slot, &vertex_buffers, &vertex_attributes_for_vb_slot, &vb_view](size_t count, size_t stride)
-                {
-                    vb_view->setVertexBuffer(
-                        static_cast<size_t>(current_vb_slot),
-                        vertex_buffers[current_vb_slot],
-                        vertex_attributes_for_vb_slot,
-                        count,
-                        stride
-                    );
-                    vertex_attributes_for_vb_slot.clear();
-                };
+            vertex_attributes_for_vb_slot.reserve(D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
 
             for (auto p = mesh_primitive.attributes.begin(), end = mesh_primitive.attributes.end(); p != end; ++p)
             {
@@ -693,23 +717,31 @@ bool Scene::loadMeshes(
                 tinygltf::BufferView const& buffer_view = model.bufferViews.at(accessor.bufferView);
                 assert(buffer_view.target == TINYGLTF_TARGET_ARRAY_BUFFER);
 
-
-                if (accessor.bufferView != current_buffer_view)
+                if (current_buffer != buffer_view.buffer)
                 {
-                    current_buffer_view = accessor.bufferView;
-                   
-                    if (current_vb_slot >= 0)
+                    if (current_buffer >= 0
+                        && current_vb_slot >= 0
+                        && current_element_count != invalid_value 
+                        && current_buffer_stride != invalid_value)
                     {
-                        set_vertex_buffer_lambda(accessor.count, buffer_view.byteStride);
+						vb_view->setVertexBuffer(
+							static_cast<size_t>(current_vb_slot),
+							vertex_buffers[current_vb_slot],
+							vertex_attributes_for_vb_slot,
+                            current_element_count,
+                            current_buffer_stride
+						);
+						vertex_attributes_for_vb_slot.clear();
                     }
+                    current_buffer = buffer_view.buffer;
                     ++current_vb_slot;
                     assert(current_vb_slot < D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
-
-                    vertex_buffers[current_vb_slot] = m_scene_memory.getBuffer(buffer_ids.at(buffer_view.buffer));
-                    vertex_buffers[current_vb_slot].offset += buffer_view.byteOffset;
-                    vertex_buffers[current_vb_slot].size = buffer_view.byteLength;
+                    current_element_count = accessor.count;
+                    current_buffer_stride = buffer_view.byteStride;
+					vertex_buffers[current_vb_slot] = m_scene_memory.getBuffer(buffer_ids.at(current_buffer));
+					vertex_buffers[current_vb_slot].offset += buffer_view.byteOffset;
+					vertex_buffers[current_vb_slot].size = buffer_view.byteLength;
                 }
-
 
                 auto [va_name, va_index] = extractNameAndIndexFromAttributeName(attribute_name);
                 core::dx::d3d12::DxgiFormatFetcher::va_spec vertex_attribute_desc
@@ -726,15 +758,16 @@ bool Scene::loadMeshes(
                 auto vertex_attribute = dxgi_format_fetcher.createVertexAttribute(vertex_attribute_desc);
                 vertex_attributes_for_vb_slot.push_back(vertex_attribute);
                 all_vertex_attributes.push_back(vertex_attribute);
-                if (std::next(p) == end)
-                {
-                    set_vertex_buffer_lambda(accessor.count, buffer_view.byteStride);
-                }
             }
-            
-
-            submesh.setIndexBuffer(index_buffer, index_type);
-
+            {
+                vb_view->setVertexBuffer(
+                    static_cast<size_t>(current_vb_slot),
+                    m_scene_memory.getBuffer(buffer_ids.at(current_buffer)),
+                    vertex_attributes_for_vb_slot,
+                    current_element_count,
+                    current_buffer_stride
+                );
+            }
             m_scene_meshes.back().addSubmesh(std::move(submesh));
 
             if (mesh_primitive.material >= 0)
@@ -778,7 +811,7 @@ bool Scene::loadMaterial(const tinygltf::Material& gltfMaterial,
 		shader_desc.p_pixel_shader_compilation_task = p_hlsl_compilation_task_cache->findOrCreateTask(
 			translation_unit_ps,
 			lexgine::core::dx::dxcompilation::ShaderModel::model_62,
-			lexgine::core::dx::dxcompilation::ShaderType::vertex,
+			lexgine::core::dx::dxcompilation::ShaderType::pixel,
 			"PSMain"
 		);
 	}
@@ -803,7 +836,7 @@ bool Scene::loadMaterial(const tinygltf::Material& gltfMaterial,
         mr.metallic_factor = gltfMaterial.pbrMetallicRoughness.metallicFactor;
         mr.roughness_factor = gltfMaterial.pbrMetallicRoughness.roughnessFactor;
         mr.p_base_color = gltfMaterial.pbrMetallicRoughness.baseColorTexture.index >= 0 ? &m_textures[gltfMaterial.pbrMetallicRoughness.baseColorTexture.index] : nullptr;
-        mr.p_metallic_roughness = gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index ? &m_textures[gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index] : nullptr;
+        mr.p_metallic_roughness = gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0 ? &m_textures[gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index] : nullptr;
         new_material.setMetallicRoughness(mr);
     }
 
@@ -825,6 +858,42 @@ bool Scene::loadMaterial(const tinygltf::Material& gltfMaterial,
     return true;
 }
 
+void Scene::scheduleMaterialConstruction()
+{
+	if (m_materialConstructionTasks.empty())
+	{
+		std::promise<void> p;
+		p.set_value();
+		m_materialConstructionFuture = p.get_future().share();
+		return;
+	}
+
+	auto self = shared_from_this();
+	m_materialConstructionFuture = std::async(std::launch::async, [self]()
+	{
+		uint32_t const hw_threads = std::max(1u, std::thread::hardware_concurrency());
+		uint32_t const task_count = static_cast<uint32_t>(self->m_materialConstructionTasks.size());
+		uint32_t const worker_count = std::min(hw_threads, task_count);
+
+		std::vector<std::future<void>> worker_futures;
+		worker_futures.reserve(worker_count);
+
+		for (uint32_t worker_id = 0; worker_id < worker_count; ++worker_id)
+		{
+			worker_futures.push_back(std::async(std::launch::async,
+				[self, worker_id, worker_count]()
+			{
+				uint32_t const n = static_cast<uint32_t>(self->m_materialConstructionTasks.size());
+				for (uint32_t i = worker_id; i < n; i += worker_count)
+					self->m_materialConstructionTasks[i]->doTask(static_cast<uint8_t>(worker_id), 0);
+			}));
+		}
+
+		for (auto& f : worker_futures)
+			f.get();
+	}).share();
+}
+
 bool Scene::loadCameras(tinygltf::Model const& model, std::unordered_map<int, int>& camera_ids)
 {
     return false;
@@ -833,6 +902,11 @@ bool Scene::loadCameras(tinygltf::Model const& model, std::unordered_map<int, in
 bool Scene::loadAnimations(tinygltf::Model const& model, std::unordered_map<int, int>& animation_ids)
 {
     return false;
+}
+
+std::shared_future<void> const& Scene::materialConstructionFuture() const
+{
+    return m_materialConstructionFuture;
 }
 
 }
