@@ -16,13 +16,13 @@ extern double const pi = 3.1415926535897932384626433832795;
 
 
 Matrix4f createProjectionMatrix(EngineApi target_api, float width, float height,
-    float horizontal_fov/* = 120.f*/, float cutoff_distance/* = 10000.f*/, bool invert_depth/* = true*/)
+    float vertical_fov/* = 120.f*/, float cutoff_distance/* = 10000.f*/, bool invert_depth/* = true*/)
 {
     float m = (std::max)(width, height);
     width /= m; height /= m;
 
-    double alpha = pi / 360.*horizontal_fov;
-    float n = static_cast<float>(width*.5 / std::tan(alpha));
+    double alpha = pi / 360.0 * vertical_fov;
+    float n = static_cast<float>(width * 0.5 / std::tan(alpha));
     float f = cutoff_distance;
 
     Vector4f row0{ 2 * n / width, 0.f, 0.f, 0.f };
