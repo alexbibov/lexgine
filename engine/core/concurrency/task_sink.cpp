@@ -48,7 +48,7 @@ void TaskSink::start()
 
         #ifdef _WIN32
         HANDLE threadNativeHandle = worker->native_handle();
-        SetThreadDescription(threadNativeHandle, (L"Rendering thread #" + std::to_wstring(i)).c_str());
+        SetThreadDescription(threadNativeHandle,std::format(L"{} thread #{}", asciiStringToWstring(getStringName()), i).c_str());
         #endif
 
         worker->detach();
