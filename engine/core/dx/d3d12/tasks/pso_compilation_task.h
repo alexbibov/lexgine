@@ -4,7 +4,6 @@
 #include "engine/core/concurrency/schedulable_task.h"
 #include "engine/core/dx/d3d12/pipeline_state.h"
 #include "engine/core/data_blob.h"
-#include "engine/core/misc/static_vector.h"
 
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
@@ -23,6 +22,7 @@ public:
         misc::DateTime const& timestamp);
 
     PipelineState const& getTaskData() const;    //! returns blob containing compiled PSO
+    GraphicsPSODescriptor& getDescriptor() { return m_descriptor; }    //! returns owned graphics PSO descriptor
     bool wasSuccessful() const;    //! returns 'true' if the task has completed successfully
     bool execute(uint8_t worker_id);    //! executes the task manually and returns 'true' if the task does not require rescheduling
 
@@ -43,6 +43,9 @@ public:
 
     void setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task);
     RootSignatureCompilationTask* getRootSignatureCompilationTask() const;
+
+    void setRootSignature(D3DDataBlob const& compiled_root_signature) { m_root_signature = compiled_root_signature; }
+    D3DDataBlob getRootSignature() const { return m_root_signature; }
 
     /*!
         Returns string name as appears in PSO compilation task cache. The names for graphics PSOs
@@ -67,8 +70,9 @@ private:
     task_caches::CombinedCacheKey const& m_key;
     Globals& m_globals;
     GraphicsPSODescriptor m_descriptor;
-    misc::StaticVector<HLSLCompilationTask*, 5> m_associated_shader_compilation_tasks;
-    RootSignatureCompilationTask* m_associated_root_signature_compilation_task;;
+    std::array<HLSLCompilationTask*, 5> m_associated_shader_compilation_tasks;
+    RootSignatureCompilationTask* m_associated_root_signature_compilation_task;
+    D3DDataBlob m_root_signature;
     bool m_was_successful;
     std::unique_ptr<PipelineState> m_resulting_pipeline_state;
     misc::DateTime m_timestamp;
@@ -83,6 +87,7 @@ public:
         Globals& globals, ComputePSODescriptor const& descriptor, misc::DateTime const& timestamp);
 
     PipelineState const& getTaskData() const;    //! returns blob containing compiled PSO data
+    ComputePSODescriptor& getDescriptor() { return m_descriptor; }    //! returns owned compute PSO descriptor
     bool wasSuccessful() const;    //! returns 'true' if the task has completed successfully
     bool execute(uint8_t worker_id);    //! execute the task manually and returns 'true' on success
 
@@ -92,6 +97,8 @@ public:
     void setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task);    //! associates root signature compilation task with the PSO
     RootSignatureCompilationTask* getRootSignatureCompilationTask() const;
 
+	void setRootSignature(D3DDataBlob const& compiled_root_signature) { m_root_signature = compiled_root_signature; }
+	D3DDataBlob getRootSignature() const { return m_root_signature; }
 
     /*!
         Returns string name as appears in PSO compilation task cache. The names for compute PSOs
@@ -115,6 +122,7 @@ private:
     ComputePSODescriptor m_descriptor;
     HLSLCompilationTask* m_associated_compute_shader_compilation_task;
     RootSignatureCompilationTask* m_associated_root_signature_compilation_task;
+    D3DDataBlob m_root_signature;
     bool m_was_successful;
     std::unique_ptr<PipelineState> m_resulting_pipeline_state;
     misc::DateTime m_timestamp;

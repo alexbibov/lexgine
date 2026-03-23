@@ -58,7 +58,7 @@ GraphicsPSOCompilationTask::GraphicsPSOCompilationTask(
     , m_key{ key }
     , m_globals{ globals }
     , m_descriptor{ descriptor }
-    , m_associated_shader_compilation_tasks(5, nullptr)
+    , m_associated_shader_compilation_tasks{ 0 }
     , m_associated_root_signature_compilation_task{ nullptr }
     , m_was_successful{ false }
     , m_resulting_pipeline_state{ nullptr }
@@ -159,23 +159,29 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
     {
         auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key, m_timestamp);
 
-        m_descriptor.vertex_shader = m_associated_shader_compilation_tasks[0]->getTaskData();
+        if (!m_descriptor.vertex_shader)
+        {
+            m_descriptor.vertex_shader = m_associated_shader_compilation_tasks[0]->getTaskData();
+        }
 
-        if (m_associated_shader_compilation_tasks[1])
+        if (!m_descriptor.hull_shader && m_associated_shader_compilation_tasks[1])
             m_descriptor.hull_shader = m_associated_shader_compilation_tasks[1]->getTaskData();
 
-        if (m_associated_shader_compilation_tasks[2])
+        if (!m_descriptor.domain_shader && m_associated_shader_compilation_tasks[2])
             m_descriptor.domain_shader = m_associated_shader_compilation_tasks[2]->getTaskData();
 
-        if (m_associated_shader_compilation_tasks[3])
+        if (!m_descriptor.geometry_shader && m_associated_shader_compilation_tasks[3])
             m_descriptor.geometry_shader = m_associated_shader_compilation_tasks[3]->getTaskData();
 
-        m_descriptor.pixel_shader = m_associated_shader_compilation_tasks[4]->getTaskData();
+        if (!m_descriptor.pixel_shader)
+        {
+            m_descriptor.pixel_shader = m_associated_shader_compilation_tasks[4]->getTaskData();
+        }
 
         m_resulting_pipeline_state.reset(new PipelineState{
             m_globals,
-            m_associated_root_signature_compilation_task->getTaskData(),
-            m_associated_root_signature_compilation_task->getCacheName(),
+            m_root_signature ? m_root_signature : m_associated_root_signature_compilation_task->getTaskData(),
+            m_root_signature ? getCacheName() : m_associated_root_signature_compilation_task->getCacheName(),
             m_descriptor, precached_pso_blob });
 
         if (!precached_pso_blob)
@@ -272,12 +278,15 @@ bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
     {
         auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key, m_timestamp);
 
-        m_descriptor.compute_shader = m_associated_compute_shader_compilation_task->getTaskData();
+        if (!m_descriptor.compute_shader)
+        {
+            m_descriptor.compute_shader = m_associated_compute_shader_compilation_task->getTaskData();
+        }
 
         m_resulting_pipeline_state.reset(new PipelineState{
             m_globals,
-            m_associated_root_signature_compilation_task->getTaskData(),
-            m_associated_root_signature_compilation_task->getCacheName(),
+            m_root_signature ? m_root_signature : m_associated_root_signature_compilation_task->getTaskData(),
+            m_root_signature ? getCacheName() : m_associated_root_signature_compilation_task->getCacheName(),
             m_descriptor, precached_pso_blob });
 
         if (!precached_pso_blob)
