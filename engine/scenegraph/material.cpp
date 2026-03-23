@@ -42,16 +42,52 @@ MaterialAssemblyTask::MaterialAssemblyTask(
     , m_material_parameters_ub_name{ shaders.material_parameters_uniform_buffer_name }
     , m_scene_parameters_ub_name{ shaders.scene_parameters_uniform_buffer_name }
 {
+	m_pso_descriptor.stream_output = context.stream_output;
+	m_pso_descriptor.blend_state = context.blend_state;
+	m_pso_descriptor.rasterization_descriptor = context.rasterization_descriptor;
+	m_pso_descriptor.depth_stencil_descriptor = context.depth_stencil_descriptor;
+	m_pso_descriptor.vertex_attributes = context.va_list;
+	m_pso_descriptor.primitive_restart = false;
+	m_pso_descriptor.primitive_topology_type = core::PrimitiveTopologyType::triangle;
+
+	for (m_pso_descriptor.num_render_targets = 0;
+		m_pso_descriptor.num_render_targets < 8;
+		++m_pso_descriptor.num_render_targets)
+	{
+		if (context.render_target_formats[m_pso_descriptor.num_render_targets] == DXGI_FORMAT_UNKNOWN)
+		{
+			break;
+		}
+		m_pso_descriptor.rtv_formats[m_pso_descriptor.num_render_targets] = context.render_target_formats[m_pso_descriptor.num_render_targets];
+	}
+	m_pso_descriptor.dsv_format = context.depth_stencil_format;
+
+	core::GlobalSettings* p_global_settings = m_shader_function.globals().get<core::GlobalSettings>();
+	core::MSAAMode msaa_mode = p_global_settings->msaaMode();
+	core::dx::d3d12::Device* p_device = m_shader_function.globals().get<core::dx::d3d12::Device>();
+	uint32_t msaa_quality_level = std::numeric_limits<uint32_t>::max();
+	for (int i = 0; i < static_cast<int>(m_pso_descriptor.num_render_targets); ++i)
+	{
+		core::dx::d3d12::FeatureMultisampleQualityLevels quality_level = p_device->queryFeatureQualityLevels(m_pso_descriptor.rtv_formats[i], static_cast<uint32_t>(msaa_mode));
+		msaa_quality_level = (std::min)(msaa_quality_level, quality_level.num_quality_levels);
+	}
+	if (msaa_quality_level == 0 || msaa_quality_level == std::numeric_limits<uint32_t>::max())
+	{
+		msaa_mode = core::MSAAMode::none;
+		msaa_quality_level = 1;
+	}
+	m_pso_descriptor.multi_sampling_format = core::MultiSamplingFormat{ static_cast<uint32_t>(msaa_mode), msaa_quality_level };
+
     core::dx::d3d12::task_caches::PSOCompilationTaskCache& pso_compilation_task_cache = *m_shader_function.globals().get<core::dx::d3d12::task_caches::PSOCompilationTaskCache>();
-    
+	m_pso_compilation_task = pso_compilation_task_cache.findOrCreateTask(m_shader_function.globals(), m_pso_descriptor, getStringName() + "__PSO", 0);
+
     assert(shaders.p_vertex_shader_compilation_task && shaders.p_pixel_shader_compilation_task);
-    core::dx::d3d12::tasks::HLSLCompilationTask* p_vertex_shader_compilation_task = shaders.p_vertex_shader_compilation_task;
-    this->addDependency(*p_vertex_shader_compilation_task);
+	core::dx::d3d12::tasks::HLSLCompilationTask* p_vertex_shader_compilation_task = shaders.p_vertex_shader_compilation_task;
+	this->addDependency(*p_vertex_shader_compilation_task);
     core::dx::d3d12::tasks::HLSLCompilationTask* p_pixel_shader_compilation_task = shaders.p_pixel_shader_compilation_task;
     this->addDependency(*p_pixel_shader_compilation_task);
     m_shader_function.createShaderStage(shaders.p_vertex_shader_compilation_task);
     m_shader_function.createShaderStage(shaders.p_pixel_shader_compilation_task);
-
     if (core::dx::d3d12::tasks::HLSLCompilationTask* p_hull_shader_compilation_task = shaders.p_hull_shader_compilation_task)
     {
         this->addDependency(*p_hull_shader_compilation_task);
@@ -67,59 +103,17 @@ MaterialAssemblyTask::MaterialAssemblyTask(
         this->addDependency(*p_geometry_shader_compilation_task);
         m_shader_function.createShaderStage(shaders.p_geometry_shader_compilation_task);
     }
-
-    m_pso_descriptor.stream_output = context.stream_output;
-    m_pso_descriptor.blend_state = context.blend_state;
-    m_pso_descriptor.rasterization_descriptor = context.rasterization_descriptor;
-    m_pso_descriptor.depth_stencil_descriptor = context.depth_stencil_descriptor;
-    m_pso_descriptor.vertex_attributes = context.va_list;
-    m_pso_descriptor.primitive_restart = false;
-    m_pso_descriptor.primitive_topology_type = core::PrimitiveTopologyType::triangle;
-
-    for (m_pso_descriptor.num_render_targets = 0;
-        m_pso_descriptor.num_render_targets < 8;
-        ++m_pso_descriptor.num_render_targets)
-    {
-        if (context.render_target_formats[m_pso_descriptor.num_render_targets] == DXGI_FORMAT_UNKNOWN)
-        {
-            break;
-        }
-        m_pso_descriptor.rtv_formats[m_pso_descriptor.num_render_targets] = context.render_target_formats[m_pso_descriptor.num_render_targets];
-    }
-    m_pso_descriptor.dsv_format = context.depth_stencil_format;
-
-    core::GlobalSettings* p_global_settings = m_shader_function.globals().get<core::GlobalSettings>();
-    core::MSAAMode msaa_mode = p_global_settings->msaaMode();
-    core::dx::d3d12::Device* p_device = m_shader_function.globals().get<core::dx::d3d12::Device>();
-    
-    uint32_t msaa_quality_level = std::numeric_limits<uint32_t>::max();
-    for (int i = 0; i < static_cast<int>(m_pso_descriptor.num_render_targets); ++i)
-    {
-        core::dx::d3d12::FeatureMultisampleQualityLevels quality_level = p_device->queryFeatureQualityLevels(m_pso_descriptor.rtv_formats[i], static_cast<uint32_t>(msaa_mode));
-        msaa_quality_level = (std::min)(msaa_quality_level, quality_level.num_quality_levels);
-    }
-
-    if (msaa_quality_level == 0 || msaa_quality_level == std::numeric_limits<uint32_t>::max())
-    {
-        msaa_mode = core::MSAAMode::none;
-        msaa_quality_level = 1;
-    }
-    m_pso_descriptor.multi_sampling_format = core::MultiSamplingFormat{ static_cast<uint32_t>(msaa_mode), msaa_quality_level };
-
-    m_pso_compilation_task = pso_compilation_task_cache.findOrCreateTask(m_shader_function.globals(), m_pso_descriptor, getStringName() + "__PSO", 0);
 }
 
 bool MaterialAssemblyTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
     m_root_signature_compilation_task = m_shader_function.buildBindingSignature();
-
     {
         // Setup shader function resources
         core::dx::d3d12::Device& device = *m_basic_rendering_services.globals().get<core::dx::d3d12::Device>();
         core::dx::d3d12::DescriptorHeap& resource_descriptor_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(device, core::dx::d3d12::DescriptorHeapType::cbv_srv_uav, 0);
         core::dx::d3d12::UnorderedSRVTableAllocationManager& allocator = m_basic_rendering_services.dxResources().retrieveBindlessSRVAllocationManager(resource_descriptor_heap);
         m_shader_function.assignResourceDescriptors(core::dx::dxcompilation::ShaderFunction::ShaderInputKind::srv, 0, allocator);
-
         m_material_parameters_cb_reflection = m_shader_function.getShaderStage(lexgine::core::dx::dxcompilation::ShaderType::pixel)->buildConstantBufferReflection(m_material_parameters_ub_name);
         m_scene_parameters_cb_reflection = m_shader_function.getShaderStage(lexgine::core::dx::dxcompilation::ShaderType::pixel)->buildConstantBufferReflection(m_scene_parameters_ub_name);
     }
@@ -128,21 +122,23 @@ bool MaterialAssemblyTask::doTask(uint8_t worker_id, uint64_t user_data)
     {
         return false;
     }
+    m_pso_compilation_task->setRootSignature(m_root_signature_compilation_task->getTaskData());
 
-    m_pso_compilation_task->setVertexShaderCompilationTask(m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::vertex)->getTask());
-    m_pso_compilation_task->setPixelShaderCompilationTask(m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->getTask());
+    core::dx::d3d12::GraphicsPSODescriptor& pso_descriptor = m_pso_compilation_task->getDescriptor();
+    pso_descriptor.vertex_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::vertex)->getTask()->getTaskData();
+    pso_descriptor.pixel_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->getTask()->getTaskData();
     if (auto* p_compilation_task = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::hull)->getTask())
     {
-        m_pso_compilation_task->setHullShaderCompilationTask(p_compilation_task);
+        pso_descriptor.hull_shader = p_compilation_task->getTaskData();
     }
-    if (auto* p_compilation_task = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::domain)->getTask()) {
-        m_pso_compilation_task->setDomainShaderCompilationTask(p_compilation_task);
+    if (auto* p_compilation_task = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::domain)->getTask())
+    {
+        pso_descriptor.domain_shader = p_compilation_task->getTaskData();
     }
-    if (auto* p_compilation_task = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::geometry)->getTask()) {
-        m_pso_compilation_task->setGeometryShaderCompilationTask(p_compilation_task);
+    if (auto* p_compilation_task = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::geometry)->getTask()) 
+    {
+        pso_descriptor.geometry_shader = p_compilation_task->getTaskData();
     }
-    m_pso_compilation_task->setRootSignatureCompilationTask(m_root_signature_compilation_task);
-
     return m_pso_compilation_task->execute(worker_id);
 }
 

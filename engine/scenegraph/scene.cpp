@@ -17,6 +17,8 @@
 #include <engine/core/misc/misc.h>
 #include <engine/core/dx/d3d12/dx_resource_factory.h>
 #include <engine/core/dx/d3d12/basic_rendering_services.h>
+#include <engine/core/concurrency/task_graph.h>
+#include <engine/core/concurrency/task_sink.h>
 #include <engine/conversion/image_loader_pool.h>
 #include <engine/conversion/texture_converter.h>
 #include "scene.h"
@@ -197,8 +199,12 @@ Scene::Scene(
     , m_scene_index{ static_cast<int>(scene_id) }
 {
     std::unique_ptr<tinygltf::Model> gltf_model = readGltfModel(path_to_scene);
+    if (!gltf_model)
+    {
+        return;
+    }
     setStringName(gltf_model->scenes[scene_id].name);
-    m_load_status = readScene(*gltf_model, scene_id);
+    m_scene_source_parse_status = readScene(*gltf_model, scene_id);
 }
 
 Scene::Scene(
@@ -213,17 +219,31 @@ Scene::Scene(
     , m_scene_path{ path_to_scene }
 {
     std::unique_ptr<tinygltf::Model> gltf_model = readGltfModel(path_to_scene);
+    if (!gltf_model)
+    {
+        return;
+    }
+
     m_scene_index = getSceneIndexFromName(*gltf_model, scene_name);
     setStringName(scene_name);
 
     if (m_scene_index == -1)
     {
         LEXGINE_LOG_ERROR(this, "Unable to load gltf file '" + path_to_scene.string() + "': scene with name '" + scene_name + "' not found");
-        m_load_status = false;
+        m_scene_source_parse_status = false;
         return;
     }
 
-    m_load_status = readScene(*gltf_model, m_scene_index);
+    m_scene_source_parse_status = readScene(*gltf_model, m_scene_index);
+}
+
+bool Scene::loadStatus() const
+{
+    if (!m_scene_source_parse_status) return false;
+    conversion::TextureConverter& texture_converter = *m_globals.get<conversion::TextureConverter>();
+    return !m_material_construction_task_sink->isRunning()
+        && texture_converter.isTextureConversionCompleted()
+        && texture_converter.isTextureUploadCompleted();
 }
 
 [[nodiscard]]
@@ -233,10 +253,40 @@ std::unique_ptr<tinygltf::Model> Scene::readGltfModel(std::filesystem::path cons
     std::unique_ptr<tinygltf::Model> gltf_model = std::make_unique<tinygltf::Model>();
 
     std::string gltf_path_to_file = path.string();
+	{
+		std::string extension = path.extension().string();
+        std::vector<char> buf(extension.size());
+        std::transform(extension.begin(), extension.end(), buf.begin(), [](char c) {return static_cast<char>(std::tolower(c)); });
+        extension = std::string{ buf.begin(), buf.end() };
+        if (extension == ".ktx")
+        {
+            m_scene_source = SceneSource::gltf;
+        }
+        else if (extension == ".glb")
+        {
+            m_scene_source = SceneSource::glb;
+        }
+        else
+        {
+            LEXGINE_LOG_ERROR(this, std::format("Unable to load scene '{}': scene file has unsupported format extension '{}'", gltf_path_to_file, extension));
+            return nullptr;
+        }
+	}
 
     std::string error_buffer {}, warning_buffer {};
-    bool result = gltf_loader.LoadASCIIFromFile(gltf_model.get(), &error_buffer, &warning_buffer, gltf_path_to_file, tinygltf::SectionCheck::REQUIRE_VERSION);
-
+    bool result{ false };
+    switch (m_scene_source)
+    {
+    case SceneSource::gltf:
+        result = gltf_loader.LoadASCIIFromFile(gltf_model.get(), &error_buffer, &warning_buffer, gltf_path_to_file);
+        break;
+    case SceneSource::glb:
+        result = gltf_loader.LoadBinaryFromFile(gltf_model.get(), &error_buffer, &warning_buffer, gltf_path_to_file);
+        break;
+    default:
+        LEXGINE_ASSUME;
+    }
+    
     if (!result || !error_buffer.empty()) {
         LEXGINE_LOG_ERROR(this, error_buffer.c_str());
         return gltf_model;
@@ -768,18 +818,24 @@ bool Scene::loadMeshes(
                     current_buffer_stride
                 );
             }
-            m_scene_meshes.back().addSubmesh(std::move(submesh));
 
-            if (mesh_primitive.material >= 0)
-            {
-                bool result = loadMaterial(model.materials[mesh_primitive.material], all_vertex_attributes);
-                if (!result)
+			if (mesh_primitive.material >= 0)
+			{
+				bool result = loadMaterial(model.materials[mesh_primitive.material], all_vertex_attributes);
+				if (result)
+				{
+                    Material& last_loaded_material = m_materials.back();
+                    submesh.setBaseMaterial(&last_loaded_material);
+				}
+                else
                 {
-                    LEXGINE_LOG_ERROR(this, "Unable to load material (id = " 
-                        + std::to_string(mesh_primitive.material) + ") for mesh "
-                        + mesh.name);
+					LEXGINE_LOG_ERROR(this, "Unable to load material (id = "
+						+ std::to_string(mesh_primitive.material) + ") for mesh "
+						+ mesh.name);
                 }
-            }
+			}
+
+            m_scene_meshes.back().addSubmesh(std::move(submesh));
         }
     }
 
@@ -815,9 +871,10 @@ bool Scene::loadMaterial(const tinygltf::Material& gltfMaterial,
 			"PSMain"
 		);
 	}
-    m_materialConstructionTasks.push_back(std::make_unique<MaterialAssemblyTask>(m_basic_rendering_services, context, shader_desc));
+    m_material_construction_tasks.push_back(std::make_unique<MaterialAssemblyTask>(m_basic_rendering_services, context, shader_desc));
     
-    Material new_material{ *m_materialConstructionTasks.back() };
+    m_materials.emplace_back(*m_material_construction_tasks.back());
+    Material& new_material = m_materials.back();
     new_material.setStringName(gltfMaterial.name);
     new_material.setEmissiveFactor(lexgine::core::math::Vector3f{ gltfMaterial.emissiveFactor[0], gltfMaterial.emissiveFactor[1], gltfMaterial.emissiveFactor[2] });
     new_material.setAlphaMode(AlphaMode::opaque);
@@ -860,38 +917,21 @@ bool Scene::loadMaterial(const tinygltf::Material& gltfMaterial,
 
 void Scene::scheduleMaterialConstruction()
 {
-	if (m_materialConstructionTasks.empty())
-	{
-		std::promise<void> p;
-		p.set_value();
-		m_materialConstructionFuture = p.get_future().share();
-		return;
-	}
-
-	auto self = shared_from_this();
-	m_materialConstructionFuture = std::async(std::launch::async, [self]()
-	{
-		uint32_t const hw_threads = std::max(1u, std::thread::hardware_concurrency());
-		uint32_t const task_count = static_cast<uint32_t>(self->m_materialConstructionTasks.size());
-		uint32_t const worker_count = std::min(hw_threads, task_count);
-
-		std::vector<std::future<void>> worker_futures;
-		worker_futures.reserve(worker_count);
-
-		for (uint32_t worker_id = 0; worker_id < worker_count; ++worker_id)
-		{
-			worker_futures.push_back(std::async(std::launch::async,
-				[self, worker_id, worker_count]()
-			{
-				uint32_t const n = static_cast<uint32_t>(self->m_materialConstructionTasks.size());
-				for (uint32_t i = worker_id; i < n; i += worker_count)
-					self->m_materialConstructionTasks[i]->doTask(static_cast<uint8_t>(worker_id), 0);
-			}));
-		}
-
-		for (auto& f : worker_futures)
-			f.get();
-	}).share();
+    std::unordered_set<core::concurrency::TaskGraphRootNode const*> root_nodes{};
+    root_nodes.reserve(m_material_construction_tasks.size());
+    for (std::unique_ptr<MaterialAssemblyTask>& e : m_material_construction_tasks)
+    {
+        root_nodes.insert(ROOT_NODE_CAST(e.get()));
+    }
+    m_material_construction_task_graph =
+        std::make_unique<core::concurrency::TaskGraph>(
+            root_nodes,
+            m_globals.get<core::GlobalSettings>()->getNumberOfWorkers(),
+            "MaterialConstructionTaskGraph"
+        );
+    m_material_construction_task_sink = std::make_unique<core::concurrency::TaskSink>(*m_material_construction_task_graph, "MaterialConstruction");
+    m_material_construction_task_sink->start();
+    m_material_construction_task_sink->submit(0);
 }
 
 bool Scene::loadCameras(tinygltf::Model const& model, std::unordered_map<int, int>& camera_ids)
@@ -902,11 +942,6 @@ bool Scene::loadCameras(tinygltf::Model const& model, std::unordered_map<int, in
 bool Scene::loadAnimations(tinygltf::Model const& model, std::unordered_map<int, int>& animation_ids)
 {
     return false;
-}
-
-std::shared_future<void> const& Scene::materialConstructionFuture() const
-{
-    return m_materialConstructionFuture;
 }
 
 }
