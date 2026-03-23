@@ -23,6 +23,12 @@
 namespace lexgine::scenegraph
 {
 
+enum class SceneSource
+{
+    gltf,
+    glb
+};
+
 class Scene : public core::NamedEntity<class_names::Scene>, public std::enable_shared_from_this<Scene>
 {
 public:
@@ -37,6 +43,9 @@ public:
         std::filesystem::path const& path_to_scene, 
         std::string const& scene_name
     );
+
+    SceneSource getSceneSource() const { return m_scene_source; }
+    bool loadStatus() const;
 
 private:
     static constexpr char const* c_khr_light_punctual_ext = "KHR_lights_punctual";
@@ -87,7 +96,6 @@ private:
         const lexgine::core::VertexAttributeSpecificationList& vertex_attributes
     );
     void scheduleMaterialConstruction();
-    std::shared_future<void> const& materialConstructionFuture() const;
     bool loadCameras(
         tinygltf::Model const& model, 
         std::unordered_map<int, int>& camera_ids
@@ -102,8 +110,9 @@ private:
     core::dx::d3d12::BasicRenderingServices& m_basic_rendering_services;
     core::misc::DateTime const m_timestamp;
     std::filesystem::path m_scene_path;
+    SceneSource m_scene_source;
     int m_scene_index{ -1 };
-    bool m_load_status{};
+    bool m_scene_source_parse_status{ false };
     std::unordered_map<std::string, bool> m_enabled_extensions = { {c_khr_light_punctual_ext, false} };
     
     std::vector<Node> m_scene_nodes;
@@ -116,8 +125,9 @@ private:
 
     std::vector<Mesh> m_scene_meshes;
     std::vector<BufferView> m_memory_views;
-    std::vector<std::unique_ptr<MaterialAssemblyTask>> m_materialConstructionTasks;
-    std::shared_future<void> m_materialConstructionFuture;
+    std::vector<std::unique_ptr<MaterialAssemblyTask>> m_material_construction_tasks;
+    std::unique_ptr<core::concurrency::TaskGraph> m_material_construction_task_graph;
+    std::unique_ptr<core::concurrency::TaskSink> m_material_construction_task_sink;
 };
 
 }

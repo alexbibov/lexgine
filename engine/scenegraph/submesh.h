@@ -8,12 +8,13 @@
 namespace lexgine::scenegraph
 {
 
+class Material;
+
 enum class IndexType
 {
     _default,
     _short
 };
-
 
 class Submesh final
 {
@@ -22,11 +23,9 @@ public:
 
     VertexBufferView* getVertexBufferView() { return m_vb_view.get(); }
     size_t getInstanceCount() const { return m_instance_count; }
-
     void setIndexBuffer(SceneMemoryBufferHandle const& buffer_handle, IndexType index_data_type);
-    
-
-
+    void setBaseMaterial(Material* p_material) { m_baseMaterialPtr = p_material; }
+    Material* getBaseMaterial() const { return m_baseMaterialPtr; }
     void draw(core::dx::d3d12::CommandList& recording_command_list) const;
 
 private:
@@ -34,9 +33,7 @@ private:
     size_t m_instance_count;
     IndexType m_ib_data_type;
     SceneMemoryBufferHandle m_ib_view;
-
-    core::dx::d3d12::GraphicsPSODescriptor m_pso_descriptor;
-    core::dx::d3d12::tasks::GraphicsPSOCompilationTask* m_pso_compilation_task { nullptr };
+    Material* m_baseMaterialPtr{ nullptr };
 };
 
 }
