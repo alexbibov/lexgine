@@ -3,6 +3,7 @@
 #include <limits>
 #include <cstdio>
 #include <algorithm>
+#include <vector>
 
 #include <windows.h>
 
@@ -13,29 +14,16 @@ namespace lexgine::core::misc {
 
 std::wstring asciiStringToWstring(std::string const& str)
 {
-    size_t len = str.size();
-    wchar_t* wstr = new wchar_t[len];
-    for (size_t i = 0; i < len; ++i) wstr[i] = static_cast<char>(str[i]);
-
-    std::wstring rv{ wstr, len };
-    delete[] wstr;
-
-    return rv;
+    std::vector<wchar_t> wstr(str.size());
+    std::transform(str.begin(), str.end(), wstr.begin(), [](char c) {return static_cast<wchar_t>(c); });
+    return { wstr.begin(), wstr.end() };
 }
 
 std::string wstringToAsciiString(std::wstring const& wstr)
 {
-    size_t len = wstr.size();
-    char* str = new char[len];
-
-    for (size_t i = 0; i < len; ++i)
-        str[i] = static_cast<char>(wstr[i]);
-
-    std::string rv{ str, len };
-
-    delete[] str;
-
-    return rv;
+    std::vector<char> str(wstr.size());
+    std::transform(wstr.begin(), wstr.end(), str.begin(), [](wchar_t c) {return static_cast<char>(c); });
+    return { str.begin(), str.end() };
 }
 
 Optional<std::string> readAsciiTextFromSourceFile(std::string const& source_file)
