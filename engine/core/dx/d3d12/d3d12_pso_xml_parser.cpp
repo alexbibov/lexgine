@@ -752,7 +752,7 @@ namespace {
 class lexgine::core::dx::d3d12::D3D12PSOXMLParser::impl
 {
 public:
-    impl(D3D12PSOXMLParser& parent) :
+    explicit impl(D3D12PSOXMLParser& parent) :
         m_parent{ parent }
         // m_deferred_compilation_exit_task_executed{ false },
         // m_deferred_shader_compilation_exit_task{ *this }

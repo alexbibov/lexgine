@@ -38,6 +38,7 @@ D3DDataBlob loadPrecachedPSOBlob(GlobalSettings const& global_settings, task_cac
             HRESULT res = D3DCreateBlob(blob.size(), d3d_blob.GetAddressOf());
             if (res == S_OK || res == S_FALSE)
             {
+                assert(d3d_blob->GetBufferSize() >= blob.size());
                 memcpy(d3d_blob->GetBufferPointer(), blob.data(), blob.size());
                 rv = D3DDataBlob{ d3d_blob };
             }

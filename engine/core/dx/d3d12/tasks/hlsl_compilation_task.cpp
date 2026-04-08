@@ -35,31 +35,33 @@ std::pair<uint8_t, uint8_t> HLSLCompilationTask::unpackShaderModelVersion(dxcomp
 std::string HLSLCompilationTask::shaderModelAndTypeToTargetName(dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type)
 {
     char target[7] = { 0 };
+    const char *prefix = nullptr;
 
     std::pair<uint8_t, uint8_t> shader_model_version = unpackShaderModelVersion(shader_model);
 
     switch (shader_type)
     {
-    case dxcompilation::ShaderType::vertex:
-        memcpy(target, "vs_", 3);
+    case dxcompilation::ShaderType::vertex: 
+        prefix = "vs_";
         break;
     case dxcompilation::ShaderType::hull:
-        memcpy(target, "hs_", 3);
+        prefix = "hs_";
         break;
     case dxcompilation::ShaderType::domain:
-        memcpy(target, "ds_", 3);
+        prefix = "ds_";
         break;
     case dxcompilation::ShaderType::geometry:
-        memcpy(target, "gs_", 3);
+        prefix = "gs_";
         break;
     case dxcompilation::ShaderType::pixel:
-        memcpy(target, "ps_", 3);
+        prefix = "ps_";
         break;
     case dxcompilation::ShaderType::compute:
-        memcpy(target, "cs_", 3);
+        prefix = "cs_";
         break;
     }
-
+    assert(sizeof(target) >= strlen(prefix) + 3);
+    memcpy(target, prefix, strlen(prefix));
     target[3] = '0' + shader_model_version.first;
     target[4] = '_';
     target[5] = '0' + shader_model_version.second;
@@ -204,6 +206,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
                     }
                     else
                     {
+                        assert(d3d_blob->GetBufferSize() >= blob.size());
                         memcpy(d3d_blob->GetBufferPointer(), blob.data(), blob.size());
                         m_shader_byte_code = D3DDataBlob{ d3d_blob };
                     }
