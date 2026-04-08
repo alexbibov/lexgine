@@ -2,6 +2,7 @@
 #define LEXGINE_SCENEGRAPH_CAMERA_H
 
 #include <array>
+#include <string>
 #include <glm/glm.hpp>
 #include "engine/core/math/matrix_types.h"
 #include "engine/core/math/vector_types.h"

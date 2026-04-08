@@ -215,6 +215,7 @@ Scene::Scene(
     std::string const& scene_name
 )
     : m_globals{ globals }
+    , m_global_settings { *globals.get<core::GlobalSettings>() }
     , m_basic_rendering_services{ basic_rendering_services }
     , m_timestamp{ fetchTimestamp(path_to_scene) }
     , m_scene_path{ path_to_scene }
