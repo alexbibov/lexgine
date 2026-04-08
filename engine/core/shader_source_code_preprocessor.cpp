@@ -12,7 +12,7 @@ class ShaderSourceCodePreprocessor::impl
 {
 public:
 
-    impl(ShaderSourceCodePreprocessor const& parent) :
+    explicit impl(ShaderSourceCodePreprocessor const& parent) :
         m_parent{ parent }
     {
 

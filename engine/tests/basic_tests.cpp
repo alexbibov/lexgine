@@ -222,7 +222,7 @@ TEST(EngineTests_Concurrency, TestTaskGraphParser)
     class GPUComputeTask : public SchedulableTask
     {
     public:
-        GPUComputeTask(std::string const& name) :
+        explicit GPUComputeTask(std::string const& name) :
             SchedulableTask{ name }
         {
 
@@ -244,7 +244,7 @@ TEST(EngineTests_Concurrency, TestTaskGraphParser)
     class GPUCopyTask : public SchedulableTask
     {
     public:
-        GPUCopyTask(std::string const& name) :
+        explicit GPUCopyTask(std::string const& name) :
             SchedulableTask{ name }
         {
 
@@ -265,7 +265,7 @@ TEST(EngineTests_Concurrency, TestTaskGraphParser)
     class OtherTask : public SchedulableTask
     {
     public:
-        OtherTask(std::string const& name) :
+        explicit OtherTask(std::string const& name) :
             SchedulableTask{ name }
         {
 
