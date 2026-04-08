@@ -779,9 +779,14 @@ void UIDrawTask::drawFrame()
             };
             m_viewports[0] = viewport;
 
-            m_projection_matrix = math::createOrthogonalProjectionMatrix(EngineApi::Direct3D12,
-                p_draw_data->DisplayPos.x, p_draw_data->DisplayPos.y,
-                p_draw_data->DisplaySize.x, p_draw_data->DisplaySize.y, -1.f, 1.f);
+            m_projection_matrix = math::createOrthogonalProjectionMatrix(
+                p_draw_data->DisplayPos.x, 
+                p_draw_data->DisplayPos.y,
+                p_draw_data->DisplaySize.x, 
+                p_draw_data->DisplaySize.y,
+                -1.f, 
+                1.f
+            );
 
             m_cmd_list_ptr->setPipelineState(m_pso->getTaskData());
             m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());

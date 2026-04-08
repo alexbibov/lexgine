@@ -14,6 +14,7 @@
 	"max_frames_in_flight" : 2,
 	"max_non_blocking_upload_buffer_allocation_timeout" : 30,
 	"enable_gpu_accelerated_texture_conversion": true,
+	"enable_inverse_depth_clip_space": true,
 	
 	"resource_view_descriptors_per_page" : 100000,
 	"resource_view_descriptor_heap_page_count" : 1,

@@ -50,6 +50,7 @@ public:
     uint32_t getMaxNonBlockingUploadBufferAllocationTimeout() const;
 
     bool isGpuAcceleratedTextureConversionEnabled() const;
+    bool isInverseDepthClipSpaceEnabled() const;
 
 
     // *** the following functions are used to alter the global settings during run time. All functions return 'true' in case of success and 'false' if the parameter's value cannot be changed ***
@@ -89,6 +90,7 @@ private:
     MSAAMode m_msaa_mode;
     bool m_enable_cache;
     bool m_enable_gpu_accelerated_texture_conversion;
+    bool m_enable_inverse_depth_clip_space;
 
     std::array<uint32_t, static_cast<size_t>(dx::d3d12::DescriptorHeapType::count)> m_descriptor_heap_capacity;
 };

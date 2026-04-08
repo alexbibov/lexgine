@@ -194,6 +194,7 @@ Scene::Scene(
 )
     : m_globals{ globals }
     , m_basic_rendering_services{ basic_rendering_services }
+    , m_global_settings{ *globals.get<core::GlobalSettings>() }
     , m_timestamp{ fetchTimestamp(path_to_scene) }
     , m_scene_path{ path_to_scene }
     , m_scene_index{ static_cast<int>(scene_id) }
@@ -936,12 +937,50 @@ void Scene::scheduleMaterialConstruction()
 
 bool Scene::loadCameras(tinygltf::Model const& model, std::unordered_map<int, int>& camera_ids)
 {
-    return false;
+    for (auto& [camera_id, camera_id_in_scene] : camera_ids)
+    {
+        tinygltf::Camera const& camera = model.cameras[camera_id];
+        Camera sceneCamera{ camera.name };
+        ProjectionType cameraProjectionType{};
+        if (camera.type == "perspective")
+        {
+            cameraProjectionType = ProjectionType::Perspective;
+            const tinygltf::PerspectiveCamera& perspectiveCamera = camera.perspective;
+            sceneCamera.setPerspective(
+                static_cast<float>(perspectiveCamera.yfov), 
+                static_cast<float>(perspectiveCamera.aspectRatio),
+                static_cast<float>(perspectiveCamera.znear), 
+                static_cast<float>(perspectiveCamera.zfar),
+                m_global_settings.isInverseDepthClipSpaceEnabled()
+            );
+        }
+        else if (camera.type == "orthographic")
+        {
+            cameraProjectionType = ProjectionType::Orthographic;
+            const tinygltf::OrthographicCamera& orthographicCamera = camera.orthographic;
+            sceneCamera.setOrthographic(
+                static_cast<float>(-orthographicCamera.xmag * .5),
+                static_cast<float>(orthographicCamera.xmag * .5),
+                static_cast<float>(orthographicCamera.ymag * .5),
+                static_cast<float>(-orthographicCamera.ymag * .5),
+                static_cast<float>(orthographicCamera.znear),
+                static_cast<float>(orthographicCamera.zfar)
+            );
+        }
+        else
+        {
+            return false;
+        }
+
+        camera_id_in_scene = static_cast<int>(m_cameras.size());
+        m_cameras.push_back(sceneCamera);
+    }
+    return true;
 }
 
 bool Scene::loadAnimations(tinygltf::Model const& model, std::unordered_map<int, int>& animation_ids)
 {
-    return false;
+    return true;
 }
 
 }

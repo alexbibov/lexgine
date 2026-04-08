@@ -19,6 +19,7 @@
 #include "image.h"
 #include "node.h"
 #include "sampler.h"
+#include "camera.h"
 
 namespace lexgine::scenegraph
 {
@@ -108,6 +109,7 @@ private:
 private:
     core::Globals& m_globals;
     core::dx::d3d12::BasicRenderingServices& m_basic_rendering_services;
+    core::GlobalSettings& m_global_settings;
     core::misc::DateTime const m_timestamp;
     std::filesystem::path m_scene_path;
     SceneSource m_scene_source;
@@ -120,6 +122,7 @@ private:
     std::vector<Texture> m_textures;
     std::vector<Sampler> m_samplers;
     std::vector<Material> m_materials;
+    std::vector<Camera> m_cameras;
 
     SceneMemory m_scene_memory;
 
