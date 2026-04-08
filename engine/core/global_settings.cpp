@@ -56,6 +56,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         m_enable_profiling = false;
         m_enable_cache = true;
         m_enable_gpu_accelerated_texture_conversion = false;
+        m_enable_inverse_depth_clip_space = true;
 
         {
             // Descriptor heaps total and per-page capacity default settings
@@ -302,6 +303,16 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
                 m_enable_gpu_accelerated_texture_conversion);
         }
 
+		if ((p = document.find("enable_inverse_depth_clip_space")) != document.end())
+		{
+            m_enable_inverse_depth_clip_space = p->get<bool>();
+		}
+		else
+		{
+			yield_warning_log_message("enable_inverse_depth_clip_space",
+                m_enable_inverse_depth_clip_space);
+		}
+
 
         {
             // Descriptor heaps total and per-page capacity settings
@@ -529,6 +540,11 @@ uint32_t GlobalSettings::getMaxNonBlockingUploadBufferAllocationTimeout() const
 bool GlobalSettings::isGpuAcceleratedTextureConversionEnabled() const
 {
     return m_enable_gpu_accelerated_texture_conversion;
+}
+
+bool GlobalSettings::isInverseDepthClipSpaceEnabled() const
+{
+    return m_enable_inverse_depth_clip_space;
 }
 
 void GlobalSettings::setNumberOfWorkers(uint8_t num_workers)

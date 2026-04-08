@@ -52,8 +52,6 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
     m_va_list = VertexAttributeSpecificationList{ position, color, texture_coordinate };
     auto& data_uploader = m_basic_rendering_services.resourceDataUploader();
 
-    m_projection_transform = math::createProjectionMatrix(EngineApi::Direct3D12, 16.f, 9.f);
-
     {
         // upload vertex buffer
 
@@ -246,6 +244,12 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
         m_pso->setRootSignatureCompilationTask(m_rs);
 
         m_pso->execute(0);
+    }
+    if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::viewport_changed))
+    {
+        Viewport const& viewport = m_basic_rendering_services.defaultViewport();
+        float a = viewport.width() / viewport.height();
+        m_projection_transform = math::createProjectionMatrix(a);
     }
 }
 
