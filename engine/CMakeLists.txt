@@ -6,6 +6,17 @@ set(_src_root_path ${PROJECT_SOURCE_DIR})
 set(_tests_root_path ${PROJECT_SOURCE_DIR}/tests)
 set(_target ${_project_name})
 
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _arch)
+if(_arch STREQUAL "x86_64" OR _arch STREQUAL "amd64")
+  message(STATUS "Target arch: x64")
+  set(_dxc_arch_folder "x64")
+elseif(_arch STREQUAL "arm64" OR _arch STREQUAL "aarch64")
+  message(STATUS "Target arch: ARM64")
+  set(_dxc_arch_folder "arm64")
+else()
+  message(FATAL_ERROR "Unsupported: ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
 function (configure_openmp_support target_name)
 	if(OpenMP_CXX_FOUND)
 	target_compile_options(${target_name} PRIVATE ${OpenMP_CXX_FLAGS})
@@ -129,7 +140,7 @@ if (MSVC)
     endif()
 
     # choose arch folder (expand as needed)
-    set(_pix_arch "$<$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},ARM64>:ARM64>$<$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},x64>:x64>")
+    set(_pix_arch "$<$<STREQUAL:${CMAKE_VS_PLATFORM_NAME},ARM64>:ARM64>$<$<STREQUAL:${CMAKE_VS_PLATFORM_NAME},x64>:x64>")
 
     add_library(WinPixEventRuntime INTERFACE)
     target_include_directories(WinPixEventRuntime INTERFACE "${PIX_ROOT}/include/WinPixEventRuntime")
@@ -148,7 +159,8 @@ if (MSVC)
 
 endif()
 
-set(_dxc_binary_path ${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/bin/${CMAKE_GENERATOR_PLATFORM}/)
+set(_dxc_binary_path ${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/bin/${_dxc_arch_folder}/)
+message(STATUS ${_dxc_binary_path})
 file(COPY ${_dxc_binary_path}dxcompiler.dll DESTINATION ${_build_runtime_output_directory})
 file(COPY ${_dxc_binary_path}dxil.dll DESTINATION ${_build_runtime_output_directory})
 
