@@ -17,7 +17,7 @@ class GlobalSettings
 {
 public:
     GlobalSettings() = default;
-    GlobalSettings(std::string const& json_settings_source_path);
+    explicit GlobalSettings(std::string const& json_settings_source_path);
 
     void serialize(std::string const& json_serialization_path) const;
 

@@ -22,6 +22,26 @@ std::string to_string(T const& value) { return std::to_string(value); }
 template<>
 std::string to_string<std::string>(std::string const& value) { return value; }
 
+template<>
+std::string to_string<MSAAMode>(MSAAMode const& mode)
+{
+    switch (mode)
+    {
+    case MSAAMode::none:
+        return "none";
+    case MSAAMode::msaa2x:
+        return "ms2x";
+	case MSAAMode::msaa4x:
+		return "ms4x";
+	case MSAAMode::msaa8x:
+		return "ms8x";
+	case MSAAMode::msaa16x:
+		return "ms16x";
+    default:
+        return "";
+    }
+}
+
 }
 
 
@@ -54,6 +74,7 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         m_max_frames_in_flight = 6;
         m_max_non_blocking_upload_buffer_allocation_timeout = 1000U;
         m_enable_profiling = false;
+        m_msaa_mode = MSAAMode::msaa2x;
         m_enable_cache = true;
         m_enable_gpu_accelerated_texture_conversion = false;
         m_enable_inverse_depth_clip_space = true;
@@ -271,6 +292,40 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         {
             yield_warning_log_message("enable_cache", m_enable_cache);
         }
+
+		if ((p = document.find("msaa_mode")) != document.end()
+			&& p->is_string())
+		{
+			std::string value = p->get<std::string>();
+            if (value == "ms2x")
+            {
+                m_msaa_mode = MSAAMode::msaa2x;
+            }
+            else if (value == "ms4x")
+            {
+                m_msaa_mode = MSAAMode::msaa4x;
+            }
+			else if (value == "ms8x")
+			{
+				m_msaa_mode = MSAAMode::msaa8x;
+			}
+			else if (value == "ms16x")
+			{
+				m_msaa_mode = MSAAMode::msaa4x;
+			}
+			else if (value == "none")
+			{
+				m_msaa_mode = MSAAMode::none;
+			}
+            else
+            {
+                yield_warning_log_message("msaa_mode", m_msaa_mode);
+            }
+		}
+		else
+		{
+			yield_warning_log_message("msaa_mode", m_msaa_mode);
+		}
 
         if ((p = document.find("max_frames_in_flight")) != document.end()
             && p->is_number_unsigned())

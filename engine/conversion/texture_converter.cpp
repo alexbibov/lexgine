@@ -390,7 +390,7 @@ void TextureConversionTask::operator()(void)
             // Select compression routine (either CPU or GPU)
 
             if (nativeD3d11Device && target_compression_format >= conversion::ImageCompressedDataFormat::bc6h_uf16
-                && target_compression_format < conversion::ImageCompressedDataFormat::unknown) {
+                && target_compression_format != conversion::ImageCompressedDataFormat::unknown) {
                 // use GPU compression
                 compressor = [this, nativeD3d11Device, target_compression_format, compression_flags](DirectX::Image const& srcImage, DirectX::ScratchImage& dstImage)
                     {
@@ -520,6 +520,29 @@ void TextureConversionTask::operator()(void)
 }
 
 
+void TextureConversionTask::waitForCompletion(const std::optional<std::chrono::milliseconds>& timeout/* = std::nullopt*/) const
+{
+    TextureConversionStatus status = static_cast<TextureConversionStatus>(m_status.load(std::memory_order_acquire));
+    std::chrono::high_resolution_clock::time_point start_time{};
+    if (timeout.has_value())
+    {
+        start_time = std::chrono::high_resolution_clock::now();
+    }
+    std::chrono::milliseconds total_duration{ 0 };
+    while ((!timeout.has_value() || total_duration.count() < timeout->count())
+        && (status == TextureConversionStatus::not_started || status == TextureConversionStatus::in_progress))
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds{ 10 });
+        std::this_thread::yield();
+        if (timeout.has_value())
+        {
+            total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_time);
+        }
+        status = static_cast<TextureConversionStatus>(m_status.load(std::memory_order_acquire));
+    }
+}
+
+
 TextureUploadWork::TextureUploadWork(TextureConverter& texture_converter,
     TextureConversionTaskKey const& conversion_key,
     core::misc::UUID texture_uuid,
@@ -595,6 +618,11 @@ bool TextureUploadWork::schedule()
 bool TextureUploadWork::isCompleted() const
 {
     return m_texture_converter.m_data_uploader.isWorkCompleted(m_controlling_signal);
+}
+
+void TextureUploadWork::waitForCompletion() const
+{
+    m_texture_converter.m_data_uploader.waitUntilUploadIsFinished();
 }
 
 TextureConverter::TextureConverter(core::Globals& globals)
