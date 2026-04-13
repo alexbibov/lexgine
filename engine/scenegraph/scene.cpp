@@ -4,15 +4,14 @@
 #include <future>
 #include <thread>
 
-#define TINYGLTF_IMPLEMENTATION
-#define TINYGLTF_NO_STB_IMAGE_WRITE
-#define TINYGLTF_NO_STB_IMAGE
-#include <tinygltf/tiny_gltf.h>
-#undef TINYGLTF_IMPLEMENTATION
-#undef TINYGLTF_NO_STB_IMAGE_WRITE
-#undef TINYGLTF_NO_STB_IMAGE
-
 #include <glm/gtc/constants.hpp>
+
+#define TINYGLTF3_IMPLEMENTATION
+#define TINYGLTF3_ENABLE_FS
+#include <tinygltf/tiny_gltf_v3.h>
+#undef TINYGLTF3_IMPLEMENTATION
+#undef TINYGLTF3_ENABLE_FS
+
 #include <engine/core/globals.h>
 #include <engine/core/misc/misc.h>
 #include <engine/core/dx/d3d12/dx_resource_factory.h>
@@ -37,10 +36,10 @@ core::misc::DateTime fetchTimestamp(std::filesystem::path const& gltf_path_to_fi
     return gltf_timestamp.isValid() ? *gltf_timestamp : core::misc::DateTime::buildTime();
 }
 
-int getSceneIndexFromName(tinygltf::Model const& model, std::string const& scene_name)
+int getSceneIndexFromName(tg3_model const& model, std::string const& scene_name)
 {
-    for (size_t i = 0; i < model.scenes.size(); ++i) {
-        if (model.scenes[i].name == scene_name) {
+    for (uint32_t i = 0; i < model.scenes_count; ++i) {
+        if (tg3_str_equals_cstr(model.scenes[i].name, scene_name.c_str())) {
             return static_cast<int>(i);
         }
     }
@@ -59,28 +58,28 @@ template<>
 lexgine::core::misc::DataFormat gltfCast<lexgine::core::misc::DataFormat>(int gltf_component_type)
 {
     switch (gltf_component_type) {
-    case TINYGLTF_COMPONENT_TYPE_BYTE:
+    case TG3_COMPONENT_TYPE_BYTE:
         return lexgine::core::misc::DataFormat::int8;
 
-    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+    case TG3_COMPONENT_TYPE_UNSIGNED_BYTE:
         return lexgine::core::misc::DataFormat::uint8;
 
-    case TINYGLTF_COMPONENT_TYPE_SHORT:
+    case TG3_COMPONENT_TYPE_SHORT:
         return lexgine::core::misc::DataFormat::int16;
 
-    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+    case TG3_COMPONENT_TYPE_UNSIGNED_SHORT:
         return lexgine::core::misc::DataFormat::uint16;
 
-    case TINYGLTF_COMPONENT_TYPE_INT:
+    case TG3_COMPONENT_TYPE_INT:
         return lexgine::core::misc::DataFormat::int32;
 
-    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+    case TG3_COMPONENT_TYPE_UNSIGNED_INT:
         return lexgine::core::misc::DataFormat::uint32;
 
-    case TINYGLTF_COMPONENT_TYPE_FLOAT:
+    case TG3_COMPONENT_TYPE_FLOAT:
         return lexgine::core::misc::DataFormat::float32;
 
-    case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+    case TG3_COMPONENT_TYPE_DOUBLE:
         return lexgine::core::misc::DataFormat::float64;
 
     default:
@@ -93,22 +92,22 @@ lexgine::scenegraph::MinificationFilter gltfCast<lexgine::scenegraph::Minificati
 {
     switch (gltf_minification_filter)
     {
-    case TINYGLTF_TEXTURE_FILTER_NEAREST:
+    case TG3_TEXTURE_FILTER_NEAREST:
         return MinificationFilter::nearest;
 
-    case TINYGLTF_TEXTURE_FILTER_LINEAR:
+    case TG3_TEXTURE_FILTER_LINEAR:
         return MinificationFilter::linear;
 
-    case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST:
+    case TG3_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST:
         return MinificationFilter::nearest_mipmap_nearest;
 
-    case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST:
+    case TG3_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST:
         return MinificationFilter::linear_mipmap_nearest;
 
-    case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR:
+    case TG3_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR:
         return MinificationFilter::nearest_mipmap_linear;
 
-    case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR:
+    case TG3_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR:
         return MinificationFilter::linear_mipmap_linear;
 
     default:
@@ -120,10 +119,10 @@ template <>
 lexgine::scenegraph::MagnificationFilter gltfCast<lexgine::scenegraph::MagnificationFilter>(int gltf_magnification_filter)
 {
     switch (gltf_magnification_filter) {
-    case TINYGLTF_TEXTURE_FILTER_NEAREST:
+    case TG3_TEXTURE_FILTER_NEAREST:
         return MagnificationFilter::nearest;
 
-    case TINYGLTF_TEXTURE_FILTER_LINEAR:
+    case TG3_TEXTURE_FILTER_LINEAR:
         return MagnificationFilter::linear;
 
     default:
@@ -136,13 +135,13 @@ lexgine::scenegraph::WrapMode gltfCast<lexgine::scenegraph::WrapMode>(int gltf_w
 {
     switch (gltf_wrapping_mode)
     {
-    case TINYGLTF_TEXTURE_WRAP_REPEAT:
+    case TG3_TEXTURE_WRAP_REPEAT:
         return WrapMode::repeat;
 
-    case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT:
+    case TG3_TEXTURE_WRAP_MIRRORED_REPEAT:
         return WrapMode::mirrored_repeat;
 
-    case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE:
+    case TG3_TEXTURE_WRAP_CLAMP_TO_EDGE:
         return WrapMode::clamp_to_edge;
 
     default:
@@ -199,13 +198,14 @@ Scene::Scene(
     , m_scene_path{ path_to_scene }
     , m_scene_index{ static_cast<int>(scene_id) }
 {
-    std::unique_ptr<tinygltf::Model> gltf_model = readGltfModel(path_to_scene);
-    if (!gltf_model)
+    auto gltf_model_opt = readGltfModel(path_to_scene);
+    if (!gltf_model_opt)
     {
         return;
     }
-    setStringName(gltf_model->scenes[scene_id].name);
-    m_scene_source_parse_status = readScene(*gltf_model, scene_id);
+    tg3_model const& gltf_model = *gltf_model_opt->get();
+    setStringName(std::string(gltf_model.scenes[scene_id].name.data, gltf_model.scenes[scene_id].name.len));
+    m_scene_source_parse_status = readScene(gltf_model, scene_id);
 }
 
 Scene::Scene(
@@ -220,13 +220,14 @@ Scene::Scene(
     , m_timestamp{ fetchTimestamp(path_to_scene) }
     , m_scene_path{ path_to_scene }
 {
-    std::unique_ptr<tinygltf::Model> gltf_model = readGltfModel(path_to_scene);
-    if (!gltf_model)
+    auto gltf_model_opt = readGltfModel(path_to_scene);
+    if (!gltf_model_opt)
     {
         return;
     }
+    tg3_model const& gltf_model = *gltf_model_opt->get();
 
-    m_scene_index = getSceneIndexFromName(*gltf_model, scene_name);
+    m_scene_index = getSceneIndexFromName(gltf_model, scene_name);
     setStringName(scene_name);
 
     if (m_scene_index == -1)
@@ -236,7 +237,7 @@ Scene::Scene(
         return;
     }
 
-    m_scene_source_parse_status = readScene(*gltf_model, m_scene_index);
+    m_scene_source_parse_status = readScene(gltf_model, m_scene_index);
 }
 
 bool Scene::loadStatus() const
@@ -249,74 +250,84 @@ bool Scene::loadStatus() const
 }
 
 [[nodiscard]]
-std::unique_ptr<tinygltf::Model> Scene::readGltfModel(std::filesystem::path const& path)
+std::optional<tinygltf3::Model> Scene::readGltfModel(std::filesystem::path const& path)
 {
-    tinygltf::TinyGLTF gltf_loader {};
-    std::unique_ptr<tinygltf::Model> gltf_model = std::make_unique<tinygltf::Model>();
-
     std::string gltf_path_to_file = path.string();
-	{
-		std::string extension = path.extension().string();
+    {
+        std::string extension = path.extension().string();
         std::vector<char> buf(extension.size());
-        std::transform(extension.begin(), extension.end(), buf.begin(), [](char c) {return static_cast<char>(std::tolower(c)); });
+        std::transform(extension.begin(), extension.end(), buf.begin(), [](char c) { return static_cast<char>(std::tolower(c)); });
         extension = std::string{ buf.begin(), buf.end() };
-        if (extension == ".ktx")
+        if (extension == ".gltf")
         {
             m_scene_source = SceneSource::gltf;
         }
-        else if (extension == ".glb")
+        else if (extension == ".bin")
         {
             m_scene_source = SceneSource::glb;
         }
         else
         {
             LEXGINE_LOG_ERROR(this, std::format("Unable to load scene '{}': scene file has unsupported format extension '{}'", gltf_path_to_file, extension));
-            return nullptr;
+            return std::nullopt;
         }
-	}
+    }
 
-    std::string error_buffer {}, warning_buffer {};
-    bool result{ false };
-    switch (m_scene_source)
+    tinygltf3::Model gltf_model;
+    tinygltf3::ErrorStack errors;
+    tg3_parse_options options;
+    tg3_parse_options_init(&options);
+
+    tg3_error_code result = tg3_parse_file(
+        gltf_model.get(), errors.get(),
+        gltf_path_to_file.c_str(), static_cast<uint32_t>(gltf_path_to_file.size()),
+        &options);
+
+    for (uint32_t i = 0; i < errors.count(); ++i)
     {
-    case SceneSource::gltf:
-        result = gltf_loader.LoadASCIIFromFile(gltf_model.get(), &error_buffer, &warning_buffer, gltf_path_to_file);
-        break;
-    case SceneSource::glb:
-        result = gltf_loader.LoadBinaryFromFile(gltf_model.get(), &error_buffer, &warning_buffer, gltf_path_to_file);
-        break;
-    default:
-        LEXGINE_ASSUME;
-    }
-    
-    if (!result || !error_buffer.empty()) {
-        LEXGINE_LOG_ERROR(this, error_buffer.c_str());
-        return gltf_model;
+        tg3_error_entry const* e = errors.entry(i);
+        if (e->severity == TG3_SEVERITY_ERROR)
+        {
+            LEXGINE_LOG_ERROR(this, e->message);
+        }
+        else
+        {
+            logger().out(e->message, core::misc::LogMessageType::exclamation);
+        }
     }
 
-    if (!warning_buffer.empty()) {
-        logger().out(warning_buffer, core::misc::LogMessageType::exclamation);
-    }
+    if (result != TG3_OK || errors.has_error())
+        return std::nullopt;
 
-    return gltf_model;
+    return std::move(gltf_model);
 }
 
-bool Scene::readScene(tinygltf::Model& model, unsigned scene_index)
+bool Scene::readScene(tg3_model const& model, unsigned scene_index)
 {
     std::string gltf_path_to_file = m_scene_path.string();
 
     // Check used extensions
-    for (auto& ext : model.extensionsUsed)
+    for (uint32_t ei = 0; ei < model.extensions_used_count; ++ei)
     {
+        std::string ext(model.extensions_used[ei].data, model.extensions_used[ei].len);
         auto it = m_enabled_extensions.find(ext);
         if (it == m_enabled_extensions.end())
         {
-            if (std::find(model.extensionsRequired.begin(), model.extensionsRequired.end(), ext) != model.extensionsRequired.end())
+            bool required = false;
+            for (uint32_t ri = 0; ri < model.extensions_required_count; ++ri)
             {
-                LEXGINE_LOG_ERROR(this, "Unable to load gltf file '" + gltf_path_to_file + "': required extension " + ext.c_str() + " is not supported");
+                if (tg3_str_equals_cstr(model.extensions_required[ri], ext.c_str()))
+                {
+                    required = true;
+                    break;
+                }
+            }
+            if (required)
+            {
+                LEXGINE_LOG_ERROR(this, "Unable to load gltf file '" + gltf_path_to_file + "': required extension " + ext + " is not supported");
                 return false;
             }
-            core::misc::Log::retrieve()->out("gltf file '" + gltf_path_to_file + "' contains unsupported extension " + ext.c_str(), core::misc::LogMessageType::exclamation);
+            core::misc::Log::retrieve()->out("gltf file '" + gltf_path_to_file + "' contains unsupported extension " + ext, core::misc::LogMessageType::exclamation);
         }
         else
         {
@@ -334,13 +345,14 @@ bool Scene::readScene(tinygltf::Model& model, unsigned scene_index)
     std::unordered_map<int, int> scene_texture_ids;
     std::unordered_map<int, int> scene_sampler_ids;
     {
-        tinygltf::Scene& scene = model.scenes[scene_index];
-        
-        for (int node_id : scene.nodes)
-        {   
-            tinygltf::Node& node = model.nodes[node_id];
+        tg3_scene const& scene = model.scenes[scene_index];
+
+        for (uint32_t ni = 0; ni < scene.nodes_count; ++ni)
+        {
+            int node_id = scene.nodes[ni];
+            tg3_node const& node = model.nodes[node_id];
             m_scene_nodes.emplace_back();
-            m_scene_nodes.back().setStringName(node.name);
+            m_scene_nodes.back().setStringName(std::string(node.name.data, node.name.len));
 
             if (node.light >= 0)
             {
@@ -351,89 +363,74 @@ bool Scene::readScene(tinygltf::Model& model, unsigned scene_index)
             {
                 // Node contains a mesh, count it towards scene memory size
                 scene_mesh_ids.insert({ node.mesh, -1 });
-                tinygltf::Mesh& mesh = model.meshes[node.mesh];
-                for (auto& p : mesh.primitives)
+                tg3_mesh const& mesh = model.meshes[node.mesh];
+                for (uint32_t pi = 0; pi < mesh.primitives_count; ++pi)
                 {
+                    tg3_primitive const& p = mesh.primitives[pi];
+
                     if (p.indices >= 0)
                     {
                         // primitive has index buffer
-                        tinygltf::Accessor const& accessor = model.accessors[p.indices];
-                        if (accessor.bufferView >= 0)
+                        tg3_accessor const& accessor = model.accessors[p.indices];
+                        if (accessor.buffer_view >= 0)
                         {
-                            tinygltf::BufferView const& buffer_view = model.bufferViews[accessor.bufferView];
-                            int buffer_id = buffer_view.buffer;
-                            scene_buffer_ids.insert({ buffer_id, -1 });
+                            tg3_buffer_view const& buffer_view = model.buffer_views[accessor.buffer_view];
+                            scene_buffer_ids.insert({ buffer_view.buffer, -1 });
                         }
                     }
 
-                    for (auto const& attr : p.attributes)
+                    for (uint32_t ai = 0; ai < p.attributes_count; ++ai)
                     {
-                        tinygltf::Accessor const& accessor = model.accessors[attr.second];
-                        if (accessor.bufferView >= 0) 
+                        tg3_accessor const& accessor = model.accessors[p.attributes[ai].value];
+                        if (accessor.buffer_view >= 0)
                         {
-                            tinygltf::BufferView const& buffer_view = model.bufferViews[accessor.bufferView];
-                            int buffer_id = buffer_view.buffer;
-                            scene_buffer_ids.insert({ buffer_id, -1 });
+                            tg3_buffer_view const& buffer_view = model.buffer_views[accessor.buffer_view];
+                            scene_buffer_ids.insert({ buffer_view.buffer, -1 });
                         }
                     }
 
-					if (p.material >= 0)
-					{
-						scene_material_ids.insert({ p.material, -1 });
+                    if (p.material >= 0)
+                    {
+                        scene_material_ids.insert({ p.material, -1 });
 
-						tinygltf::Material& material = model.materials[p.material];
+                        tg3_material const& material = model.materials[p.material];
+                        tg3_pbr_metallic_roughness const& pbr = material.pbr_metallic_roughness;
 
-						tinygltf::PbrMetallicRoughness& pbr_metallic_roughness = material.pbrMetallicRoughness;
-						if (pbr_metallic_roughness.baseColorTexture.index >= 0)
-						{
-							scene_texture_ids.insert({ pbr_metallic_roughness.baseColorTexture.index, -1 });
-							int sampler_id = model.textures[pbr_metallic_roughness.baseColorTexture.index].sampler;
-							if (sampler_id >= 0)
-							{
-								scene_sampler_ids.insert({ sampler_id, -1 });
-							}
-						}
+                        if (pbr.base_color_texture.index >= 0)
+                        {
+                            scene_texture_ids.insert({ pbr.base_color_texture.index, -1 });
+                            int sampler_id = model.textures[pbr.base_color_texture.index].sampler;
+                            if (sampler_id >= 0) scene_sampler_ids.insert({ sampler_id, -1 });
+                        }
 
-						if (pbr_metallic_roughness.metallicRoughnessTexture.index >= 0)
-						{
-							scene_texture_ids.insert({ pbr_metallic_roughness.metallicRoughnessTexture.index, -1 });
-							int sampler_id = model.textures[pbr_metallic_roughness.metallicRoughnessTexture.index].sampler;
-							if (sampler_id >= 0)
-							{
-								scene_sampler_ids.insert({ sampler_id, -1 });
-							}
-						}
+                        if (pbr.metallic_roughness_texture.index >= 0)
+                        {
+                            scene_texture_ids.insert({ pbr.metallic_roughness_texture.index, -1 });
+                            int sampler_id = model.textures[pbr.metallic_roughness_texture.index].sampler;
+                            if (sampler_id >= 0) scene_sampler_ids.insert({ sampler_id, -1 });
+                        }
 
-						if (material.normalTexture.index >= 0)
-						{
-							scene_texture_ids.insert({ material.normalTexture.index, -1 });
-							int sampler_id = model.textures[material.normalTexture.index].sampler;
-							if (sampler_id >= 0)
-							{
-								scene_sampler_ids.insert({ sampler_id, -1 });
-							}
-						}
+                        if (material.normal_texture.index >= 0)
+                        {
+                            scene_texture_ids.insert({ material.normal_texture.index, -1 });
+                            int sampler_id = model.textures[material.normal_texture.index].sampler;
+                            if (sampler_id >= 0) scene_sampler_ids.insert({ sampler_id, -1 });
+                        }
 
-						if (material.occlusionTexture.index >= 0)
-						{
-							scene_texture_ids.insert({ material.occlusionTexture.index, -1 });
-							int sampler_id = model.textures[material.occlusionTexture.index].sampler;
-							if (sampler_id >= 0)
-							{
-								scene_sampler_ids.insert({ sampler_id, -1 });
-							}
-						}
+                        if (material.occlusion_texture.index >= 0)
+                        {
+                            scene_texture_ids.insert({ material.occlusion_texture.index, -1 });
+                            int sampler_id = model.textures[material.occlusion_texture.index].sampler;
+                            if (sampler_id >= 0) scene_sampler_ids.insert({ sampler_id, -1 });
+                        }
 
-						if (material.emissiveTexture.index >= 0)
-						{
-							scene_texture_ids.insert({ material.emissiveTexture.index, -1 });
-							int sampler_id = model.textures[material.emissiveTexture.index].sampler;
-							if (sampler_id >= 0)
-							{
-								scene_sampler_ids.insert({ sampler_id, -1 });
-							}
-						}
-					}
+                        if (material.emissive_texture.index >= 0)
+                        {
+                            scene_texture_ids.insert({ material.emissive_texture.index, -1 });
+                            int sampler_id = model.textures[material.emissive_texture.index].sampler;
+                            if (sampler_id >= 0) scene_sampler_ids.insert({ sampler_id, -1 });
+                        }
+                    }
                 }
             }
 
@@ -454,7 +451,7 @@ bool Scene::readScene(tinygltf::Model& model, unsigned scene_index)
     {
         uint64_t scene_memory_size = std::accumulate(scene_buffer_ids.cbegin(), scene_buffer_ids.cend(), 0ui64,
             [&model](uint64_t acc, std::pair<int, int> const& e) {
-                return acc + static_cast<uint64_t>(model.buffers[e.first].data.size());
+                return acc + model.buffers[e.first].data.count;
             });
 
         m_scene_memory.scene_memory_buffer.reset(new SceneMeshMemory{ m_globals, scene_memory_size });
@@ -462,11 +459,11 @@ bool Scene::readScene(tinygltf::Model& model, unsigned scene_index)
         for (auto& [buffer_id, buffer_id_in_scene] : scene_buffer_ids)
         {
             buffer_id_in_scene = m_scene_memory.m_scene_memory_handles.size();
-            tinygltf::Buffer const& buffer = model.buffers[buffer_id];
+            tg3_buffer const& buffer = model.buffers[buffer_id];
             m_scene_memory.m_scene_memory_handles.push_back(
                 m_scene_memory.scene_memory_buffer->addData(
-                    buffer.data.data(),
-                    buffer.data.size()
+                    buffer.data.data,
+                    buffer.data.count
                 )
             );
         }
@@ -508,7 +505,7 @@ bool Scene::readScene(tinygltf::Model& model, unsigned scene_index)
 
 
 bool Scene::loadLights(
-    tinygltf::Model const& model, 
+    tg3_model const& model,
     std::unordered_map<int, int>& light_ids
 )
 {
@@ -516,68 +513,43 @@ bool Scene::loadLights(
     {
         if (light_ids.empty()) return true;
 
-        if (model.extensions.find(c_khr_light_punctual_ext) == model.extensions.end()
-            || !model.extensions.at(c_khr_light_punctual_ext).Has("lights"))
-        {
-            return false;
-        }
-
-        auto& khrLights = model.extensions.at(c_khr_light_punctual_ext).Get("lights");
         m_lights.clear();
         m_lights.reserve(light_ids.size());
         for (auto& [light_id, light_id_in_scene] : light_ids)
         {
-            auto& light = khrLights.Get(static_cast<int>(light_id));
+            tg3_light const& light = model.lights[light_id];
 
             // Retrieve light type
-            if (!light.Has("type")) {
-                LEXGINE_LOG_ERROR(this, std::string{ c_khr_light_punctual_ext } + ": light " + std::to_string(light_id) + " does not have a type");
+            LightType lightType{};
+            if (tg3_str_equals_cstr(light.type, "directional"))
+            {
+                lightType = LightType::directional;
+            }
+            else if (tg3_str_equals_cstr(light.type, "point"))
+            {
+                lightType = LightType::point;
+            }
+            else if (tg3_str_equals_cstr(light.type, "spot"))
+            {
+                lightType = LightType::spot;
+            }
+            else
+            {
+                LEXGINE_LOG_ERROR(this, std::string{ c_khr_light_punctual_ext } + ": light " + std::to_string(light_id) + " has invalid type");
                 return false;
             }
 
-            LightType lightType{};
-            {
-                std::string khrLightType = light.Get("type").Get<std::string>();
-                if (khrLightType == "directional")
-                {
-                    lightType = LightType::directional;
-                }
-                else if (khrLightType == "point")
-                {
-                    lightType = LightType::point;
-                }
-                else if (khrLightType == "spot")
-                {
-                    lightType = LightType::spot;
-                }
-                else
-                {
-                    LEXGINE_LOG_ERROR(this, std::string{ c_khr_light_punctual_ext } + ": light " + std::to_string(light_id) + " has invalid type");
-                    return false;
-                }
-            }
-
             Light lexgineLight{ lightType };
-            if (light.Has("name"))
-                lexgineLight.setStringName(light.Get("name").Get<std::string>());
+            if (light.name.data && light.name.len)
+                lexgineLight.setStringName(std::string(light.name.data, light.name.len));
 
-
-            // Retrieve light properties
-            if (light.Has("color"))
-            {
-                auto& light_color_property = light.Get("color");
-                glm::vec3 color{
-                    static_cast<float>(light_color_property.Get(0).Get<double>()),
-                    static_cast<float>(light_color_property.Get(1).Get<double>()),
-                    static_cast<float>(light_color_property.Get(2).Get<double>())
-                };
-                lexgineLight.setColor(color);
-            }
-
-            if (light.Has("intensity"))
-            {
-                lexgineLight.setIntensity(static_cast<float>(light.Get("intensity").Get<double>()));
-            }
+            // Color and intensity are always present (defaults: {1,1,1} and 1.0)
+            lexgineLight.setColor(glm::vec3{
+                static_cast<float>(light.color[0]),
+                static_cast<float>(light.color[1]),
+                static_cast<float>(light.color[2])
+            });
+            lexgineLight.setIntensity(static_cast<float>(light.intensity));
 
             if (lightType != LightType::point)
             {
@@ -589,32 +561,16 @@ bool Scene::loadLights(
             case LightType::directional:
                 break;
             case LightType::spot:
-            {
-                if (!light.Has("spot"))
-                {
-                    LEXGINE_LOG_ERROR(this, std::string{ c_khr_light_punctual_ext } + ": invalid description of spot light " + std::to_string(light_id) + ", the light does not define a 'spot' property, which is required");
-                    return false;
-                }
-
-                auto& light_spot_property = light.Get("spot");
-                lexgineLight.setInnerConeAngle(static_cast<float>(light_spot_property.Get("innerConeAngle").Get<double>()));
-
-                if (light_spot_property.Has("outerConeAngle"))
-                {
-                    lexgineLight.setOuterConeAngle(static_cast<float>(light_spot_property.Get("outerConeAngle").Get<double>()));
-                }
-                else
-                {
-                    lexgineLight.setOuterConeAngle(glm::pi<float>() / 4.f);
-                }
+                // v3 fills outer_cone_angle default (PI/4) at parse time
+                lexgineLight.setInnerConeAngle(static_cast<float>(light.spot.inner_cone_angle));
+                lexgineLight.setOuterConeAngle(static_cast<float>(light.spot.outer_cone_angle));
                 [[fallthrough]];    // spot lights also support range per KHR_lights_punctual
-            }
 
             case LightType::point:
-                if (light.Has("range"))
-                    lexgineLight.setRange(static_cast<float>(light.Get("range").Get<double>()));
+                // range == 0 means infinite per glTF spec
+                if (light.range > 0.0)
+                    lexgineLight.setRange(static_cast<float>(light.range));
                 break;
-
             }
 
             m_lights.push_back(lexgineLight);
@@ -626,56 +582,59 @@ bool Scene::loadLights(
 }
 
 bool Scene::loadTextures(
-    tinygltf::Model& model,
+    tg3_model const& model,
     std::unordered_map<int, int>& texture_ids,
     std::unordered_map<int, int>& sampler_ids
 )
 {
     conversion::ImageLoaderPool const& image_loader_pool = *m_globals.get<conversion::ImageLoaderPool>();
     conversion::TextureConverter& texture_converter = *m_globals.get<conversion::TextureConverter>();
-    
+
     m_textures.reserve(texture_ids.size());
     m_samplers.reserve(sampler_ids.size() + 1);   // +1 for default sampler appended below
 
     for (auto& [sampler_id, sampler_id_in_scene] : sampler_ids)
     {
-        tinygltf::Sampler& sampler = model.samplers[sampler_id];
+        tg3_sampler const& sampler = model.samplers[sampler_id];
         sampler_id_in_scene = m_samplers.size();
         m_samplers.emplace_back(
-            Sampler{ gltfCast<MinificationFilter>(sampler.minFilter), gltfCast<MagnificationFilter>(sampler.magFilter),
-                gltfCast<WrapMode>(sampler.wrapS), gltfCast<WrapMode>(sampler.wrapT) }
+            Sampler{ gltfCast<MinificationFilter>(sampler.min_filter), gltfCast<MagnificationFilter>(sampler.mag_filter),
+                gltfCast<WrapMode>(sampler.wrap_s), gltfCast<WrapMode>(sampler.wrap_t) }
         );
     }
     m_samplers.emplace_back(Sampler{});    // default sampler to be used in case GLTF texture does not define one. This sampler is always stored the last in the scene cache
-    
+
     for (auto& [texture_id, texture_id_in_scene] : texture_ids)
     {
-        tinygltf::Texture& texture = model.textures[texture_id];
+        tg3_texture const& texture = model.textures[texture_id];
         if (texture.source < 0)
         {
             LEXGINE_LOG_ERROR(this, "texture " + std::to_string(texture_id) + " has no image source");
             return false;
         }
-        tinygltf::Image& gltf_image = model.images[texture.source];
+        tg3_image const& gltf_image = model.images[texture.source];
         int sampler_id_in_scene = texture.sampler >= 0 ? sampler_ids[texture.sampler] : static_cast<int>(m_samplers.size() - 1);
         texture_id_in_scene = m_textures.size();
-        if (gltf_image.image.empty())
+        if (gltf_image.image.count == 0)
         {
             // image is loaded from uri
-            m_textures.emplace_back(Texture{ .image = Image{m_scene_path / gltf_image.uri, image_loader_pool}, .sampler_id = sampler_id_in_scene });
+            std::string uri(gltf_image.uri.data, gltf_image.uri.len);
+            m_textures.emplace_back(Texture{ .image = Image{m_scene_path.remove_filename() / uri, image_loader_pool}, .sampler_id = sampler_id_in_scene });
         }
         else
         {
-            // image is embedded in gltf
+            // image is embedded in gltf — copy arena-owned span into a vector
+            std::vector<uint8_t> image_data(gltf_image.image.data, gltf_image.image.data + gltf_image.image.count);
+            std::string image_name(gltf_image.name.data, gltf_image.name.len);
             m_textures.emplace_back(Texture{
                     .image = Image{
-                        std::move(gltf_image.image),
+                        std::move(image_data),
                         static_cast<uint32_t>(gltf_image.width),
                         static_cast<uint32_t>(gltf_image.height),
                         static_cast<size_t>(gltf_image.component),
                         static_cast<size_t>(gltf_image.bits),
                         conversion::ImageColorSpace::srgb,
-                        gltf_image.name,
+                        image_name,
                         m_timestamp,
                         image_loader_pool
                     },
@@ -691,7 +650,7 @@ bool Scene::loadTextures(
 }
 
 bool Scene::loadMeshes(
-    tinygltf::Model const& model, 
+    tg3_model const& model,
     std::unordered_map<int, int>& mesh_ids,
     std::unordered_map<int, int> const& buffer_ids
 )
@@ -701,39 +660,40 @@ bool Scene::loadMeshes(
     // Parse meshes
     for (auto& [mesh_id, mesh_id_in_scene] : mesh_ids)
     {
-        tinygltf::Mesh const& mesh = model.meshes[mesh_id];
+        tg3_mesh const& mesh = model.meshes[mesh_id];
 
         // Parse mesh primitives
-        auto& morph_weights = mesh.weights;
+        std::vector<double> morph_weights(mesh.weights, mesh.weights + mesh.weights_count);
 
-        m_scene_meshes.emplace_back(Mesh{ mesh.name });
+        m_scene_meshes.emplace_back(Mesh{ std::string(mesh.name.data, mesh.name.len) });
         m_scene_meshes.back().applyMorphWeights(morph_weights);
 
-        for (tinygltf::Primitive const& mesh_primitive : mesh.primitives)
+        for (uint32_t pi = 0; pi < mesh.primitives_count; ++pi)
         {
+            tg3_primitive const& mesh_primitive = mesh.primitives[pi];
             Submesh submesh{ *m_scene_memory.scene_memory_buffer };
             VertexBufferView* vb_view = submesh.getVertexBufferView();
-            
-            if(mesh_primitive.indices >= 0)
+
+            if (mesh_primitive.indices >= 0)
             {
-				SceneMemoryBufferHandle index_buffer{};
-				IndexType index_type{};
+                SceneMemoryBufferHandle index_buffer{};
+                IndexType index_type{};
 
-                tinygltf::Accessor const& indices_accessor = model.accessors.at(mesh_primitive.indices);
-                assert(indices_accessor.type == TINYGLTF_TYPE_SCALAR);
+                tg3_accessor const& indices_accessor = model.accessors[mesh_primitive.indices];
+                assert(indices_accessor.type == TG3_TYPE_SCALAR);
 
-                tinygltf::BufferView const& indices_buffer_view = model.bufferViews.at(indices_accessor.bufferView);
-                assert(indices_buffer_view.target == TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER);
+                tg3_buffer_view const& indices_buffer_view = model.buffer_views[indices_accessor.buffer_view];
+                assert(indices_buffer_view.target == TG3_TARGET_ELEMENT_ARRAY_BUFFER);
 
-                switch (indices_accessor.componentType)
+                switch (indices_accessor.component_type)
                 {
-                case TINYGLTF_COMPONENT_TYPE_INT:
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+                case TG3_COMPONENT_TYPE_INT:
+                case TG3_COMPONENT_TYPE_UNSIGNED_INT:
                     index_type = IndexType::_default;
                     break;
 
-                case TINYGLTF_COMPONENT_TYPE_SHORT:
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+                case TG3_COMPONENT_TYPE_SHORT:
+                case TG3_COMPONENT_TYPE_UNSIGNED_SHORT:
                     index_type = IndexType::_short;
                     break;
 
@@ -742,8 +702,8 @@ bool Scene::loadMeshes(
                 }
 
                 index_buffer = m_scene_memory.getBuffer(buffer_ids.at(indices_buffer_view.buffer));
-                index_buffer.offset += indices_buffer_view.byteOffset;
-                index_buffer.size = indices_buffer_view.byteLength;
+                index_buffer.offset += indices_buffer_view.byte_offset;
+                index_buffer.size = indices_buffer_view.byte_length;
 
                 submesh.setIndexBuffer(index_buffer, index_type);
             }
@@ -759,50 +719,51 @@ bool Scene::loadMeshes(
             lexgine::core::VertexAttributeSpecificationList all_vertex_attributes{};
             vertex_attributes_for_vb_slot.reserve(D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
 
-            for (auto p = mesh_primitive.attributes.begin(), end = mesh_primitive.attributes.end(); p != end; ++p)
+            for (uint32_t ai = 0; ai < mesh_primitive.attributes_count; ++ai)
             {
-                auto [attribute_name, accessor_id] = *p;
-                tinygltf::Accessor const& accessor = model.accessors.at(accessor_id);
-                assert(accessor.type >= TINYGLTF_TYPE_VEC2 && accessor.type <= TINYGLTF_TYPE_VEC4
-                    || accessor.type == TINYGLTF_TYPE_SCALAR);
+                std::string attribute_name(mesh_primitive.attributes[ai].key.data, mesh_primitive.attributes[ai].key.len);
+                int accessor_id = mesh_primitive.attributes[ai].value;
+                tg3_accessor const& accessor = model.accessors[accessor_id];
+                assert((accessor.type >= TG3_TYPE_VEC2 && accessor.type <= TG3_TYPE_VEC4)
+                    || accessor.type == TG3_TYPE_SCALAR);
 
-                tinygltf::BufferView const& buffer_view = model.bufferViews.at(accessor.bufferView);
-                assert(buffer_view.target == TINYGLTF_TARGET_ARRAY_BUFFER);
+                tg3_buffer_view const& buffer_view = model.buffer_views[accessor.buffer_view];
+                assert(buffer_view.target == TG3_TARGET_ARRAY_BUFFER);
 
                 if (current_buffer != buffer_view.buffer)
                 {
                     if (current_buffer >= 0
                         && current_vb_slot >= 0
-                        && current_element_count != invalid_value 
+                        && current_element_count != invalid_value
                         && current_buffer_stride != invalid_value)
                     {
-						vb_view->setVertexBuffer(
-							static_cast<size_t>(current_vb_slot),
-							vertex_buffers[current_vb_slot],
-							vertex_attributes_for_vb_slot,
+                        vb_view->setVertexBuffer(
+                            static_cast<size_t>(current_vb_slot),
+                            vertex_buffers[current_vb_slot],
+                            vertex_attributes_for_vb_slot,
                             current_element_count,
                             current_buffer_stride
-						);
-						vertex_attributes_for_vb_slot.clear();
+                        );
+                        vertex_attributes_for_vb_slot.clear();
                     }
                     current_buffer = buffer_view.buffer;
                     ++current_vb_slot;
                     assert(current_vb_slot < D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
                     current_element_count = accessor.count;
-                    current_buffer_stride = buffer_view.byteStride;
-					vertex_buffers[current_vb_slot] = m_scene_memory.getBuffer(buffer_ids.at(current_buffer));
-					vertex_buffers[current_vb_slot].offset += buffer_view.byteOffset;
-					vertex_buffers[current_vb_slot].size = buffer_view.byteLength;
+                    current_buffer_stride = buffer_view.byte_stride;
+                    vertex_buffers[current_vb_slot] = m_scene_memory.getBuffer(buffer_ids.at(current_buffer));
+                    vertex_buffers[current_vb_slot].offset += buffer_view.byte_offset;
+                    vertex_buffers[current_vb_slot].size = buffer_view.byte_length;
                 }
 
                 auto [va_name, va_index] = extractNameAndIndexFromAttributeName(attribute_name);
                 core::dx::d3d12::DxgiFormatFetcher::va_spec vertex_attribute_desc
                 {
-                    .format = gltfCast<lexgine::core::misc::DataFormat>(accessor.componentType),
-                    .element_count = static_cast<unsigned char>(tinygltf::GetNumComponentsInType(accessor.type)),
-                    .is_normalized = accessor.normalized,
+                    .format = gltfCast<lexgine::core::misc::DataFormat>(accessor.component_type),
+                    .element_count = static_cast<unsigned char>(tg3_num_components(accessor.type)),
+                    .is_normalized = accessor.normalized != 0,
                     .primitive_assembler_input_slot = static_cast<unsigned char>(current_vb_slot),
-                    .element_offset = static_cast<uint32_t>(accessor.byteOffset),
+                    .element_offset = static_cast<uint32_t>(accessor.byte_offset),
                     .name = va_name.c_str(),
                     .name_index = static_cast<uint32_t>(va_index),
                     .instancing_data_rate = 0
@@ -821,21 +782,21 @@ bool Scene::loadMeshes(
                 );
             }
 
-			if (mesh_primitive.material >= 0)
-			{
-				bool result = loadMaterial(model.materials[mesh_primitive.material], all_vertex_attributes);
-				if (result)
-				{
+            if (mesh_primitive.material >= 0)
+            {
+                bool result = loadMaterial(model.materials[mesh_primitive.material], all_vertex_attributes);
+                if (result)
+                {
                     Material& last_loaded_material = m_materials.back();
                     submesh.setBaseMaterial(&last_loaded_material);
-				}
+                }
                 else
                 {
-					LEXGINE_LOG_ERROR(this, "Unable to load material (id = "
-						+ std::to_string(mesh_primitive.material) + ") for mesh "
-						+ mesh.name);
+                    LEXGINE_LOG_ERROR(this, "Unable to load material (id = "
+                        + std::to_string(mesh_primitive.material) + ") for mesh "
+                        + std::string(mesh.name.data, mesh.name.len));
                 }
-			}
+            }
 
             m_scene_meshes.back().addSubmesh(std::move(submesh));
         }
@@ -844,10 +805,10 @@ bool Scene::loadMeshes(
     return true;
 }
 
-bool Scene::loadMaterial(const tinygltf::Material& gltfMaterial,
+bool Scene::loadMaterial(tg3_material const& gltf_material,
     const lexgine::core::VertexAttributeSpecificationList& vertex_attributes)
 {
-    if (gltfMaterial.alphaMode != "OPAQUE")
+    if (!tg3_str_equals_cstr(gltf_material.alpha_mode, "OPAQUE"))
         return false;
 
     MaterialPSOCompilationContext context{ vertex_attributes };
@@ -877,41 +838,41 @@ bool Scene::loadMaterial(const tinygltf::Material& gltfMaterial,
     
     m_materials.emplace_back(*m_material_construction_tasks.back());
     Material& new_material = m_materials.back();
-    new_material.setStringName(gltfMaterial.name);
-    new_material.setEmissiveFactor(lexgine::core::math::Vector3f{ gltfMaterial.emissiveFactor[0], gltfMaterial.emissiveFactor[1], gltfMaterial.emissiveFactor[2] });
+    new_material.setStringName(std::string(gltf_material.name.data, gltf_material.name.len));
+    new_material.setEmissiveFactor(lexgine::core::math::Vector3f{ gltf_material.emissive_factor[0], gltf_material.emissive_factor[1], gltf_material.emissive_factor[2] });
     new_material.setAlphaMode(AlphaMode::opaque);
-    new_material.setAlphaCutoff(gltfMaterial.alphaCutoff);
-    new_material.setDoubleSided(gltfMaterial.doubleSided);
+    new_material.setAlphaCutoff(gltf_material.alpha_cutoff);
+    new_material.setDoubleSided(gltf_material.double_sided != 0);
 
     {
         // Metallic-roughness
         Material::MetallicRoughness mr{};
         mr.base_color_factor = lexgine::core::math::Vector4f{
-            gltfMaterial.pbrMetallicRoughness.baseColorFactor[0],
-            gltfMaterial.pbrMetallicRoughness.baseColorFactor[1],
-            gltfMaterial.pbrMetallicRoughness.baseColorFactor[2],
-            gltfMaterial.pbrMetallicRoughness.baseColorFactor[3]
+            gltf_material.pbr_metallic_roughness.base_color_factor[0],
+            gltf_material.pbr_metallic_roughness.base_color_factor[1],
+            gltf_material.pbr_metallic_roughness.base_color_factor[2],
+            gltf_material.pbr_metallic_roughness.base_color_factor[3]
         };
-        mr.metallic_factor = gltfMaterial.pbrMetallicRoughness.metallicFactor;
-        mr.roughness_factor = gltfMaterial.pbrMetallicRoughness.roughnessFactor;
-        mr.p_base_color = gltfMaterial.pbrMetallicRoughness.baseColorTexture.index >= 0 ? &m_textures[gltfMaterial.pbrMetallicRoughness.baseColorTexture.index] : nullptr;
-        mr.p_metallic_roughness = gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0 ? &m_textures[gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index] : nullptr;
+        mr.metallic_factor = gltf_material.pbr_metallic_roughness.metallic_factor;
+        mr.roughness_factor = gltf_material.pbr_metallic_roughness.roughness_factor;
+        mr.p_base_color = gltf_material.pbr_metallic_roughness.base_color_texture.index >= 0 ? &m_textures[gltf_material.pbr_metallic_roughness.base_color_texture.index] : nullptr;
+        mr.p_metallic_roughness = gltf_material.pbr_metallic_roughness.metallic_roughness_texture.index >= 0 ? &m_textures[gltf_material.pbr_metallic_roughness.metallic_roughness_texture.index] : nullptr;
         new_material.setMetallicRoughness(mr);
     }
 
-    if (gltfMaterial.normalTexture.index >= 0)
+    if (gltf_material.normal_texture.index >= 0)
     {
-        new_material.setNormalTexture(&m_textures[gltfMaterial.normalTexture.index]);
+        new_material.setNormalTexture(&m_textures[gltf_material.normal_texture.index]);
     }
 
-    if (gltfMaterial.occlusionTexture.index >= 0)
+    if (gltf_material.occlusion_texture.index >= 0)
     {
-        new_material.setOcclusionTexture(&m_textures[gltfMaterial.occlusionTexture.index]);
+        new_material.setOcclusionTexture(&m_textures[gltf_material.occlusion_texture.index]);
     }
 
-    if (gltfMaterial.emissiveTexture.index >= 0)
+    if (gltf_material.emissive_texture.index >= 0)
     {
-        new_material.setEmissiveTexture(&m_textures[gltfMaterial.emissiveTexture.index]);
+        new_material.setEmissiveTexture(&m_textures[gltf_material.emissive_texture.index]);
     }
 
     return true;
@@ -936,29 +897,29 @@ void Scene::scheduleMaterialConstruction()
     m_material_construction_task_sink->submit(0);
 }
 
-bool Scene::loadCameras(tinygltf::Model const& model, std::unordered_map<int, int>& camera_ids)
+bool Scene::loadCameras(tg3_model const& model, std::unordered_map<int, int>& camera_ids)
 {
     for (auto& [camera_id, camera_id_in_scene] : camera_ids)
     {
-        tinygltf::Camera const& camera = model.cameras[camera_id];
-        Camera sceneCamera{ camera.name };
+        tg3_camera const& camera = model.cameras[camera_id];
+        Camera sceneCamera{ std::string(camera.name.data, camera.name.len) };
         ProjectionType cameraProjectionType{};
-        if (camera.type == "perspective")
+        if (tg3_str_equals_cstr(camera.type, "perspective"))
         {
             cameraProjectionType = ProjectionType::Perspective;
-            const tinygltf::PerspectiveCamera& perspectiveCamera = camera.perspective;
+            tg3_perspective_camera const& perspectiveCamera = camera.perspective;
             sceneCamera.setPerspective(
-                static_cast<float>(perspectiveCamera.yfov), 
-                static_cast<float>(perspectiveCamera.aspectRatio),
-                static_cast<float>(perspectiveCamera.znear), 
+                static_cast<float>(perspectiveCamera.yfov),
+                static_cast<float>(perspectiveCamera.aspect_ratio),
+                static_cast<float>(perspectiveCamera.znear),
                 static_cast<float>(perspectiveCamera.zfar),
                 m_global_settings.isInverseDepthClipSpaceEnabled()
             );
         }
-        else if (camera.type == "orthographic")
+        else if (tg3_str_equals_cstr(camera.type, "orthographic"))
         {
             cameraProjectionType = ProjectionType::Orthographic;
-            const tinygltf::OrthographicCamera& orthographicCamera = camera.orthographic;
+            tg3_orthographic_camera const& orthographicCamera = camera.orthographic;
             sceneCamera.setOrthographic(
                 static_cast<float>(-orthographicCamera.xmag * .5),
                 static_cast<float>(orthographicCamera.xmag * .5),
@@ -979,7 +940,7 @@ bool Scene::loadCameras(tinygltf::Model const& model, std::unordered_map<int, in
     return true;
 }
 
-bool Scene::loadAnimations(tinygltf::Model const& model, std::unordered_map<int, int>& animation_ids)
+bool Scene::loadAnimations(tg3_model const& model, std::unordered_map<int, int>& animation_ids)
 {
     return true;
 }
