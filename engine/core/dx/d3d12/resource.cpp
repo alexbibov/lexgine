@@ -298,6 +298,7 @@ void CommittedResource::createResource(Device const& device, D3D12_HEAP_PROPERTI
     HeapCreationFlags resource_usage_flags, misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value)
 {
     D3D12_HEAP_FLAGS flags = static_cast<D3D12_HEAP_FLAGS>(resource_usage_flags.getValue());
+    flags &= ~(D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES | D3D12_HEAP_FLAG_DENY_BUFFERS);  // these flags are set automatically to correspond to created committed resource type
     D3D12_RESOURCE_DESC native_resource_desc = resource_desc.native();
 
     D3D12_CLEAR_VALUE resource_clear_value{};
