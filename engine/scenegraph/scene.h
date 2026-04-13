@@ -3,7 +3,10 @@
 
 #include <filesystem>
 #include <future>
+#include <optional>
 #include <unordered_map>
+
+#include <tinygltf/tiny_gltf_v3.h>
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/scenegraph/lexgine_scenegraph_fwd.h"
@@ -75,34 +78,34 @@ private:
         std::string const& scene_name
     );
 
-    std::unique_ptr<tinygltf::Model> readGltfModel(std::filesystem::path const& path);
-    bool readScene(tinygltf::Model& model, unsigned scene_index);
+    std::optional<tinygltf3::Model> readGltfModel(std::filesystem::path const& path);
+    bool readScene(tg3_model const& model, unsigned scene_index);
 
     bool loadLights(
-        tinygltf::Model const& model, 
+        tg3_model const& model,
         std::unordered_map<int, int>& light_ids
     );
     bool loadTextures(
-        tinygltf::Model& model, 
-        std::unordered_map<int, int>& texture_ids, 
+        tg3_model const& model,
+        std::unordered_map<int, int>& texture_ids,
         std::unordered_map<int, int>& sampler_ids
     );
     bool loadMeshes(
-        tinygltf::Model const& model, 
-        std::unordered_map<int, int>& mesh_ids, 
+        tg3_model const& model,
+        std::unordered_map<int, int>& mesh_ids,
         std::unordered_map<int, int> const& buffer_ids
     );
     bool loadMaterial(
-        const tinygltf::Material& gltfMaterial,
+        tg3_material const& gltf_material,
         const lexgine::core::VertexAttributeSpecificationList& vertex_attributes
     );
     void scheduleMaterialConstruction();
     bool loadCameras(
-        tinygltf::Model const& model, 
+        tg3_model const& model,
         std::unordered_map<int, int>& camera_ids
     );
     bool loadAnimations(
-        tinygltf::Model const& model, 
+        tg3_model const& model,
         std::unordered_map<int, int>& animation_ids
     );
 

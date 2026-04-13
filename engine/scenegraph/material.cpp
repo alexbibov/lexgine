@@ -203,8 +203,11 @@ void Material::setMetallicRoughness(MetallicRoughness const& value)
     m_metallic_factor = value.metallic_factor;
     m_roughness_factor = value.roughness_factor;
 
+    value.p_base_color->p_texture_conversion_task->waitForCompletion();
     assert(value.p_base_color->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
     lexgine::conversion::TextureUploadWork* p_base_color_texture_upload_work = value.p_base_color->p_texture_conversion_task->getUploadWork();
+    p_base_color_texture_upload_work->schedule();
+    p_base_color_texture_upload_work->waitForCompletion();
     assert(p_base_color_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result =
         m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("textures", p_base_color_texture_upload_work->resource()))
@@ -212,8 +215,11 @@ void Material::setMetallicRoughness(MetallicRoughness const& value)
         m_base_color_texture_binding_id = binding_result.binding_register;
     }
 
+    value.p_metallic_roughness->p_texture_conversion_task->waitForCompletion();
     assert(value.p_metallic_roughness->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
     lexgine::conversion::TextureUploadWork* p_metallic_roughness_texture_upload_work = value.p_metallic_roughness->p_texture_conversion_task->getUploadWork();
+    p_metallic_roughness_texture_upload_work->schedule();
+    p_metallic_roughness_texture_upload_work->waitForCompletion();
     assert(p_metallic_roughness_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result 
         = m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("textures", p_metallic_roughness_texture_upload_work->resource()))
@@ -224,8 +230,11 @@ void Material::setMetallicRoughness(MetallicRoughness const& value)
 
 void Material::setNormalTexture(Texture* p_texture)
 {
+    p_texture->p_texture_conversion_task->waitForCompletion();
     assert(p_texture->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
     lexgine::conversion::TextureUploadWork* p_texture_upload_work = p_texture->p_texture_conversion_task->getUploadWork();
+    p_texture_upload_work->schedule();
+    p_texture_upload_work->waitForCompletion();
     assert(p_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result =
         m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("textures", p_texture_upload_work->resource()))
@@ -237,8 +246,11 @@ void Material::setNormalTexture(Texture* p_texture)
 
 void Material::setOcclusionTexture(Texture* p_texture)
 {
+    p_texture->p_texture_conversion_task->waitForCompletion();
     assert(p_texture->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
     lexgine::conversion::TextureUploadWork* p_texture_upload_work = p_texture->p_texture_conversion_task->getUploadWork();
+	p_texture_upload_work->schedule();
+	p_texture_upload_work->waitForCompletion();
     assert(p_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result 
         = m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("textures", p_texture_upload_work->resource()))
@@ -249,8 +261,11 @@ void Material::setOcclusionTexture(Texture* p_texture)
 
 void Material::setEmissiveTexture(Texture* p_texture)
 {
+    p_texture->p_texture_conversion_task->waitForCompletion();
     assert(p_texture->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
     lexgine::conversion::TextureUploadWork* p_texture_upload_work = p_texture->p_texture_conversion_task->getUploadWork();
+	p_texture_upload_work->schedule();
+	p_texture_upload_work->waitForCompletion();
     assert(p_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result 
         = m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("textures", p_texture_upload_work->resource()))
