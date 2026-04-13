@@ -99,6 +99,7 @@ void resizeImage(uint8_t const* src_image_data, size_t src_image_width, size_t s
 
 bool ImageLoader::load(std::filesystem::path const& uri, std::vector<uint8_t>& image_data_buffer)
 {
+    m_description = {};
     auto binary_data = core::misc::readBinaryDataFromSourceFile(uri.string());
     if (!binary_data.isValid())
     {
