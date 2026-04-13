@@ -16,6 +16,7 @@
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h"
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/rendering_work.h"
 #include "engine/core/ui/console.h"
+#include "engine/scenegraph/lexgine_scenegraph_fwd.h"
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "basic_rendering_services.h"
@@ -58,6 +59,7 @@ public:
 
 private:
     void cleanup();    //! flushes the rendering pipeline and shutdowns the task submission sink
+    void registerConsoleCommands();
 
 private:
     Globals& m_globals;
@@ -79,6 +81,8 @@ private:    // rendering tasks
 
     std::shared_ptr<tasks::rendering_tasks::GpuWorkExecutionTask> m_post_rendering_gpu_tasks;
     std::shared_ptr<tasks::rendering_tasks::GpuWorkExecutionTask> m_gpu_profiling_queries_flush_task;
+
+    std::shared_ptr<scenegraph::Scene> m_current_scene;
 };
 
 }

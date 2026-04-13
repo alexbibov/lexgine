@@ -1,3 +1,5 @@
+#include "engine/scenegraph/scene.h"
+
 #include "rendering_tasks.h"
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
@@ -60,6 +62,7 @@ RenderingTasks::RenderingTasks(Globals& globals)
     m_test_rendering_task_build_cmd_list = RenderingTaskFactory::create<TestRenderingTask>(m_globals, m_basic_rendering_services);
     m_ui_draw_build_cmd_list = RenderingTaskFactory::create<UIDrawTask>(globals, m_basic_rendering_services);
     m_console = ui::Console::create(globals, m_basic_rendering_services, m_task_graph);
+    registerConsoleCommands();
     m_gpu_profiling_queries_flush_build_cmd_list = RenderingTaskFactory::create<GpuProfilingQueriesFlushTask>(globals);
     m_profiler = RenderingTaskFactory::create<Profiler>(globals, m_basic_rendering_services, m_task_graph);
     m_ui_draw_build_cmd_list->addUIProvider(m_profiler);
@@ -155,6 +158,61 @@ void RenderingTasks::cleanup()
 {
     if (m_task_sink.isRunning()) m_task_sink.shutdown();
     flush();
+}
+
+
+void RenderingTasks::registerConsoleCommands()
+{
+    auto& reg = m_console->consoleCommandRegistry();
+    reg.addNamespace("scene", "Scene management commands");
+
+    // scene.load path=<path> [scene_id=<int>]
+    interaction::console::CommandSpec load_cmd{ .name = "load",
+        .summary = "Load a GLTF/GLB scene by index" };
+    load_cmd.args.push_back({ .name = "path",
+        .description = "Path to the .gltf or .glb file",
+        .parser = interaction::console::value_parsers::string_parser });
+    load_cmd.args.push_back({ .name = "scene_id",
+        .description = "Index of the scene within the file (default: 0)",
+        .parser = interaction::console::value_parsers::int_parser,
+        ._default = interaction::console::ArgValue{ 0 } });
+    reg.addCommand("scene", load_cmd,
+        [this](interaction::console::ArgMap const& args) -> interaction::console::CommandExecResult
+        {
+            std::string path = std::get<std::string>(args.at("path"));
+            unsigned id = static_cast<unsigned>(std::get<int>(args.at("scene_id")));
+            m_current_scene = scenegraph::Scene::loadScene(m_globals, m_basic_rendering_services, path, id);
+            if (m_current_scene)
+            {
+                misc::Log::retrieve()->out("Scene loaded: " + path, misc::LogMessageType::information);
+                return { .succeeded = true };
+            }
+            return { .succeeded = false, .msg = "Failed to load scene: " + path };
+        });
+
+    // scene.load_named path=<path> name=<string>
+    interaction::console::CommandSpec load_named_cmd{ .name = "load_named",
+        .summary = "Load a GLTF/GLB scene by name" };
+    load_named_cmd.args.push_back({ .name = "path",
+        .description = "Path to the .gltf or .glb file",
+        .parser = interaction::console::value_parsers::string_parser });
+    load_named_cmd.args.push_back({ .name = "name",
+        .description = "Name of the scene within the file",
+        .parser = interaction::console::value_parsers::string_parser });
+    reg.addCommand("scene", load_named_cmd,
+        [this](interaction::console::ArgMap const& args) -> interaction::console::CommandExecResult
+        {
+            std::string path = std::get<std::string>(args.at("path"));
+            std::string name = std::get<std::string>(args.at("name"));
+            m_current_scene = scenegraph::Scene::loadScene(m_globals, m_basic_rendering_services, path, name);
+            if (m_current_scene)
+            {
+                misc::Log::retrieve()->out("Scene loaded: " + path + " (\"" + name + "\")",
+                    misc::LogMessageType::information);
+                return { .succeeded = true };
+            }
+            return { .succeeded = false, .msg = "Failed to load scene \"" + name + "\": " + path };
+        });
 }
 
 
