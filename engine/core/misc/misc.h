@@ -176,11 +176,11 @@ std::string toLowerCase(std::string const& str);
 namespace lexgine {
 
 //! Implements operator != for all types that support operator ==
-template<typename T>
-bool operator!=(T const& a, T const& b)
-{
-    return !(a == b);
-}
+//template<typename T>
+//bool operator!=(T const& a, T const& b)
+//{
+//    return !(a == b);
+//}
 
 }
 

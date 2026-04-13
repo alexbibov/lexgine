@@ -61,6 +61,7 @@ public:
     {
         return static_cast<TextureConversionStatus>(m_status.load(std::memory_order_acquire));
     }
+    void waitForCompletion(const std::optional<std::chrono::milliseconds>& timeout = std::nullopt) const;
 
 private:
     TextureConverter& m_texture_converter;
@@ -84,6 +85,7 @@ public:
     void evict() { m_converted_texture_data = nullptr; }
     void clear() { m_texture = nullptr; }
     bool isCompleted() const;
+    void waitForCompletion() const;
     core::misc::UUID uuid() const { return m_texture_uuid; }
 
     core::dx::d3d12::Resource resource() const { return m_texture; }
