@@ -645,7 +645,8 @@ bool Scene::loadTextures(
         m_textures.back().p_texture_conversion_task = texture_converter.addTextureConversionTask(m_textures.back().image, false);
     }
     texture_converter.convertTextures();
-
+    texture_converter.uploadTextures();
+    texture_converter.waitForTextureUploadCompletion();
     return true;
 }
 

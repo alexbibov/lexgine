@@ -12,7 +12,7 @@ public:
     KtxImageLoader() = default;
     bool canLoad(std::filesystem::path const& uri) const override;
 private:
-    bool doLoad(std::vector<uint8_t> const& raw_binary_data, std::vector<uint8_t>& image_data_buffer) override;
+    bool doLoad(std::vector<uint8_t> const& raw_binary_data, std::vector<uint8_t>& image_data_buffer, Description& desc) override;
 };
 
 }

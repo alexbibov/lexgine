@@ -97,25 +97,25 @@ void resizeImage(uint8_t const* src_image_data, size_t src_image_width, size_t s
 
 }
 
-bool ImageLoader::load(std::filesystem::path const& uri, std::vector<uint8_t>& image_data_buffer)
+std::pair<bool, ImageLoader::Description> ImageLoader::load(std::filesystem::path const& uri, std::vector<uint8_t>& image_data_buffer)
 {
-    m_description = {};
+    Description description = {};
     auto binary_data = core::misc::readBinaryDataFromSourceFile(uri.string());
     if (!binary_data.isValid())
     {
         LEXGINE_LOG_ERROR(this, "Error while reading image '" + uri.string() + "'");
-        return false;
+        return { false, description };
     }
-    m_description.uri = uri.string();
-    m_description.timestamp = getTimestampForUri(uri);
-    bool res = doLoad(*binary_data, image_data_buffer);
+    description.uri = uri.string();
+    description.timestamp = getTimestampForUri(uri);
+    bool res = doLoad(*binary_data, image_data_buffer, description);
     if (res)
     {
-        glm::uvec3& dims = m_description.layers[0].mipmaps[0].dimensions;
-        size_t texel_size = m_description.element_count * m_description.element_size;
+        glm::uvec3& dims = description.layers[0].mipmaps[0].dimensions;
+        size_t texel_size = description.element_count * description.element_size;
         image_data_buffer.resize(calculateMipmapPyramidCapacity(dims.x, dims.y, dims.z) * texel_size);
     }
-    return res;
+    return { res, description };
 }
 
 inline unsigned int pow2(unsigned int value, unsigned int power)

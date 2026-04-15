@@ -6,6 +6,7 @@
 #include <span>
 #include <future>
 #include <mutex>
+#include <limits>
 
 #include <engine/core/engine_api.h>
 #include <engine/core/globals.h>
@@ -73,6 +74,7 @@ private:
 
 class TextureUploadWork final
 {
+    static constexpr uint64_t s_invalid_value = std::numeric_limits<uint64_t>::max();
 public:
     TextureUploadWork(TextureConverter& texture_converter,
         TextureConversionTaskKey const& conversion_key,
@@ -85,7 +87,7 @@ public:
     void evict() { m_converted_texture_data = nullptr; }
     void clear() { m_texture = nullptr; }
     bool isCompleted() const;
-    void waitForCompletion() const;
+    bool waitForCompletion() const;
     core::misc::UUID uuid() const { return m_texture_uuid; }
 
     core::dx::d3d12::Resource resource() const { return m_texture; }
@@ -97,7 +99,7 @@ private:
     core::SharedDataChunk m_converted_texture_data;
     core::dx::d3d12::ResourceDataUploader::TextureSourceDescriptor m_src_desc;
     core::dx::d3d12::Resource m_texture;
-    uint64_t m_controlling_signal;
+    uint64_t m_controlling_signal{ s_invalid_value };
 };
 
 
