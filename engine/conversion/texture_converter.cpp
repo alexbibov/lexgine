@@ -617,12 +617,16 @@ bool TextureUploadWork::schedule()
 
 bool TextureUploadWork::isCompleted() const
 {
+    if (m_controlling_signal == s_invalid_value) return false;
     return m_texture_converter.m_data_uploader.isWorkCompleted(m_controlling_signal);
 }
 
-void TextureUploadWork::waitForCompletion() const
+bool TextureUploadWork::waitForCompletion() const
 {
+    if (m_controlling_signal == s_invalid_value) return false;
+    if (isCompleted()) return true;
     m_texture_converter.m_data_uploader.waitUntilUploadIsFinished();
+    return true;
 }
 
 TextureConverter::TextureConverter(core::Globals& globals)
@@ -739,7 +743,14 @@ void TextureConverter::convertTextures(uint32_t thread_count)
 void TextureConverter::uploadTextures()
 {
     waitForTextureConversionCompletion();
+    for (auto& [_, task] : m_texture_conversion_tasks)
+    {
+        TextureUploadWork* p_upload_work = task.getUploadWork();
+        assert(p_upload_work);
+        p_upload_work->schedule();
+    }
     m_data_uploader.upload();
+    m_data_uploader.waitUntilUploadIsFinished();
 }
 
 bool TextureConverter::isTextureConversionCompleted() const

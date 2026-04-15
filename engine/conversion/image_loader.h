@@ -70,11 +70,10 @@ public:
     virtual ~ImageLoader() = default;
 
     virtual bool canLoad(std::filesystem::path const& uri) const = 0;
-    bool load(std::filesystem::path const& uri, std::vector<uint8_t>& image_data_buffer);
-    Description description() const { return m_description; }
+    std::pair<bool, Description> load(std::filesystem::path const& uri, std::vector<uint8_t>& image_data_buffer);
 
 protected:
-    virtual bool doLoad(std::vector<uint8_t> const& raw_binary_data, std::vector<uint8_t>& image_data_buffer) = 0;
+    virtual bool doLoad(std::vector<uint8_t> const& raw_binary_data, std::vector<uint8_t>& image_data_buffer, Description& desc) = 0;
     
     // Internal utility functions
     uint32_t roundToNextMultipleOf4(uint32_t x, ImageCompressedDataFormat compression)
@@ -87,10 +86,6 @@ protected:
     static void resizeImage2(uint8_t const* src_image_data, size_t src_image_width, size_t src_image_height, size_t src_image_depth, size_t target_width, size_t target_height, uint8_t* output_buffer);
     static void resizeImage3(uint8_t const* src_image_data, size_t src_image_width, size_t src_image_height, size_t src_image_depth, size_t target_width, size_t target_height, uint8_t* output_buffer);
     static void resizeImage4(uint8_t const* src_image_data, size_t src_image_width, size_t src_image_height, size_t src_image_depth, size_t target_width, size_t target_height, uint8_t* output_buffer);
-
-
-protected:
-    Description m_description;
 };
 
 }

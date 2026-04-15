@@ -92,10 +92,11 @@ bool Image::load()
     {
         if (e->canLoad(p))
         {
-            m_valid = e->load(p, m_data);
-            if (m_valid)
+            auto [res, desc] = e->load(p, m_data);
+            if (res)
             {
-                m_description = e->description();
+                m_valid = true;
+                m_description = desc;
                 break;
             }
         }

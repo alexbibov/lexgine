@@ -108,13 +108,13 @@ bool KtxImageLoader::canLoad(std::filesystem::path const& uri) const
     return ext == ".ktx";
 }
 
-bool KtxImageLoader::doLoad(std::vector<uint8_t> const& raw_binary_data, std::vector<uint8_t>& image_data_buffer)
+bool KtxImageLoader::doLoad(std::vector<uint8_t> const& raw_binary_data, std::vector<uint8_t>& image_data_buffer, Description& desc)
 {
     ktxTexture* p_ktx_texture;
     auto ktx_load_result = ktxTexture_CreateFromMemory(static_cast<ktx_uint8_t const*>(raw_binary_data.data()), static_cast<ktx_size_t>(raw_binary_data.size()), KTX_TEXTURE_CREATE_NO_FLAGS, &p_ktx_texture);
     if (ktx_load_result != KTX_SUCCESS)
     {
-        LEXGINE_LOG_ERROR(this, "Error while reading KTX image '" + m_description.uri + "'");
+        LEXGINE_LOG_ERROR(this, "Error while reading KTX image '" + desc.uri + "'");
         return false;
     }
 
@@ -122,28 +122,28 @@ bool KtxImageLoader::doLoad(std::vector<uint8_t> const& raw_binary_data, std::ve
     size_t num_layers{}, num_levels{ p_ktx_texture->numLevels }, ktx_texture_data_size{ static_cast<size_t>(p_ktx_texture->dataSize) };
     {
         // fill in texture metadata
-        m_description.is_cubemap = p_ktx_texture->numLayers == 1 && p_ktx_texture->numFaces == 6;
-        num_layers = m_description.is_cubemap ? 6 : p_ktx_texture->numLayers;
+        desc.is_cubemap = p_ktx_texture->numLayers == 1 && p_ktx_texture->numFaces == 6;
+        num_layers = desc.is_cubemap ? 6 : p_ktx_texture->numLayers;
         auto texel_size = ktxTexture_GetElementSize(p_ktx_texture);
-        m_description.element_count = ktxTexture_GetElementCount(p_ktx_texture);
-        m_description.element_size = texel_size / m_description.element_count;
-        m_description.compression_format = ktxTexture_GetCompressionFormat(p_ktx_texture);
-        m_description.subresource_count = num_layers * num_levels;
+        desc.element_count = ktxTexture_GetElementCount(p_ktx_texture);
+        desc.element_size = texel_size / desc.element_count;
+        desc.compression_format = ktxTexture_GetCompressionFormat(p_ktx_texture);
+        desc.subresource_count = num_layers * num_levels;
 
-        if (m_description.compression_format == ImageCompressedDataFormat::unknown)
+        if (desc.compression_format == ImageCompressedDataFormat::unknown)
         {
             LEXGINE_LOG_ERROR(this, "Unable to parse KTX texture: the texture appears to be compressed, but its compression format is not supported");
             return false;
         }
 
-        if (m_description.element_count < 1 || m_description.element_count > 4)
+        if (desc.element_count < 1 || desc.element_count > 4)
         {
-            LEXGINE_LOG_ERROR(this, "Unable to parse KTX texture: the element size of " + std::to_string(m_description.element_count) + "is not supported");
+            LEXGINE_LOG_ERROR(this, "Unable to parse KTX texture: the element size of " + std::to_string(desc.element_count) + "is not supported");
             return false;
         }
 
-        if (m_description.element_count == 4 || m_description.element_count == 3) {
-            m_description.color_space = ImageColorSpace::srgb;
+        if (desc.element_count == 4 || desc.element_count == 3) {
+            desc.color_space = ImageColorSpace::srgb;
         }
     }
 
@@ -162,26 +162,26 @@ bool KtxImageLoader::doLoad(std::vector<uint8_t> const& raw_binary_data, std::ve
             auto ktx_load_data_result = ktxTexture_LoadImageData(p_ktx_texture, scratch_buffer.data(), ktx_texture_data_size);
             if (ktx_load_data_result != KTX_SUCCESS)
             {
-                LEXGINE_LOG_ERROR(this, "Error while reading image data from KTX file '" + m_description.uri + "'");
+                LEXGINE_LOG_ERROR(this, "Error while reading image data from KTX file '" + desc.uri + "'");
                 return false;
             }
             p_src_data_buffer = scratch_buffer.data();
         }
 
-        m_description.layers.resize(num_layers);
+        desc.layers.resize(num_layers);
         size_t width4{}, height4{}, pyramid_size{};
         for (uint32_t layer = 0; layer < num_layers; ++layer)
         {
-            auto& mipmaps = m_description.layers[layer].mipmaps;
+            auto& mipmaps = desc.layers[layer].mipmaps;
             mipmaps.resize(num_levels);
             if (auto result = ktxTexture_IterateLevels(p_ktx_texture, ktxIterateLevelsCallback, &mipmaps); result != KTX_SUCCESS)
             {
-                LEXGINE_LOG_ERROR(this, "Unable to iterate over mipmap levels in layer " + std::to_string(layer) + " for KTX texture '" + m_description.uri + "'");
+                LEXGINE_LOG_ERROR(this, "Unable to iterate over mipmap levels in layer " + std::to_string(layer) + " for KTX texture '" + desc.uri + "'");
                 return false;
             }
 
 
-            size_t dst_offset{ pyramid_size * m_description.element_count * layer };
+            size_t dst_offset{ pyramid_size * desc.element_count * layer };
             size_t aligned_width{}, alighned_height{};
             for (uint32_t level = 0; level < num_levels; ++level)
             {
@@ -193,17 +193,17 @@ bool KtxImageLoader::doLoad(std::vector<uint8_t> const& raw_binary_data, std::ve
                     // Note that when texture is compressed, the dimension rounding is not required and hence, is a no-op (see implementation of roundToNextMultipleOf4(...))
                     aligned_width = target_mipmap_lvl.dimensions.x;
                     alighned_height = target_mipmap_lvl.dimensions.y;
-                    width4 = roundToNextMultipleOf4(target_mipmap_lvl.dimensions.x, m_description.compression_format);
-                    height4 = roundToNextMultipleOf4(target_mipmap_lvl.dimensions.y, m_description.compression_format);
+                    width4 = roundToNextMultipleOf4(target_mipmap_lvl.dimensions.x, desc.compression_format);
+                    height4 = roundToNextMultipleOf4(target_mipmap_lvl.dimensions.y, desc.compression_format);
                     pyramid_size = calculateMipmapPyramidCapacity(width4, height4, target_mipmap_lvl.dimensions.z);
-                    image_data_buffer.resize(pyramid_size * m_description.element_count * num_layers);
+                    image_data_buffer.resize(pyramid_size * desc.element_count * num_layers);
                 }
 
-                if (m_description.is_cubemap)
+                if (desc.is_cubemap)
                 {
                     if (auto result = ktxTexture_GetImageOffset(p_ktx_texture, level, 0, layer, &src_offset); result != KTX_SUCCESS)
                     {
-                        LEXGINE_LOG_ERROR(this, "Unable to parse cubemap KTX image level " + std::to_string(level) + ", face " + std::to_string(layer) + " loaded from '" + m_description.uri + "'");
+                        LEXGINE_LOG_ERROR(this, "Unable to parse cubemap KTX image level " + std::to_string(level) + ", face " + std::to_string(layer) + " loaded from '" + desc.uri + "'");
                         return false;
                     }
                 }
@@ -211,7 +211,7 @@ bool KtxImageLoader::doLoad(std::vector<uint8_t> const& raw_binary_data, std::ve
                 {
                     if (auto result = ktxTexture_GetImageOffset(p_ktx_texture, level, layer, 0, &src_offset); result != KTX_SUCCESS)
                     {
-                        LEXGINE_LOG_ERROR(this, "Unable to parse KTX image level " + std::to_string(level) + ", layer " + std::to_string(layer) + " loaded from '" + m_description.uri + "'");
+                        LEXGINE_LOG_ERROR(this, "Unable to parse KTX image level " + std::to_string(level) + ", layer " + std::to_string(layer) + " loaded from '" + desc.uri + "'");
                         return false;
                     }
                 }
@@ -220,7 +220,7 @@ bool KtxImageLoader::doLoad(std::vector<uint8_t> const& raw_binary_data, std::ve
                 if (aligned_width != target_mipmap_lvl.dimensions.x || alighned_height != target_mipmap_lvl.dimensions.y)
                 {
                     // Current mipmap level has to be resized
-                    switch (m_description.element_count)
+                    switch (desc.element_count)
                     {
                     case 1:
                         resizeImage1(p_src_data_buffer + src_offset, target_mipmap_lvl.dimensions.x, target_mipmap_lvl.dimensions.y, target_mipmap_lvl.dimensions.z,
@@ -248,7 +248,7 @@ bool KtxImageLoader::doLoad(std::vector<uint8_t> const& raw_binary_data, std::ve
                     // No resize is needed, just copy the data
                     std::copy(
                         p_src_data_buffer + src_offset,
-                        p_src_data_buffer + src_offset + target_mipmap_lvl.dimensions.x * target_mipmap_lvl.dimensions.y * m_description.element_count,
+                        p_src_data_buffer + src_offset + target_mipmap_lvl.dimensions.x * target_mipmap_lvl.dimensions.y * desc.element_count,
                         image_data_buffer.begin() + dst_offset
                     );
                 }
@@ -256,13 +256,13 @@ bool KtxImageLoader::doLoad(std::vector<uint8_t> const& raw_binary_data, std::ve
 
                 if (level == 0)
                 {
-                    m_description.layers[layer].offset = dst_offset;
+                    desc.layers[layer].offset = dst_offset;
                 }
 
-                auto& mipmap = m_description.layers[layer].mipmaps[level];
+                auto& mipmap = desc.layers[layer].mipmaps[level];
                 mipmap.offset = dst_offset;
 
-                dst_offset += aligned_width * alighned_height * m_description.element_count;
+                dst_offset += aligned_width * alighned_height * desc.element_count;
                 aligned_width >>= 1;
                 alighned_height >>= 1;
             }
