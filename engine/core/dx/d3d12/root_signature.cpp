@@ -120,9 +120,14 @@ RootSignature& RootSignature::addParameter(uint32_t slot, RootEntryCBVDescriptor
     param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
     param.Descriptor = D3D12_ROOT_DESCRIPTOR{ root_entry_cbv_descriptor_declaration.m_shader_register, root_entry_cbv_descriptor_declaration.m_register_space };
     param.ShaderVisibility = static_cast<D3D12_SHADER_VISIBILITY>(shader_visibility);
-
-    m_root_parameters.emplace(slot, param);
-
+    if (!m_root_parameters.count(slot))
+    {
+        m_root_parameters.emplace(slot, param);
+    }
+    else
+    {
+        m_root_parameters[slot] = param;
+    }
     return *this;
 }
 
@@ -132,9 +137,14 @@ RootSignature& RootSignature::addParameter(uint32_t slot, RootEntryUAVDescriptor
     param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
     param.Descriptor = D3D12_ROOT_DESCRIPTOR{ root_entry_uav_descriptor_declaration.m_shader_register, root_entry_uav_descriptor_declaration.m_register_space };
     param.ShaderVisibility = static_cast<D3D12_SHADER_VISIBILITY>(shader_visibility);
-
-    m_root_parameters.emplace(slot, param);
-
+	if (!m_root_parameters.count(slot))
+	{
+		m_root_parameters.emplace(slot, param);
+	}
+	else
+	{
+		m_root_parameters[slot] = param;
+	}
     return *this;
 }
 
@@ -144,9 +154,14 @@ RootSignature& RootSignature::addParameter(uint32_t slot, RootEntrySRVDescriptor
     param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
     param.Descriptor = D3D12_ROOT_DESCRIPTOR{ root_entry_srv_descriptor_declaration.m_shader_register, root_entry_srv_descriptor_declaration.m_register_space };
     param.ShaderVisibility = static_cast<D3D12_SHADER_VISIBILITY>(shader_visibility);
-
-    m_root_parameters.emplace(slot, param);
-
+	if (!m_root_parameters.count(slot))
+	{
+		m_root_parameters.emplace(slot, param);
+	}
+	else
+	{
+		m_root_parameters[slot] = param;
+	}
     return *this;
 }
 
@@ -158,9 +173,14 @@ RootSignature& RootSignature::addParameter(uint32_t slot, RootEntryConstants con
         root_entry_constants_declaration.m_register_space,
         root_entry_constants_declaration.m_num_32bit_values };
     param.ShaderVisibility = static_cast<D3D12_SHADER_VISIBILITY>(shader_visibility);
-
-    m_root_parameters.emplace(slot, param);
-
+	if (!m_root_parameters.count(slot))
+	{
+		m_root_parameters.emplace(slot, param);
+	}
+	else
+	{
+		m_root_parameters[slot] = param;
+	}
     return *this;
 
 }
@@ -169,24 +189,43 @@ RootSignature& RootSignature::addParameter(uint32_t slot, RootEntryDescriptorTab
 {
     D3D12_ROOT_PARAMETER param;
     param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-
     size_t num_ranges = root_entry_descriptor_table_declaration.m_ranges.size();
     param.DescriptorTable.NumDescriptorRanges = static_cast<UINT>(num_ranges);
-
-    auto& range_cache = m_descriptor_range_cache.emplace_back(std::vector<D3D12_DESCRIPTOR_RANGE>(num_ranges));
-    for (size_t i = 0; i < num_ranges; ++i)
-    {
-        range_cache[i].RangeType = static_cast<D3D12_DESCRIPTOR_RANGE_TYPE>(root_entry_descriptor_table_declaration.m_ranges[i].type);
-        range_cache[i].NumDescriptors = root_entry_descriptor_table_declaration.m_ranges[i].num_descriptors;
-        range_cache[i].BaseShaderRegister = root_entry_descriptor_table_declaration.m_ranges[i].base_register;
-        range_cache[i].RegisterSpace = root_entry_descriptor_table_declaration.m_ranges[i].register_space;
-        range_cache[i].OffsetInDescriptorsFromTableStart = root_entry_descriptor_table_declaration.m_ranges[i].offset;
-    }
-    param.DescriptorTable.pDescriptorRanges = range_cache.data();
     param.ShaderVisibility = static_cast<D3D12_SHADER_VISIBILITY>(shader_visibility);
 
-    m_root_parameters.emplace(slot, param);
-
+    std::vector<D3D12_DESCRIPTOR_RANGE>* p_range_cache = nullptr;
+    if (!m_root_parameters.count(slot))
+    {
+		m_descriptor_table_ranges_lut[slot] = m_descriptor_range_cache.size();
+		auto& range_cache = m_descriptor_range_cache.emplace_back(std::vector<D3D12_DESCRIPTOR_RANGE>(num_ranges));
+        p_range_cache = &range_cache;
+    }
+    else
+    {
+        auto& range_cache = m_descriptor_range_cache[m_descriptor_table_ranges_lut[slot]];
+        p_range_cache = &range_cache;
+        p_range_cache->resize(num_ranges);
+    }
+    {
+		std::vector<D3D12_DESCRIPTOR_RANGE>& range_cache = *p_range_cache;
+		for (size_t i = 0; i < num_ranges; ++i)
+		{
+			range_cache[i].RangeType = static_cast<D3D12_DESCRIPTOR_RANGE_TYPE>(root_entry_descriptor_table_declaration.m_ranges[i].type);
+			range_cache[i].NumDescriptors = root_entry_descriptor_table_declaration.m_ranges[i].num_descriptors;
+			range_cache[i].BaseShaderRegister = root_entry_descriptor_table_declaration.m_ranges[i].base_register;
+			range_cache[i].RegisterSpace = root_entry_descriptor_table_declaration.m_ranges[i].register_space;
+			range_cache[i].OffsetInDescriptorsFromTableStart = root_entry_descriptor_table_declaration.m_ranges[i].offset;
+		}
+    }
+    if (!m_root_parameters.count(slot))
+    {
+        param.DescriptorTable.pDescriptorRanges = p_range_cache->data();
+        m_root_parameters.emplace(slot, param);
+    }
+    else
+    {
+        m_root_parameters[slot] = param;
+    }
     return *this;
 }
 

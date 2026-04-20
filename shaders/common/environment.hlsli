@@ -1,31 +1,16 @@
-#ifndef COMMON_STRUCTURES_H
-#define COMMON_STRUCTURES_H
+#ifndef ENVIRONMENT_H
+#define ENVIRONMENT_H
 
-#define PI 3.14159265
+#include "common/common.hlsli"
 
-struct Light {
-    float3 direction;
-    float3 color;
-};
-
-struct CameraData {
+struct EnvironmentData {
     float4x4 view;
     float4x4 projection;
-    float4x4 model;
-    float3 cameraPosition;
+    float4x4 view_projection;
+    float4x4 inv_projection;
+    float4x4 inv_view_projection
+    float3 camera_position;
     float padding; // Align to 16-byte boundary
-};
-
-struct MaterialData {
-    float3 baseColorFactor;
-    float metallicFactor;
-    float3 emissiveFactor; 
-    float roughnessFactor;
-    uint albedoTexIndex;
-    uint normalTexIndex;
-    uint mrTexIndex;
-    uint emissiveTexIndex;
-    uint usageFlags; // Bitmask for texture usage
 };
 
 #define MATERIAL_DATA_TEXTURE_USAGE_ALBEDO             0x1
@@ -33,12 +18,8 @@ struct MaterialData {
 #define MATERIAL_DATA_TEXTURE_USAGE_METALLIC_ROUGHNESS 0x4
 #define MATERIAL_DATA_TEXTURE_USAGE_EMISSIVE           0x8
 
-ConstantBuffer<CameraData> cameraData : register(b0);
-
-Texture2D gMaterialTextures[] : register(t0, space1);
-
-SamplerState gSampler           : register(s0); // Shared sampler
-
+ConstantBuffer<EnvironmentData> environment_data : register(b0, SHADER_FUNCTION_SPACE);
+SamplerState linear_sampler : register(s0); // Shared sampler
 
 // G-buffer structure (output per-fragment)
 struct GBufferOutput {

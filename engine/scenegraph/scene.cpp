@@ -18,6 +18,7 @@
 #include <engine/core/dx/d3d12/basic_rendering_services.h>
 #include <engine/core/concurrency/task_graph.h>
 #include <engine/core/concurrency/task_sink.h>
+#include <engine/core/dx/d3d12/tasks/hlsl_compilation_task.h>
 #include <engine/conversion/image_loader_pool.h>
 #include <engine/conversion/texture_converter.h>
 #include "scene.h"
@@ -824,6 +825,7 @@ bool Scene::loadMaterial(tg3_material const& gltf_material,
 			lexgine::core::dx::dxcompilation::ShaderType::vertex,
 			"VSMain"
 		);
+        shader_desc.p_vertex_shader_compilation_task->execute(0);
 	}
 
 	{
@@ -834,6 +836,7 @@ bool Scene::loadMaterial(tg3_material const& gltf_material,
 			lexgine::core::dx::dxcompilation::ShaderType::pixel,
 			"PSMain"
 		);
+        shader_desc.p_pixel_shader_compilation_task->execute(0);
 	}
     m_material_construction_tasks.push_back(std::make_unique<MaterialAssemblyTask>(m_basic_rendering_services, context, shader_desc));
     

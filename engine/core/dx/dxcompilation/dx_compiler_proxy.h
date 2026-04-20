@@ -39,8 +39,10 @@ public:
     std::string errors(uint8_t worker_id) const;
 
 private:
+    GlobalSettings const& m_global_settings;
     Microsoft::WRL::ComPtr<IDxcCompiler3> m_dxc;
     Microsoft::WRL::ComPtr<IDxcUtils> m_dxc_utils;
+    Microsoft::WRL::ComPtr<IDxcIncludeHandler> m_include_handler;
     bool m_is_successfully_initialized;
 
     std::vector<Microsoft::WRL::ComPtr<IDxcResult>> m_dxc_result;

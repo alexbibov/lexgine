@@ -103,11 +103,12 @@ MaterialAssemblyTask::MaterialAssemblyTask(
         this->addDependency(*p_geometry_shader_compilation_task);
         m_shader_function.createShaderStage(shaders.p_geometry_shader_compilation_task);
     }
+
+    m_root_signature_compilation_task = m_shader_function.buildBindingSignature();
 }
 
 bool MaterialAssemblyTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    m_root_signature_compilation_task = m_shader_function.buildBindingSignature();
     {
         // Setup shader function resources
         core::dx::d3d12::Device& device = *m_basic_rendering_services.globals().get<core::dx::d3d12::Device>();
@@ -155,6 +156,19 @@ void MaterialAssemblyTask::bindMaterialParameters(
     );
 }
 
+void MaterialAssemblyTask::bindObjectParameters(
+	core::dx::d3d12::CommandList& target_command_list,
+	core::dx::d3d12::ConstantBufferDataMapper& data_mapper
+)
+{
+	auto allocation = m_basic_rendering_services.constantDataStream().allocateAndUpdate(data_mapper);
+	m_shader_function.bindRootConstantBuffer(
+		target_command_list,
+		core::dx::dxcompilation::ShaderFunctionConstantBufferRootIds::object_uniforms,
+		allocation->virtualGpuAddress()
+	);
+}
+
 void MaterialAssemblyTask::bindSceneParameters(
     core::dx::d3d12::CommandList& target_command_list, 
     core::dx::d3d12::ConstantBufferDataMapper& data_mapper
@@ -177,19 +191,19 @@ Material::Material(MaterialAssemblyTask& material_assembly_task)
     : m_material_assembly{ material_assembly_task }
     , m_material_parameters_cb_data_mapper{ material_assembly_task.getMaterialParametersUniformBufferReflection() }
 {
-    m_material_parameters_cb_data_mapper.addDataBinding("v3_emissive_factor", m_emissive_factor);
-    m_material_parameters_cb_data_mapper.addDataBinding("i_alpha_mode", static_cast<int>(m_alpha_mode));
-    m_material_parameters_cb_data_mapper.addDataBinding("f_alpha_cutoff", m_alpha_cutoff);
-    m_material_parameters_cb_data_mapper.addDataBinding("b_is_double_sided", m_is_double_sided);
-    m_material_parameters_cb_data_mapper.addDataBinding("v4_base_color_factor", m_base_color_factor);
-    m_material_parameters_cb_data_mapper.addDataBinding("f_metallic_factor", m_metallic_factor);
-    m_material_parameters_cb_data_mapper.addDataBinding("f_roughness_factor", m_roughness_factor);
+    m_material_parameters_cb_data_mapper.addDataBinding("emissive_factor", m_emissive_factor);
+    m_material_parameters_cb_data_mapper.addDataBinding("alpha_mode", static_cast<unsigned int>(m_alpha_mode));
+    m_material_parameters_cb_data_mapper.addDataBinding("alpha_cutoff", m_alpha_cutoff);
+    m_material_parameters_cb_data_mapper.addDataBinding("is_double_sided", m_is_double_sided);
+    m_material_parameters_cb_data_mapper.addDataBinding("base_color_factor", m_base_color_factor);
+    m_material_parameters_cb_data_mapper.addDataBinding("metallic_factor", m_metallic_factor);
+    m_material_parameters_cb_data_mapper.addDataBinding("roughness_factor", m_roughness_factor);
 
-    m_material_parameters_cb_data_mapper.addDataBinding("srv_normal", m_normal_texture_binding_id);
+    m_material_parameters_cb_data_mapper.addDataBinding("normal_tex_index", m_normal_texture_binding_id);
     m_material_parameters_cb_data_mapper.addDataBinding("srv_occlusion", m_occlusion_texture_binding_id);
-    m_material_parameters_cb_data_mapper.addDataBinding("srv_emissive", m_emissive_texture_binding_id);
-    m_material_parameters_cb_data_mapper.addDataBinding("srv_base_color", m_base_color_texture_binding_id);
-    m_material_parameters_cb_data_mapper.addDataBinding("srv_metallic_roughness", m_metallic_roughness_texture_binding_id);
+    m_material_parameters_cb_data_mapper.addDataBinding("emissive_tex_index", m_emissive_texture_binding_id);
+    m_material_parameters_cb_data_mapper.addDataBinding("albedo_tex_index", m_base_color_texture_binding_id);
+    m_material_parameters_cb_data_mapper.addDataBinding("mr_tex_index", m_metallic_roughness_texture_binding_id);
 }
 
 void Material::setStringName(std::string const& entity_string_name)
@@ -202,11 +216,12 @@ void Material::setMetallicRoughness(MetallicRoughness const& value)
     m_base_color_factor = value.base_color_factor;
     m_metallic_factor = value.metallic_factor;
     m_roughness_factor = value.roughness_factor;
+    
     assert(value.p_base_color->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
     lexgine::conversion::TextureUploadWork* p_base_color_texture_upload_work = value.p_base_color->p_texture_conversion_task->getUploadWork();
     assert(p_base_color_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result =
-        m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("textures", p_base_color_texture_upload_work->resource()))
+        m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("gMaterialTextures", p_base_color_texture_upload_work->resource()))
     {
         m_base_color_texture_binding_id = binding_result.binding_register;
     }
@@ -214,7 +229,7 @@ void Material::setMetallicRoughness(MetallicRoughness const& value)
     lexgine::conversion::TextureUploadWork* p_metallic_roughness_texture_upload_work = value.p_metallic_roughness->p_texture_conversion_task->getUploadWork();
     assert(p_metallic_roughness_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result 
-        = m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("textures", p_metallic_roughness_texture_upload_work->resource()))
+        = m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("gMaterialTextures", p_metallic_roughness_texture_upload_work->resource()))
     {
         m_metallic_roughness_texture_binding_id = binding_result.binding_register;
     }
@@ -226,7 +241,7 @@ void Material::setNormalTexture(Texture* p_texture)
     lexgine::conversion::TextureUploadWork* p_texture_upload_work = p_texture->p_texture_conversion_task->getUploadWork();
     assert(p_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result =
-        m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("textures", p_texture_upload_work->resource()))
+        m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("gMaterialTextures", p_texture_upload_work->resource()))
     {
         m_normal_texture_binding_id = binding_result.binding_register;
     }
@@ -239,7 +254,7 @@ void Material::setOcclusionTexture(Texture* p_texture)
     lexgine::conversion::TextureUploadWork* p_texture_upload_work = p_texture->p_texture_conversion_task->getUploadWork();
     assert(p_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result 
-        = m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("textures", p_texture_upload_work->resource()))
+        = m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("gMaterialTextures", p_texture_upload_work->resource()))
     {
         m_occlusion_texture_binding_id = binding_result.binding_register;
     }
@@ -251,7 +266,7 @@ void Material::setEmissiveTexture(Texture* p_texture)
     lexgine::conversion::TextureUploadWork* p_texture_upload_work = p_texture->p_texture_conversion_task->getUploadWork();
     assert(p_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result 
-        = m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("textures", p_texture_upload_work->resource()))
+        = m_material_assembly.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("gMaterialTextures", p_texture_upload_work->resource()))
     {
         m_emissive_texture_binding_id = binding_result.binding_register;
     }
