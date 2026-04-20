@@ -189,6 +189,7 @@ public:
 
 private:
     std::unordered_map<uint32_t, D3D12_ROOT_PARAMETER> m_root_parameters;    //!< root signature parameters packed into a map with the key defining slot in the root signature
+    std::unordered_map<uint32_t, size_t> m_descriptor_table_ranges_lut;    //!< look-up table mapping root signature slots to descriptor table ranges
     std::vector<std::vector<D3D12_DESCRIPTOR_RANGE>> m_descriptor_range_cache;    //!< stores descriptor ranges from all descriptor tables
     std::vector<D3D12_STATIC_SAMPLER_DESC> m_static_samplers;    //!< list of static samplers attached to the root signature
 };

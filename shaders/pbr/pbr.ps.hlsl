@@ -1,26 +1,40 @@
 #include "common/environment.hlsli"
+#include "common/material.hlsli"
 
-ConstantBuffer<MaterialTextureIds> materialData : register(b1, space0);
+Texture2D material_textures[] : register(t0, space0);
 
-float3 GetNormalFromMap(VSOutput input) {
-    float3 tangentNormal = normalTex.Sample(samplerLinear, input.uv).xyz * 2.0 - 1.0;
-    float3x3 TBN = float3x3(
-        normalize(input.tangent),
-        normalize(input.bitangent),
-        normalize(input.normal)
-    );
-    return normalize(mul(tangentNormal, TBN));
-}
+// float3 GetNormalFromMap(VSOutput input) {
+//     float3 tangentNormal = normalTex.Sample(gSampler, input.uv).xyz * 2.0 - 1.0;
+//     float3x3 TBN = float3x3(
+//         normalize(input.tangent),
+//         normalize(input.bitangent),
+//         normalize(input.normal)
+//     );
+//     return normalize(mul(tangentNormal, TBN));
+// }
+
+struct VSOutput {
+    float4 position : SV_POSITION;
+    float3 worldPos : TEXCOORD0;
+    float3 normal : TEXCOORD1;
+    float2 uv : TEXCOORD2;
+    float3 tangent : TEXCOORD3;
+    float3 bitangent : TEXCOORD4;
+};
 
 GBufferOutput PSMain(VSOutput input) {
     GBufferOutput gOut;
 
     // Sample bindless textures using material-supplied indices
-    float3 albedo = materialData.baseColorFactor;
-    if(materialData.usageFlags & MATERIAL_DATA_TEXTURE_USAGE_ALBEDO) {
-        albedo *= gMaterialTextures[materialData.albedoTexIndex].Sample(gSampler, input.uv).rgb;
+    float3 albedo = material_data.base_color_factor;
+    if(materialData.usage_flags & MATERIAL_DATA_TEXTURE_USAGE_ALBEDO) {
+        albedo *= material_textures[material_data.albedo_tex_index].Sample(linear_sampler, input.uv).rgb;
     }
-   
+
+    gOut.albedo = albedo;
+    gOut.normal = float4(1, 0, 0, 1);
+    gOut.emissive = float2(1, 1);
+    return gOut;
 
     // // Normal map (tangent space)
     // float3 tangentNormal = gNormalTextures[materialData.normalTexIndex].Sample(gSampler, input.uv).xyz * 2.0f - 1.0f;
@@ -49,6 +63,4 @@ GBufferOutput PSMain(VSOutput input) {
     // );
 
     // output.emissive = emissiveRGB.gb; // emissive green and blue
-
-    return output;
 }

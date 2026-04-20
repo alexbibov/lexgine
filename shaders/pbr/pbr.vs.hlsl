@@ -1,4 +1,5 @@
 #include "common/environment.hlsli"
+#include "common/material.hlsli"
 
 struct VSInput {
     float3 position : POSITION;
@@ -19,13 +20,13 @@ struct VSOutput {
 VSOutput VSMain(VSInput input) {
     VSOutput output;
 
-    float4 localPos = float4(input.position, 1.0f);
-    float4 worldPos = mul(cameraData.model, localPos);
-    output.position = mul(cameraData.projection, mul(cameraData.view, worldPos));
+    float4 local_pos = float4(input.position, 1.0f);
+    float4 world_pos = mul(object_data.model, local_pos);
+    output.position =  mul(environment_data.view_projection, worldPos);
     output.worldPos = worldPos.xyz;
 
-    float3 N = mul((float3x3)cameraData.model, input.normal);
-    float3 T = normalize(mul((float3x3)cameraData.model, input.tangent.xyz));
+    float3 N = mul((float3x3)object_data.model, input.normal);
+    float3 T = normalize(mul((float3x3)object_data.model, input.tangent.xyz));
     float3 B = normalize(cross(N, T) * input.tangent.w);
 
     output.normal = normalize(N);

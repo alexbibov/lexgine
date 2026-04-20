@@ -26,6 +26,7 @@ enum class ShaderFunctionConstantBufferRootIds
     scene_uniforms = 0,
     material_uniforms,
     instanced_material_uniforms,
+    object_uniforms,
     count
 };
 

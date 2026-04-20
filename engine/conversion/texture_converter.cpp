@@ -455,15 +455,13 @@ void TextureConversionTask::operator()(void)
                     uint8_t const* compressed_img_pixels{ nullptr };
                     size_t compressed_img_size{}, compressed_img_row_pitch{}, compressed_img_slice_pitch{};
 
+                    DirectX::ScratchImage compressed_img{};
                     {
                         // Image compression
                         DirectX::Image img{ .width = source_texture_dimensions.x, .height = source_texture_dimensions.y,
                         .format = source_image_format, .rowPitch = texture_row_pitch, .slicePitch = texture_slice_pitch,
                         .pixels = const_cast<uint8_t*>(m_source_image.data() + current_mipmap_level.offset)
                         };
-
-                        DirectX::ScratchImage compressed_img{};
-
 
                         if (compressor(img, compressed_img))    // when compression is not needed this is a no-op, which returns 'false')
                         {

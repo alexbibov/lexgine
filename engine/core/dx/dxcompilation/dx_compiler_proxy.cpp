@@ -4,7 +4,7 @@
 #include "engine/core/global_settings.h"
 
 #include <vector>
-
+#include <strsafe.h>
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx;
@@ -15,12 +15,43 @@ namespace
 {
 
 std::vector<wchar_t const*> convertParametersIntoCommandLineArgs(
+    std::vector<std::string> const& shader_lookup_directories,
     HLSLCompilationOptimizationLevel optimization_level,
     bool strict_mode, bool force_all_resources_be_bound,
     bool force_ieee_standard, bool treat_warnings_as_errors, bool enable_validation,
-    bool enable_debug_inforamtion, bool enable_16bit_types)
+    bool enable_debug_inforamtion, bool enable_16bit_types,
+    wchar_t scratch_buffer[], size_t scratch_buffer_length)
 {
-    std::vector<wchar_t const*> rv{}; rv.reserve(10);
+    std::vector<wchar_t const*> rv{}; rv.reserve(64);
+    size_t scratch_buffer_offset{ 0 };
+	{
+		for (std::string const& dir : shader_lookup_directories)
+		{
+            assert(scratch_buffer_offset < scratch_buffer_length);
+            if (!SUCCEEDED(StringCbPrintf(
+                scratch_buffer + scratch_buffer_offset,
+                scratch_buffer_length - scratch_buffer_offset,
+                L"%S",
+                dir.c_str()
+            )))
+            {
+                continue;
+            }
+            size_t len{ 0 };
+            if (!SUCCEEDED(StringCbLength(
+                scratch_buffer + scratch_buffer_offset,
+                scratch_buffer_length - scratch_buffer_offset,
+                &len)))
+            {
+                continue;
+            }
+            len /= sizeof(wchar_t);
+            size_t arg_offset = scratch_buffer_offset;
+            scratch_buffer_offset += len + 1;
+            rv.push_back(L"-I");
+            rv.push_back(scratch_buffer + arg_offset);
+		}
+	}
     switch (optimization_level)
     {
     case HLSLCompilationOptimizationLevel::level_no:
@@ -63,6 +94,7 @@ std::vector<wchar_t const*> convertParametersIntoCommandLineArgs(
 
 
 DXCompilerProxy::DXCompilerProxy(GlobalSettings const& global_settings) :
+    m_global_settings{ global_settings },
     m_is_successfully_initialized{ false },
     m_dxc_result(global_settings.getNumberOfWorkers()),
     m_dxc_errors(global_settings.getNumberOfWorkers(), "unknown error"),
@@ -77,6 +109,12 @@ DXCompilerProxy::DXCompilerProxy(GlobalSettings const& global_settings) :
     DxcCreateInstance(CLSID_DxcLibrary, __uuidof(IDxcUtils), reinterpret_cast<LPVOID*>(m_dxc_utils.GetAddressOf()));
     if (!m_dxc_utils) {
         misc::Log::retrieve()->out("Unable to initialize IDxcUtils interface. Shader models 6.0 and higher will not be available", misc::LogMessageType::exclamation);
+        m_is_successfully_initialized = false;
+    }
+
+    if (m_dxc_utils->CreateDefaultIncludeHandler(&m_include_handler) != S_OK)
+    {
+        misc::Log::retrieve()->out("Unable to create default include handler, some shaders compilation may fail", misc::LogMessageType::exclamation);
         m_is_successfully_initialized = false;
     }
 }
@@ -94,9 +132,21 @@ bool DXCompilerProxy::compile(uint8_t worker_id,
 {
     m_last_comilation_attempt_source_name[worker_id] = source_name;
 
+    wchar_t args_scratch_buffer[512] = {};
     std::vector<wchar_t const*> args =
-        convertParametersIntoCommandLineArgs(optimization_level, strict_mode, force_all_resources_be_bound,
-            force_ieee_standard, treat_warnings_as_errors, enable_validation, enable_debug_inforamtion, enable_16bit_types);
+        convertParametersIntoCommandLineArgs(
+            m_global_settings.getShaderLookupDirectories(),
+            optimization_level,
+            strict_mode, 
+            force_all_resources_be_bound,
+            force_ieee_standard, 
+            treat_warnings_as_errors,
+            enable_validation, 
+            enable_debug_inforamtion, 
+            enable_16bit_types,
+            args_scratch_buffer,
+            sizeof(args_scratch_buffer) / sizeof(wchar_t)
+        );
 
     std::vector<std::pair<std::wstring, std::wstring>> hlsl_define_name_and_value_pairs{};
     std::vector<DxcDefine> dxc_defines{};
@@ -142,7 +192,7 @@ bool DXCompilerProxy::compile(uint8_t worker_id,
             &hlsl_source_dxc_buffer,
             dxc_compiler_args->GetArguments(),
             dxc_compiler_args->GetCount(),
-            nullptr,
+            m_include_handler.Get(),
             __uuidof(IDxcResult),
             reinterpret_cast<LPVOID*>(m_dxc_result[worker_id].ReleaseAndGetAddressOf())
         );

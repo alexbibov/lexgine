@@ -83,6 +83,7 @@ public:
     core::concurrency::TaskType type() const override { return core::concurrency::TaskType::cpu; }
 
     core::dx::d3d12::ConstantBufferReflection const& getMaterialParametersUniformBufferReflection() const { return m_material_parameters_cb_reflection; }
+    core::dx::d3d12::ConstantBufferReflection const& getObjectParametersUniformBufferReflection() const { return m_object_parameters_cb_reflection; }
     core::dx::d3d12::ConstantBufferReflection const& getSceneParametersUniformBufferReflection() const { return m_scene_parameters_cb_reflection; }
     core::dx::dxcompilation::ShaderStage* getShaderStage(core::dx::dxcompilation::ShaderType shader_type) const 
     { 
@@ -94,10 +95,17 @@ public:
         core::dx::d3d12::ConstantBufferDataMapper& data_mapper
     );
 
+    void bindObjectParameters(
+        core::dx::d3d12::CommandList& target_command_list,
+        core::dx::d3d12::ConstantBufferDataMapper& data_mapper
+    );
+
     void bindSceneParameters(
         core::dx::d3d12::CommandList& target_command_list,
         core::dx::d3d12::ConstantBufferDataMapper& data_mapper
     );
+
+
 
 private:
     core::dx::d3d12::BasicRenderingServices& m_basic_rendering_services;
@@ -105,6 +113,7 @@ private:
     std::string m_material_parameters_ub_name;
     std::string m_scene_parameters_ub_name;
     core::dx::d3d12::ConstantBufferReflection m_material_parameters_cb_reflection;
+    core::dx::d3d12::ConstantBufferReflection m_object_parameters_cb_reflection;
     core::dx::d3d12::ConstantBufferReflection m_scene_parameters_cb_reflection;
     core::dx::d3d12::GraphicsPSODescriptor m_pso_descriptor;
     core::dx::d3d12::tasks::RootSignatureCompilationTask* m_root_signature_compilation_task = nullptr;
