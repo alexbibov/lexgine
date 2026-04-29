@@ -524,6 +524,40 @@ public:
     }
 };
 
+TEST_F(CacheTest, TestStreamedCacheConcurrencySentinel)
+{
+    using namespace lexgine::core;
+
+    uint32_t source_data[] = { 1U, 3U, 5U, 7U };
+
+    {
+        std::fstream iofile{ "sentinel_test.bin", std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc };
+        StreamedCacheConcurrencySentinel_KeyInt64_Cluster4KB streamed_cache{ iofile, 4096U * 4U, StreamedCacheCompressionLevel::level0, true };
+
+        DataBlob blob{ source_data, sizeof(source_data) };
+        StreamedCacheConcurrencySentinel_KeyInt64_Cluster4KB::entry_type entry{ 1U, blob };
+
+        EXPECT_TRUE(streamed_cache->addEntry(entry));
+        EXPECT_TRUE(streamed_cache->doesEntryExist(1U));
+
+        auto access = streamed_cache.access();
+        EXPECT_EQ(access->getEntrySize(1U), sizeof(source_data));
+    }
+
+    {
+        std::fstream iofile{ "sentinel_test.bin", std::ios::binary | std::ios::in | std::ios::out };
+        StreamedCacheConcurrencySentinel_KeyInt64_Cluster4KB streamed_cache{ iofile };
+
+        size_t valid_bytes_count = 0U;
+        SharedDataChunk chunk = streamed_cache->retrieveEntry(1U, &valid_bytes_count);
+
+        ASSERT_TRUE(chunk.data());
+        EXPECT_EQ(valid_bytes_count, sizeof(source_data));
+        EXPECT_EQ(std::memcmp(chunk.data(), source_data, sizeof(source_data)), 0);
+    }
+}
+
+
 TEST_F(CacheTest, TestStreamedCacheBigEntries)
 {
     using namespace lexgine::core;

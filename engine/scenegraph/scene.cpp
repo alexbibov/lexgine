@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cctype>
 #include <future>
+#include <numeric>
 #include <thread>
 
 #include <glm/gtc/constants.hpp>
