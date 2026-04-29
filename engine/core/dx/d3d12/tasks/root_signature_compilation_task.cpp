@@ -49,27 +49,29 @@ std::string RootSignatureCompilationTask::getCacheName() const
 
 bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
 {
+    (void) worker_id;
+
     try
     {
-        auto rs_cache_with_requested_root_signature =
-            task_caches::findCombinedCacheContainingKey(m_key, m_global_settings);
-
-
         D3DDataBlob rs_blob{ nullptr };
-        if (rs_cache_with_requested_root_signature.isValid()
-            && rs_cache_with_requested_root_signature->cache().getEntryTimestamp(m_key) >= m_timestamp)
-        {
-            SharedDataChunk blob = rs_cache_with_requested_root_signature->cache().retrieveEntry(m_key);
+        SharedDataChunk cached_rs_blob{};
+        auto rs_cache = task_caches::establishConnectionWithCombinedCache(m_global_settings, false);
 
-            if (blob.size() && blob.data())
+        if (rs_cache.isValid())
+        {
+            auto cache_access = rs_cache->cache().access();
+            if (cache_access->doesEntryExist(m_key) && cache_access->getEntryTimestamp(m_key) >= m_timestamp)
+                cached_rs_blob = cache_access->retrieveEntry(m_key);
+        }
+
+        if (cached_rs_blob.size() && cached_rs_blob.data())
+        {
+            Microsoft::WRL::ComPtr<ID3DBlob> d3d_blob{ nullptr };
+            HRESULT hres = D3DCreateBlob(cached_rs_blob.size(), d3d_blob.GetAddressOf());
+            if (hres == S_OK || hres == S_FALSE)
             {
-                Microsoft::WRL::ComPtr<ID3DBlob> d3d_blob{ nullptr };
-                HRESULT hres = D3DCreateBlob(blob.size(), d3d_blob.GetAddressOf());
-                if (hres == S_OK || hres == S_FALSE)
-                {
-                    memcpy(d3d_blob->GetBufferPointer(), blob.data(), blob.size());
-                    rs_blob = D3DDataBlob{ d3d_blob };
-                }
+                memcpy(d3d_blob->GetBufferPointer(), cached_rs_blob.data(), cached_rs_blob.size());
+                rs_blob = D3DDataBlob{ d3d_blob };
             }
         }
 
@@ -80,10 +82,9 @@ bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
             if (m_was_successful)
             {
-                auto my_rs_cache = task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
-                if (my_rs_cache.isValid())
+                if (rs_cache.isValid())
                 {
-                    my_rs_cache->cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_compiled_rs_blob });
+                    rs_cache->cache()->addEntry(task_caches::CombinedCache::entry_type{ m_key, m_compiled_rs_blob });
                 }
             }
 

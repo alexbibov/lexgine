@@ -1,4 +1,3 @@
-#include <list>
 #include <fstream>
 #include <utility>
 
@@ -14,12 +13,28 @@ using namespace lexgine::core::misc;
 using namespace lexgine::core::dx::d3d12::task_caches;
 
 
+namespace {
+
+std::string getCombinedCachePath(GlobalSettings const& global_settings)
+{
+    return global_settings.getCacheDirectory() + global_settings.getCombinedCacheName()
+        + "." + global_constants::combined_cache_extra_extension;
+}
+
+}
+
+
+misc::Optional<StreamedCacheConnection> lexgine::core::dx::d3d12::task_caches::establishConnectionWithCombinedCache(GlobalSettings const& global_settings, bool readonly_mode, bool allow_overwrites)
+{
+    return establishConnectionWithCombinedCache(global_settings, getCombinedCachePath(global_settings), readonly_mode, allow_overwrites);
+}
+
+
 misc::Optional<StreamedCacheConnection> lexgine::core::dx::d3d12::task_caches::establishConnectionWithCombinedCache(GlobalSettings const& global_settings, uint8_t worker_id, bool readonly_mode, bool allow_overwrites)
 {
-    std::string path_to_cache = global_settings.getCacheDirectory() + global_settings.getCombinedCacheName()
-        + "." + global_constants::combined_cache_extra_extension + std::to_string(worker_id);
+    (void) worker_id;
 
-    return establishConnectionWithCombinedCache(global_settings, path_to_cache, readonly_mode, allow_overwrites);
+    return establishConnectionWithCombinedCache(global_settings, readonly_mode, allow_overwrites);
 }
 
 
@@ -33,18 +48,11 @@ misc::Optional<StreamedCacheConnection> lexgine::core::dx::d3d12::task_caches::e
 
 misc::Optional<StreamedCacheConnection> lexgine::core::dx::d3d12::task_caches::findCombinedCacheContainingKey(CombinedCacheKey const& key, GlobalSettings const& global_settings)
 {
-    auto cache_directory = global_settings.getCacheDirectory();
-    auto combined_caches = getFilesInDirectory(cache_directory,
-        global_settings.getCombinedCacheName() + "." + global_constants::combined_cache_extra_extension + "*");
-
-    for (auto const& cache_name : combined_caches)
+    auto cache_connection = establishConnectionWithCombinedCache(global_settings, true);
+    if (cache_connection.isValid())
     {
-        auto cache_connection = establishConnectionWithCombinedCache(global_settings, cache_directory + cache_name, true);
-        if (cache_connection.isValid())
-        {
-            if (cache_connection->cache().doesEntryExist(key))
-                return misc::Optional<StreamedCacheConnection>{std::move(cache_connection)};
-        }
+        if (cache_connection->cache()->doesEntryExist(key))
+            return misc::Optional<StreamedCacheConnection>{std::move(cache_connection)};
     }
 
     return misc::Optional<StreamedCacheConnection>{};
@@ -80,7 +88,7 @@ StreamedCacheConnection::StreamedCacheConnection(GlobalSettings const& global_se
         {
             m_cache.reset(new CombinedCache{ *m_stream, is_read_only });
 
-            if (!(*m_cache))
+            if (!(*m_cache->access()))
             {
                 // existing cache cannot be opened, probably due to data corruption
                 // try to create new cache storage, if requested opening mode is not read-only
@@ -112,7 +120,7 @@ StreamedCacheConnection::~StreamedCacheConnection()
 {
     if (*this)
     {
-        m_cache->finalize();
+        m_cache->access()->finalize();
         m_stream->close();
     }
 }
@@ -130,10 +138,15 @@ StreamedCacheConnection& StreamedCacheConnection::operator=(StreamedCacheConnect
 StreamedCacheConnection::operator bool() const
 {
     return m_stream && (*m_stream)
-        && m_cache && (*m_cache);
+        && m_cache && (*m_cache->access());
 }
 
 CombinedCache& StreamedCacheConnection::cache()
+{
+    return *m_cache;
+}
+
+CombinedCache const& StreamedCacheConnection::cache() const
 {
     return *m_cache;
 }

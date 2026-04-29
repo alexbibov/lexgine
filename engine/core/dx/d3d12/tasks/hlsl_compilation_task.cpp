@@ -172,14 +172,20 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
     {
         if (!isCompleted())
         {
-            auto shader_cache_containing_requested_shader =
-                task_caches::findCombinedCacheContainingKey(m_key, m_global_settings);
+            auto shader_cache = task_caches::establishConnectionWithCombinedCache(m_global_settings, false);
+            SharedDataChunk cached_shader_blob{};
 
-            if (shader_cache_containing_requested_shader.isValid())
+            if (shader_cache.isValid())
             {
-                misc::DateTime cached_time_stamp = shader_cache_containing_requested_shader->cache().getEntryTimestamp(m_key);
-
-                m_should_recompile = cached_time_stamp < m_time_stamp;
+                auto cache_access = shader_cache->cache().access();
+                if (cache_access->doesEntryExist(m_key))
+                {
+                    misc::DateTime cached_time_stamp = cache_access->getEntryTimestamp(m_key);
+                    m_should_recompile = cached_time_stamp < m_time_stamp;
+                    if (!m_should_recompile)
+                        cached_shader_blob = cache_access->retrieveEntry(m_key);
+                }
+                else m_should_recompile = true;
             }
             else m_should_recompile = true;
 
@@ -187,8 +193,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
             {
                 // Attempt to use cached version of the shader
 
-                SharedDataChunk blob = shader_cache_containing_requested_shader->cache().retrieveEntry(m_key);
-                if (!blob.data())
+                if (!cached_shader_blob.data())
                 {
                     LEXGINE_LOG_ERROR(this, "Unable to retrieve precompiled shader byte code for source \""
                         + m_source_name + "\"");
@@ -197,7 +202,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
                 else
                 {
                     Microsoft::WRL::ComPtr<ID3DBlob> d3d_blob{ nullptr };
-                    HRESULT hres = D3DCreateBlob(blob.size(), d3d_blob.GetAddressOf());
+                    HRESULT hres = D3DCreateBlob(cached_shader_blob.size(), d3d_blob.GetAddressOf());
                     if (hres != S_OK && hres != S_FALSE)
                     {
                         LEXGINE_LOG_ERROR(this, "Unable to create D3D blob to store precompiled shader code for source \""
@@ -206,8 +211,8 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
                     }
                     else
                     {
-                        assert(d3d_blob->GetBufferSize() >= blob.size());
-                        memcpy(d3d_blob->GetBufferPointer(), blob.data(), blob.size());
+                        assert(d3d_blob->GetBufferSize() >= cached_shader_blob.size());
+                        memcpy(d3d_blob->GetBufferPointer(), cached_shader_blob.data(), cached_shader_blob.size());
                         m_shader_byte_code = D3DDataBlob{ d3d_blob };
                     }
                 }
@@ -329,10 +334,9 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
                 if (m_was_compilation_successful)
                 {
                     // if compilation was successful serialize compiled shader into the cache
-                    auto my_shader_cache = task_caches::establishConnectionWithCombinedCache(m_global_settings, worker_id, false);
-                    if (my_shader_cache.isValid())
+                    if (shader_cache.isValid())
                     {
-                        my_shader_cache->cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_shader_byte_code });
+                        shader_cache->cache()->addEntry(task_caches::CombinedCache::entry_type{ m_key, m_shader_byte_code });
                     }
                 }
 

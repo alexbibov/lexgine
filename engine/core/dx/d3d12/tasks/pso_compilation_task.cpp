@@ -21,27 +21,26 @@ namespace {
 D3DDataBlob loadPrecachedPSOBlob(GlobalSettings const& global_settings, task_caches::CombinedCacheKey const& key,
     misc::DateTime const& timestamp)
 {
-    auto pso_cache_containinig_requested_pso =
-        task_caches::findCombinedCacheContainingKey(key, global_settings);
-
-
     D3DDataBlob rv{ nullptr };
+    SharedDataChunk cached_pso_blob{};
+    auto pso_cache = task_caches::establishConnectionWithCombinedCache(global_settings, false);
 
-    if (pso_cache_containinig_requested_pso.isValid() 
-        && pso_cache_containinig_requested_pso->cache().getEntryTimestamp(key) >= timestamp)
+    if (pso_cache.isValid())
     {
-        SharedDataChunk blob = pso_cache_containinig_requested_pso->cache().retrieveEntry(key);
+        auto cache_access = pso_cache->cache().access();
+        if (cache_access->doesEntryExist(key) && cache_access->getEntryTimestamp(key) >= timestamp)
+            cached_pso_blob = cache_access->retrieveEntry(key);
+    }
 
-        if (blob.size() && blob.data())
+    if (cached_pso_blob.size() && cached_pso_blob.data())
+    {
+        Microsoft::WRL::ComPtr<ID3DBlob> d3d_blob{ nullptr };
+        HRESULT res = D3DCreateBlob(cached_pso_blob.size(), d3d_blob.GetAddressOf());
+        if (res == S_OK || res == S_FALSE)
         {
-            Microsoft::WRL::ComPtr<ID3DBlob> d3d_blob{ nullptr };
-            HRESULT res = D3DCreateBlob(blob.size(), d3d_blob.GetAddressOf());
-            if (res == S_OK || res == S_FALSE)
-            {
-                assert(d3d_blob->GetBufferSize() >= blob.size());
-                memcpy(d3d_blob->GetBufferPointer(), blob.data(), blob.size());
-                rv = D3DDataBlob{ d3d_blob };
-            }
+            assert(d3d_blob->GetBufferSize() >= cached_pso_blob.size());
+            memcpy(d3d_blob->GetBufferPointer(), cached_pso_blob.data(), cached_pso_blob.size());
+            rv = D3DDataBlob{ d3d_blob };
         }
     }
 
@@ -156,6 +155,8 @@ std::string GraphicsPSOCompilationTask::getCacheName() const
 
 bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 {
+    (void) worker_id;
+
     try
     {
         auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key, m_timestamp);
@@ -187,10 +188,10 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
         if (!precached_pso_blob)
         {
-            auto my_pso_cache = task_caches::establishConnectionWithCombinedCache(*m_globals.get<GlobalSettings>(), worker_id, false);
+            auto my_pso_cache = task_caches::establishConnectionWithCombinedCache(*m_globals.get<GlobalSettings>(), false);
             if (my_pso_cache.isValid())
             {
-                my_pso_cache->cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
+                my_pso_cache->cache()->addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
             }
         }
     }
@@ -275,6 +276,8 @@ std::string ComputePSOCompilationTask::getCacheName() const
 
 bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 {
+    (void) worker_id;
+
     try
     {
         auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key, m_timestamp);
@@ -293,11 +296,11 @@ bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
         if (!precached_pso_blob)
         {
             auto my_pso_cache =
-                task_caches::establishConnectionWithCombinedCache(*m_globals.get<GlobalSettings>(), worker_id, false);
+                task_caches::establishConnectionWithCombinedCache(*m_globals.get<GlobalSettings>(), false);
 
             if (my_pso_cache.isValid()) 
             {
-                my_pso_cache->cache().addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
+                my_pso_cache->cache()->addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
             }
         }
     }

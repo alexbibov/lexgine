@@ -2,6 +2,7 @@
 #define LEXGINE_CORE_DX_D3D12_TASK_CACHES_CACHE_UTILITIES_H
 
 #include <fstream>
+#include <memory>
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/global_constants.h"
@@ -13,7 +14,7 @@
 namespace lexgine::core::dx::d3d12::task_caches 
 {
 
-using CombinedCache = StreamedCache<CombinedCacheKey, global_constants::combined_cache_cluster_size>;
+using CombinedCache = StreamedCacheConcurrencySentinel<CombinedCacheKey, global_constants::combined_cache_cluster_size>;
 
 class StreamedCacheConnection
 {
@@ -28,11 +29,17 @@ public:
     operator bool() const;
 
     CombinedCache& cache();
+    CombinedCache const& cache() const;
 
 private:
     std::unique_ptr<std::fstream> m_stream;
     std::unique_ptr<CombinedCache> m_cache;
 };
+
+/*! establishes connection with the synchronized combined cache.
+ In case if it is not possible to establish connection with requested cache returns invalid Optional<> object
+*/
+misc::Optional<StreamedCacheConnection> establishConnectionWithCombinedCache(GlobalSettings const& global_settings, bool readonly_mode, bool allow_overwrites = true);
 
 /*! establishes connection with combined cache associated with the given worker id.
  In case if it is not possible to establish connection with requested cache returns invalid Optional<> object
