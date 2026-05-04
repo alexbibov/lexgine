@@ -5,7 +5,7 @@
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/profiling_services.h"
-#include "engine/core/dx/d3d12/task_caches/cache_utilities.h"
+#include "engine/core/dx/d3d12/task_caches/data_cache.h"
 
 #include <d3dcompiler.h>
 
@@ -18,14 +18,14 @@ using namespace lexgine::core::dx::d3d12::task_caches;
 
 namespace {
 
-D3DDataBlob loadPrecachedPSOBlob(GlobalSettings const& global_settings, task_caches::CombinedCacheKey const& key,
+D3DDataBlob loadPrecachedPSOBlob(Globals const& globals, task_caches::CombinedCacheKey const& key,
     misc::DateTime const& timestamp)
 {
     D3DDataBlob rv{ nullptr };
     SharedDataChunk cached_pso_blob{};
-    auto pso_cache = task_caches::establishConnectionWithCombinedCache(global_settings, false);
+    auto pso_cache = globals.get<DataCache>();
 
-    if (pso_cache.isValid())
+    if (pso_cache && *pso_cache)
     {
         auto cache_access = pso_cache->cache().access();
         if (cache_access->doesEntryExist(key) && cache_access->getEntryTimestamp(key) >= timestamp)
@@ -159,7 +159,7 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
     try
     {
-        auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key, m_timestamp);
+        auto precached_pso_blob = loadPrecachedPSOBlob(m_globals, m_key, m_timestamp);
 
         if (!m_descriptor.vertex_shader)
         {
@@ -188,8 +188,8 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
         if (!precached_pso_blob)
         {
-            auto my_pso_cache = task_caches::establishConnectionWithCombinedCache(*m_globals.get<GlobalSettings>(), false);
-            if (my_pso_cache.isValid())
+            auto my_pso_cache = m_globals.get<DataCache>();
+            if (my_pso_cache && *my_pso_cache)
             {
                 my_pso_cache->cache()->addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
             }
@@ -280,7 +280,7 @@ bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
     try
     {
-        auto precached_pso_blob = loadPrecachedPSOBlob(*m_globals.get<GlobalSettings>(), m_key, m_timestamp);
+        auto precached_pso_blob = loadPrecachedPSOBlob(m_globals, m_key, m_timestamp);
 
         if (!m_descriptor.compute_shader)
         {
@@ -295,10 +295,8 @@ bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
         if (!precached_pso_blob)
         {
-            auto my_pso_cache =
-                task_caches::establishConnectionWithCombinedCache(*m_globals.get<GlobalSettings>(), false);
-
-            if (my_pso_cache.isValid()) 
+            auto my_pso_cache = m_globals.get<DataCache>();
+            if (my_pso_cache && *my_pso_cache)
             {
                 my_pso_cache->cache()->addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
             }

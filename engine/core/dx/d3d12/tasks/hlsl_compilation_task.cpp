@@ -9,7 +9,7 @@
 
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 #include "engine/core/dx/d3d12/pipeline_state.h"
-#include "engine/core/dx/d3d12/task_caches/cache_utilities.h"
+#include "engine/core/dx/d3d12/task_caches/data_cache.h"
 
 #include <d3dcompiler.h>
 #include <fstream>
@@ -82,7 +82,7 @@ HLSLCompilationTask::HLSLCompilationTask(task_caches::CombinedCacheKey const& ke
     : SchedulableTask{ source_name, true }
     , m_key{ key }
     , m_time_stamp{ time_stamp }
-    , m_global_settings{ *globals.get<GlobalSettings>() }
+    , m_globals{ globals }
     , m_dxc_proxy{ globals.get<DxResourceFactory>()->shaderModel6xDxCompilerProxy() }
     , m_hlsl_source{ hlsl_source }
     , m_source_name{ source_name }
@@ -172,10 +172,9 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
     {
         if (!isCompleted())
         {
-            auto shader_cache = task_caches::establishConnectionWithCombinedCache(m_global_settings, false);
+            auto shader_cache = m_globals.get<task_caches::DataCache>();
             SharedDataChunk cached_shader_blob{};
-
-            if (shader_cache.isValid())
+            if (shader_cache && *shader_cache)
             {
                 auto cache_access = shader_cache->cache().access();
                 if (cache_access->doesEntryExist(m_key))
@@ -334,7 +333,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
                 if (m_was_compilation_successful)
                 {
                     // if compilation was successful serialize compiled shader into the cache
-                    if (shader_cache.isValid())
+                    if (shader_cache && *shader_cache)
                     {
                         shader_cache->cache()->addEntry(task_caches::CombinedCache::entry_type{ m_key, m_shader_byte_code });
                     }

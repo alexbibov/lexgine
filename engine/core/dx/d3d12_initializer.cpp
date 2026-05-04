@@ -1,51 +1,30 @@
 #include <windows.h>
 #include <cwchar>
-
+#include <system_error>
 
 #include "d3d12_initializer.h"
 
-#include "engine/core/exception.h"
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 
 #include "engine/build_info.h"
 #include "engine/core/misc/misc.h"
 #include "engine/core/misc/log.h"
-#include "engine/core/global_settings.h"
 
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 #include "engine/core/dx/d3d12/device.h"
 
+#include "engine/core/dx/d3d12/task_caches/data_cache.h"
 #include "engine/core/dx/d3d12/task_caches/hlsl_compilation_task_cache.h"
 #include "engine/core/dx/d3d12/task_caches/pso_compilation_task_cache.h"
 #include "engine/core/dx/d3d12/task_caches/root_signature_compilation_task_cache.h"
-#include "engine/core/dx/d3d12/task_caches/combined_cache_key.h"
-
-#include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
-#include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
-#include "engine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
 
 #include "engine/conversion/texture_converter.h"
 
 
 using namespace lexgine;
 using namespace lexgine::core;
-using namespace lexgine::core::dx;
-
-
-namespace {
-
-std::string correct_path(std::string const& original_path)
-{
-    if (original_path.length() &&
-        original_path[original_path.length() - 1] != '/' &&
-        original_path[original_path.length() - 1] != '\\')
-        return original_path + '/';
-    else
-        return original_path;
-}
-
-}
+namespace lexgine::core::dx {
 
 
 D3D12EngineSettings::D3D12EngineSettings()
@@ -62,58 +41,55 @@ D3D12EngineSettings::D3D12EngineSettings()
 
 
 D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
+    : m_engine_api{ EngineApi::Direct3D12 }
 {
-    std::string corrected_logging_output_path = correct_path(settings.logging_output_path);
-    std::string corrected_global_lookup_prefix = correct_path(settings.global_lookup_prefix);
-    std::string corrected_settings_lookup_path = correct_path(settings.settings_lookup_path);
-    std::string corrected_shaders_lookup_path = correct_path(settings.shaders_lookup_path);
+    // std::string corrected_logging_output_path = correct_path(settings.logging_output_path);
+    // std::string corrected_global_lookup_prefix = correct_path(settings.global_lookup_prefix);
+    // std::string corrected_settings_lookup_path = correct_path(settings.settings_lookup_path);
+    // std::string corrected_shaders_lookup_path = correct_path(settings.shaders_lookup_path);
 
     {
         wchar_t host_computer_name[MAX_COMPUTERNAME_LENGTH + 1];
-        DWORD host_computer_name_length;
+        DWORD host_computer_name_length = MAX_COMPUTERNAME_LENGTH + 1;
         if (!GetComputerName(host_computer_name, &host_computer_name_length))
+        {
             wcscpy_s(host_computer_name, L"UNKNOWN_HOST");
-
+        }
         std::string log_name{ std::string{ PROJECT_CODE_NAME } + " v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
         + std::to_string(PROJECT_VERSION_MINOR) + " rev." + std::to_string(PROJECT_VERSION_BUILD)
         + "(" + std::to_string(PROJECT_VERSION_REVISION) + ")" + " (" + misc::wstringToAsciiString(host_computer_name) + ")" };
 
-        misc::Log::create( std::filesystem::path{corrected_logging_output_path} / (settings.log_name + ".html"), settings.log_name, settings.log_level);
+        misc::Log::create(settings.logging_output_path / (settings.log_name.stem().string() + ".html"), settings.log_name.string(), settings.log_level);
     }
-
-    // Initialize global object pool
-    MainGlobalsBuilder builder;
-
-    builder.defineEngineApi(EngineApi::Direct3D12);    // define graphics API used by the engine
 
     // Load the global settings
-    m_global_settings.reset(new GlobalSettings{ corrected_global_lookup_prefix + corrected_settings_lookup_path + settings.global_settings_json_file });
-    builder.defineGlobalSettings(*m_global_settings);
+    m_global_settings.reset(new GlobalSettings{ settings.global_lookup_prefix / settings.settings_lookup_path / settings.global_settings_json_file });
 
     // Correct shader lookup directories
-    {
-        std::vector<std::string> new_shader_lookup_directories;
-        for (auto& shader_lookup_path : m_global_settings->getShaderLookupDirectories())
-        {
-            new_shader_lookup_directories.push_back(correct_path(corrected_global_lookup_prefix + shader_lookup_path));
-        }
-        m_global_settings->clearShaderLookupDirectories();
-        for (auto& new_shader_lookup_path : new_shader_lookup_directories)
-        {
-            m_global_settings->addShaderLookupDirectory(new_shader_lookup_path);
-        }
-        m_global_settings->addShaderLookupDirectory(corrected_global_lookup_prefix);
-    }
+	{
+		std::vector<std::filesystem::path> new_shader_lookup_directories;
+		for (auto& shader_lookup_path : m_global_settings->getShaderLookupDirectories())
+		{
+			new_shader_lookup_directories.push_back(settings.global_lookup_prefix / shader_lookup_path);
+		}
+		m_global_settings->clearShaderLookupDirectories();
+		for (auto& new_shader_lookup_path : new_shader_lookup_directories)
+		{
+			m_global_settings->addShaderLookupDirectory(new_shader_lookup_path);
+		}
+		m_global_settings->addShaderLookupDirectory(settings.global_lookup_prefix);
+	}
 
     // Correct cache path
     {
-        std::string corrected_cache_path = correct_path(corrected_global_lookup_prefix + m_global_settings->getCacheDirectory());
+        std::filesystem::path corrected_cache_path = settings.global_lookup_prefix / m_global_settings->getCacheDirectory();
         m_global_settings->setCacheDirectory(corrected_cache_path);
 
-        if (!CreateDirectory(misc::asciiStringToWstring(corrected_cache_path).c_str(), NULL) &&
-            GetLastError() != ERROR_ALREADY_EXISTS)
+        std::error_code ec;
+        std::filesystem::create_directories(corrected_cache_path, ec);
+        if (ec)
         {
-            misc::Log::retrieve()->out("Unable to create cache path \"" + corrected_cache_path + "\". Caching may not function properly, which "
+            misc::Log::retrieve()->out("Unable to create cache path \"" + corrected_cache_path.string() + "\". Caching may not function properly, which "
                 "may deteriorate performance of the system", misc::LogMessageType::exclamation);
         }
     }
@@ -121,27 +97,18 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
     // Set profiling enable state
     m_global_settings->setIsProfilingEnabled(settings.enable_profiling);
 
-    builder.defineGlobalSettings(*m_global_settings);
-
     // Initialize resource factory
     m_resource_factory.reset(new dx::d3d12::DxResourceFactory{ *m_global_settings, settings.debug_mode, settings.gpu_based_validation_settings,
         settings.adapter_enumeration_preference });
-    builder.registerDxResourceFactory(*m_resource_factory);
 
     // Initialize caches
     {
-        m_shader_cache.reset(new dx::d3d12::task_caches::HLSLCompilationTaskCache{});
-        builder.registerHLSLCompilationTaskCache(*m_shader_cache);
-
-        m_pso_cache.reset(new dx::d3d12::task_caches::PSOCompilationTaskCache{});
-        builder.registerPSOCompilationTaskCache(*m_pso_cache);
-
-        m_rs_cache.reset(new dx::d3d12::task_caches::RootSignatureCompilationTaskCache{});
-        builder.registerRootSignatureCompilationTaskCache(*m_rs_cache);
+        m_data_cache = std::make_unique<dx::d3d12::task_caches::DataCache>(*m_global_settings, false);
+        m_shader_cache = std::make_unique<dx::d3d12::task_caches::HLSLCompilationTaskCache>();
+        m_pso_cache = std::make_unique<dx::d3d12::task_caches::PSOCompilationTaskCache>();
+        m_rs_cache = std::make_unique<dx::d3d12::task_caches::RootSignatureCompilationTaskCache>();
     }
-
-    m_globals = builder.build();
-
+    buildGlobals();
     setCurrentDevice(0);
 }
 
@@ -151,6 +118,7 @@ D3D12Initializer::~D3D12Initializer()
     m_shader_cache.reset();
     m_rs_cache.reset();
     m_pso_cache.reset();
+    m_data_cache.reset();
     m_resource_factory.reset();
     m_globals.reset();
     m_global_settings.reset();
@@ -216,4 +184,19 @@ std::shared_ptr<dx::d3d12::SwapChainLink> D3D12Initializer::createSwapChainLink(
     auto rv = dx::d3d12::SwapChainLink::create(*m_globals, target_swap_chain, depth_buffer_format);
     rv->linkRenderingTasks(&source_rendering_tasks);
     return rv;
+}
+
+void D3D12Initializer::buildGlobals()
+{
+    m_globals = std::make_unique<Globals>();
+    m_globals->put(const_cast<EngineApi*>(&m_engine_api));
+    m_globals->put(m_global_settings.get());
+    m_globals->put(m_resource_factory.get());
+    m_globals->put(m_data_cache.get());
+    m_globals->put(m_shader_cache.get());
+    m_globals->put(m_pso_cache.get());
+    m_globals->put(m_rs_cache.get());
+}
+
+
 }

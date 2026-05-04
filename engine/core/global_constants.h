@@ -7,7 +7,7 @@ namespace lexgine::core::global_constants {
 
 static size_t constexpr combined_cache_cluster_size = 256U;
 static StreamedCacheCompressionLevel constexpr combined_cache_compression_level = StreamedCacheCompressionLevel::level3;
-static char const* combined_cache_extra_extension = "thread";
+static char const* combined_cache_extra_extension = "cache";
 
 }
 

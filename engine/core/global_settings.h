@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <filesystem>
 
 #include "engine/core/dx/d3d12/descriptor_heap.h"
 #include "engine/core/engine_api.h"
@@ -17,7 +18,7 @@ class GlobalSettings
 {
 public:
     GlobalSettings() = default;
-    explicit GlobalSettings(std::string const& json_settings_source_path);
+    explicit GlobalSettings(std::filesystem::path const& json_settings_source_path);
 
     void serialize(std::string const& json_serialization_path) const;
 
@@ -27,9 +28,9 @@ public:
     bool isDeferredShaderCompilationOn() const;
     bool isDeferredPSOCompilationOn() const;
     bool isDeferredRootSignatureCompilationOn() const;
-    std::vector<std::string> const& getShaderLookupDirectories() const;
-    std::string getCacheDirectory() const;
-    std::string getCombinedCacheName() const;
+    std::vector<std::filesystem::path> const& getShaderLookupDirectories() const;
+    std::filesystem::path const& getCacheDirectory() const;
+    std::filesystem::path const& getCacheName() const;
     uint64_t getMaxCombinedCacheSize() const;
     uint64_t getMaxCombinedTextureCacheSize() const;
 
@@ -59,9 +60,9 @@ public:
     void setIsDeferredShaderCompilationOn(bool is_enabled);
     void setIsDeferredPSOCompilationOn(bool is_enabled);
     void setIsDeferredRootSignatureCompilationOn(bool is_enabled);
-    void addShaderLookupDirectory(std::string const& path);
+    void addShaderLookupDirectory(std::filesystem::path const& path);
     void clearShaderLookupDirectories();
-    void setCacheDirectory(std::string const& path);
+    void setCacheDirectory(std::filesystem::path const& path);
     void setCacheName(std::string const& name);
     void setIsAsyncComputeEnabled(bool is_enabled);
     void setIsAsyncCopyEnabled(bool is_enabled);
@@ -74,9 +75,9 @@ private:
     bool m_deferred_pso_compilation;
     bool m_deferred_shader_compilation;
     bool m_deferred_root_signature_compilation;
-    std::vector<std::string> m_shader_lookup_directories;
-    std::string m_cache_path;
-    std::string m_combined_cache_name;
+    std::vector<std::filesystem::path> m_shader_lookup_directories;
+    std::filesystem::path m_cache_path;
+    std::filesystem::path m_combined_cache_name;
     uint64_t m_max_combined_cache_size;
     uint64_t m_max_combined_texture_cache_size;
     uint32_t m_upload_heap_capacity;

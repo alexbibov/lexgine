@@ -641,7 +641,7 @@ TextureConverter::TextureConverter(core::Globals& globals)
 
     {
         auto global_settings = getGlobalSettings(globals);
-        std::filesystem::path cache_name = std::filesystem::path{ global_settings->getCacheDirectory() } / (global_settings->getCombinedCacheName() + ".texturedata");
+        std::filesystem::path cache_name = std::filesystem::path{ global_settings->getCacheDirectory() } / (global_settings->getCacheName().stem().string() + ".texturedata");
         auto cache_stream_mode = std::ios::in | std::ios::out | std::ios::binary;
         bool cache_exists = std::filesystem::exists(cache_name);
         if (!cache_exists) cache_stream_mode |= std::ios::trunc;
