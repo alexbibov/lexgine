@@ -36,7 +36,7 @@ std::string getStringifiedDefines(std::list<dxcompilation::HLSLMacroDefinition> 
 }
 
 
-HLSLFileTranslationUnit::HLSLFileTranslationUnit(Globals& globals, std::string const& source_name, std::string const& file_path)
+HLSLFileTranslationUnit::HLSLFileTranslationUnit(Globals& globals, std::string const& source_name, std::filesystem::path const& file_path)
     : HLSLTranslationUnit{ globals }
 {
     m_source_name = source_name;
@@ -50,8 +50,8 @@ HLSLFileTranslationUnit::HLSLFileTranslationUnit(Globals& globals, std::string c
             bool shader_found{ false };
             for (auto const& path_prefix : shader_lookup_directories)
             {
-                m_path_to_shader = path_prefix + file_path;
-                if (misc::doesFileExist(m_path_to_shader))
+                m_path_to_shader = path_prefix / file_path;
+                if (std::filesystem::exists(m_path_to_shader))
                 {
                     shader_found = true;
                     break;
@@ -60,14 +60,14 @@ HLSLFileTranslationUnit::HLSLFileTranslationUnit(Globals& globals, std::string c
 
             if (!shader_found)
             {
-                LEXGINE_THROW_ERROR("Unable to retrieve shader asset \"" + file_path + "\"");
+                LEXGINE_THROW_ERROR("Unable to retrieve shader asset \"" + file_path.string() + "\"");
             }
         }
 
-        m_hlsl_source_code = ShaderSourceCodePreprocessor{ m_path_to_shader, ShaderSourceCodePreprocessor::SourceType::file, shader_lookup_directories }.getPreprocessedSource();
+        m_hlsl_source_code = ShaderSourceCodePreprocessor{ m_path_to_shader.string(), ShaderSourceCodePreprocessor::SourceType::file, shader_lookup_directories}.getPreprocessedSource();
     }
 
-    m_timestamp = *misc::getFileLastUpdatedTimeStamp(m_path_to_shader);
+    m_timestamp = *misc::getFileLastUpdatedTimeStamp(m_path_to_shader.string());
 }
 
 
@@ -208,7 +208,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::findOrCreateTask(HLSLFileT
 {
     uint64_t hash_value = misc::HashedString{ getStringifiedDefines(macro_definitions) + hlsl_translation_unit.source() }.hash();
 
-    Key key{ shader_entry_point + "__"  + hlsl_translation_unit.pathToShader(),
+    Key key{ shader_entry_point + "__"  + hlsl_translation_unit.pathToShader().string(),
         static_cast<unsigned short>(shader_type),
         static_cast<unsigned short>(shader_model),
         hash_value };

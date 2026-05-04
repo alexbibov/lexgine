@@ -1,6 +1,7 @@
 #ifndef LEXGINE_CORE_SHADER_SOURCE_CODE_PREPROCESSOR_H
 
 #include <string>
+#include <filesystem>
 
 #include "entity.h"
 #include "class_names.h"
@@ -22,9 +23,11 @@ public:
      the source is treated as path to a file containing the shading code. If source_type=string then
      parameter source is assumed to contain raw shading source code
     */
-    ShaderSourceCodePreprocessor(std::string const& source, 
+    ShaderSourceCodePreprocessor(
+        std::string const& source,
         SourceType source_type, 
-        const std::vector<std::string>& lookup_directories);
+        const std::vector<std::filesystem::path>& lookup_directories
+    );
 
     ~ShaderSourceCodePreprocessor();
 

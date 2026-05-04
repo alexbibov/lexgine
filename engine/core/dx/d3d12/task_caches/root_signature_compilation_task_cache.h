@@ -68,7 +68,7 @@ private:
 
 public:
     tasks::RootSignatureCompilationTask* findOrCreateTask(
-        Globals const& globals,
+        Globals& globals,
         VersionedRootSignature versioned_root_signature, RootSignatureFlags const& flags,
         std::string const& root_signature_cache_name, uint64_t uid);
     

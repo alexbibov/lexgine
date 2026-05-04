@@ -1,10 +1,11 @@
+#include <vector>
+#include <strsafe.h>
+#include <filesystem>
+
 #include "dx_compiler_proxy.h"
 #include "engine/core/misc/misc.h"
 #include "engine/core/exception.h"
 #include "engine/core/global_settings.h"
-
-#include <vector>
-#include <strsafe.h>
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx;
@@ -15,7 +16,7 @@ namespace
 {
 
 std::vector<wchar_t const*> convertParametersIntoCommandLineArgs(
-    std::vector<std::string> const& shader_lookup_directories,
+    std::vector<std::filesystem::path> const& shader_lookup_directories,
     HLSLCompilationOptimizationLevel optimization_level,
     bool strict_mode, bool force_all_resources_be_bound,
     bool force_ieee_standard, bool treat_warnings_as_errors, bool enable_validation,
@@ -25,7 +26,7 @@ std::vector<wchar_t const*> convertParametersIntoCommandLineArgs(
     std::vector<wchar_t const*> rv{}; rv.reserve(64);
     size_t scratch_buffer_offset{ 0 };
 	{
-		for (std::string const& dir : shader_lookup_directories)
+		for (std::filesystem::path const& dir : shader_lookup_directories)
 		{
             assert(scratch_buffer_offset < scratch_buffer_length);
             if (!SUCCEEDED(StringCbPrintf(

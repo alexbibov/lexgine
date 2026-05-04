@@ -3,6 +3,7 @@
 
 #include <list>
 #include <map>
+#include <filesystem>
 
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
@@ -40,12 +41,12 @@ protected:
 class HLSLFileTranslationUnit final : public HLSLTranslationUnit
 {
 public:
-    HLSLFileTranslationUnit(Globals& globals, std::string const& source_name, std::string const& file_path);
+    HLSLFileTranslationUnit(Globals& globals, std::string const& source_name, std::filesystem::path const& file_path);
 
-    std::string const& pathToShader() const { return m_path_to_shader; }
+    std::filesystem::path const& pathToShader() const { return m_path_to_shader; }
 
 private:
-    std::string m_path_to_shader;
+    std::filesystem::path m_path_to_shader;
 };
 
 class HLSLSourceTranslationUnit final : public HLSLTranslationUnit

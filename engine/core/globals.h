@@ -83,30 +83,6 @@ public:
     }
 };
 
-//! Construct the main and the most generalist part of the Globals object pool
-class MainGlobalsBuilder
-{
-public:
-    void defineEngineApi(EngineApi api);
-    void defineGlobalSettings(GlobalSettings& global_settings);
-    void registerDxResourceFactory(dx::d3d12::DxResourceFactory& dx_resource_factory);
-    void registerHLSLCompilationTaskCache(dx::d3d12::task_caches::HLSLCompilationTaskCache& shader_cache);
-    void registerPSOCompilationTaskCache(dx::d3d12::task_caches::PSOCompilationTaskCache& pso_cache);
-    void registerRootSignatureCompilationTaskCache(dx::d3d12::task_caches::RootSignatureCompilationTaskCache& rs_cache);
-
-
-    std::unique_ptr<Globals> build();
-
-private:
-    EngineApi m_engine_api;
-    GlobalSettings* m_global_settings;
-    dx::d3d12::DxResourceFactory* m_dx_resource_factory;
-    dx::d3d12::task_caches::HLSLCompilationTaskCache* m_shader_cache;
-    dx::d3d12::task_caches::PSOCompilationTaskCache* m_pso_cache;
-    dx::d3d12::task_caches::RootSignatureCompilationTaskCache* m_rs_cache;
-};
-
-
 }
 
 #endif

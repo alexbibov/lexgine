@@ -4,7 +4,7 @@
 #include "engine/core/global_settings.h"
 #include "engine/core/profiling_services.h"
 
-#include "engine/core/dx/d3d12/task_caches/cache_utilities.h"
+#include "engine/core/dx/d3d12/task_caches/data_cache.h"
 
 #include <d3dcompiler.h>
 
@@ -15,10 +15,10 @@ using namespace lexgine::core::dx::d3d12::task_caches;
 
 RootSignatureCompilationTask::RootSignatureCompilationTask(
     task_caches::CombinedCacheKey const& key,
-    Globals const& globals, RootSignature&& root_signature, RootSignatureFlags const& flags, misc::DateTime const& timestamp)
+    Globals& globals, RootSignature&& root_signature, RootSignatureFlags const& flags, misc::DateTime const& timestamp)
     : SchedulableTask{ static_cast<RootSignatureCompilationTaskCache::Key>(key).rs_cache_name, true }
     , m_key{ key }
-    , m_global_settings{ *globals.get<GlobalSettings>() }
+    , m_globals{ globals }
     , m_rs{ std::move(root_signature) }
     , m_rs_flags{ flags }
     , m_was_successful{ false }
@@ -55,9 +55,9 @@ bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
     {
         D3DDataBlob rs_blob{ nullptr };
         SharedDataChunk cached_rs_blob{};
-        auto rs_cache = task_caches::establishConnectionWithCombinedCache(m_global_settings, false);
+        auto rs_cache = m_globals.get<task_caches::DataCache>();
 
-        if (rs_cache.isValid())
+        if (rs_cache && *rs_cache)
         {
             auto cache_access = rs_cache->cache().access();
             if (cache_access->doesEntryExist(m_key) && cache_access->getEntryTimestamp(m_key) >= m_timestamp)
@@ -82,7 +82,7 @@ bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
             if (m_was_successful)
             {
-                if (rs_cache.isValid())
+                if (rs_cache && *rs_cache)
                 {
                     rs_cache->cache()->addEntry(task_caches::CombinedCache::entry_type{ m_key, m_compiled_rs_blob });
                 }

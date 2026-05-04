@@ -13,7 +13,7 @@ class RootSignatureCompilationTask : public concurrency::SchedulableTask
 {
 public:
     RootSignatureCompilationTask(task_caches::CombinedCacheKey const& key,
-        Globals const& globals, RootSignature&& root_signature, RootSignatureFlags const& flags,
+        Globals& globals, RootSignature&& root_signature, RootSignatureFlags const& flags,
         misc::DateTime const& timestamp);
 
     D3DDataBlob const& getTaskData() const;    //! returns D3D data blob containing compiled root signature
@@ -37,7 +37,7 @@ public:
 
 private:
     task_caches::CombinedCacheKey const& m_key;
-    GlobalSettings const& m_global_settings;
+    Globals& m_globals;
     RootSignature m_rs;
     RootSignatureFlags m_rs_flags;
     bool m_was_successful;

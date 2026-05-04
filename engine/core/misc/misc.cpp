@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <vector>
+#include <filesystem>
 
 #include <windows.h>
 
@@ -26,7 +27,7 @@ std::string wstringToAsciiString(std::wstring const& wstr)
     return { str.begin(), str.end() };
 }
 
-Optional<std::string> readAsciiTextFromSourceFile(std::string const& source_file)
+Optional<std::string> readAsciiTextFromSourceFile(std::filesystem::path const& source_file)
 {
     std::ifstream source_file_input_stream{ source_file.c_str(), std::ios_base::in };
     if (!source_file_input_stream)
@@ -41,7 +42,7 @@ Optional<std::string> readAsciiTextFromSourceFile(std::string const& source_file
 
 bool doesFileExist(std::string const& file_path)
 {
-    return static_cast<bool>(std::ifstream(file_path.c_str(), std::ios::in));
+    return std::filesystem::exists(std::filesystem::path{ file_path });
 }
 
 unsigned long long getFileSize(std::string const& file_path)

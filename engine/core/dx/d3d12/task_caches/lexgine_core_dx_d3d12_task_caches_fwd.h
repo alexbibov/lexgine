@@ -7,7 +7,7 @@ class HLSLCompilationTaskCache;
 class PSOCompilationTaskCache;
 class RootSignatureCompilationTaskCache;
 class CombinedCacheKey;
-
+class DataCache;
 
 }
 

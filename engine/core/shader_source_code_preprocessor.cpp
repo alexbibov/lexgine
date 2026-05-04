@@ -18,13 +18,13 @@ public:
 
     }
 
-    std::string readSourceFile(std::string const& source_file)
+    std::string readSourceFile(std::filesystem::path const& source_file)
     {
-        std::ifstream ifile{ source_file };
+        std::ifstream ifile{ source_file.string()};
         if (!ifile)
         {
             LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent,
-                "Unable to open shader source file \"" + source_file + "\"");
+                "Unable to open shader source file \"" + source_file.string() + "\"");
         }
 
         ifile.seekg(0, std::ios_base::end);
@@ -32,22 +32,19 @@ public:
         ifile.seekg(0, std::ios_base::beg);
         std::streampos file_start_pos = ifile.tellg();
 
-        std::size_t file_length = static_cast<size_t>(file_end_pos - file_start_pos);
-        char *read_buffer = new char[file_length + 1];
-        ifile.read(read_buffer, static_cast<std::streamsize>(file_length));
+        auto file_length = static_cast<size_t>(file_end_pos - file_start_pos);
+        std::vector<char> read_buffer(file_length + 1);
+        ifile.read(read_buffer.data(), static_cast<std::streamsize>(file_length));
         read_buffer[ifile.gcount()] = 0;
 
-        std::string rv{ read_buffer };
-        delete[] read_buffer;
-
+        std::string rv{ read_buffer.data()};
         ifile.close();
-
         return rv;
     }
 
     std::string resolveIncludeDirectivesInShaderSource(
         std::string const& shader_source_code,
-        const std::vector<std::string>& lookup_directories
+        const std::vector<std::filesystem::path>& lookup_directories
     )
     {
         std::regex const include_directive_syntax{ R"%(^\s*//!include\s*(".")\s*$)%" };
@@ -75,9 +72,9 @@ public:
                 }
                 else
                 {
-                    for (const std::string& d : lookup_directories)
+                    for (const std::filesystem::path& d : lookup_directories)
                     {
-                        if (misc::doesFileExist(d + include_path))
+                        if (std::filesystem::exists(d / include_path))
                         {
                             included_source = resolveIncludeDirectivesInShaderSource(readSourceFile(include_path), lookup_directories);
                             found = true;
@@ -119,9 +116,11 @@ private:
 };
 
 
-ShaderSourceCodePreprocessor::ShaderSourceCodePreprocessor(std::string const& source, 
+ShaderSourceCodePreprocessor::ShaderSourceCodePreprocessor(
+    std::string const& source,
     SourceType source_type,
-    const std::vector<std::string>& lookup_directories):
+    const std::vector<std::filesystem::path>& lookup_directories
+):
     m_impl{ new impl{*this} }
 {
     switch (source_type)

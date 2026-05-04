@@ -6,6 +6,7 @@
 
 
 #include "3rd_party/json/json.hpp"
+#include <format>
 #include <fstream>
 
 
@@ -21,6 +22,9 @@ std::string to_string(T const& value) { return std::to_string(value); }
 
 template<>
 std::string to_string<std::string>(std::string const& value) { return value; }
+
+template<>
+std::string to_string<std::filesystem::path>(std::filesystem::path const& value) { return value.string(); }
 
 template<>
 std::string to_string<MSAAMode>(MSAAMode const& mode)
@@ -45,7 +49,7 @@ std::string to_string<MSAAMode>(MSAAMode const& mode)
 }
 
 
-GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
+GlobalSettings::GlobalSettings(std::filesystem::path const& json_settings_source_path)
 {
     // initialize default values for the settings
     {
@@ -55,13 +59,20 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
         m_deferred_pso_compilation = true;
         m_deferred_root_signature_compilation = true;
 
-        m_cache_path = std::string{ PROJECT_CODE_NAME } + "__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
-            + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
-            + "__" + std::to_string(PROJECT_VERSION_REVISION) + "__cache/";
-
-        m_combined_cache_name = std::string{ PROJECT_CODE_NAME } + "__v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
-            + std::to_string(PROJECT_VERSION_MINOR) + "__rev." + std::to_string(PROJECT_VERSION_REVISION)
-            + "__" + std::to_string(PROJECT_VERSION_REVISION) + ".combined_cache";
+        m_cache_path = std::format(
+            "{}v{}.{}rev{}.cache",
+            PROJECT_CODE_NAME,
+            PROJECT_VERSION_MAJOR,
+            PROJECT_VERSION_MINOR,
+            PROJECT_VERSION_REVISION
+        );
+        m_combined_cache_name = std::format(
+            "{}v{}.{}rev{}.data",
+            PROJECT_CODE_NAME,
+            PROJECT_VERSION_MAJOR,
+            PROJECT_VERSION_MINOR,
+            PROJECT_VERSION_REVISION
+        );
 
         m_max_combined_cache_size = 1024ull * 1024 * 1024 * 4;    // defaults to 4Gbs
         m_max_combined_texture_cache_size = 1024ull * 1024 * 1024 * 16;    // defaults to 16Gbs
@@ -94,9 +105,14 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
 
     if (!source_json.isValid())
     {
-        misc::Log::retrieve()->out("WARNING: unable to parse global settings JSON file located at \""
-            + json_settings_source_path + "\". The system will fall back to the default settings",
-            misc::LogMessageType::exclamation);
+        misc::Log::retrieve()->out(
+            std::format(
+                "WARNING: unable to parse global settings JSON file "
+                "located at \"{}\". The system will fall back to the default settings",
+                json_settings_source_path.string()
+            ),
+            misc::LogMessageType::exclamation
+        );
         return;
     }
 
@@ -109,9 +125,17 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
 
         auto yield_warning_log_message = [&json_settings_source_path](std::string const& setting_name, auto setting_default_value)
         {
-            misc::Log::retrieve()->out("WARNING: unable to get value for \"" + setting_name + "\" from the settings file located at \""
-                + json_settings_source_path + "\". The system will fall back to the default value \""
-                + setting_name + " = " + to_string(setting_default_value) + "\"", misc::LogMessageType::exclamation);
+            misc::Log::retrieve()->out(
+                std::format(
+                    "WARNING: unable to get value for \"{}\" from the settings file located at \"{}\". "
+                    "The system will fall back to the default value \"{} = {}\"",
+                    setting_name,
+                    json_settings_source_path.string(),
+                    setting_name,
+                    to_string(setting_default_value)
+                ),
+                misc::LogMessageType::exclamation
+            );
         };
 
 
@@ -170,22 +194,35 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
                 {
                     if (e.is_string())
                     {
-                        m_shader_lookup_directories.push_back(e);
+                        m_shader_lookup_directories.push_back(std::filesystem::path{ e.get<std::string>()});
                     }
                     else
                     {
-                        misc::Log::retrieve()->out("WARNING: unable retrieve a value from JSON array \"shader_lookup_directories\" in the settings file located at \""
-                            + json_settings_source_path + "\"; \"shader_lookup_directories\" is expected to be an array of strings but some of its elements appear to have non-string format. "
-                            "Non-string elements will be ignored", misc::LogMessageType::exclamation);
+                        misc::Log::retrieve()->out(
+                            std::format(
+                                "WARNING: unable retrieve a value from JSON array \"shader_lookup_directories\" "
+                                "in the settings file located at \"{}\"; \"shader_lookup_directories\" is "
+                                "expected to be an array of strings but some of its elements appear to have non-string format. "
+                                "Non-string elements will be ignored",
+                                json_settings_source_path.string()
+                            ),
+                            misc::LogMessageType::exclamation
+                        );
                     }
                 }
             }
             else
             {
-                misc::Log::retrieve()->out("WARNING: unable to get value for \"shader_lookup_directories\" from the settings file located at \""
-                    + json_settings_source_path + "\"; \"shader_lookup_directories\" is expected to be an array of strings but turned out to have different format."
-                    " The system will search for shaders in the current working directory",
-                    misc::LogMessageType::exclamation);
+                misc::Log::retrieve()->out(
+                    std::format(
+                        "WARNING: unable to get value for \"shader_lookup_directories\" "
+                        "from the settings file located at \"{}\"; \"shader_lookup_directories\" is "
+                        "expected to be an array of strings but turned out to have different format. "
+                        "The system will search for shaders in the current working directory",
+                        json_settings_source_path.string()
+                    ),
+                    misc::LogMessageType::exclamation
+                );
             }
         }
 
@@ -420,8 +457,13 @@ GlobalSettings::GlobalSettings(std::string const& json_settings_source_path)
     }
     catch (...)
     {
-        misc::Log::retrieve()->out("WARNING: JSON file located at \"" + json_settings_source_path + "\" has invalid format. The system will fall back to default settings",
-            misc::LogMessageType::exclamation);
+        misc::Log::retrieve()->out(
+            std::format(
+                "WARNING: JSON file located at \"{}\" has invalid format. The system will fall back to default settings",
+                json_settings_source_path.string()
+            ),
+            misc::LogMessageType::exclamation
+        );
     }
 
 
@@ -462,8 +504,8 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
         { "deferred_shader_compilation", m_deferred_shader_compilation},
         { "deferred_pso_compilation", m_deferred_pso_compilation },
         { "deferred_root_signature_compilation", m_deferred_root_signature_compilation },
-        { "cache_path", m_cache_path },
-        { "combined_cache_name", m_combined_cache_name },
+        { "cache_path", m_cache_path.string()},
+        { "combined_cache_name", m_combined_cache_name.string()},
         { "maximal_combined_cache_size", m_max_combined_cache_size },
         { "upload_heap_capacity", m_upload_heap_capacity },
         { "streamed_constant_data_partitioning", m_streamed_constant_data_partitioning },
@@ -480,7 +522,14 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
     };
 
     if (m_shader_lookup_directories.size())
-        j["shader_lookup_directories"] = m_shader_lookup_directories;
+    {
+        std::transform(
+            m_shader_lookup_directories.begin(),
+            m_shader_lookup_directories.end(),
+            std::back_inserter(j["shader_lookup_directories"]),
+            [](std::filesystem::path const& p) {return p.string(); }
+        );
+    }
 
     ofile << j;
 
@@ -507,17 +556,17 @@ bool GlobalSettings::isDeferredRootSignatureCompilationOn() const
     return m_deferred_root_signature_compilation;
 }
 
-std::vector<std::string> const& GlobalSettings::getShaderLookupDirectories() const
+std::vector<std::filesystem::path> const& GlobalSettings::getShaderLookupDirectories() const
 {
     return m_shader_lookup_directories;
 }
 
-std::string GlobalSettings::getCacheDirectory() const
+std::filesystem::path const& GlobalSettings::getCacheDirectory() const
 {
     return m_cache_path;
 }
 
-std::string GlobalSettings::getCombinedCacheName() const
+std::filesystem::path const& GlobalSettings::getCacheName() const
 {
     return m_combined_cache_name;
 }
@@ -635,7 +684,7 @@ void GlobalSettings::setIsDeferredRootSignatureCompilationOn(bool is_enabled)
     m_deferred_root_signature_compilation = is_enabled;
 }
 
-void GlobalSettings::addShaderLookupDirectory(std::string const& path)
+void GlobalSettings::addShaderLookupDirectory(std::filesystem::path const& path)
 {
     m_shader_lookup_directories.push_back(path);
 }
@@ -645,7 +694,7 @@ void GlobalSettings::clearShaderLookupDirectories()
     m_shader_lookup_directories.clear();
 }
 
-void GlobalSettings::setCacheDirectory(std::string const& path)
+void GlobalSettings::setCacheDirectory(std::filesystem::path const& path)
 {
     m_cache_path = path;
 }
