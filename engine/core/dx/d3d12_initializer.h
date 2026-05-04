@@ -2,6 +2,7 @@
 #define LEXGINE_CORE_DX_D3D12INITIALIZER
 
 #include <memory>
+#include <filesystem>
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/engine_api.h"
@@ -16,7 +17,6 @@
 
 #include "engine/core/dx/d3d12/interface.h"
 #include "engine/core/dx/dxgi/interface.h"
-#include "engine/core/dx/d3d12/debug_interface.h"
 #include "engine/core/dx/dxgi/swap_chain.h"
 
 #include "engine/preprocessing/preprocessor_tokens.h"
@@ -32,12 +32,12 @@ struct D3D12EngineSettings
     bool enable_profiling;
     MSAAMode msaa_mode;
     lexgine::core::dx::dxgi::DxgiGpuPreference adapter_enumeration_preference;
-    std::string global_lookup_prefix;
-    std::string settings_lookup_path;
-    std::string global_settings_json_file;
-    std::string shaders_lookup_path;
-    std::string logging_output_path;
-    std::string log_name;
+    std::filesystem::path global_lookup_prefix;
+    std::filesystem::path settings_lookup_path;
+    std::filesystem::path global_settings_json_file;
+    std::filesystem::path shaders_lookup_path;
+    std::filesystem::path logging_output_path;
+    std::filesystem::path log_name;
     misc::LogMessageType log_level;
 
     D3D12EngineSettings();
@@ -82,9 +82,14 @@ public:
         dx::d3d12::SwapChainDepthBufferFormat depth_buffer_format, dx::d3d12::RenderingTasks& source_rendering_tasks) const;
 
 private:
+    void buildGlobals();
+
+private:
+    const EngineApi m_engine_api;
 	std::unique_ptr<GlobalSettings> m_global_settings;
     std::unique_ptr<core::Globals> m_globals;
     std::unique_ptr<dx::d3d12::DxResourceFactory> m_resource_factory;
+    std::unique_ptr<dx::d3d12::task_caches::DataCache> m_data_cache;
     std::unique_ptr<dx::d3d12::task_caches::HLSLCompilationTaskCache> m_shader_cache;
     std::unique_ptr<dx::d3d12::task_caches::PSOCompilationTaskCache> m_pso_cache;
     std::unique_ptr<dx::d3d12::task_caches::RootSignatureCompilationTaskCache> m_rs_cache;

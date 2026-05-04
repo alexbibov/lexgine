@@ -85,7 +85,7 @@ private:
 
     task_caches::CombinedCacheKey const& m_key;
     misc::DateTime const m_time_stamp;
-    GlobalSettings const& m_global_settings;
+    Globals& m_globals;
     dxcompilation::DXCompilerProxy& m_dxc_proxy;
 
     std::string m_hlsl_source;
