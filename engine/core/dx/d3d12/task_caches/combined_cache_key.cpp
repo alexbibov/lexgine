@@ -7,7 +7,7 @@
 
 using namespace lexgine::core::dx::d3d12::task_caches;
 
-CombinedCacheKey::CombinedCacheKey(RootSignatureCompilationTaskCache::Key const& key):
+CombinedCacheKey::CombinedCacheKey(RootSignatureBlobCache::Key const& key):
     m_key{ key },
     m_entry_type{ cache_entry_type::root_signature }
 {
@@ -26,7 +26,7 @@ CombinedCacheKey::CombinedCacheKey(HLSLCompilationTaskCache::Key const& key) :
 }
 
 CombinedCacheKey::CombinedCacheKey():
-    CombinedCacheKey{ RootSignatureCompilationTaskCache::Key{} }
+    CombinedCacheKey{ RootSignatureBlobCache::Key{} }
 {
 }
 
@@ -112,7 +112,7 @@ CombinedCacheKey& CombinedCacheKey::operator=(CombinedCacheKey const& other)
             break;
 
         case CombinedCacheKey::cache_entry_type::root_signature:
-            new(&m_key.rs) RootSignatureCompilationTaskCache::Key{ other.m_key.rs };
+            new(&m_key.rs) RootSignatureBlobCache::Key{ other.m_key.rs };
             break;
         }
 
@@ -172,7 +172,7 @@ CombinedCacheKey& CombinedCacheKey::operator=(CombinedCacheKey&& other)
             break;
 
         case CombinedCacheKey::cache_entry_type::root_signature:
-            new(&m_key.rs) RootSignatureCompilationTaskCache::Key{ std::move(other.m_key.rs) };
+            new(&m_key.rs) RootSignatureBlobCache::Key{ std::move(other.m_key.rs) };
             break;
         }
 
@@ -280,7 +280,7 @@ bool CombinedCacheKey::operator==(CombinedCacheKey const& other) const
     return false;
 }
 
-CombinedCacheKey::operator RootSignatureCompilationTaskCache::Key const&() const
+CombinedCacheKey::operator RootSignatureBlobCache::Key const&() const
 {
     assert(m_entry_type == cache_entry_type::root_signature);
     return m_key.rs;
@@ -299,9 +299,9 @@ CombinedCacheKey::operator HLSLCompilationTaskCache::Key const&() const
 }
 
 
-CombinedCacheKey::maintained_key::maintained_key(RootSignatureCompilationTaskCache::Key const& key)
+CombinedCacheKey::maintained_key::maintained_key(RootSignatureBlobCache::Key const& key)
 {
-    new(&rs) RootSignatureCompilationTaskCache::Key{ key };
+    new(&rs) RootSignatureBlobCache::Key{ key };
 }
 
 CombinedCacheKey::maintained_key::maintained_key(PSOCompilationTaskCache::Key const& key)
@@ -327,7 +327,7 @@ CombinedCacheKey::maintained_key::maintained_key(cache_entry_type type, maintain
         break;
 
     case CombinedCacheKey::cache_entry_type::root_signature:
-        new(&rs) RootSignatureCompilationTaskCache::Key{ other.rs };
+        new(&rs) RootSignatureBlobCache::Key{ other.rs };
         break;
     }
 }
@@ -345,7 +345,7 @@ CombinedCacheKey::maintained_key::maintained_key(cache_entry_type type, maintain
         break;
 
     case CombinedCacheKey::cache_entry_type::root_signature:
-        new(&rs) RootSignatureCompilationTaskCache::Key{ std::move(other.rs) };
+        new(&rs) RootSignatureBlobCache::Key{ std::move(other.rs) };
         break;
     }
 }

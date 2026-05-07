@@ -13,7 +13,7 @@
 #include "engine/core/dx/dxcompilation/common.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
-#include "engine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
+#include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 
 #include "engine/core/concurrency/task_sink.h"
 
@@ -844,16 +844,16 @@ public:
             shader_type, shader_entry_point_name);
     }
 
-    tasks::RootSignatureCompilationTask* retrieveRootSignatureCompilationTask(pugi::xml_node& node)
+    tasks::RootSignatureBuilder* retrieveRootSignatureBuilder(pugi::xml_node& node)
     {
         std::string root_signature_name = node.attribute("root_signature_name").as_string("");
         if (root_signature_name.length())
         {
-            auto& rs_cache = m_parent.m_root_signature_compilation_task_cache.storage();
-            tasks::RootSignatureCompilationTask& target_task_ref =
+            auto& rs_cache = m_parent.m_root_signature_blob_cache.storage();
+            tasks::RootSignatureBuilder& target_builder_ref =
                 *std::find_if(rs_cache.begin(), rs_cache.end(),
                     [&root_signature_name](auto const& e) {return root_signature_name + "__ROOTSIGNATURE" == e.getCacheName(); });
-            return &target_task_ref;
+            return &target_builder_ref;
         }
         else
         {
@@ -1244,7 +1244,7 @@ public:
             if (p_gs_compilation_task) new_graphics_pso_compilation_task->setGeometryShaderCompilationTask(p_gs_compilation_task);
             new_graphics_pso_compilation_task->setPixelShaderCompilationTask(p_ps_compilation_task);
 
-            new_graphics_pso_compilation_task->setRootSignatureCompilationTask(retrieveRootSignatureCompilationTask(node));
+            new_graphics_pso_compilation_task->setRootSignatureBuilder(retrieveRootSignatureBuilder(node));
         }
 
         return new_graphics_pso_compilation_task;
@@ -1270,7 +1270,7 @@ public:
                 pso_cache_name, 
                 uid);
             new_pso_compilation_task->setComputeShaderCompilationTask(p_cs_compilation_task);
-            new_pso_compilation_task->setRootSignatureCompilationTask(retrieveRootSignatureCompilationTask(node));
+            new_pso_compilation_task->setRootSignatureBuilder(retrieveRootSignatureBuilder(node));
         }
 
         return new_pso_compilation_task;
@@ -1347,7 +1347,7 @@ private:
 
 lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& globals, std::string const& xml_source, bool deferred_shader_compilation, uint32_t node_mask) :
     m_globals{ globals },
-    m_root_signature_compilation_task_cache{ *globals.get<task_caches::RootSignatureCompilationTaskCache>() },
+    m_root_signature_blob_cache{ *globals.get<task_caches::RootSignatureBlobCache>() },
     m_hlsl_compilation_task_cache{ *globals.get<task_caches::HLSLCompilationTaskCache>() },
     m_pso_compilation_task_cache{ *globals.get<task_caches::PSOCompilationTaskCache>() },
     m_source_xml{ xml_source },
@@ -1403,14 +1403,12 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
                 concurrency::TaskGraphRootNode* ds_task_ptr = ROOT_NODE_CAST(t->getDomainShaderCompilationTask());
                 concurrency::TaskGraphRootNode* gs_task_ptr = ROOT_NODE_CAST(t->getGeometryShaderCompilationTask());
                 concurrency::TaskGraphRootNode* ps_task_ptr = ROOT_NODE_CAST(t->getPixelShaderCompilationTask());
-                concurrency::TaskGraphRootNode* root_signature_task_ptr = ROOT_NODE_CAST(t->getRootSignatureCompilationTask());
 
                 if (vs_task_ptr) root_tasks.insert(vs_task_ptr);
                 if (hs_task_ptr) root_tasks.insert(hs_task_ptr);
                 if (ds_task_ptr) root_tasks.insert(ds_task_ptr);
                 if (gs_task_ptr) root_tasks.insert(gs_task_ptr);
                 if (ps_task_ptr) root_tasks.insert(ps_task_ptr);
-                if (root_signature_task_ptr) root_tasks.insert(root_signature_task_ptr);
 
                 if (!global_settings.isDeferredShaderCompilationOn())
                 {
@@ -1420,26 +1418,16 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
                     gs_task_ptr->execute(0);
                     ps_task_ptr->execute(0);
                 }
-
-                if (!global_settings.isDeferredRootSignatureCompilationOn())
-                {
-                    root_signature_task_ptr->execute(0);
-                }
             }
 
             for (tasks::ComputePSOCompilationTask* t : m_parsed_compute_pso_compilation_tasks)
             {
                 concurrency::TaskGraphRootNode* cs_task_ptr = ROOT_NODE_CAST(t->getComputeShaderCompilationTask());
-                concurrency::TaskGraphRootNode* root_signature_task_ptr = ROOT_NODE_CAST(t->getRootSignatureCompilationTask());
 
                 if (cs_task_ptr) root_tasks.insert(cs_task_ptr);
-                if (root_signature_task_ptr) root_tasks.insert(root_signature_task_ptr);
 
                 if (!global_settings.isDeferredShaderCompilationOn())
                     cs_task_ptr->execute(0);
-
-                if (!global_settings.isDeferredRootSignatureCompilationOn())
-                    root_signature_task_ptr->execute(0);
             }
         }
 
@@ -1495,7 +1483,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
             t->getPixelShaderCompilationTask()->execute(0);
 
             // compile to root signature
-            t->getRootSignatureCompilationTask()->execute(0);
+            t->getRootSignatureBuilder()->build(0);
 
             // compile the PSO itself
             t->execute(0);
@@ -1512,7 +1500,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
         for (auto t : m_parsed_compute_pso_compilation_tasks)
         {
             t->getComputeShaderCompilationTask()->execute(0);
-            t->getRootSignatureCompilationTask()->execute(0);
+            t->getRootSignatureBuilder()->build(0);
             t->execute(0);
 
             if (t->getErrorState())

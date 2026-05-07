@@ -1,6 +1,6 @@
 #include "pso_compilation_task.h"
 #include "hlsl_compilation_task.h"
-#include "root_signature_compilation_task.h"
+#include "root_signature_builder.h"
 #include "engine/core/exception.h"
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
@@ -59,7 +59,7 @@ GraphicsPSOCompilationTask::GraphicsPSOCompilationTask(
     , m_globals{ globals }
     , m_descriptor{ descriptor }
     , m_associated_shader_compilation_tasks{ 0 }
-    , m_associated_root_signature_compilation_task{ nullptr }
+    , m_associated_root_signature_builder{ nullptr }
     , m_was_successful{ false }
     , m_resulting_pipeline_state{ nullptr }
     , m_timestamp{ timestamp }
@@ -137,15 +137,14 @@ HLSLCompilationTask* GraphicsPSOCompilationTask::getPixelShaderCompilationTask()
     return m_associated_shader_compilation_tasks[4];
 }
 
-void GraphicsPSOCompilationTask::setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task)
+void GraphicsPSOCompilationTask::setRootSignatureBuilder(RootSignatureBuilder* root_signature_builder)
 {
-    this->addDependency(*root_signature_compilation_task);
-    m_associated_root_signature_compilation_task = root_signature_compilation_task;
+    m_associated_root_signature_builder = root_signature_builder;
 }
 
-RootSignatureCompilationTask* GraphicsPSOCompilationTask::getRootSignatureCompilationTask() const
+RootSignatureBuilder* GraphicsPSOCompilationTask::getRootSignatureBuilder() const
 {
-    return m_associated_root_signature_compilation_task;
+    return m_associated_root_signature_builder;
 }
 
 std::string GraphicsPSOCompilationTask::getCacheName() const
@@ -159,6 +158,9 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
     try
     {
+        if (m_associated_root_signature_builder && !m_root_signature)
+            m_associated_root_signature_builder->build(worker_id);
+
         auto precached_pso_blob = loadPrecachedPSOBlob(m_globals, m_key, m_timestamp);
 
         if (!m_descriptor.vertex_shader)
@@ -182,8 +184,8 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
         m_resulting_pipeline_state.reset(new PipelineState{
             m_globals,
-            m_root_signature ? m_root_signature : m_associated_root_signature_compilation_task->getTaskData(),
-            m_root_signature ? getCacheName() : m_associated_root_signature_compilation_task->getCacheName(),
+            m_root_signature ? m_root_signature : m_associated_root_signature_builder->getTaskData(),
+            m_root_signature ? getCacheName() : m_associated_root_signature_builder->getCacheName(),
             m_descriptor, precached_pso_blob });
 
         if (!precached_pso_blob)
@@ -224,7 +226,7 @@ ComputePSOCompilationTask::ComputePSOCompilationTask(
     , m_globals{ globals }
     , m_descriptor{ descriptor }
     , m_associated_compute_shader_compilation_task{ nullptr }
-    , m_associated_root_signature_compilation_task{ nullptr }
+    , m_associated_root_signature_builder{ nullptr }
     , m_was_successful{ false }
     , m_resulting_pipeline_state{ nullptr }
     , m_timestamp{ timestamp }
@@ -258,15 +260,14 @@ HLSLCompilationTask* ComputePSOCompilationTask::getComputeShaderCompilationTask(
     return m_associated_compute_shader_compilation_task;
 }
 
-void ComputePSOCompilationTask::setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task)
+void ComputePSOCompilationTask::setRootSignatureBuilder(RootSignatureBuilder* root_signature_builder)
 {
-    this->addDependency(*root_signature_compilation_task);
-    m_associated_root_signature_compilation_task = root_signature_compilation_task;
+    m_associated_root_signature_builder = root_signature_builder;
 }
 
-RootSignatureCompilationTask* ComputePSOCompilationTask::getRootSignatureCompilationTask() const
+RootSignatureBuilder* ComputePSOCompilationTask::getRootSignatureBuilder() const
 {
-    return m_associated_root_signature_compilation_task;
+    return m_associated_root_signature_builder;
 }
 
 std::string ComputePSOCompilationTask::getCacheName() const
@@ -280,6 +281,9 @@ bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
     try
     {
+        if (m_associated_root_signature_builder && !m_root_signature)
+            m_associated_root_signature_builder->build(worker_id);
+
         auto precached_pso_blob = loadPrecachedPSOBlob(m_globals, m_key, m_timestamp);
 
         if (!m_descriptor.compute_shader)
@@ -289,8 +293,8 @@ bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
         m_resulting_pipeline_state.reset(new PipelineState{
             m_globals,
-            m_root_signature ? m_root_signature : m_associated_root_signature_compilation_task->getTaskData(),
-            m_root_signature ? getCacheName() : m_associated_root_signature_compilation_task->getCacheName(),
+            m_root_signature ? m_root_signature : m_associated_root_signature_builder->getTaskData(),
+            m_root_signature ? getCacheName() : m_associated_root_signature_builder->getCacheName(),
             m_descriptor, precached_pso_blob });
 
         if (!precached_pso_blob)

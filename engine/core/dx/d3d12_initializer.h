@@ -92,7 +92,7 @@ private:
     std::unique_ptr<dx::d3d12::task_caches::DataCache> m_data_cache;
     std::unique_ptr<dx::d3d12::task_caches::HLSLCompilationTaskCache> m_shader_cache;
     std::unique_ptr<dx::d3d12::task_caches::PSOCompilationTaskCache> m_pso_cache;
-    std::unique_ptr<dx::d3d12::task_caches::RootSignatureCompilationTaskCache> m_rs_cache;
+    std::unique_ptr<dx::d3d12::task_caches::RootSignatureBlobCache> m_rs_cache;
     std::unique_ptr<conversion::TextureConverter> m_texture_converter;
 };
 

@@ -49,7 +49,7 @@ private:
     float m_box_rotation_angle;
     math::Matrix4f m_projection_transform;
 
-    RootSignatureCompilationTask* m_rs = nullptr;
+    RootSignatureBuilder* m_rs = nullptr;
     HLSLCompilationTask* m_vs = nullptr;
     HLSLCompilationTask* m_ps = nullptr;
     GraphicsPSOCompilationTask* m_pso = nullptr;

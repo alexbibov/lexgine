@@ -74,7 +74,7 @@ public:
     ShaderStage* getShaderStage(ShaderType shader_type) const { return m_shader_stages[static_cast<size_t>(shader_type)].get(); }
     ShaderStage* createShaderStage(d3d12::tasks::HLSLCompilationTask* p_shader_compilation_task);
 
-    d3d12::tasks::RootSignatureCompilationTask* buildBindingSignature();
+    d3d12::tasks::RootSignatureBuilder* buildBindingSignature();
 
     uint32_t occupiedRootSignatureSlotsCount() const { return m_occupied_rs_slots; }
 
@@ -135,7 +135,7 @@ private:
     uint64_t m_next_counter_offset { 0 };
     d3d12::Resource m_uav_atomic_counters;
 
-    d3d12::tasks::RootSignatureCompilationTask* m_root_signature_compilation_task_ptr{ nullptr };
+    d3d12::tasks::RootSignatureBuilder* m_root_signature_builder_ptr{ nullptr };
     bool m_shader_function_stale{ true };
 };
 
