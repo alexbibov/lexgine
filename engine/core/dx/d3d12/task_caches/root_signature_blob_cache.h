@@ -1,5 +1,5 @@
-#ifndef LEXGINE_CORE_DX_D3D12_TASK_CACHES_ROOT_SIGNATURE_COMPILATION_TASK_CACHE_H
-#define LEXGINE_CORE_DX_D3D12_TASK_CACHES_ROOT_SIGNATURE_COMPILATION_TASK_CACHE_H
+#ifndef LEXGINE_CORE_DX_D3D12_TASK_CACHES_ROOT_SIGNATURE_BLOB_CACHE_H
+#define LEXGINE_CORE_DX_D3D12_TASK_CACHES_ROOT_SIGNATURE_BLOB_CACHE_H
 
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
@@ -14,13 +14,13 @@
 
 namespace lexgine::core::dx::d3d12::task_caches {
 
-class RootSignatureCompilationTaskCache : public NamedEntity<class_names::D3D12_RootSignatureCompilationTaskCache>
+class RootSignatureBlobCache : public NamedEntity<class_names::D3D12_RootSignatureBlobCache>
 {
-    friend class tasks::RootSignatureCompilationTask;
+    friend class tasks::RootSignatureBuilder;
     friend class CombinedCacheKey;
 
 public:
-    using cache_storage = std::list<tasks::RootSignatureCompilationTask>;
+    using cache_storage = std::list<tasks::RootSignatureBuilder>;
 
     class VersionedRootSignature final
     {
@@ -67,17 +67,17 @@ private:
     using cache_mapping = std::map<CombinedCacheKey, cache_storage::iterator>;
 
 public:
-    tasks::RootSignatureCompilationTask* findOrCreateTask(
+    tasks::RootSignatureBuilder* findOrCreateTask(
         Globals& globals,
         VersionedRootSignature versioned_root_signature, RootSignatureFlags const& flags,
         std::string const& root_signature_cache_name, uint64_t uid);
-    
+
     cache_storage& storage();
 
     cache_storage const& storage() const;
 
 private:
-    cache_storage m_rs_compilation_tasks;
+    cache_storage m_rs_builders;
     cache_mapping m_task_keys;
 
 };

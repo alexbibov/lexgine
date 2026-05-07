@@ -9,7 +9,7 @@
 #include "engine/core/streamed_cache.h"
 #include "engine/core/misc/optional.h"
 
-#include "engine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
+#include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 #include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "combined_cache_key.h"

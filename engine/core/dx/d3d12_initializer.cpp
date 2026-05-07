@@ -17,7 +17,7 @@
 #include "engine/core/dx/d3d12/task_caches/data_cache.h"
 #include "engine/core/dx/d3d12/task_caches/hlsl_compilation_task_cache.h"
 #include "engine/core/dx/d3d12/task_caches/pso_compilation_task_cache.h"
-#include "engine/core/dx/d3d12/task_caches/root_signature_compilation_task_cache.h"
+#include "engine/core/dx/d3d12/task_caches/root_signature_blob_cache.h"
 
 #include "engine/conversion/texture_converter.h"
 
@@ -106,7 +106,7 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
         m_data_cache = std::make_unique<dx::d3d12::task_caches::DataCache>(*m_global_settings, false);
         m_shader_cache = std::make_unique<dx::d3d12::task_caches::HLSLCompilationTaskCache>();
         m_pso_cache = std::make_unique<dx::d3d12::task_caches::PSOCompilationTaskCache>();
-        m_rs_cache = std::make_unique<dx::d3d12::task_caches::RootSignatureCompilationTaskCache>();
+        m_rs_cache = std::make_unique<dx::d3d12::task_caches::RootSignatureBlobCache>();
     }
     buildGlobals();
     setCurrentDevice(0);

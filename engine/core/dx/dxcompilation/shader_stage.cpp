@@ -5,7 +5,7 @@
 #include "engine/core/data_blob.h"
 #include "engine/core/misc/log.h"
 #include "engine/core/misc/strict_weak_ordering.h"
-#include "engine/core/dx/d3d12/task_caches/root_signature_compilation_task_cache.h"
+#include "engine/core/dx/d3d12/task_caches/root_signature_blob_cache.h"
 #include "engine/core/dx/d3d12/descriptor_allocation_manager.h"
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 

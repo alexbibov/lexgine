@@ -6,7 +6,7 @@
 #include <engine/core/global_settings.h>
 #include <engine/core/dx/d3d12/device.h>
 #include <engine/core/dx/d3d12/basic_rendering_services.h>
-#include <engine/core/dx/d3d12/tasks/root_signature_compilation_task.h>
+#include <engine/core/dx/d3d12/tasks/root_signature_builder.h>
 #include <engine/core/dx/d3d12/tasks/pso_compilation_task.h>
 #include <engine/core/dx/d3d12/task_caches/pso_compilation_task_cache.h>
 #include <engine/core/dx/d3d12/unordered_srv_table_allocation_manager.h>
@@ -104,7 +104,7 @@ MaterialAssemblyTask::MaterialAssemblyTask(
         m_shader_function.createShaderStage(shaders.p_geometry_shader_compilation_task);
     }
 
-    m_root_signature_compilation_task = m_shader_function.buildBindingSignature();
+    m_root_signature_builder = m_shader_function.buildBindingSignature();
 }
 
 bool MaterialAssemblyTask::doTask(uint8_t worker_id, uint64_t user_data)
@@ -119,11 +119,11 @@ bool MaterialAssemblyTask::doTask(uint8_t worker_id, uint64_t user_data)
         m_scene_parameters_cb_reflection = m_shader_function.getShaderStage(lexgine::core::dx::dxcompilation::ShaderType::pixel)->buildConstantBufferReflection(m_scene_parameters_ub_name);
     }
 
-    if (!m_root_signature_compilation_task->execute(worker_id))
+    if (!m_root_signature_builder->build(worker_id))
     {
         return false;
     }
-    m_pso_compilation_task->setRootSignature(m_root_signature_compilation_task->getTaskData());
+    m_pso_compilation_task->setRootSignature(m_root_signature_builder->getTaskData());
 
     core::dx::d3d12::GraphicsPSODescriptor& pso_descriptor = m_pso_compilation_task->getDescriptor();
     pso_descriptor.vertex_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::vertex)->getTask()->getTaskData();
