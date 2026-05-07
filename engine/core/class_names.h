@@ -32,7 +32,7 @@ extern char const D3D12_PSOXMLParser[];
 extern char const ShaderSourceCodePreprocessor[];
 extern char const Globals[];
 extern char const StreamedCache[];
-extern char const D3D12_RootSignatureCompilationTaskCache[];
+extern char const D3D12_RootSignatureBlobCache[];
 extern char const D3D12_HLSLCompilationTaskCache[];
 extern char const D3D12_PSOCompilationTaskCache[];
 extern char const Dummy[];

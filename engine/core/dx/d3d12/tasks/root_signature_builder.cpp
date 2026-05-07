@@ -1,8 +1,7 @@
-#include "root_signature_compilation_task.h"
+#include "root_signature_builder.h"
 #include "engine/core/exception.h"
 #include "engine/core/globals.h"
-#include "engine/core/global_settings.h"
-#include "engine/core/profiling_services.h"
+#include "engine/core/misc/log.h"
 
 #include "engine/core/dx/d3d12/task_caches/data_cache.h"
 
@@ -13,43 +12,39 @@ using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks;
 using namespace lexgine::core::dx::d3d12::task_caches;
 
-RootSignatureCompilationTask::RootSignatureCompilationTask(
+RootSignatureBuilder::RootSignatureBuilder(
     task_caches::CombinedCacheKey const& key,
     Globals& globals, RootSignature&& root_signature, RootSignatureFlags const& flags, misc::DateTime const& timestamp)
-    : SchedulableTask{ static_cast<RootSignatureCompilationTaskCache::Key>(key).rs_cache_name, true }
-    , m_key{ key }
+    : m_key{ key }
     , m_globals{ globals }
     , m_rs{ std::move(root_signature) }
     , m_rs_flags{ flags }
     , m_was_successful{ false }
     , m_timestamp{ timestamp }
 {
-    addProfilingService(std::make_unique<CPUTaskProfilingService>(*globals.get<GlobalSettings>(), getStringName()));
 }
 
-D3DDataBlob const& RootSignatureCompilationTask::getTaskData() const
+D3DDataBlob const& RootSignatureBuilder::getTaskData() const
 {
     return m_compiled_rs_blob;
 }
 
-bool RootSignatureCompilationTask::wasSuccessful() const
+bool RootSignatureBuilder::wasSuccessful() const
 {
     return m_was_successful;
 }
 
-bool RootSignatureCompilationTask::execute(uint8_t worker_id)
-{
-    return doTask(worker_id, 0);
-}
-
-std::string RootSignatureCompilationTask::getCacheName() const
+std::string RootSignatureBuilder::getCacheName() const
 {
     return m_key.toString();
 }
 
-bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
+bool RootSignatureBuilder::build(uint8_t worker_id)
 {
     (void) worker_id;
+
+    if (m_was_successful)
+        return true;
 
     try
     {
@@ -98,19 +93,14 @@ bool RootSignatureCompilationTask::doTask(uint8_t worker_id, uint64_t)
     }
     catch (Exception const& e)
     {
-        LEXGINE_LOG_ERROR(this, std::string{ "LEXGINE has thrown exception: " } +e.what());
+        misc::Log::retrieve()->out(std::string{ "RootSignatureBuilder \"" } + getCacheName() + "\": LEXGINE has thrown exception: " + e.what(), misc::LogMessageType::error);
         m_was_successful = false;
     }
     catch (...)
     {
-        LEXGINE_LOG_ERROR(this, "unrecognized exception");
+        misc::Log::retrieve()->out(std::string{ "RootSignatureBuilder \"" } + getCacheName() + "\": unrecognized exception", misc::LogMessageType::error);
         m_was_successful = false;
     }
 
-    return true;    // under no circumstances this task can be rescheduled
-}
-
-concurrency::TaskType RootSignatureCompilationTask::type() const
-{
-    return concurrency::TaskType::cpu;
+    return m_was_successful;
 }

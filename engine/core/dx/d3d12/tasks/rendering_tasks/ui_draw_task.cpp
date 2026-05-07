@@ -10,7 +10,7 @@
 #include "engine/core/dx/d3d12/resource_barrier_pack.h"
 #include "engine/core/dx/d3d12/basic_rendering_services.h"
 #include "engine/core/dx/d3d12/descriptor_table_builders.h"
-#include "engine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
+#include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 #include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "engine/core/dx/dxcompilation/shader_stage.h"
@@ -351,7 +351,7 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
                 + "__" + std::to_string(rendering_configuration.depth_buffer_format), 0);
             m_pso->setVertexShaderCompilationTask(m_vs);
             m_pso->setPixelShaderCompilationTask(m_ps);
-            m_pso->setRootSignatureCompilationTask(m_shader_function.buildBindingSignature());
+            m_pso->setRootSignatureBuilder(m_shader_function.buildBindingSignature());
         }
         else
         {
@@ -588,7 +588,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
         p_vs_stage->build();
         p_ps_stage->build();
         m_rs = m_shader_function.buildBindingSignature();
-        m_rs->execute(0);
+        m_rs->build(0);
 
         m_constant_buffer_reflection = p_vs_stage->buildConstantBufferReflection(std::string{ "constants" });
         m_constant_data_mapper.addDataBinding("ProjectionMatrix", m_projection_matrix);

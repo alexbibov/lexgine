@@ -41,8 +41,8 @@ public:
     void setPixelShaderCompilationTask(HLSLCompilationTask* ps_compilation_task);
     HLSLCompilationTask* getPixelShaderCompilationTask() const;
 
-    void setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task);
-    RootSignatureCompilationTask* getRootSignatureCompilationTask() const;
+    void setRootSignatureBuilder(RootSignatureBuilder* root_signature_builder);
+    RootSignatureBuilder* getRootSignatureBuilder() const;
 
     void setRootSignature(D3DDataBlob const& compiled_root_signature) { m_root_signature = compiled_root_signature; }
     D3DDataBlob getRootSignature() const { return m_root_signature; }
@@ -71,7 +71,7 @@ private:
     Globals& m_globals;
     GraphicsPSODescriptor m_descriptor;
     std::array<HLSLCompilationTask*, 5> m_associated_shader_compilation_tasks;
-    RootSignatureCompilationTask* m_associated_root_signature_compilation_task;
+    RootSignatureBuilder* m_associated_root_signature_builder;
     D3DDataBlob m_root_signature;
     bool m_was_successful;
     std::unique_ptr<PipelineState> m_resulting_pipeline_state;
@@ -94,8 +94,8 @@ public:
     void setComputeShaderCompilationTask(HLSLCompilationTask* cs_compilation_task);    //! sets compute shader compilation task associated with the PSO
     HLSLCompilationTask* getComputeShaderCompilationTask() const;
 
-    void setRootSignatureCompilationTask(RootSignatureCompilationTask* root_signature_compilation_task);    //! associates root signature compilation task with the PSO
-    RootSignatureCompilationTask* getRootSignatureCompilationTask() const;
+    void setRootSignatureBuilder(RootSignatureBuilder* root_signature_builder);    //! associates root signature builder with the PSO
+    RootSignatureBuilder* getRootSignatureBuilder() const;
 
 	void setRootSignature(D3DDataBlob const& compiled_root_signature) { m_root_signature = compiled_root_signature; }
 	D3DDataBlob getRootSignature() const { return m_root_signature; }
@@ -121,7 +121,7 @@ private:
     Globals& m_globals;
     ComputePSODescriptor m_descriptor;
     HLSLCompilationTask* m_associated_compute_shader_compilation_task;
-    RootSignatureCompilationTask* m_associated_root_signature_compilation_task;
+    RootSignatureBuilder* m_associated_root_signature_builder;
     D3DDataBlob m_root_signature;
     bool m_was_successful;
     std::unique_ptr<PipelineState> m_resulting_pipeline_state;

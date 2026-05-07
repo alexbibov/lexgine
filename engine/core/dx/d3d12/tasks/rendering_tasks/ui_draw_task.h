@@ -155,7 +155,7 @@ private:
 private:
     static std::string const c_interface_update_section;
     static size_t const c_interface_update_section_size = 1024 * 1024 * 8;
-    tasks::RootSignatureCompilationTask* m_rs;
+    tasks::RootSignatureBuilder* m_rs;
 };
 
 }

@@ -116,7 +116,7 @@ private:
     core::dx::d3d12::ConstantBufferReflection m_object_parameters_cb_reflection;
     core::dx::d3d12::ConstantBufferReflection m_scene_parameters_cb_reflection;
     core::dx::d3d12::GraphicsPSODescriptor m_pso_descriptor;
-    core::dx::d3d12::tasks::RootSignatureCompilationTask* m_root_signature_compilation_task = nullptr;
+    core::dx::d3d12::tasks::RootSignatureBuilder* m_root_signature_builder = nullptr;
     core::dx::d3d12::tasks::GraphicsPSOCompilationTask* m_pso_compilation_task = nullptr;
 };
 

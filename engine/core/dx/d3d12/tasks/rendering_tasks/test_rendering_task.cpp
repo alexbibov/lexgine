@@ -8,8 +8,8 @@
 #include "engine/core/math/utility.h"
 #include "engine/core/dx/d3d12/device.h"
 #include "engine/core/dx/d3d12/basic_rendering_services.h"
-#include "engine/core/dx/d3d12/task_caches/root_signature_compilation_task_cache.h"
-#include "engine/core/dx/d3d12/tasks/root_signature_compilation_task.h"
+#include "engine/core/dx/d3d12/task_caches/root_signature_blob_cache.h"
+#include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
@@ -201,7 +201,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         p_vs_stage->build();
         p_ps_stage->build();
         m_rs = m_shader_function.buildBindingSignature();
-        m_rs->execute(0);
+        m_rs->build(0);
 
         DescriptorHeap& resource_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav, 0);
         DescriptorHeap& sampler_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler, 0);
@@ -241,7 +241,7 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
             + "_" + std::to_string(rendering_configuration.depth_buffer_format), 0);
         m_pso->setVertexShaderCompilationTask(m_vs);
         m_pso->setPixelShaderCompilationTask(m_ps);
-        m_pso->setRootSignatureCompilationTask(m_rs);
+        m_pso->setRootSignatureBuilder(m_rs);
 
         m_pso->execute(0);
     }
