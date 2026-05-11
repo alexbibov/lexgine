@@ -4,14 +4,14 @@
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/root_signature.h"
-#include "engine/core/dx/d3d12/task_caches/combined_cache_key.h"
+#include "engine/core/gpu_data_blob_cache_key.h"
 
 namespace lexgine::core::dx::d3d12::tasks {
 
 class RootSignatureBuilder
 {
 public:
-    RootSignatureBuilder(task_caches::CombinedCacheKey const& key,
+    RootSignatureBuilder(GpuDataBlobCacheKey const& key,
         Globals& globals, RootSignature&& root_signature, RootSignatureFlags const& flags,
         misc::DateTime const& timestamp);
 
@@ -29,7 +29,7 @@ public:
     std::string getCacheName() const;
 
 private:
-    task_caches::CombinedCacheKey const& m_key;
+    GpuDataBlobCacheKey const& m_key;
     Globals& m_globals;
     RootSignature m_rs;
     RootSignatureFlags m_rs_flags;

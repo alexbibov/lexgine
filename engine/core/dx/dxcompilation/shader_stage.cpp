@@ -2,7 +2,7 @@
 
 #include "engine/core/exception.h"
 #include "engine/core/globals.h"
-#include "engine/core/data_blob.h"
+#include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/misc/log.h"
 #include "engine/core/misc/strict_weak_ordering.h"
 #include "engine/core/dx/d3d12/task_caches/root_signature_blob_cache.h"
@@ -343,7 +343,7 @@ BindingResult ShaderStage::bindSampler(misc::HashedString const& name, FilterPac
         });
 }
 
-lexgine::core::D3DDataBlob ShaderStage::getShaderBytecode() const
+lexgine::core::dx::d3d12::D3DDataBlob ShaderStage::getShaderBytecode() const
 {
     return m_shader_compilation_task_ptr->getTaskData();
 }

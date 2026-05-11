@@ -17,7 +17,7 @@ namespace lexgine::core::dx::d3d12::task_caches {
 class RootSignatureBlobCache : public NamedEntity<class_names::D3D12_RootSignatureBlobCache>
 {
     friend class tasks::RootSignatureBuilder;
-    friend class CombinedCacheKey;
+    friend class core::GpuDataBlobCacheKey;
 
 public:
     using cache_storage = std::list<tasks::RootSignatureBuilder>;
@@ -64,7 +64,7 @@ private:
         bool operator==(Key const& other) const;
     };
 
-    using cache_mapping = std::map<CombinedCacheKey, cache_storage::iterator>;
+    using cache_mapping = std::map<GpuDataBlobCacheKey, cache_storage::iterator>;
 
 public:
     tasks::RootSignatureBuilder* findOrCreateTask(

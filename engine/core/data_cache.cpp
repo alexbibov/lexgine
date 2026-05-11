@@ -10,7 +10,6 @@
 
 using namespace lexgine::core;
 using namespace lexgine::core::misc;
-using namespace lexgine::core::dx::d3d12::task_caches;
 
 
 DataCache::DataCache(GlobalSettings const& global_settings, bool is_read_only, bool allow_overwrites/* = true*/) :

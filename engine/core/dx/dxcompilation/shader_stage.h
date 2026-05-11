@@ -86,7 +86,7 @@ public:
     
     BindingResult bindSampler(misc::HashedString const& name, FilterPack const& filter, math::Vector4f const& border_color, uint32_t register_offset = 0);
 
-    lexgine::core::D3DDataBlob getShaderBytecode() const;
+    lexgine::core::dx::d3d12::D3DDataBlob getShaderBytecode() const;
     d3d12::ConstantBufferReflection buildConstantBufferReflection(misc::HashedString const& constant_buffer_name) const;
     ShaderType getShaderType() const;
     ShaderModel getShaderModel() const;

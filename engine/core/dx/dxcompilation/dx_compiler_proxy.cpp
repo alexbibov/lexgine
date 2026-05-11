@@ -229,7 +229,7 @@ bool DXCompilerProxy::compile(uint8_t worker_id,
     return true;
 }
 
-misc::Optional<D3DDataBlob> DXCompilerProxy::result(uint8_t worker_id) const
+misc::Optional<d3d12::D3DDataBlob> DXCompilerProxy::result(uint8_t worker_id) const
 {
     if (m_dxc_result[worker_id] && m_dxc_result[worker_id]->HasOutput(DXC_OUT_OBJECT))
     {
@@ -237,12 +237,12 @@ misc::Optional<D3DDataBlob> DXCompilerProxy::result(uint8_t worker_id) const
         Microsoft::WRL::ComPtr<IDxcBlobUtf16> dxc_result_name{ nullptr };
         HRESULT hres = m_dxc_result[worker_id]->GetOutput(DXC_OUT_OBJECT,
             __uuidof(ID3DBlob), reinterpret_cast<void**>(blob.GetAddressOf()), dxc_result_name.GetAddressOf());
-        if (hres != S_OK && hres != S_FALSE) return misc::Optional<D3DDataBlob>{};
+        if (hres != S_OK && hres != S_FALSE) return misc::Optional<d3d12::D3DDataBlob>{};
 
-        return misc::Optional<D3DDataBlob>{blob};
+        return misc::Optional<d3d12::D3DDataBlob>{blob};
     }
 
-    return misc::Optional<D3DDataBlob>{};
+    return misc::Optional<d3d12::D3DDataBlob>{};
 }
 
 std::string DXCompilerProxy::errors(uint8_t worker_id) const

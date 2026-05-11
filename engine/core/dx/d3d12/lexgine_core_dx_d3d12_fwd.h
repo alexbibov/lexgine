@@ -16,6 +16,7 @@ class ConstantBufferReflection;
 class ConstantBufferDataWriter;
 class ConstantBufferDataMapper;
 class D3D12PSOXMLParser;
+class D3DDataBlob;
 class DebugInterface;
 class DescriptorHeap;
 class DescriptorAllocationManager;

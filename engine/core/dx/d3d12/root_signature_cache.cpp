@@ -1,6 +1,6 @@
 #include "root_signature_cache.h"
 #include "engine/core/exception.h"
-#include "engine/core/data_blob.h"
+#include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/dx/d3d12/device.h"
 
 using namespace lexgine::core::dx::d3d12;
@@ -8,7 +8,7 @@ using namespace lexgine::core::dx::d3d12;
 Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureCache::findOrCreate(
     Device const& device,
     std::string const& root_signature_friendly_name, uint32_t node_mask,
-    lexgine::core::D3DDataBlob const& serialized_root_signature)
+    D3DDataBlob const& serialized_root_signature)
 {
     std::lock_guard<std::mutex> sentry{ m_lock };
 

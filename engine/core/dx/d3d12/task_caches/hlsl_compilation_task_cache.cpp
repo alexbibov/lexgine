@@ -7,7 +7,7 @@
 #include "engine/core/misc/misc.h"
 #include "engine/core/misc/strict_weak_ordering.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
-#include "combined_cache_key.h"
+#include "engine/core/gpu_data_blob_cache_key.h"
 
 
 using namespace lexgine;
@@ -80,7 +80,7 @@ public:
 
     }
 
-    HLSLCompilationTask* insertHLSLCompilationTask(Globals& globals, CombinedCacheKey const& key,
+    HLSLCompilationTask* insertHLSLCompilationTask(Globals& globals, GpuDataBlobCacheKey const& key,
         misc::DateTime const& timestamp, std::string const& processed_hlsl_source_code,
         std::string const& source_name, dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type,
         std::string const& shader_entry_point, std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions, dxcompilation::HLSLCompilationOptimizationLevel optimization_level,
@@ -212,7 +212,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::findOrCreateTask(HLSLFileT
         static_cast<unsigned short>(shader_type),
         static_cast<unsigned short>(shader_model),
         hash_value };
-    CombinedCacheKey combined_key{ key };
+    GpuDataBlobCacheKey combined_key{ key };
 
     return m_impl->insertHLSLCompilationTask(hlsl_translation_unit.globals(), combined_key, hlsl_translation_unit.timestamp(),
         hlsl_translation_unit.source(), hlsl_translation_unit.name(), shader_model, shader_type, shader_entry_point,
@@ -234,7 +234,7 @@ tasks::HLSLCompilationTask* HLSLCompilationTaskCache::findOrCreateTask(HLSLSourc
         static_cast<unsigned short>(shader_type),
         static_cast<unsigned short>(shader_model),
         hash_value };
-    CombinedCacheKey combined_key{ key };
+    GpuDataBlobCacheKey combined_key{ key };
 
     return m_impl->insertHLSLCompilationTask(hlsl_translation_unit.globals(), combined_key, hlsl_translation_unit.timestamp(),
         hlsl_translation_unit.source(), hlsl_translation_unit.name(), shader_model, shader_type, shader_entry_point,

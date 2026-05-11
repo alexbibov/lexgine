@@ -19,7 +19,7 @@ class PSOCompilationTaskCache : public NamedEntity<class_names::D3D12_PSOCompila
 {
     friend class tasks::GraphicsPSOCompilationTask;
     friend class tasks::ComputePSOCompilationTask;
-    friend class CombinedCacheKey;
+    friend class core::GpuDataBlobCacheKey;
 
 public:
 
@@ -98,7 +98,7 @@ private:
         bool operator==(Key const& other) const;
     };
 
-    using cache_mapping = std::map<CombinedCacheKey, 
+    using cache_mapping = std::map<GpuDataBlobCacheKey,
         std::pair<graphics_pso_cache_storage::iterator, compute_pso_cache_storage::iterator>>;
 
 public:

@@ -2,14 +2,14 @@
 #define LEXGINE_CORE_DX_D3D12_TASKS_HLSL_COMPILATION_TASK_H
 
 #include "engine/core/lexgine_core_fwd.h"
-#include "engine/core/data_blob.h"
+#include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/streamed_cache.h"
 
 #include "engine/core/concurrency/schedulable_task.h"
 #include "engine/core/misc/datetime.h"
 
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
-#include "engine/core/dx/d3d12/task_caches/combined_cache_key.h"
+#include "engine/core/gpu_data_blob_cache_key.h"
 #include "engine/core/dx/dxcompilation/common.h"
 #include "engine/core/dx/dxcompilation/dx_compiler_proxy.h"
 
@@ -30,7 +30,7 @@ public:
      compiled shader blob. The exact type of PSO descriptor as well as its shader stage receiving the blob is determined based on
      provided value of parameter shader_type.
     */
-    HLSLCompilationTask(task_caches::CombinedCacheKey const& key, misc::DateTime const& time_stamp,
+    HLSLCompilationTask(GpuDataBlobCacheKey const& key, misc::DateTime const& time_stamp,
         core::Globals& globals, std::string const& hlsl_source, std::string const& source_name,
         dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
         std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions = std::list<dxcompilation::HLSLMacroDefinition>{},
@@ -83,7 +83,7 @@ private:
     bool doTask(uint8_t worker_id, uint64_t user_data) override;    //! performs actual compilation of the shader
     concurrency::TaskType type() const override;    //! returns type of this task (CPU)
 
-    task_caches::CombinedCacheKey const& m_key;
+    GpuDataBlobCacheKey const& m_key;
     misc::DateTime const m_time_stamp;
     Globals& m_globals;
     dxcompilation::DXCompilerProxy& m_dxc_proxy;
