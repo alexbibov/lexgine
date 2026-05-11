@@ -1,7 +1,5 @@
 #ifndef LEXGINE_CORE_DATA_BLOB
 
-#include <d3d12.h>
-#include <wrl.h>
 #include <memory>
 
 namespace lexgine {namespace core {
@@ -40,29 +38,6 @@ protected:
 private:
     void* m_p_data;    //!< pointer to the data contained in the blob
     size_t m_size;    //!< size of the blob
-};
-
-
-//! Implements Direct3D data blob. This interface is tailored for windows (i.e. not OS-agnostic)
-class D3DDataBlob : public DataBlob
-{
-public:
-    D3DDataBlob();
-    D3DDataBlob(nullptr_t);
-    D3DDataBlob(D3DDataBlob const&) = default;
-    D3DDataBlob(D3DDataBlob&&) = default;
-
-    D3DDataBlob(Microsoft::WRL::ComPtr<ID3DBlob> const& blob);
-    D3DDataBlob(size_t blob_size);
-
-    D3DDataBlob& operator=(D3DDataBlob const&) = default;
-    D3DDataBlob& operator=(D3DDataBlob&&) = default;
-    D3DDataBlob& operator=(nullptr_t);    //! releases the memory associated with the blob
-
-    Microsoft::WRL::ComPtr<ID3DBlob> native() const;    //! returns native pointer to Direct3D blob interface
-
-private:
-    Microsoft::WRL::ComPtr<ID3DBlob> m_blob;    //!< encapsulated Direct3D blob interface
 };
 
 

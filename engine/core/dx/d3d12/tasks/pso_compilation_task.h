@@ -3,11 +3,11 @@
 
 #include "engine/core/concurrency/schedulable_task.h"
 #include "engine/core/dx/d3d12/pipeline_state.h"
-#include "engine/core/data_blob.h"
+#include "engine/core/dx/d3d12/d3d_data_blob.h"
 
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
-#include "engine/core/dx/d3d12/task_caches/combined_cache_key.h"
+#include "engine/core/gpu_data_blob_cache_key.h"
 
 #include <list>
 
@@ -17,7 +17,7 @@ namespace lexgine::core::dx::d3d12::tasks {
 class GraphicsPSOCompilationTask final : public concurrency::SchedulableTask
 {
 public:
-    GraphicsPSOCompilationTask(task_caches::CombinedCacheKey const& key,
+    GraphicsPSOCompilationTask(GpuDataBlobCacheKey const& key,
         Globals& globals, GraphicsPSODescriptor const& descriptor,
         misc::DateTime const& timestamp);
 
@@ -67,7 +67,7 @@ private:
 private:
 
 private:
-    task_caches::CombinedCacheKey const& m_key;
+    GpuDataBlobCacheKey const& m_key;
     Globals& m_globals;
     GraphicsPSODescriptor m_descriptor;
     std::array<HLSLCompilationTask*, 5> m_associated_shader_compilation_tasks;
@@ -83,7 +83,7 @@ private:
 class ComputePSOCompilationTask final : public concurrency::SchedulableTask
 {
 public:
-    ComputePSOCompilationTask(task_caches::CombinedCacheKey const& key,
+    ComputePSOCompilationTask(GpuDataBlobCacheKey const& key,
         Globals& globals, ComputePSODescriptor const& descriptor, misc::DateTime const& timestamp);
 
     PipelineState const& getTaskData() const;    //! returns blob containing compiled PSO data
@@ -117,7 +117,7 @@ private:
     concurrency::TaskType type() const override;
 
 private:
-    task_caches::CombinedCacheKey const& m_key;
+    GpuDataBlobCacheKey const& m_key;
     Globals& m_globals;
     ComputePSODescriptor m_descriptor;
     HLSLCompilationTask* m_associated_compute_shader_compilation_task;

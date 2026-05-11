@@ -7,7 +7,7 @@
 #include <d3d12.h>
 #include <wrl.h>
 
-#include "engine/core/data_blob.h"
+#include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
 #include "engine/core/filter.h"

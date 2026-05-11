@@ -8,7 +8,7 @@
 #include <engine/core/dx/d3d12/tasks/pso_compilation_task.h>
 #include <engine/core/dx/d3d12/device.h>
 
-#include "combined_cache_key.h"
+#include "engine/core/gpu_data_blob_cache_key.h"
 
 
 using namespace lexgine::core;
@@ -78,7 +78,7 @@ tasks::GraphicsPSOCompilationTask* PSOCompilationTaskCache::findOrCreateTask(
     std::string adapter_tailored_pso_cache_name = pso_cache_name + "__" + std::to_string(adapter_luid.LowPart) + std::to_string(adapter_luid.HighPart);
 
     Key key{ adapter_tailored_pso_cache_name, uid, PSOType::graphics };
-    CombinedCacheKey combined_key{ key };
+    GpuDataBlobCacheKey combined_key{ key };
 
     auto q = m_psos_cache_keys.find(combined_key);
     if (q == m_psos_cache_keys.end())
@@ -118,7 +118,7 @@ tasks::ComputePSOCompilationTask* PSOCompilationTaskCache::findOrCreateTask(
     std::string adapter_tailored_pso_cache_name = pso_cache_name + "__" + std::to_string(adapter_luid.LowPart) + std::to_string(adapter_luid.HighPart);
 
     Key key{ adapter_tailored_pso_cache_name, uid, PSOType::compute };
-    CombinedCacheKey combined_key{ key };
+    GpuDataBlobCacheKey combined_key{ key };
 
     auto q = m_psos_cache_keys.find(combined_key);
     if (q == m_psos_cache_keys.end())

@@ -5,7 +5,7 @@
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/profiling_services.h"
-#include "engine/core/dx/d3d12/task_caches/data_cache.h"
+#include "engine/core/data_cache.h"
 
 #include <d3dcompiler.h>
 
@@ -18,7 +18,7 @@ using namespace lexgine::core::dx::d3d12::task_caches;
 
 namespace {
 
-D3DDataBlob loadPrecachedPSOBlob(Globals const& globals, task_caches::CombinedCacheKey const& key,
+D3DDataBlob loadPrecachedPSOBlob(Globals const& globals, GpuDataBlobCacheKey const& key,
     misc::DateTime const& timestamp)
 {
     D3DDataBlob rv{ nullptr };
@@ -51,7 +51,7 @@ D3DDataBlob loadPrecachedPSOBlob(Globals const& globals, task_caches::CombinedCa
 
 
 GraphicsPSOCompilationTask::GraphicsPSOCompilationTask(
-    task_caches::CombinedCacheKey const& key,
+    GpuDataBlobCacheKey const& key,
     Globals& globals,
     GraphicsPSODescriptor const& descriptor, misc::DateTime const& timestamp)
     : SchedulableTask{ static_cast<PSOCompilationTaskCache::Key>(key).pso_cache_name, true }
@@ -193,7 +193,7 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
             auto my_pso_cache = m_globals.get<DataCache>();
             if (my_pso_cache && *my_pso_cache)
             {
-                my_pso_cache->cache()->addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
+                my_pso_cache->cache()->addEntry(CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
             }
         }
     }
@@ -218,7 +218,7 @@ concurrency::TaskType GraphicsPSOCompilationTask::type() const
 
 
 ComputePSOCompilationTask::ComputePSOCompilationTask(
-    task_caches::CombinedCacheKey const& key,
+    GpuDataBlobCacheKey const& key,
     Globals& globals,
     ComputePSODescriptor const& descriptor, misc::DateTime const& timestamp)
     : SchedulableTask{ static_cast<PSOCompilationTaskCache::Key>(key).pso_cache_name, true }
@@ -302,7 +302,7 @@ bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
             auto my_pso_cache = m_globals.get<DataCache>();
             if (my_pso_cache && *my_pso_cache)
             {
-                my_pso_cache->cache()->addEntry(task_caches::CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
+                my_pso_cache->cache()->addEntry(CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
             }
         }
     }

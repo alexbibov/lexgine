@@ -3,7 +3,7 @@
 #include "engine/core/globals.h"
 #include "engine/core/misc/log.h"
 
-#include "engine/core/dx/d3d12/task_caches/data_cache.h"
+#include "engine/core/data_cache.h"
 
 #include <d3dcompiler.h>
 
@@ -13,7 +13,7 @@ using namespace lexgine::core::dx::d3d12::tasks;
 using namespace lexgine::core::dx::d3d12::task_caches;
 
 RootSignatureBuilder::RootSignatureBuilder(
-    task_caches::CombinedCacheKey const& key,
+    GpuDataBlobCacheKey const& key,
     Globals& globals, RootSignature&& root_signature, RootSignatureFlags const& flags, misc::DateTime const& timestamp)
     : m_key{ key }
     , m_globals{ globals }
@@ -50,7 +50,7 @@ bool RootSignatureBuilder::build(uint8_t worker_id)
     {
         D3DDataBlob rs_blob{ nullptr };
         SharedDataChunk cached_rs_blob{};
-        auto rs_cache = m_globals.get<task_caches::DataCache>();
+        auto rs_cache = m_globals.get<DataCache>();
 
         if (rs_cache && *rs_cache)
         {
@@ -79,7 +79,7 @@ bool RootSignatureBuilder::build(uint8_t worker_id)
             {
                 if (rs_cache && *rs_cache)
                 {
-                    rs_cache->cache()->addEntry(task_caches::CombinedCache::entry_type{ m_key, m_compiled_rs_blob });
+                    rs_cache->cache()->addEntry(CombinedCache::entry_type{ m_key, m_compiled_rs_blob });
                 }
             }
 

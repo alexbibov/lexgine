@@ -3,7 +3,7 @@
 #include "engine/core/misc/strict_weak_ordering.h"
 #include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 
-#include "combined_cache_key.h"
+#include "engine/core/gpu_data_blob_cache_key.h"
 
 #include "root_signature_blob_cache.h"
 
@@ -56,7 +56,7 @@ tasks::RootSignatureBuilder* RootSignatureBlobCache::findOrCreateTask(
     std::string const& root_signature_cache_name, uint64_t uid)
 {
     Key key{ root_signature_cache_name, uid };
-    CombinedCacheKey combined_key{ key };
+    GpuDataBlobCacheKey combined_key{ key };
 
     tasks::RootSignatureBuilder* new_rs_builder{ nullptr };
 

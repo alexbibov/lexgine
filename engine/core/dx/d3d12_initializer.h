@@ -89,7 +89,7 @@ private:
 	std::unique_ptr<GlobalSettings> m_global_settings;
     std::unique_ptr<core::Globals> m_globals;
     std::unique_ptr<dx::d3d12::DxResourceFactory> m_resource_factory;
-    std::unique_ptr<dx::d3d12::task_caches::DataCache> m_data_cache;
+    std::unique_ptr<DataCache> m_data_cache;
     std::unique_ptr<dx::d3d12::task_caches::HLSLCompilationTaskCache> m_shader_cache;
     std::unique_ptr<dx::d3d12::task_caches::PSOCompilationTaskCache> m_pso_cache;
     std::unique_ptr<dx::d3d12::task_caches::RootSignatureBlobCache> m_rs_cache;

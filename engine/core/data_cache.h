@@ -1,5 +1,5 @@
-#ifndef LEXGINE_CORE_DX_D3D12_TASK_CACHES_CACHE_UTILITIES_H
-#define LEXGINE_CORE_DX_D3D12_TASK_CACHES_CACHE_UTILITIES_H
+#ifndef LEXGINE_CORE_DATA_CACHE_H
+#define LEXGINE_CORE_DATA_CACHE_H
 
 #include <fstream>
 #include <memory>
@@ -12,13 +12,13 @@
 #include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 #include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
-#include "combined_cache_key.h"
+#include "engine/core/gpu_data_blob_cache_key.h"
 
 
-namespace lexgine::core::dx::d3d12::task_caches
+namespace lexgine::core
 {
 
-using CombinedCache = StreamedCacheConcurrencySentinel<CombinedCacheKey, global_constants::combined_cache_cluster_size>;
+using CombinedCache = StreamedCacheConcurrencySentinel<GpuDataBlobCacheKey, global_constants::combined_cache_cluster_size>;
 
 class DataCache
 {
