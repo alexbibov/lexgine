@@ -67,7 +67,7 @@ public:
 class HLSLCompilationTaskCache : public NamedEntity<class_names::D3D12_HLSLCompilationTaskCache>
 {
     friend class tasks::HLSLCompilationTask;
-    friend class CombinedCacheKey;
+    friend class core::GpuDataBlobCacheKey;
 
 public:
 
@@ -106,7 +106,7 @@ private:
         bool operator==(Key const& other) const;
     };
 
-    using cache_mapping = std::map<CombinedCacheKey, cache_storage::iterator>;
+    using cache_mapping = std::map<GpuDataBlobCacheKey, cache_storage::iterator>;
 
 public:
     HLSLCompilationTaskCache();

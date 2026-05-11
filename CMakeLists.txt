@@ -78,7 +78,7 @@ include(${cpm_download_location})
 CPMAddPackage(
     NAME spdlog
     GITHUB_REPOSITORY gabime/spdlog
-    VERSION 1.16.0
+    VERSION 1.17.0
 )
 CPMAddPackage(
     NAME glm
@@ -122,6 +122,13 @@ if (freetype_ADDED)
   set(FREETYPE_LIBRARIES freetype)
   message(STATUS "Found freetype")
 endif()
+
+CPMAddPackage(
+  NAME BLAKE-3
+  GITHUB_REPOSITORY BLAKE3-team/BLAKE3
+  GIT_TAG 1.8.5
+  SOURCE_SUBDIR c
+)
 
 include(FetchContent)
 FetchContent_Declare(

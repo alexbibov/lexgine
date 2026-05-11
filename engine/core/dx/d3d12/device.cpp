@@ -403,7 +403,7 @@ void Device::setStringName(std::string const& entity_string_name)
     m_copy_command_queue.setStringName(entity_string_name + "__copy_cmd_queue");
 }
 
-ComPtr<ID3D12RootSignature> Device::createRootSignature(lexgine::core::D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name, uint32_t node_mask)
+ComPtr<ID3D12RootSignature> Device::createRootSignature(D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name, uint32_t node_mask)
 {
     return m_rs_cache.findOrCreate(*this, root_signature_friendly_name, node_mask, serialized_root_signature);
 }

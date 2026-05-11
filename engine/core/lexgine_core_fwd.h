@@ -10,14 +10,15 @@ namespace lexgine::core {
 class AbstractVertexAttributeSpecification;
 class BlendDescriptor;
 class DataBlob;
+class DataCache;
 class DataChunk;
-class D3DDataBlob;
 class DepthStencilDescriptor;
 class Entity;
 class ErrorBehavioral;
 class Exception;
 class FilterPack;
 class GlobalSettings;
+class GpuDataBlobCacheKey;
 
 class Globals;
 class ProvidesGlobals
@@ -34,17 +35,24 @@ protected:
 class RasterizerDescriptor;
 class ShaderSourceCodePreprocessor;
 class Viewport;
+
 template<typename T>
 concept StreamedCacheCompatibleKey = requires(T v1, T v2)
 {
     { T::serialized_size } -> std::convertible_to<std::size_t>;
-    { v1.toString() } -> std::convertible_to<std::string>;
+    { v1.toString() } -> std::convertible_to<std::string_view>;
     { v1 < v2 } -> std::convertible_to<bool>;
     { v1 == v2 } -> std::convertible_to<bool>;
     requires requires {
         static_cast<void (T::*)(void*) const>(&T::serialize);
         static_cast<void (T::*)(void const*)>(&T::deserialize);
     };
+};
+
+template<typename T>
+concept Hashable = requires(T t)
+{
+    { t.hash() } -> std::convertible_to<std::size_t>;
 };
 
 template<StreamedCacheCompatibleKey Key, std::size_t cluster_size> class StreamedCache;

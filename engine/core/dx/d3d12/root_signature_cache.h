@@ -9,6 +9,7 @@
 
 #include "engine/core/misc/hashed_string.h"
 #include "engine/core/lexgine_core_fwd.h"
+#include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/entity.h"
 
 
@@ -27,7 +28,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12RootSignature> findOrCreate(
         Device const& device,
         std::string const& root_signature_friendly_name, uint32_t node_mask, 
-        lexgine::core::D3DDataBlob const& serialized_root_signature);
+        D3DDataBlob const& serialized_root_signature);
 
     Microsoft::WRL::ComPtr<ID3D12RootSignature> find(
         std::string const& root_signature_friendly_name, uint32_t node_mask) const;

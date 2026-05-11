@@ -8,7 +8,7 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
-#include "engine/core/data_blob.h"
+#include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/misc/constant_converter.h"
 #include "engine/core/vertex_attributes.h"
 #include "engine/core/stream_output.h"

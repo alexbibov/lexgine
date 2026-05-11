@@ -8,7 +8,7 @@
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/misc/log.h"
-#include "engine/core/data_blob.h"
+#include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/misc/optional.h"
 #include "common.h"
 
@@ -33,7 +33,7 @@ public:
         bool enable_debug_inforamtion = false, bool enable_16bit_types = false);
 
     //! given worker id returns compiled DXIL shader blob if the last compilation attempt on provided worker was successful
-    misc::Optional<D3DDataBlob> result(uint8_t worker_id) const;
+    misc::Optional<d3d12::D3DDataBlob> result(uint8_t worker_id) const;
 
     //! given worker id retrieves user readable description from outcome of the last compilation attempt
     std::string errors(uint8_t worker_id) const;

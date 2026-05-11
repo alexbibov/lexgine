@@ -28,7 +28,7 @@
 #include <engine/conversion/png_jpg_image_loader.h>
 #include <engine/scenegraph/image.h>
 
-#include <engine/core/dx/d3d12/task_caches/combined_cache_key.h>
+#include <engine/core/gpu_data_blob_cache_key.h>
 #include <engine/core/dx/d3d12/tasks/root_signature_builder.h>
 #include <engine/core/dx/d3d12/task_caches/root_signature_blob_cache.h>
 

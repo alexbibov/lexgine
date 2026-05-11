@@ -1,5 +1,4 @@
 #include "hlsl_compilation_task.h"
-#include "engine/core/data_blob.h"
 
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
@@ -9,7 +8,7 @@
 
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 #include "engine/core/dx/d3d12/pipeline_state.h"
-#include "engine/core/dx/d3d12/task_caches/data_cache.h"
+#include "engine/core/data_cache.h"
 
 #include <d3dcompiler.h>
 #include <fstream>
@@ -71,7 +70,7 @@ std::string HLSLCompilationTask::shaderModelAndTypeToTargetName(dxcompilation::S
 
 
 
-HLSLCompilationTask::HLSLCompilationTask(task_caches::CombinedCacheKey const& key, misc::DateTime const& time_stamp,
+HLSLCompilationTask::HLSLCompilationTask(GpuDataBlobCacheKey const& key, misc::DateTime const& time_stamp,
     core::Globals& globals, std::string const& hlsl_source, std::string const& source_name,
     dxcompilation::ShaderModel shader_model, dxcompilation::ShaderType shader_type, std::string const& shader_entry_point,
     std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions/* = std::list<HLSLMacroDefinition>{}*/,
@@ -172,7 +171,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
     {
         if (!isCompleted())
         {
-            auto shader_cache = m_globals.get<task_caches::DataCache>();
+            auto shader_cache = m_globals.get<DataCache>();
             SharedDataChunk cached_shader_blob{};
             if (shader_cache && *shader_cache)
             {
@@ -335,7 +334,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
                     // if compilation was successful serialize compiled shader into the cache
                     if (shader_cache && *shader_cache)
                     {
-                        shader_cache->cache()->addEntry(task_caches::CombinedCache::entry_type{ m_key, m_shader_byte_code });
+                        shader_cache->cache()->addEntry(CombinedCache::entry_type{ m_key, m_shader_byte_code });
                     }
                 }
 
