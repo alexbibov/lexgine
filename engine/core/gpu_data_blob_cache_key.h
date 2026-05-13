@@ -22,9 +22,11 @@ public:
     static constexpr size_t serialized_size = 256;
     static constexpr size_t custom_segment_size = serialized_size - sizeof(CommonManifest);
 
+    GpuDataBlobCacheKey() = default;
+
     template<typename T>
     requires std::is_trivially_copyable_v<T>
-    explicit GpuDataBlobCacheKey(CommonManifest const& common_manifest, T const& data)
+    GpuDataBlobCacheKey(CommonManifest const& common_manifest, T const& data)
         :  m_used_bytes{ sizeof(CommonManifest) + sizeof(T) }
     {
         static_assert(sizeof(T) <= sizeof(custom_segment_size));
@@ -36,6 +38,7 @@ public:
     }
 
     std::string toString() const;
+    size_t hash() const;
 
     void serialize(void* p_serialization_blob) const;
     void deserialize(void const* p_serialization_blob);
@@ -57,6 +60,14 @@ private:
     //                 ***********************
     size_t m_used_bytes;
     size_t m_used_words;
+};
+
+struct GpuDataBlobCacheKeyHasher final
+{
+    size_t operator()(GpuDataBlobCacheKey const& value) const
+    {
+        return value.hash();
+    }
 };
 
 }

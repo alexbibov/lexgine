@@ -10,7 +10,6 @@ namespace lexgine::core {
 class AbstractVertexAttributeSpecification;
 class BlendDescriptor;
 class DataBlob;
-class DataCache;
 class DataChunk;
 class DepthStencilDescriptor;
 class Entity;
@@ -19,6 +18,7 @@ class Exception;
 class FilterPack;
 class GlobalSettings;
 class GpuDataBlobCacheKey;
+class GpuDataBlobOnDiskStreamedCache;
 
 class Globals;
 class ProvidesGlobals
@@ -43,10 +43,11 @@ concept StreamedCacheCompatibleKey = requires(T v1, T v2)
     { v1.toString() } -> std::convertible_to<std::string_view>;
     { v1 < v2 } -> std::convertible_to<bool>;
     { v1 == v2 } -> std::convertible_to<bool>;
-    requires requires {
+        requires requires {
         static_cast<void (T::*)(void*) const>(&T::serialize);
         static_cast<void (T::*)(void const*)>(&T::deserialize);
     };
+    requires std::is_default_constructible_v<T>;
 };
 
 template<typename T>
