@@ -5,7 +5,7 @@
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/profiling_services.h"
-#include "engine/core/data_cache.h"
+#include "engine/core/gpu_data_blob_on_disk_streamed_cache.h"
 
 #include <d3dcompiler.h>
 
@@ -23,7 +23,7 @@ D3DDataBlob loadPrecachedPSOBlob(Globals const& globals, GpuDataBlobCacheKey con
 {
     D3DDataBlob rv{ nullptr };
     SharedDataChunk cached_pso_blob{};
-    auto pso_cache = globals.get<DataCache>();
+    auto pso_cache = globals.get<GpuDataBlobOnDiskStreamedCache>();
 
     if (pso_cache && *pso_cache)
     {
@@ -190,10 +190,10 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
         if (!precached_pso_blob)
         {
-            auto my_pso_cache = m_globals.get<DataCache>();
+            auto my_pso_cache = m_globals.get<GpuDataBlobOnDiskStreamedCache>();
             if (my_pso_cache && *my_pso_cache)
             {
-                my_pso_cache->cache()->addEntry(CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
+                my_pso_cache->cache()->addEntry(GpuDataBlobStreamedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
             }
         }
     }
@@ -299,10 +299,10 @@ bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
         if (!precached_pso_blob)
         {
-            auto my_pso_cache = m_globals.get<DataCache>();
+            auto my_pso_cache = m_globals.get<GpuDataBlobOnDiskStreamedCache>();
             if (my_pso_cache && *my_pso_cache)
             {
-                my_pso_cache->cache()->addEntry(CombinedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
+                my_pso_cache->cache()->addEntry(GpuDataBlobStreamedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
             }
         }
     }

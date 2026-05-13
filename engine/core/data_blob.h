@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace lexgine {namespace core {
+namespace lexgine::core {
 
 //! Interface for an arbitrary data blob, which may originate from different sources
 //! This interface is completely OS-agnostic
@@ -83,7 +83,7 @@ private:
     std::shared_ptr<void> m_allocation_ptr;
 };
 
-}}
+}
 
 #define LEXGINE_CORE_DATA_BLOB
 #endif
