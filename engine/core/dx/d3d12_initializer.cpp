@@ -14,7 +14,7 @@
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 #include "engine/core/dx/d3d12/device.h"
 
-#include "engine/core/data_cache.h"
+#include "engine/core/gpu_data_blob_on_disk_streamed_cache.h"
 #include "engine/core/dx/d3d12/task_caches/hlsl_compilation_task_cache.h"
 #include "engine/core/dx/d3d12/task_caches/pso_compilation_task_cache.h"
 #include "engine/core/dx/d3d12/task_caches/root_signature_blob_cache.h"
@@ -103,7 +103,7 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
 
     // Initialize caches
     {
-        m_data_cache = std::make_unique<DataCache>(*m_global_settings, false);
+        m_data_cache = std::make_unique<GpuDataBlobOnDiskStreamedCache>(*m_global_settings, false);
         m_shader_cache = std::make_unique<dx::d3d12::task_caches::HLSLCompilationTaskCache>();
         m_pso_cache = std::make_unique<dx::d3d12::task_caches::PSOCompilationTaskCache>();
         m_rs_cache = std::make_unique<dx::d3d12::task_caches::RootSignatureBlobCache>();

@@ -27,6 +27,7 @@ public:
 	}
 	std::strong_ordering operator<=>(Blake3_256 const& other) const;
 	bool operator==(Blake3_256 const& other) const;
+	std::array<uint8_t, 32> const& hashValueT() const { return m_hashData; }
 
 private:
 	blake3_hasher m_blake3_hasher;

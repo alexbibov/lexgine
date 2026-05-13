@@ -28,6 +28,11 @@ public:
     }
 	std::strong_ordering operator<=>(SpookyHashValue const& other) const;
 	bool operator==(SpookyHashValue const& other) const;
+    auto hashValueT() const -> const uint64_t(&)[2]
+    {
+        return m_hashData.words;
+    }
+
 private:
     // the numbers for the seed values are taken from www.random.org
     static uint64_t const m_seed1 = 0x744dd29e659fecd9;

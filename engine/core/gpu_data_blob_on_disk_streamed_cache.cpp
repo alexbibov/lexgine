@@ -1,7 +1,7 @@
 #include <fstream>
 #include <utility>
 
-#include "data_cache.h"
+#include "gpu_data_blob_on_disk_streamed_cache.h"
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/exception.h"
@@ -12,7 +12,7 @@ using namespace lexgine::core;
 using namespace lexgine::core::misc;
 
 
-DataCache::DataCache(GlobalSettings const& global_settings, bool is_read_only, bool allow_overwrites/* = true*/) :
+GpuDataBlobOnDiskStreamedCache::GpuDataBlobOnDiskStreamedCache(GlobalSettings const& global_settings, bool is_read_only, bool allow_overwrites/* = true*/) :
     m_stream{ nullptr },
     m_cache{ nullptr }
 {
@@ -43,7 +43,7 @@ DataCache::DataCache(GlobalSettings const& global_settings, bool is_read_only, b
     {
         if (does_cache_exist)
         {
-            m_cache.reset(new CombinedCache{ *m_stream, is_read_only });
+            m_cache.reset(new GpuDataBlobStreamedCache{ *m_stream, is_read_only });
 
             if (!(*m_cache->access()))
             {
@@ -54,26 +54,26 @@ DataCache::DataCache(GlobalSettings const& global_settings, bool is_read_only, b
                 m_stream->open(path_to_cache.string(), std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc);
                 if (!(*m_stream)) { m_stream.release(); return; }
 
-                m_cache.reset(new CombinedCache{ *m_stream, global_settings.getMaxCombinedCacheSize(),
+                m_cache.reset(new GpuDataBlobStreamedCache{ *m_stream, global_settings.getMaxCombinedCacheSize(),
                     global_constants::combined_cache_compression_level, allow_overwrites });
             }
         }
         else
         {
-            m_cache.reset(new CombinedCache{ *m_stream, global_settings.getMaxCombinedCacheSize(),
+            m_cache.reset(new GpuDataBlobStreamedCache{ *m_stream, global_settings.getMaxCombinedCacheSize(),
                 global_constants::combined_cache_compression_level, allow_overwrites });
         }
     }
 }
 
-DataCache::DataCache(DataCache&& other) :
+GpuDataBlobOnDiskStreamedCache::GpuDataBlobOnDiskStreamedCache(GpuDataBlobOnDiskStreamedCache&& other) :
     m_stream{ std::move(other.m_stream) },
     m_cache{ std::move(other.m_cache) }
 {
 
 }
 
-DataCache::~DataCache()
+GpuDataBlobOnDiskStreamedCache::~GpuDataBlobOnDiskStreamedCache()
 {
     if (*this)
     {
@@ -82,7 +82,7 @@ DataCache::~DataCache()
     }
 }
 
-DataCache& DataCache::operator=(DataCache&& other)
+GpuDataBlobOnDiskStreamedCache& GpuDataBlobOnDiskStreamedCache::operator=(GpuDataBlobOnDiskStreamedCache&& other)
 {
     if (this == &other) return *this;
 
@@ -92,18 +92,18 @@ DataCache& DataCache::operator=(DataCache&& other)
     return *this;
 }
 
-DataCache::operator bool() const
+GpuDataBlobOnDiskStreamedCache::operator bool() const
 {
     return m_stream && (*m_stream)
         && m_cache && (*m_cache->access());
 }
 
-CombinedCache& DataCache::cache()
+GpuDataBlobStreamedCache& GpuDataBlobOnDiskStreamedCache::cache()
 {
     return *m_cache;
 }
 
-CombinedCache const& DataCache::cache() const
+GpuDataBlobStreamedCache const& GpuDataBlobOnDiskStreamedCache::cache() const
 {
     return *m_cache;
 }

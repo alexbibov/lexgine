@@ -1,6 +1,6 @@
 #include <cassert>
 
-#include <engine/core/misc/strict_weak_ordering.h>
+#include "engine/core/misc/hashes/fnv1a_64.h"
 #include "gpu_data_blob_cache_key.h"
 #include <any>
 namespace lexgine::core
@@ -19,6 +19,15 @@ std::string GpuDataBlobCacheKey::toString() const
 	}
 
 	return "0x" + out;
+}
+
+size_t GpuDataBlobCacheKey::hash() const
+{
+	misc::hashes::Fnv1a_64 fnv1a_64_hash{};
+	auto& full_hash_value = reinterpret_cast<CommonManifest const*>(&m_data)->hash;
+	fnv1a_64_hash.create(&full_hash_value, sizeof(full_hash_value));
+	fnv1a_64_hash.finalize();
+	return static_cast<size_t>(fnv1a_64_hash.hashValueT());
 }
 
 void GpuDataBlobCacheKey::serialize(void* p_serialization_blob) const
