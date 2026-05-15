@@ -4,8 +4,6 @@
 namespace lexgine::core::dx::d3d12::task_caches {
 
 class HLSLCompilationTaskCache;
-class PSOCompilationTaskCache;
-class RootSignatureBlobCache;
 
 }
 

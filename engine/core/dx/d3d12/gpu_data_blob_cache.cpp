@@ -1,11 +1,13 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <filesystem>
+#include <utility>
 
 #include <d3dcompiler.h>
 
 #include "engine/core/data_blob.h"
-#include "engine/core/gpu_data_blob_on_disk_streamed_cache.h"
+#include "engine/core/global_settings.h"
 #include "gpu_data_blob_cache.h"
 
 namespace lexgine::core::dx::d3d12
@@ -21,16 +23,115 @@ D3DDataBlob materializeFromChunk(SharedDataChunk const& chunk)
 	if (res != S_OK && res != S_FALSE) return D3DDataBlob{ nullptr };
 	assert(d3d_blob->GetBufferSize() >= chunk.size());
 	std::memcpy(d3d_blob->GetBufferPointer(), chunk.data(), chunk.size());
-	return D3DDataBlob{ d3d_blob };
+	return d3d_blob;
 }
 
 }  // namespace
 
-GpuDataBlobCache::GpuDataBlobCache(Globals& globals, size_t max_count/* = std::numeric_limits<size_t>::max()*/)
-	: m_streamed_on_disk_cache{ *globals.get<GpuDataBlobOnDiskStreamedCache>() }
-	, m_max_element_count{ max_count }
+GpuDataBlobCache::GpuDataBlobCache(GlobalSettings const& settings,
+	size_t max_count/* = std::numeric_limits<size_t>::max()*/,
+	bool is_read_only/* = false*/,
+	bool allow_overwrites/* = true*/)
+	: m_max_element_count{ max_count }
+	, m_stream{ nullptr }
+	, m_streamed_cache{ nullptr }
+{
+	if (!settings.isCacheEnabled())
+	{
+		return;
+	}
+
+	// create stream for the cache
+	std::filesystem::path path_to_cache = settings.getCacheDirectory() / settings.getCacheName();
+	bool does_cache_exist{ false };
+	{
+		auto cache_stream_mode = std::ios_base::in | std::ios_base::binary;
+		if (!is_read_only) cache_stream_mode |= std::ios_base::out;
+
+		does_cache_exist = std::filesystem::exists(path_to_cache);
+		if (!does_cache_exist)
+		{
+			if (is_read_only) return;
+			cache_stream_mode |= std::ios_base::trunc;
+		}
+
+		m_stream.reset(new std::fstream{ path_to_cache.string(), cache_stream_mode });
+	}
+
+	// create cache instance
+	if (m_stream && *m_stream)
+	{
+		if (does_cache_exist)
+		{
+			m_streamed_cache.reset(new GpuDataBlobStreamedCache{ *m_stream, is_read_only });
+
+			if (!(*m_streamed_cache->access()))
+			{
+				// existing cache cannot be opened, probably due to data corruption
+				// try to create new cache storage, if requested opening mode is not read-only
+				if (is_read_only) { m_stream.release(); return; }
+				m_stream->close();
+				m_stream->open(path_to_cache.string(), std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc);
+				if (!(*m_stream)) { m_stream.release(); return; }
+
+				m_streamed_cache.reset(new GpuDataBlobStreamedCache{ *m_stream, settings.getMaxCombinedCacheSize(),
+					global_constants::combined_cache_compression_level, allow_overwrites });
+			}
+		}
+		else
+		{
+			m_streamed_cache.reset(new GpuDataBlobStreamedCache{ *m_stream, settings.getMaxCombinedCacheSize(),
+				global_constants::combined_cache_compression_level, allow_overwrites });
+		}
+	}
+}
+
+GpuDataBlobCache::GpuDataBlobCache(GpuDataBlobCache&& other)
+	: m_max_element_count{ other.m_max_element_count }
+	, m_priority_list{ std::move(other.m_priority_list) }
+	, m_in_memory_cache{ std::move(other.m_in_memory_cache) }
+	, m_stream{ std::move(other.m_stream) }
+	, m_streamed_cache{ std::move(other.m_streamed_cache) }
 {
 
+}
+
+GpuDataBlobCache::~GpuDataBlobCache()
+{
+	if (*this)
+	{
+		m_streamed_cache->access()->finalize();
+		m_stream->close();
+	}
+}
+
+GpuDataBlobCache& GpuDataBlobCache::operator=(GpuDataBlobCache&& other)
+{
+	if (this == &other) return *this;
+
+	m_max_element_count = other.m_max_element_count;
+	m_priority_list = std::move(other.m_priority_list);
+	m_in_memory_cache = std::move(other.m_in_memory_cache);
+	m_stream = std::move(other.m_stream);
+	m_streamed_cache = std::move(other.m_streamed_cache);
+
+	return *this;
+}
+
+GpuDataBlobCache::operator bool() const
+{
+	return m_stream && (*m_stream)
+		&& m_streamed_cache && (*m_streamed_cache->access());
+}
+
+GpuDataBlobStreamedCache& GpuDataBlobCache::streamedCache()
+{
+	return *m_streamed_cache;
+}
+
+GpuDataBlobStreamedCache const& GpuDataBlobCache::streamedCache() const
+{
+	return *m_streamed_cache;
 }
 
 void GpuDataBlobCache::popOldest(size_t count)
@@ -60,8 +161,8 @@ D3DDataBlob GpuDataBlobCache::find(GpuDataBlobCacheKey const& key) const
 		return it->second->data;
 	}
 
-	if (!m_streamed_on_disk_cache) return {};
-	auto disk_access = m_streamed_on_disk_cache.cache().access();
+	if (!*this) return {};
+	auto disk_access = m_streamed_cache->access();
 	if (!disk_access->doesEntryExist(key)) return {};
 	D3DDataBlob materialized = materializeFromChunk(disk_access->retrieveEntry(key));
 	if (!materialized.native()) return {};
@@ -79,9 +180,9 @@ D3DDataBlob GpuDataBlobCache::find(GpuDataBlobCacheKey const& key) const
 
 void GpuDataBlobCache::put(GpuDataBlobCacheKey const& key, D3DDataBlob const& data)
 {
-	if (m_streamed_on_disk_cache)
+	if (*this)
 	{
-		auto disk_access = m_streamed_on_disk_cache.cache().access();
+		auto disk_access = m_streamed_cache->access();
 		disk_access->addEntry(GpuDataBlobStreamedCache::entry_type{ key, data }, /*force_overwrite=*/true);
 	}
 

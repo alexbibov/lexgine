@@ -5,7 +5,7 @@
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/profiling_services.h"
-#include "engine/core/gpu_data_blob_on_disk_streamed_cache.h"
+#include "engine/core/dx/d3d12/gpu_data_blob_cache.h"
 
 #include <d3dcompiler.h>
 
@@ -13,7 +13,7 @@
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks;
-using namespace lexgine::core::dx::d3d12::task_caches;
+using namespace lexgine::core::dx::d3d12::caches;
 
 
 namespace {
@@ -23,11 +23,11 @@ D3DDataBlob loadPrecachedPSOBlob(Globals const& globals, GpuDataBlobCacheKey con
 {
     D3DDataBlob rv{ nullptr };
     SharedDataChunk cached_pso_blob{};
-    auto pso_cache = globals.get<GpuDataBlobOnDiskStreamedCache>();
+    auto pso_cache = globals.get<GpuDataBlobCache>();
 
     if (pso_cache && *pso_cache)
     {
-        auto cache_access = pso_cache->cache().access();
+        auto cache_access = pso_cache->streamedCache().access();
         if (cache_access->doesEntryExist(key) && cache_access->getEntryTimestamp(key) >= timestamp)
             cached_pso_blob = cache_access->retrieveEntry(key);
     }
@@ -190,10 +190,10 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
         if (!precached_pso_blob)
         {
-            auto my_pso_cache = m_globals.get<GpuDataBlobOnDiskStreamedCache>();
+            auto my_pso_cache = m_globals.get<GpuDataBlobCache>();
             if (my_pso_cache && *my_pso_cache)
             {
-                my_pso_cache->cache()->addEntry(GpuDataBlobStreamedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
+                my_pso_cache->streamedCache()->addEntry(GpuDataBlobStreamedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
             }
         }
     }
@@ -299,10 +299,10 @@ bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
 
         if (!precached_pso_blob)
         {
-            auto my_pso_cache = m_globals.get<GpuDataBlobOnDiskStreamedCache>();
+            auto my_pso_cache = m_globals.get<GpuDataBlobCache>();
             if (my_pso_cache && *my_pso_cache)
             {
-                my_pso_cache->cache()->addEntry(GpuDataBlobStreamedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
+                my_pso_cache->streamedCache()->addEntry(GpuDataBlobStreamedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
             }
         }
     }

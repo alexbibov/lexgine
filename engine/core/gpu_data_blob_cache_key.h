@@ -29,7 +29,7 @@ public:
     GpuDataBlobCacheKey(CommonManifest const& common_manifest, T const& data)
         :  m_used_bytes{ sizeof(CommonManifest) + sizeof(T) }
     {
-        static_assert(sizeof(T) <= sizeof(custom_segment_size));
+        static_assert(sizeof(T) <= custom_segment_size);
         m_used_words = ((m_used_bytes + 7) & (~7)) / 8;
         assert(m_used_words >= 1);
         m_data.words[m_used_words - 1] = 0;

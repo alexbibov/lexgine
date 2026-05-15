@@ -13,8 +13,6 @@
 #include "engine/core/dx/d3d12/rendering_tasks.h"
 #include "engine/core/dx/d3d12/swap_chain_link.h"
 
-#include "engine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h"
-
 #include "engine/core/dx/d3d12/interface.h"
 #include "engine/core/dx/dxgi/interface.h"
 #include "engine/core/dx/dxgi/swap_chain.h"
@@ -89,10 +87,7 @@ private:
 	std::unique_ptr<GlobalSettings> m_global_settings;
     std::unique_ptr<core::Globals> m_globals;
     std::unique_ptr<dx::d3d12::DxResourceFactory> m_resource_factory;
-    std::unique_ptr<GpuDataBlobOnDiskStreamedCache> m_data_cache;
-    std::unique_ptr<dx::d3d12::task_caches::HLSLCompilationTaskCache> m_shader_cache;
-    std::unique_ptr<dx::d3d12::task_caches::PSOCompilationTaskCache> m_pso_cache;
-    std::unique_ptr<dx::d3d12::task_caches::RootSignatureBlobCache> m_rs_cache;
+    std::unique_ptr<dx::d3d12::GpuDataBlobCache> m_gpu_data_blob_cache;
     std::unique_ptr<conversion::TextureConverter> m_texture_converter;
 };
 

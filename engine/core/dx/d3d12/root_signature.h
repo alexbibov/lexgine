@@ -1,7 +1,8 @@
 #ifndef LEXGINE_CORE_DX_D3D12_ROOT_SIGNATURE_H
 #define LEXGINE_CORE_DX_D3D12_ROOT_SIGNATURE_H
 
-#include <map>
+#include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include <d3d12.h>
@@ -12,6 +13,7 @@
 #include "engine/core/class_names.h"
 #include "engine/core/filter.h"
 #include "engine/core/misc/flags.h"
+#include "engine/core/misc/hash_value.h"
 
 
 using namespace Microsoft::WRL;
@@ -187,11 +189,22 @@ public:
     //! adds new static sampler into the root signature
     RootSignature& addStaticSampler(RootStaticSampler const& root_static_sampler_declaration, ShaderVisibility shader_visibility = ShaderVisibility::all);
 
+    misc::HashValue const* hash() const;
+
 private:
+    constexpr static uint32_t c_max_root_parameters = 64;
+
+private:
+    void invalidateHash();
+    void updateRootParameterMask(uint32_t slot);
+
+private:
+    uint64_t m_root_parameters_mask {0};
     std::unordered_map<uint32_t, D3D12_ROOT_PARAMETER> m_root_parameters;    //!< root signature parameters packed into a map with the key defining slot in the root signature
     std::unordered_map<uint32_t, size_t> m_descriptor_table_ranges_lut;    //!< look-up table mapping root signature slots to descriptor table ranges
     std::vector<std::vector<D3D12_DESCRIPTOR_RANGE>> m_descriptor_range_cache;    //!< stores descriptor ranges from all descriptor tables
     std::vector<D3D12_STATIC_SAMPLER_DESC> m_static_samplers;    //!< list of static samplers attached to the root signature
+    mutable std::unique_ptr<misc::HashValue> m_hash_value;
 };
 
 }

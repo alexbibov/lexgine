@@ -8,7 +8,8 @@
 #include "engine/core/math/utility.h"
 #include "engine/core/dx/d3d12/device.h"
 #include "engine/core/dx/d3d12/basic_rendering_services.h"
-#include "engine/core/dx/d3d12/task_caches/root_signature_blob_cache.h"
+#include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
+#include "engine/core/dx/d3d12/caches/pso_compilation_task_cache.h"
 #include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
@@ -22,7 +23,7 @@
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
-using namespace lexgine::core::dx::d3d12::task_caches;
+using namespace lexgine::core::dx::d3d12::caches;
 
 
 TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& rendering_services)

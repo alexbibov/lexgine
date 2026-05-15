@@ -18,7 +18,6 @@ class Exception;
 class FilterPack;
 class GlobalSettings;
 class GpuDataBlobCacheKey;
-class GpuDataBlobOnDiskStreamedCache;
 
 class Globals;
 class ProvidesGlobals

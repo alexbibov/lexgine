@@ -3,7 +3,7 @@
 #include "engine/core/globals.h"
 #include "engine/core/misc/log.h"
 
-#include "engine/core/gpu_data_blob_on_disk_streamed_cache.h"
+#include "engine/core/dx/d3d12/gpu_data_blob_cache.h"
 
 #include <d3dcompiler.h>
 
@@ -50,11 +50,11 @@ bool RootSignatureBuilder::build(uint8_t worker_id)
     {
         D3DDataBlob rs_blob{ nullptr };
         SharedDataChunk cached_rs_blob{};
-        auto rs_cache = m_globals.get<GpuDataBlobOnDiskStreamedCache>();
+        auto rs_cache = m_globals.get<GpuDataBlobCache>();
 
         if (rs_cache && *rs_cache)
         {
-            auto cache_access = rs_cache->cache().access();
+            auto cache_access = rs_cache->streamedCache().access();
             if (cache_access->doesEntryExist(m_key) && cache_access->getEntryTimestamp(m_key) >= m_timestamp)
                 cached_rs_blob = cache_access->retrieveEntry(m_key);
         }
@@ -79,7 +79,7 @@ bool RootSignatureBuilder::build(uint8_t worker_id)
             {
                 if (rs_cache && *rs_cache)
                 {
-                    rs_cache->cache()->addEntry(GpuDataBlobStreamedCache::entry_type{ m_key, m_compiled_rs_blob });
+                    rs_cache->streamedCache()->addEntry(GpuDataBlobStreamedCache::entry_type{ m_key, m_compiled_rs_blob });
                 }
             }
 

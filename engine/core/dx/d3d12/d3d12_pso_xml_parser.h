@@ -8,6 +8,7 @@
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
 #include "task_caches/hlsl_compilation_task_cache.h"
+#include "caches/lexgine_core_dx_d3d12_caches_fwd.h"
 #include "engine/core/globals.h"
 
 
@@ -35,9 +36,9 @@ private:
     class impl;
 
     core::Globals& m_globals;
-    task_caches::RootSignatureBlobCache& m_root_signature_blob_cache;
+    caches::RootSignatureBlobCache& m_root_signature_blob_cache;
     task_caches::HLSLCompilationTaskCache& m_hlsl_compilation_task_cache;
-    task_caches::PSOCompilationTaskCache& m_pso_compilation_task_cache;
+    caches::PSOCompilationTaskCache& m_pso_compilation_task_cache;
 
     std::vector<tasks::GraphicsPSOCompilationTask*> m_parsed_graphics_pso_compilation_tasks;
     std::vector<tasks::ComputePSOCompilationTask*> m_parsed_compute_pso_compilation_tasks;
