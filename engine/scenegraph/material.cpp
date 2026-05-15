@@ -8,7 +8,7 @@
 #include <engine/core/dx/d3d12/basic_rendering_services.h>
 #include <engine/core/dx/d3d12/tasks/root_signature_builder.h>
 #include <engine/core/dx/d3d12/tasks/pso_compilation_task.h>
-#include <engine/core/dx/d3d12/task_caches/pso_compilation_task_cache.h>
+#include <engine/core/dx/d3d12/caches/pso_compilation_task_cache.h>
 #include <engine/core/dx/d3d12/unordered_srv_table_allocation_manager.h>
 #include <engine/core/dx/d3d12/dx_resource_factory.h>
 #include <engine/core/dx/dxcompilation/shader_stage.h>
@@ -78,7 +78,7 @@ MaterialAssemblyTask::MaterialAssemblyTask(
 	}
 	m_pso_descriptor.multi_sampling_format = core::MultiSamplingFormat{ static_cast<uint32_t>(msaa_mode), msaa_quality_level };
 
-    core::dx::d3d12::task_caches::PSOCompilationTaskCache& pso_compilation_task_cache = *m_shader_function.globals().get<core::dx::d3d12::task_caches::PSOCompilationTaskCache>();
+    core::dx::d3d12::caches::PSOCompilationTaskCache& pso_compilation_task_cache = *m_shader_function.globals().get<core::dx::d3d12::caches::PSOCompilationTaskCache>();
 	m_pso_compilation_task = pso_compilation_task_cache.findOrCreateTask(m_shader_function.globals(), m_pso_descriptor, getStringName() + "__PSO", 0);
 
     assert(shaders.p_vertex_shader_compilation_task && shaders.p_pixel_shader_compilation_task);

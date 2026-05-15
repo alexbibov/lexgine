@@ -24,6 +24,7 @@ class UnorderedSRVTableAllocationManager;
 class Device;
 class DxResourceFactory;
 class Fence;
+class GpuDataBlobCache;
 class Heap;
 class ResourceDataUploader;
 class HeapResourcePlacer;
