@@ -14,10 +14,7 @@
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 #include "engine/core/dx/d3d12/device.h"
 
-#include "engine/core/gpu_data_blob_on_disk_streamed_cache.h"
-#include "engine/core/dx/d3d12/task_caches/hlsl_compilation_task_cache.h"
-#include "engine/core/dx/d3d12/task_caches/pso_compilation_task_cache.h"
-#include "engine/core/dx/d3d12/task_caches/root_signature_blob_cache.h"
+#include "engine/core/dx/d3d12/gpu_data_blob_cache.h"
 
 #include "engine/conversion/texture_converter.h"
 
@@ -103,10 +100,7 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
 
     // Initialize caches
     {
-        m_data_cache = std::make_unique<GpuDataBlobOnDiskStreamedCache>(*m_global_settings, false);
-        m_shader_cache = std::make_unique<dx::d3d12::task_caches::HLSLCompilationTaskCache>();
-        m_pso_cache = std::make_unique<dx::d3d12::task_caches::PSOCompilationTaskCache>();
-        m_rs_cache = std::make_unique<dx::d3d12::task_caches::RootSignatureBlobCache>();
+        m_gpu_data_blob_cache = std::make_unique<dx::d3d12::GpuDataBlobCache>(*m_global_settings);
     }
     buildGlobals();
     setCurrentDevice(0);
@@ -115,10 +109,7 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
 D3D12Initializer::~D3D12Initializer()
 {
     m_texture_converter.reset();
-    m_shader_cache.reset();
-    m_rs_cache.reset();
-    m_pso_cache.reset();
-    m_data_cache.reset();
+    m_gpu_data_blob_cache.reset();
     m_resource_factory.reset();
     m_globals.reset();
     m_global_settings.reset();
@@ -192,10 +183,7 @@ void D3D12Initializer::buildGlobals()
     m_globals->put(const_cast<EngineApi*>(&m_engine_api));
     m_globals->put(m_global_settings.get());
     m_globals->put(m_resource_factory.get());
-    m_globals->put(m_data_cache.get());
-    m_globals->put(m_shader_cache.get());
-    m_globals->put(m_pso_cache.get());
-    m_globals->put(m_rs_cache.get());
+    m_globals->put(m_gpu_data_blob_cache.get());
 }
 
 

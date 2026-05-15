@@ -13,7 +13,7 @@
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
-using namespace lexgine::core::dx::d3d12::task_caches;
+using namespace lexgine::core::dx::d3d12::caches;
 
 
 

@@ -1,5 +1,5 @@
-#ifndef LEXGINE_CORE_DX_D3D12_TASK_CACHES_PSO_COMPILATION_TASK_CACHE_H
-#define LEXGINE_CORE_DX_D3D12_TASK_CACHES_PSO_COMPILATION_TASK_CACHE_H
+#ifndef LEXGINE_CORE_DX_D3D12_CACHES_PSO_COMPILATION_TASK_CACHE_H
+#define LEXGINE_CORE_DX_D3D12_CACHES_PSO_COMPILATION_TASK_CACHE_H
 
 #include <list>
 #include <map>
@@ -13,7 +13,7 @@
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
 
 
-namespace lexgine::core::dx::d3d12::task_caches {
+namespace lexgine::core::dx::d3d12::caches {
 
 class PSOCompilationTaskCache : public NamedEntity<class_names::D3D12_PSOCompilationTaskCache>
 {

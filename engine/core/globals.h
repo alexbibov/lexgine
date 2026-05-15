@@ -11,6 +11,7 @@
 #include <engine/core/lexgine_core_fwd.h>
 #include <engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h>
 #include <engine/core/dx/d3d12/task_caches/lexgine_core_dx_d3d12_task_caches_fwd.h>
+#include <engine/core/dx/d3d12/caches/lexgine_core_dx_d3d12_caches_fwd.h>
 
 
 namespace lexgine::core {

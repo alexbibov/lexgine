@@ -12,6 +12,7 @@
 #include "engine/core/dx/d3d12/descriptor_table_builders.h"
 #include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 #include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
+#include "engine/core/dx/d3d12/caches/pso_compilation_task_cache.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "engine/core/dx/dxcompilation/shader_stage.h"
 #include "engine/core/math/utility.h"
@@ -313,7 +314,7 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
     if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::color_format_changed)
         || update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
-        task_caches::PSOCompilationTaskCache& pso_compilation_task_cache = *m_globals.get<task_caches::PSOCompilationTaskCache>();
+        caches::PSOCompilationTaskCache& pso_compilation_task_cache = *m_globals.get<caches::PSOCompilationTaskCache>();
 
         if (!m_pso)
         {

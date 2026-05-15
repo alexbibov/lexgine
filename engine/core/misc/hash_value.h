@@ -11,6 +11,8 @@ namespace lexgine::core::misc
 class HashValue
 {
 public:
+	virtual ~HashValue() = default;
+
 	virtual void create(void const* data, size_t data_size) = 0;
 	void create(std::vector<uint8_t> const& data)
 	{
