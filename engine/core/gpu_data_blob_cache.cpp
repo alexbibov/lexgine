@@ -140,9 +140,9 @@ SharedDataChunk GpuDataBlobCache::find(GpuDataBlobCacheKey const& key) const
         (void)ok;
         assert(ok);
         new_it->key = &imc_it->first;
-        if (m_priority_list.size() > m_max_element_count)
-            const_cast<GpuDataBlobCache*>(this)->popOldest(m_priority_list.size() - m_max_element_count);
     }
+    if (m_priority_list.size() > m_max_element_count)
+        const_cast<GpuDataBlobCache*>(this)->popOldest(m_priority_list.size() - m_max_element_count);
 	return materialized;
 }
 

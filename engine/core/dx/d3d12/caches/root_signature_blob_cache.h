@@ -39,7 +39,7 @@ private:
         RootSignature root_signature;
         RootSignatureFlags flags;
         std::packaged_task<Microsoft::WRL::ComPtr<ID3D12RootSignature>(GpuDataBlobCacheKey const*)> task;
-        std::atomic<bool> is_ready { false };
+        std::atomic<bool> is_ready;
     };
 
 private:
