@@ -87,7 +87,7 @@ private:
 	std::unique_ptr<GlobalSettings> m_global_settings;
     std::unique_ptr<core::Globals> m_globals;
     std::unique_ptr<dx::d3d12::DxResourceFactory> m_resource_factory;
-    std::unique_ptr<dx::d3d12::GpuDataBlobCache> m_gpu_data_blob_cache;
+    std::unique_ptr<GpuDataBlobCache> m_gpu_data_blob_cache;
     std::unique_ptr<conversion::TextureConverter> m_texture_converter;
 };
 

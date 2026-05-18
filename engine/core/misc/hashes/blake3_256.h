@@ -15,7 +15,7 @@ public:
 	void create(void const* p_data, size_t data_size) override;
 	void combine(void const* p_data, size_t data_size) override;
 	void finalize() override;
-	uint8_t hashWidth() const override { return sizeof(m_hashData); }
+	size_t hashWidth() const override { return sizeof(m_hashData); }
 	uint8_t const* hashValue() const override { return m_hashData.data(); };
 	std::strong_ordering operator<=>(HashValue const& other) const override
 	{

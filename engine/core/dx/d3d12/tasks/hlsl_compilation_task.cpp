@@ -8,15 +8,30 @@
 
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 #include "engine/core/dx/d3d12/pipeline_state.h"
-#include "engine/core/dx/d3d12/gpu_data_blob_cache.h"
+#include "engine/core/gpu_data_blob_cache.h"
 
 #include <d3dcompiler.h>
+#include <cstring>
 #include <fstream>
 
 
 
 namespace lexgine::core::dx::d3d12::tasks 
 {
+
+namespace
+{
+
+SharedDataChunk makeSharedDataChunk(DataBlob const& blob)
+{
+    if (!blob.data() || !blob.size()) return {};
+
+    SharedDataChunk chunk{ blob.size() };
+    memcpy(chunk.data(), blob.data(), blob.size());
+    return chunk;
+}
+
+}
 
 std::string HLSLCompilationTask::getCacheName() const
 {
@@ -175,15 +190,8 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
             SharedDataChunk cached_shader_blob{};
             if (shader_cache && *shader_cache)
             {
-                auto cache_access = shader_cache->streamedCache().access();
-                if (cache_access->doesEntryExist(m_key))
-                {
-                    misc::DateTime cached_time_stamp = cache_access->getEntryTimestamp(m_key);
-                    m_should_recompile = cached_time_stamp < m_time_stamp;
-                    if (!m_should_recompile)
-                        cached_shader_blob = cache_access->retrieveEntry(m_key);
-                }
-                else m_should_recompile = true;
+                cached_shader_blob = shader_cache->find(m_key, m_time_stamp);
+                m_should_recompile = !cached_shader_blob;
             }
             else m_should_recompile = true;
 
@@ -334,7 +342,7 @@ bool HLSLCompilationTask::doTask(uint8_t worker_id, uint64_t)
                     // if compilation was successful serialize compiled shader into the cache
                     if (shader_cache && *shader_cache)
                     {
-                        shader_cache->streamedCache()->addEntry(GpuDataBlobStreamedCache::entry_type{ m_key, m_shader_byte_code });
+                        shader_cache->put(m_key, makeSharedDataChunk(m_shader_byte_code));
                     }
                 }
 

@@ -36,7 +36,7 @@ private:
     class impl;
 
     core::Globals& m_globals;
-    caches::RootSignatureBlobCache& m_root_signature_blob_cache;
+    caches::RootSignatureBlobCache& m_root_signature_compilation_cache;
     task_caches::HLSLCompilationTaskCache& m_hlsl_compilation_task_cache;
     caches::PSOCompilationTaskCache& m_pso_compilation_task_cache;
 

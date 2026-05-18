@@ -5,10 +5,12 @@
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/profiling_services.h"
-#include "engine/core/dx/d3d12/gpu_data_blob_cache.h"
+#include "engine/core/gpu_data_blob_cache.h"
 
 #include <d3dcompiler.h>
 
+#include <cassert>
+#include <cstring>
 
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
@@ -17,6 +19,15 @@ using namespace lexgine::core::dx::d3d12::caches;
 
 
 namespace {
+
+SharedDataChunk makeSharedDataChunk(DataBlob const& blob)
+{
+    if (!blob.data() || !blob.size()) return {};
+
+    SharedDataChunk chunk{ blob.size() };
+    memcpy(chunk.data(), blob.data(), blob.size());
+    return chunk;
+}
 
 D3DDataBlob loadPrecachedPSOBlob(Globals const& globals, GpuDataBlobCacheKey const& key,
     misc::DateTime const& timestamp)
@@ -27,9 +38,7 @@ D3DDataBlob loadPrecachedPSOBlob(Globals const& globals, GpuDataBlobCacheKey con
 
     if (pso_cache && *pso_cache)
     {
-        auto cache_access = pso_cache->streamedCache().access();
-        if (cache_access->doesEntryExist(key) && cache_access->getEntryTimestamp(key) >= timestamp)
-            cached_pso_blob = cache_access->retrieveEntry(key);
+        cached_pso_blob = pso_cache->find(key, timestamp);
     }
 
     if (cached_pso_blob.size() && cached_pso_blob.data())
@@ -193,7 +202,7 @@ bool GraphicsPSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
             auto my_pso_cache = m_globals.get<GpuDataBlobCache>();
             if (my_pso_cache && *my_pso_cache)
             {
-                my_pso_cache->streamedCache()->addEntry(GpuDataBlobStreamedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
+                my_pso_cache->put(m_key, makeSharedDataChunk(m_resulting_pipeline_state->getCache()));
             }
         }
     }
@@ -302,7 +311,7 @@ bool ComputePSOCompilationTask::doTask(uint8_t worker_id, uint64_t)
             auto my_pso_cache = m_globals.get<GpuDataBlobCache>();
             if (my_pso_cache && *my_pso_cache)
             {
-                my_pso_cache->streamedCache()->addEntry(GpuDataBlobStreamedCache::entry_type{ m_key, m_resulting_pipeline_state->getCache() });
+                my_pso_cache->put(m_key, makeSharedDataChunk(m_resulting_pipeline_state->getCache()));
             }
         }
     }

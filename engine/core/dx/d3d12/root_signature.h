@@ -159,6 +159,9 @@ END_FLAGS_DECLARATION(RootSignatureFlags);
 class RootSignature final : public NamedEntity<class_names::D3D12_RootSignature>
 {
 public:
+    static constexpr uint32_t c_root_signature_version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+
+public:
     RootSignature() = default;
     RootSignature(RootSignature const&) = delete;
     RootSignature(RootSignature&&) = default;

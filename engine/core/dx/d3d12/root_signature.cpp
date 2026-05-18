@@ -147,7 +147,7 @@ D3DDataBlob RootSignature::compile(RootSignatureFlags const& flags) const
 
 
     ID3DBlob* serialized_rs = nullptr, *error = nullptr;
-    if (D3D12SerializeRootSignature(&root_desc, D3D_ROOT_SIGNATURE_VERSION_1, &serialized_rs, &error) != S_OK)
+    if (D3D12SerializeRootSignature(&root_desc, static_cast<D3D_ROOT_SIGNATURE_VERSION>(c_root_signature_version), &serialized_rs, &error) != S_OK)
     {
         std::string serialization_error{ static_cast<char*>(error->GetBufferPointer()), error->GetBufferSize() };
         std::string err_msg = "Unable to serialize root signature: " + serialization_error;

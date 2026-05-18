@@ -408,6 +408,17 @@ ComPtr<ID3D12RootSignature> Device::createRootSignature(D3DDataBlob const& seria
     return m_rs_cache.findOrCreate(*this, root_signature_friendly_name, node_mask, serialized_root_signature);
 }
 
+ComPtr<ID3D12RootSignature> Device::createRootSignature(D3DDataBlob const& serialized_root_signature, uint32_t node_mask)
+{
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> rs {};
+    LEXGINE_THROW_ERROR_IF_FAILED(
+        this,
+        m_device->CreateRootSignature(node_mask, serialized_root_signature.data(), serialized_root_signature.size(), IID_PPV_ARGS(&rs)),
+        S_OK
+    );
+    return rs;
+}
+
 ComPtr<ID3D12RootSignature> Device::retrieveRootSignature(std::string const& root_signature_friendly_name, uint32_t node_mask)
 {
     return m_rs_cache.find(root_signature_friendly_name, node_mask);

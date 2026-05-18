@@ -56,8 +56,7 @@ GlobalSettings::GlobalSettings(std::filesystem::path const& json_settings_source
         m_number_of_workers = 8U;
 
         m_deferred_shader_compilation = true;
-        m_deferred_pso_compilation = true;
-        m_deferred_root_signature_compilation = true;
+        m_deferred_gpu_resource_compilation = true;
 
         m_cache_path = std::format(
             "{}v{}.{}rev{}.cache",
@@ -152,14 +151,14 @@ GlobalSettings::GlobalSettings(std::filesystem::path const& json_settings_source
 
         // Deferred pipeline compilation routine settings
         {
-            if ((p = document.find("deferred_pso_compilation")) != document.end()
+            if ((p = document.find("deferred_gpu_resource_compilation")) != document.end()
                 && p->is_boolean())
             {
-                m_deferred_pso_compilation = *p;
+                m_deferred_gpu_resource_compilation = *p;
             }
             else
             {
-                yield_warning_log_message("deferred_pso_compilation", m_deferred_pso_compilation);
+                yield_warning_log_message("deferred_gpu_resource_compilation", m_deferred_gpu_resource_compilation);
             }
 
             if ((p = document.find("deferred_shader_compilation")) != document.end()
@@ -169,19 +168,7 @@ GlobalSettings::GlobalSettings(std::filesystem::path const& json_settings_source
             }
             else
             {
-                m_deferred_shader_compilation = m_deferred_pso_compilation;
                 yield_warning_log_message("deferred_shader_compilation", m_deferred_shader_compilation);
-            }
-
-            if ((p = document.find("deferred_root_signature_compilation")) != document.end()
-                && p->is_boolean())
-            {
-                m_deferred_root_signature_compilation = *p;
-            }
-            else
-            {
-                m_deferred_root_signature_compilation = m_deferred_pso_compilation;
-                yield_warning_log_message("deferred_root_signature_compilation", m_deferred_root_signature_compilation);
             }
         }
 
@@ -465,28 +452,6 @@ GlobalSettings::GlobalSettings(std::filesystem::path const& json_settings_source
             misc::LogMessageType::exclamation
         );
     }
-
-
-
-    if (!m_deferred_pso_compilation)
-    {
-        // if deferred pso compilation is disabled then deferred shader and deferred root signature 
-        // compilation tasks should also be compiled in immediate mode
-
-        if (m_deferred_shader_compilation)
-        {
-            misc::Log::retrieve()->out("WARNING: deferred PSO compilation is disabled but deferred shader compilation that PSO compilation relies upon is switched on. "
-                "Deferred shader compilation will therefore be force disabled", misc::LogMessageType::exclamation);
-            m_deferred_shader_compilation = false;
-        }
-
-        if (m_deferred_root_signature_compilation)
-        {
-            misc::Log::retrieve()->out("WARNING: deferred PSO compilation is disabled but deferred root signature compilation that PSO compilation relies upon is switched on. "
-                "Deferred root signature compilation will therefore be force disabled", misc::LogMessageType::exclamation);
-            m_deferred_root_signature_compilation = false;
-        }
-    }
 }
 
 void GlobalSettings::serialize(std::string const& json_serialization_path) const
@@ -502,8 +467,7 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
     json j = {
         { "number_of_workers", m_number_of_workers},
         { "deferred_shader_compilation", m_deferred_shader_compilation},
-        { "deferred_pso_compilation", m_deferred_pso_compilation },
-        { "deferred_root_signature_compilation", m_deferred_root_signature_compilation },
+        { "deferred_gpu_resource_compilation", m_deferred_gpu_resource_compilation },
         { "cache_path", m_cache_path.string()},
         { "combined_cache_name", m_combined_cache_name.string()},
         { "maximal_combined_cache_size", m_max_combined_cache_size },
@@ -546,14 +510,9 @@ bool GlobalSettings::isDeferredShaderCompilationOn() const
     return m_deferred_shader_compilation;
 }
 
-bool GlobalSettings::isDeferredPSOCompilationOn() const
+bool GlobalSettings::isDeferredGpuResourceCompilationOn() const
 {
-    return m_deferred_pso_compilation;
-}
-
-bool GlobalSettings::isDeferredRootSignatureCompilationOn() const
-{
-    return m_deferred_root_signature_compilation;
+    return m_deferred_gpu_resource_compilation;
 }
 
 std::vector<std::filesystem::path> const& GlobalSettings::getShaderLookupDirectories() const
@@ -658,30 +617,12 @@ void GlobalSettings::setNumberOfWorkers(uint8_t num_workers)
 
 void GlobalSettings::setIsDeferredShaderCompilationOn(bool is_enabled)
 {
-    if (is_enabled && !m_deferred_pso_compilation)
-    {
-        misc::Log::retrieve()->out("WARNING: cannot enable deferred shader compilation while "
-            "deferred PSO compilation is disabled", misc::LogMessageType::exclamation);
-        m_deferred_shader_compilation = false;
-    }
-    else
-        m_deferred_shader_compilation = is_enabled;
+    m_deferred_shader_compilation = is_enabled;
 }
 
-void GlobalSettings::setIsDeferredPSOCompilationOn(bool is_enabled)
+void GlobalSettings::setIsDeferredGpuResourceCompilationOn(bool is_enabled)
 {
-    m_deferred_pso_compilation = is_enabled;
-}
-
-void GlobalSettings::setIsDeferredRootSignatureCompilationOn(bool is_enabled)
-{
-    if (is_enabled && !m_deferred_pso_compilation)
-    {
-        misc::Log::retrieve()->out("WARNING: cannot enable deferred root signature compilation while "
-            "deferred PSO compilation is disabled", misc::LogMessageType::exclamation);
-        m_deferred_root_signature_compilation = false;
-    }
-    m_deferred_root_signature_compilation = is_enabled;
+    m_deferred_gpu_resource_compilation = is_enabled;
 }
 
 void GlobalSettings::addShaderLookupDirectory(std::filesystem::path const& path)

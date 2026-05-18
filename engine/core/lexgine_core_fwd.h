@@ -17,6 +17,7 @@ class ErrorBehavioral;
 class Exception;
 class FilterPack;
 class GlobalSettings;
+class GpuDataBlobCache;
 class GpuDataBlobCacheKey;
 
 class Globals;
