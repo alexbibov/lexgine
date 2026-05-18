@@ -24,7 +24,7 @@ public:
 	}
 	virtual void combine(void const* p_data, size_t data_size) = 0;
 	virtual void finalize() = 0;
-	virtual uint8_t hashWidth() const = 0;
+	virtual size_t hashWidth() const = 0;
 	virtual uint8_t const* hashValue() const = 0;
 	virtual std::strong_ordering operator<=>(HashValue const& other) const = 0;
 	virtual bool operator==(HashValue const& other) const = 0;

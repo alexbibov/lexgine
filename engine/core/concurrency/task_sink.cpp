@@ -109,7 +109,8 @@ void TaskSink::shutdown()
     logger().out(misc::formatString("Task sink %s is shutting down", getStringName().c_str()), LogMessageType::information);
 
     m_stop_signal.store(true, std::memory_order_release);    //! dispatch the stop signal
-    while (m_num_threads_finished.load(std::memory_order_acquire) < m_workers_list.size()) YieldProcessor();
+    while (m_num_threads_finished.load(std::memory_order_acquire) < m_workers_list.size())
+        std::this_thread::yield();
     m_task_queue.shutdown();
 
     logger().out("Worker threads finished", LogMessageType::information);

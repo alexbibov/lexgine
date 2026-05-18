@@ -1,56 +1,68 @@
 #ifndef LEXGINE_CORE_DX_D3D12_CACHES_ROOT_SIGNATURE_BLOB_CACHE_H
 #define LEXGINE_CORE_DX_D3D12_CACHES_ROOT_SIGNATURE_BLOB_CACHE_H
+#include "unordered_map"
+#include "future"
+#include "chrono"
 
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/root_signature.h"
-#include "engine/core/misc/datetime.h"
 
-#include <list>
-#include <map>
 
 namespace lexgine::core::dx::d3d12::caches {
 
 class RootSignatureBlobCache : public NamedEntity<class_names::D3D12_RootSignatureBlobCache>
 {
-    friend class tasks::RootSignatureBuilder;
-    friend class core::GpuDataBlobCacheKey;
-
 public:
-    struct Key
+    struct InternalKey
     {
-
-    };
-
-    class VersionedRootSignature final
-    {
-    public:
-        VersionedRootSignature(RootSignature&& root_signature)
-            : m_root_signature{ std::move(root_signature) }
-            , m_timestamp{ misc::DateTime::buildTime() }
-        {
-
-        }
-
-        RootSignature&& root_signature() { return std::move(m_root_signature); }
-
-        misc::DateTime const& timestamp() const { return m_timestamp; }
-
-    private:
-        RootSignature m_root_signature;
-        misc::DateTime m_timestamp;
+        uint32_t root_signature_version;
+        uint32_t root_signature_compilation_flags;
     };
 
 public:
-    Key const& materializeRootSignature(
-        Globals& globals,
-        VersionedRootSignature versioned_root_signature, RootSignatureFlags const& flags,
-        std::string const& root_signature_cache_name, uint64_t uid);
+    RootSignatureBlobCache(Globals& globals);
+    GpuDataBlobCacheKey const* createRootSignatureBlobCompilationContract(
+        RootSignature&& root_signature,
+        RootSignatureFlags const& flags
+    );
+    void createRootSignatures();
+    bool isReady(GpuDataBlobCacheKey const* key) const;
+    bool isReady() const;
+    bool waitTillReady(const std::chrono::milliseconds& timeout) const;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> getNativeRootSignature(GpuDataBlobCacheKey const* key) const;
 
 private:
-    GpuDataBlobCache& m_gpu_blog_cache;
-    std::unordered_map<Key, Microsoft::WRL::ComPtr<ID3D12RootSignature>> m_root_signature_cache;
+    struct RootSignatureDeferredBlobCompilationContract
+    {
+        RootSignature root_signature;
+        RootSignatureFlags flags;
+        std::packaged_task<Microsoft::WRL::ComPtr<ID3D12RootSignature>(GpuDataBlobCacheKey const*)> task;
+        std::atomic<bool> is_ready { false };
+    };
+
+private:
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> compileRootSignatureBlob(
+        GpuDataBlobCacheKey const* key);
+    GpuDataBlobCacheKey createGpuDataBlobCacheKey(
+        misc::HashValue const& hashValue,
+        RootSignatureFlags const& flags
+    );
+
+private:
+    Globals& m_globals;
+    Device& m_device;
+    GpuDataBlobCache& m_gpu_blob_cache;
+    bool m_async_rs_creation;
+    std::unordered_map<
+        GpuDataBlobCacheKey,
+        RootSignatureDeferredBlobCompilationContract,
+        GpuDataBlobCacheKeyHasher
+    > m_contracts;
+    std::unordered_map<GpuDataBlobCacheKey, size_t> m_futures_vector_lut;
+    std::vector<GpuDataBlobCacheKey const*> m_all_keys;
+    mutable std::vector<std::future<Microsoft::WRL::ComPtr<ID3D12RootSignature>>> m_futures;
 };
 
 }

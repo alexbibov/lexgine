@@ -14,7 +14,7 @@
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 #include "engine/core/dx/d3d12/device.h"
 
-#include "engine/core/dx/d3d12/gpu_data_blob_cache.h"
+#include "engine/core/gpu_data_blob_cache.h"
 
 #include "engine/conversion/texture_converter.h"
 
@@ -100,7 +100,7 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
 
     // Initialize caches
     {
-        m_gpu_data_blob_cache = std::make_unique<dx::d3d12::GpuDataBlobCache>(*m_global_settings);
+        m_gpu_data_blob_cache = std::make_unique<GpuDataBlobCache>(*m_global_settings);
     }
     buildGlobals();
     setCurrentDevice(0);

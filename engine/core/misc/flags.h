@@ -7,7 +7,8 @@
 #include <string>
 #include <type_traits>
 
-namespace lexgine::core::misc {
+namespace lexgine::core::misc
+{
 
 template<typename BaseFlagsType>
 using is_scoped_enum = std::integral_constant<bool,

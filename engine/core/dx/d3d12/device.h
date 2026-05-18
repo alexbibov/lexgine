@@ -354,6 +354,7 @@ public:
     void setStringName(std::string const& entity_string_name) override;	//! sets new user-friendly string name for the Direct3D 12 device
 
     ComPtr<ID3D12RootSignature> createRootSignature(D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name, uint32_t node_mask = 1);    //! creates native Direct3D 12 root signature interface based on serialized root signature data
+    ComPtr<ID3D12RootSignature> createRootSignature(D3DDataBlob const& serialized_root_signature, uint32_t node_mask = 1);    //! creates native Direct3D 12 root signature interface based on serialized root signature data
     ComPtr<ID3D12RootSignature> retrieveRootSignature(std::string const& root_signature_friendly_name, uint32_t node_mask = 1);
 
     Fence createFence(FenceSharing sharing = FenceSharing::none);    //! creates synchronization fence

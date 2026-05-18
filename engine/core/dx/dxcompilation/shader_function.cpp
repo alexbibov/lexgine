@@ -9,7 +9,7 @@
 #include "engine/core/dx/d3d12/device.h"
 #include "engine/core/dx/d3d12/command_list.h"
 #include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
-#include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
+#include "engine/core/dx/d3d12/caches/root_signature_compilation_cache.h"
 #include "shader_function.h"
 #include "shader_stage.h"
 

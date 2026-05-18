@@ -26,8 +26,7 @@ public:
 
     uint8_t getNumberOfWorkers() const;
     bool isDeferredShaderCompilationOn() const;
-    bool isDeferredPSOCompilationOn() const;
-    bool isDeferredRootSignatureCompilationOn() const;
+    bool isDeferredGpuResourceCompilationOn() const;
     std::vector<std::filesystem::path> const& getShaderLookupDirectories() const;
     std::filesystem::path const& getCacheDirectory() const;
     std::filesystem::path const& getCacheName() const;
@@ -58,8 +57,7 @@ public:
 
     void setNumberOfWorkers(uint8_t num_workers);
     void setIsDeferredShaderCompilationOn(bool is_enabled);
-    void setIsDeferredPSOCompilationOn(bool is_enabled);
-    void setIsDeferredRootSignatureCompilationOn(bool is_enabled);
+    void setIsDeferredGpuResourceCompilationOn(bool is_enabled);
     void addShaderLookupDirectory(std::filesystem::path const& path);
     void clearShaderLookupDirectories();
     void setCacheDirectory(std::filesystem::path const& path);
@@ -72,9 +70,8 @@ public:
 
 private:
     uint8_t m_number_of_workers;
-    bool m_deferred_pso_compilation;
+    bool m_deferred_gpu_resource_compilation;
     bool m_deferred_shader_compilation;
-    bool m_deferred_root_signature_compilation;
     std::vector<std::filesystem::path> m_shader_lookup_directories;
     std::filesystem::path m_cache_path;
     std::filesystem::path m_combined_cache_name;
