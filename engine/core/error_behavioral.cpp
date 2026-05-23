@@ -14,13 +14,13 @@ void ErrorBehavioral::registerErrorCallback(std::function<void(std::string const
 bool ErrorBehavioral::resetErrorState()
 {
     bool rv = m_error_state;
-    m_error_state = false;
+    m_error_state.store(false);
     return rv;
 }
 
 bool ErrorBehavioral::getErrorState() const
 {
-    return m_error_state;
+    return m_error_state.load();
 }
 
 char const* ErrorBehavioral::getErrorString() const
@@ -46,9 +46,9 @@ ErrorBehavioral::~ErrorBehavioral()
 
 void ErrorBehavioral::raiseError(std::string const& error_message) const
 {
-    m_error_state = true;
+    m_error_state.store(true);
+    m_error_callback(error_message);
     m_error_string = error_message;
-    m_error_callback(m_error_string);
 
     logger().out(error_message, lexgine::core::misc::LogMessageType::error);
 }

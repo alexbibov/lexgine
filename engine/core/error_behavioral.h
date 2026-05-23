@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <functional>
+#include <atomic>
 
 #include "engine/core/misc/log.h"
 
@@ -19,7 +20,6 @@ public:
     //! erroneous state
     void registerErrorCallback(std::function<void(std::string const& err_msg)> error_callback);
 
-
     //! Resets error state of the object to 'false' and returns the previous value of the error state
     bool resetErrorState();
 
@@ -34,7 +34,7 @@ public:
 
 private:
     //!< Error status of the object. Equals 'true' if the object is in an erroneous state; 'false' otherwise
-    mutable bool m_error_state;
+    mutable std::atomic<bool> m_error_state;
 
     //!< String describing the last error occurred in relation with this object
     mutable std::string m_error_string;
