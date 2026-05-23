@@ -1,6 +1,7 @@
 #include "engine/core/exception.h"
 #include "engine/core/globals.h"
 #include "engine/core/engine_api.h"
+#include "engine/core/misc/hashes/blake3_256.h"
 
 #include "pipeline_state.h"
 #include "d3d12_tools.h"
@@ -29,6 +30,153 @@ bool isDebugModeEnabled(Globals const& globals)
     return DebugInterface::retrieve() != nullptr;
 }
 
+template<typename T>
+void combineValue(misc::HashValue& h, T const& value)
+{
+    h.combine(&value, sizeof(value));
+}
+
+void combineBlob(misc::HashValue& h, D3DDataBlob const& blob)
+{
+    if (blob.data() && blob.size())
+        h.combine(blob.data(), blob.size());
+    size_t size = blob.size();
+    combineValue(h, size);
+}
+
+void combineRasterizer(misc::HashValue& h, RasterizerDescriptor const& r)
+{
+    combineValue(h, r.getFillMode());
+    combineValue(h, r.getCullMode());
+    combineValue(h, r.getWindingOrder());
+    combineValue(h, r.getDepthBias());
+    combineValue(h, r.getDepthBiasClamp());
+    combineValue(h, r.getSlopeScaledDepthBias());
+    bool dt = r.isDepthClipEnabled();
+    combineValue(h, dt);
+    bool ms = r.isMultisamplingEnabled();
+    combineValue(h, ms);
+    bool aa = r.isAntialiasedLineDrawingEnabled();
+    combineValue(h, aa);
+    combineValue(h, r.getConservativeRasterizationMode());
+}
+
+void combineDepthStencil(misc::HashValue& h, DepthStencilDescriptor const& d)
+{
+    bool dt = d.isDepthTestEnabled();
+    combineValue(h, dt);
+    bool dw = d.isDepthUpdateAllowed();
+    combineValue(h, dw);
+    combineValue(h, d.depthTestPredicate());
+    bool st = d.isStencilTestEnabled();
+    combineValue(h, st);
+    uint8_t srm = d.stencilReadMask();
+    combineValue(h, srm);
+    uint8_t swm = d.stencilWriteMask();
+    combineValue(h, swm);
+    StencilBehavior ff = d.stencilBehaviorForFrontFacingTriangles();
+    combineValue(h, ff.st_fail);
+    combineValue(h, ff.st_pass_dt_fail);
+    combineValue(h, ff.st_pass_dt_pass);
+    combineValue(h, ff.cmp_fun);
+    StencilBehavior bf = d.stencilBehaviorForBackFacingTriangles();
+    combineValue(h, bf.st_fail);
+    combineValue(h, bf.st_pass_dt_fail);
+    combineValue(h, bf.st_pass_dt_pass);
+    combineValue(h, bf.cmp_fun);
+}
+
+void combineBlendDescriptor(misc::HashValue& h, BlendDescriptor const& b)
+{
+    bool en = b.isEnabled();
+    combineValue(h, en);
+    bool lo = b.isLogicalOperationEnabled();
+    combineValue(h, lo);
+    auto sb = b.getSourceBlendFactors();
+    combineValue(h, sb.first);
+    combineValue(h, sb.second);
+    auto db = b.getDestinationBlendFactors();
+    combineValue(h, db.first);
+    combineValue(h, db.second);
+    auto bo = b.getBlendOperation();
+    combineValue(h, bo.first);
+    combineValue(h, bo.second);
+    combineValue(h, b.getBlendLogicalOperation());
+    uint32_t cwm = b.getColorWriteMask().getValue();
+    combineValue(h, cwm);
+}
+
+void combineBlendState(misc::HashValue& h, BlendState const& s)
+{
+    combineValue(h, s.alphaToCoverageEnable);
+    combineValue(h, s.independentBlendEnable);
+    for (int i = 0; i < 8; ++i)
+        combineBlendDescriptor(h, s.render_target_blend_descriptor[i]);
+}
+
+void combineVertexAttributes(misc::HashValue& h, VertexAttributeSpecificationList const& list)
+{
+    uint64_t count = static_cast<uint64_t>(list.size());
+    combineValue(h, count);
+    for (auto const& spec_ptr : list) 
+    {
+        if (!spec_ptr) 
+        {
+            uint64_t zero = 0;
+            combineValue(h, zero);
+            continue;
+        }
+        AbstractVertexAttributeSpecification const& s = *spec_ptr;
+        std::string const& name = s.name();
+        uint64_t name_len = static_cast<uint64_t>(name.size());
+        combineValue(h, name_len);
+        if (name_len)
+            h.combine(name.data(), name.size());
+        uint32_t ni = s.name_index();
+        combineValue(h, ni);
+        unsigned char slot = s.input_slot();
+        combineValue(h, slot);
+        unsigned char size = s.size();
+        combineValue(h, size);
+        unsigned char cap = s.capacity();
+        combineValue(h, cap);
+        uint32_t off = s.offset();
+        combineValue(h, off);
+        unsigned int rate = s.instancingRate();
+        combineValue(h, rate);
+        DXGI_FORMAT fmt = s.format<EngineApi::Direct3D12>();
+        combineValue(h, fmt);
+    }
+}
+
+void combineStreamOutput(misc::HashValue& h, StreamOutput const& so)
+{
+    uint64_t decl_count = static_cast<uint64_t>(so.so_declarations.size());
+    combineValue(h, decl_count);
+    for (auto const& e : so.so_declarations) 
+    {
+        uint32_t s = e.stream();
+        combineValue(h, s);
+        std::string const& n = e.name();
+        uint64_t nlen = static_cast<uint64_t>(n.size());
+        combineValue(h, nlen);
+        if (nlen)
+            h.combine(n.data(), n.size());
+        uint32_t ni = e.nameIndex();
+        combineValue(h, ni);
+        auto oc = e.outputComponents();
+        combineValue(h, oc.first);
+        combineValue(h, oc.second);
+        uint8_t slot = e.slot();
+        combineValue(h, slot);
+    }
+    uint64_t stride_count = static_cast<uint64_t>(so.buffer_strides.size());
+    combineValue(h, stride_count);
+    if (stride_count)
+        h.combine(so.buffer_strides.data(), so.buffer_strides.size() * sizeof(uint32_t));
+    combineValue(h, so.rasterized_stream);
+}
+
 }
 
 ComPtr<ID3D12PipelineState> PipelineState::native() const
@@ -52,12 +200,10 @@ D3DDataBlob PipelineState::getCache() const
     return D3DDataBlob{ p_blob };
 }
 
-PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
+PipelineState::PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const& root_signature,
     GraphicsPSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso):
     m_device{ *globals.get<Device>() }
 {
-    ComPtr<ID3D12RootSignature> root_signature = m_device.createRootSignature(serialized_root_signature, root_signature_friendly_name, pso_descriptor.node_mask);
-
     D3D12_GRAPHICS_PIPELINE_STATE_DESC desc;
     memset(&desc, 0, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 
@@ -234,17 +380,13 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
         S_OK
     );
 
-    // delete[] p_so_declaration_entries;
-    // delete[] p_buffer_strides;
-    // delete[] p_input_element_descs;
+    pso_descriptor.invalidateHash();
 }
 
-PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
+PipelineState::PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const& root_signature,
     ComputePSODescriptor const & pso_descriptor, D3DDataBlob const& cached_pso):
     m_device{ *globals.get<Device>() }
 {
-    ComPtr<ID3D12RootSignature> root_signature = m_device.createRootSignature(serialized_root_signature, root_signature_friendly_name, pso_descriptor.node_mask);
-
     D3D12_COMPUTE_PIPELINE_STATE_DESC desc;
     desc.pRootSignature = root_signature.Get();
     desc.CS = D3D12_SHADER_BYTECODE{ pso_descriptor.compute_shader.data(), pso_descriptor.compute_shader.size() };
@@ -264,12 +406,65 @@ PipelineState::PipelineState(Globals& globals, D3DDataBlob const& serialized_roo
         m_device.native()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&m_pipeline_state)), 
         S_OK
     );
+
+    pso_descriptor.invalidateHash();
 }
 
 void PipelineState::setStringName(std::string const& entity_string_name)
 {
     Entity::setStringName(entity_string_name);
     m_pipeline_state->SetName(misc::asciiStringToWstring(entity_string_name).c_str());
+}
+
+misc::HashValue const* GraphicsPSODescriptor::hash() const
+{
+    if (m_hash_value) return m_hash_value.get();
+
+    auto h = std::make_unique<misc::hashes::Blake3_256>();
+    static constexpr char hash_signature[] = "lexgine::core::dx::d3d12::GraphicsPSODescriptor";
+    h->create(hash_signature, sizeof(hash_signature));
+
+    combineBlob(*h, vertex_shader);
+    combineBlob(*h, hull_shader);
+    combineBlob(*h, domain_shader);
+    combineBlob(*h, geometry_shader);
+    combineBlob(*h, pixel_shader);
+
+    combineStreamOutput(*h, stream_output);
+    combineBlendState(*h, blend_state);
+    combineRasterizer(*h, rasterization_descriptor);
+    combineDepthStencil(*h, depth_stencil_descriptor);
+    combineVertexAttributes(*h, vertex_attributes);
+
+    combineValue(*h, primitive_restart);
+    combineValue(*h, primitive_topology_type);
+    combineValue(*h, num_render_targets);
+    h->combine(rtv_formats, sizeof(rtv_formats));
+    combineValue(*h, dsv_format);
+    combineValue(*h, node_mask);
+    combineValue(*h, sample_mask);
+    combineValue(*h, multi_sampling_format.count);
+    combineValue(*h, multi_sampling_format.quality);
+
+    h->finalize();
+    m_hash_value = std::shared_ptr<misc::HashValue const>{ std::move(h) };
+    return m_hash_value.get();
+}
+
+misc::HashValue const* ComputePSODescriptor::hash() const
+{
+    if (m_hash_value) return m_hash_value.get();
+
+    auto h = std::make_unique<misc::hashes::Blake3_256>();
+    static constexpr char hash_signature[] = "lexgine::core::dx::d3d12::ComputePSODescriptor";
+    h->create(hash_signature, sizeof(hash_signature));
+
+    combineBlob(*h, compute_shader);
+    combineValue(*h, node_mask);
+
+    h->finalize();
+    m_hash_value = std::shared_ptr<misc::HashValue const>{ std::move(h) };
+    return m_hash_value.get();
 }
 
 GraphicsPSODescriptor::GraphicsPSODescriptor()

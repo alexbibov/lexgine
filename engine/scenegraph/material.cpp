@@ -7,9 +7,10 @@
 #include <engine/core/dx/d3d12/device.h>
 #include <engine/core/dx/d3d12/basic_rendering_services.h>
 #include <engine/core/dx/d3d12/tasks/root_signature_builder.h>
-#include <engine/core/dx/d3d12/tasks/pso_compilation_task.h>
-#include <engine/core/dx/d3d12/caches/pso_compilation_task_cache.h>
+#include <engine/core/dx/d3d12/caches/pso_blob_cache.h>
+#include <engine/core/dx/d3d12/tasks/hlsl_compilation_task.h>
 #include <engine/core/dx/d3d12/unordered_srv_table_allocation_manager.h>
+#include <engine/core/misc/datetime.h>
 #include <engine/core/dx/d3d12/dx_resource_factory.h>
 #include <engine/core/dx/dxcompilation/shader_stage.h>
 #include <engine/conversion/texture_converter.h>
@@ -78,9 +79,6 @@ MaterialAssemblyTask::MaterialAssemblyTask(
 	}
 	m_pso_descriptor.multi_sampling_format = core::MultiSamplingFormat{ static_cast<uint32_t>(msaa_mode), msaa_quality_level };
 
-    core::dx::d3d12::caches::PSOCompilationTaskCache& pso_compilation_task_cache = *m_shader_function.globals().get<core::dx::d3d12::caches::PSOCompilationTaskCache>();
-	m_pso_compilation_task = pso_compilation_task_cache.findOrCreateTask(m_shader_function.globals(), m_pso_descriptor, getStringName() + "__PSO", 0);
-
     assert(shaders.p_vertex_shader_compilation_task && shaders.p_pixel_shader_compilation_task);
 	core::dx::d3d12::tasks::HLSLCompilationTask* p_vertex_shader_compilation_task = shaders.p_vertex_shader_compilation_task;
 	this->addDependency(*p_vertex_shader_compilation_task);
@@ -123,24 +121,31 @@ bool MaterialAssemblyTask::doTask(uint8_t worker_id, uint64_t user_data)
     {
         return false;
     }
-    m_pso_compilation_task->setRootSignature(m_root_signature_builder->getTaskData());
 
-    core::dx::d3d12::GraphicsPSODescriptor& pso_descriptor = m_pso_compilation_task->getDescriptor();
-    pso_descriptor.vertex_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::vertex)->getTask()->getTaskData();
-    pso_descriptor.pixel_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->getTask()->getTaskData();
+    // Fill descriptor's shader bytecodes from completed shader tasks (they're dependencies of
+    // this task so they have finished by the time we run), then submit the contract and drain
+    // the PSO cache. The descriptor's hash depends on the shader bytecodes so it must be
+    // invalidated before contract creation.
+    m_pso_descriptor.vertex_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::vertex)->getTask()->getTaskData();
+    m_pso_descriptor.pixel_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->getTask()->getTaskData();
     if (auto* p_compilation_task = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::hull)->getTask())
-    {
-        pso_descriptor.hull_shader = p_compilation_task->getTaskData();
-    }
+        m_pso_descriptor.hull_shader = p_compilation_task->getTaskData();
     if (auto* p_compilation_task = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::domain)->getTask())
-    {
-        pso_descriptor.domain_shader = p_compilation_task->getTaskData();
-    }
-    if (auto* p_compilation_task = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::geometry)->getTask()) 
-    {
-        pso_descriptor.geometry_shader = p_compilation_task->getTaskData();
-    }
-    return m_pso_compilation_task->execute(worker_id);
+        m_pso_descriptor.domain_shader = p_compilation_task->getTaskData();
+    if (auto* p_compilation_task = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::geometry)->getTask())
+        m_pso_descriptor.geometry_shader = p_compilation_task->getTaskData();
+    m_pso_descriptor.invalidateHash();
+
+    // TODO(rs-refactor): obtain a RootSignatureHandle from the RS cache once ShaderFunction
+    // is migrated. For now m_root_signature_builder remains a raw pointer.
+    core::dx::d3d12::caches::RootSignatureHandle rs_handle { nullptr };
+
+    core::dx::d3d12::caches::PSOBlobCache& pso_blob_cache = *m_basic_rendering_services.globals().get<core::dx::d3d12::caches::PSOBlobCache>();
+    m_pso_handle = pso_blob_cache.createGraphicsPSOBlobCompilationContract(
+        m_pso_descriptor, rs_handle, core::misc::DateTime::buildTime());
+    pso_blob_cache.createPipelineStates();
+    m_pso = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
+    return m_pso != nullptr;
 }
 
 void MaterialAssemblyTask::bindMaterialParameters(

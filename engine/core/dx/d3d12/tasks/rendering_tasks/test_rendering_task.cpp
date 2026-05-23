@@ -9,10 +9,9 @@
 #include "engine/core/dx/d3d12/device.h"
 #include "engine/core/dx/d3d12/basic_rendering_services.h"
 #include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
-#include "engine/core/dx/d3d12/caches/pso_compilation_task_cache.h"
+#include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
 #include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
-#include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 
 #include "engine/core/dx/dxcompilation/shader_stage.h"
@@ -226,7 +225,7 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
     if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::color_format_changed)
         || update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
-        PSOCompilationTaskCache& pso_compilation_task_cache = *m_globals.get<PSOCompilationTaskCache>();
+        PSOBlobCache& pso_blob_cache = *m_globals.get<PSOBlobCache>();
 
         GraphicsPSODescriptor pso_descriptor{};
         pso_descriptor.vertex_attributes = m_va_list;
@@ -236,15 +235,18 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
         pso_descriptor.primitive_topology_type = PrimitiveTopologyType::triangle;
         pso_descriptor.node_mask = 1;
         pso_descriptor.primitive_restart = true;
+        pso_descriptor.vertex_shader = m_vs->getTaskData();
+        pso_descriptor.pixel_shader = m_ps->getTaskData();
 
-        m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, pso_descriptor,
-            "test_rendering_pso_" + std::to_string(rendering_configuration.color_buffer_format)
-            + "_" + std::to_string(rendering_configuration.depth_buffer_format), 0);
-        m_pso->setVertexShaderCompilationTask(m_vs);
-        m_pso->setPixelShaderCompilationTask(m_ps);
-        m_pso->setRootSignatureBuilder(m_rs);
+        // TODO(rs-refactor): obtain a RootSignatureHandle from RootSignatureBlobCache once
+        // ShaderFunction::buildBindingSignature() is migrated. Today m_rs is a raw
+        // RootSignatureBuilder pointer and no name->handle mapping exists yet.
+        caches::RootSignatureHandle rs_handle { nullptr };
 
-        m_pso->execute(0);
+        m_pso_handle = pso_blob_cache.createGraphicsPSOBlobCompilationContract(
+            pso_descriptor, rs_handle, misc::DateTime::buildTime());
+        pso_blob_cache.createPipelineStates();
+        m_pso = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
     }
     if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::viewport_changed))
     {
@@ -260,7 +262,7 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
 
     m_basic_rendering_services.beginRendering(*m_cmd_list_ptr);
     
-    m_cmd_list_ptr->setPipelineState(m_pso->getTaskData());
+    m_cmd_list_ptr->setPipelineState(*m_pso);
     m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());
 
     m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);

@@ -3,6 +3,7 @@
 
 #include <d3d12.h>
 #include <wrl.h>
+#include <memory>
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
@@ -10,6 +11,7 @@
 #include "engine/core/class_names.h"
 #include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/misc/constant_converter.h"
+#include "engine/core/misc/hash_value.h"
 #include "engine/core/vertex_attributes.h"
 #include "engine/core/stream_output.h"
 #include "engine/core/multisampling.h"
@@ -72,6 +74,15 @@ struct GraphicsPSODescriptor
 
     //! initialized PSO descriptor using precompiled PSO blob
     GraphicsPSODescriptor(D3DDataBlob const& pso_blob);
+
+    //! computes (and caches) a content-based hash of the descriptor including shader bytecodes
+    misc::HashValue const* hash() const;
+
+    //! invalidates the cached hash so the next hash() call recomputes it
+    void invalidateHash() const { m_hash_value.reset(); }
+
+private:
+    mutable std::shared_ptr<misc::HashValue const> m_hash_value;
 };
 
 //! Encapsulates description of compute PSO
@@ -84,6 +95,12 @@ struct ComputePSODescriptor
     ComputePSODescriptor() = default;    //! constructs default compute PSO to be filled afterwards
     ComputePSODescriptor(D3DDataBlob const& cs, uint32_t node_mask);
     ComputePSODescriptor(D3DDataBlob const& pso_blob);
+
+    misc::HashValue const* hash() const;
+    void invalidateHash() const { m_hash_value.reset(); }
+
+private:
+    mutable std::shared_ptr<misc::HashValue const> m_hash_value;
 };
 
 
@@ -95,10 +112,10 @@ public:
     Device& device() const;    //! returns device interface used to create this PSO object
     D3DDataBlob getCache() const;    //! returns cached PSO packed into data blob
 
-    PipelineState(Globals& globals, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
+    PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const& root_signature,
         GraphicsPSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso = nullptr);    //! initializes graphics PSO
 
-    PipelineState(Globals& globals, D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name,
+    PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const& root_signature,
         ComputePSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso = nullptr);    //! initializes compute PSO
 
     PipelineState(PipelineState const&) = delete;

@@ -10,6 +10,8 @@
 #include "engine/core/dx/d3d12/pipeline_state.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
+#include "engine/core/dx/d3d12/caches/lexgine_core_dx_d3d12_caches_fwd.h"
+#include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
 
 #include "engine/core/dx/d3d12/resource_data_uploader.h"
 #include "engine/core/dx/d3d12/vertex_buffer_binding.h"
@@ -127,7 +129,8 @@ private:
 
     tasks::HLSLCompilationTask* m_vs = nullptr;
     tasks::HLSLCompilationTask* m_ps = nullptr;
-    tasks::GraphicsPSOCompilationTask* m_pso = nullptr;
+    caches::GraphicsPSOHandle m_pso_handle { nullptr };
+    PipelineState const* m_pso = nullptr;
     VertexAttributeSpecificationList m_va_list;
     dxcompilation::ShaderFunction m_shader_function;
     GraphicsPSODescriptor m_pso_desc;

@@ -2,7 +2,6 @@
 #define LEXGINE_SCENEGRAPH_SUBMESH_H
 
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
-#include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "vertex_buffer_view.h"
 
 namespace lexgine::scenegraph

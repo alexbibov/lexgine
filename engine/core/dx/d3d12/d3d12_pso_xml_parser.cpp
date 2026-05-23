@@ -12,8 +12,10 @@
 
 #include "engine/core/dx/dxcompilation/common.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
-#include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
+#include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
+#include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
+#include "engine/core/misc/datetime.h"
 
 #include "engine/core/concurrency/task_sink.h"
 
@@ -844,16 +846,14 @@ public:
             shader_type, shader_entry_point_name);
     }
 
-    tasks::RootSignatureBuilder* retrieveRootSignatureBuilder(pugi::xml_node& node)
+    caches::RootSignatureHandle retrieveRootSignatureHandle(pugi::xml_node& node)
     {
         std::string root_signature_name = node.attribute("root_signature_name").as_string("");
         if (root_signature_name.length())
         {
-            auto& rs_cache = m_parent.m_root_signature_blob_cache.storage();
-            tasks::RootSignatureBuilder& target_builder_ref =
-                *std::find_if(rs_cache.begin(), rs_cache.end(),
-                    [&root_signature_name](auto const& e) {return root_signature_name + "__ROOTSIGNATURE" == e.getCacheName(); });
-            return &target_builder_ref;
+            // TODO(rs-refactor): wire up name->handle lookup once RootSignatureBlobCache exposes it.
+            // Today RootSignatureBlobCache keys contracts on RootSignature::hash(), with no name index.
+            return caches::RootSignatureHandle { nullptr };
         }
         else
         {
@@ -864,7 +864,7 @@ public:
         }
     }
 
-    tasks::GraphicsPSOCompilationTask* parseGraphicsPSO(pugi::xml_node& node, uint32_t node_mask)
+    void parseGraphicsPSO(pugi::xml_node& node, uint32_t node_mask)
     { 
         GraphicsPSODescriptor currently_assembled_pso_descriptor{};
 
@@ -1228,52 +1228,45 @@ public:
             }
         }
 
-        // Define new PSO compilation task
-        tasks::GraphicsPSOCompilationTask* new_graphics_pso_compilation_task{ nullptr };
+        // Stage a pending graphics PSO; shader bytecode is filled in after shader compilation,
+        // then the cache contract is created using descriptor.hash() as identity.
+        std::array<tasks::HLSLCompilationTask*, 5> shader_tasks {
+            p_vs_compilation_task,
+            p_hs_compilation_task,
+            p_ds_compilation_task,
+            p_gs_compilation_task,
+            p_ps_compilation_task
+        };
+        for (tasks::HLSLCompilationTask* t : shader_tasks)
         {
-            uint64_t uid = misc::HashedString{ pso_cache_name }.hash();
-            new_graphics_pso_compilation_task = m_parent.m_pso_compilation_task_cache.findOrCreateTask(
-                m_parent.m_globals,
-                currently_assembled_pso_descriptor, 
-                pso_cache_name, 
-                uid);
-            
-            new_graphics_pso_compilation_task->setVertexShaderCompilationTask(p_vs_compilation_task);
-            if (p_hs_compilation_task) new_graphics_pso_compilation_task->setHullShaderCompilationTask(p_hs_compilation_task);
-            if (p_ds_compilation_task) new_graphics_pso_compilation_task->setDomainShaderCompilationTask(p_ds_compilation_task);
-            if (p_gs_compilation_task) new_graphics_pso_compilation_task->setGeometryShaderCompilationTask(p_gs_compilation_task);
-            new_graphics_pso_compilation_task->setPixelShaderCompilationTask(p_ps_compilation_task);
-
-            new_graphics_pso_compilation_task->setRootSignatureBuilder(retrieveRootSignatureBuilder(node));
+            if (t) m_parent.m_parsed_shader_tasks.push_back(t);
         }
-
-        return new_graphics_pso_compilation_task;
+        caches::RootSignatureHandle rs_handle = retrieveRootSignatureHandle(node);
+        m_parent.m_pending_graphics_psos.push_back({
+            std::move(currently_assembled_pso_descriptor),
+            shader_tasks,
+            rs_handle
+        });
     }
 
-    tasks::ComputePSOCompilationTask* parseComputePSO(pugi::xml_node& node, uint32_t node_mask)
+    void parseComputePSO(pugi::xml_node& node, uint32_t node_mask)
     {
         ComputePSODescriptor currently_assembled_pso_descriptor{};
-        
+
         std::string pso_cache_name = node.attribute("name").as_string(("ComputePSO_" + m_parent.getId().toString()).c_str()) + ("_node" + nodeMaskToString(node_mask));
+        (void) pso_cache_name;
 
         currently_assembled_pso_descriptor.node_mask = node_mask;
 
         tasks::HLSLCompilationTask* p_cs_compilation_task = parseAndAddToCompilationCacheShader(node, pso_cache_name);
-        
-        tasks::ComputePSOCompilationTask* new_pso_compilation_task{ nullptr };
-        {
-            uint64_t uid = misc::HashedString{ pso_cache_name }.hash();
+        if (p_cs_compilation_task) m_parent.m_parsed_shader_tasks.push_back(p_cs_compilation_task);
 
-            new_pso_compilation_task = m_parent.m_pso_compilation_task_cache.findOrCreateTask(
-                m_parent.m_globals,
-                currently_assembled_pso_descriptor, 
-                pso_cache_name, 
-                uid);
-            new_pso_compilation_task->setComputeShaderCompilationTask(p_cs_compilation_task);
-            new_pso_compilation_task->setRootSignatureBuilder(retrieveRootSignatureBuilder(node));
-        }
-
-        return new_pso_compilation_task;
+        caches::RootSignatureHandle rs_handle = retrieveRootSignatureHandle(node);
+        m_parent.m_pending_compute_psos.push_back({
+            std::move(currently_assembled_pso_descriptor),
+            p_cs_compilation_task,
+            rs_handle
+        });
     }
 
 
@@ -1349,7 +1342,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
     m_globals{ globals },
     m_root_signature_blob_cache{ *globals.get<caches::RootSignatureBlobCache>() },
     m_hlsl_compilation_task_cache{ *globals.get<task_caches::HLSLCompilationTaskCache>() },
-    m_pso_compilation_task_cache{ *globals.get<caches::PSOCompilationTaskCache>() },
+    m_pso_blob_cache{ *globals.get<caches::PSOBlobCache>() },
     m_source_xml{ xml_source },
     m_impl{ new impl{*this} }
 {
@@ -1364,11 +1357,11 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
         {
             if (std::strcmp(it->name(), "GraphicsPSO") == 0)
             {
-                m_parsed_graphics_pso_compilation_tasks.push_back(m_impl->parseGraphicsPSO(*it, node_mask));
+                m_impl->parseGraphicsPSO(*it, node_mask);
             }
             else if (std::strcmp(it->name(), "ComputePSO") == 0)
             {
-                m_parsed_compute_pso_compilation_tasks.push_back(m_impl->parseComputePSO(*it, node_mask));
+                m_impl->parseComputePSO(*it, node_mask);
             }
             else
             {
@@ -1388,142 +1381,97 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
         );
     }
 
-
-
+    // Shader compilation must complete before PSO descriptors can be hashed (descriptor.hash()
+    // includes shader bytecode), so shaders are drained first — either via the task graph or
+    // synchronously — before the PSO contracts are submitted to the cache.
     core::GlobalSettings const& global_settings = *m_globals.get<core::GlobalSettings>();
-    if (global_settings.isDeferredPSOCompilationOn())
+    if (global_settings.isDeferredShaderCompilationOn())
     {
         std::set<concurrency::TaskGraphRootNode*> root_tasks{};
-
+        for (tasks::HLSLCompilationTask* shader_task : m_parsed_shader_tasks)
         {
-            for (tasks::GraphicsPSOCompilationTask* t : m_parsed_graphics_pso_compilation_tasks)
-            {
-                concurrency::TaskGraphRootNode* vs_task_ptr = ROOT_NODE_CAST(t->getVertexShaderCompilationTask());
-                concurrency::TaskGraphRootNode* hs_task_ptr = ROOT_NODE_CAST(t->getHullShaderCompilationTask());
-                concurrency::TaskGraphRootNode* ds_task_ptr = ROOT_NODE_CAST(t->getDomainShaderCompilationTask());
-                concurrency::TaskGraphRootNode* gs_task_ptr = ROOT_NODE_CAST(t->getGeometryShaderCompilationTask());
-                concurrency::TaskGraphRootNode* ps_task_ptr = ROOT_NODE_CAST(t->getPixelShaderCompilationTask());
-
-                if (vs_task_ptr) root_tasks.insert(vs_task_ptr);
-                if (hs_task_ptr) root_tasks.insert(hs_task_ptr);
-                if (ds_task_ptr) root_tasks.insert(ds_task_ptr);
-                if (gs_task_ptr) root_tasks.insert(gs_task_ptr);
-                if (ps_task_ptr) root_tasks.insert(ps_task_ptr);
-
-                if (!global_settings.isDeferredShaderCompilationOn())
-                {
-                    vs_task_ptr->execute(0);
-                    hs_task_ptr->execute(0);
-                    ds_task_ptr->execute(0);
-                    gs_task_ptr->execute(0);
-                    ps_task_ptr->execute(0);
-                }
-            }
-
-            for (tasks::ComputePSOCompilationTask* t : m_parsed_compute_pso_compilation_tasks)
-            {
-                concurrency::TaskGraphRootNode* cs_task_ptr = ROOT_NODE_CAST(t->getComputeShaderCompilationTask());
-
-                if (cs_task_ptr) root_tasks.insert(cs_task_ptr);
-
-                if (!global_settings.isDeferredShaderCompilationOn())
-                    cs_task_ptr->execute(0);
-            }
+            if (concurrency::TaskGraphRootNode* node = ROOT_NODE_CAST(shader_task))
+                root_tasks.insert(node);
         }
 
-        #if 0
-        for (auto& task : m_parsed_graphics_pso_compilation_tasks)
-            task->addDependent(*m_impl->deferredShaderCompilationExitTask());
-
-        for (auto& task : m_parsed_compute_pso_compilation_tasks)
-            task->addDependent(*m_impl->deferredShaderCompilationExitTask());
-        #endif
-
-
-        concurrency::TaskGraph pso_compilation_task_graph{ std::unordered_set<concurrency::TaskGraphRootNode const*>{root_tasks.begin(), root_tasks.end()},
-            global_settings.getNumberOfWorkers(), "deferred_pso_compilation_task_graph" };
-        
-
-        #ifdef LEXGINE_D3D12DEBUG
-        pso_compilation_task_graph.createDotRepresentation("deferred_pso_compilation_task_graph__" + getId().toString() + ".gv");
-        #endif
-
-        std::vector<std::ostream*> worker_log_streams(global_settings.getNumberOfWorkers());
-        concurrency::TaskSink task_sink{ pso_compilation_task_graph, "pso_compilation_task_sink_" + getId().toString() };
-        task_sink.start();
-
-        #if 0
-        m_impl->deferredShaderCompilationExitTask()->setInput(&task_sink);
-        #endif
-
-        try
+        if (!root_tasks.empty())
         {
-            task_sink.submit(0);
-        }
-        catch (core::Exception& e)
-        {
-            std::string error_message = std::string{ "Unable to compile PSO blobs from XML description (" } +e.what() + "). See logs for further details";
-            misc::Log::retrieve()->out(error_message, misc::LogMessageType::error);
-            throw core::Exception{ *this, error_message };
+            concurrency::TaskGraph shader_compilation_task_graph{
+                std::unordered_set<concurrency::TaskGraphRootNode const*>{ root_tasks.begin(), root_tasks.end() },
+                global_settings.getNumberOfWorkers(),
+                "deferred_pso_shader_compilation_task_graph"
+            };
+
+            #ifdef LEXGINE_D3D12DEBUG
+            shader_compilation_task_graph.createDotRepresentation("deferred_pso_shader_compilation_task_graph__" + getId().toString() + ".gv");
+            #endif
+
+            concurrency::TaskSink task_sink{ shader_compilation_task_graph, "pso_shader_compilation_task_sink_" + getId().toString() };
+            task_sink.start();
+
+            try
+            {
+                task_sink.submit(0);
+            }
+            catch (core::Exception& e)
+            {
+                std::string error_message = std::string{ "Unable to compile PSO shader dependencies from XML description (" } + e.what() + "). See logs for further details";
+                misc::Log::retrieve()->out(error_message, misc::LogMessageType::error);
+                throw core::Exception{ *this, error_message };
+            }
         }
     }
     else
     {
-        // since PSO compilation is dependent on root signature and shader compilation
-        // immediate compilation of the PSOs requires the related shaders as well as the 
-        // root signatures to be also compiled in immediate mode
-
-        for (auto t : m_parsed_graphics_pso_compilation_tasks)
+        for (tasks::HLSLCompilationTask* shader_task : m_parsed_shader_tasks)
         {
-            // compile the shaders
-            t->getVertexShaderCompilationTask()->execute(0);
-            t->getHullShaderCompilationTask()->execute(0);
-            t->getDomainShaderCompilationTask()->execute(0);
-            t->getGeometryShaderCompilationTask()->execute(0);
-            t->getPixelShaderCompilationTask()->execute(0);
-
-            // compile to root signature
-            t->getRootSignatureBuilder()->build(0);
-
-            // compile the PSO itself
-            t->execute(0);
-
-            if (t->getErrorState())
-            {
-                std::string error_message = std::string{ "Unable to compile graphics PSO blob for task \"" } + t->getCacheName() + "\" (" 
-                    + t->getErrorString() + "). See logs for further details.";
-                misc::Log::retrieve()->out(error_message, misc::LogMessageType::error);
-                throw core::Exception{ *this, error_message };
-            }
+            shader_task->execute(0);
         }
-
-        for (auto t : m_parsed_compute_pso_compilation_tasks)
-        {
-            t->getComputeShaderCompilationTask()->execute(0);
-            t->getRootSignatureBuilder()->build(0);
-            t->execute(0);
-
-            if (t->getErrorState())
-            {
-                std::string error_message = std::string{ "Unable to compile compute PSO blob for task \"" } + t->getCacheName() + "\" (" 
-                    + t->getErrorString() + "). See logs for further details.";
-                misc::Log::retrieve()->out(error_message, misc::LogMessageType::error);
-                throw core::Exception{ *this, error_message };
-            }
-        }
-
-        // m_impl->deferredShaderCompilationExitTask()->execute_manually();
     }
+
+    // Fill shader bytecodes into the staged descriptors, then materialize PSO contracts.
+    m_parsed_graphics_pso_handles.reserve(m_pending_graphics_psos.size());
+    for (PendingGraphicsPSO& p : m_pending_graphics_psos)
+    {
+        if (!p.descriptor.vertex_shader && p.shader_tasks[0])
+            p.descriptor.vertex_shader = p.shader_tasks[0]->getTaskData();
+        if (!p.descriptor.hull_shader && p.shader_tasks[1])
+            p.descriptor.hull_shader = p.shader_tasks[1]->getTaskData();
+        if (!p.descriptor.domain_shader && p.shader_tasks[2])
+            p.descriptor.domain_shader = p.shader_tasks[2]->getTaskData();
+        if (!p.descriptor.geometry_shader && p.shader_tasks[3])
+            p.descriptor.geometry_shader = p.shader_tasks[3]->getTaskData();
+        if (!p.descriptor.pixel_shader && p.shader_tasks[4])
+            p.descriptor.pixel_shader = p.shader_tasks[4]->getTaskData();
+        p.descriptor.invalidateHash();
+        m_parsed_graphics_pso_handles.push_back(
+            m_pso_blob_cache.createGraphicsPSOBlobCompilationContract(
+                p.descriptor, p.rs_handle, misc::DateTime::buildTime()));
+    }
+
+    m_parsed_compute_pso_handles.reserve(m_pending_compute_psos.size());
+    for (PendingComputePSO& p : m_pending_compute_psos)
+    {
+        if (!p.descriptor.compute_shader && p.compute_shader_task)
+            p.descriptor.compute_shader = p.compute_shader_task->getTaskData();
+        p.descriptor.invalidateHash();
+        m_parsed_compute_pso_handles.push_back(
+            m_pso_blob_cache.createComputePSOBlobCompilationContract(
+                p.descriptor, p.rs_handle, misc::DateTime::buildTime()));
+    }
+
+    m_root_signature_blob_cache.createRootSignatures();
+    m_pso_blob_cache.createPipelineStates();
 }
 
 D3D12PSOXMLParser::~D3D12PSOXMLParser() = default;
 
-std::vector<tasks::GraphicsPSOCompilationTask*> const& D3D12PSOXMLParser::graphicsPSOCompilationTasks() const
+std::vector<caches::GraphicsPSOHandle> const& D3D12PSOXMLParser::graphicsPSOHandles() const
 {
-    return m_parsed_graphics_pso_compilation_tasks;
+    return m_parsed_graphics_pso_handles;
 }
 
-std::vector<tasks::ComputePSOCompilationTask*> const& D3D12PSOXMLParser::computePSOCompilationTasks() const
+std::vector<caches::ComputePSOHandle> const& D3D12PSOXMLParser::computePSOHandles() const
 {
-    return m_parsed_compute_pso_compilation_tasks;
+    return m_parsed_compute_pso_handles;
 }

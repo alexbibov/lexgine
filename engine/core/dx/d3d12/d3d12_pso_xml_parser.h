@@ -3,19 +3,22 @@
 
 #include <string>
 #include <list>
+#include <vector>
+#include <array>
 
 #include "pipeline_state.h"
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
 #include "task_caches/hlsl_compilation_task_cache.h"
 #include "caches/lexgine_core_dx_d3d12_caches_fwd.h"
+#include "caches/pso_blob_cache.h"
 #include "engine/core/globals.h"
 
 
 namespace lexgine::core::dx::d3d12 {
 
 /*! Convenience class that parses supplied XML descriptions of PSO objects and constructs
- corresponding GraphicsPSODescriptor and ComputePSODescriptor structures. Note that this 
+ corresponding GraphicsPSODescriptor and ComputePSODescriptor structures. Note that this
  class is NOT thread safe
 */
 class D3D12PSOXMLParser : public NamedEntity<class_names::D3D12_PSOXMLParser>
@@ -29,19 +32,39 @@ public:
 
     ~D3D12PSOXMLParser() override;
 
-    std::vector<tasks::GraphicsPSOCompilationTask*> const& graphicsPSOCompilationTasks() const;
-    std::vector<tasks::ComputePSOCompilationTask*> const& computePSOCompilationTasks() const;
+    std::vector<caches::GraphicsPSOHandle> const& graphicsPSOHandles() const;
+    std::vector<caches::ComputePSOHandle> const& computePSOHandles() const;
 
 private:
     class impl;
 
     core::Globals& m_globals;
-    caches::RootSignatureBlobCache& m_root_signature_compilation_cache;
+    caches::RootSignatureBlobCache& m_root_signature_blob_cache;
     task_caches::HLSLCompilationTaskCache& m_hlsl_compilation_task_cache;
-    caches::PSOCompilationTaskCache& m_pso_compilation_task_cache;
+    caches::PSOBlobCache& m_pso_blob_cache;
 
-    std::vector<tasks::GraphicsPSOCompilationTask*> m_parsed_graphics_pso_compilation_tasks;
-    std::vector<tasks::ComputePSOCompilationTask*> m_parsed_compute_pso_compilation_tasks;
+    struct PendingGraphicsPSO
+    {
+        GraphicsPSODescriptor descriptor;
+        std::array<tasks::HLSLCompilationTask*, 5> shader_tasks;
+        caches::RootSignatureHandle rs_handle;
+    };
+
+    struct PendingComputePSO
+    {
+        ComputePSODescriptor descriptor;
+        tasks::HLSLCompilationTask* compute_shader_task;
+        caches::RootSignatureHandle rs_handle;
+    };
+
+    std::vector<PendingGraphicsPSO> m_pending_graphics_psos;
+    std::vector<PendingComputePSO> m_pending_compute_psos;
+
+    std::vector<caches::GraphicsPSOHandle> m_parsed_graphics_pso_handles;
+    std::vector<caches::ComputePSOHandle> m_parsed_compute_pso_handles;
+
+    // Shader tasks gathered during parsing — drained during construction to populate the PSO contracts.
+    std::vector<tasks::HLSLCompilationTask*> m_parsed_shader_tasks;
 
     std::string const m_source_xml;
     uint32_t m_node_mask;
