@@ -1,4 +1,5 @@
-#include "ranges"
+#include "utility"
+#include "tuple"
 
 #include "d3dcompiler.h"
 
@@ -24,90 +25,116 @@ RootSignatureBlobCache::RootSignatureBlobCache(Globals& globals)
 {
 }
 
+RootSignatureBlobCache::~RootSignatureBlobCache()
+{
+    waitTillReady();
+}
+
 GpuDataBlobCacheKey const* RootSignatureBlobCache::createRootSignatureBlobCompilationContract(
     RootSignature&& root_signature,
     RootSignatureFlags const& flags
 )
 {
+    std::unique_lock l { m_lock };
+    waitTillReady();
     GpuDataBlobCacheKey key = createGpuDataBlobCacheKey(*root_signature.hash(), flags);
     auto cit = m_contracts.find(key);
     if (cit != m_contracts.end())
     {
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(
-            this, 
-            std::format("Attempt to create duplicate root signature with key {}", key.toString())
-        );
+        return &cit->first;
     }
     auto [ncit, res] = m_contracts.emplace(
-        std::make_pair(
-            std::move(key),
-            RootSignatureDeferredBlobCompilationContract {
-                .root_signature = std::move(root_signature),
-                .flags = flags,
-                .task = std::packaged_task<Microsoft::WRL::ComPtr<ID3D12RootSignature>(GpuDataBlobCacheKey const*)> { std::bind(&RootSignatureBlobCache::compileRootSignatureBlob, this, std::placeholders::_1) },
-                .is_ready = false
-            }
-        )
+        std::piecewise_construct,
+        std::forward_as_tuple(std::move(key)),
+        std::forward_as_tuple(std::move(root_signature), flags, std::bind(&RootSignatureBlobCache::compileRootSignatureBlob, this, std::placeholders::_1))
     );
-    m_futures_vector_lut[ncit->first] = m_futures.size();
-    m_all_keys.push_back(&ncit->first);
-    m_futures.push_back(ncit->second.task.get_future());
-    return m_all_keys.back();
+    m_cached_rs.emplace(
+        std::make_pair(
+            &ncit->first,
+            RootSignatureCompilationResult {
+                .future = ncit->second.task.get_future(),
+                .rs = nullptr }));
+    return &ncit->first;
 }
 
 void RootSignatureBlobCache::createRootSignatures()
 {
-    if (m_contracts.empty())
-        return;
-
-    if (m_async_rs_creation)
+    std::unique_lock l { m_lock };
+    waitTillReady();
+    m_unresolved_contracts.clear();
+    m_unresolved_contracts.reserve(m_contracts.size());
+    for (auto& [k, c] : m_contracts)
     {
-        size_t num_threads = m_globals.get<GlobalSettings>()->getNumberOfWorkers();
-        size_t per_bucket_count = m_contracts.size() / num_threads;
-        size_t rem = m_contracts.size() % num_threads;
+        if (c.status.load() == RootSignatureBlobCompilationStatus::NotStarted)
+        {
+            m_unresolved_contracts.push_back(std::make_pair(&k, &c));
+        }
+    }
+    if (m_unresolved_contracts.empty())
+        return;
+    size_t num_threads = m_globals.get<GlobalSettings>()->getNumberOfWorkers();
+    if (m_async_rs_creation && num_threads > 0)
+    {
+        size_t per_bucket_count = m_unresolved_contracts.size() / num_threads;
+        size_t rem = m_unresolved_contracts.size() % num_threads;
+        if (per_bucket_count == 0)
+        {
+            num_threads = rem;
+        }
+        m_worker_threads.reserve(num_threads);
         for (size_t i = 0; i < num_threads; ++i) 
         {
-            std::thread t 
-            {
-                [this](size_t start, size_t count) 
+            m_worker_threads.emplace_back(
+                std::thread
                 {
-                    for (size_t j = start; j < start + count; ++j) 
+                    [this](size_t start, size_t count) 
                     {
-                        const GpuDataBlobCacheKey* p_key = m_all_keys[j];
-                        RootSignatureDeferredBlobCompilationContract& contract = m_contracts[*p_key];
-                        contract.task(p_key);
-                        contract.is_ready.store(true);
-                    }
-                },
-                per_bucket_count * i + (i < rem ? i : rem),
-                per_bucket_count + (i < rem ? 1 : 0)
-            };
-            t.detach();
+                        for (size_t j = start; j < start + count; ++j) 
+                        {
+                            auto [p_key, p_contract] = m_unresolved_contracts[j];
+                            p_contract->task(p_key);
+                        }
+                    },
+                    per_bucket_count * i + (i < rem ? i : rem),
+                    per_bucket_count + (i < rem ? 1 : 0)
+                }
+            );
         }
     }
     else
     {
-        for (auto& [k, c] : m_contracts)
+        for (auto& [p_key, p_contract] : m_unresolved_contracts)
         {
-            c.task(&k);
-            c.is_ready.store(true);
+            p_contract->task(p_key);
         }
     }
 }
 
 Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureBlobCache::getNativeRootSignature(GpuDataBlobCacheKey const* key) const
 {
-    auto it = m_contracts.find(*key);
-    if (it == m_contracts.end() || !it->second.is_ready.load())
-    {
+    std::unique_lock l { m_lock };
+    auto cit = m_contracts.find(*key);
+    if (cit == m_contracts.end()
+        || cit->second.status.load() != RootSignatureBlobCompilationStatus::Completed)
         return nullptr;
-    }
-    return m_futures[m_futures_vector_lut.at(*key)].get();
-}
+    auto rsit = m_cached_rs.find(key);
+    if (rsit == m_cached_rs.end())
+        return nullptr;
+    if (rsit->second.rs)
+        return rsit->second.rs;
+    rsit->second.rs = rsit->second.future.get();
+    assert(rsit->second.rs);
+    return rsit->second.rs;
+ }
 
 Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureBlobCache::compileRootSignatureBlob(
     GpuDataBlobCacheKey const* key)
 {
+    auto cit = m_contracts.find(*key);
+    assert(cit != m_contracts.end());
+
+    cit->second.status.store(RootSignatureBlobCompilationStatus::Failed);
+
     D3DDataBlob rs_blob { nullptr };
     SharedDataChunk cached_rs_blob {};
     if (m_gpu_blob_cache) {
@@ -122,10 +149,6 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureBlobCache::compileRootS
         }
     }
     if (!rs_blob) {
-        auto cit = m_contracts.find(*key);
-        if (cit == m_contracts.end()) {
-            return nullptr;
-        }
         RootSignatureDeferredBlobCompilationContract& contract = cit->second;
         rs_blob = contract.root_signature.compile(contract.flags);
         if (contract.root_signature.getErrorState())
@@ -139,7 +162,12 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureBlobCache::compileRootS
         }
     }
     assert(rs_blob);
-    return m_device.createRootSignature(rs_blob);
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> rs = m_device.createRootSignature(rs_blob);
+    if (rs) 
+    {
+        cit->second.status.store(RootSignatureBlobCompilationStatus::Completed);
+    }
+    return rs;
 }
 
 GpuDataBlobCacheKey RootSignatureBlobCache::createGpuDataBlobCacheKey(
@@ -164,29 +192,17 @@ GpuDataBlobCacheKey RootSignatureBlobCache::createGpuDataBlobCacheKey(
     return GpuDataBlobCacheKey { manifest, rs_key };
 }
 
-bool RootSignatureBlobCache::isReady(GpuDataBlobCacheKey const* key) const
+void RootSignatureBlobCache::waitTillReady()
 {
-    return m_contracts.at(*key).is_ready.load();
-}
-bool RootSignatureBlobCache::isReady() const
-{
-    for (auto& c : std::views::values(m_contracts))
+    std::unique_lock l { m_lock };
+    for (std::thread& t : m_worker_threads)
     {
-        if (!c.is_ready.load())
-            return false;
+        if (t.joinable())
+        {
+            t.join();
+        }
     }
-    return true;
-}
-
-bool RootSignatureBlobCache::waitTillReady(const std::chrono::milliseconds& timeout) const
-{
-    for (auto& [k, future_offset] : m_futures_vector_lut)
-    {
-        m_futures[future_offset].wait_for(timeout);
-        if (!m_contracts.at(k).is_ready.load())
-            return false;
-    }
-    return true;
+    m_worker_threads.clear();
 }
 
 
