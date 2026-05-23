@@ -3,8 +3,11 @@
 
 namespace lexgine::core::dx::d3d12::caches {
 
-class PSOCompilationTaskCache;
+class PSOBlobCache;
 class RootSignatureBlobCache;
+struct GraphicsPSOHandle;
+struct ComputePSOHandle;
+struct RootSignatureHandle;
 
 }
 

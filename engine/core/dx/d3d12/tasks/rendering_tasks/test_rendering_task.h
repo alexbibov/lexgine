@@ -4,6 +4,8 @@
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
+#include "engine/core/dx/d3d12/caches/lexgine_core_dx_d3d12_caches_fwd.h"
+#include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
 #include "engine/core/concurrency/schedulable_task.h"
 
 #include "engine/core/dx/d3d12/resource_data_uploader.h"
@@ -52,7 +54,8 @@ private:
     RootSignatureBuilder* m_rs = nullptr;
     HLSLCompilationTask* m_vs = nullptr;
     HLSLCompilationTask* m_ps = nullptr;
-    GraphicsPSOCompilationTask* m_pso = nullptr;
+    caches::GraphicsPSOHandle m_pso_handle { nullptr };
+    PipelineState const* m_pso = nullptr;
 
     std::array<float, 64> m_box_vertices;
     std::array<short, 36> m_box_indices;

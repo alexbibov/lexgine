@@ -11,9 +11,9 @@
 #include "engine/core/dx/d3d12/basic_rendering_services.h"
 #include "engine/core/dx/d3d12/descriptor_table_builders.h"
 #include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
-#include "engine/core/dx/d3d12/tasks/pso_compilation_task.h"
-#include "engine/core/dx/d3d12/caches/pso_compilation_task_cache.h"
+#include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
 #include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
+#include "engine/core/misc/datetime.h"
 #include "engine/core/dx/dxcompilation/shader_stage.h"
 #include "engine/core/math/utility.h"
 #include "ui_draw_task.h"
@@ -314,7 +314,7 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
     if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::color_format_changed)
         || update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
-        caches::PSOCompilationTaskCache& pso_compilation_task_cache = *m_globals.get<caches::PSOCompilationTaskCache>();
+        caches::PSOBlobCache& pso_blob_cache = *m_globals.get<caches::PSOBlobCache>();
 
         if (!m_pso)
         {
@@ -346,23 +346,27 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
                 DepthStencilDescriptor depth_stencil_descriptor{ false, true, ComparisonFunction::always };
                 m_pso_desc.depth_stencil_descriptor = depth_stencil_descriptor;
             }
-
-            m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, m_pso_desc,
-                "ui_rendering_pso__" + std::to_string(rendering_configuration.color_buffer_format)
-                + "__" + std::to_string(rendering_configuration.depth_buffer_format), 0);
-            m_pso->setVertexShaderCompilationTask(m_vs);
-            m_pso->setPixelShaderCompilationTask(m_ps);
-            m_pso->setRootSignatureBuilder(m_shader_function.buildBindingSignature());
         }
         else
         {
             m_pso_desc.rtv_formats[0] = rendering_configuration.color_buffer_format;
             m_pso_desc.dsv_format = rendering_configuration.depth_buffer_format;
-            m_pso = pso_compilation_task_cache.findOrCreateTask(m_globals, m_pso_desc,
-                "ui_rendering_pso__" + std::to_string(rendering_configuration.color_buffer_format)
-                + "__" + std::to_string(rendering_configuration.depth_buffer_format), 0);
         }
-        m_pso->execute(0);
+
+        // TODO(rs-refactor): obtain a RootSignatureHandle once
+        // ShaderFunction::buildBindingSignature() is migrated to publish into the RS cache.
+        caches::RootSignatureHandle rs_handle { nullptr };
+
+        if (m_vs) m_vs->execute(0);
+        if (m_ps) m_ps->execute(0);
+        m_pso_desc.vertex_shader = m_vs ? m_vs->getTaskData() : D3DDataBlob { nullptr };
+        m_pso_desc.pixel_shader  = m_ps ? m_ps->getTaskData() : D3DDataBlob { nullptr };
+        m_pso_desc.invalidateHash();
+
+        m_pso_handle = pso_blob_cache.createGraphicsPSOBlobCompilationContract(
+            m_pso_desc, rs_handle, misc::DateTime::buildTime());
+        pso_blob_cache.createPipelineStates();
+        m_pso = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
     }
 }
 
@@ -789,7 +793,7 @@ void UIDrawTask::drawFrame()
                 1.f
             );
 
-            m_cmd_list_ptr->setPipelineState(m_pso->getTaskData());
+            m_cmd_list_ptr->setPipelineState(*m_pso);
             m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());
 
             m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);

@@ -37,8 +37,8 @@ public:
     virtual unsigned char capacity() const = 0;
 
     //! Returns format type depending on the chosen graphics API
-    template<EngineApi API> typename va_format_type<API>::type format();
-    template<> auto format<EngineApi::Direct3D12>() -> typename va_format_type<EngineApi::Direct3D12>::type
+    template<EngineApi API> typename va_format_type<API>::type format() const;
+    template<> auto format<EngineApi::Direct3D12>() const -> typename va_format_type<EngineApi::Direct3D12>::type
     {
         return d3d12VertexFormat();
     }
