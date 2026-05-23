@@ -1,6 +1,5 @@
 #include "pso_compilation_task.h"
 #include "hlsl_compilation_task.h"
-#include "root_signature_builder.h"
 #include "engine/core/exception.h"
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"

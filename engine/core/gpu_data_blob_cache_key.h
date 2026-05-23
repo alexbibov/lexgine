@@ -1,7 +1,9 @@
 #ifndef LEXGINE_CORE_GPU_DATA_BLOB_CACHE_KEY_H
 #define LEXGINE_CORE_GPU_DATA_BLOB_CACHE_KEY_H
 
-#include <array>
+#include "array"
+#include "concepts"
+
 #include "engine/core/misc/hash_value.h"
 #include "engine/core/misc/uuid.h"
 
@@ -77,11 +79,29 @@ private:
     size_t m_used_words { 0 };
 };
 
+template<typename T>
+concept LightWeightKey =
+    requires(T t) 
+    {
+        requires std::is_trivial_v<T>;
+        { t.p_internal } -> std::convertible_to<GpuDataBlobCacheKey const*>;
+    };
+
 struct GpuDataBlobCacheKeyHasher final
 {
     size_t operator()(GpuDataBlobCacheKey const& value) const
     {
         return value.hash();
+    }
+};
+
+template<typename T>
+requires LightWeightKey<T>
+struct LightWeightKeyHasher
+{
+    size_t operator()(T value) const
+    {
+        return std::hash<GpuDataBlobCacheKey const*>{}(value.p_internal);
     }
 };
 
