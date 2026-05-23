@@ -1,8 +1,13 @@
 #ifndef LEXGINE_CORE_DX_D3D12_CACHES_ROOT_SIGNATURE_BLOB_CACHE_H
 #define LEXGINE_CORE_DX_D3D12_CACHES_ROOT_SIGNATURE_BLOB_CACHE_H
+
 #include "unordered_map"
 #include "future"
-#include "chrono"
+#include "atomic"
+#include "functional"
+#include "vector"
+#include "mutex"
+#include "thread"
 
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
@@ -12,7 +17,14 @@
 
 namespace lexgine::core::dx::d3d12::caches {
 
-class RootSignatureBlobCache : public NamedEntity<class_names::D3D12_RootSignatureBlobCache>
+enum class RootSignatureBlobCompilationStatus 
+{
+    NotStarted,
+    Completed,
+    Failed
+};
+
+class RootSignatureBlobCache final : public NamedEntity<class_names::D3D12_RootSignatureBlobCache>
 {
 public:
     struct InternalKey
@@ -23,14 +35,13 @@ public:
 
 public:
     RootSignatureBlobCache(Globals& globals);
+    ~RootSignatureBlobCache();
     GpuDataBlobCacheKey const* createRootSignatureBlobCompilationContract(
         RootSignature&& root_signature,
         RootSignatureFlags const& flags
     );
     void createRootSignatures();
-    bool isReady(GpuDataBlobCacheKey const* key) const;
-    bool isReady() const;
-    bool waitTillReady(const std::chrono::milliseconds& timeout) const;
+    void waitTillReady();
     Microsoft::WRL::ComPtr<ID3D12RootSignature> getNativeRootSignature(GpuDataBlobCacheKey const* key) const;
 
 private:
@@ -39,7 +50,25 @@ private:
         RootSignature root_signature;
         RootSignatureFlags flags;
         std::packaged_task<Microsoft::WRL::ComPtr<ID3D12RootSignature>(GpuDataBlobCacheKey const*)> task;
-        std::atomic<bool> is_ready;
+        std::atomic<RootSignatureBlobCompilationStatus> status;
+        RootSignatureDeferredBlobCompilationContract(
+            RootSignature&& rs, 
+            RootSignatureFlags const& rs_flags,
+            std::function<Microsoft::WRL::ComPtr<ID3D12RootSignature>(GpuDataBlobCacheKey const*)> const& task
+        )
+            : root_signature{ std::move(rs) }
+            , flags{ rs_flags }
+            , task { task }
+            , status { RootSignatureBlobCompilationStatus::NotStarted }
+        {
+
+        }
+    };
+
+    struct RootSignatureCompilationResult
+    {
+        std::future<Microsoft::WRL::ComPtr<ID3D12RootSignature>> future;
+        Microsoft::WRL::ComPtr<ID3D12RootSignature> rs;
     };
 
 private:
@@ -55,14 +84,18 @@ private:
     Device& m_device;
     GpuDataBlobCache& m_gpu_blob_cache;
     bool m_async_rs_creation;
+    mutable std::recursive_mutex m_lock;
     std::unordered_map<
         GpuDataBlobCacheKey,
         RootSignatureDeferredBlobCompilationContract,
         GpuDataBlobCacheKeyHasher
     > m_contracts;
-    std::unordered_map<GpuDataBlobCacheKey, size_t> m_futures_vector_lut;
-    std::vector<GpuDataBlobCacheKey const*> m_all_keys;
-    mutable std::vector<std::future<Microsoft::WRL::ComPtr<ID3D12RootSignature>>> m_futures;
+    std::vector<std::pair<GpuDataBlobCacheKey const*, RootSignatureDeferredBlobCompilationContract*>> m_unresolved_contracts;
+    mutable std::unordered_map<
+        GpuDataBlobCacheKey const*, 
+        RootSignatureCompilationResult
+    > m_cached_rs;
+    std::vector<std::thread> m_worker_threads;
 };
 
 }
