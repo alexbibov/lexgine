@@ -1,5 +1,6 @@
-#include "utility"
-#include "tuple"
+#include <utility>
+#include <tuple>
+#include <chrono>
 
 #include "d3dcompiler.h"
 
@@ -93,7 +94,11 @@ void RootSignatureBlobCache::createRootSignatures()
                         for (size_t j = start; j < start + count; ++j) 
                         {
                             auto [p_key, p_contract] = m_unresolved_contracts[j];
-                            p_contract->task(p_key);
+                            RootSignatureBlobCompilationStatus expected_status = RootSignatureBlobCompilationStatus::NotStarted;
+                            if (p_contract->status.compare_exchange_strong(expected_status, RootSignatureBlobCompilationStatus::Started)) 
+                            {
+                                p_contract->task(p_key);
+                            }
                         }
                     },
                     per_bucket_count * i + (i < rem ? i : rem),
@@ -106,25 +111,51 @@ void RootSignatureBlobCache::createRootSignatures()
     {
         for (auto& [p_key, p_contract] : m_unresolved_contracts)
         {
+            p_contract->status.store(RootSignatureBlobCompilationStatus::Started);
             p_contract->task(p_key);
         }
     }
 }
 
-Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureBlobCache::getNativeRootSignature(RootSignatureHandle key) const
+std::pair<Microsoft::WRL::ComPtr<ID3D12RootSignature>, RootSignatureBlobCompilationStatus> RootSignatureBlobCache::getNativeRootSignature(RootSignatureHandle key) const
 {
     std::unique_lock l { m_lock };
     auto rsit = m_cached_rs.find(key);
     if (rsit == m_cached_rs.end())
-        return nullptr;
+        return std::make_pair(Microsoft::WRL::ComPtr<ID3D12RootSignature> {}, RootSignatureBlobCompilationStatus::NotScheduled);
     if (rsit->second.rs)
-        return rsit->second.rs;
-    RootSignatureDeferredBlobCompilationContract const& contract = *rsit->second.p_contract;
-    if (contract.status.load() != RootSignatureBlobCompilationStatus::Completed)
-        return nullptr;
+        return std::make_pair(rsit->second.rs, RootSignatureBlobCompilationStatus::Completed);
+    RootSignatureDeferredBlobCompilationContract& contract = *rsit->second.p_contract;
+    RootSignatureBlobCompilationStatus status = contract.status.load();
+    if (status == RootSignatureBlobCompilationStatus::NotStarted)
+    {
+        RootSignatureBlobCompilationStatus expected_status = RootSignatureBlobCompilationStatus::NotStarted;
+        if (contract.status.compare_exchange_strong(expected_status, RootSignatureBlobCompilationStatus::Started))
+        {
+            contract.task(key);
+            status = contract.status.load();
+        } 
+        else 
+        {
+            status = expected_status;
+        }
+    }
+    if (status == RootSignatureBlobCompilationStatus::Started) 
+    {
+        GlobalSettings const& global_settings = *m_globals.get<GlobalSettings>();
+        uint32_t timeout = global_settings.getMaxNonBlockingUploadBufferAllocationTimeout();
+        if (rsit->second.future.wait_for(std::chrono::milliseconds{ timeout }) != std::future_status::ready)
+        {
+            return std::make_pair(Microsoft::WRL::ComPtr<ID3D12RootSignature> {}, RootSignatureBlobCompilationStatus::Started);
+        }
+        status = contract.status.load();
+    }
+    if (status == RootSignatureBlobCompilationStatus::Failed) 
+    {
+        return std::make_pair(Microsoft::WRL::ComPtr<ID3D12RootSignature> {}, RootSignatureBlobCompilationStatus::Failed);
+    }
     rsit->second.rs = rsit->second.future.get();
-    assert(rsit->second.rs);
-    return rsit->second.rs;
+    return std::make_pair(rsit->second.rs, contract.status.load());
  }
 
 Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureBlobCache::compileRootSignatureBlob(
@@ -135,52 +166,62 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureBlobCache::compileRootS
     auto cit = m_contracts.find(*key.p_internal);
     assert(cit != m_contracts.end());
 
-    cit->second.status.store(RootSignatureBlobCompilationStatus::Failed);
+    try 
+    {
+        D3DDataBlob rs_blob { nullptr };
+        SharedDataChunk cached_rs_blob {};
+        Microsoft::WRL::ComPtr<ID3D12RootSignature> rs { nullptr };
 
-    D3DDataBlob rs_blob { nullptr };
-    SharedDataChunk cached_rs_blob {};
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> rs { nullptr };
-
-    if (m_gpu_blob_cache) {
-        cached_rs_blob = m_gpu_blob_cache.find(*key.p_internal);
-    }
-
-    if (cached_rs_blob.size() && cached_rs_blob.data()) {
-        Microsoft::WRL::ComPtr<ID3DBlob> d3d_blob { nullptr };
-        HRESULT hres = D3DCreateBlob(cached_rs_blob.size(), d3d_blob.GetAddressOf());
-        if (SUCCEEDED(hres)) {
-            memcpy(d3d_blob->GetBufferPointer(), cached_rs_blob.data(), cached_rs_blob.size());
-            rs_blob = D3DDataBlob { d3d_blob };
-        }
-        if (rs_blob) 
+        if (m_gpu_blob_cache) 
         {
-            rs = m_device.createRootSignature(rs_blob);
-            if (rs && !m_device.getErrorState()) 
+            cached_rs_blob = m_gpu_blob_cache.find(*key.p_internal);
+        }
+
+        if (cached_rs_blob.size() && cached_rs_blob.data()) 
+        {
+            Microsoft::WRL::ComPtr<ID3DBlob> d3d_blob { nullptr };
+            HRESULT hres = D3DCreateBlob(cached_rs_blob.size(), d3d_blob.GetAddressOf());
+            if (SUCCEEDED(hres)) 
             {
-                cit->second.status.store(RootSignatureBlobCompilationStatus::Completed);
-                return rs;
+                memcpy(d3d_blob->GetBufferPointer(), cached_rs_blob.data(), cached_rs_blob.size());
+                rs_blob = D3DDataBlob { d3d_blob };
+            }
+            if (rs_blob) 
+            {
+                rs = m_device.createRootSignature(rs_blob);
+                if (rs && !m_device.getErrorState()) 
+                {
+                    cit->second.status.store(RootSignatureBlobCompilationStatus::Completed);
+                    return rs;
+                }
             }
         }
-    }
-    
-    RootSignatureDeferredBlobCompilationContract& contract = cit->second;
-    rs_blob = contract.root_signature.compile(contract.flags);
-    if (contract.root_signature.getErrorState())
-    {
-        return nullptr;
-    }
-    if (m_gpu_blob_cache) {
-        cached_rs_blob = SharedDataChunk { rs_blob.size() };
-        memcpy(cached_rs_blob.data(), rs_blob.data(), rs_blob.size());
-        m_gpu_blob_cache.put(*key.p_internal, cached_rs_blob);
-    }
-    rs = m_device.createRootSignature(rs_blob);
-    if (rs && !m_device.getErrorState()) 
-    {
-        cit->second.status.store(RootSignatureBlobCompilationStatus::Completed);
-        return rs;
-    }
 
+        RootSignatureDeferredBlobCompilationContract& contract = cit->second;
+        rs_blob = contract.root_signature.compile(contract.flags);
+        if (contract.root_signature.getErrorState()) 
+        {
+            cit->second.status.store(RootSignatureBlobCompilationStatus::Failed);
+            return nullptr;
+        }
+        if (m_gpu_blob_cache) 
+        {
+            cached_rs_blob = SharedDataChunk { rs_blob.size() };
+            memcpy(cached_rs_blob.data(), rs_blob.data(), rs_blob.size());
+            m_gpu_blob_cache.put(*key.p_internal, cached_rs_blob);
+        }
+        rs = m_device.createRootSignature(rs_blob);
+        if (rs && !m_device.getErrorState()) 
+        {
+            cit->second.status.store(RootSignatureBlobCompilationStatus::Completed);
+            return rs;
+        }
+    } 
+    catch (Exception const& e)
+    {
+        cit->second.status.store(RootSignatureBlobCompilationStatus::Failed);
+    }
+    cit->second.status.store(RootSignatureBlobCompilationStatus::Failed);
     return nullptr;
 }
 
@@ -199,7 +240,8 @@ GpuDataBlobCacheKey RootSignatureBlobCache::createGpuDataBlobCacheKey(
         gpu_driver_uuid,
         hashValue
     );
-    InternalKey rs_key { 
+    InternalKey rs_key 
+    { 
         .root_signature_version = RootSignature::c_root_signature_version,
         .root_signature_compilation_flags = static_cast<uint32_t>(flags.getValue())
     };
@@ -218,6 +260,5 @@ void RootSignatureBlobCache::waitTillReady()
     }
     m_worker_threads.clear();
 }
-
 
 }
