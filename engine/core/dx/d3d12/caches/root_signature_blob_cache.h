@@ -1,13 +1,13 @@
 #ifndef LEXGINE_CORE_DX_D3D12_CACHES_ROOT_SIGNATURE_BLOB_CACHE_H
 #define LEXGINE_CORE_DX_D3D12_CACHES_ROOT_SIGNATURE_BLOB_CACHE_H
 
-#include "unordered_map"
-#include "future"
-#include "atomic"
-#include "functional"
-#include "vector"
-#include "mutex"
-#include "thread"
+#include <unordered_map>
+#include <future>
+#include <atomic>
+#include <functional>
+#include <vector>
+#include <mutex>
+#include <thread>
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/entity.h"
@@ -20,7 +20,9 @@ namespace lexgine::core::dx::d3d12::caches {
 
 enum class RootSignatureBlobCompilationStatus 
 {
+    NotScheduled,
     NotStarted,
+    Started,
     Completed,
     Failed
 };
@@ -52,7 +54,7 @@ public:
     );
     void createRootSignatures();
     void waitTillReady();
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> getNativeRootSignature(RootSignatureHandle key) const;
+    std::pair<Microsoft::WRL::ComPtr<ID3D12RootSignature>, RootSignatureBlobCompilationStatus> getNativeRootSignature(RootSignatureHandle key) const;
 
 private:
     struct RootSignatureDeferredBlobCompilationContract
@@ -78,7 +80,7 @@ private:
 
     struct RootSignatureCompilationResult
     {
-        RootSignatureDeferredBlobCompilationContract const* p_contract;
+        RootSignatureDeferredBlobCompilationContract* p_contract;
         std::future<Microsoft::WRL::ComPtr<ID3D12RootSignature>> future;
         Microsoft::WRL::ComPtr<ID3D12RootSignature> rs;
     };
