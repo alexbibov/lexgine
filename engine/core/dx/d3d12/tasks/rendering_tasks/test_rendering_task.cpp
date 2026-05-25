@@ -244,9 +244,11 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
         caches::RootSignatureHandle rs_handle { nullptr };
 
         m_pso_handle = pso_blob_cache.createGraphicsPSOBlobCompilationContract(
-            pso_descriptor, rs_handle, misc::DateTime::buildTime());
+            pso_descriptor, rs_handle);
         pso_blob_cache.createPipelineStates();
-        m_pso = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
+        auto [pso, pso_status] = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
+        (void) pso_status;
+        m_pso = pso;
     }
     if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::viewport_changed))
     {

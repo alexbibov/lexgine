@@ -1,20 +1,20 @@
 #ifndef LEXGINE_CORE_DX_D3D12_CACHES_PSO_BLOB_CACHE_H
 #define LEXGINE_CORE_DX_D3D12_CACHES_PSO_BLOB_CACHE_H
 
-#include "atomic"
-#include "functional"
-#include "future"
-#include "memory"
-#include "mutex"
-#include "thread"
-#include "unordered_map"
-#include "vector"
+#include <atomic>
+#include <functional>
+#include <future>
+#include <memory>
+#include <mutex>
+#include <thread>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
 #include "engine/core/gpu_data_blob_cache_key.h"
-#include "engine/core/misc/datetime.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/caches/lexgine_core_dx_d3d12_caches_fwd.h"
 #include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
@@ -24,7 +24,9 @@ namespace lexgine::core::dx::d3d12::caches {
 
 enum class PSOBlobCompilationStatus
 {
+    NotScheduled,
     NotStarted,
+    Started,
     Completed,
     Failed
 };
@@ -57,37 +59,34 @@ public:
 
     GraphicsPSOHandle createGraphicsPSOBlobCompilationContract(
         GraphicsPSODescriptor const& descriptor,
-        RootSignatureHandle root_signature_handle,
-        misc::DateTime const& timestamp);
+        RootSignatureHandle root_signature_handle);
 
     ComputePSOHandle createComputePSOBlobCompilationContract(
         ComputePSODescriptor const& descriptor,
-        RootSignatureHandle root_signature_handle,
-        misc::DateTime const& timestamp);
+        RootSignatureHandle root_signature_handle);
 
     void createPipelineStates();
     void waitTillReady();
 
-    PipelineState const* getGraphicsPipelineState(GraphicsPSOHandle handle) const;
-    PipelineState const* getComputePipelineState(ComputePSOHandle handle) const;
+    std::pair<PipelineState const*, PSOBlobCompilationStatus> getGraphicsPipelineState(GraphicsPSOHandle handle) const;
+    std::pair<PipelineState const*, PSOBlobCompilationStatus> getComputePipelineState(ComputePSOHandle handle) const;
 
 private:
+    static constexpr int c_max_rs_resolution_retries = 3;
+
     struct GraphicsContract
     {
         GraphicsPSODescriptor descriptor;
         RootSignatureHandle rs_handle;
-        misc::DateTime timestamp;
         std::packaged_task<std::unique_ptr<PipelineState>(GraphicsPSOHandle)> task;
         std::atomic<PSOBlobCompilationStatus> status;
 
         GraphicsContract(
             GraphicsPSODescriptor const& descriptor,
             RootSignatureHandle rs_handle,
-            misc::DateTime const& timestamp,
             std::function<std::unique_ptr<PipelineState>(GraphicsPSOHandle)> const& op)
             : descriptor { descriptor }
             , rs_handle { rs_handle }
-            , timestamp { timestamp }
             , task { op }
             , status { PSOBlobCompilationStatus::NotStarted }
         {
@@ -98,18 +97,15 @@ private:
     {
         ComputePSODescriptor descriptor;
         RootSignatureHandle rs_handle;
-        misc::DateTime timestamp;
         std::packaged_task<std::unique_ptr<PipelineState>(ComputePSOHandle)> task;
         std::atomic<PSOBlobCompilationStatus> status;
 
         ComputeContract(
             ComputePSODescriptor const& descriptor,
             RootSignatureHandle rs_handle,
-            misc::DateTime const& timestamp,
             std::function<std::unique_ptr<PipelineState>(ComputePSOHandle)> const& op)
             : descriptor { descriptor }
             , rs_handle { rs_handle }
-            , timestamp { timestamp }
             , task { op }
             , status { PSOBlobCompilationStatus::NotStarted }
         {
@@ -118,14 +114,14 @@ private:
 
     struct GraphicsResult
     {
-        GraphicsContract const* p_contract;
+        GraphicsContract* p_contract;
         std::future<std::unique_ptr<PipelineState>> future;
         std::unique_ptr<PipelineState> pso;
     };
 
     struct ComputeResult
     {
-        ComputeContract const* p_contract;
+        ComputeContract* p_contract;
         std::future<std::unique_ptr<PipelineState>> future;
         std::unique_ptr<PipelineState> pso;
     };

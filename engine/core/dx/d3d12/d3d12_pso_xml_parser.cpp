@@ -1446,7 +1446,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
         p.descriptor.invalidateHash();
         m_parsed_graphics_pso_handles.push_back(
             m_pso_blob_cache.createGraphicsPSOBlobCompilationContract(
-                p.descriptor, p.rs_handle, misc::DateTime::buildTime()));
+                p.descriptor, p.rs_handle));
     }
 
     m_parsed_compute_pso_handles.reserve(m_pending_compute_psos.size());
@@ -1457,7 +1457,7 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
         p.descriptor.invalidateHash();
         m_parsed_compute_pso_handles.push_back(
             m_pso_blob_cache.createComputePSOBlobCompilationContract(
-                p.descriptor, p.rs_handle, misc::DateTime::buildTime()));
+                p.descriptor, p.rs_handle));
     }
 
     m_root_signature_blob_cache.createRootSignatures();
