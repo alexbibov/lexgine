@@ -1,5 +1,6 @@
-#include "utility"
-#include "tuple"
+#include <utility>
+#include <tuple>
+#include <chrono>
 
 #include "d3dcompiler.h"
 
@@ -26,13 +27,12 @@ SharedDataChunk makeSharedDataChunk(DataBlob const& blob)
     return chunk;
 }
 
-D3DDataBlob loadPrecachedPSOBlob(GpuDataBlobCache& cache, GpuDataBlobCacheKey const& key,
-    misc::DateTime const& timestamp)
+D3DDataBlob loadPrecachedPSOBlob(GpuDataBlobCache& cache, GpuDataBlobCacheKey const& key)
 {
     D3DDataBlob rv { nullptr };
     if (!cache) return rv;
 
-    SharedDataChunk cached_pso_blob = cache.find(key, timestamp);
+    SharedDataChunk cached_pso_blob = cache.find(key);
     if (!cached_pso_blob.size() || !cached_pso_blob.data()) return rv;
 
     Microsoft::WRL::ComPtr<ID3DBlob> d3d_blob { nullptr };
@@ -84,8 +84,7 @@ PSOBlobCache::~PSOBlobCache()
 
 GraphicsPSOHandle PSOBlobCache::createGraphicsPSOBlobCompilationContract(
     GraphicsPSODescriptor const& descriptor,
-    RootSignatureHandle root_signature_handle,
-    misc::DateTime const& timestamp)
+    RootSignatureHandle root_signature_handle)
 {
     std::unique_lock l { m_lock };
     waitTillReady();
@@ -99,7 +98,7 @@ GraphicsPSOHandle PSOBlobCache::createGraphicsPSOBlobCompilationContract(
         std::piecewise_construct,
         std::forward_as_tuple(std::move(key)),
         std::forward_as_tuple(
-            descriptor, root_signature_handle, timestamp,
+            descriptor, root_signature_handle,
             std::bind(&PSOBlobCache::compileGraphicsPSOBlob, this, std::placeholders::_1))
     );
     m_cached_graphics.emplace(
@@ -114,8 +113,7 @@ GraphicsPSOHandle PSOBlobCache::createGraphicsPSOBlobCompilationContract(
 
 ComputePSOHandle PSOBlobCache::createComputePSOBlobCompilationContract(
     ComputePSODescriptor const& descriptor,
-    RootSignatureHandle root_signature_handle,
-    misc::DateTime const& timestamp)
+    RootSignatureHandle root_signature_handle)
 {
     std::unique_lock l { m_lock };
     waitTillReady();
@@ -129,7 +127,7 @@ ComputePSOHandle PSOBlobCache::createComputePSOBlobCompilationContract(
         std::piecewise_construct,
         std::forward_as_tuple(std::move(key)),
         std::forward_as_tuple(
-            descriptor, root_signature_handle, timestamp,
+            descriptor, root_signature_handle,
             std::bind(&PSOBlobCache::compileComputePSOBlob, this, std::placeholders::_1))
     );
     m_cached_compute.emplace(
@@ -190,12 +188,20 @@ void PSOBlobCache::createPipelineStates()
                             if (j < gfx_count)
                             {
                                 auto [p_key, p_contract] = m_unresolved_graphics[j];
-                                p_contract->task(p_key);
+                                PSOBlobCompilationStatus expected = PSOBlobCompilationStatus::NotStarted;
+                                if (p_contract->status.compare_exchange_strong(expected, PSOBlobCompilationStatus::Started))
+                                {
+                                    p_contract->task(p_key);
+                                }
                             }
                             else
                             {
                                 auto [p_key, p_contract] = m_unresolved_compute[j - gfx_count];
-                                p_contract->task(p_key);
+                                PSOBlobCompilationStatus expected = PSOBlobCompilationStatus::NotStarted;
+                                if (p_contract->status.compare_exchange_strong(expected, PSOBlobCompilationStatus::Started))
+                                {
+                                    p_contract->task(p_key);
+                                }
                             }
                         }
                     },
@@ -209,37 +215,97 @@ void PSOBlobCache::createPipelineStates()
     {
         for (auto& [p_key, p_contract] : m_unresolved_graphics)
         {
+            p_contract->status.store(PSOBlobCompilationStatus::Started);
             p_contract->task(p_key);
         }
         for (auto& [p_key, p_contract] : m_unresolved_compute)
         {
+            p_contract->status.store(PSOBlobCompilationStatus::Started);
             p_contract->task(p_key);
         }
     }
 }
 
-PipelineState const* PSOBlobCache::getGraphicsPipelineState(GraphicsPSOHandle handle) const
+std::pair<PipelineState const*, PSOBlobCompilationStatus> PSOBlobCache::getGraphicsPipelineState(GraphicsPSOHandle handle) const
 {
     std::unique_lock l { m_lock };
     auto it = m_cached_graphics.find(handle);
-    if (it == m_cached_graphics.end()) return nullptr;
-    if (it->second.pso) return it->second.pso.get();
-    GraphicsContract const& contract = *it->second.p_contract;
-    if (contract.status.load() != PSOBlobCompilationStatus::Completed) return nullptr;
+    if (it == m_cached_graphics.end())
+        return std::make_pair(nullptr, PSOBlobCompilationStatus::NotScheduled);
+    if (it->second.pso)
+        return std::make_pair(it->second.pso.get(), PSOBlobCompilationStatus::Completed);
+    GraphicsContract& contract = *it->second.p_contract;
+    PSOBlobCompilationStatus status = contract.status.load();
+    if (status == PSOBlobCompilationStatus::NotStarted)
+    {
+        PSOBlobCompilationStatus expected = PSOBlobCompilationStatus::NotStarted;
+        if (contract.status.compare_exchange_strong(expected, PSOBlobCompilationStatus::Started))
+        {
+            contract.task(handle);
+            status = contract.status.load();
+        }
+        else
+        {
+            status = expected;
+        }
+    }
+    if (status == PSOBlobCompilationStatus::Started)
+    {
+        GlobalSettings const& global_settings = *m_globals.get<GlobalSettings>();
+        uint32_t timeout = global_settings.getMaxNonBlockingUploadBufferAllocationTimeout();
+        if (it->second.future.wait_for(std::chrono::milliseconds{ timeout }) != std::future_status::ready)
+        {
+            return std::make_pair(nullptr, PSOBlobCompilationStatus::Started);
+        }
+        status = contract.status.load();
+    }
+    if (status == PSOBlobCompilationStatus::Failed)
+    {
+        return std::make_pair(nullptr, PSOBlobCompilationStatus::Failed);
+    }
     it->second.pso = it->second.future.get();
-    return it->second.pso.get();
+    return std::make_pair(it->second.pso.get(), contract.status.load());
 }
 
-PipelineState const* PSOBlobCache::getComputePipelineState(ComputePSOHandle handle) const
+std::pair<PipelineState const*, PSOBlobCompilationStatus> PSOBlobCache::getComputePipelineState(ComputePSOHandle handle) const
 {
     std::unique_lock l { m_lock };
     auto it = m_cached_compute.find(handle);
-    if (it == m_cached_compute.end()) return nullptr;
-    if (it->second.pso) return it->second.pso.get();
-    ComputeContract const& contract = *it->second.p_contract;
-    if (contract.status.load() != PSOBlobCompilationStatus::Completed) return nullptr;
+    if (it == m_cached_compute.end())
+        return std::make_pair(nullptr, PSOBlobCompilationStatus::NotScheduled);
+    if (it->second.pso)
+        return std::make_pair(it->second.pso.get(), PSOBlobCompilationStatus::Completed);
+    ComputeContract& contract = *it->second.p_contract;
+    PSOBlobCompilationStatus status = contract.status.load();
+    if (status == PSOBlobCompilationStatus::NotStarted)
+    {
+        PSOBlobCompilationStatus expected = PSOBlobCompilationStatus::NotStarted;
+        if (contract.status.compare_exchange_strong(expected, PSOBlobCompilationStatus::Started))
+        {
+            contract.task(handle);
+            status = contract.status.load();
+        }
+        else
+        {
+            status = expected;
+        }
+    }
+    if (status == PSOBlobCompilationStatus::Started)
+    {
+        GlobalSettings const& global_settings = *m_globals.get<GlobalSettings>();
+        uint32_t timeout = global_settings.getMaxNonBlockingUploadBufferAllocationTimeout();
+        if (it->second.future.wait_for(std::chrono::milliseconds{ timeout }) != std::future_status::ready)
+        {
+            return std::make_pair(nullptr, PSOBlobCompilationStatus::Started);
+        }
+        status = contract.status.load();
+    }
+    if (status == PSOBlobCompilationStatus::Failed)
+    {
+        return std::make_pair(nullptr, PSOBlobCompilationStatus::Failed);
+    }
     it->second.pso = it->second.future.get();
-    return it->second.pso.get();
+    return std::make_pair(it->second.pso.get(), contract.status.load());
 }
 
 std::unique_ptr<PipelineState> PSOBlobCache::compileGraphicsPSOBlob(GraphicsPSOHandle handle)
@@ -249,39 +315,56 @@ std::unique_ptr<PipelineState> PSOBlobCache::compileGraphicsPSOBlob(GraphicsPSOH
     auto cit = m_graphics_contracts.find(*handle.p_internal);
     assert(cit != m_graphics_contracts.end());
 
-    cit->second.status.store(PSOBlobCompilationStatus::Failed);
-
-    GraphicsContract& contract = cit->second;
-
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> native_rs =
-        m_rs_blob_cache.getNativeRootSignature(contract.rs_handle);
-    if (!native_rs) return nullptr;
-
-    D3DDataBlob precached_pso_blob = loadPrecachedPSOBlob(m_gpu_blob_cache, *handle.p_internal, contract.timestamp);
-
-    std::unique_ptr<PipelineState> pso;
     try
     {
-        pso = std::make_unique<PipelineState>(m_globals, native_rs, contract.descriptor, precached_pso_blob);
+        GraphicsContract& contract = cit->second;
+
+        // Retry the root-signature resolution a few times: when the RS contract is still
+        // compiling, getNativeRootSignature returns (nullptr, Started) after a wait_for()
+        // timeout. Each retry gives it another window before we give up.
+        Microsoft::WRL::ComPtr<ID3D12RootSignature> native_rs;
+        for (int attempt = 0; attempt < c_max_rs_resolution_retries; ++attempt)
+        {
+            auto [rs, rs_status] = m_rs_blob_cache.getNativeRootSignature(contract.rs_handle);
+            if (rs && rs_status == RootSignatureBlobCompilationStatus::Completed)
+            {
+                native_rs = std::move(rs);
+                break;
+            }
+            if (rs_status == RootSignatureBlobCompilationStatus::NotScheduled
+             || rs_status == RootSignatureBlobCompilationStatus::Failed)
+            {
+                cit->second.status.store(PSOBlobCompilationStatus::Failed);
+                return nullptr;
+            }
+            // NotStarted (someone else claimed it) or Started (still compiling). Loop and
+            // let getNativeRootSignature do another wait_for() pass.
+        }
+        if (!native_rs)
+        {
+            cit->second.status.store(PSOBlobCompilationStatus::Failed);
+            return nullptr;
+        }
+
+        D3DDataBlob precached_pso_blob = loadPrecachedPSOBlob(m_gpu_blob_cache, *handle.p_internal);
+
+        std::unique_ptr<PipelineState> pso =
+            std::make_unique<PipelineState>(m_globals, native_rs, contract.descriptor, precached_pso_blob);
+
+        if (!precached_pso_blob && m_gpu_blob_cache)
+        {
+            m_gpu_blob_cache.put(*handle.p_internal, makeSharedDataChunk(pso->getCache()));
+        }
+
+        cit->second.status.store(PSOBlobCompilationStatus::Completed);
+        return pso;
     }
     catch (Exception const& e)
     {
         LEXGINE_LOG_ERROR(this, std::string { "Failed to compile graphics PSO: " } + e.what());
-        return nullptr;
     }
-    catch (...)
-    {
-        LEXGINE_LOG_ERROR(this, "Failed to compile graphics PSO (unspecified exception)");
-        return nullptr;
-    }
-
-    if (!precached_pso_blob && m_gpu_blob_cache)
-    {
-        m_gpu_blob_cache.put(*handle.p_internal, makeSharedDataChunk(pso->getCache()));
-    }
-
-    cit->second.status.store(PSOBlobCompilationStatus::Completed);
-    return pso;
+    cit->second.status.store(PSOBlobCompilationStatus::Failed);
+    return nullptr;
 }
 
 std::unique_ptr<PipelineState> PSOBlobCache::compileComputePSOBlob(ComputePSOHandle handle)
@@ -291,39 +374,51 @@ std::unique_ptr<PipelineState> PSOBlobCache::compileComputePSOBlob(ComputePSOHan
     auto cit = m_compute_contracts.find(*handle.p_internal);
     assert(cit != m_compute_contracts.end());
 
-    cit->second.status.store(PSOBlobCompilationStatus::Failed);
-
-    ComputeContract& contract = cit->second;
-
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> native_rs =
-        m_rs_blob_cache.getNativeRootSignature(contract.rs_handle);
-    if (!native_rs) return nullptr;
-
-    D3DDataBlob precached_pso_blob = loadPrecachedPSOBlob(m_gpu_blob_cache, *handle.p_internal, contract.timestamp);
-
-    std::unique_ptr<PipelineState> pso;
     try
     {
-        pso = std::make_unique<PipelineState>(m_globals, native_rs, contract.descriptor, precached_pso_blob);
+        ComputeContract& contract = cit->second;
+
+        Microsoft::WRL::ComPtr<ID3D12RootSignature> native_rs;
+        for (int attempt = 0; attempt < c_max_rs_resolution_retries; ++attempt)
+        {
+            auto [rs, rs_status] = m_rs_blob_cache.getNativeRootSignature(contract.rs_handle);
+            if (rs && rs_status == RootSignatureBlobCompilationStatus::Completed)
+            {
+                native_rs = std::move(rs);
+                break;
+            }
+            if (rs_status == RootSignatureBlobCompilationStatus::NotScheduled
+             || rs_status == RootSignatureBlobCompilationStatus::Failed)
+            {
+                cit->second.status.store(PSOBlobCompilationStatus::Failed);
+                return nullptr;
+            }
+        }
+        if (!native_rs)
+        {
+            cit->second.status.store(PSOBlobCompilationStatus::Failed);
+            return nullptr;
+        }
+
+        D3DDataBlob precached_pso_blob = loadPrecachedPSOBlob(m_gpu_blob_cache, *handle.p_internal);
+
+        std::unique_ptr<PipelineState> pso =
+            std::make_unique<PipelineState>(m_globals, native_rs, contract.descriptor, precached_pso_blob);
+
+        if (!precached_pso_blob && m_gpu_blob_cache)
+        {
+            m_gpu_blob_cache.put(*handle.p_internal, makeSharedDataChunk(pso->getCache()));
+        }
+
+        cit->second.status.store(PSOBlobCompilationStatus::Completed);
+        return pso;
     }
     catch (Exception const& e)
     {
         LEXGINE_LOG_ERROR(this, std::string { "Failed to compile compute PSO: " } + e.what());
-        return nullptr;
     }
-    catch (...)
-    {
-        LEXGINE_LOG_ERROR(this, "Failed to compile compute PSO (unspecified exception)");
-        return nullptr;
-    }
-
-    if (!precached_pso_blob && m_gpu_blob_cache)
-    {
-        m_gpu_blob_cache.put(*handle.p_internal, makeSharedDataChunk(pso->getCache()));
-    }
-
-    cit->second.status.store(PSOBlobCompilationStatus::Completed);
-    return pso;
+    cit->second.status.store(PSOBlobCompilationStatus::Failed);
+    return nullptr;
 }
 
 GpuDataBlobCacheKey PSOBlobCache::createGraphicsGpuDataBlobCacheKey(

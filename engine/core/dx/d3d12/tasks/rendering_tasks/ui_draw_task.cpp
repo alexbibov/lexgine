@@ -364,9 +364,11 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
         m_pso_desc.invalidateHash();
 
         m_pso_handle = pso_blob_cache.createGraphicsPSOBlobCompilationContract(
-            m_pso_desc, rs_handle, misc::DateTime::buildTime());
+            m_pso_desc, rs_handle);
         pso_blob_cache.createPipelineStates();
-        m_pso = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
+        auto [pso, pso_status] = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
+        (void) pso_status;
+        m_pso = pso;
     }
 }
 
