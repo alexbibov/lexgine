@@ -228,7 +228,7 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureBlobCache::compileRootS
 GpuDataBlobCacheKey RootSignatureBlobCache::createGpuDataBlobCacheKey(
     misc::HashValue const& hashValue,
 	RootSignatureFlags const& flags
-)
+) const
 {
     LUID adapter_luid = m_device.hwAdapter()->getProperties().details.luid;
     misc::UUID gpu_driver_uuid { 

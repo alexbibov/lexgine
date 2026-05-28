@@ -91,7 +91,7 @@ private:
     GpuDataBlobCacheKey createGpuDataBlobCacheKey(
         misc::HashValue const& hashValue,
         RootSignatureFlags const& flags
-    );
+    ) const;
 
 private:
     Globals& m_globals;
