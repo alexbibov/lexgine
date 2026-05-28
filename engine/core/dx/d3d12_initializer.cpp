@@ -13,6 +13,9 @@
 
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 #include "engine/core/dx/d3d12/device.h"
+#include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
+#include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
+#include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
 
 #include "engine/core/gpu_data_blob_cache.h"
 
@@ -108,6 +111,9 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
 
 D3D12Initializer::~D3D12Initializer()
 {
+    m_pso_blob_cache.reset();
+    m_root_signature_blob_cache.reset();
+    m_hlsl_shader_blob_cache.reset();
     m_texture_converter.reset();
     m_gpu_data_blob_cache.reset();
     m_resource_factory.reset();
@@ -139,6 +145,8 @@ bool D3D12Initializer::setCurrentDevice(uint32_t adapter_id)
         m_texture_converter.reset(new conversion::TextureConverter{ *m_globals });
         m_globals->put(m_texture_converter.get());
     }
+
+    rebuildDeviceDependentCaches();
     return true;
 }
 
@@ -151,6 +159,7 @@ void D3D12Initializer::setWARPAdapterAsCurrent() const
 {
     dx::d3d12::Device& warp_device_ref = m_resource_factory->hardwareAdapterEnumerator().getWARPAdapter()->device();
     m_globals->put(&warp_device_ref);
+    const_cast<D3D12Initializer*>(this)->rebuildDeviceDependentCaches();
 }
 
 uint32_t D3D12Initializer::getAdapterCount() const
@@ -184,6 +193,20 @@ void D3D12Initializer::buildGlobals()
     m_globals->put(m_global_settings.get());
     m_globals->put(m_resource_factory.get());
     m_globals->put(m_gpu_data_blob_cache.get());
+}
+
+void D3D12Initializer::rebuildDeviceDependentCaches()
+{
+    m_pso_blob_cache.reset();
+    m_root_signature_blob_cache.reset();
+    m_hlsl_shader_blob_cache.reset();
+
+    m_hlsl_shader_blob_cache = std::make_unique<d3d12::caches::HLSLShaderBlobCache>(*m_globals);
+    m_root_signature_blob_cache = std::make_unique<d3d12::caches::RootSignatureBlobCache>(*m_globals);
+    m_pso_blob_cache = std::make_unique<d3d12::caches::PSOBlobCache>(*m_globals);
+    m_globals->put(m_hlsl_shader_blob_cache.get());
+    m_globals->put(m_root_signature_blob_cache.get());
+    m_globals->put(m_pso_blob_cache.get());
 }
 
 

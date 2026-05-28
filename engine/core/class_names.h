@@ -33,7 +33,7 @@ extern char const ShaderSourceCodePreprocessor[];
 extern char const Globals[];
 extern char const StreamedCache[];
 extern char const D3D12_RootSignatureBlobCache[];
-extern char const D3D12_HLSLCompilationTaskCache[];
+extern char const D3D12_HLSLShaderBlobCache[];
 extern char const D3D12_PSOBlobCache[];
 extern char const Dummy[];
 extern char const D3D12_RootSignatureCache[];

@@ -5,6 +5,7 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
 #include "engine/core/dx/d3d12/caches/lexgine_core_dx_d3d12_caches_fwd.h"
+#include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
 #include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
 #include "engine/core/concurrency/schedulable_task.h"
 
@@ -52,8 +53,8 @@ private:
     math::Matrix4f m_projection_transform;
 
     RootSignatureBuilder* m_rs = nullptr;
-    HLSLCompilationTask* m_vs = nullptr;
-    HLSLCompilationTask* m_ps = nullptr;
+    caches::HLSLShaderHandle m_vs { nullptr };
+    caches::HLSLShaderHandle m_ps { nullptr };
     caches::GraphicsPSOHandle m_pso_handle { nullptr };
     PipelineState const* m_pso = nullptr;
 

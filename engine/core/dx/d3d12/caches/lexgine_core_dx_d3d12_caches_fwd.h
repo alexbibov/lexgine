@@ -5,6 +5,11 @@ namespace lexgine::core::dx::d3d12::caches {
 
 class PSOBlobCache;
 class RootSignatureBlobCache;
+class HLSLShaderBlobCache;
+class HLSLTranslationUnit;
+class HLSLFileTranslationUnit;
+class HLSLSourceTranslationUnit;
+struct HLSLShaderHandle;
 struct GraphicsPSOHandle;
 struct ComputePSOHandle;
 struct RootSignatureHandle;

@@ -10,8 +10,8 @@
 #include "engine/core/dx/d3d12/basic_rendering_services.h"
 #include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
 #include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
+#include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
 #include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
-#include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 
 #include "engine/core/dx/dxcompilation/shader_stage.h"
@@ -183,18 +183,15 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
             "}\n"
             "\n";
 
-        HLSLCompilationTaskCache& hlsl_compilation_task_cache = *globals.get<HLSLCompilationTaskCache>();
+        HLSLShaderBlobCache& hlsl_shader_blob_cache = *globals.get<HLSLShaderBlobCache>();
 
         HLSLSourceTranslationUnit hlsl_translation_unit{ globals, "test_rendering_shader", hlsl_source };
 
-        m_vs = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit,
+        m_vs = hlsl_shader_blob_cache.createHLSLShaderBlobCompilationContract(hlsl_translation_unit,
             dxcompilation::ShaderModel::model_60, dxcompilation::ShaderType::vertex, "VSMain");
 
-        m_ps = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit,
+        m_ps = hlsl_shader_blob_cache.createHLSLShaderBlobCompilationContract(hlsl_translation_unit,
             dxcompilation::ShaderModel::model_60, dxcompilation::ShaderType::pixel, "PSMain");
-
-        m_vs->execute(0);
-        m_ps->execute(0);
 
         dxcompilation::ShaderStage* p_vs_stage = m_shader_function.createShaderStage(m_vs);
         dxcompilation::ShaderStage* p_ps_stage = m_shader_function.createShaderStage(m_ps);
@@ -235,8 +232,8 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
         pso_descriptor.primitive_topology_type = PrimitiveTopologyType::triangle;
         pso_descriptor.node_mask = 1;
         pso_descriptor.primitive_restart = true;
-        pso_descriptor.vertex_shader = m_vs->getTaskData();
-        pso_descriptor.pixel_shader = m_ps->getTaskData();
+        pso_descriptor.vertex_shader = m_shader_function.getShaderStage(dxcompilation::ShaderType::vertex)->getShaderBytecode();
+        pso_descriptor.pixel_shader = m_shader_function.getShaderStage(dxcompilation::ShaderType::pixel)->getShaderBytecode();
 
         // TODO(rs-refactor): obtain a RootSignatureHandle from RootSignatureBlobCache once
         // ShaderFunction::buildBindingSignature() is migrated. Today m_rs is a raw

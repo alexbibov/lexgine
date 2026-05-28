@@ -3,7 +3,7 @@
 #include "globals.h"
 #include "global_settings.h"
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
-#include "engine/core/dx/d3d12/task_caches/hlsl_compilation_task_cache.h"
+#include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
 #include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
 #include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
 

@@ -57,10 +57,10 @@ ShaderFunction::ShaderFunction(Globals& globals, ShaderFunctionRootUniformBuffer
 
 ShaderFunction::~ShaderFunction() = default;
 
-ShaderStage* ShaderFunction::createShaderStage(d3d12::tasks::HLSLCompilationTask* p_shader_compilation_tasks)
+ShaderStage* ShaderFunction::createShaderStage(d3d12::caches::HLSLShaderHandle shader_handle)
 {
    
-    std::unique_ptr<ShaderStage> new_shader_stage = ShaderStageAttorney<ShaderFunction>::createShaderStage(m_globals, p_shader_compilation_tasks, this);
+    std::unique_ptr<ShaderStage> new_shader_stage = ShaderStageAttorney<ShaderFunction>::createShaderStage(m_globals, shader_handle, this);
     ShaderType shader_type = new_shader_stage->getShaderType();
     size_t shader_type_id = static_cast<size_t>(shader_type);
     if (m_shader_stages[shader_type_id]) 

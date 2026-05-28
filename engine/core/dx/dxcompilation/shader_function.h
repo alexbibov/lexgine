@@ -9,6 +9,7 @@
 #include "engine/core/entity.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/root_signature.h"
+#include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
 #include "engine/core/dx/d3d12/descriptor_allocation_manager.h"
 
@@ -72,7 +73,7 @@ public:
     ~ShaderFunction();
 
     ShaderStage* getShaderStage(ShaderType shader_type) const { return m_shader_stages[static_cast<size_t>(shader_type)].get(); }
-    ShaderStage* createShaderStage(d3d12::tasks::HLSLCompilationTask* p_shader_compilation_task);
+    ShaderStage* createShaderStage(d3d12::caches::HLSLShaderHandle shader_handle);
 
     d3d12::tasks::RootSignatureBuilder* buildBindingSignature();
 

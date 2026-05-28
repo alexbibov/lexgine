@@ -57,11 +57,11 @@ struct MaterialPSOCompilationContext
 
 struct MaterialShaderDesc
 {
-    core::dx::d3d12::tasks::HLSLCompilationTask* p_vertex_shader_compilation_task;
-    core::dx::d3d12::tasks::HLSLCompilationTask* p_hull_shader_compilation_task;
-    core::dx::d3d12::tasks::HLSLCompilationTask* p_domain_shader_compilation_task;
-    core::dx::d3d12::tasks::HLSLCompilationTask* p_geometry_shader_compilation_task;
-    core::dx::d3d12::tasks::HLSLCompilationTask* p_pixel_shader_compilation_task;
+    core::dx::d3d12::caches::HLSLShaderHandle vertex_shader;
+    core::dx::d3d12::caches::HLSLShaderHandle hull_shader;
+    core::dx::d3d12::caches::HLSLShaderHandle domain_shader;
+    core::dx::d3d12::caches::HLSLShaderHandle geometry_shader;
+    core::dx::d3d12::caches::HLSLShaderHandle pixel_shader;
 
     std::string material_parameters_uniform_buffer_name;
     std::string scene_parameters_uniform_buffer_name;
