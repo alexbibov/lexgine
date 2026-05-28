@@ -348,8 +348,26 @@ std::unique_ptr<PipelineState> PSOBlobCache::compileGraphicsPSOBlob(GraphicsPSOH
 
         D3DDataBlob precached_pso_blob = loadPrecachedPSOBlob(m_gpu_blob_cache, *handle.p_internal);
 
-        std::unique_ptr<PipelineState> pso =
-            std::make_unique<PipelineState>(m_globals, native_rs, contract.descriptor, precached_pso_blob);
+        std::unique_ptr<PipelineState> pso{};
+
+        if (precached_pso_blob)
+        {
+            try
+            {
+                pso = std::make_unique<PipelineState>(m_globals, native_rs, contract.descriptor, precached_pso_blob);
+            }
+            catch (Exception const&)
+            {
+                misc::Log::retrieve()->out("Unable to compile graphics PSO using pre-cached blob. The cache might be corrupted", misc::LogMessageType::exclamation);
+                precached_pso_blob = nullptr;
+            }
+        }
+
+        if (!pso)
+        {
+            // failed to create pso using pre-cached blob, or pre-cached blob wasn't available
+            pso = std::make_unique<PipelineState>(m_globals, native_rs, contract.descriptor, nullptr);
+        }
 
         if (!precached_pso_blob && m_gpu_blob_cache)
         {
@@ -402,8 +420,26 @@ std::unique_ptr<PipelineState> PSOBlobCache::compileComputePSOBlob(ComputePSOHan
 
         D3DDataBlob precached_pso_blob = loadPrecachedPSOBlob(m_gpu_blob_cache, *handle.p_internal);
 
-        std::unique_ptr<PipelineState> pso =
-            std::make_unique<PipelineState>(m_globals, native_rs, contract.descriptor, precached_pso_blob);
+        std::unique_ptr<PipelineState> pso{};
+
+        if (precached_pso_blob)
+        {
+            try
+            {
+                pso = std::make_unique<PipelineState>(m_globals, native_rs, contract.descriptor, precached_pso_blob);
+            }
+            catch (Exception const&)
+            {
+                misc::Log::retrieve()->out("Unable to compile compute PSO using pre-cached blob. The cache might be corrupted", misc::LogMessageType::exclamation);
+                precached_pso_blob = nullptr;
+            }
+        }
+
+        if (!pso)
+        {
+            // failed to create pso using pre-cached blob, or pre-cached blob wasn't available
+            pso = std::make_unique<PipelineState>(m_globals, native_rs, contract.descriptor, nullptr);
+        }
 
         if (!precached_pso_blob && m_gpu_blob_cache)
         {
@@ -423,7 +459,7 @@ std::unique_ptr<PipelineState> PSOBlobCache::compileComputePSOBlob(ComputePSOHan
 
 GpuDataBlobCacheKey PSOBlobCache::createGraphicsGpuDataBlobCacheKey(
     GraphicsPSODescriptor const& descriptor,
-    RootSignatureHandle rs_handle)
+    RootSignatureHandle rs_handle) const
 {
     LUID adapter_luid = m_device.hwAdapter()->getProperties().details.luid;
     misc::UUID gpu_driver_uuid {
@@ -443,7 +479,7 @@ GpuDataBlobCacheKey PSOBlobCache::createGraphicsGpuDataBlobCacheKey(
 
 GpuDataBlobCacheKey PSOBlobCache::createComputeGpuDataBlobCacheKey(
     ComputePSODescriptor const& descriptor,
-    RootSignatureHandle rs_handle)
+    RootSignatureHandle rs_handle) const
 {
     LUID adapter_luid = m_device.hwAdapter()->getProperties().details.luid;
     misc::UUID gpu_driver_uuid {
