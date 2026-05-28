@@ -11,6 +11,7 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
 #include "engine/core/dx/d3d12/caches/lexgine_core_dx_d3d12_caches_fwd.h"
+#include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
 #include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
 
 #include "engine/core/dx/d3d12/resource_data_uploader.h"
@@ -127,8 +128,8 @@ private:
     ImGuiContext* m_im_gui_context = nullptr;
     OsInterationData m_os_data;
 
-    tasks::HLSLCompilationTask* m_vs = nullptr;
-    tasks::HLSLCompilationTask* m_ps = nullptr;
+    caches::HLSLShaderHandle m_vs { nullptr };
+    caches::HLSLShaderHandle m_ps { nullptr };
     caches::GraphicsPSOHandle m_pso_handle { nullptr };
     PipelineState const* m_pso = nullptr;
     VertexAttributeSpecificationList m_va_list;

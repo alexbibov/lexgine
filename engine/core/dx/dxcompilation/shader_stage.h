@@ -9,7 +9,7 @@
 #include "engine/core/class_names.h"
 #include "engine/core/dx/d3d12/common.h"
 #include "engine/core/dx/d3d12/resource.h"
-#include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
+#include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
 #include "engine/core/dx/d3d12/descriptor_table_builders.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/constant_buffer_reflection.h"
@@ -94,7 +94,7 @@ public:
     ShaderArgumentInfo const& getShaderArgumentInfo(ShaderArgumentKind kind, ShaderArgumentInfoKey const& key) const;
     std::unordered_map<ShaderArgumentInfoKey, ShaderArgumentInfo> const& getShaderArguments(ShaderArgumentKind kind) const;
 
-    d3d12::tasks::HLSLCompilationTask* getTask() const { return m_shader_compilation_task_ptr; }
+    d3d12::caches::HLSLShaderHandle getShaderHandle() const { return m_shader_handle; }
     bool isReady() const { return m_is_ready; }
 
 private:
@@ -145,7 +145,7 @@ private:
 
 
 private:
-    ShaderStage(Globals const& globals, d3d12::tasks::HLSLCompilationTask* p_shader_compilation_task, ShaderFunction* p_owning_shader_function);
+    ShaderStage(Globals const& globals, d3d12::caches::HLSLShaderHandle shader_handle, ShaderFunction* p_owning_shader_function);
 
     static uint32_t getDataTypeSize(TextureResourceDataType data_type);
     void collectShaderBindings();
@@ -158,7 +158,8 @@ private:
 
 private:
     Globals const& m_globals;
-    d3d12::tasks::HLSLCompilationTask* m_shader_compilation_task_ptr;
+    d3d12::caches::HLSLShaderBlobCache const& m_shader_blob_cache;
+    d3d12::caches::HLSLShaderHandle m_shader_handle;
     ShaderFunction* m_owning_shader_function_ptr;
     bool m_is_ready{ false };
 
@@ -181,9 +182,9 @@ class ShaderStageAttorney<ShaderFunction>
     friend class ShaderFunction;
 
 private:
-    static std::unique_ptr<ShaderStage> createShaderStage(Globals const& globals, d3d12::tasks::HLSLCompilationTask* p_shader_compilation_task, ShaderFunction* p_owning_shader_function)
+    static std::unique_ptr<ShaderStage> createShaderStage(Globals const& globals, d3d12::caches::HLSLShaderHandle shader_handle, ShaderFunction* p_owning_shader_function)
     {
-        return std::unique_ptr<ShaderStage>{ new ShaderStage{ globals, p_shader_compilation_task, p_owning_shader_function } };
+        return std::unique_ptr<ShaderStage>{ new ShaderStage{ globals, shader_handle, p_owning_shader_function } };
     }
 
     static std::unordered_map<misc::HashedString, ShaderFunction::ShaderBindingPoint> const& getShaderStageBindings(ShaderStage const* p_shader_stage)

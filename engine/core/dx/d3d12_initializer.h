@@ -10,6 +10,7 @@
 #include "engine/core/dx/dxgi/hw_adapter_enumerator.h"
 
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
+#include "engine/core/dx/d3d12/caches/lexgine_core_dx_d3d12_caches_fwd.h"
 #include "engine/core/dx/d3d12/rendering_tasks.h"
 #include "engine/core/dx/d3d12/swap_chain_link.h"
 
@@ -81,6 +82,7 @@ public:
 
 private:
     void buildGlobals();
+    void rebuildDeviceDependentCaches();
 
 private:
     const EngineApi m_engine_api;
@@ -89,6 +91,9 @@ private:
     std::unique_ptr<dx::d3d12::DxResourceFactory> m_resource_factory;
     std::unique_ptr<GpuDataBlobCache> m_gpu_data_blob_cache;
     std::unique_ptr<conversion::TextureConverter> m_texture_converter;
+    std::unique_ptr<d3d12::caches::HLSLShaderBlobCache> m_hlsl_shader_blob_cache;
+    std::unique_ptr<d3d12::caches::RootSignatureBlobCache> m_root_signature_blob_cache;
+    std::unique_ptr<d3d12::caches::PSOBlobCache> m_pso_blob_cache;
 };
 
 }

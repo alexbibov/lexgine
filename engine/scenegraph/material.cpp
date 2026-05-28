@@ -8,7 +8,7 @@
 #include <engine/core/dx/d3d12/basic_rendering_services.h>
 #include <engine/core/dx/d3d12/tasks/root_signature_builder.h>
 #include <engine/core/dx/d3d12/caches/pso_blob_cache.h>
-#include <engine/core/dx/d3d12/tasks/hlsl_compilation_task.h>
+#include <engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h>
 #include <engine/core/dx/d3d12/unordered_srv_table_allocation_manager.h>
 #include <engine/core/misc/datetime.h>
 #include <engine/core/dx/d3d12/dx_resource_factory.h>
@@ -79,27 +79,20 @@ MaterialAssemblyTask::MaterialAssemblyTask(
 	}
 	m_pso_descriptor.multi_sampling_format = core::MultiSamplingFormat{ static_cast<uint32_t>(msaa_mode), msaa_quality_level };
 
-    assert(shaders.p_vertex_shader_compilation_task && shaders.p_pixel_shader_compilation_task);
-	core::dx::d3d12::tasks::HLSLCompilationTask* p_vertex_shader_compilation_task = shaders.p_vertex_shader_compilation_task;
-	this->addDependency(*p_vertex_shader_compilation_task);
-    core::dx::d3d12::tasks::HLSLCompilationTask* p_pixel_shader_compilation_task = shaders.p_pixel_shader_compilation_task;
-    this->addDependency(*p_pixel_shader_compilation_task);
-    m_shader_function.createShaderStage(shaders.p_vertex_shader_compilation_task);
-    m_shader_function.createShaderStage(shaders.p_pixel_shader_compilation_task);
-    if (core::dx::d3d12::tasks::HLSLCompilationTask* p_hull_shader_compilation_task = shaders.p_hull_shader_compilation_task)
+    assert(shaders.vertex_shader.p_internal && shaders.pixel_shader.p_internal);
+    m_shader_function.createShaderStage(shaders.vertex_shader);
+    m_shader_function.createShaderStage(shaders.pixel_shader);
+    if (shaders.hull_shader.p_internal)
     {
-        this->addDependency(*p_hull_shader_compilation_task);
-        m_shader_function.createShaderStage(shaders.p_hull_shader_compilation_task);
+        m_shader_function.createShaderStage(shaders.hull_shader);
     }
-    if (core::dx::d3d12::tasks::HLSLCompilationTask* p_domain_shader_compilation_task = shaders.p_domain_shader_compilation_task)
+    if (shaders.domain_shader.p_internal)
     {
-        this->addDependency(*p_domain_shader_compilation_task);
-        m_shader_function.createShaderStage(shaders.p_domain_shader_compilation_task);
+        m_shader_function.createShaderStage(shaders.domain_shader);
     }
-    if (core::dx::d3d12::tasks::HLSLCompilationTask* p_geometry_shader_compilation_task = shaders.p_geometry_shader_compilation_task)
+    if (shaders.geometry_shader.p_internal)
     {
-        this->addDependency(*p_geometry_shader_compilation_task);
-        m_shader_function.createShaderStage(shaders.p_geometry_shader_compilation_task);
+        m_shader_function.createShaderStage(shaders.geometry_shader);
     }
 
     m_root_signature_builder = m_shader_function.buildBindingSignature();
@@ -126,14 +119,14 @@ bool MaterialAssemblyTask::doTask(uint8_t worker_id, uint64_t user_data)
     // this task so they have finished by the time we run), then submit the contract and drain
     // the PSO cache. The descriptor's hash depends on the shader bytecodes so it must be
     // invalidated before contract creation.
-    m_pso_descriptor.vertex_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::vertex)->getTask()->getTaskData();
-    m_pso_descriptor.pixel_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->getTask()->getTaskData();
-    if (auto* p_compilation_task = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::hull)->getTask())
-        m_pso_descriptor.hull_shader = p_compilation_task->getTaskData();
-    if (auto* p_compilation_task = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::domain)->getTask())
-        m_pso_descriptor.domain_shader = p_compilation_task->getTaskData();
-    if (auto* p_compilation_task = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::geometry)->getTask())
-        m_pso_descriptor.geometry_shader = p_compilation_task->getTaskData();
+    m_pso_descriptor.vertex_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::vertex)->getShaderBytecode();
+    m_pso_descriptor.pixel_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->getShaderBytecode();
+    if (auto* p_stage = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::hull))
+        m_pso_descriptor.hull_shader = p_stage->getShaderBytecode();
+    if (auto* p_stage = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::domain))
+        m_pso_descriptor.domain_shader = p_stage->getShaderBytecode();
+    if (auto* p_stage = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::geometry))
+        m_pso_descriptor.geometry_shader = p_stage->getShaderBytecode();
     m_pso_descriptor.invalidateHash();
 
     // TODO(rs-refactor): obtain a RootSignatureHandle from the RS cache once ShaderFunction

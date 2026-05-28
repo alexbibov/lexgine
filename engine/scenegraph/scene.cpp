@@ -19,7 +19,7 @@
 #include <engine/core/dx/d3d12/basic_rendering_services.h>
 #include <engine/core/concurrency/task_graph.h>
 #include <engine/core/concurrency/task_sink.h>
-#include <engine/core/dx/d3d12/tasks/hlsl_compilation_task.h>
+#include <engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h>
 #include <engine/conversion/image_loader_pool.h>
 #include <engine/conversion/texture_converter.h>
 #include "scene.h"
@@ -816,28 +816,26 @@ bool Scene::loadMaterial(tg3_material const& gltf_material,
 
     MaterialPSOCompilationContext context{ vertex_attributes };
     MaterialShaderDesc shader_desc{};
-    auto* p_hlsl_compilation_task_cache = m_globals.get<core::dx::d3d12::task_caches::HLSLCompilationTaskCache>();
+    auto* p_hlsl_shader_blob_cache = m_globals.get<core::dx::d3d12::caches::HLSLShaderBlobCache>();
     
 	{
-		lexgine::core::dx::d3d12::task_caches::HLSLFileTranslationUnit translation_unit_vs{ m_globals, "pbr.vs", "pbr.vs.hlsl" };
-		shader_desc.p_vertex_shader_compilation_task = p_hlsl_compilation_task_cache->findOrCreateTask(
+		lexgine::core::dx::d3d12::caches::HLSLFileTranslationUnit translation_unit_vs{ m_globals, "pbr.vs", "pbr.vs.hlsl" };
+		shader_desc.vertex_shader = p_hlsl_shader_blob_cache->createHLSLShaderBlobCompilationContract(
 			translation_unit_vs,
 			lexgine::core::dx::dxcompilation::ShaderModel::model_62,
 			lexgine::core::dx::dxcompilation::ShaderType::vertex,
 			"VSMain"
 		);
-        shader_desc.p_vertex_shader_compilation_task->execute(0);
 	}
 
 	{
-		lexgine::core::dx::d3d12::task_caches::HLSLFileTranslationUnit translation_unit_ps{ m_globals, "pbr.ps", "pbr.ps.hlsl" };
-		shader_desc.p_pixel_shader_compilation_task = p_hlsl_compilation_task_cache->findOrCreateTask(
+		lexgine::core::dx::d3d12::caches::HLSLFileTranslationUnit translation_unit_ps{ m_globals, "pbr.ps", "pbr.ps.hlsl" };
+		shader_desc.pixel_shader = p_hlsl_shader_blob_cache->createHLSLShaderBlobCompilationContract(
 			translation_unit_ps,
 			lexgine::core::dx::dxcompilation::ShaderModel::model_62,
 			lexgine::core::dx::dxcompilation::ShaderType::pixel,
 			"PSMain"
 		);
-        shader_desc.p_pixel_shader_compilation_task->execute(0);
 	}
     m_material_construction_tasks.push_back(std::make_unique<MaterialAssemblyTask>(m_basic_rendering_services, context, shader_desc));
     

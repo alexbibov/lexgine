@@ -9,7 +9,7 @@
 #include "pipeline_state.h"
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
-#include "task_caches/hlsl_compilation_task_cache.h"
+#include "caches/hlsl_shader_blob_cache.h"
 #include "caches/lexgine_core_dx_d3d12_caches_fwd.h"
 #include "caches/pso_blob_cache.h"
 #include "engine/core/globals.h"
@@ -40,20 +40,20 @@ private:
 
     core::Globals& m_globals;
     caches::RootSignatureBlobCache& m_root_signature_blob_cache;
-    task_caches::HLSLCompilationTaskCache& m_hlsl_compilation_task_cache;
+    caches::HLSLShaderBlobCache& m_hlsl_shader_blob_cache;
     caches::PSOBlobCache& m_pso_blob_cache;
 
     struct PendingGraphicsPSO
     {
         GraphicsPSODescriptor descriptor;
-        std::array<tasks::HLSLCompilationTask*, 5> shader_tasks;
+        std::array<caches::HLSLShaderHandle, 5> shader_handles;
         caches::RootSignatureHandle rs_handle;
     };
 
     struct PendingComputePSO
     {
         ComputePSODescriptor descriptor;
-        tasks::HLSLCompilationTask* compute_shader_task;
+        caches::HLSLShaderHandle compute_shader_handle;
         caches::RootSignatureHandle rs_handle;
     };
 
@@ -64,7 +64,7 @@ private:
     std::vector<caches::ComputePSOHandle> m_parsed_compute_pso_handles;
 
     // Shader tasks gathered during parsing — drained during construction to populate the PSO contracts.
-    std::vector<tasks::HLSLCompilationTask*> m_parsed_shader_tasks;
+    std::vector<caches::HLSLShaderHandle> m_parsed_shader_handles;
 
     std::string const m_source_xml;
     uint32_t m_node_mask;

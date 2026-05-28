@@ -11,7 +11,6 @@
 #include "engine/core/misc/template_argument_iterator.h"
 
 #include "engine/core/dx/dxcompilation/common.h"
-#include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
 #include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 #include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
 #include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
@@ -762,7 +761,7 @@ public:
 
     }
 
-    tasks::HLSLCompilationTask* parseAndAddToCompilationCacheShader(pugi::xml_node& node, std::string const& pso_cache_name)
+    caches::HLSLShaderHandle parseAndAddToCompilationCacheShader(pugi::xml_node& node, std::string const& pso_cache_name)
     {
         auto shader_node = node.find_child([](pugi::xml_node& n) -> bool
         {
@@ -779,14 +778,14 @@ public:
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
         ShaderModel sm = extractAttribute<attribute_type::shader_model>(shader_node.attribute("model"), ShaderModel::model_50);
 
-        task_caches::HLSLFileTranslationUnit hlsl_translation_unit{ m_parent.m_globals,
+        caches::HLSLFileTranslationUnit hlsl_translation_unit{ m_parent.m_globals,
             pso_cache_name + "(" + shader_source_location + ")__CS", shader_source_location };
 
-        return m_parent.m_hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, sm, 
+        return m_parent.m_hlsl_shader_blob_cache.createHLSLShaderBlobCompilationContract(hlsl_translation_unit, sm,
             ShaderType::compute, shader_entry_point_name);
     }
 
-    tasks::HLSLCompilationTask* parseAndAddToCompilationCacheShader(pugi::xml_node& node, 
+    caches::HLSLShaderHandle parseAndAddToCompilationCacheShader(pugi::xml_node& node,
         char const* p_stage_name, bool is_obligatory_shader_stage, 
         std::string const& pso_cache_name)
     {
@@ -803,7 +802,7 @@ public:
                 LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(m_parent, "Error while parsing D3D12 PSO XML description from source \""
                     + m_parent.m_source_xml + "\": obligatory attribute " + p_stage_name + " was not found");
             }
-            return nullptr;
+            return { nullptr };
         }
 
         pugi::char_t const* shader_source_location = shader_node.child_value();
@@ -839,10 +838,10 @@ public:
         pugi::char_t const* shader_entry_point_name = shader_node.attribute("entry").as_string();
         ShaderModel sm = extractAttribute<attribute_type::shader_model>(shader_node.attribute("model"), ShaderModel::model_50);
 
-        task_caches::HLSLFileTranslationUnit hlsl_translation_unit{ m_parent.m_globals,
+        caches::HLSLFileTranslationUnit hlsl_translation_unit{ m_parent.m_globals,
             pso_cache_name + "(" + shader_source_location + ")__" + compilation_task_suffix, shader_source_location };
 
-        return m_parent.m_hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, sm, 
+        return m_parent.m_hlsl_shader_blob_cache.createHLSLShaderBlobCompilationContract(hlsl_translation_unit, sm,
             shader_type, shader_entry_point_name);
     }
 
@@ -880,11 +879,11 @@ public:
         currently_assembled_pso_descriptor.multi_sampling_format.quality = extractAttribute<attribute_type::unsigned_numeric>(node.attribute("sample_quality"), 1);
 
         // Retrieve shader stages
-        tasks::HLSLCompilationTask* p_vs_compilation_task = parseAndAddToCompilationCacheShader(node, "VertexShader", true, pso_cache_name);
-        tasks::HLSLCompilationTask* p_hs_compilation_task = parseAndAddToCompilationCacheShader(node, "HullShader", false, pso_cache_name);
-        tasks::HLSLCompilationTask* p_ds_compilation_task = parseAndAddToCompilationCacheShader(node, "DomainShader", false, pso_cache_name);
-        tasks::HLSLCompilationTask* p_gs_compilation_task = parseAndAddToCompilationCacheShader(node, "GeometryShader", false, pso_cache_name);
-        tasks::HLSLCompilationTask* p_ps_compilation_task = parseAndAddToCompilationCacheShader(node, "PixelShader", true, pso_cache_name);
+        caches::HLSLShaderHandle vs_handle = parseAndAddToCompilationCacheShader(node, "VertexShader", true, pso_cache_name);
+        caches::HLSLShaderHandle hs_handle = parseAndAddToCompilationCacheShader(node, "HullShader", false, pso_cache_name);
+        caches::HLSLShaderHandle ds_handle = parseAndAddToCompilationCacheShader(node, "DomainShader", false, pso_cache_name);
+        caches::HLSLShaderHandle gs_handle = parseAndAddToCompilationCacheShader(node, "GeometryShader", false, pso_cache_name);
+        caches::HLSLShaderHandle ps_handle = parseAndAddToCompilationCacheShader(node, "PixelShader", true, pso_cache_name);
 
         // Read stream output descriptor if present
         {
@@ -1230,21 +1229,21 @@ public:
 
         // Stage a pending graphics PSO; shader bytecode is filled in after shader compilation,
         // then the cache contract is created using descriptor.hash() as identity.
-        std::array<tasks::HLSLCompilationTask*, 5> shader_tasks {
-            p_vs_compilation_task,
-            p_hs_compilation_task,
-            p_ds_compilation_task,
-            p_gs_compilation_task,
-            p_ps_compilation_task
+        std::array<caches::HLSLShaderHandle, 5> shader_handles {
+            vs_handle,
+            hs_handle,
+            ds_handle,
+            gs_handle,
+            ps_handle
         };
-        for (tasks::HLSLCompilationTask* t : shader_tasks)
+        for (caches::HLSLShaderHandle h : shader_handles)
         {
-            if (t) m_parent.m_parsed_shader_tasks.push_back(t);
+            if (h.p_internal) m_parent.m_parsed_shader_handles.push_back(h);
         }
         caches::RootSignatureHandle rs_handle = retrieveRootSignatureHandle(node);
         m_parent.m_pending_graphics_psos.push_back({
             std::move(currently_assembled_pso_descriptor),
-            shader_tasks,
+            shader_handles,
             rs_handle
         });
     }
@@ -1258,13 +1257,13 @@ public:
 
         currently_assembled_pso_descriptor.node_mask = node_mask;
 
-        tasks::HLSLCompilationTask* p_cs_compilation_task = parseAndAddToCompilationCacheShader(node, pso_cache_name);
-        if (p_cs_compilation_task) m_parent.m_parsed_shader_tasks.push_back(p_cs_compilation_task);
+        caches::HLSLShaderHandle cs_handle = parseAndAddToCompilationCacheShader(node, pso_cache_name);
+        if (cs_handle.p_internal) m_parent.m_parsed_shader_handles.push_back(cs_handle);
 
         caches::RootSignatureHandle rs_handle = retrieveRootSignatureHandle(node);
         m_parent.m_pending_compute_psos.push_back({
             std::move(currently_assembled_pso_descriptor),
-            p_cs_compilation_task,
+            cs_handle,
             rs_handle
         });
     }
@@ -1341,7 +1340,7 @@ private:
 lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& globals, std::string const& xml_source, bool deferred_shader_compilation, uint32_t node_mask) :
     m_globals{ globals },
     m_root_signature_blob_cache{ *globals.get<caches::RootSignatureBlobCache>() },
-    m_hlsl_compilation_task_cache{ *globals.get<task_caches::HLSLCompilationTaskCache>() },
+    m_hlsl_shader_blob_cache{ *globals.get<caches::HLSLShaderBlobCache>() },
     m_pso_blob_cache{ *globals.get<caches::PSOBlobCache>() },
     m_source_xml{ xml_source },
     m_impl{ new impl{*this} }
@@ -1384,65 +1383,23 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
     // Shader compilation must complete before PSO descriptors can be hashed (descriptor.hash()
     // includes shader bytecode), so shaders are drained first — either via the task graph or
     // synchronously — before the PSO contracts are submitted to the cache.
-    core::GlobalSettings const& global_settings = *m_globals.get<core::GlobalSettings>();
-    if (global_settings.isDeferredShaderCompilationOn())
-    {
-        std::set<concurrency::TaskGraphRootNode*> root_tasks{};
-        for (tasks::HLSLCompilationTask* shader_task : m_parsed_shader_tasks)
-        {
-            if (concurrency::TaskGraphRootNode* node = ROOT_NODE_CAST(shader_task))
-                root_tasks.insert(node);
-        }
-
-        if (!root_tasks.empty())
-        {
-            concurrency::TaskGraph shader_compilation_task_graph{
-                std::unordered_set<concurrency::TaskGraphRootNode const*>{ root_tasks.begin(), root_tasks.end() },
-                global_settings.getNumberOfWorkers(),
-                "deferred_pso_shader_compilation_task_graph"
-            };
-
-            #ifdef LEXGINE_D3D12DEBUG
-            shader_compilation_task_graph.createDotRepresentation("deferred_pso_shader_compilation_task_graph__" + getId().toString() + ".gv");
-            #endif
-
-            concurrency::TaskSink task_sink{ shader_compilation_task_graph, "pso_shader_compilation_task_sink_" + getId().toString() };
-            task_sink.start();
-
-            try
-            {
-                task_sink.submit(0);
-            }
-            catch (core::Exception& e)
-            {
-                std::string error_message = std::string{ "Unable to compile PSO shader dependencies from XML description (" } + e.what() + "). See logs for further details";
-                misc::Log::retrieve()->out(error_message, misc::LogMessageType::error);
-                throw core::Exception{ *this, error_message };
-            }
-        }
-    }
-    else
-    {
-        for (tasks::HLSLCompilationTask* shader_task : m_parsed_shader_tasks)
-        {
-            shader_task->execute(0);
-        }
-    }
+    m_hlsl_shader_blob_cache.createShaderBlobs();
+    m_hlsl_shader_blob_cache.waitTillReady();
 
     // Fill shader bytecodes into the staged descriptors, then materialize PSO contracts.
     m_parsed_graphics_pso_handles.reserve(m_pending_graphics_psos.size());
     for (PendingGraphicsPSO& p : m_pending_graphics_psos)
     {
-        if (!p.descriptor.vertex_shader && p.shader_tasks[0])
-            p.descriptor.vertex_shader = p.shader_tasks[0]->getTaskData();
-        if (!p.descriptor.hull_shader && p.shader_tasks[1])
-            p.descriptor.hull_shader = p.shader_tasks[1]->getTaskData();
-        if (!p.descriptor.domain_shader && p.shader_tasks[2])
-            p.descriptor.domain_shader = p.shader_tasks[2]->getTaskData();
-        if (!p.descriptor.geometry_shader && p.shader_tasks[3])
-            p.descriptor.geometry_shader = p.shader_tasks[3]->getTaskData();
-        if (!p.descriptor.pixel_shader && p.shader_tasks[4])
-            p.descriptor.pixel_shader = p.shader_tasks[4]->getTaskData();
+        if (!p.descriptor.vertex_shader && p.shader_handles[0].p_internal)
+            p.descriptor.vertex_shader = m_hlsl_shader_blob_cache.getShaderBlob(p.shader_handles[0]).first;
+        if (!p.descriptor.hull_shader && p.shader_handles[1].p_internal)
+            p.descriptor.hull_shader = m_hlsl_shader_blob_cache.getShaderBlob(p.shader_handles[1]).first;
+        if (!p.descriptor.domain_shader && p.shader_handles[2].p_internal)
+            p.descriptor.domain_shader = m_hlsl_shader_blob_cache.getShaderBlob(p.shader_handles[2]).first;
+        if (!p.descriptor.geometry_shader && p.shader_handles[3].p_internal)
+            p.descriptor.geometry_shader = m_hlsl_shader_blob_cache.getShaderBlob(p.shader_handles[3]).first;
+        if (!p.descriptor.pixel_shader && p.shader_handles[4].p_internal)
+            p.descriptor.pixel_shader = m_hlsl_shader_blob_cache.getShaderBlob(p.shader_handles[4]).first;
         p.descriptor.invalidateHash();
         m_parsed_graphics_pso_handles.push_back(
             m_pso_blob_cache.createGraphicsPSOBlobCompilationContract(
@@ -1452,8 +1409,8 @@ lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& gl
     m_parsed_compute_pso_handles.reserve(m_pending_compute_psos.size());
     for (PendingComputePSO& p : m_pending_compute_psos)
     {
-        if (!p.descriptor.compute_shader && p.compute_shader_task)
-            p.descriptor.compute_shader = p.compute_shader_task->getTaskData();
+        if (!p.descriptor.compute_shader && p.compute_shader_handle.p_internal)
+            p.descriptor.compute_shader = m_hlsl_shader_blob_cache.getShaderBlob(p.compute_shader_handle).first;
         p.descriptor.invalidateHash();
         m_parsed_compute_pso_handles.push_back(
             m_pso_blob_cache.createComputePSOBlobCompilationContract(

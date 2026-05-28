@@ -12,7 +12,7 @@
 #include "engine/core/dx/d3d12/descriptor_table_builders.h"
 #include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 #include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
-#include "engine/core/dx/d3d12/tasks/hlsl_compilation_task.h"
+#include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
 #include "engine/core/misc/datetime.h"
 #include "engine/core/dx/dxcompilation/shader_stage.h"
 #include "engine/core/math/utility.h"
@@ -357,10 +357,8 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
         // ShaderFunction::buildBindingSignature() is migrated to publish into the RS cache.
         caches::RootSignatureHandle rs_handle { nullptr };
 
-        if (m_vs) m_vs->execute(0);
-        if (m_ps) m_ps->execute(0);
-        m_pso_desc.vertex_shader = m_vs ? m_vs->getTaskData() : D3DDataBlob { nullptr };
-        m_pso_desc.pixel_shader  = m_ps ? m_ps->getTaskData() : D3DDataBlob { nullptr };
+        m_pso_desc.vertex_shader = m_vs.p_internal ? m_shader_function.getShaderStage(dxcompilation::ShaderType::vertex)->getShaderBytecode() : D3DDataBlob { nullptr };
+        m_pso_desc.pixel_shader  = m_ps.p_internal ? m_shader_function.getShaderStage(dxcompilation::ShaderType::pixel)->getShaderBytecode() : D3DDataBlob { nullptr };
         m_pso_desc.invalidateHash();
 
         m_pso_handle = pso_blob_cache.createGraphicsPSOBlobCompilationContract(
@@ -582,13 +580,11 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
                 return out_col;\n\
             }\n";
 
-        task_caches::HLSLCompilationTaskCache& hlsl_compilation_task_cache = *m_globals.get<task_caches::HLSLCompilationTaskCache>();
-        task_caches::HLSLSourceTranslationUnit hlsl_translation_unit{ m_globals, "ui_rendering_shader", hlsl_source };
+        caches::HLSLShaderBlobCache& hlsl_shader_blob_cache = *m_globals.get<caches::HLSLShaderBlobCache>();
+        caches::HLSLSourceTranslationUnit hlsl_translation_unit{ m_globals, "ui_rendering_shader", hlsl_source };
 
-        m_vs = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, dxcompilation::ShaderModel::model_61, dxcompilation::ShaderType::vertex, "VSMain");
-        m_ps = hlsl_compilation_task_cache.findOrCreateTask(hlsl_translation_unit, dxcompilation::ShaderModel::model_61, dxcompilation::ShaderType::pixel, "PSMain");
-        m_vs->execute(0);
-        m_ps->execute(0);
+        m_vs = hlsl_shader_blob_cache.createHLSLShaderBlobCompilationContract(hlsl_translation_unit, dxcompilation::ShaderModel::model_61, dxcompilation::ShaderType::vertex, "VSMain");
+        m_ps = hlsl_shader_blob_cache.createHLSLShaderBlobCompilationContract(hlsl_translation_unit, dxcompilation::ShaderModel::model_61, dxcompilation::ShaderType::pixel, "PSMain");
 
         dxcompilation::ShaderStage* p_vs_stage = m_shader_function.createShaderStage(m_vs);
         dxcompilation::ShaderStage* p_ps_stage = m_shader_function.createShaderStage(m_ps);

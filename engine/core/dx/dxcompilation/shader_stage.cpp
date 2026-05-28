@@ -1,4 +1,6 @@
 #include <chrono>
+#include <thread>
+#include <tuple>
 
 #include "engine/core/exception.h"
 #include "engine/core/globals.h"
@@ -106,49 +108,45 @@ void ShaderStage::build()
         return;
     }
 
-    if (!m_shader_compilation_task_ptr->isCompleted()) 
+    auto [shader_blob, shader_status] = m_shader_blob_cache.getShaderBlob(m_shader_handle);
+    if (shader_status == d3d12::caches::HLSLShaderBlobCompilationStatus::Started)
     {
-        if (!m_shader_compilation_task_ptr->isScheduled())
+        misc::Log::retrieve()->out("Unable to create reflection for shader: shader compilation is not completed yet, waiting for completion", misc::LogMessageType::exclamation);
+        unsigned int reps = 0;
+        while (shader_status == d3d12::caches::HLSLShaderBlobCompilationStatus::Started && reps < 60)
         {
-            misc::Log::retrieve()->out("Unable to create reflection for shader: shader compilation task is not scheduled, forcing completion", misc::LogMessageType::exclamation);
-            LEXGINE_LOG_ERROR_IF_FAILED(this, m_shader_compilation_task_ptr->execute(0), true);
+            std::this_thread::sleep_for(std::chrono::seconds { 1 });
+            std::tie(shader_blob, shader_status) = m_shader_blob_cache.getShaderBlob(m_shader_handle);
+            ++reps;
         }
-        else
+        if (shader_status == d3d12::caches::HLSLShaderBlobCompilationStatus::Started)
         {
-            misc::Log::retrieve()->out("Unable to create reflection for shader: shader compilation task is not completed yet, waiting for completion", misc::LogMessageType::exclamation);
-            unsigned int reps = 0;
-            while (!m_shader_compilation_task_ptr->isCompleted() && reps < 60)
-            {
-                std::this_thread::sleep_for(std::chrono::seconds{ 1 });
-                ++reps;
-            }
-            if (!m_shader_compilation_task_ptr->isCompleted())
-            {
-                misc::Log::retrieve()->out("Unable to complete compilation of HLSL task '" + m_shader_compilation_task_ptr->getStringName() + "': timeout", misc::LogMessageType::error);
-            }
+            misc::Log::retrieve()->out("Unable to complete compilation of HLSL shader '" + m_shader_name + "': timeout", misc::LogMessageType::error);
+            return;
         }
-        if (getErrorState())
-        {
-            misc::Log::retrieve()->out("Unable to force-compile HLSL task '" + m_shader_compilation_task_ptr->getStringName() + "', compilation failed", misc::LogMessageType::exclamation);
-        }
+    }
+    if (shader_status != d3d12::caches::HLSLShaderBlobCompilationStatus::Completed || !shader_blob)
+    {
+        misc::Log::retrieve()->out("Unable to create reflection for shader '" + m_shader_name + "': shader compilation failed", misc::LogMessageType::exclamation);
+        return;
     }
 
     LEXGINE_LOG_ERROR_IF_FAILED(this, DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(m_dxc_utils.GetAddressOf())), S_OK);
     if (getErrorState()) {
-        misc::Log::retrieve()->out("Unable to create reflection for shader '" + m_shader_compilation_task_ptr->getStringName() + "': DxcUtils creation failed", misc::LogMessageType::exclamation);
+        misc::Log::retrieve()->out("Unable to create reflection for shader '" + m_shader_name + "': DxcUtils creation failed", misc::LogMessageType::exclamation);
         return;
     }
 
-    DxcBuffer hlsl_source_dxc_buffer { .Ptr = m_shader_compilation_task_ptr->getTaskData().data(), .Size = m_shader_compilation_task_ptr->getTaskData().size(), .Encoding = 0 };
+    DxcBuffer hlsl_source_dxc_buffer { .Ptr = shader_blob.data(), .Size = shader_blob.size(), .Encoding = 0 };
     LEXGINE_LOG_ERROR_IF_FAILED(this, m_dxc_utils->CreateReflection(&hlsl_source_dxc_buffer, IID_PPV_ARGS(m_shader_reflection.GetAddressOf())), S_OK);
     if (getErrorState()) {
-        misc::Log::retrieve()->out("Unable to create reflection for shader '" + m_shader_compilation_task_ptr->getStringName() + "': shader reflection creation failed", misc::LogMessageType::exclamation);
+        misc::Log::retrieve()->out("Unable to create reflection for shader '" + m_shader_name + "': shader reflection creation failed", misc::LogMessageType::exclamation);
         return;
     }
 
     LEXGINE_LOG_ERROR_IF_FAILED(this, m_shader_reflection->GetDesc(&m_shader_desc), S_OK);
     if (getErrorState()) {
-        misc::Log::retrieve()->out("Unable to create reflection for shader '" + m_shader_compilation_task_ptr->getStringName() + "': shader reflection description retrieval failed", misc::LogMessageType::exclamation);
+        misc::Log::retrieve()->out("Unable to create reflection for shader '" + m_shader_name + "': shader reflection description retrieval failed", misc::LogMessageType::exclamation);
         return;
     }
 
@@ -345,7 +343,7 @@ BindingResult ShaderStage::bindSampler(misc::HashedString const& name, FilterPac
 
 lexgine::core::dx::d3d12::D3DDataBlob ShaderStage::getShaderBytecode() const
 {
-    return m_shader_compilation_task_ptr->getTaskData();
+    return m_shader_blob_cache.getShaderBlob(m_shader_handle).first;
 }
 
 d3d12::ConstantBufferReflection ShaderStage::buildConstantBufferReflection(misc::HashedString const& constant_buffer_name) const
@@ -386,12 +384,12 @@ d3d12::ConstantBufferReflection ShaderStage::buildConstantBufferReflection(misc:
 
 ShaderType ShaderStage::getShaderType() const
 {
-    return m_shader_compilation_task_ptr->getShaderType();
+    return m_shader_blob_cache.getShaderType(m_shader_handle);
 }
 
 ShaderModel ShaderStage::getShaderModel() const
 {
-    return m_shader_compilation_task_ptr->getShaderModel();
+    return m_shader_blob_cache.getShaderModel(m_shader_handle);
 }
 
 ShaderArgumentInfo const& ShaderStage::getShaderArgumentInfo(ShaderArgumentKind kind, ShaderArgumentInfoKey const& key) const
@@ -430,11 +428,12 @@ std::unordered_map<ShaderArgumentInfoKey, ShaderArgumentInfo> const& ShaderStage
     return m_shader_input_arguments;
 }
 
-ShaderStage::ShaderStage(Globals const& globals, d3d12::tasks::HLSLCompilationTask* p_shader_compilation_task, ShaderFunction* p_owning_shader_function)
+ShaderStage::ShaderStage(Globals const& globals, d3d12::caches::HLSLShaderHandle shader_handle, ShaderFunction* p_owning_shader_function)
     : m_globals{ globals }
-    , m_shader_compilation_task_ptr{ p_shader_compilation_task }
+    , m_shader_blob_cache{ *globals.get<d3d12::caches::HLSLShaderBlobCache>() }
+    , m_shader_handle{ shader_handle }
     , m_owning_shader_function_ptr{ p_owning_shader_function }
-    , m_shader_name { p_shader_compilation_task->getStringName() }
+    , m_shader_name { m_shader_blob_cache.getShaderCacheName(shader_handle) }
 {
     
 }
