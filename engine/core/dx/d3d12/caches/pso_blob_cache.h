@@ -132,10 +132,10 @@ private:
 
     GpuDataBlobCacheKey createGraphicsGpuDataBlobCacheKey(
         GraphicsPSODescriptor const& descriptor,
-        RootSignatureHandle rs_handle);
+        RootSignatureHandle rs_handle) const;
     GpuDataBlobCacheKey createComputeGpuDataBlobCacheKey(
         ComputePSODescriptor const& descriptor,
-        RootSignatureHandle rs_handle);
+        RootSignatureHandle rs_handle) const;
 
 private:
     Globals& m_globals;
