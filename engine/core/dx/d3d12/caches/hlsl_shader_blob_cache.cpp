@@ -57,6 +57,21 @@ std::string getStringifiedDefines(std::list<dxcompilation::HLSLMacroDefinition> 
     return rv;
 }
 
+misc::hashes::Blake3_256 combineHashValue(
+    misc::HashValue const& translation_unit_hash, 
+    std::string const& shader_entry_point,
+    std::list<dxcompilation::HLSLMacroDefinition> const& macro_definitions
+)
+{
+    misc::hashes::Blake3_256 h{};
+    std::string stringified_defines = getStringifiedDefines(macro_definitions);
+    h.create(translation_unit_hash.hashValue(), translation_unit_hash.hashWidth());
+    h.combine(shader_entry_point.data(), shader_entry_point.size());
+    h.combine(stringified_defines.data(), stringified_defines.size());
+    h.finalize();
+    return h;
+}
+
 }  // namespace
 
 misc::HashValue const* HLSLTranslationUnit::hash() const
@@ -300,8 +315,6 @@ HLSLShaderHandle HLSLShaderBlobCache::createHLSLShaderBlobCompilationContract(
 {
     std::unique_lock l { m_lock };
     waitTillReady();
-
-    uint64_t hash_value = misc::HashedString { getStringifiedDefines(macro_definitions) + hlsl_translation_unit.source() }.hash();
    
     GpuDataBlobCacheKey key = createGpuDataBlobCacheKey(
         hlsl_translation_unit,
@@ -374,11 +387,26 @@ GpuDataBlobCacheKey HLSLShaderBlobCache::createGpuDataBlobCacheKey(
     bool enable_16bit_types
 ) const
 {
+    misc::hashes::Blake3_256 h{};
+    {
+        misc::HashValue const* p_translation_unit_hash = hlsl_translation_unit.hash();
+        h = combineHashValue(*p_translation_unit_hash, shader_entry_point, macro_definitions);
+    }
+    misc::UUID gpu_driver_uuid{};
     GpuDataBlobCacheKey::CommonManifest manifest = GpuDataBlobCacheKey::createManifest(
         { 'H', 'L', 'S', 'L' },
-        {},
-        {}
+        gpu_driver_uuid,
+        h
     );
+    InternalKey internal_key{};
+    internal_key.shader_type = shader_type;
+    internal_key.shader_model = shader_model;
+    internal_key.optimization_level = optimization_level;
+    internal_key.strict_mode = strict_mode;
+    internal_key.force_all_resources_be_bound = force_all_resources_be_bound;
+    internal_key.force_ieee_standard = force_ieee_standard;
+
+    return GpuDataBlobCacheKey{ manifest, internal_key };
 }
 
 void HLSLShaderBlobCache::createShaderBlobs()

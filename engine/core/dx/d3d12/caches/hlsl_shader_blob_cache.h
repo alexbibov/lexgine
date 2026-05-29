@@ -93,7 +93,21 @@ struct HLSLShaderHandle
 
 class HLSLShaderBlobCache final : public NamedEntity<class_names::D3D12_HLSLShaderBlobCache>
 {
-    friend class core::GpuDataBlobCacheKey;
+public:
+    struct InternalKey
+    {
+        dxcompilation::ShaderType shader_type;
+        dxcompilation::ShaderModel shader_model;
+        dxcompilation::HLSLCompilationOptimizationLevel optimization_level;
+        bool strict_mode : 1;
+        bool force_all_resources_be_bound : 1;
+        bool force_ieee_standard : 1;
+        bool treat_warnings_as_errors : 1;
+        bool enable_validation : 1;
+        bool enable_debug_information : 1;
+        bool enable_16bit_types : 1;
+        bool reserved : 1;
+    };
 
 public:
     HLSLShaderBlobCache(Globals& globals);
