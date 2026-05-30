@@ -15,6 +15,15 @@
 
 namespace lexgine::core::dx::dxcompilation {
 
+struct DXCompilerVersion
+{
+    uint32_t major;
+    uint32_t minor;
+    uint32_t flags;
+    uint32_t commit_count;
+    std::vector<uint8_t> commit_hash;
+};
+
 //! Proxy class that handles compilation of HLSL sources using LLVM-based Microsoft shader compiler
 //! The class is designed to work in multi-threaded environment and is supposed to be thread-safe 
 //! for concurrent worker IDs
@@ -38,6 +47,8 @@ public:
     //! given worker id retrieves user readable description from outcome of the last compilation attempt
     std::string errors(uint8_t worker_id) const;
 
+    DXCompilerVersion const& getVersion() const { return m_version; }
+
 private:
     GlobalSettings const& m_global_settings;
     Microsoft::WRL::ComPtr<IDxcCompiler3> m_dxc;
@@ -47,7 +58,8 @@ private:
 
     std::vector<Microsoft::WRL::ComPtr<IDxcResult>> m_dxc_result;
     std::vector<std::string> m_dxc_errors;
-    std::vector<std::string> m_last_comilation_attempt_source_name;
+
+    DXCompilerVersion m_version;
 };
 
 

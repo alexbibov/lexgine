@@ -97,16 +97,19 @@ public:
     struct InternalKey
     {
         dxcompilation::ShaderType shader_type;
-        dxcompilation::ShaderModel shader_model;
-        dxcompilation::HLSLCompilationOptimizationLevel optimization_level;
-        bool strict_mode : 1;
+        uint32_t major;
+        uint32_t minor;
+        uint32_t flags;
+        uint32_t commit_count;
+        std::array<uint8_t, 8> commit_hash;
+        std::array<uint8_t, 64> shader_source_name;
         bool force_all_resources_be_bound : 1;
         bool force_ieee_standard : 1;
-        bool treat_warnings_as_errors : 1;
-        bool enable_validation : 1;
         bool enable_debug_information : 1;
         bool enable_16bit_types : 1;
-        bool reserved : 1;
+        uint8_t reserved : 4;
+        dxcompilation::HLSLCompilationOptimizationLevel optimization_level;
+        dxcompilation::ShaderModel shader_model;
     };
 
 public:
@@ -228,6 +231,7 @@ private:
 private:
     Globals& m_globals;
     GpuDataBlobCache& m_gpu_blob_cache;
+    dxcompilation::DXCompilerProxy& m_dxc_proxy;
     bool m_async_shader_compilation;
     mutable std::recursive_mutex m_lock;
 

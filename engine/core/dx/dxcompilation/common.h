@@ -18,7 +18,14 @@ enum class ShaderModel : unsigned short
     model_50 = 5 << 4,
     model_60 = 6 << 4,
     model_61 = (6 << 4) | 1,
-    model_62 = (6 << 4) | 2
+    model_62 = (6 << 4) | 2,
+    model_63 = (6 << 4) | 3,
+    model_64 = (6 << 4) | 4,
+    model_65 = (6 << 4) | 5,
+    model_66 = (6 << 4) | 6,
+    model_67 = (6 << 4) | 7,
+    model_68 = (6 << 4) | 8,
+    model_69 = (6 << 4) | 9,
 };
 
 enum class HLSLCompilationOptimizationLevel : unsigned char
