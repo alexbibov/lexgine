@@ -54,20 +54,20 @@ public:
     );
     void createRootSignatures();
     void waitTillReady();
-    std::pair<Microsoft::WRL::ComPtr<ID3D12RootSignature>, RootSignatureBlobCompilationStatus> getNativeRootSignature(RootSignatureHandle key) const;
+    std::pair<CompiledRootSignature const*, RootSignatureBlobCompilationStatus> getNativeRootSignature(RootSignatureHandle key) const;
 
 private:
     struct RootSignatureDeferredBlobCompilationContract
     {
         RootSignature root_signature;
         RootSignatureFlags flags;
-        std::packaged_task<Microsoft::WRL::ComPtr<ID3D12RootSignature>(RootSignatureHandle)> task;
+        std::packaged_task<std::unique_ptr<CompiledRootSignature>(RootSignatureHandle)> task;
         std::atomic<RootSignatureBlobCompilationStatus> status;
 
         RootSignatureDeferredBlobCompilationContract(
             RootSignature&& rs, 
             RootSignatureFlags const& rs_flags,
-            std::function<Microsoft::WRL::ComPtr<ID3D12RootSignature>(RootSignatureHandle)> const& op
+            std::function<std::unique_ptr<CompiledRootSignature>(RootSignatureHandle)> const& op
         )
             : root_signature{ std::move(rs) }
             , flags{ rs_flags }
@@ -81,12 +81,12 @@ private:
     struct RootSignatureCompilationResult
     {
         RootSignatureDeferredBlobCompilationContract* p_contract;
-        std::future<Microsoft::WRL::ComPtr<ID3D12RootSignature>> future;
-        Microsoft::WRL::ComPtr<ID3D12RootSignature> rs;
+        std::future<std::unique_ptr<CompiledRootSignature>> future;
+        std::unique_ptr<CompiledRootSignature> rs;
     };
 
 private:
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> compileRootSignatureBlob(
+    std::unique_ptr<CompiledRootSignature> compileRootSignatureBlob(
         RootSignatureHandle key);
     GpuDataBlobCacheKey createGpuDataBlobCacheKey(
         misc::HashValue const& hashValue,

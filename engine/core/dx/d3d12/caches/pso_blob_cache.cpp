@@ -328,7 +328,7 @@ std::unique_ptr<PipelineState> PSOBlobCache::compileGraphicsPSOBlob(GraphicsPSOH
             auto [rs, rs_status] = m_rs_blob_cache.getNativeRootSignature(contract.rs_handle);
             if (rs && rs_status == RootSignatureBlobCompilationStatus::Completed)
             {
-                native_rs = std::move(rs);
+                native_rs = rs->native();
                 break;
             }
             if (rs_status == RootSignatureBlobCompilationStatus::NotScheduled
@@ -402,7 +402,7 @@ std::unique_ptr<PipelineState> PSOBlobCache::compileComputePSOBlob(ComputePSOHan
             auto [rs, rs_status] = m_rs_blob_cache.getNativeRootSignature(contract.rs_handle);
             if (rs && rs_status == RootSignatureBlobCompilationStatus::Completed)
             {
-                native_rs = std::move(rs);
+                native_rs = rs->native();
                 break;
             }
             if (rs_status == RootSignatureBlobCompilationStatus::NotScheduled

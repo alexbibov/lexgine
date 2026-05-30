@@ -421,8 +421,7 @@ void CommandList::setDescriptorHeaps(std::array<DescriptorHeap const*, 2> const&
     m_command_list->SetDescriptorHeaps(static_cast<UINT>(descriptor_heaps.size()), native_descriptor_heaps.data());
 }
 
-
-void CommandList::setRootSignature(std::string const& cached_root_signature_friendly_name, 
+void CommandList::setRootSignature(CompiledRootSignature const& root_signature,
     BundleInvocationContext bundle_invokation_context) const
 {
     auto cmd_list_type = commandType();
@@ -432,20 +431,10 @@ void CommandList::setRootSignature(std::string const& cached_root_signature_frie
         || cmd_list_type == CommandType::bundle 
         && (bundle_invokation_context == BundleInvocationContext::direct || bundle_invokation_context == BundleInvocationContext::compute));
 
-    auto rs = device().retrieveRootSignature(cached_root_signature_friendly_name, m_node_mask);
-
-    if (!rs)
-    {
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "Cannot set root signature for command list \""
-        + getStringName() + "\": the root signature is identified to have friendly name \"" + cached_root_signature_friendly_name
-        + "\", but no root signature with this friendly name and the node mask " + std::to_string(m_node_mask)
-        + " exists in the device cache. This usually means that the root signature has not been created for "
-        " the node mask required by the command list attempting to set this root signature");
-    }
     
     cmd_list_type == CommandType::direct || bundle_invokation_context == BundleInvocationContext::direct
-        ? m_command_list->SetGraphicsRootSignature(rs.Get())
-        : m_command_list->SetComputeRootSignature(rs.Get());
+        ? m_command_list->SetGraphicsRootSignature(root_signature.native().Get())
+        : m_command_list->SetComputeRootSignature(root_signature.native().Get());
 }
 
 void CommandList::setRootDescriptorTable(uint32_t root_signature_slot, 

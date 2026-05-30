@@ -161,7 +161,7 @@ public:
 
     void setDescriptorHeaps(std::array<DescriptorHeap const*, 2> const& descriptor_heaps) const;
 
-    void setRootSignature(std::string const& cached_root_signature_friendly_name,
+    void setRootSignature(CompiledRootSignature const& root_signature,
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;
 
     void setRootDescriptorTable(uint32_t root_signature_slot, uint64_t virtual_gpu_memory_address,

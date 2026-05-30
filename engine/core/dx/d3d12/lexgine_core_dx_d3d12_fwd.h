@@ -37,6 +37,7 @@ class ResourceBarrierPack;
 class DynamicResourceBarrierPack;
 template<unsigned int capacity> class StaticResourceBarrierPack;
 class RootSignature;
+class CompiledRootSignature;
 class Signal;
 
 struct SRVBufferInfo;

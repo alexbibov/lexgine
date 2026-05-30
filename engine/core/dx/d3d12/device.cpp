@@ -42,7 +42,11 @@ bool isWindows11OrNewer()
 }
 
 
-Device::Device(dxgi::HwAdapter* owning_adapter_ptr, ComPtr<ID3D12Device6> const& device, lexgine::core::GlobalSettings const& global_settings)
+Device::Device(
+    dxgi::HwAdapter* owning_adapter_ptr, 
+    ComPtr<ID3D12Device6> const& device,
+    lexgine::core::GlobalSettings const& global_settings
+)
     : m_owning_adapter_ptr{ owning_adapter_ptr }
     , m_device{ device }
     , m_frame_progress_tracker{ *this }
@@ -401,27 +405,6 @@ void Device::setStringName(std::string const& entity_string_name)
     m_default_command_queue.setStringName(entity_string_name + "__direct_cmd_queue");
     m_async_command_queue.setStringName(entity_string_name + "__compute_cmd_queue");
     m_copy_command_queue.setStringName(entity_string_name + "__copy_cmd_queue");
-}
-
-ComPtr<ID3D12RootSignature> Device::createRootSignature(D3DDataBlob const& serialized_root_signature, std::string const& root_signature_friendly_name, uint32_t node_mask)
-{
-    return m_rs_cache.findOrCreate(*this, root_signature_friendly_name, node_mask, serialized_root_signature);
-}
-
-ComPtr<ID3D12RootSignature> Device::createRootSignature(D3DDataBlob const& serialized_root_signature, uint32_t node_mask)
-{
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> rs {};
-    LEXGINE_THROW_ERROR_IF_FAILED(
-        this,
-        m_device->CreateRootSignature(node_mask, serialized_root_signature.data(), serialized_root_signature.size(), IID_PPV_ARGS(&rs)),
-        S_OK
-    );
-    return rs;
-}
-
-ComPtr<ID3D12RootSignature> Device::retrieveRootSignature(std::string const& root_signature_friendly_name, uint32_t node_mask)
-{
-    return m_rs_cache.find(root_signature_friendly_name, node_mask);
 }
 
 Fence Device::createFence(FenceSharing sharing/* = FenceSharing::none*/)
