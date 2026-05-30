@@ -98,8 +98,7 @@ DXCompilerProxy::DXCompilerProxy(GlobalSettings const& global_settings) :
     m_global_settings{ global_settings },
     m_is_successfully_initialized{ false },
     m_dxc_result(global_settings.getNumberOfWorkers()),
-    m_dxc_errors(global_settings.getNumberOfWorkers(), "unknown error"),
-    m_last_comilation_attempt_source_name(global_settings.getNumberOfWorkers())
+    m_dxc_errors(global_settings.getNumberOfWorkers(), "unknown error")
 {
     DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler3), reinterpret_cast<LPVOID*>(m_dxc.GetAddressOf()));
     if (!m_dxc) {
@@ -118,9 +117,52 @@ DXCompilerProxy::DXCompilerProxy(GlobalSettings const& global_settings) :
         misc::Log::retrieve()->out("Unable to create default include handler, some shaders compilation may fail", misc::LogMessageType::exclamation);
         m_is_successfully_initialized = false;
     }
+
+    // Get version information
+    {
+        ComPtr<IDxcVersionInfo> version_info{};
+        ComPtr<IDxcVersionInfo2> version_info2{};
+        m_version = { .major = 0, .minor = 0, .flags = 0 };
+        if (!SUCCEEDED(m_dxc.As(&version_info))
+            || !SUCCEEDED(version_info.As(&version_info2)))
+        {
+            misc::Log::retrieve()->out("Unable to retrieve DXC version information", misc::LogMessageType::error);
+            return;
+        }
+        HRESULT hr{};
+        UINT32 major = 0, minor = 0, flags = 0;
+        hr = version_info2->GetVersion(&major, &minor);
+        if (SUCCEEDED(hr))
+        {
+            m_version.major = static_cast<uint32_t>(major);
+            m_version.minor = static_cast<uint32_t>(minor);
+        }
+        hr = version_info2->GetFlags(&flags);
+        if (SUCCEEDED(hr))
+        {
+            m_version.flags = static_cast<uint32_t>(flags);
+        }
+        UINT32 commit_count = 0;
+        char* commit_hash = nullptr;
+        hr = version_info2->GetCommitInfo(&commit_count, &commit_hash);
+        if (SUCCEEDED(hr) && commit_hash)
+        {
+            m_version.commit_count = static_cast<uint32_t>(commit_count);
+            size_t hash_length = strlen(commit_hash);
+            m_version.commit_hash.resize(hash_length);
+            std::transform(
+                commit_hash,
+                commit_hash + hash_length,
+                m_version.commit_hash.begin(),
+                [](char e) -> uint8_t { return static_cast<uint8_t>(e); }
+            );
+            CoTaskMemFree(commit_hash);
+        }
+    }
 }
 
-bool DXCompilerProxy::compile(uint8_t worker_id,
+bool DXCompilerProxy::compile(
+    uint8_t worker_id,
     std::string const& hlsl_source_code,
     std::string const& source_name,
     std::string const& entry_point_name,
@@ -131,7 +173,6 @@ bool DXCompilerProxy::compile(uint8_t worker_id,
     bool force_ieee_standard, bool treat_warnings_as_errors, bool enable_validation,
     bool enable_debug_inforamtion, bool enable_16bit_types)
 {
-    m_last_comilation_attempt_source_name[worker_id] = source_name;
 
     wchar_t args_scratch_buffer[512] = {};
     std::vector<wchar_t const*> args =
@@ -237,11 +278,9 @@ misc::Optional<d3d12::D3DDataBlob> DXCompilerProxy::result(uint8_t worker_id) co
         Microsoft::WRL::ComPtr<IDxcBlobUtf16> dxc_result_name{ nullptr };
         HRESULT hres = m_dxc_result[worker_id]->GetOutput(DXC_OUT_OBJECT,
             __uuidof(ID3DBlob), reinterpret_cast<void**>(blob.GetAddressOf()), dxc_result_name.GetAddressOf());
-        if (hres != S_OK && hres != S_FALSE) return misc::Optional<d3d12::D3DDataBlob>{};
-
+        if (!SUCCEEDED(hres)) return misc::Optional<d3d12::D3DDataBlob>{};
         return misc::Optional<d3d12::D3DDataBlob>{blob};
     }
-
     return misc::Optional<d3d12::D3DDataBlob>{};
 }
 

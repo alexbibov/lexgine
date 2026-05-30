@@ -241,6 +241,7 @@ std::string HLSLShaderBlobCache::shaderModelAndTypeToTargetName(dxcompilation::S
 HLSLShaderBlobCache::HLSLShaderBlobCache(Globals& globals)
     : m_globals { globals }
     , m_gpu_blob_cache { *globals.get<GpuDataBlobCache>() }
+    , m_dxc_proxy{ globals.get<DxResourceFactory>()->shaderModel6xDxCompilerProxy() }
     , m_async_shader_compilation { globals.get<GlobalSettings>()->isDeferredShaderCompilationOn() }
 {
 }
@@ -259,7 +260,7 @@ HLSLShaderHandle HLSLShaderBlobCache::createHLSLShaderBlobCompilationContract(HL
     bool enable_debug_information, bool enable_16bit_types)
 {
     return createHLSLShaderBlobCompilationContract(
-        hlsl_translation_unit,
+        static_cast<HLSLTranslationUnit const&>(hlsl_translation_unit),
         shader_model,
         shader_type,
         shader_entry_point,
@@ -283,7 +284,7 @@ HLSLShaderHandle HLSLShaderBlobCache::createHLSLShaderBlobCompilationContract(HL
     bool enable_debug_information, bool enable_16bit_types)
 {
     return createHLSLShaderBlobCompilationContract(
-        hlsl_translation_unit,
+        static_cast<HLSLTranslationUnit const&>(hlsl_translation_unit),
         shader_model,
         shader_type,
         shader_entry_point,
@@ -402,9 +403,36 @@ GpuDataBlobCacheKey HLSLShaderBlobCache::createGpuDataBlobCacheKey(
     internal_key.shader_type = shader_type;
     internal_key.shader_model = shader_model;
     internal_key.optimization_level = optimization_level;
-    internal_key.strict_mode = strict_mode;
     internal_key.force_all_resources_be_bound = force_all_resources_be_bound;
     internal_key.force_ieee_standard = force_ieee_standard;
+    internal_key.enable_debug_information = enable_debug_information;
+    internal_key.enable_16bit_types = enable_16bit_types;
+    internal_key.reserved = 0;
+
+    if (static_cast<unsigned short>(shader_model) < static_cast<unsigned short>(dxcompilation::ShaderModel::model_60))
+    {
+        internal_key.major = (D3D_COMPILER_VERSION / 10);
+        internal_key.minor = (D3D_COMPILER_VERSION % 10);
+        internal_key.flags = 0;
+        internal_key.commit_count = 0;
+        internal_key.commit_hash = {};
+    }
+    else
+    {
+        dxcompilation::DXCompilerVersion version = m_dxc_proxy.getVersion();
+        internal_key.major = version.major;
+        internal_key.minor = version.minor;
+        internal_key.flags = version.flags;
+        internal_key.commit_count = version.commit_count;
+
+        size_t short_hash_length = (std::min)(internal_key.commit_hash.size(), version.commit_hash.size());
+        std::copy(version.commit_hash.begin(), version.commit_hash.begin() + short_hash_length, internal_key.commit_hash.begin());
+    }
+
+    internal_key.shader_source_name = {};
+    std::string const& name = hlsl_translation_unit.name();
+    size_t copy_length = (std::min)(internal_key.shader_source_name.size(), name.length());
+    std::copy(name.begin(), name.begin() + copy_length, internal_key.shader_source_name.begin());
 
     return GpuDataBlobCacheKey{ manifest, internal_key };
 }
@@ -447,7 +475,8 @@ void HLSLShaderBlobCache::createShaderBlobs()
                             HLSLShaderBlobCompilationStatus expected = HLSLShaderBlobCompilationStatus::NotStarted;
                             if (p_contract->status.compare_exchange_strong(expected, HLSLShaderBlobCompilationStatus::Started))
                             {
-                                p_contract->task(handle, worker_id);
+                                assert(j < 256);
+                                p_contract->task(handle, static_cast<uint8_t>(j));
                             }
                         }
                     },
