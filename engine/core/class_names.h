@@ -16,6 +16,7 @@ extern char const D3D12_DebugInterface[];
 extern char const D3D12_CommandAllocatorRing[];
 extern char const D3D12_PipelineState[];
 extern char const D3D12_RootSignature[];
+extern char const D3D12_CompiledRootSignature[];
 extern char const D3D12_Fence[];
 extern char const OSWindows_FenceEvent[];
 extern char const D3D12_DescriptorHeap[];

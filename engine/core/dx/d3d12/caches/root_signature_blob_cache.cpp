@@ -117,14 +117,14 @@ void RootSignatureBlobCache::createRootSignatures()
     }
 }
 
-std::pair<Microsoft::WRL::ComPtr<ID3D12RootSignature>, RootSignatureBlobCompilationStatus> RootSignatureBlobCache::getNativeRootSignature(RootSignatureHandle key) const
+std::pair<CompiledRootSignature const*, RootSignatureBlobCompilationStatus> RootSignatureBlobCache::getNativeRootSignature(RootSignatureHandle key) const
 {
     std::unique_lock l { m_lock };
     auto rsit = m_cached_rs.find(key);
     if (rsit == m_cached_rs.end())
-        return std::make_pair(Microsoft::WRL::ComPtr<ID3D12RootSignature> {}, RootSignatureBlobCompilationStatus::NotScheduled);
+        return std::make_pair((CompiledRootSignature const*)(nullptr), RootSignatureBlobCompilationStatus::NotScheduled);
     if (rsit->second.rs)
-        return std::make_pair(rsit->second.rs, RootSignatureBlobCompilationStatus::Completed);
+        return std::make_pair(rsit->second.rs.get(), RootSignatureBlobCompilationStatus::Completed);
     RootSignatureDeferredBlobCompilationContract& contract = *rsit->second.p_contract;
     RootSignatureBlobCompilationStatus status = contract.status.load();
     if (status == RootSignatureBlobCompilationStatus::NotStarted)
@@ -146,19 +146,19 @@ std::pair<Microsoft::WRL::ComPtr<ID3D12RootSignature>, RootSignatureBlobCompilat
         uint32_t timeout = global_settings.getMaxNonBlockingUploadBufferAllocationTimeout();
         if (rsit->second.future.wait_for(std::chrono::milliseconds{ timeout }) != std::future_status::ready)
         {
-            return std::make_pair(Microsoft::WRL::ComPtr<ID3D12RootSignature> {}, RootSignatureBlobCompilationStatus::Started);
+            return std::make_pair((CompiledRootSignature const*)(nullptr), RootSignatureBlobCompilationStatus::Started);
         }
         status = contract.status.load();
     }
     if (status == RootSignatureBlobCompilationStatus::Failed) 
     {
-        return std::make_pair(Microsoft::WRL::ComPtr<ID3D12RootSignature> {}, RootSignatureBlobCompilationStatus::Failed);
+        return std::make_pair((CompiledRootSignature const*)(nullptr), RootSignatureBlobCompilationStatus::Failed);
     }
-    rsit->second.rs = rsit->second.future.get();
-    return std::make_pair(rsit->second.rs, contract.status.load());
+    rsit->second.rs = std::move(rsit->second.future.get());
+    return std::make_pair(rsit->second.rs.get(), contract.status.load());
  }
 
-Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureBlobCache::compileRootSignatureBlob(
+std::unique_ptr<CompiledRootSignature> RootSignatureBlobCache::compileRootSignatureBlob(
      RootSignatureHandle key)
  {
     assert(key.p_internal);
@@ -170,8 +170,7 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureBlobCache::compileRootS
     {
         D3DDataBlob rs_blob { nullptr };
         SharedDataChunk cached_rs_blob {};
-        Microsoft::WRL::ComPtr<ID3D12RootSignature> rs { nullptr };
-
+        std::unique_ptr<CompiledRootSignature> rs{};
         if (m_gpu_blob_cache) 
         {
             cached_rs_blob = m_gpu_blob_cache.find(*key.p_internal);
@@ -188,11 +187,11 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureBlobCache::compileRootS
             }
             if (rs_blob) 
             {
-                rs = m_device.createRootSignature(rs_blob);
-                if (rs && !m_device.getErrorState()) 
+                rs = std::make_unique<CompiledRootSignature>(m_globals, rs_blob, 0x1);
+                if (!rs->getErrorState() && !m_device.getErrorState())
                 {
                     cit->second.status.store(RootSignatureBlobCompilationStatus::Completed);
-                    return rs;
+                    return std::move(rs);
                 }
             }
         }
@@ -210,11 +209,11 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureBlobCache::compileRootS
             memcpy(cached_rs_blob.data(), rs_blob.data(), rs_blob.size());
             m_gpu_blob_cache.put(*key.p_internal, cached_rs_blob);
         }
-        rs = m_device.createRootSignature(rs_blob);
-        if (rs && !m_device.getErrorState()) 
+        rs = std::make_unique<CompiledRootSignature>(m_globals, rs_blob, 0x1);
+        if (!rs->getErrorState() && !m_device.getErrorState())
         {
             cit->second.status.store(RootSignatureBlobCompilationStatus::Completed);
-            return rs;
+            return std::move(rs);
         }
     } 
     catch (Exception const& e)

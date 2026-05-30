@@ -8,6 +8,7 @@
 #include <d3d12.h>
 #include <wrl.h>
 
+#include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/entity.h"
 #include "engine/core/class_names.h"
@@ -208,6 +209,18 @@ private:
     std::vector<std::vector<D3D12_DESCRIPTOR_RANGE>> m_descriptor_range_cache;    //!< stores descriptor ranges from all descriptor tables
     std::vector<D3D12_STATIC_SAMPLER_DESC> m_static_samplers;    //!< list of static samplers attached to the root signature
     mutable std::unique_ptr<misc::HashValue> m_hash_value;
+};
+
+class CompiledRootSignature final : public NamedEntity<class_names::D3D12_CompiledRootSignature>
+{
+public:
+    ComPtr<ID3D12RootSignature> native() const { return m_root_signature; }
+    Device& device() const { return m_device; }  //! returns device interface used to create root signature
+    CompiledRootSignature(Globals& globals, D3DDataBlob const& serialized_root_signature, uint32_t node_mask);
+
+private:
+    Device& m_device;
+    ComPtr<ID3D12RootSignature> m_root_signature;
 };
 
 }

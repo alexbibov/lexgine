@@ -15,6 +15,7 @@ extern char const D3D12_DebugInterface[] = "lexgine::core::dx::d3d12::DebugInter
 extern char const D3D12_CommandAllocatorRing[] = "lexgine::core::dx::d3d12::CommandAllocatorRing";
 extern char const D3D12_PipelineState[] = "lexgine::core::dx::d3d12::PipelineState";
 extern char const D3D12_RootSignature[] = "lexgine::core::dx::d3d12::RootSignature";
+extern char const D3D12_CompiledRootSignature[] = "lexgine::core::dx::d3d12::CompiledRootSignature";
 extern char const D3D12_Fence[] = "lexgine::core::dx::d3d12::Fence";
 extern char const OSWindows_FenceEvent[] = "lexgine::osinteraction::windows::FenceEvent";
 extern char const D3D12_DescriptorHeap[] = "lexgine::core::dx::d3d12::DescriptorHeap";
