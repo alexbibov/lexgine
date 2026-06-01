@@ -10,14 +10,18 @@
 
 namespace lexgine::core::misc::hashes {
 
-class SpookyHashValue : public HashValue
+class SpookyHashValue final : public HashValue
 {
 public:
     void create(void const* data, size_t data_size) override;
     void combine(void const* p_data, size_t data_size) override;
-    void finalize() override {};
-    size_t hashWidth() const override { return sizeof(m_hashData); }
-    uint8_t const* hashValue() const override { return m_hashData.bytes; }
+    void finalize() override
+    {
+        m_finalized = true;
+        m_initialized = false;
+    }
+    size_t hashWidth() const override { return sizeof(m_hash_data); }
+    uint8_t const* hashValue() const override { return m_hash_data.bytes; }
     std::strong_ordering operator<=>(HashValue const& other) const override
     {
         return this->operator<=>(*static_cast<SpookyHashValue const*>(&other));
@@ -28,9 +32,10 @@ public:
     }
 	std::strong_ordering operator<=>(SpookyHashValue const& other) const;
 	bool operator==(SpookyHashValue const& other) const;
+    uint64_t fold() const override;
     auto hashValueT() const -> const uint64_t(&)[2]
     {
-        return m_hashData.words;
+        return m_hash_data.words;
     }
 
 private:
@@ -44,7 +49,7 @@ private:
     {
         uint8_t bytes[16];
         uint64_t words[2];
-    }m_hashData;
+    }m_hash_data{};
 };
 
 }
