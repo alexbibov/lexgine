@@ -8,14 +8,18 @@
 namespace lexgine::core::misc::hashes
 {
 
-class Fnv1a_64 : public HashValue
+class Fnv1a_64 final : public HashValue
 {
 public:
     void create(void const* p_data, size_t data_size) override;
     void combine(void const* p_data, size_t data_size) override;
-    void finalize() override {}
-    size_t hashWidth() const override { return sizeof(m_hashData); }
-    uint8_t const* hashValue() const override { return m_hashData.bytes; }
+    void finalize() override
+    {
+        m_finalized = true;
+        m_initialized = false;
+    }
+    size_t hashWidth() const override { return sizeof(m_hash_data); }
+    uint8_t const* hashValue() const override { return m_hash_data.bytes; }
     std::strong_ordering operator<=>(HashValue const& other) const override
     {
         return this->operator<=>(*static_cast<Fnv1a_64 const*>(&other));
@@ -26,7 +30,8 @@ public:
     }
     std::strong_ordering operator<=>(Fnv1a_64 const& other) const;
     bool operator==(Fnv1a_64 const& other) const;
-    uint64_t hashValueT() const { return m_hashData.value; }
+    uint64_t fold() const override;
+    uint64_t hashValueT() const { return m_hash_data.value; }
 
 private:
     static uint64_t constexpr m_offset_basis = 0xcbf29ce484222325ULL;
@@ -37,7 +42,7 @@ private:
     {
         uint8_t bytes[sizeof(uint64_t)];
         uint64_t value;
-    } m_hashData { .value = m_offset_basis };
+    } m_hash_data{ .value = m_offset_basis };
 };
 
 }
