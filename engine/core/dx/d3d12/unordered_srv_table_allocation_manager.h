@@ -10,6 +10,7 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/descriptor_heap.h"
 #include "engine/core/dx/d3d12/descriptor_table_builders.h"
+#include "engine/core/misc/hashes/xxhash64.h"
 
 #include "descriptor_allocation_manager.h"
 
@@ -28,7 +29,7 @@ private:
     {
         size_t operator()(const SRVDescriptor& descriptor) const
         {
-            return descriptor.hash().part1() ^ descriptor.hash().part2();
+            return static_cast<size_t>(descriptor.hash().fold());
         }
     };
 

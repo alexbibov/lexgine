@@ -4,7 +4,6 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/command_list.h"
 #include "engine/core/concurrency/schedulable_task.h"
-
 #include "lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h"
 
 namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {

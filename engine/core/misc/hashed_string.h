@@ -2,6 +2,8 @@
 #define LEXGINE_CORE_MISC_HASHED_STRING_H
 
 #include <string>
+#include <array>
+#include <cstdint>
 
 namespace lexgine::core::misc {
 
@@ -10,20 +12,22 @@ class HashedString
 public:
     HashedString();
     HashedString(std::string const& str);
-    HashedString(char const* p_chars)
-        : HashedString{ std::string{p_chars} }
-    { }
+    HashedString(char const* p_chars);
 
     bool operator<(HashedString const& other) const;
     bool operator==(HashedString const& other) const;
 
-    uint64_t hash() const;
+    uint64_t hash() const { return m_short_hash; }
+    std::array<uint64_t, 2> const& longHash() const { return m_long_hash; }
     char const* string() const;
 
 private:
-    std::string m_string;
-    uint64_t m_hash;
+    void initHashes();
 
+private:
+    std::string m_string{};
+    uint64_t m_short_hash{};
+    std::array<uint64_t, 2> m_long_hash{};
 };
 
 }

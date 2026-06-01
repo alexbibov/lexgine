@@ -8,8 +8,7 @@
 #include "engine/core/dx/d3d12/descriptor_heap.h"
 #include "engine/core/dx/d3d12/device.h"
 #include "engine/core/dx/d3d12/command_list.h"
-#include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
-#include "engine/core/dx/d3d12/caches/root_signature_compilation_cache.h"
+#include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
 #include "shader_function.h"
 #include "shader_stage.h"
 
@@ -76,10 +75,10 @@ ShaderStage* ShaderFunction::createShaderStage(d3d12::caches::HLSLShaderHandle s
 
 
 
-d3d12::tasks::RootSignatureBuilder* ShaderFunction::buildBindingSignature()
+d3d12::caches::RootSignatureHandle ShaderFunction::buildBindingSignature()
 {
     buildInternal();
-    return m_root_signature_builder_ptr;
+    return m_root_signature_handle;
 }
 
 void ShaderFunction::bindRootConstantBuffer(core::dx::d3d12::CommandList& command_list, 
@@ -248,7 +247,7 @@ void ShaderFunction::buildInternal()
         }
     }
 
-    m_root_signature_builder_ptr = rs_blob_cache->findOrCreateTask(m_globals, d3d12::caches::RootSignatureBlobCache::VersionedRootSignature { std::move(rs) }, rs_flags, getStringName() + "_root_signature", 0);
+    m_root_signature_handle = rs_blob_cache->createRootSignatureBlobCompilationContract(std::move(rs), rs_flags);
     m_shader_function_stale = false;
 }
 

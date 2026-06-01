@@ -11,7 +11,6 @@
 #include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
 #include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
 #include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
-#include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 
 #include "engine/core/dx/dxcompilation/shader_stage.h"
@@ -197,8 +196,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         dxcompilation::ShaderStage* p_ps_stage = m_shader_function.createShaderStage(m_ps);
         p_vs_stage->build();
         p_ps_stage->build();
-        m_rs = m_shader_function.buildBindingSignature();
-        m_rs->build(0);
+        m_rs_handle = m_shader_function.buildBindingSignature();
 
         DescriptorHeap& resource_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav, 0);
         DescriptorHeap& sampler_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler, 0);
@@ -223,6 +221,7 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
         || update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
         PSOBlobCache& pso_blob_cache = *m_globals.get<PSOBlobCache>();
+        RootSignatureBlobCache& rs_blob_cache = *m_globals.get<RootSignatureBlobCache>();
 
         GraphicsPSODescriptor pso_descriptor{};
         pso_descriptor.vertex_attributes = m_va_list;
@@ -235,17 +234,15 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
         pso_descriptor.vertex_shader = m_shader_function.getShaderStage(dxcompilation::ShaderType::vertex)->getShaderBytecode();
         pso_descriptor.pixel_shader = m_shader_function.getShaderStage(dxcompilation::ShaderType::pixel)->getShaderBytecode();
 
-        // TODO(rs-refactor): obtain a RootSignatureHandle from RootSignatureBlobCache once
-        // ShaderFunction::buildBindingSignature() is migrated. Today m_rs is a raw
-        // RootSignatureBuilder pointer and no name->handle mapping exists yet.
-        caches::RootSignatureHandle rs_handle { nullptr };
-
         m_pso_handle = pso_blob_cache.createGraphicsPSOBlobCompilationContract(
-            pso_descriptor, rs_handle);
+            pso_descriptor, m_rs_handle);
         pso_blob_cache.createPipelineStates();
         auto [pso, pso_status] = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
         (void) pso_status;
         m_pso = pso;
+        auto [compiled_rs, rs_status] = rs_blob_cache.getNativeRootSignature(m_rs_handle);
+        (void) rs_status;
+        m_compiled_rs = compiled_rs;
     }
     if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::viewport_changed))
     {
@@ -262,7 +259,7 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
     m_basic_rendering_services.beginRendering(*m_cmd_list_ptr);
     
     m_cmd_list_ptr->setPipelineState(*m_pso);
-    m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());
+    m_cmd_list_ptr->setRootSignature(*m_compiled_rs);
 
     m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
     m_basic_rendering_services.setDefaultViewport(*m_cmd_list_ptr);

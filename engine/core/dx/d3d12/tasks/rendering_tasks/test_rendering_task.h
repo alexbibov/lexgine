@@ -52,7 +52,8 @@ private:
     float m_box_rotation_angle;
     math::Matrix4f m_projection_transform;
 
-    RootSignatureBuilder* m_rs = nullptr;
+    caches::RootSignatureHandle m_rs_handle { nullptr };
+    CompiledRootSignature const* m_compiled_rs = nullptr;
     caches::HLSLShaderHandle m_vs { nullptr };
     caches::HLSLShaderHandle m_ps { nullptr };
     caches::GraphicsPSOHandle m_pso_handle { nullptr };

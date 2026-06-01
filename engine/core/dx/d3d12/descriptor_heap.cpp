@@ -160,7 +160,7 @@ uint64_t DescriptorHeap::createSamplerDescriptor(size_t offset, SamplerDescripto
     assert(m_type == DescriptorHeapType::sampler);
 
     D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle { m_heap_start_cpu_address + offset * m_descriptor_size };
-    auto sampler_desc_native = sampler_descriptor.nativeDescriptor();
+    D3D12_SAMPLER_DESC sampler_desc_native = sampler_descriptor.nativeDescriptor();
     m_device.native()->CreateSampler(&sampler_desc_native, cpu_handle);
     
     return m_heap_start_gpu_address + offset * m_descriptor_size;

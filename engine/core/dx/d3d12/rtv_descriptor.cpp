@@ -6,7 +6,7 @@
 using namespace lexgine::core::dx::d3d12;
 
 RTVDescriptor::RTVDescriptor(Resource const& resource, RTVBufferInfo const& buffer_info)
-    : HashableDescriptor{ resource, m_native }
+    : HashableDescriptor{ resource }
     , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -20,7 +20,7 @@ RTVDescriptor::RTVDescriptor(Resource const& resource, RTVBufferInfo const& buff
 }
 
 RTVDescriptor::RTVDescriptor(Resource const& resource, RTVTextureInfo const& texture_info)
-    : HashableDescriptor{ resource, m_native }
+    : HashableDescriptor{ resource }
     , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -57,7 +57,7 @@ RTVDescriptor::RTVDescriptor(Resource const& resource, RTVTextureInfo const& tex
 }
 
 RTVDescriptor::RTVDescriptor(Resource const& resource, RTVTextureArrayInfo const& texture_array_info)
-    : HashableDescriptor{ resource, m_native }
+    : HashableDescriptor{ resource }
     , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -103,11 +103,6 @@ RTVDescriptor::RTVDescriptor(Resource const& resource, RTVTextureArrayInfo const
 void RTVDescriptor::overrideFormat(DXGI_FORMAT format)
 {
     m_native.Format = format;
-}
-
-D3D12_RENDER_TARGET_VIEW_DESC RTVDescriptor::nativeDescriptor() const
-{
-    return m_native;
 }
 
 Resource const& RTVDescriptor::associatedResource() const

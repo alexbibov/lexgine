@@ -10,9 +10,9 @@
 #include "engine/core/dx/d3d12/resource_barrier_pack.h"
 #include "engine/core/dx/d3d12/basic_rendering_services.h"
 #include "engine/core/dx/d3d12/descriptor_table_builders.h"
-#include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 #include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
 #include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
+#include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
 #include "engine/core/misc/datetime.h"
 #include "engine/core/dx/dxcompilation/shader_stage.h"
 #include "engine/core/math/utility.h"
@@ -315,6 +315,7 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
         || update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
         caches::PSOBlobCache& pso_blob_cache = *m_globals.get<caches::PSOBlobCache>();
+        caches::RootSignatureBlobCache& rs_blob_cache = *m_globals.get<caches::RootSignatureBlobCache>();
 
         if (!m_pso)
         {
@@ -353,20 +354,19 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
             m_pso_desc.dsv_format = rendering_configuration.depth_buffer_format;
         }
 
-        // TODO(rs-refactor): obtain a RootSignatureHandle once
-        // ShaderFunction::buildBindingSignature() is migrated to publish into the RS cache.
-        caches::RootSignatureHandle rs_handle { nullptr };
-
         m_pso_desc.vertex_shader = m_vs.p_internal ? m_shader_function.getShaderStage(dxcompilation::ShaderType::vertex)->getShaderBytecode() : D3DDataBlob { nullptr };
         m_pso_desc.pixel_shader  = m_ps.p_internal ? m_shader_function.getShaderStage(dxcompilation::ShaderType::pixel)->getShaderBytecode() : D3DDataBlob { nullptr };
         m_pso_desc.invalidateHash();
 
         m_pso_handle = pso_blob_cache.createGraphicsPSOBlobCompilationContract(
-            m_pso_desc, rs_handle);
+            m_pso_desc, m_rs_handle);
         pso_blob_cache.createPipelineStates();
         auto [pso, pso_status] = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
         (void) pso_status;
         m_pso = pso;
+        auto [compiled_rs, rs_status] = rs_blob_cache.getNativeRootSignature(m_rs_handle);
+        (void) rs_status;
+        m_compiled_rs = compiled_rs;
     }
 }
 
@@ -590,8 +590,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
         dxcompilation::ShaderStage* p_ps_stage = m_shader_function.createShaderStage(m_ps);
         p_vs_stage->build();
         p_ps_stage->build();
-        m_rs = m_shader_function.buildBindingSignature();
-        m_rs->build(0);
+        m_rs_handle = m_shader_function.buildBindingSignature();
 
         m_constant_buffer_reflection = p_vs_stage->buildConstantBufferReflection(std::string{ "constants" });
         m_constant_data_mapper.addDataBinding("ProjectionMatrix", m_projection_matrix);
@@ -792,7 +791,7 @@ void UIDrawTask::drawFrame()
             );
 
             m_cmd_list_ptr->setPipelineState(*m_pso);
-            m_cmd_list_ptr->setRootSignature(m_rs->getCacheName());
+            m_cmd_list_ptr->setRootSignature(*m_compiled_rs);
 
             m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
 

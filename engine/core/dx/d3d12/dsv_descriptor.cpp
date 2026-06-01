@@ -8,7 +8,7 @@ using namespace lexgine::core::dx::d3d12;
 
 DSVDescriptor::DSVDescriptor(Resource const& resource, 
     DSVTextureInfo const& texture_info, DSVFlags flags)
-    : HashableDescriptor{ resource, m_native }
+    : HashableDescriptor{ resource }
     , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -37,7 +37,7 @@ DSVDescriptor::DSVDescriptor(Resource const& resource,
 
 DSVDescriptor::DSVDescriptor(Resource const& resource, 
     DSVTextureArrayInfo const& texture_array_info, DSVFlags flags)
-    : HashableDescriptor{ resource, m_native }
+    : HashableDescriptor{ resource }
     , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -78,11 +78,6 @@ DSVDescriptor::DSVDescriptor(Resource const& resource,
 void DSVDescriptor::overrideFormat(DXGI_FORMAT format)
 {
     m_native.Format = format;
-}
-
-D3D12_DEPTH_STENCIL_VIEW_DESC DSVDescriptor::nativeDescriptor() const
-{
-    return m_native;
 }
 
 Resource const& DSVDescriptor::associatedResource() const

@@ -79,7 +79,6 @@ public:
 
 private:
     Resource const& m_resource_ref;
-    D3D12_SHADER_RESOURCE_VIEW_DESC m_native;
 };
 
 }

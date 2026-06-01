@@ -103,8 +103,9 @@ common
 )
 target_link_libraries(${_target} PRIVATE ${_engine_lib_dependencies})
 target_link_libraries(${_target} PRIVATE imgui)
+target_link_libraries(${_target} PRIVATE xxHash::xxhash)
 
-add_dependencies(${_target} zlib glm imgui pugixml spookyhashv2 ktx_read common DirectXTex)
+add_dependencies(${_target} zlib imgui pugixml spookyhashv2 ktx_read common DirectXTex)
 target_compile_definitions(${_target} PUBLIC LEXGINE_GLOBAL_LOOKUP_PREFIX="${CMAKE_SOURCE_DIR}")
 target_compile_definitions(${_target} PUBLIC LEXGINE_SETTINGS_PATH="settings/")
 target_compile_definitions(${_target} PUBLIC LEXGINE_SCRIPTS_PATH="scripts/")
@@ -187,7 +188,7 @@ target_link_libraries(basic_tests PRIVATE GTest::gtest_main)
 target_link_libraries(basic_tests PRIVATE $<TARGET_OBJECTS:${_target}>)
 target_link_libraries(basic_tests PRIVATE ${_engine_lib_dependencies})
 target_link_libraries(basic_tests PRIVATE ${_target})
-target_link_libraries(basic_tests PRIVATE pugixml spookyhashv2 ktx_read DirectXTex freetype)
+target_link_libraries(basic_tests PRIVATE pugixml spookyhashv2 ktx_read DirectXTex freetype xxHash::xxhash)
 
 configure_openmp_support(basic_tests)
 

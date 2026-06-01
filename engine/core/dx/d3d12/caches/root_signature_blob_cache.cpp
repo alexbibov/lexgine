@@ -197,7 +197,7 @@ std::unique_ptr<CompiledRootSignature> RootSignatureBlobCache::compileRootSignat
         }
 
         RootSignatureDeferredBlobCompilationContract& contract = cit->second;
-        rs_blob = contract.root_signature.compile(contract.flags);
+        rs_blob = contract.root_signature.compile(m_device, contract.flags);
         if (contract.root_signature.getErrorState()) 
         {
             cit->second.status.store(RootSignatureBlobCompilationStatus::Failed);
@@ -241,7 +241,7 @@ GpuDataBlobCacheKey RootSignatureBlobCache::createGpuDataBlobCacheKey(
     );
     InternalKey rs_key 
     { 
-        .root_signature_version = RootSignature::c_root_signature_version,
+        .root_signature_version = static_cast<uint32_t>(m_device.queryFeatureD3D12Options().highestRootSignatureVersion),
         .root_signature_compilation_flags = static_cast<uint32_t>(flags.getValue())
     };
     return GpuDataBlobCacheKey { manifest, rs_key };

@@ -11,7 +11,6 @@
 #include "engine/core/misc/template_argument_iterator.h"
 
 #include "engine/core/dx/dxcompilation/common.h"
-#include "engine/core/dx/d3d12/tasks/root_signature_builder.h"
 #include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
 #include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
 #include "engine/core/misc/datetime.h"

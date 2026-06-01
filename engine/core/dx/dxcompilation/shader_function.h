@@ -10,9 +10,9 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/root_signature.h"
 #include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
-#include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
+#include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
 #include "engine/core/dx/d3d12/descriptor_allocation_manager.h"
-
+#include "engine/core/misc/hashes/xxhash128.h"
 #include "lexgine_core_dx_dxcompilation_fwd.h"
 #include "common.h"
 
@@ -75,7 +75,7 @@ public:
     ShaderStage* getShaderStage(ShaderType shader_type) const { return m_shader_stages[static_cast<size_t>(shader_type)].get(); }
     ShaderStage* createShaderStage(d3d12::caches::HLSLShaderHandle shader_handle);
 
-    d3d12::tasks::RootSignatureBuilder* buildBindingSignature();
+    d3d12::caches::RootSignatureHandle buildBindingSignature();
 
     uint32_t occupiedRootSignatureSlotsCount() const { return m_occupied_rs_slots; }
 
@@ -104,8 +104,10 @@ private:
     {
         size_t operator()(DescriptorTableKey const& value) const
         {
-            misc::HashValue hash_value{ &value, sizeof(DescriptorTableKey) };
-            return hash_value.part1() ^ hash_value.part2();
+            misc::hashes::XXHash128 hash_value{};
+            hash_value.create(&value, sizeof(DescriptorTableKey));
+            hash_value.finalize();
+            return static_cast<size_t>(hash_value.fold());
         }
     };
 
@@ -136,7 +138,7 @@ private:
     uint64_t m_next_counter_offset { 0 };
     d3d12::Resource m_uav_atomic_counters;
 
-    d3d12::tasks::RootSignatureBuilder* m_root_signature_builder_ptr{ nullptr };
+    d3d12::caches::RootSignatureHandle m_root_signature_handle { nullptr };
     bool m_shader_function_stale{ true };
 };
 

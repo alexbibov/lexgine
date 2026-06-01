@@ -1,4 +1,5 @@
 #ifndef LEXGINE_CORE_DX_D3D12_HASHABLE_DESCRIPTOR_H
+#define LEXGINE_CORE_DX_D3D12_HASHABLE_DESCRIPTOR_H
 
 #include <cstdint>
 #include <cassert>
@@ -7,6 +8,7 @@
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "resource.h"
 #include "engine/core/misc/hash_value.h"
+#include "engine/core/misc/hashes/xxhash128.h"
 
 namespace lexgine::core::dx::d3d12 {
 
@@ -14,51 +16,48 @@ template<typename T>
 class HashableDescriptor
 {
 public:
-    HashableDescriptor(T const& native_ref)
-        : m_native_ref{ native_ref }
+    HashableDescriptor()
     {
-
+        memset(&m_native, 0, sizeof(T));
     }
 
-    HashableDescriptor(Resource const& resource, T const& native_ref)
-        : m_resource_ptr{ reinterpret_cast<uintptr_t>(resource.native().Get()) }
-        , m_native_ref{ native_ref }
+    HashableDescriptor(Resource const& resource)
+        : m_resource_ptr{ resource.native().Get() }
     {
-
+        memset(&m_native, 0, sizeof(T));
     }
 
-    misc::HashValue hash() const
+    misc::HashValue const& hash() const
     {
-        misc::HashValue hash { &m_native_ref, sizeof(T) };
-        hash.combine(&m_resource_ptr, sizeof(uintptr_t));
-        return hash;
+        if (!m_hash_value.isFinalized())
+        {
+            m_hash_value.create(&m_resource_ptr, sizeof(m_resource_ptr));
+            m_hash_value.combine(&m_native, sizeof(T));
+            m_hash_value.finalize();
+        }
+        return m_hash_value;
     }
 
     bool operator==(HashableDescriptor const& other) const
     {
         if (this == &other)
             return true;
-
-        misc::HashValue thisHash = hash();
-        misc::HashValue otherHash = other.hash();
-
-        #ifdef _DEBUG
-        assert((thisHash != otherHash 
-            || m_resource_ptr == other.m_resource_ptr
-            && std::equal(reinterpret_cast<uint8_t const*>(&m_native_ref), 
-                reinterpret_cast<uint8_t const*>(&m_native_ref) + sizeof(T), 
-                reinterpret_cast<uint8_t const*>(&other.m_native_ref))) && "Hash collision detected");
-        #endif
-
-        return thisHash == otherHash;
+        misc::HashValue const& this_hash = hash();
+        misc::HashValue const& other_hash = other.hash();
+        return this_hash == other_hash
+            && m_resource_ptr == other.m_resource_ptr
+            && memcmp(&m_native, &other.m_native, sizeof(T)) == 0;
     }
 
+    T const& nativeDescriptor() const { return m_native; }
+
+protected:
+    T m_native;
+
 private:
-    uintptr_t m_resource_ptr = 0;
-    T const& m_native_ref;
+    ID3D12Resource* m_resource_ptr = nullptr;
+    mutable misc::hashes::XXHash128 m_hash_value;
 };
 
 }
-
-#define LEXGINE_CORE_DX_D3D12_HASHABLE_DESCRIPTOR_H
 #endif

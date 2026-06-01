@@ -24,7 +24,7 @@ size_t GpuDataBlobCacheKey::hash() const
 	auto& full_hash_value = reinterpret_cast<CommonManifest const*>(&m_data)->hash;
 	fnv1a_64_hash.create(&full_hash_value, sizeof(full_hash_value));
 	fnv1a_64_hash.finalize();
-	return static_cast<size_t>(fnv1a_64_hash.hashValueT());
+	return static_cast<size_t>(fnv1a_64_hash.fold());
 }
 
 void GpuDataBlobCacheKey::serialize(void* p_serialization_blob) const

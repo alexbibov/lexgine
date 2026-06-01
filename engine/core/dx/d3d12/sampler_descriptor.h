@@ -16,11 +16,6 @@ class SamplerDescriptor final : public HashableDescriptor<D3D12_SAMPLER_DESC>
 {
 public:
     SamplerDescriptor(FilterPack const& filter, math::Vector4f const& border_color);
-
-    D3D12_SAMPLER_DESC nativeDescriptor() const;
-
-private:
-    D3D12_SAMPLER_DESC m_native;
 };
 
 }

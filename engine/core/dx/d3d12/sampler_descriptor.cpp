@@ -7,7 +7,6 @@ using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
 SamplerDescriptor::SamplerDescriptor(FilterPack const& filter, math::Vector4f const& border_color)
-    : HashableDescriptor{ m_native }
 {
     auto uv_address = filter.getWrapModeUV();
     m_native.AddressU = d3d12Convert(uv_address.first);
@@ -25,9 +24,4 @@ SamplerDescriptor::SamplerDescriptor(FilterPack const& filter, math::Vector4f co
     m_native.MaxLOD = min_max_lod.second;
 
     m_native.MipLODBias = filter.getMipLODBias();
-}
-
-D3D12_SAMPLER_DESC SamplerDescriptor::nativeDescriptor() const
-{
-    return m_native;
 }

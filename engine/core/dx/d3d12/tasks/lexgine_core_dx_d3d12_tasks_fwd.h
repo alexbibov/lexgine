@@ -3,8 +3,6 @@
 
 namespace lexgine { namespace core { namespace dx { namespace d3d12 { namespace tasks{
 
-class RootSignatureBuilder;
-
 }}}}}
 
 #endif
