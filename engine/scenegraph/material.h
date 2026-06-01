@@ -10,6 +10,7 @@
 #include <engine/core/dx/d3d12/constant_buffer_reflection.h>
 #include <engine/core/dx/d3d12/constant_buffer_data_mapper.h>
 #include <engine/core/dx/d3d12/pipeline_state.h>
+#include <engine/core/dx/d3d12/caches/pso_blob_cache.h>
 #include <engine/core/stream_output.h>
 #include <engine/core/vertex_attributes.h>
 #include <engine/core/math/vector_types.h>
@@ -116,7 +117,7 @@ private:
     core::dx::d3d12::ConstantBufferReflection m_object_parameters_cb_reflection;
     core::dx::d3d12::ConstantBufferReflection m_scene_parameters_cb_reflection;
     core::dx::d3d12::GraphicsPSODescriptor m_pso_descriptor;
-    core::dx::d3d12::tasks::RootSignatureBuilder* m_root_signature_builder = nullptr;
+    core::dx::d3d12::caches::RootSignatureHandle m_rs_handle { nullptr };
     core::dx::d3d12::caches::GraphicsPSOHandle m_pso_handle { nullptr };
     core::dx::d3d12::PipelineState const* m_pso = nullptr;
 };

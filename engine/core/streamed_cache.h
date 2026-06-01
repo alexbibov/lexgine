@@ -398,7 +398,7 @@ public:
     class Access final
     {
     public:
-        Access(cache_type& streamed_cache, std::mutex& access_mutex)
+        Access(cache_type& streamed_cache, std::recursive_mutex& access_mutex)
             : m_streamed_cache{ &streamed_cache }
             , m_lock{ access_mutex }
         {
@@ -414,13 +414,13 @@ public:
 
     private:
         cache_type* m_streamed_cache;
-        std::unique_lock<std::mutex> m_lock;
+        std::unique_lock<std::recursive_mutex> m_lock;
     };
 
     class ConstAccess final
     {
     public:
-        ConstAccess(cache_type const& streamed_cache, std::mutex& access_mutex)
+        ConstAccess(cache_type const& streamed_cache, std::recursive_mutex& access_mutex)
             : m_streamed_cache{ &streamed_cache }
             , m_lock{ access_mutex }
         {
@@ -436,7 +436,7 @@ public:
 
     private:
         cache_type const* m_streamed_cache;
-        std::unique_lock<std::mutex> m_lock;
+        std::unique_lock<std::recursive_mutex> m_lock;
     };
 
 public:
@@ -459,7 +459,7 @@ public:
 
 private:
     cache_type m_streamed_cache;
-    mutable std::mutex m_access_mutex;
+    mutable std::recursive_mutex m_access_mutex;
 };
 
 struct Int64Key final

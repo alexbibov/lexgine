@@ -80,6 +80,46 @@ FeatureD3D12Options Device::queryFeatureD3D12Options() const
     FeatureD3D12Options rv{};
 
     {
+        // D3D12_FEATURE_DATA_ROOT_SIGNATURE
+
+        D3D_ROOT_SIGNATURE_VERSION requested_versions[] =
+        {
+#if defined(NTDDI_WIN10_CU)
+            D3D_ROOT_SIGNATURE_VERSION_1_2,
+#endif
+            D3D_ROOT_SIGNATURE_VERSION_1_1,
+            D3D_ROOT_SIGNATURE_VERSION_1_0
+        };
+
+        bool highest_version_found = false;
+        for (auto requested_version : requested_versions)
+        {
+            D3D12_FEATURE_DATA_ROOT_SIGNATURE feature_desc{ requested_version };
+            HRESULT const hr = m_device->CheckFeatureSupport(
+                D3D12_FEATURE_ROOT_SIGNATURE,
+                &feature_desc,
+                sizeof(D3D12_FEATURE_DATA_ROOT_SIGNATURE)
+            );
+
+            if (hr == E_INVALIDARG)
+            {
+                continue;
+            }
+
+            LEXGINE_THROW_ERROR_IF_FAILED(this, hr, S_OK);
+
+            rv.highestRootSignatureVersion = static_cast<D3DRootSignatureVersion>(feature_desc.HighestVersion);
+            highest_version_found = true;
+            break;
+        }
+
+        if (!highest_version_found)
+        {
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "Unable to query highest supported Direct3D 12 root signature version");
+        }
+    }
+
+    {
         // D3D12_FEATURE_DATA_D3D12_OPTIONS
 
         D3D12_FEATURE_DATA_D3D12_OPTIONS feature_desc;

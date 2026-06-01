@@ -8,7 +8,7 @@ namespace lexgine::core::dx::d3d12 {
 
 SRVDescriptor::SRVDescriptor(Resource const& resource,
     SRVBufferInfo const& buffer_info) 
-    : HashableDescriptor{ resource, m_native }
+    : HashableDescriptor{ resource }
     , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -27,7 +27,7 @@ SRVDescriptor::SRVDescriptor(Resource const& resource,
 
 SRVDescriptor::SRVDescriptor(Resource const& resource,
     SRVTextureInfo const& texture_info, bool is_cubemap) 
-    : HashableDescriptor{ resource, m_native }
+    : HashableDescriptor{ resource }
     , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();
@@ -82,7 +82,7 @@ SRVDescriptor::SRVDescriptor(Resource const& resource,
 
 SRVDescriptor::SRVDescriptor(Resource const& resource,
     SRVTextureArrayInfo const& texture_array_info, bool is_cubemap) 
-    : HashableDescriptor{ resource, m_native }
+    : HashableDescriptor{ resource }
     , m_resource_ref{ resource }
 {
     auto resource_desc = resource.descriptor();

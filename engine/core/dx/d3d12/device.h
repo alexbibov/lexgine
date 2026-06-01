@@ -180,9 +180,23 @@ enum class D3D12TriState
 };
 
 
-//! Thin wrapper over D3D12_FEATURE_DATA_D3D12_OPTIONS
+enum class D3DRootSignatureVersion
+{
+    version_1_0 = D3D_ROOT_SIGNATURE_VERSION_1_0,
+    version_1_1 = D3D_ROOT_SIGNATURE_VERSION_1_1,
+#if defined(NTDDI_WIN10_CU)
+    version_1_2 = D3D_ROOT_SIGNATURE_VERSION_1_2
+#endif
+};
+
+
+//! Thin wrapper over Direct3D 12 feature options
 struct FeatureD3D12Options final
 {
+    // D3D12_FEATURE_DATA_ROOT_SIGNATURE
+    D3DRootSignatureVersion highestRootSignatureVersion;
+
+
     // D3D12_FEATURE_DATA_D3D12_OPTIONS
     bool doublePrecisionFloatShaderOps;
     bool outputMergerLogicOp;

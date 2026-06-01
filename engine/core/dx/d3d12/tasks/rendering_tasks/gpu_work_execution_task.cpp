@@ -6,12 +6,8 @@
 #include "rendering_work.h"
 #include "gpu_work_execution_task.h"
 
-
-using namespace lexgine::core;
-using namespace lexgine::core::misc;
-using namespace lexgine::core::dx::d3d12;
-using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
-
+namespace lexgine::core::dx::d3d12::tasks::rendering_tasks 
+{
 
 std::shared_ptr<GpuWorkExecutionTask> GpuWorkExecutionTask::create(
     Device& device, std::string const& debug_name,
@@ -54,7 +50,7 @@ bool GpuWorkExecutionTask::doTask(uint8_t worker_id, uint64_t user_data)
         if (total_command_list_count > 32)
         {
             logger().out("GPU work package " + getStringName() + " contains over 32 command lists, which may "
-                "lead to performance degradation. Consider refactoring", LogMessageType::exclamation);
+                "lead to performance degradation. Consider refactoring", misc::LogMessageType::exclamation);
         }
 
         m_packed_gpu_work.reserve(total_command_list_count);
@@ -105,4 +101,6 @@ concurrency::TaskType GpuWorkExecutionTask::type() const
     default:
         __assume(0);
     }
+}
+
 }

@@ -14,6 +14,7 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/constant_buffer_reflection.h"
 #include "engine/core/misc/hashed_string.h"
+#include "engine/core/misc/hashes/xxhash128.h"
 
 #include "lexgine_core_dx_dxcompilation_fwd.h"
 #include "shader_function.h"
@@ -57,9 +58,11 @@ template <>
 struct hash<lexgine::core::dx::dxcompilation::ShaderArgumentInfoKey> {
     size_t operator()(lexgine::core::dx::dxcompilation::ShaderArgumentInfoKey const& value) const
     {
-        lexgine::core::misc::HashValue hash_value { value.semantic_name.data(), value.semantic_name.size() };
+        lexgine::core::misc::hashes::XXHash128 hash_value{};
+        hash_value.create(value.semantic_name.data(), value.semantic_name.size());
         hash_value.combine(&value.semantic_index, sizeof(value.semantic_index));
-        return hash_value.part1() ^ hash_value.part2();
+        hash_value.finalize();
+        return static_cast<size_t>(hash_value.fold());
     }
 };
 

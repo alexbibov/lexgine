@@ -19,6 +19,25 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/lib)
 
 get_property(isMultiConfigGenerator GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 
+# Set the output directories at top scope, before any dependency is declared, so
+# that every target -- including CPM/FetchContent third-party deps (freetype,
+# blake3, xxhash, googletest, ...) -- emits its runtime artifacts into bin/.
+# Otherwise, with BUILD_SHARED_LIBS=ON those deps build DLLs that land in their
+# own _deps/<name>-build/<config>/ folders, and the test/app executables in bin/
+# fail to load them at runtime (exit 127 / gtest_discover_tests MSB3073).
+if (isMultiConfigGenerator)
+    foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${_build_runtime_output_directory})
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${_build_runtime_output_directory})
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${_build_lib_output_directory})
+    endforeach()
+else()
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${_build_runtime_output_directory})
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${_build_runtime_output_directory})
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${_build_lib_output_directory})
+endif()
+
 function(add_subproject)
     set(options USE_ABSOLUTE_PATH)
     set(oneValueArgs NAME PATH)
@@ -75,11 +94,18 @@ set(ENV{CPM_SOURCE_CACHE} ${cpm_cache_location})
 
 include(${cpm_download_location})
 
+# Build spdlog as a static library (despite the project-wide BUILD_SHARED_LIBS=ON)
+# so its compiled code is linked into lexgine.dll instead of producing a separate
+# spdlog(d).dll. A normal variable shadows the cached BUILD_SHARED_LIBS for
+# spdlog's add_library() call; unset afterwards to restore shared builds.
+set(BUILD_SHARED_LIBS OFF)
 CPMAddPackage(
     NAME spdlog
     GITHUB_REPOSITORY gabime/spdlog
     VERSION 1.17.0
 )
+unset(BUILD_SHARED_LIBS)
+
 CPMAddPackage(
     NAME glm
     GITHUB_REPOSITORY g-truc/glm
@@ -123,11 +149,23 @@ if (freetype_ADDED)
   message(STATUS "Found freetype")
 endif()
 
+# Build BLAKE3 as a static library so it is linked into lexgine.dll (via common)
+# instead of producing a separate blake3.dll. See the spdlog note above.
+set(BUILD_SHARED_LIBS OFF)
 CPMAddPackage(
   NAME BLAKE-3
   GITHUB_REPOSITORY BLAKE3-team/BLAKE3
   GIT_TAG 1.8.5
   SOURCE_SUBDIR c
+)
+unset(BUILD_SHARED_LIBS)
+
+set(XXHASH_BUILD_XXHSUM OFF CACHE BOOL "" FORCE)
+CPMAddPackage(
+  NAME xxHash
+  GITHUB_REPOSITORY Cyan4973/xxHash
+  GIT_TAG v0.8.3
+  SOURCE_SUBDIR cmake_unofficial
 )
 
 include(FetchContent)
@@ -136,8 +174,8 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/google/googletest
     GIT_TAG v1.17.0
 )
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
+unset(BUILD_SHARED_LIBS)
 
 add_subproject(NAME pugixml PATH 3rd_party)
 add_subproject(NAME zlib PATH 3rd_party)

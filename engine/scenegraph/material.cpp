@@ -6,9 +6,9 @@
 #include <engine/core/global_settings.h>
 #include <engine/core/dx/d3d12/device.h>
 #include <engine/core/dx/d3d12/basic_rendering_services.h>
-#include <engine/core/dx/d3d12/tasks/root_signature_builder.h>
 #include <engine/core/dx/d3d12/caches/pso_blob_cache.h>
 #include <engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h>
+#include <engine/core/dx/d3d12/caches/root_signature_blob_cache.h>
 #include <engine/core/dx/d3d12/unordered_srv_table_allocation_manager.h>
 #include <engine/core/misc/datetime.h>
 #include <engine/core/dx/d3d12/dx_resource_factory.h>
@@ -95,7 +95,7 @@ MaterialAssemblyTask::MaterialAssemblyTask(
         m_shader_function.createShaderStage(shaders.geometry_shader);
     }
 
-    m_root_signature_builder = m_shader_function.buildBindingSignature();
+    m_rs_handle = m_shader_function.buildBindingSignature();
 }
 
 bool MaterialAssemblyTask::doTask(uint8_t worker_id, uint64_t user_data)
@@ -108,11 +108,6 @@ bool MaterialAssemblyTask::doTask(uint8_t worker_id, uint64_t user_data)
         m_shader_function.assignResourceDescriptors(core::dx::dxcompilation::ShaderFunction::ShaderInputKind::srv, 0, allocator);
         m_material_parameters_cb_reflection = m_shader_function.getShaderStage(lexgine::core::dx::dxcompilation::ShaderType::pixel)->buildConstantBufferReflection(m_material_parameters_ub_name);
         m_scene_parameters_cb_reflection = m_shader_function.getShaderStage(lexgine::core::dx::dxcompilation::ShaderType::pixel)->buildConstantBufferReflection(m_scene_parameters_ub_name);
-    }
-
-    if (!m_root_signature_builder->build(worker_id))
-    {
-        return false;
     }
 
     // Fill descriptor's shader bytecodes from completed shader tasks (they're dependencies of
@@ -129,13 +124,9 @@ bool MaterialAssemblyTask::doTask(uint8_t worker_id, uint64_t user_data)
         m_pso_descriptor.geometry_shader = p_stage->getShaderBytecode();
     m_pso_descriptor.invalidateHash();
 
-    // TODO(rs-refactor): obtain a RootSignatureHandle from the RS cache once ShaderFunction
-    // is migrated. For now m_root_signature_builder remains a raw pointer.
-    core::dx::d3d12::caches::RootSignatureHandle rs_handle { nullptr };
-
     core::dx::d3d12::caches::PSOBlobCache& pso_blob_cache = *m_basic_rendering_services.globals().get<core::dx::d3d12::caches::PSOBlobCache>();
     m_pso_handle = pso_blob_cache.createGraphicsPSOBlobCompilationContract(
-        m_pso_descriptor, rs_handle);
+        m_pso_descriptor, m_rs_handle);
     pso_blob_cache.createPipelineStates();
     auto [pso, pso_status] = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
     (void) pso_status;

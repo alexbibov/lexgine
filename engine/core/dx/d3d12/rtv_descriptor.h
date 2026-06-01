@@ -50,7 +50,6 @@ public:
     */
     void overrideFormat(DXGI_FORMAT format);
 
-    D3D12_RENDER_TARGET_VIEW_DESC nativeDescriptor() const;
     Resource const& associatedResource() const;
 
     uint32_t mipmapLevel() const;    //! returns mipmap level attached to the view
@@ -60,7 +59,6 @@ public:
 
 private:
     Resource const& m_resource_ref;
-    D3D12_RENDER_TARGET_VIEW_DESC m_native;
 };
 
 

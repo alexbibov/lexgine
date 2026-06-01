@@ -2,27 +2,28 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <sstream>
+
+#include <d3dx12.h>
 
 #include "root_signature.h"
 #include "device.h"
 #include "d3d12_tools.h"
 #include "engine/core/exception.h"
-#include "engine/core/globals.h"
 #include "engine/core/misc/hashes/blake3_256.h"
 
-
-using namespace lexgine::core;
-using namespace lexgine::core::misc;
+namespace lexgine::core::dx::d3d12
+{
 
 namespace {
 
 template<typename T>
-void combineValue(HashValue& hash_value, T const& value)
+void combineValue(misc::HashValue& hash_value, T const& value)
 {
     hash_value.combine(&value, sizeof(value));
 }
 
-void combineDescriptorRange(HashValue& hash_value, D3D12_DESCRIPTOR_RANGE const& range)
+void combineDescriptorRange(misc::HashValue& hash_value, D3D12_DESCRIPTOR_RANGE const& range)
 {
     combineValue(hash_value, range.RangeType);
     combineValue(hash_value, range.NumDescriptors);
@@ -31,7 +32,7 @@ void combineDescriptorRange(HashValue& hash_value, D3D12_DESCRIPTOR_RANGE const&
     combineValue(hash_value, range.OffsetInDescriptorsFromTableStart);
 }
 
-void combineStaticSampler(HashValue& hash_value, D3D12_STATIC_SAMPLER_DESC const& sampler)
+void combineStaticSampler(misc::HashValue& hash_value, D3D12_STATIC_SAMPLER_DESC const& sampler)
 {
     combineValue(hash_value, sampler.Filter);
     combineValue(hash_value, sampler.AddressU);
@@ -48,10 +49,18 @@ void combineStaticSampler(HashValue& hash_value, D3D12_STATIC_SAMPLER_DESC const
     combineValue(hash_value, sampler.ShaderVisibility);
 }
 
+D3D12_DESCRIPTOR_RANGE_FLAGS descriptorRangeFlags(D3D12_DESCRIPTOR_RANGE_TYPE range_type)
+{
+    if (range_type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+    {
+        return D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+    }
+
+    return D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE
+        | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
 }
 
-namespace lexgine::core::dx::d3d12
-{
+}  // namespace
 
 RootEntryCBVDescriptor::RootEntryCBVDescriptor(uint32_t shader_register, uint32_t register_space) :
     m_shader_register{ shader_register },
@@ -117,7 +126,7 @@ void RootSignature::reset()
     invalidateHash();
 }
 
-D3DDataBlob RootSignature::compile(RootSignatureFlags const& flags) const
+D3DDataBlob RootSignature::compile(Device const& device, RootSignatureFlags const& flags) const
 {
     // validate root signature (the slots should follow in order beginning from 0)
     for (uint32_t i = 0U; i < static_cast<uint32_t>(m_root_parameters.size()); ++i)
@@ -128,34 +137,102 @@ D3DDataBlob RootSignature::compile(RootSignatureFlags const& flags) const
         }
     }
 
-    std::vector<D3D12_ROOT_PARAMETER> root_parameters_buf{};
+    std::vector<D3D12_ROOT_PARAMETER1> root_parameters_buf{};
     root_parameters_buf.resize(m_root_parameters.size());
+    std::vector<std::vector<D3D12_DESCRIPTOR_RANGE1>> descriptor_range_buffers{};
+    descriptor_range_buffers.resize(m_root_parameters.size());
+
     for (auto const& e : m_root_parameters)
     {
-        root_parameters_buf[e.first] = e.second;
+        D3D12_ROOT_PARAMETER const& src_parameter = e.second;
+        D3D12_ROOT_PARAMETER1& dst_parameter = root_parameters_buf[e.first];
+
+        dst_parameter.ParameterType = src_parameter.ParameterType;
+        dst_parameter.ShaderVisibility = src_parameter.ShaderVisibility;
+
+        switch (src_parameter.ParameterType)
+        {
+        case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+        {
+            D3D12_ROOT_DESCRIPTOR_TABLE const& src_descriptor_table = src_parameter.DescriptorTable;
+            std::vector<D3D12_DESCRIPTOR_RANGE1>& dst_descriptor_ranges = descriptor_range_buffers[e.first];
+            dst_descriptor_ranges.resize(src_descriptor_table.NumDescriptorRanges);
+
+            for (uint32_t i = 0; i < src_descriptor_table.NumDescriptorRanges; ++i)
+            {
+                D3D12_DESCRIPTOR_RANGE const& src_descriptor_range = src_descriptor_table.pDescriptorRanges[i];
+                D3D12_DESCRIPTOR_RANGE1& dst_descriptor_range = dst_descriptor_ranges[i];
+
+                dst_descriptor_range.RangeType = src_descriptor_range.RangeType;
+                dst_descriptor_range.NumDescriptors = src_descriptor_range.NumDescriptors;
+                dst_descriptor_range.BaseShaderRegister = src_descriptor_range.BaseShaderRegister;
+                dst_descriptor_range.RegisterSpace = src_descriptor_range.RegisterSpace;
+                dst_descriptor_range.Flags = descriptorRangeFlags(src_descriptor_range.RangeType);
+                dst_descriptor_range.OffsetInDescriptorsFromTableStart = src_descriptor_range.OffsetInDescriptorsFromTableStart;
+            }
+
+            dst_parameter.DescriptorTable.NumDescriptorRanges = src_descriptor_table.NumDescriptorRanges;
+            dst_parameter.DescriptorTable.pDescriptorRanges = dst_descriptor_ranges.data();
+            break;
+        }
+
+        case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
+            dst_parameter.Constants = src_parameter.Constants;
+            break;
+
+        case D3D12_ROOT_PARAMETER_TYPE_CBV:
+        case D3D12_ROOT_PARAMETER_TYPE_SRV:
+        case D3D12_ROOT_PARAMETER_TYPE_UAV:
+            dst_parameter.Descriptor.ShaderRegister = src_parameter.Descriptor.ShaderRegister;
+            dst_parameter.Descriptor.RegisterSpace = src_parameter.Descriptor.RegisterSpace;
+            dst_parameter.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE;
+            break;
+
+        default:
+            __assume(0);
+        }
     }
 
-    D3D12_ROOT_SIGNATURE_DESC root_desc;
-    root_desc.NumParameters = static_cast<UINT>(m_root_parameters.size());
-    root_desc.NumStaticSamplers = static_cast<UINT>(m_static_samplers.size());
+    D3D12_VERSIONED_ROOT_SIGNATURE_DESC root_desc{};
+    root_desc.Version = static_cast<D3D_ROOT_SIGNATURE_VERSION>(c_root_signature_version);
+    root_desc.Desc_1_1.NumParameters = static_cast<UINT>(m_root_parameters.size());
+    root_desc.Desc_1_1.NumStaticSamplers = static_cast<UINT>(m_static_samplers.size());
 
-    root_desc.pParameters = root_parameters_buf.data();
-    root_desc.pStaticSamplers = m_static_samplers.data();
-    root_desc.Flags = static_cast<D3D12_ROOT_SIGNATURE_FLAGS>(flags.getValue());
+    root_desc.Desc_1_1.pParameters = root_parameters_buf.data();
+    root_desc.Desc_1_1.pStaticSamplers = m_static_samplers.data();
+    root_desc.Desc_1_1.Flags = static_cast<D3D12_ROOT_SIGNATURE_FLAGS>(flags.getValue());
 
+    D3D_ROOT_SIGNATURE_VERSION const highest_root_signature_version = static_cast<D3D_ROOT_SIGNATURE_VERSION>(
+        device.queryFeatureD3D12Options().highestRootSignatureVersion
+    );
 
-    ID3DBlob* serialized_rs = nullptr, * error = nullptr;
-    if (D3D12SerializeRootSignature(&root_desc, static_cast<D3D_ROOT_SIGNATURE_VERSION>(c_root_signature_version), &serialized_rs, &error) != S_OK)
+    ComPtr<ID3DBlob> serialized_rs{ nullptr };
+    ComPtr<ID3DBlob> error{ nullptr };
+    HRESULT const hr = D3DX12SerializeVersionedRootSignature(
+        &root_desc,
+        highest_root_signature_version,
+        serialized_rs.GetAddressOf(),
+        error.GetAddressOf()
+    );
+    if (hr != S_OK)
     {
-        std::string serialization_error{ static_cast<char*>(error->GetBufferPointer()), error->GetBufferSize() };
-        std::string err_msg = "Unable to serialize root signature: " + serialization_error;
+        std::string err_msg{ "Unable to serialize root signature" };
+        if (error)
+        {
+            std::string serialization_error{ static_cast<char*>(error->GetBufferPointer()), error->GetBufferSize() };
+            err_msg += ": " + serialization_error;
+        }
+        else
+        {
+            std::stringstream ss;
+            ss << ": serialization returned error code 0x" << std::uppercase << std::hex << hr;
+            err_msg += ss.str();
+        }
 
         LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, err_msg);
     }
 
     D3DDataBlob rv{ serialized_rs };
-    serialized_rs->Release();
-    if (error) error->Release();
 
     return rv;
 }
@@ -398,7 +475,7 @@ void RootSignature::updateRootParameterMask(uint32_t slot)
 }
 
 CompiledRootSignature::CompiledRootSignature(
-    Globals& globals,
+    core::Globals& globals,
     D3DDataBlob const& serialized_root_signature,
     uint32_t node_mask)
     : m_device{ *globals.get<Device>() }

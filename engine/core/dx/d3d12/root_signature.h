@@ -8,6 +8,7 @@
 #include <d3d12.h>
 #include <wrl.h>
 
+#include "engine/core/globals.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/entity.h"
@@ -173,7 +174,7 @@ public:
     void reset();     //! erases current root signature declaration. After calling this function the root signature is empty as if it was just initialized
 
     //! compiles root signature and returns it packed into a data blob
-    D3DDataBlob compile(RootSignatureFlags const& flags = RootSignatureFlags::base_values::allow_input_assembler) const;
+    D3DDataBlob compile(Device const& device, RootSignatureFlags const& flags = RootSignatureFlags::base_values::allow_input_assembler) const;
 
     //! adds new root CBV descriptor into the given slot of the root signature
     RootSignature& addParameter(uint32_t slot, RootEntryCBVDescriptor const& root_entry_cbv_descriptor_declaration, ShaderVisibility shader_visibility = ShaderVisibility::all);
@@ -216,7 +217,11 @@ class CompiledRootSignature final : public NamedEntity<class_names::D3D12_Compil
 public:
     ComPtr<ID3D12RootSignature> native() const { return m_root_signature; }
     Device& device() const { return m_device; }  //! returns device interface used to create root signature
-    CompiledRootSignature(Globals& globals, D3DDataBlob const& serialized_root_signature, uint32_t node_mask);
+    CompiledRootSignature(
+        core::Globals& globals,
+        D3DDataBlob const& serialized_root_signature,
+        uint32_t node_mask
+    );
 
 private:
     Device& m_device;

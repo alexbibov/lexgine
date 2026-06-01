@@ -29,7 +29,6 @@
 #include <engine/scenegraph/image.h>
 
 #include <engine/core/gpu_data_blob_cache_key.h>
-#include <engine/core/dx/d3d12/tasks/root_signature_builder.h>
 #include <engine/core/dx/d3d12/caches/root_signature_blob_cache.h>
 
 #include <engine/core/misc/uuid.h>
@@ -481,8 +480,7 @@ TEST(EngineTests_gpu, TestD3D12PSOXMLParser)
             auto& rs_compilation_tasks_cache = *globals.get<caches::RootSignatureBlobCache>();
 
             auto flags = RootSignatureFlags::base_values::allow_input_assembler | RootSignatureFlags::base_values::allow_stream_output;
-            rs_compilation_tasks_cache.findOrCreateTask(globals, std::move(rs),
-                flags, "SampleRootSignature", 0);
+            rs_compilation_tasks_cache.createRootSignatureBlobCompilationContract(std::move(rs), flags);
         }
 
 

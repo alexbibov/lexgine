@@ -179,6 +179,7 @@ void PSOBlobCache::createPipelineStates()
         {
             size_t start = per_bucket_count * i + (i < rem ? i : rem);
             size_t count = per_bucket_count + (i < rem ? 1 : 0);
+            if(count == 0) continue;
             m_worker_threads.emplace_back(
                 std::thread {
                     [this](size_t s, size_t cnt) {

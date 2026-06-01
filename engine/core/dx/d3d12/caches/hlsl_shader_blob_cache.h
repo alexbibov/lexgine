@@ -14,6 +14,7 @@
 #include "engine/core/class_names.h"
 #include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/dx/dxcompilation/common.h"
+#include "engine/core/dx/dxcompilation/lexgine_core_dx_dxcompilation_fwd.h"
 #include "engine/core/entity.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/globals.h"

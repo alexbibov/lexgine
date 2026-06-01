@@ -105,6 +105,7 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
     {
         m_gpu_data_blob_cache = std::make_unique<GpuDataBlobCache>(*m_global_settings);
     }
+
     buildGlobals();
     setCurrentDevice(0);
 }
@@ -202,10 +203,10 @@ void D3D12Initializer::rebuildDeviceDependentCaches()
     m_hlsl_shader_blob_cache.reset();
 
     m_hlsl_shader_blob_cache = std::make_unique<d3d12::caches::HLSLShaderBlobCache>(*m_globals);
-    m_root_signature_blob_cache = std::make_unique<d3d12::caches::RootSignatureBlobCache>(*m_globals);
-    m_pso_blob_cache = std::make_unique<d3d12::caches::PSOBlobCache>(*m_globals);
     m_globals->put(m_hlsl_shader_blob_cache.get());
+    m_root_signature_blob_cache = std::make_unique<d3d12::caches::RootSignatureBlobCache>(*m_globals);
     m_globals->put(m_root_signature_blob_cache.get());
+    m_pso_blob_cache = std::make_unique<d3d12::caches::PSOBlobCache>(*m_globals);
     m_globals->put(m_pso_blob_cache.get());
 }
 

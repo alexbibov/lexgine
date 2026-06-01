@@ -132,6 +132,8 @@ private:
     caches::HLSLShaderHandle m_ps { nullptr };
     caches::GraphicsPSOHandle m_pso_handle { nullptr };
     PipelineState const* m_pso = nullptr;
+    caches::RootSignatureHandle m_rs_handle { nullptr };
+    CompiledRootSignature const* m_compiled_rs = nullptr;
     VertexAttributeSpecificationList m_va_list;
     dxcompilation::ShaderFunction m_shader_function;
     GraphicsPSODescriptor m_pso_desc;
@@ -159,7 +161,6 @@ private:
 private:
     static std::string const c_interface_update_section;
     static size_t const c_interface_update_section_size = 1024 * 1024 * 8;
-    tasks::RootSignatureBuilder* m_rs;
 };
 
 }
