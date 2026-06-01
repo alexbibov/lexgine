@@ -107,7 +107,7 @@ if(DirectXTex_BUILD_DX11 AND WIN32)
    target_include_directories(${PROJECT_NAME} PRIVATE ${COMPILED_SHADERS})
 endif()
 
-source_group(${PROJECT_NAME} REGULAR_EXPRESSION *.*)
+source_group(${PROJECT_NAME} REGULAR_EXPRESSION ".*")
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
