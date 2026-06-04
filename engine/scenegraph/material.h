@@ -13,8 +13,7 @@
 #include <engine/core/dx/d3d12/caches/pso_blob_cache.h>
 #include <engine/core/stream_output.h>
 #include <engine/core/vertex_attributes.h>
-#include <engine/core/math/vector_types.h>
-#include <engine/core/concurrency/schedulable_task.h>
+#include <engine/core/misc/hash_value.h>
 #include <engine/core/dx/dxcompilation/shader_function.h>
 #include <engine/conversion/lexgine_conversion_fwd.h>
 
@@ -68,20 +67,18 @@ struct MaterialShaderDesc
     std::string scene_parameters_uniform_buffer_name;
 };
 
-class MaterialAssemblyTask : public core::concurrency::SchedulableTask
+class MaterialStaticState
 {
 public:
     constexpr static uint32_t c_reserved_srv_space_id_for_bindless_resources = 50;
 
-    MaterialAssemblyTask(
+    MaterialStaticState(
         core::dx::d3d12::BasicRenderingServices& basic_rendering_services,
         MaterialPSOCompilationContext const& context,
-        MaterialShaderDesc const& shaders
+        MaterialShaderDesc const& shader_desc
     );
 
-    // AbstractTask protocol implementation
-    bool doTask(uint8_t worker_id, uint64_t user_data) override;
-    core::concurrency::TaskType type() const override { return core::concurrency::TaskType::cpu; }
+    void buildPipeline();     //! create PSO compilation contract in PSOBlobCache
 
     core::dx::d3d12::ConstantBufferReflection const& getMaterialParametersUniformBufferReflection() const { return m_material_parameters_cb_reflection; }
     core::dx::d3d12::ConstantBufferReflection const& getObjectParametersUniformBufferReflection() const { return m_object_parameters_cb_reflection; }
@@ -106,7 +103,9 @@ public:
         core::dx::d3d12::ConstantBufferDataMapper& data_mapper
     );
 
+    core::misc::HashValue const* hash() const;
 
+    bool operator==(MaterialStaticState const& other) const;
 
 private:
     core::dx::d3d12::BasicRenderingServices& m_basic_rendering_services;
@@ -119,7 +118,6 @@ private:
     core::dx::d3d12::GraphicsPSODescriptor m_pso_descriptor;
     core::dx::d3d12::caches::RootSignatureHandle m_rs_handle { nullptr };
     core::dx::d3d12::caches::GraphicsPSOHandle m_pso_handle { nullptr };
-    core::dx::d3d12::PipelineState const* m_pso = nullptr;
 };
 
 // TODO: decouple shader function, descriptor allocation and PSO from Material
@@ -139,7 +137,7 @@ public:
     };
 
 public:
-    Material(MaterialAssemblyTask& material_assembly_task);
+    Material(MaterialStaticState& material_static_state);
 
     void setStringName(std::string const& entity_string_name);
 
@@ -156,10 +154,10 @@ public:
     void bindMaterialConstants(core::dx::d3d12::CommandList& target_command_list);
 
 private:
-    MaterialAssemblyTask& m_material_assembly;
+    MaterialStaticState& m_material_static_state;
     core::dx::d3d12::ConstantBufferDataMapper m_material_parameters_cb_data_mapper;
 
-    std::unique_ptr<MaterialAssemblyTask> m_pso_compilation_task;
+    std::unique_ptr<MaterialStaticState> m_pso_compilation_task;
     
     core::math::Vector3f m_emissive_factor;
     AlphaMode m_alpha_mode;

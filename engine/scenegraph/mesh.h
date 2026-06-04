@@ -10,19 +10,6 @@
 
 namespace lexgine::scenegraph
 {
-
-enum class SubmeshTopology
-{
-    points,
-    line,
-    line_loop,
-    line_strip,
-    triangles,
-    triangle_strip,
-    triangle_fan
-};
-
-
 class Mesh final
 {   
 public:
@@ -32,7 +19,7 @@ public:
 
     }
 
-    void addSubmesh(Submesh&& submesh) { m_submeshes.emplace_back(std::move(submesh)); }
+    size_t addSubmesh(Submesh&& submesh);
     void clearSubmeshes() { m_submeshes.clear(); }
     size_t getSubmeshCount() const { return m_submeshes.size(); }
 

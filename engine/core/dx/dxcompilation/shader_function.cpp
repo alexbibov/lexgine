@@ -156,7 +156,7 @@ void ShaderFunction::buildInternal()
         if (ShaderStage* p_shader_stage = m_shader_stages[shader_stage_id].get())
         {
             p_shader_stage->build();
-            for (auto const [_, shader_binding_point] : ShaderStageAttorney<ShaderFunction>::getShaderStageBindings(p_shader_stage))
+            for (auto const& [_, shader_binding_point] : ShaderStageAttorney<ShaderFunction>::getShaderStageBindings(p_shader_stage))
             {
                 auto [p, __] = m_shader_inputs.insert(
                     std::make_pair(shader_binding_point, ShaderInputDesc{})
@@ -166,7 +166,7 @@ void ShaderFunction::buildInternal()
         }
     }
     
-    for (auto const [binding_point, shader_input_desc] : m_shader_inputs)
+    for (auto const& [binding_point, shader_input_desc] : m_shader_inputs)
     {
         if (binding_point.kind == ShaderInputKind::cbv 
             && binding_point.register_space == c_reserved_constant_buffer_space_id)
