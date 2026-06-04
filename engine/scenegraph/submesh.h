@@ -9,6 +9,17 @@ namespace lexgine::scenegraph
 
 class Material;
 
+enum class SubmeshTopology
+{
+    points,
+    line,
+    line_loop,
+    line_strip,
+    triangles,
+    triangle_strip,
+    triangle_fan
+};
+
 enum class IndexType
 {
     _default,

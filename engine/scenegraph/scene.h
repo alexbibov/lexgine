@@ -5,6 +5,7 @@
 #include <future>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <tinygltf/tiny_gltf_v3.h>
 
@@ -64,6 +65,20 @@ private:
         SceneMemoryBufferHandle getBuffer(size_t id) { return m_scene_memory_handles[id]; }
     };
 
+    struct MaterialStaticStateHasher
+    {
+        size_t operator()(MaterialStaticState const& value) const
+        {
+            return value.hash()->fold();
+        }
+    };
+
+    struct MaterialAttachment
+    {
+        std::unordered_set<MaterialStaticState, MaterialStaticStateHasher>::const_iterator material_static_state_it;
+        std::vector<size_t> target_submesh_ids;
+    };
+
 private:
     Scene(
         core::Globals& globals, 
@@ -95,11 +110,6 @@ private:
         std::unordered_map<int, int>& mesh_ids,
         std::unordered_map<int, int> const& buffer_ids
     );
-    bool loadMaterial(
-        tg3_material const& gltf_material,
-        const lexgine::core::VertexAttributeSpecificationList& vertex_attributes
-    );
-    void scheduleMaterialConstruction();
     bool loadCameras(
         tg3_model const& model,
         std::unordered_map<int, int>& camera_ids
@@ -108,6 +118,17 @@ private:
         tg3_model const& model,
         std::unordered_map<int, int>& animation_ids
     );
+
+    std::unordered_set<MaterialStaticState, MaterialStaticStateHasher>::const_iterator
+        registerMaterialStaticState(
+            tg3_material const& gltf_material,
+            const lexgine::core::VertexAttributeSpecificationList& vertex_attributes
+        );
+    size_t registerMaterial(
+        tg3_material const& gltf_material,
+        const lexgine::core::VertexAttributeSpecificationList& vertex_attributes
+    );
+   
 
 private:
     core::Globals& m_globals;
@@ -126,14 +147,12 @@ private:
     std::vector<Sampler> m_samplers;
     std::vector<Material> m_materials;
     std::vector<Camera> m_cameras;
-
-    SceneMemory m_scene_memory;
-
     std::vector<Mesh> m_scene_meshes;
     std::vector<BufferView> m_memory_views;
-    std::vector<std::unique_ptr<MaterialAssemblyTask>> m_material_construction_tasks;
-    std::unique_ptr<core::concurrency::TaskGraph> m_material_construction_task_graph;
-    std::unique_ptr<core::concurrency::TaskSink> m_material_construction_task_sink;
+
+    SceneMemory m_scene_memory;
+    std::unordered_set<MaterialStaticState, MaterialStaticStateHasher> m_material_static_states;
+    std::unordered_map<size_t, MaterialAttachment> m_material_attachements;
 };
 
 }

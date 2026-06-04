@@ -246,8 +246,8 @@ bool Scene::loadStatus() const
 {
     if (!m_scene_source_parse_status) return false;
     conversion::TextureConverter& texture_converter = *m_globals.get<conversion::TextureConverter>();
-    return !m_material_construction_task_sink->isRunning()
-        && texture_converter.isTextureConversionCompleted()
+    return 
+        texture_converter.isTextureConversionCompleted()
         && texture_converter.isTextureUploadCompleted();
 }
 
@@ -500,7 +500,24 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
         load_result = false;
     }
 
-    scheduleMaterialConstruction();
+    {
+        auto* p_hlsl_shader_blob_cache = m_globals.get<core::dx::d3d12::caches::HLSLShaderBlobCache>();
+        p_hlsl_shader_blob_cache->createShaderBlobs();
+        p_hlsl_shader_blob_cache->waitTillReady();
+    }
+
+    for (MaterialStaticState const& mss : m_material_static_states)
+    {
+        mss.buildPipeline();
+    }
+
+    {
+        auto* p_rs_blob_cache = m_globals.get<core::dx::d3d12::caches::RootSignatureBlobCache>();
+        p_rs_blob_cache->createRootSignatures();
+
+        auto* p_pso_blob_cache = m_globals.get<core::dx::d3d12::caches::PSOBlobCache>();
+        p_pso_blob_cache->createPipelineStates();
+    }
 
     return load_result;
 }
@@ -575,8 +592,8 @@ bool Scene::loadLights(
                 break;
             }
 
+            light_id_in_scene = m_lights.size();
             m_lights.push_back(lexgineLight);
-            light_id_in_scene = m_lights.size() - 1;
         }
     }
 
@@ -785,119 +802,36 @@ bool Scene::loadMeshes(
                 );
             }
 
+            size_t submesh_id = m_scene_meshes.back().addSubmesh(std::move(submesh));
             if (mesh_primitive.material >= 0)
             {
-                bool result = loadMaterial(model.materials[mesh_primitive.material], all_vertex_attributes);
-                if (result)
+                int32_t material_id = mesh_primitive.material;
+                tg3_material const& gltf_source_material = model.materials[material_id];
+                auto material_static_state_it = registerMaterialStaticState(gltf_source_material, vertex_attributes_for_vb_slot);
+                auto material_attachment_it = m_material_attachements.find(material_id);
+                if (material_attachment_it != m_material_attachements.end())
                 {
-                    Material& last_loaded_material = m_materials.back();
-                    submesh.setBaseMaterial(&last_loaded_material);
+                    MaterialAttachment& attachment = material_attachment_it->second;
+                    assert(attachment.material_static_state_it == material_static_state_it);
+                    attachment.target_submesh_ids.push_back(submesh_id);
                 }
                 else
                 {
-                    LEXGINE_LOG_ERROR(this, "Unable to load material (id = "
-                        + std::to_string(mesh_primitive.material) + ") for mesh "
-                        + std::string(mesh.name.data, mesh.name.len));
+                    m_material_attachements.insert(
+                        std::make_pair(
+                            material_id,
+                            MaterialAttachment{ 
+                                .material_static_state_it = material_static_state_it,
+                                .target_submesh_ids = {submesh_id}
+                            }
+                        )
+                    );
                 }
             }
-
-            m_scene_meshes.back().addSubmesh(std::move(submesh));
         }
     }
 
     return true;
-}
-
-bool Scene::loadMaterial(tg3_material const& gltf_material,
-    const lexgine::core::VertexAttributeSpecificationList& vertex_attributes)
-{
-    if (!tg3_str_equals_cstr(gltf_material.alpha_mode, "OPAQUE"))
-        return false;
-
-    MaterialPSOCompilationContext context{ vertex_attributes };
-    MaterialShaderDesc shader_desc{};
-    auto* p_hlsl_shader_blob_cache = m_globals.get<core::dx::d3d12::caches::HLSLShaderBlobCache>();
-    
-	{
-		lexgine::core::dx::d3d12::caches::HLSLFileTranslationUnit translation_unit_vs{ m_globals, "pbr.vs", "pbr.vs.hlsl" };
-		shader_desc.vertex_shader = p_hlsl_shader_blob_cache->createHLSLShaderBlobCompilationContract(
-			translation_unit_vs,
-			lexgine::core::dx::dxcompilation::ShaderModel::model_62,
-			lexgine::core::dx::dxcompilation::ShaderType::vertex,
-			"VSMain"
-		);
-	}
-
-	{
-		lexgine::core::dx::d3d12::caches::HLSLFileTranslationUnit translation_unit_ps{ m_globals, "pbr.ps", "pbr.ps.hlsl" };
-		shader_desc.pixel_shader = p_hlsl_shader_blob_cache->createHLSLShaderBlobCompilationContract(
-			translation_unit_ps,
-			lexgine::core::dx::dxcompilation::ShaderModel::model_62,
-			lexgine::core::dx::dxcompilation::ShaderType::pixel,
-			"PSMain"
-		);
-	}
-    m_material_construction_tasks.push_back(std::make_unique<MaterialAssemblyTask>(m_basic_rendering_services, context, shader_desc));
-    
-    m_materials.emplace_back(*m_material_construction_tasks.back());
-    Material& new_material = m_materials.back();
-    new_material.setStringName(std::string(gltf_material.name.data, gltf_material.name.len));
-    new_material.setEmissiveFactor(lexgine::core::math::Vector3f{ gltf_material.emissive_factor[0], gltf_material.emissive_factor[1], gltf_material.emissive_factor[2] });
-    new_material.setAlphaMode(AlphaMode::opaque);
-    new_material.setAlphaCutoff(gltf_material.alpha_cutoff);
-    new_material.setDoubleSided(gltf_material.double_sided != 0);
-
-    {
-        // Metallic-roughness
-        Material::MetallicRoughness mr{};
-        mr.base_color_factor = lexgine::core::math::Vector4f{
-            gltf_material.pbr_metallic_roughness.base_color_factor[0],
-            gltf_material.pbr_metallic_roughness.base_color_factor[1],
-            gltf_material.pbr_metallic_roughness.base_color_factor[2],
-            gltf_material.pbr_metallic_roughness.base_color_factor[3]
-        };
-        mr.metallic_factor = gltf_material.pbr_metallic_roughness.metallic_factor;
-        mr.roughness_factor = gltf_material.pbr_metallic_roughness.roughness_factor;
-        mr.p_base_color = gltf_material.pbr_metallic_roughness.base_color_texture.index >= 0 ? &m_textures[gltf_material.pbr_metallic_roughness.base_color_texture.index] : nullptr;
-        mr.p_metallic_roughness = gltf_material.pbr_metallic_roughness.metallic_roughness_texture.index >= 0 ? &m_textures[gltf_material.pbr_metallic_roughness.metallic_roughness_texture.index] : nullptr;
-        new_material.setMetallicRoughness(mr);
-    }
-
-    if (gltf_material.normal_texture.index >= 0)
-    {
-        new_material.setNormalTexture(&m_textures[gltf_material.normal_texture.index]);
-    }
-
-    if (gltf_material.occlusion_texture.index >= 0)
-    {
-        new_material.setOcclusionTexture(&m_textures[gltf_material.occlusion_texture.index]);
-    }
-
-    if (gltf_material.emissive_texture.index >= 0)
-    {
-        new_material.setEmissiveTexture(&m_textures[gltf_material.emissive_texture.index]);
-    }
-
-    return true;
-}
-
-void Scene::scheduleMaterialConstruction()
-{
-    std::unordered_set<core::concurrency::TaskGraphRootNode const*> root_nodes{};
-    root_nodes.reserve(m_material_construction_tasks.size());
-    for (std::unique_ptr<MaterialAssemblyTask>& e : m_material_construction_tasks)
-    {
-        root_nodes.insert(ROOT_NODE_CAST(e.get()));
-    }
-    m_material_construction_task_graph =
-        std::make_unique<core::concurrency::TaskGraph>(
-            root_nodes,
-            m_globals.get<core::GlobalSettings>()->getNumberOfWorkers(),
-            "MaterialConstructionTaskGraph"
-        );
-    m_material_construction_task_sink = std::make_unique<core::concurrency::TaskSink>(*m_material_construction_task_graph, "MaterialConstruction");
-    m_material_construction_task_sink->start();
-    m_material_construction_task_sink->submit(0);
 }
 
 bool Scene::loadCameras(tg3_model const& model, std::unordered_map<int, int>& camera_ids)
@@ -947,6 +881,97 @@ bool Scene::loadAnimations(tg3_model const& model, std::unordered_map<int, int>&
 {
     return true;
 }
+
+std::unordered_set<MaterialStaticState, Scene::MaterialStaticStateHasher>::const_iterator
+    Scene::registerMaterialStaticState(
+        tg3_material const& gltf_material,
+        const lexgine::core::VertexAttributeSpecificationList& vertex_attributes
+    )
+{
+    std::list<core::dx::dxcompilation::HLSLMacroDefinition> defines{};
+    tg3_str const& alpha_mode = gltf_material.alpha_mode;
+    defines.push_back({ .name = std::string{alpha_mode.data, alpha_mode.data + alpha_mode.len} });
+
+    MaterialPSOCompilationContext context{ vertex_attributes };
+    MaterialShaderDesc shader_desc{};
+
+    auto* p_hlsl_shader_blob_cache = m_globals.get<core::dx::d3d12::caches::HLSLShaderBlobCache>();
+
+    {
+        // Vertex shader
+
+        lexgine::core::dx::d3d12::caches::HLSLFileTranslationUnit translation_unit_vs{ m_globals, "pbr.vs", "pbr.vs.hlsl" };
+        shader_desc.vertex_shader = p_hlsl_shader_blob_cache->createHLSLShaderBlobCompilationContract(
+            translation_unit_vs,
+            lexgine::core::dx::dxcompilation::ShaderModel::model_62,
+            lexgine::core::dx::dxcompilation::ShaderType::vertex,
+            "VSMain",
+            defines
+        );
+    }
+
+    {
+        // Pixel shader
+
+        lexgine::core::dx::d3d12::caches::HLSLFileTranslationUnit translation_unit_ps{ m_globals, "pbr.ps", "pbr.ps.hlsl" };
+        shader_desc.pixel_shader = p_hlsl_shader_blob_cache->createHLSLShaderBlobCompilationContract(
+            translation_unit_ps,
+            lexgine::core::dx::dxcompilation::ShaderModel::model_62,
+            lexgine::core::dx::dxcompilation::ShaderType::pixel,
+            "PSMain",
+            defines
+        );
+    }
+
+    auto [it, _] = m_material_static_states.emplace(m_basic_rendering_services, context, shader_desc);
+    return it;
+}
+
+//size_t Scene::registerMaterial(tg3_material const& gltf_material,
+//    const lexgine::core::VertexAttributeSpecificationList& vertex_attributes)
+//{
+//    m_materials.emplace_back(*m_materials.back());
+//    Material& new_material = m_materials.back();
+//    new_material.setStringName(std::string(gltf_material.name.data, gltf_material.name.len));
+//    new_material.setEmissiveFactor(lexgine::core::math::Vector3f{ gltf_material.emissive_factor[0], gltf_material.emissive_factor[1], gltf_material.emissive_factor[2] });
+//    new_material.setAlphaMode(AlphaMode::opaque);
+//    new_material.setAlphaCutoff(gltf_material.alpha_cutoff);
+//    new_material.setDoubleSided(gltf_material.double_sided != 0);
+//
+//    {
+//        // Metallic-roughness
+//        Material::MetallicRoughness mr{};
+//        mr.base_color_factor = lexgine::core::math::Vector4f{
+//            gltf_material.pbr_metallic_roughness.base_color_factor[0],
+//            gltf_material.pbr_metallic_roughness.base_color_factor[1],
+//            gltf_material.pbr_metallic_roughness.base_color_factor[2],
+//            gltf_material.pbr_metallic_roughness.base_color_factor[3]
+//        };
+//        mr.metallic_factor = gltf_material.pbr_metallic_roughness.metallic_factor;
+//        mr.roughness_factor = gltf_material.pbr_metallic_roughness.roughness_factor;
+//        mr.p_base_color = gltf_material.pbr_metallic_roughness.base_color_texture.index >= 0 ? &m_textures[gltf_material.pbr_metallic_roughness.base_color_texture.index] : nullptr;
+//        mr.p_metallic_roughness = gltf_material.pbr_metallic_roughness.metallic_roughness_texture.index >= 0 ? &m_textures[gltf_material.pbr_metallic_roughness.metallic_roughness_texture.index] : nullptr;
+//        new_material.setMetallicRoughness(mr);
+//    }
+//
+//    if (gltf_material.normal_texture.index >= 0)
+//    {
+//        new_material.setNormalTexture(&m_textures[gltf_material.normal_texture.index]);
+//    }
+//
+//    if (gltf_material.occlusion_texture.index >= 0)
+//    {
+//        new_material.setOcclusionTexture(&m_textures[gltf_material.occlusion_texture.index]);
+//    }
+//
+//    if (gltf_material.emissive_texture.index >= 0)
+//    {
+//        new_material.setEmissiveTexture(&m_textures[gltf_material.emissive_texture.index]);
+//    }
+//
+//    return true;
+//}
+
 
 }
 
