@@ -142,10 +142,9 @@ D3DDataBlob RootSignature::compile(Device const& device, RootSignatureFlags cons
     std::vector<std::vector<D3D12_DESCRIPTOR_RANGE1>> descriptor_range_buffers{};
     descriptor_range_buffers.resize(m_root_parameters.size());
 
-    for (auto const& e : m_root_parameters)
+    for (auto const& [slot, src_parameter] : m_root_parameters)
     {
-        D3D12_ROOT_PARAMETER const& src_parameter = e.second;
-        D3D12_ROOT_PARAMETER1& dst_parameter = root_parameters_buf[e.first];
+        D3D12_ROOT_PARAMETER1& dst_parameter = root_parameters_buf[slot];
 
         dst_parameter.ParameterType = src_parameter.ParameterType;
         dst_parameter.ShaderVisibility = src_parameter.ShaderVisibility;
@@ -155,7 +154,7 @@ D3DDataBlob RootSignature::compile(Device const& device, RootSignatureFlags cons
         case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
         {
             D3D12_ROOT_DESCRIPTOR_TABLE const& src_descriptor_table = src_parameter.DescriptorTable;
-            std::vector<D3D12_DESCRIPTOR_RANGE1>& dst_descriptor_ranges = descriptor_range_buffers[e.first];
+            std::vector<D3D12_DESCRIPTOR_RANGE1>& dst_descriptor_ranges = descriptor_range_buffers[slot];
             dst_descriptor_ranges.resize(src_descriptor_table.NumDescriptorRanges);
 
             for (uint32_t i = 0; i < src_descriptor_table.NumDescriptorRanges; ++i)
@@ -194,17 +193,18 @@ D3DDataBlob RootSignature::compile(Device const& device, RootSignatureFlags cons
     }
 
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC root_desc{};
-    root_desc.Version = static_cast<D3D_ROOT_SIGNATURE_VERSION>(c_root_signature_version);
+
+    D3D_ROOT_SIGNATURE_VERSION const highest_root_signature_version = static_cast<D3D_ROOT_SIGNATURE_VERSION>(
+        device.queryFeatureD3D12Options().highestRootSignatureVersion
+        );
+
+    root_desc.Version = highest_root_signature_version;
     root_desc.Desc_1_1.NumParameters = static_cast<UINT>(m_root_parameters.size());
     root_desc.Desc_1_1.NumStaticSamplers = static_cast<UINT>(m_static_samplers.size());
 
     root_desc.Desc_1_1.pParameters = root_parameters_buf.data();
     root_desc.Desc_1_1.pStaticSamplers = m_static_samplers.data();
     root_desc.Desc_1_1.Flags = static_cast<D3D12_ROOT_SIGNATURE_FLAGS>(flags.getValue());
-
-    D3D_ROOT_SIGNATURE_VERSION const highest_root_signature_version = static_cast<D3D_ROOT_SIGNATURE_VERSION>(
-        device.queryFeatureD3D12Options().highestRootSignatureVersion
-    );
 
     ComPtr<ID3DBlob> serialized_rs{ nullptr };
     ComPtr<ID3DBlob> error{ nullptr };
