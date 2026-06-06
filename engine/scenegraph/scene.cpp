@@ -938,6 +938,8 @@ Scene::MaterialStaticStateCreateInfoSet::const_iterator
         );
     }
     material_ss_create_info.vertex_data_format = vertex_attributes;
+    auto [it, _] = m_material_static_state_create_infos.insert(material_ss_create_info);
+    return it;
 }
 
 //size_t Scene::registerMaterial(tg3_material const& gltf_material,
