@@ -1,3 +1,4 @@
+#include <bit>s
 #include <type_traits>
 
 #include <engine/core/dx/d3d12/command_list.h>
@@ -14,6 +15,7 @@
 #include <engine/core/dx/d3d12/dx_resource_factory.h>
 #include <engine/core/dx/dxcompilation/shader_stage.h>
 #include <engine/conversion/texture_converter.h>
+#include "engine/core/misc/hashes/xxhash64.h"
 
 #include "image.h"
 
@@ -22,6 +24,7 @@
 namespace lexgine::scenegraph
 {
 
+#pragma region MaterialPSOCompilationContext
 MaterialPSOCompilationContext::MaterialPSOCompilationContext(core::VertexAttributeSpecificationList const& va_list)
     : va_list { va_list }
     , depth_stencil_format { DXGI_FORMAT_D32_FLOAT }
@@ -31,8 +34,9 @@ MaterialPSOCompilationContext::MaterialPSOCompilationContext(core::VertexAttribu
     render_target_formats[1] = DXGI_FORMAT_R16G16B16A16_FLOAT; // Normals (RG), metallic (LS-bits) and roughness (MS-bits) of B, A - red component of emission
     render_target_formats[2] = DXGI_FORMAT_R16G16_FLOAT; // Emission intensity (BA components)
 }
+#pragma endregion
 
-
+#pragma region MaterialStaticState
 MaterialStaticState::MaterialStaticState(
     core::dx::d3d12::BasicRenderingServices& basic_rendering_services,
     MaterialPSOCompilationContext const& context,
@@ -163,10 +167,6 @@ void MaterialStaticState::bindSceneParameters(
     );
 }
 
-core::misc::HashValue const* MaterialStaticState::hash() const
-{
-    return m_pso_descriptor.hash();
-}
 
 bool MaterialStaticState::operator==(MaterialStaticState const& other) const
 {
@@ -266,5 +266,6 @@ void Material::bindMaterialConstants(core::dx::d3d12::CommandList& target_comman
     m_material_static_state.bindMaterialParameters(target_command_list, m_material_parameters_cb_data_mapper);
 }
 
+#pragma endregion
 
 }

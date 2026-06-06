@@ -9,6 +9,7 @@
 
 #include "misc/misc.h"
 #include "engine/core/engine_api.h"
+#include "engine/core/misc/hashes/xxhash64.h"
 #include "dx/d3d12/d3d12_tools.h"
 
 namespace lexgine::core {
@@ -46,7 +47,29 @@ public:
     unsigned int instancingRate() const { return m_instancing_data_rate; }
     specification_type type() const { return m_instancing_data_rate > 0 ? specification_type::per_instance : specification_type::per_vertex; }
 
-    uint32_t offset() const { return m_element_offset; }
+    uint32_t offset() const { return m_element_offset; }  
+
+    template<EngineApi API>
+    size_t hash() const;
+
+    template<> 
+    size_t hash<EngineApi::Direct3D12>() const
+    {
+        misc::hashes::XXHash64 h{};
+        h.create(&m_primitive_assembler_input_slot, sizeof(m_primitive_assembler_input_slot));
+        h.combine(&m_element_offset, sizeof(m_element_offset));
+        h.combine(m_semantics_name.data(), m_semantics_name.size());
+        h.combine(&m_semantics_index, sizeof(m_semantics_index));
+        h.combine(&m_instancing_data_rate, sizeof(m_instancing_data_rate));
+        unsigned char s = size();
+        unsigned char c = capacity();
+        h.combine(&s, sizeof(s));
+        h.combine(&c, sizeof(c));
+        DXGI_FORMAT fmt = d3d12VertexFormat();
+        h.combine(&fmt, sizeof(fmt));
+        h.finalize();
+        return static_cast<size_t>(h.fold());
+    }
 
 protected:
     AbstractVertexAttributeSpecification(unsigned char primitive_assembler_input_slot, uint32_t element_offset,
