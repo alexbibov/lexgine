@@ -15,6 +15,7 @@
 
 #include <engine/core/globals.h>
 #include <engine/core/misc/misc.h>
+#include <engine/core/misc/hashes/xxhash64.h>
 #include <engine/core/dx/d3d12/dx_resource_factory.h>
 #include <engine/core/dx/d3d12/basic_rendering_services.h>
 #include <engine/core/concurrency/task_graph.h>
@@ -162,9 +163,9 @@ std::pair<std::string, unsigned> extractNameAndIndexFromAttributeName(std::strin
     return { name, index };
 }
 
-}
+}  // namespace
 
-
+#pragma region Scene
 std::shared_ptr<Scene> Scene::loadScene(
     core::Globals& globals,
     core::dx::d3d12::BasicRenderingServices& basic_rendering_services,
@@ -251,6 +252,25 @@ bool Scene::loadStatus() const
         && texture_converter.isTextureUploadCompleted();
 }
 
+#pragma region Scene_MaterialStaticStateCreateInfo
+size_t Scene::MaterialStaticStateCreateInfo::hash() const
+{
+    core::misc::hashes::XXHash64 h{};
+    h.create(&vertex_shader.p_internal, sizeof(vertex_shader.p_internal));
+    h.combine(&hull_shader.p_internal, sizeof(hull_shader.p_internal));
+    h.combine(&domain_shader.p_internal, sizeof(domain_shader.p_internal));
+    h.combine(&geometry_shader.p_internal, sizeof(geometry_shader.p_internal));
+    h.combine(&pixel_shader.p_internal, sizeof(pixel_shader.p_internal));
+    for (auto const& va : vertex_data_format)
+    {
+        size_t va_hash = va->hash<core::EngineApi::Direct3D12>();
+        h.combine(&va_hash, sizeof(va_hash));
+    }
+    h.finalize();
+    return static_cast<size_t>(h.fold());
+}
+#pragma endregion
+
 [[nodiscard]]
 std::optional<tinygltf3::Model> Scene::readGltfModel(std::filesystem::path const& path)
 {
@@ -336,7 +356,6 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
             it->second = true;
         }
     }
-
 
     std::unordered_map<int, int> scene_light_ids;
     std::unordered_map<int, int> scene_material_ids;
@@ -506,9 +525,9 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
         p_hlsl_shader_blob_cache->waitTillReady();
     }
 
-    for (MaterialStaticState const& mss : m_material_static_states)
+    for (MaterialStaticStateCreateInfo const& create_info : m_material_static_state_create_infos)
     {
-        mss.buildPipeline();
+        // mss.buildPipeline();
     }
 
     {
@@ -807,12 +826,13 @@ bool Scene::loadMeshes(
             {
                 int32_t material_id = mesh_primitive.material;
                 tg3_material const& gltf_source_material = model.materials[material_id];
-                auto material_static_state_it = registerMaterialStaticState(gltf_source_material, vertex_attributes_for_vb_slot);
+                auto material_static_state_create_info_it = 
+                    registerMaterialStaticState(gltf_source_material, vertex_attributes_for_vb_slot);
                 auto material_attachment_it = m_material_attachements.find(material_id);
                 if (material_attachment_it != m_material_attachements.end())
                 {
                     MaterialAttachment& attachment = material_attachment_it->second;
-                    assert(attachment.material_static_state_it == material_static_state_it);
+                    assert(attachment.create_info_it == material_static_state_create_info_it);
                     attachment.target_submesh_ids.push_back(submesh_id);
                 }
                 else
@@ -821,7 +841,7 @@ bool Scene::loadMeshes(
                         std::make_pair(
                             material_id,
                             MaterialAttachment{ 
-                                .material_static_state_it = material_static_state_it,
+                                .create_info_it = material_static_state_create_info_it,
                                 .target_submesh_ids = {submesh_id}
                             }
                         )
@@ -882,7 +902,7 @@ bool Scene::loadAnimations(tg3_model const& model, std::unordered_map<int, int>&
     return true;
 }
 
-std::unordered_set<MaterialStaticState, Scene::MaterialStaticStateHasher>::const_iterator
+Scene::MaterialStaticStateCreateInfoSet::const_iterator
     Scene::registerMaterialStaticState(
         tg3_material const& gltf_material,
         const lexgine::core::VertexAttributeSpecificationList& vertex_attributes
@@ -892,16 +912,13 @@ std::unordered_set<MaterialStaticState, Scene::MaterialStaticStateHasher>::const
     tg3_str const& alpha_mode = gltf_material.alpha_mode;
     defines.push_back({ .name = std::string{alpha_mode.data, alpha_mode.data + alpha_mode.len} });
 
-    MaterialPSOCompilationContext context{ vertex_attributes };
-    MaterialShaderDesc shader_desc{};
+    MaterialStaticStateCreateInfo material_ss_create_info{};
 
     auto* p_hlsl_shader_blob_cache = m_globals.get<core::dx::d3d12::caches::HLSLShaderBlobCache>();
-
     {
         // Vertex shader
-
         lexgine::core::dx::d3d12::caches::HLSLFileTranslationUnit translation_unit_vs{ m_globals, "pbr.vs", "pbr.vs.hlsl" };
-        shader_desc.vertex_shader = p_hlsl_shader_blob_cache->createHLSLShaderBlobCompilationContract(
+        material_ss_create_info.vertex_shader = p_hlsl_shader_blob_cache->createHLSLShaderBlobCompilationContract(
             translation_unit_vs,
             lexgine::core::dx::dxcompilation::ShaderModel::model_62,
             lexgine::core::dx::dxcompilation::ShaderType::vertex,
@@ -909,12 +926,10 @@ std::unordered_set<MaterialStaticState, Scene::MaterialStaticStateHasher>::const
             defines
         );
     }
-
     {
         // Pixel shader
-
         lexgine::core::dx::d3d12::caches::HLSLFileTranslationUnit translation_unit_ps{ m_globals, "pbr.ps", "pbr.ps.hlsl" };
-        shader_desc.pixel_shader = p_hlsl_shader_blob_cache->createHLSLShaderBlobCompilationContract(
+        material_ss_create_info.pixel_shader = p_hlsl_shader_blob_cache->createHLSLShaderBlobCompilationContract(
             translation_unit_ps,
             lexgine::core::dx::dxcompilation::ShaderModel::model_62,
             lexgine::core::dx::dxcompilation::ShaderType::pixel,
@@ -922,9 +937,7 @@ std::unordered_set<MaterialStaticState, Scene::MaterialStaticStateHasher>::const
             defines
         );
     }
-
-    auto [it, _] = m_material_static_states.emplace(m_basic_rendering_services, context, shader_desc);
-    return it;
+    material_ss_create_info.vertex_data_format = vertex_attributes;
 }
 
 //size_t Scene::registerMaterial(tg3_material const& gltf_material,
@@ -971,6 +984,8 @@ std::unordered_set<MaterialStaticState, Scene::MaterialStaticStateHasher>::const
 //
 //    return true;
 //}
+
+#pragma endregion
 
 
 }

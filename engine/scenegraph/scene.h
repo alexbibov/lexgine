@@ -65,17 +65,82 @@ private:
         SceneMemoryBufferHandle getBuffer(size_t id) { return m_scene_memory_handles[id]; }
     };
 
-    struct MaterialStaticStateHasher
+    struct MaterialStaticStateCreateInfo
     {
-        size_t operator()(MaterialStaticState const& value) const
+        core::dx::d3d12::caches::HLSLShaderHandle vertex_shader;
+        core::dx::d3d12::caches::HLSLShaderHandle hull_shader;
+        core::dx::d3d12::caches::HLSLShaderHandle domain_shader;
+        core::dx::d3d12::caches::HLSLShaderHandle geometry_shader;
+        core::dx::d3d12::caches::HLSLShaderHandle pixel_shader;
+        core::VertexAttributeSpecificationList vertex_data_format;
+        size_t hash() const;
+    };
+
+    struct MaterialStaticStateCreateInfoHasher
+    {
+        size_t operator()(MaterialStaticStateCreateInfo const& value) const
         {
-            return value.hash()->fold();
+            return value.hash();
         }
     };
 
+    struct MaterialStaticStateCreateInfoComparator
+    {
+        bool operator() (MaterialStaticStateCreateInfo const& lhs,
+            MaterialStaticStateCreateInfo const& rhs) const
+        {
+            if (&lhs == &rhs) return true;
+
+            bool test =
+                lhs.vertex_shader == rhs.vertex_shader
+                && lhs.hull_shader == rhs.hull_shader
+                && lhs.domain_shader == rhs.domain_shader
+                && lhs.geometry_shader == rhs.geometry_shader
+                && lhs.pixel_shader == rhs.pixel_shader;
+            if (!test) return false;
+
+            if (lhs.vertex_data_format.size() != rhs.vertex_data_format.size())
+            {
+                return false;
+            }
+
+            for (size_t i = 0; i < lhs.vertex_data_format.size(); ++i)
+            {
+                auto const& lhs_va = lhs.vertex_data_format[i];
+                auto const& rhs_va = rhs.vertex_data_format[i];
+
+                if ((!lhs_va && rhs_va) || (lhs_va && !rhs_va))
+                {
+                    return false;
+                }
+                if (!lhs_va || !rhs_va)
+                {
+                    continue;
+                }
+
+                if (lhs_va->input_slot() != rhs_va->input_slot()
+                    || lhs_va->offset() != rhs_va->offset()
+                    || lhs_va->name_index() != rhs_va->name_index()
+                    || lhs_va->instancingRate() != rhs_va->instancingRate()
+                    || lhs_va->size() != rhs_va->size()
+                    || lhs_va->capacity() != rhs_va->capacity()
+                    || lhs_va->format<core::EngineApi::Direct3D12>() != rhs_va->format<core::EngineApi::Direct3D12>()
+                    || lhs_va->name() != rhs_va->name())
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    };
+
+    using MaterialStaticStateCreateInfoSet =
+        std::unordered_set<MaterialStaticStateCreateInfo, MaterialStaticStateCreateInfoHasher, MaterialStaticStateCreateInfoComparator>;
+
     struct MaterialAttachment
     {
-        std::unordered_set<MaterialStaticState, MaterialStaticStateHasher>::const_iterator material_static_state_it;
+        MaterialStaticStateCreateInfoSet::const_iterator create_info_it;
         std::vector<size_t> target_submesh_ids;
     };
 
@@ -119,15 +184,15 @@ private:
         std::unordered_map<int, int>& animation_ids
     );
 
-    std::unordered_set<MaterialStaticState, MaterialStaticStateHasher>::const_iterator
+    MaterialStaticStateCreateInfoSet::const_iterator
         registerMaterialStaticState(
             tg3_material const& gltf_material,
             const lexgine::core::VertexAttributeSpecificationList& vertex_attributes
         );
-    size_t registerMaterial(
+    /*size_t registerMaterial(
         tg3_material const& gltf_material,
         const lexgine::core::VertexAttributeSpecificationList& vertex_attributes
-    );
+    );*/
    
 
 private:
@@ -151,7 +216,7 @@ private:
     std::vector<BufferView> m_memory_views;
 
     SceneMemory m_scene_memory;
-    std::unordered_set<MaterialStaticState, MaterialStaticStateHasher> m_material_static_states;
+    MaterialStaticStateCreateInfoSet m_material_static_state_create_infos;
     std::unordered_map<size_t, MaterialAttachment> m_material_attachements;
 };
 

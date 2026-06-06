@@ -103,7 +103,7 @@ public:
         core::dx::d3d12::ConstantBufferDataMapper& data_mapper
     );
 
-    core::misc::HashValue const* hash() const;
+    core::dx::d3d12::caches::GraphicsPSOHandle const& pipelineDescriptor() const;
 
     bool operator==(MaterialStaticState const& other) const;
 
