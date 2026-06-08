@@ -81,6 +81,11 @@ struct GraphicsPSODescriptor
     //! invalidates the cached hash so the next hash() call recomputes it
     void invalidateHash() const { m_hash_value.reset(); }
 
+    //! returns 'true' if this descriptor specifies exactly the same graphics pipeline state as @param other.
+    //! The comparison mirrors the set of fields contributing to hash() (the cached PSO blob is intentionally
+    //! excluded), so that hash() and this operator stay consistent when used together in hashed containers
+    bool operator==(GraphicsPSODescriptor const& other) const;
+
 private:
     mutable std::shared_ptr<misc::HashValue const> m_hash_value;
 };
@@ -98,6 +103,11 @@ struct ComputePSODescriptor
 
     misc::HashValue const* hash() const;
     void invalidateHash() const { m_hash_value.reset(); }
+
+    //! returns 'true' if this descriptor specifies exactly the same compute pipeline state as @param other.
+    //! The comparison mirrors the set of fields contributing to hash() (the cached PSO blob is intentionally
+    //! excluded), so that hash() and this operator stay consistent when used together in hashed containers
+    bool operator==(ComputePSODescriptor const& other) const;
 
 private:
     mutable std::shared_ptr<misc::HashValue const> m_hash_value;

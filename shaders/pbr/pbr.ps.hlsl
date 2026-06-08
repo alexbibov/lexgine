@@ -27,7 +27,7 @@ GBufferOutput PSMain(VSOutput input) {
 
     // Sample bindless textures using material-supplied indices
     float3 albedo = material_data.base_color_factor;
-    if(materialData.usage_flags & MATERIAL_DATA_TEXTURE_USAGE_ALBEDO) {
+    if(material_data.usage_flags & MATERIAL_DATA_TEXTURE_USAGE_ALBEDO) {
         albedo *= material_textures[material_data.albedo_tex_index].Sample(linear_sampler, input.uv).rgb;
     }
 

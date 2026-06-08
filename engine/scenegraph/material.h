@@ -1,4 +1,5 @@
-#ifndef LEXGINE_SCENEGRAPH_PBR_MATERIAL_H
+#ifndef LEXGINE_SCENEGRAPH_MATERIAL_H
+#define LEXGINE_SCENEGRAPH_MATERIAL_H
 
 #include <memory>
 #include <vector>
@@ -83,15 +84,15 @@ public:
     core::dx::d3d12::ConstantBufferReflection const& getMaterialParametersUniformBufferReflection() const { return m_material_parameters_cb_reflection; }
     core::dx::d3d12::ConstantBufferReflection const& getObjectParametersUniformBufferReflection() const { return m_object_parameters_cb_reflection; }
     core::dx::d3d12::ConstantBufferReflection const& getSceneParametersUniformBufferReflection() const { return m_scene_parameters_cb_reflection; }
-    core::dx::dxcompilation::ShaderStage* getShaderStage(core::dx::dxcompilation::ShaderType shader_type) const 
-    { 
-        return m_shader_function.getShaderStage(shader_type); 
+    core::dx::dxcompilation::ShaderStage* getShaderStage(core::dx::dxcompilation::ShaderType shader_type) const
+    {
+        return m_shader_function->getShaderStage(shader_type);
     }
 
     void bindMaterialParameters(
         core::dx::d3d12::CommandList& target_command_list,
         core::dx::d3d12::ConstantBufferDataMapper& data_mapper
-    );
+    ) const;
 
     void bindObjectParameters(
         core::dx::d3d12::CommandList& target_command_list,
@@ -103,13 +104,13 @@ public:
         core::dx::d3d12::ConstantBufferDataMapper& data_mapper
     );
 
-    core::dx::d3d12::caches::GraphicsPSOHandle const& pipelineDescriptor() const;
+    core::dx::d3d12::GraphicsPSODescriptor const& pipelineDescriptor() const { return m_pso_descriptor; }
 
     bool operator==(MaterialStaticState const& other) const;
 
 private:
     core::dx::d3d12::BasicRenderingServices& m_basic_rendering_services;
-    core::dx::dxcompilation::ShaderFunction m_shader_function;
+    std::unique_ptr<core::dx::dxcompilation::ShaderFunction> m_shader_function;
     std::string m_material_parameters_ub_name;
     std::string m_scene_parameters_ub_name;
     core::dx::d3d12::ConstantBufferReflection m_material_parameters_cb_reflection;
@@ -137,7 +138,7 @@ public:
     };
 
 public:
-    Material(MaterialStaticState& material_static_state);
+    Material(MaterialStaticState const& material_static_state);
 
     void setStringName(std::string const& entity_string_name);
 
@@ -154,7 +155,7 @@ public:
     void bindMaterialConstants(core::dx::d3d12::CommandList& target_command_list);
 
 private:
-    MaterialStaticState& m_material_static_state;
+    MaterialStaticState const& m_material_static_state;
     core::dx::d3d12::ConstantBufferDataMapper m_material_parameters_cb_data_mapper;
 
     std::unique_ptr<MaterialStaticState> m_pso_compilation_task;

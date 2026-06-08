@@ -1,4 +1,4 @@
-#include <bit>s
+#include <bit>
 #include <type_traits>
 
 #include <engine/core/dx/d3d12/command_list.h>
@@ -43,7 +43,7 @@ MaterialStaticState::MaterialStaticState(
     MaterialShaderDesc const& shader_desc
 )
     : m_basic_rendering_services{ basic_rendering_services }
-    , m_shader_function{ m_basic_rendering_services.globals(), core::dx::dxcompilation::ShaderFunctionRootUniformBuffers::base_values::All }
+    , m_shader_function{ std::make_unique<core::dx::dxcompilation::ShaderFunction>(m_basic_rendering_services.globals(), core::dx::dxcompilation::ShaderFunctionRootUniformBuffers::base_values::All) }
     , m_material_parameters_ub_name{ shader_desc.material_parameters_uniform_buffer_name }
     , m_scene_parameters_ub_name{ shader_desc.scene_parameters_uniform_buffer_name }
 {
@@ -67,9 +67,9 @@ MaterialStaticState::MaterialStaticState(
     }
     m_pso_descriptor.dsv_format = context.depth_stencil_format;
 
-    auto* p_global_settings = m_shader_function.globals().get<core::GlobalSettings>();
+    auto* p_global_settings = m_shader_function->globals().get<core::GlobalSettings>();
     core::MSAAMode msaa_mode = p_global_settings->msaaMode();
-    auto* p_device = m_shader_function.globals().get<core::dx::d3d12::Device>();
+    auto* p_device = m_shader_function->globals().get<core::dx::d3d12::Device>();
     uint32_t msaa_quality_level = std::numeric_limits<uint32_t>::max();
     for (int i = 0; i < static_cast<int>(m_pso_descriptor.num_render_targets); ++i)
     {
@@ -84,43 +84,43 @@ MaterialStaticState::MaterialStaticState(
     m_pso_descriptor.multi_sampling_format = core::MultiSamplingFormat{ static_cast<uint32_t>(msaa_mode), msaa_quality_level };
 
     assert(shader_desc.vertex_shader.p_internal && shader_desc.pixel_shader.p_internal);
-    m_shader_function.createShaderStage(shader_desc.vertex_shader);
-    m_shader_function.createShaderStage(shader_desc.pixel_shader);
+    m_shader_function->createShaderStage(shader_desc.vertex_shader);
+    m_shader_function->createShaderStage(shader_desc.pixel_shader);
     if (shader_desc.hull_shader.p_internal)
     {
-        m_shader_function.createShaderStage(shader_desc.hull_shader);
+        m_shader_function->createShaderStage(shader_desc.hull_shader);
     }
     if (shader_desc.domain_shader.p_internal)
     {
-        m_shader_function.createShaderStage(shader_desc.domain_shader);
+        m_shader_function->createShaderStage(shader_desc.domain_shader);
     }
     if (shader_desc.geometry_shader.p_internal)
     {
-        m_shader_function.createShaderStage(shader_desc.geometry_shader);
+        m_shader_function->createShaderStage(shader_desc.geometry_shader);
     }
 }
 
 void MaterialStaticState::buildPipeline()
 {
-    m_rs_handle = m_shader_function.buildBindingSignature();
+    m_rs_handle = m_shader_function->buildBindingSignature();
 
     {
         // Setup shader function resources
         core::dx::d3d12::Device& device = *m_basic_rendering_services.globals().get<core::dx::d3d12::Device>();
         core::dx::d3d12::DescriptorHeap& resource_descriptor_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(device, core::dx::d3d12::DescriptorHeapType::cbv_srv_uav, 0);
         core::dx::d3d12::UnorderedSRVTableAllocationManager& allocator = m_basic_rendering_services.dxResources().retrieveBindlessSRVAllocationManager(resource_descriptor_heap);
-        m_shader_function.assignResourceDescriptors(core::dx::dxcompilation::ShaderFunction::ShaderInputKind::srv, 0, allocator);
-        m_material_parameters_cb_reflection = m_shader_function.getShaderStage(lexgine::core::dx::dxcompilation::ShaderType::pixel)->buildConstantBufferReflection(m_material_parameters_ub_name);
-        m_scene_parameters_cb_reflection = m_shader_function.getShaderStage(lexgine::core::dx::dxcompilation::ShaderType::pixel)->buildConstantBufferReflection(m_scene_parameters_ub_name);
+        m_shader_function->assignResourceDescriptors(core::dx::dxcompilation::ShaderFunction::ShaderInputKind::srv, 0, allocator);
+        m_material_parameters_cb_reflection = m_shader_function->getShaderStage(lexgine::core::dx::dxcompilation::ShaderType::pixel)->buildConstantBufferReflection(m_material_parameters_ub_name);
+        m_scene_parameters_cb_reflection = m_shader_function->getShaderStage(lexgine::core::dx::dxcompilation::ShaderType::vertex)->buildConstantBufferReflection(m_scene_parameters_ub_name);
     }
 
-    m_pso_descriptor.vertex_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::vertex)->getShaderBytecode();
-    m_pso_descriptor.pixel_shader = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->getShaderBytecode();
-    if (auto* p_stage = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::hull))
+    m_pso_descriptor.vertex_shader = m_shader_function->getShaderStage(core::dx::dxcompilation::ShaderType::vertex)->getShaderBytecode();
+    m_pso_descriptor.pixel_shader = m_shader_function->getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->getShaderBytecode();
+    if (auto* p_stage = m_shader_function->getShaderStage(core::dx::dxcompilation::ShaderType::hull))
         m_pso_descriptor.hull_shader = p_stage->getShaderBytecode();
-    if (auto* p_stage = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::domain))
+    if (auto* p_stage = m_shader_function->getShaderStage(core::dx::dxcompilation::ShaderType::domain))
         m_pso_descriptor.domain_shader = p_stage->getShaderBytecode();
-    if (auto* p_stage = m_shader_function.getShaderStage(core::dx::dxcompilation::ShaderType::geometry))
+    if (auto* p_stage = m_shader_function->getShaderStage(core::dx::dxcompilation::ShaderType::geometry))
         m_pso_descriptor.geometry_shader = p_stage->getShaderBytecode();
     m_pso_descriptor.invalidateHash();
 
@@ -131,10 +131,10 @@ void MaterialStaticState::buildPipeline()
 void MaterialStaticState::bindMaterialParameters(
     core::dx::d3d12::CommandList& target_command_list, 
     core::dx::d3d12::ConstantBufferDataMapper& data_mapper
-)
+) const
 {
     auto allocation = m_basic_rendering_services.constantDataStream().allocateAndUpdate(data_mapper);
-    m_shader_function.bindRootConstantBuffer(
+    m_shader_function->bindRootConstantBuffer(
         target_command_list, 
         core::dx::dxcompilation::ShaderFunctionConstantBufferRootIds::material_uniforms, 
         allocation->virtualGpuAddress()
@@ -147,7 +147,7 @@ void MaterialStaticState::bindObjectParameters(
 )
 {
     auto allocation = m_basic_rendering_services.constantDataStream().allocateAndUpdate(data_mapper);
-    m_shader_function.bindRootConstantBuffer(
+    m_shader_function->bindRootConstantBuffer(
         target_command_list,
         core::dx::dxcompilation::ShaderFunctionConstantBufferRootIds::object_uniforms,
         allocation->virtualGpuAddress()
@@ -160,7 +160,7 @@ void MaterialStaticState::bindSceneParameters(
 )
 {
     auto allocation = m_basic_rendering_services.constantDataStream().allocateAndUpdate(data_mapper);
-    m_shader_function.bindRootConstantBuffer(
+    m_shader_function->bindRootConstantBuffer(
         target_command_list,
         core::dx::dxcompilation::ShaderFunctionConstantBufferRootIds::scene_uniforms,
         allocation->virtualGpuAddress()
@@ -176,7 +176,7 @@ bool MaterialStaticState::operator==(MaterialStaticState const& other) const
 const char* const Material::c_material_parameters_uniform_buffer_name = "MaterialUniforms";
 
 
-Material::Material(MaterialStaticState& material_static_state)
+Material::Material(MaterialStaticState const& material_static_state)
     : m_material_static_state{ material_static_state }
     , m_material_parameters_cb_data_mapper{ material_static_state.getMaterialParametersUniformBufferReflection() }
 {
@@ -210,7 +210,7 @@ void Material::setMetallicRoughness(MetallicRoughness const& value)
     lexgine::conversion::TextureUploadWork* p_base_color_texture_upload_work = value.p_base_color->p_texture_conversion_task->getUploadWork();
     assert(p_base_color_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result =
-        m_material_static_state.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("gMaterialTextures", p_base_color_texture_upload_work->resource()))
+        m_material_static_state.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("material_textures", p_base_color_texture_upload_work->resource()))
     {
         m_base_color_texture_binding_id = binding_result.binding_register;
     }
@@ -218,7 +218,7 @@ void Material::setMetallicRoughness(MetallicRoughness const& value)
     lexgine::conversion::TextureUploadWork* p_metallic_roughness_texture_upload_work = value.p_metallic_roughness->p_texture_conversion_task->getUploadWork();
     assert(p_metallic_roughness_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result 
-        = m_material_static_state.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("gMaterialTextures", p_metallic_roughness_texture_upload_work->resource()))
+        = m_material_static_state.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("material_textures", p_metallic_roughness_texture_upload_work->resource()))
     {
         m_metallic_roughness_texture_binding_id = binding_result.binding_register;
     }
@@ -230,7 +230,7 @@ void Material::setNormalTexture(Texture* p_texture)
     lexgine::conversion::TextureUploadWork* p_texture_upload_work = p_texture->p_texture_conversion_task->getUploadWork();
     assert(p_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result =
-        m_material_static_state.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("gMaterialTextures", p_texture_upload_work->resource()))
+        m_material_static_state.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("material_textures", p_texture_upload_work->resource()))
     {
         m_normal_texture_binding_id = binding_result.binding_register;
     }
@@ -243,7 +243,7 @@ void Material::setOcclusionTexture(Texture* p_texture)
     lexgine::conversion::TextureUploadWork* p_texture_upload_work = p_texture->p_texture_conversion_task->getUploadWork();
     assert(p_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result 
-        = m_material_static_state.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("gMaterialTextures", p_texture_upload_work->resource()))
+        = m_material_static_state.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("material_textures", p_texture_upload_work->resource()))
     {
         m_occlusion_texture_binding_id = binding_result.binding_register;
     }
@@ -255,7 +255,7 @@ void Material::setEmissiveTexture(Texture* p_texture)
     lexgine::conversion::TextureUploadWork* p_texture_upload_work = p_texture->p_texture_conversion_task->getUploadWork();
     assert(p_texture_upload_work->isCompleted());
     if (core::dx::dxcompilation::BindingResult binding_result 
-        = m_material_static_state.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("gMaterialTextures", p_texture_upload_work->resource()))
+        = m_material_static_state.getShaderStage(core::dx::dxcompilation::ShaderType::pixel)->bindTexture("material_textures", p_texture_upload_work->resource()))
     {
         m_emissive_texture_binding_id = binding_result.binding_register;
     }

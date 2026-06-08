@@ -22,8 +22,8 @@ VSOutput VSMain(VSInput input) {
 
     float4 local_pos = float4(input.position, 1.0f);
     float4 world_pos = mul(object_data.model, local_pos);
-    output.position =  mul(environment_data.view_projection, worldPos);
-    output.worldPos = worldPos.xyz;
+    output.position =  mul(environment_data.view_projection, world_pos);
+    output.worldPos = world_pos.xyz;
 
     float3 N = mul((float3x3)object_data.model, input.normal);
     float3 T = normalize(mul((float3x3)object_data.model, input.tangent.xyz));

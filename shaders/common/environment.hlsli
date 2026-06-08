@@ -8,7 +8,7 @@ struct EnvironmentData {
     float4x4 projection;
     float4x4 view_projection;
     float4x4 inv_projection;
-    float4x4 inv_view_projection
+    float4x4 inv_view_projection;
     float3 camera_position;
     float padding; // Align to 16-byte boundary
 };

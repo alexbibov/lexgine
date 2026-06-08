@@ -47,7 +47,22 @@ public:
     unsigned int instancingRate() const { return m_instancing_data_rate; }
     specification_type type() const { return m_instancing_data_rate > 0 ? specification_type::per_instance : specification_type::per_vertex; }
 
-    uint32_t offset() const { return m_element_offset; }  
+    uint32_t offset() const { return m_element_offset; }
+
+    //! returns 'true' if this specification describes the same vertex attribute as @param other.
+    //! The compared fields match the set folded into hash<EngineApi::Direct3D12>(), so equality and
+    //! hashing stay consistent when specifications are used as keys in hashed containers
+    bool operator==(AbstractVertexAttributeSpecification const& other) const
+    {
+        return m_primitive_assembler_input_slot == other.m_primitive_assembler_input_slot
+            && m_element_offset == other.m_element_offset
+            && m_semantics_index == other.m_semantics_index
+            && m_instancing_data_rate == other.m_instancing_data_rate
+            && m_semantics_name == other.m_semantics_name
+            && size() == other.size()
+            && capacity() == other.capacity()
+            && d3d12VertexFormat() == other.d3d12VertexFormat();
+    }
 
     template<EngineApi API>
     size_t hash() const;
