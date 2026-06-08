@@ -462,6 +462,8 @@ uint32_t ShaderStage::getDataTypeSize(TextureResourceDataType data_type)
 
 void ShaderStage::collectShaderBindings()
 {
+    core::GlobalSettings const global_settings = *m_globals.get<core::GlobalSettings>();
+    uint32_t const unbounded_descriptor_table_physical_capacity = global_settings.getDescriptorHeapCapacity(core::dx::d3d12::DescriptorHeapType::cbv_srv_uav) / 10;
     for (UINT i = 0; i < m_shader_desc.BoundResources; ++i)
     {
         D3D12_SHADER_INPUT_BIND_DESC desc{};
@@ -471,9 +473,9 @@ void ShaderStage::collectShaderBindings()
         assert(!m_shader_resource_names_pool.contains(hashed_name));
 
         ShaderFunction::ShaderBindingPoint binding_point{};
-        binding_point.first_register = static_cast<size_t>(desc.BindPoint);
-        binding_point.register_count = static_cast<size_t>(desc.BindCount);
-        binding_point.register_space = static_cast<size_t>(desc.Space);
+        binding_point.first_register = static_cast<uint32_t>(desc.BindPoint);
+        binding_point.register_count = desc.BindCount ? static_cast<uint32_t>(desc.BindCount) : unbounded_descriptor_table_physical_capacity;
+        binding_point.register_space = static_cast<uint32_t>(desc.Space);
 
         switch (desc.Type)
         {

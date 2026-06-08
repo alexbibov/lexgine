@@ -15,6 +15,7 @@
 #include "engine/core/misc/datetime.h"
 #include "engine/core/misc/optional.h"
 #include "engine/core/dx/d3d12/d3d12_tools.h"
+#include "engine/core/dx/d3d12/pipeline_state.h"
 #include "class_names.h"
 #include "scene_mesh_memory.h"
 #include "mesh.h"
@@ -24,6 +25,7 @@
 #include "node.h"
 #include "sampler.h"
 #include "camera.h"
+#include "material.h"
 
 namespace lexgine::scenegraph
 {
@@ -138,9 +140,31 @@ private:
     using MaterialStaticStateCreateInfoSet =
         std::unordered_set<MaterialStaticStateCreateInfo, MaterialStaticStateCreateInfoHasher, MaterialStaticStateCreateInfoComparator>;
 
+    struct MaterialStaticStateHasher
+    {
+        size_t operator()(MaterialStaticState const& value) const
+        {
+            return value.pipelineDescriptor().hash()->fold();
+        }
+    };
+
+    struct MaterialStaticStateComparator
+    {
+        bool operator()(MaterialStaticState const& lhs, MaterialStaticState const& rhs) const
+        {
+            core::dx::d3d12::GraphicsPSODescriptor const& pso_desc_lhs = lhs.pipelineDescriptor();
+            core::dx::d3d12::GraphicsPSODescriptor const& pso_desc_rhs = rhs.pipelineDescriptor();
+            return pso_desc_lhs == pso_desc_rhs;
+        }
+    };
+
+    using MaterialStaticStateSet =
+        std::unordered_set<MaterialStaticState, MaterialStaticStateHasher, MaterialStaticStateComparator>;
+
     struct MaterialAttachment
     {
         MaterialStaticStateCreateInfoSet::const_iterator create_info_it;
+        MaterialStaticStateSet::const_iterator material_static_state_it;
         std::vector<size_t> target_submesh_ids;
     };
 
@@ -217,6 +241,7 @@ private:
 
     SceneMemory m_scene_memory;
     MaterialStaticStateCreateInfoSet m_material_static_state_create_infos;
+    MaterialStaticStateSet m_material_static_states;
     std::unordered_map<size_t, MaterialAttachment> m_material_attachements;
 };
 

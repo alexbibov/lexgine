@@ -70,6 +70,7 @@ public:
 
 public:
     ShaderFunction(Globals& globals, ShaderFunctionRootUniformBuffers const& flags);
+    ShaderFunction(ShaderFunction const&) = delete;
     ~ShaderFunction();
 
     ShaderStage* getShaderStage(ShaderType shader_type) const { return m_shader_stages[static_cast<size_t>(shader_type)].get(); }
@@ -81,7 +82,7 @@ public:
 
     void bindRootConstantBuffer(core::dx::d3d12::CommandList& command_list, 
         ShaderFunctionConstantBufferRootIds id, 
-        uint64_t gpu_virtual_address);
+        uint64_t gpu_virtual_address) const;
 
     bool assignResourceDescriptors(ShaderInputKind resource_kind, uint32_t resource_space_id, const core::dx::d3d12::DescriptorAllocationManager& allocation_manager);
     bool bindResourceDescriptors(core::dx::d3d12::CommandList& command_list, ShaderInputKind kind, uint32_t space_id);

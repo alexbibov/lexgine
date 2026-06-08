@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "engine/core/exception.h"
 #include "engine/core/globals.h"
 #include "engine/core/engine_api.h"
@@ -175,6 +177,105 @@ void combineStreamOutput(misc::HashValue& h, StreamOutput const& so)
     if (stride_count)
         h.combine(so.buffer_strides.data(), so.buffer_strides.size() * sizeof(uint32_t));
     combineValue(h, so.rasterized_stream);
+}
+
+bool blobsEqual(D3DDataBlob const& a, D3DDataBlob const& b)
+{
+    if (a.size() != b.size()) return false;
+    if (a.size() == 0) return true;
+    return std::memcmp(a.data(), b.data(), a.size()) == 0;
+}
+
+bool rasterizerEqual(RasterizerDescriptor const& a, RasterizerDescriptor const& b)
+{
+    return a.getFillMode() == b.getFillMode()
+        && a.getCullMode() == b.getCullMode()
+        && a.getWindingOrder() == b.getWindingOrder()
+        && a.getDepthBias() == b.getDepthBias()
+        && a.getDepthBiasClamp() == b.getDepthBiasClamp()
+        && a.getSlopeScaledDepthBias() == b.getSlopeScaledDepthBias()
+        && a.isDepthClipEnabled() == b.isDepthClipEnabled()
+        && a.isMultisamplingEnabled() == b.isMultisamplingEnabled()
+        && a.isAntialiasedLineDrawingEnabled() == b.isAntialiasedLineDrawingEnabled()
+        && a.getConservativeRasterizationMode() == b.getConservativeRasterizationMode();
+}
+
+bool stencilBehaviorEqual(StencilBehavior const& a, StencilBehavior const& b)
+{
+    return a.st_fail == b.st_fail
+        && a.st_pass_dt_fail == b.st_pass_dt_fail
+        && a.st_pass_dt_pass == b.st_pass_dt_pass
+        && a.cmp_fun == b.cmp_fun;
+}
+
+bool depthStencilEqual(DepthStencilDescriptor const& a, DepthStencilDescriptor const& b)
+{
+    return a.isDepthTestEnabled() == b.isDepthTestEnabled()
+        && a.isDepthUpdateAllowed() == b.isDepthUpdateAllowed()
+        && a.depthTestPredicate() == b.depthTestPredicate()
+        && a.isStencilTestEnabled() == b.isStencilTestEnabled()
+        && a.stencilReadMask() == b.stencilReadMask()
+        && a.stencilWriteMask() == b.stencilWriteMask()
+        && stencilBehaviorEqual(a.stencilBehaviorForFrontFacingTriangles(), b.stencilBehaviorForFrontFacingTriangles())
+        && stencilBehaviorEqual(a.stencilBehaviorForBackFacingTriangles(), b.stencilBehaviorForBackFacingTriangles());
+}
+
+bool blendDescriptorEqual(BlendDescriptor const& a, BlendDescriptor const& b)
+{
+    return a.isEnabled() == b.isEnabled()
+        && a.isLogicalOperationEnabled() == b.isLogicalOperationEnabled()
+        && a.getSourceBlendFactors() == b.getSourceBlendFactors()
+        && a.getDestinationBlendFactors() == b.getDestinationBlendFactors()
+        && a.getBlendOperation() == b.getBlendOperation()
+        && a.getBlendLogicalOperation() == b.getBlendLogicalOperation()
+        && a.getColorWriteMask().getValue() == b.getColorWriteMask().getValue();
+}
+
+bool blendStateEqual(BlendState const& a, BlendState const& b)
+{
+    if (a.alphaToCoverageEnable != b.alphaToCoverageEnable
+        || a.independentBlendEnable != b.independentBlendEnable)
+        return false;
+    for (int i = 0; i < 8; ++i)
+        if (!blendDescriptorEqual(a.render_target_blend_descriptor[i], b.render_target_blend_descriptor[i]))
+            return false;
+    return true;
+}
+
+bool vertexAttributesEqual(VertexAttributeSpecificationList const& a, VertexAttributeSpecificationList const& b)
+{
+    if (a.size() != b.size()) return false;
+    for (size_t i = 0; i < a.size(); ++i)
+    {
+        auto const& lhs_va = a[i];
+        auto const& rhs_va = b[i];
+        if (static_cast<bool>(lhs_va) != static_cast<bool>(rhs_va)) return false;
+        if (!lhs_va) continue;
+        if (!(*lhs_va == *rhs_va)) return false;
+    }
+    return true;
+}
+
+bool streamOutputEqual(StreamOutput const& a, StreamOutput const& b)
+{
+    if (a.so_declarations.size() != b.so_declarations.size()
+        || a.buffer_strides.size() != b.buffer_strides.size()
+        || a.rasterized_stream != b.rasterized_stream)
+        return false;
+    for (size_t i = 0; i < a.so_declarations.size(); ++i)
+    {
+        auto const& x = a.so_declarations[i];
+        auto const& y = b.so_declarations[i];
+        if (x.stream() != y.stream()
+            || x.name() != y.name()
+            || x.nameIndex() != y.nameIndex()
+            || x.outputComponents() != y.outputComponents()
+            || x.slot() != y.slot())
+            return false;
+    }
+    for (size_t i = 0; i < a.buffer_strides.size(); ++i)
+        if (a.buffer_strides[i] != b.buffer_strides[i]) return false;
+    return true;
 }
 
 }
@@ -451,6 +552,39 @@ misc::HashValue const* GraphicsPSODescriptor::hash() const
     return m_hash_value.get();
 }
 
+bool GraphicsPSODescriptor::operator==(GraphicsPSODescriptor const& other) const
+{
+    if (this == &other) return true;
+
+    if (!blobsEqual(vertex_shader, other.vertex_shader)
+        || !blobsEqual(hull_shader, other.hull_shader)
+        || !blobsEqual(domain_shader, other.domain_shader)
+        || !blobsEqual(geometry_shader, other.geometry_shader)
+        || !blobsEqual(pixel_shader, other.pixel_shader))
+        return false;
+
+    if (!streamOutputEqual(stream_output, other.stream_output)) return false;
+    if (!blendStateEqual(blend_state, other.blend_state)) return false;
+    if (!rasterizerEqual(rasterization_descriptor, other.rasterization_descriptor)) return false;
+    if (!depthStencilEqual(depth_stencil_descriptor, other.depth_stencil_descriptor)) return false;
+    if (!vertexAttributesEqual(vertex_attributes, other.vertex_attributes)) return false;
+
+    if (primitive_restart != other.primitive_restart
+        || primitive_topology_type != other.primitive_topology_type
+        || num_render_targets != other.num_render_targets
+        || dsv_format != other.dsv_format
+        || node_mask != other.node_mask
+        || sample_mask != other.sample_mask
+        || multi_sampling_format.count != other.multi_sampling_format.count
+        || multi_sampling_format.quality != other.multi_sampling_format.quality)
+        return false;
+
+    for (int i = 0; i < 8; ++i)
+        if (rtv_formats[i] != other.rtv_formats[i]) return false;
+
+    return true;
+}
+
 misc::HashValue const* ComputePSODescriptor::hash() const
 {
     if (m_hash_value) return m_hash_value.get();
@@ -465,6 +599,14 @@ misc::HashValue const* ComputePSODescriptor::hash() const
     h->finalize();
     m_hash_value = std::shared_ptr<misc::HashValue const>{ std::move(h) };
     return m_hash_value.get();
+}
+
+bool ComputePSODescriptor::operator==(ComputePSODescriptor const& other) const
+{
+    if (this == &other) return true;
+
+    return node_mask == other.node_mask
+        && blobsEqual(compute_shader, other.compute_shader);
 }
 
 GraphicsPSODescriptor::GraphicsPSODescriptor()

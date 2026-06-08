@@ -520,17 +520,86 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
     }
 
     {
+        // Schedule shaders compilation
         auto* p_hlsl_shader_blob_cache = m_globals.get<core::dx::d3d12::caches::HLSLShaderBlobCache>();
         p_hlsl_shader_blob_cache->createShaderBlobs();
         p_hlsl_shader_blob_cache->waitTillReady();
     }
 
-    for (MaterialStaticStateCreateInfo const& create_info : m_material_static_state_create_infos)
     {
-        // mss.buildPipeline();
+        // Create materials 
+
+        for (auto& [gltf_source_material_id, material_attachment] : m_material_attachements)
+        {
+            MaterialShaderDesc shader_desc{};
+            shader_desc.vertex_shader = material_attachment.create_info_it->vertex_shader;
+            shader_desc.hull_shader = material_attachment.create_info_it->hull_shader;
+            shader_desc.domain_shader = material_attachment.create_info_it->domain_shader;
+            shader_desc.geometry_shader = material_attachment.create_info_it->geometry_shader;
+            shader_desc.pixel_shader = material_attachment.create_info_it->pixel_shader;
+
+            shader_desc.material_parameters_uniform_buffer_name = "material_data";
+            shader_desc.scene_parameters_uniform_buffer_name = "environment_data";
+
+            MaterialPSOCompilationContext pso_context{ material_attachment.create_info_it->vertex_data_format };
+
+            MaterialStaticState mss{ m_basic_rendering_services, pso_context, shader_desc };
+            mss.buildPipeline();
+            auto [it, res] = m_material_static_states.emplace(std::move(mss));
+            assert(res);
+            material_attachment.material_static_state_it = it;
+
+            m_materials.emplace_back(*it);
+            Material& material = m_materials.back();
+
+            tg3_material const& source_material = model.materials[gltf_source_material_id];
+            material.setStringName(std::string{ source_material.name.data, source_material.name.len });
+            material.setEmissiveFactor(
+                lexgine::core::math::Vector3f{
+                    source_material.emissive_factor[0],
+                    source_material.emissive_factor[1],
+                    source_material.emissive_factor[2]
+                }
+            );
+            //material.setAlphaMode()
+            material.setAlphaCutoff(source_material.alpha_cutoff);
+            material.setDoubleSided(source_material.double_sided != 0);
+            {
+                // Metallic-roughness
+                Material::MetallicRoughness mr{};
+                mr.base_color_factor = lexgine::core::math::Vector4f{
+                    source_material.pbr_metallic_roughness.base_color_factor[0],
+                    source_material.pbr_metallic_roughness.base_color_factor[1],
+                    source_material.pbr_metallic_roughness.base_color_factor[2],
+                    source_material.pbr_metallic_roughness.base_color_factor[3]
+                };
+                mr.metallic_factor = static_cast<float>(source_material.pbr_metallic_roughness.metallic_factor);
+                mr.roughness_factor = static_cast<float>(source_material.pbr_metallic_roughness.roughness_factor);
+                mr.p_base_color = source_material.pbr_metallic_roughness.base_color_texture.index >= 0
+                    ? &m_textures[source_material.pbr_metallic_roughness.base_color_texture.index]
+                    : nullptr;
+                mr.p_metallic_roughness = source_material.pbr_metallic_roughness.metallic_roughness_texture.index >= 0
+                    ? &m_textures[source_material.pbr_metallic_roughness.metallic_roughness_texture.index]
+                    : nullptr;
+                material.setMetallicRoughness(mr);
+            }
+            if (source_material.normal_texture.index >= 0)
+            {
+                material.setNormalTexture(&m_textures[source_material.normal_texture.index]);
+            }
+            if (source_material.occlusion_texture.index >= 0)
+            {
+                material.setNormalTexture(&m_textures[source_material.occlusion_texture.index]);
+            }
+            if (source_material.emissive_texture.index >= 0)
+            {
+                material.setNormalTexture(&m_textures[source_material.emissive_texture.index]);
+            }
+        }
     }
 
     {
+        // Schedule root signature and PSO creation
         auto* p_rs_blob_cache = m_globals.get<core::dx::d3d12::caches::RootSignatureBlobCache>();
         p_rs_blob_cache->createRootSignatures();
 

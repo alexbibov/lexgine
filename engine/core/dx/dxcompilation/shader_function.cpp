@@ -83,9 +83,9 @@ d3d12::caches::RootSignatureHandle ShaderFunction::buildBindingSignature()
 
 void ShaderFunction::bindRootConstantBuffer(core::dx::d3d12::CommandList& command_list, 
     ShaderFunctionConstantBufferRootIds id, 
-    uint64_t gpu_virtual_address)
+    uint64_t gpu_virtual_address) const
 {
-    command_list.setRootConstantBufferView(m_root_uniforms_to_rs_slots_mapping[id], gpu_virtual_address);
+    command_list.setRootConstantBufferView(m_root_uniforms_to_rs_slots_mapping.at(id), gpu_virtual_address);
 }
 
 bool ShaderFunction::assignResourceDescriptors(ShaderInputKind resource_kind, uint32_t resource_space_id, const core::dx::d3d12::DescriptorAllocationManager& allocation_manager)

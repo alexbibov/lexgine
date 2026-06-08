@@ -32,7 +32,7 @@ std::vector<wchar_t const*> convertParametersIntoCommandLineArgs(
             if (!SUCCEEDED(StringCbPrintf(
                 scratch_buffer + scratch_buffer_offset,
                 scratch_buffer_length - scratch_buffer_offset,
-                L"%S",
+                L"%s",
                 dir.c_str()
             )))
             {

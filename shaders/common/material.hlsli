@@ -25,7 +25,7 @@ struct MaterialData {
     uint usage_flags; // Bitmask for texture usage
 };
 
-ConstantBuffer<ObjectData>   object_data   : register(b1, SHADER_FUNCTION_SPACE)
+ConstantBuffer<ObjectData> object_data : register(b1, SHADER_FUNCTION_SPACE);
 ConstantBuffer<MaterialData> material_data : register(b2, SHADER_FUNCTION_SPACE);
 
 #endif
