@@ -165,7 +165,7 @@ private:
     {
         MaterialStaticStateCreateInfoSet::const_iterator create_info_it;
         MaterialStaticStateSet::const_iterator material_static_state_it;
-        std::vector<size_t> target_submesh_ids;
+        std::unordered_map<size_t, std::vector<size_t>> target_meshes;
     };
 
 private:

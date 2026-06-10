@@ -29,114 +29,114 @@ namespace {
 
 static const std::unordered_map<osinteraction::SystemKey, ImGuiKey> systemKeyToImGuiLUT =
 {
-	{ osinteraction::SystemKey::tab, ImGuiKey_Tab },
-	{ osinteraction::SystemKey::caps, ImGuiKey_CapsLock },
-	{ osinteraction::SystemKey::lshift, ImGuiKey_LeftShift },
-	{ osinteraction::SystemKey::lctrl, ImGuiKey_LeftCtrl },
-	{ osinteraction::SystemKey::lalt, ImGuiKey_LeftAlt },
-	{ osinteraction::SystemKey::backspace, ImGuiKey_Backspace },
-	{ osinteraction::SystemKey::enter, ImGuiKey_Enter },
-	{ osinteraction::SystemKey::keypad_enter, ImGuiKey_KeypadEnter },
-	{ osinteraction::SystemKey::rshift, ImGuiKey_RightShift },
-	{ osinteraction::SystemKey::rctrl, ImGuiKey_RightCtrl },
-	{ osinteraction::SystemKey::ralt, ImGuiKey_RightAlt },
-	{ osinteraction::SystemKey::esc, ImGuiKey_Escape },
+    { osinteraction::SystemKey::tab, ImGuiKey_Tab },
+    { osinteraction::SystemKey::caps, ImGuiKey_CapsLock },
+    { osinteraction::SystemKey::lshift, ImGuiKey_LeftShift },
+    { osinteraction::SystemKey::lctrl, ImGuiKey_LeftCtrl },
+    { osinteraction::SystemKey::lalt, ImGuiKey_LeftAlt },
+    { osinteraction::SystemKey::backspace, ImGuiKey_Backspace },
+    { osinteraction::SystemKey::enter, ImGuiKey_Enter },
+    { osinteraction::SystemKey::keypad_enter, ImGuiKey_KeypadEnter },
+    { osinteraction::SystemKey::rshift, ImGuiKey_RightShift },
+    { osinteraction::SystemKey::rctrl, ImGuiKey_RightCtrl },
+    { osinteraction::SystemKey::ralt, ImGuiKey_RightAlt },
+    { osinteraction::SystemKey::esc, ImGuiKey_Escape },
 
-	{ osinteraction::SystemKey::f1, ImGuiKey_F1 },
-	{ osinteraction::SystemKey::f2, ImGuiKey_F2 },
-	{ osinteraction::SystemKey::f3, ImGuiKey_F3 },
-	{ osinteraction::SystemKey::f4, ImGuiKey_F4 },
-	{ osinteraction::SystemKey::f5, ImGuiKey_F5 },
-	{ osinteraction::SystemKey::f6, ImGuiKey_F6 },
-	{ osinteraction::SystemKey::f7, ImGuiKey_F7 },
-	{ osinteraction::SystemKey::f8, ImGuiKey_F8 },
-	{ osinteraction::SystemKey::f9, ImGuiKey_F9 },
-	{ osinteraction::SystemKey::f10, ImGuiKey_F10 },
-	{ osinteraction::SystemKey::f11, ImGuiKey_F11 },
-	{ osinteraction::SystemKey::f12, ImGuiKey_F12 },
+    { osinteraction::SystemKey::f1, ImGuiKey_F1 },
+    { osinteraction::SystemKey::f2, ImGuiKey_F2 },
+    { osinteraction::SystemKey::f3, ImGuiKey_F3 },
+    { osinteraction::SystemKey::f4, ImGuiKey_F4 },
+    { osinteraction::SystemKey::f5, ImGuiKey_F5 },
+    { osinteraction::SystemKey::f6, ImGuiKey_F6 },
+    { osinteraction::SystemKey::f7, ImGuiKey_F7 },
+    { osinteraction::SystemKey::f8, ImGuiKey_F8 },
+    { osinteraction::SystemKey::f9, ImGuiKey_F9 },
+    { osinteraction::SystemKey::f10, ImGuiKey_F10 },
+    { osinteraction::SystemKey::f11, ImGuiKey_F11 },
+    { osinteraction::SystemKey::f12, ImGuiKey_F12 },
 
-	{ osinteraction::SystemKey::print_screen, ImGuiKey_PrintScreen },
-	{ osinteraction::SystemKey::scroll_lock, ImGuiKey_ScrollLock },
-	{ osinteraction::SystemKey::num_lock, ImGuiKey_NumLock },
-	{ osinteraction::SystemKey::pause, ImGuiKey_Pause },
+    { osinteraction::SystemKey::print_screen, ImGuiKey_PrintScreen },
+    { osinteraction::SystemKey::scroll_lock, ImGuiKey_ScrollLock },
+    { osinteraction::SystemKey::num_lock, ImGuiKey_NumLock },
+    { osinteraction::SystemKey::pause, ImGuiKey_Pause },
 
-	{ osinteraction::SystemKey::insert, ImGuiKey_Insert },
-	{ osinteraction::SystemKey::home, ImGuiKey_Home },
-	{ osinteraction::SystemKey::page_up, ImGuiKey_PageUp },
-	{ osinteraction::SystemKey::_delete, ImGuiKey_Delete },
-	{ osinteraction::SystemKey::end, ImGuiKey_End },
-	{ osinteraction::SystemKey::page_down, ImGuiKey_PageDown },
+    { osinteraction::SystemKey::insert, ImGuiKey_Insert },
+    { osinteraction::SystemKey::home, ImGuiKey_Home },
+    { osinteraction::SystemKey::page_up, ImGuiKey_PageUp },
+    { osinteraction::SystemKey::_delete, ImGuiKey_Delete },
+    { osinteraction::SystemKey::end, ImGuiKey_End },
+    { osinteraction::SystemKey::page_down, ImGuiKey_PageDown },
 
-	{ osinteraction::SystemKey::arrow_left, ImGuiKey_LeftArrow },
-	{ osinteraction::SystemKey::arrow_right, ImGuiKey_RightArrow },
-	{ osinteraction::SystemKey::arrow_down, ImGuiKey_DownArrow },
-	{ osinteraction::SystemKey::arrow_up, ImGuiKey_UpArrow },
+    { osinteraction::SystemKey::arrow_left, ImGuiKey_LeftArrow },
+    { osinteraction::SystemKey::arrow_right, ImGuiKey_RightArrow },
+    { osinteraction::SystemKey::arrow_down, ImGuiKey_DownArrow },
+    { osinteraction::SystemKey::arrow_up, ImGuiKey_UpArrow },
 
-	{ osinteraction::SystemKey::space, ImGuiKey_Space },
+    { osinteraction::SystemKey::space, ImGuiKey_Space },
 
-	// Numpad
-	{ osinteraction::SystemKey::num_0, ImGuiKey_Keypad0 },
-	{ osinteraction::SystemKey::num_1, ImGuiKey_Keypad1 },
-	{ osinteraction::SystemKey::num_2, ImGuiKey_Keypad2 },
-	{ osinteraction::SystemKey::num_3, ImGuiKey_Keypad3 },
-	{ osinteraction::SystemKey::num_4, ImGuiKey_Keypad4 },
-	{ osinteraction::SystemKey::num_5, ImGuiKey_Keypad5 },
-	{ osinteraction::SystemKey::num_6, ImGuiKey_Keypad6 },
-	{ osinteraction::SystemKey::num_7, ImGuiKey_Keypad7 },
-	{ osinteraction::SystemKey::num_8, ImGuiKey_Keypad8 },
-	{ osinteraction::SystemKey::num_9, ImGuiKey_Keypad9 },
-	{ osinteraction::SystemKey::multiply, ImGuiKey_KeypadMultiply },
-	{ osinteraction::SystemKey::divide, ImGuiKey_KeypadDivide },
-	{ osinteraction::SystemKey::add, ImGuiKey_KeypadAdd },
-	{ osinteraction::SystemKey::subtract, ImGuiKey_KeypadSubtract },
-	{ osinteraction::SystemKey::decimal, ImGuiKey_KeypadDecimal },
+    // Numpad
+    { osinteraction::SystemKey::num_0, ImGuiKey_Keypad0 },
+    { osinteraction::SystemKey::num_1, ImGuiKey_Keypad1 },
+    { osinteraction::SystemKey::num_2, ImGuiKey_Keypad2 },
+    { osinteraction::SystemKey::num_3, ImGuiKey_Keypad3 },
+    { osinteraction::SystemKey::num_4, ImGuiKey_Keypad4 },
+    { osinteraction::SystemKey::num_5, ImGuiKey_Keypad5 },
+    { osinteraction::SystemKey::num_6, ImGuiKey_Keypad6 },
+    { osinteraction::SystemKey::num_7, ImGuiKey_Keypad7 },
+    { osinteraction::SystemKey::num_8, ImGuiKey_Keypad8 },
+    { osinteraction::SystemKey::num_9, ImGuiKey_Keypad9 },
+    { osinteraction::SystemKey::multiply, ImGuiKey_KeypadMultiply },
+    { osinteraction::SystemKey::divide, ImGuiKey_KeypadDivide },
+    { osinteraction::SystemKey::add, ImGuiKey_KeypadAdd },
+    { osinteraction::SystemKey::subtract, ImGuiKey_KeypadSubtract },
+    { osinteraction::SystemKey::decimal, ImGuiKey_KeypadDecimal },
 
-	// Digits
-	{ osinteraction::SystemKey::_0, ImGuiKey_0 },
-	{ osinteraction::SystemKey::_1, ImGuiKey_1 },
-	{ osinteraction::SystemKey::_2, ImGuiKey_2 },
-	{ osinteraction::SystemKey::_3, ImGuiKey_3 },
-	{ osinteraction::SystemKey::_4, ImGuiKey_4 },
-	{ osinteraction::SystemKey::_5, ImGuiKey_5 },
-	{ osinteraction::SystemKey::_6, ImGuiKey_6 },
-	{ osinteraction::SystemKey::_7, ImGuiKey_7 },
-	{ osinteraction::SystemKey::_8, ImGuiKey_8 },
-	{ osinteraction::SystemKey::_9, ImGuiKey_9 },
+    // Digits
+    { osinteraction::SystemKey::_0, ImGuiKey_0 },
+    { osinteraction::SystemKey::_1, ImGuiKey_1 },
+    { osinteraction::SystemKey::_2, ImGuiKey_2 },
+    { osinteraction::SystemKey::_3, ImGuiKey_3 },
+    { osinteraction::SystemKey::_4, ImGuiKey_4 },
+    { osinteraction::SystemKey::_5, ImGuiKey_5 },
+    { osinteraction::SystemKey::_6, ImGuiKey_6 },
+    { osinteraction::SystemKey::_7, ImGuiKey_7 },
+    { osinteraction::SystemKey::_8, ImGuiKey_8 },
+    { osinteraction::SystemKey::_9, ImGuiKey_9 },
 
-	// Letters
-	{ osinteraction::SystemKey::A, ImGuiKey_A },
-	{ osinteraction::SystemKey::B, ImGuiKey_B },
-	{ osinteraction::SystemKey::C, ImGuiKey_C },
-	{ osinteraction::SystemKey::D, ImGuiKey_D },
-	{ osinteraction::SystemKey::E, ImGuiKey_E },
-	{ osinteraction::SystemKey::F, ImGuiKey_F },
-	{ osinteraction::SystemKey::G, ImGuiKey_G },
-	{ osinteraction::SystemKey::H, ImGuiKey_H },
-	{ osinteraction::SystemKey::I, ImGuiKey_I },
-	{ osinteraction::SystemKey::J, ImGuiKey_J },
-	{ osinteraction::SystemKey::K, ImGuiKey_K },
-	{ osinteraction::SystemKey::L, ImGuiKey_L },
-	{ osinteraction::SystemKey::M, ImGuiKey_M },
-	{ osinteraction::SystemKey::N, ImGuiKey_N },
-	{ osinteraction::SystemKey::O, ImGuiKey_O },
-	{ osinteraction::SystemKey::P, ImGuiKey_P },
-	{ osinteraction::SystemKey::Q, ImGuiKey_Q },
-	{ osinteraction::SystemKey::R, ImGuiKey_R },
-	{ osinteraction::SystemKey::S, ImGuiKey_S },
-	{ osinteraction::SystemKey::T, ImGuiKey_T },
-	{ osinteraction::SystemKey::U, ImGuiKey_U },
-	{ osinteraction::SystemKey::V, ImGuiKey_V },
-	{ osinteraction::SystemKey::W, ImGuiKey_W },
-	{ osinteraction::SystemKey::X, ImGuiKey_X },
-	{ osinteraction::SystemKey::Y, ImGuiKey_Y },
-	{ osinteraction::SystemKey::Z, ImGuiKey_Z },
+    // Letters
+    { osinteraction::SystemKey::A, ImGuiKey_A },
+    { osinteraction::SystemKey::B, ImGuiKey_B },
+    { osinteraction::SystemKey::C, ImGuiKey_C },
+    { osinteraction::SystemKey::D, ImGuiKey_D },
+    { osinteraction::SystemKey::E, ImGuiKey_E },
+    { osinteraction::SystemKey::F, ImGuiKey_F },
+    { osinteraction::SystemKey::G, ImGuiKey_G },
+    { osinteraction::SystemKey::H, ImGuiKey_H },
+    { osinteraction::SystemKey::I, ImGuiKey_I },
+    { osinteraction::SystemKey::J, ImGuiKey_J },
+    { osinteraction::SystemKey::K, ImGuiKey_K },
+    { osinteraction::SystemKey::L, ImGuiKey_L },
+    { osinteraction::SystemKey::M, ImGuiKey_M },
+    { osinteraction::SystemKey::N, ImGuiKey_N },
+    { osinteraction::SystemKey::O, ImGuiKey_O },
+    { osinteraction::SystemKey::P, ImGuiKey_P },
+    { osinteraction::SystemKey::Q, ImGuiKey_Q },
+    { osinteraction::SystemKey::R, ImGuiKey_R },
+    { osinteraction::SystemKey::S, ImGuiKey_S },
+    { osinteraction::SystemKey::T, ImGuiKey_T },
+    { osinteraction::SystemKey::U, ImGuiKey_U },
+    { osinteraction::SystemKey::V, ImGuiKey_V },
+    { osinteraction::SystemKey::W, ImGuiKey_W },
+    { osinteraction::SystemKey::X, ImGuiKey_X },
+    { osinteraction::SystemKey::Y, ImGuiKey_Y },
+    { osinteraction::SystemKey::Z, ImGuiKey_Z },
 
-	// Mouse buttons
-	{ osinteraction::SystemKey::mouse_left_button, ImGuiKey_MouseLeft },
-	{ osinteraction::SystemKey::mouse_right_button, ImGuiKey_MouseRight },
-	{ osinteraction::SystemKey::mouse_middle_button, ImGuiKey_MouseMiddle },
-	{ osinteraction::SystemKey::mouse_x_button_1, ImGuiKey_MouseX1 },
-	{ osinteraction::SystemKey::mouse_x_button_2, ImGuiKey_MouseX2 }
+    // Mouse buttons
+    { osinteraction::SystemKey::mouse_left_button, ImGuiKey_MouseLeft },
+    { osinteraction::SystemKey::mouse_right_button, ImGuiKey_MouseRight },
+    { osinteraction::SystemKey::mouse_middle_button, ImGuiKey_MouseMiddle },
+    { osinteraction::SystemKey::mouse_x_button_1, ImGuiKey_MouseX1 },
+    { osinteraction::SystemKey::mouse_x_button_2, ImGuiKey_MouseX2 }
 };
 
 bool isVkDownWin32(int vk_key)
@@ -154,29 +154,29 @@ void updateKeyModifiersWin32(ImGuiIO& io)
 
 bool processKeyEventWin32(ImGuiIO& io, osinteraction::SystemKey key, bool is_key_down)
 {
-	if (!systemKeyToImGuiLUT.contains(key))
-	{
-		return false;
-	}
-	updateKeyModifiersWin32(io);
-	ImGuiKey imgui_key = systemKeyToImGuiLUT.at(key);
-	io.AddKeyEvent(imgui_key, is_key_down);
+    if (!systemKeyToImGuiLUT.contains(key))
+    {
+        return false;
+    }
+    updateKeyModifiersWin32(io);
+    ImGuiKey imgui_key = systemKeyToImGuiLUT.at(key);
+    io.AddKeyEvent(imgui_key, is_key_down);
     return true;
 }
 
 void updateKeyboardCodepageWin32(ImGuiIO& io, uint32_t& keyboard_code_page)
 {
-	// Configure keyboard layout
-	HKL keyboard_layout = GetKeyboardLayout(0);
-	LCID keyboard_lcid = MAKELCID(LOWORD(keyboard_layout), SORT_DEFAULT);
-	if (GetLocaleInfo(
-		keyboard_lcid,
-		LOCALE_RETURN_NUMBER | LOCALE_IDEFAULTANSICODEPAGE,
-		reinterpret_cast<LPWSTR>(&keyboard_code_page),
-		sizeof(keyboard_code_page)) == 0)
-	{
-		keyboard_code_page = CP_ACP;
-	}
+    // Configure keyboard layout
+    HKL keyboard_layout = GetKeyboardLayout(0);
+    LCID keyboard_lcid = MAKELCID(LOWORD(keyboard_layout), SORT_DEFAULT);
+    if (GetLocaleInfo(
+        keyboard_lcid,
+        LOCALE_RETURN_NUMBER | LOCALE_IDEFAULTANSICODEPAGE,
+        reinterpret_cast<LPWSTR>(&keyboard_code_page),
+        sizeof(keyboard_code_page)) == 0)
+    {
+        keyboard_code_page = CP_ACP;
+    }
 }
 
 bool mouseButtonHandler(osinteraction::MouseButton button, uint16_t xbutton_id,
@@ -265,19 +265,19 @@ void updateMouseDataWin32(HWND hwnd, MouseTrackedArea mouse_tracked_area)
 
     if (is_focused)
     {
-		if (io.WantSetMousePos)
-		{
-			POINT pos = { 
+        if (io.WantSetMousePos)
+        {
+            POINT pos = { 
                 static_cast<int>(io.MousePos.x), 
                 static_cast<int>(io.MousePos.y)
             };
-			ClientToScreen(hwnd, &pos);
-			SetCursorPos(pos.x, pos.y);
-		}
+            ClientToScreen(hwnd, &pos);
+            SetCursorPos(pos.x, pos.y);
+        }
 
         if (!io.WantSetMousePos && mouse_tracked_area == MouseTrackedArea::none)
         {
-			POINT pos;
+            POINT pos;
             if (GetCursorPos(&pos) && ScreenToClient(hwnd, &pos))
             {
                 io.AddMousePosEvent(static_cast<float>(pos.x), static_cast<float>(pos.y));
@@ -669,11 +669,11 @@ bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
 
 void UIDrawTask::updateTexture(ImTextureData* p_texture)
 {
-	if (p_texture->Status == ImTextureStatus_WantCreate)
-	{
-		// Create and upload new texture to graphics system
-		//IMGUI_DEBUG_LOG("UpdateTexture #%03d: WantCreate %dx%d\n", tex->UniqueID, tex->Width, tex->Height);
-		assert(p_texture->TexID == ImTextureID_Invalid && p_texture->BackendUserData == nullptr);
+    if (p_texture->Status == ImTextureStatus_WantCreate)
+    {
+        // Create and upload new texture to graphics system
+        //IMGUI_DEBUG_LOG("UpdateTexture #%03d: WantCreate %dx%d\n", tex->UniqueID, tex->Width, tex->Height);
+        assert(p_texture->TexID == ImTextureID_Invalid && p_texture->BackendUserData == nullptr);
         assert(p_texture->Format == ImTextureFormat_RGBA32);
         auto backend_tex = std::make_unique<CommittedResource>(
             m_device,
@@ -684,16 +684,16 @@ void UIDrawTask::updateTexture(ImTextureData* p_texture)
             HeapCreationFlags::base_values::allow_all
         );
 
-		// Store identifiers
-		p_texture->SetTexID(reinterpret_cast<ImTextureID>(backend_tex.get()));
+        // Store identifiers
+        p_texture->SetTexID(reinterpret_cast<ImTextureID>(backend_tex.get()));
         m_imgui_textures[p_texture->GetTexID()] = std::move(backend_tex);
-	}
+    }
 
-	if (p_texture->Status == ImTextureStatus_WantCreate || p_texture->Status == ImTextureStatus_WantUpdates)
-	{
+    if (p_texture->Status == ImTextureStatus_WantCreate || p_texture->Status == ImTextureStatus_WantUpdates)
+    {
         assert(p_texture->Format == ImTextureFormat_RGBA32);
 
-	    uint32_t const upload_x = (p_texture->Status == ImTextureStatus_WantCreate) ? 0 : p_texture->UpdateRect.x;
+        uint32_t const upload_x = (p_texture->Status == ImTextureStatus_WantCreate) ? 0 : p_texture->UpdateRect.x;
         uint32_t const upload_y = (p_texture->Status == ImTextureStatus_WantCreate) ? 0 : p_texture->UpdateRect.y;
         uint32_t const upload_w = (p_texture->Status == ImTextureStatus_WantCreate) ? p_texture->Width : p_texture->UpdateRect.w;
         uint32_t const upload_h = (p_texture->Status == ImTextureStatus_WantCreate) ? p_texture->Height : p_texture->UpdateRect.h;
@@ -717,8 +717,8 @@ void UIDrawTask::updateTexture(ImTextureData* p_texture)
         resourceDataUploader.upload();
         resourceDataUploader.waitUntilUploadIsFinished();
 
-		p_texture->SetStatus(ImTextureStatus_OK);
-	}
+        p_texture->SetStatus(ImTextureStatus_OK);
+    }
 
     uint16_t max_frames_in_flight = m_globals.get<GlobalSettings>()->getMaxFramesInFlight();
     if (p_texture->Status == ImTextureStatus_WantDestroy 
@@ -755,14 +755,14 @@ void UIDrawTask::processEvents()
     // Update OS mouse position
     updateMouseDataWin32(m_os_data.rendering_window_ptr->native(), m_os_data.mouse_tracked_area);
 
-	// ImGui_ImplWin32_ProcessKeyEventsWorkarounds(io);
+    // ImGui_ImplWin32_ProcessKeyEventsWorkarounds(io);
 
-	ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
-	if (m_os_data.last_mouse_cursor != mouse_cursor)
-	{
-		m_os_data.last_mouse_cursor = mouse_cursor;
-		updateMouseCursorWin32(io, mouse_cursor);
-	}
+    ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
+    if (m_os_data.last_mouse_cursor != mouse_cursor)
+    {
+        m_os_data.last_mouse_cursor = mouse_cursor;
+        updateMouseCursorWin32(io, mouse_cursor);
+    }
 
 
     // TODO: support gamepads
@@ -796,8 +796,6 @@ void UIDrawTask::drawFrame()
             m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
 
             m_cmd_list_ptr->rasterizerStateSetViewports(m_viewports);
-            m_cmd_list_ptr->inputAssemblySetVertexBuffers(*m_ui_vertex_data_binding);
-            m_cmd_list_ptr->inputAssemblySetIndexBuffer(*m_ui_index_data_binding);
             m_cmd_list_ptr->inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
             m_cmd_list_ptr->outputMergerSetBlendFactor(math::Vector4f{ 0.f });
             m_basic_rendering_services.setDefaultRenderingTarget(*m_cmd_list_ptr);
@@ -837,6 +835,9 @@ void UIDrawTask::drawFrame()
             m_ui_index_data_binding->update(m_vertex_and_index_data_allocation->offset() + total_vertex_count * sizeof(ImDrawVert),
                 static_cast<uint32_t>(p_draw_data->TotalIdxCount));
 
+            m_cmd_list_ptr->inputAssemblySetVertexBuffers(*m_ui_vertex_data_binding);
+            m_cmd_list_ptr->inputAssemblySetIndexBuffer(*m_ui_index_data_binding);
+
             ImDrawVert* p_vertex_buffer = static_cast<ImDrawVert*>(m_vertex_and_index_data_allocation->cpuAddress());
             ImDrawIdx* p_index_buffer = reinterpret_cast<ImDrawIdx*>(static_cast<unsigned char*>(m_vertex_and_index_data_allocation->cpuAddress()) + index_buffer_offset);
             for (ImDrawList const* p_draw_list : p_draw_data->CmdLists)
@@ -873,10 +874,10 @@ void UIDrawTask::drawFrame()
                             (p_draw_command->ClipRect.x - clip_off.x) * clip_scale.x,
                             (p_draw_command->ClipRect.y - clip_off.y) * clip_scale.y
                         };
-						math::Vector2f clip_max{
-							(p_draw_command->ClipRect.z - clip_off.x) * clip_scale.x,
-							(p_draw_command->ClipRect.w - clip_off.y) * clip_scale.y
-						};
+                        math::Vector2f clip_max{
+                            (p_draw_command->ClipRect.z - clip_off.x) * clip_scale.x,
+                            (p_draw_command->ClipRect.w - clip_off.y) * clip_scale.y
+                        };
                         if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
                         {
                             continue;
@@ -888,20 +889,20 @@ void UIDrawTask::drawFrame()
                         math::Vector2f scissor_rectangle_size = clip_max - clip_min;
                         scissor_rectangle.setSize(scissor_rectangle_size.x, scissor_rectangle_size.y);
                         m_cmd_list_ptr->rasterizerStateSetScissorRectangles(m_scissor_rectangles);
-						auto* p_shader_stage = m_shader_function.getShaderStage(dxcompilation::ShaderType::pixel);
+                        auto* p_shader_stage = m_shader_function.getShaderStage(dxcompilation::ShaderType::pixel);
                         ImTextureID textureId = p_draw_command->GetTexID();
-						if (textureId != m_currentlyBoundImGuiTextureId)
+                        if (textureId != m_currentlyBoundImGuiTextureId)
                         {
-							p_shader_stage->bindTexture("texture0", *m_imgui_textures[textureId]);
+                            p_shader_stage->bindTexture("texture0", *m_imgui_textures[textureId]);
                             m_currentlyBoundImGuiTextureId = textureId;
-						}
-						m_cmd_list_ptr->drawIndexedInstanced(
-							p_draw_command->ElemCount,
-							1,
-							p_draw_command->IdxOffset + offset_in_index_buffer,
-							p_draw_command->VtxOffset + offset_in_vertex_buffer,
-							0
-						);
+                        }
+                        m_cmd_list_ptr->drawIndexedInstanced(
+                            p_draw_command->ElemCount,
+                            1,
+                            p_draw_command->IdxOffset + offset_in_index_buffer,
+                            p_draw_command->VtxOffset + offset_in_vertex_buffer,
+                            0
+                        );
                     }
                 }
                 offset_in_index_buffer += p_draw_list->IdxBuffer.Size;

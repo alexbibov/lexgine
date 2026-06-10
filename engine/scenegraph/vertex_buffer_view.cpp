@@ -14,7 +14,7 @@ size_t calculateVertexStrideForTightPacking(core::VertexAttributeSpecificationLi
 {
     size_t rv{};
     for (auto const& e : vertex_attributes) {
-        rv += e->size();
+        rv += e->capacity();
     }
     return rv;
 }

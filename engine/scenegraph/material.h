@@ -97,12 +97,12 @@ public:
     void bindObjectParameters(
         core::dx::d3d12::CommandList& target_command_list,
         core::dx::d3d12::ConstantBufferDataMapper& data_mapper
-    );
+    ) const;
 
     void bindSceneParameters(
         core::dx::d3d12::CommandList& target_command_list,
         core::dx::d3d12::ConstantBufferDataMapper& data_mapper
-    );
+    ) const;
 
     core::dx::d3d12::GraphicsPSODescriptor const& pipelineDescriptor() const { return m_pso_descriptor; }
 
@@ -152,13 +152,12 @@ public:
     void setOcclusionTexture(Texture* p_texture);
     void setEmissiveTexture(Texture* p_texture);
 
-    void bindMaterialConstants(core::dx::d3d12::CommandList& target_command_list);
+    MaterialStaticState const& getStaticState() const { return m_material_static_state; }
+    core::dx::d3d12::ConstantBufferDataMapper& getMaterialConstants() { return m_material_parameters_cb_data_mapper; }
 
 private:
     MaterialStaticState const& m_material_static_state;
     core::dx::d3d12::ConstantBufferDataMapper m_material_parameters_cb_data_mapper;
-
-    std::unique_ptr<MaterialStaticState> m_pso_compilation_task;
     
     core::math::Vector3f m_emissive_factor;
     AlphaMode m_alpha_mode;

@@ -31,26 +31,26 @@ namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
 
 enum class MouseTrackedArea
 {
-	none,
-	client,
-	nonclient
+    none,
+    client,
+    nonclient
 };
 struct OsInterationData
 {
-	std::chrono::high_resolution_clock::time_point system_time;
-	ImGuiMouseCursor last_mouse_cursor;
-	osinteraction::windows::Window* rendering_window_ptr;
-	uint32_t keyboard_code_page;
-	MouseTrackedArea mouse_tracked_area;
+    std::chrono::high_resolution_clock::time_point system_time;
+    ImGuiMouseCursor last_mouse_cursor;
+    osinteraction::windows::Window* rendering_window_ptr;
+    uint32_t keyboard_code_page;
+    MouseTrackedArea mouse_tracked_area;
 
-	OsInterationData()
-		: system_time{ std::chrono::high_resolution_clock::now() }
-		, last_mouse_cursor{ ImGuiMouseCursor_COUNT }
-		, rendering_window_ptr{ nullptr }
-		, keyboard_code_page{ std::numeric_limits<uint32_t>::max() }
-		, mouse_tracked_area{ MouseTrackedArea::none }
-	{
-	}
+    OsInterationData()
+        : system_time{ std::chrono::high_resolution_clock::now() }
+        , last_mouse_cursor{ ImGuiMouseCursor_COUNT }
+        , rendering_window_ptr{ nullptr }
+        , keyboard_code_page{ std::numeric_limits<uint32_t>::max() }
+        , mouse_tracked_area{ MouseTrackedArea::none }
+    {
+    }
 };
 
 class UIDrawTask final :

@@ -154,12 +154,20 @@ lexgine::scenegraph::WrapMode gltfCast<lexgine::scenegraph::WrapMode>(int gltf_w
 
 std::pair<std::string, unsigned> extractNameAndIndexFromAttributeName(std::string const& attribute_name)
 {
-    int name_length = attribute_name.find_last_not_of("0123456789") + 1;
-    std::string name = attribute_name.substr(0, name_length);
+    size_t name_length = attribute_name.find_last_not_of("0123456789") + 1;
+    bool has_index = name_length < attribute_name.size();
+    unsigned index = has_index ? static_cast<unsigned>(std::stoul(attribute_name.substr(name_length))) : 0;
+
+    // glTF spells indexed attributes as "<NAME>_<index>" (e.g. "TEXCOORD_0"); drop the
+    // trailing '_' separator so the semantic name matches the shader input signature.
+    size_t name_end = name_length;
+    if (has_index && name_end > 0 && attribute_name[name_end - 1] == '_')
+        --name_end;
+
+    std::string name = attribute_name.substr(0, name_end);
     std::vector<char> uppercase_name; uppercase_name.resize(name.length());
     std::transform(name.begin(), name.end(), uppercase_name.begin(), [](char e) { return static_cast<char>(std::toupper(e)); });
     name = std::string{ uppercase_name.data(), uppercase_name.size() };
-    unsigned index = (name_length < attribute_name.size()) ? static_cast<unsigned>(std::stoul(attribute_name.substr(name_length))) : 0;
     return { name, index };
 }
 
@@ -549,6 +557,7 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
             assert(res);
             material_attachment.material_static_state_it = it;
 
+            scene_material_ids[gltf_source_material_id] = m_materials.size();
             m_materials.emplace_back(*it);
             Material& material = m_materials.back();
 
@@ -594,6 +603,15 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
             if (source_material.emissive_texture.index >= 0)
             {
                 material.setNormalTexture(&m_textures[source_material.emissive_texture.index]);
+            }
+            for (auto& [mesh_id, submeshes] : material_attachment.target_meshes)
+            {
+                Mesh& mesh = m_scene_meshes[mesh_id];
+                for (size_t submesh_id : submeshes)
+                {
+                    Submesh& submesh = mesh.getSubmesh(submesh_id);
+                    submesh.setBaseMaterial(&m_materials.back());
+                }
             }
         }
     }
@@ -773,6 +791,7 @@ bool Scene::loadMeshes(
         // Parse mesh primitives
         std::vector<double> morph_weights(mesh.weights, mesh.weights + mesh.weights_count);
 
+        mesh_id_in_scene = m_scene_meshes.size();
         m_scene_meshes.emplace_back(Mesh{ std::string(mesh.name.data, mesh.name.len) });
         m_scene_meshes.back().applyMorphWeights(morph_weights);
 
@@ -838,7 +857,10 @@ bool Scene::loadMeshes(
                 tg3_buffer_view const& buffer_view = model.buffer_views[accessor.buffer_view];
                 assert(buffer_view.target == TG3_TARGET_ARRAY_BUFFER);
 
-                if (current_buffer != buffer_view.buffer)
+                if (current_buffer != buffer_view.buffer 
+                    || vertex_buffers[current_vb_slot].offset != buffer_view.byte_offset
+                    || current_buffer_stride == 0
+                    )
                 {
                     if (current_buffer >= 0
                         && current_vb_slot >= 0
@@ -860,7 +882,7 @@ bool Scene::loadMeshes(
                     current_element_count = accessor.count;
                     current_buffer_stride = buffer_view.byte_stride;
                     vertex_buffers[current_vb_slot] = m_scene_memory.getBuffer(buffer_ids.at(current_buffer));
-                    vertex_buffers[current_vb_slot].offset += buffer_view.byte_offset;
+                    vertex_buffers[current_vb_slot].offset = buffer_view.byte_offset;
                     vertex_buffers[current_vb_slot].size = buffer_view.byte_length;
                 }
 
@@ -883,39 +905,24 @@ bool Scene::loadMeshes(
             {
                 vb_view->setVertexBuffer(
                     static_cast<size_t>(current_vb_slot),
-                    m_scene_memory.getBuffer(buffer_ids.at(current_buffer)),
+                    vertex_buffers[current_vb_slot],
                     vertex_attributes_for_vb_slot,
                     current_element_count,
                     current_buffer_stride
                 );
             }
-
+            
             size_t submesh_id = m_scene_meshes.back().addSubmesh(std::move(submesh));
             if (mesh_primitive.material >= 0)
             {
                 int32_t material_id = mesh_primitive.material;
                 tg3_material const& gltf_source_material = model.materials[material_id];
                 auto material_static_state_create_info_it = 
-                    registerMaterialStaticState(gltf_source_material, vertex_attributes_for_vb_slot);
+                    registerMaterialStaticState(gltf_source_material, all_vertex_attributes);
                 auto material_attachment_it = m_material_attachements.find(material_id);
-                if (material_attachment_it != m_material_attachements.end())
-                {
-                    MaterialAttachment& attachment = material_attachment_it->second;
-                    assert(attachment.create_info_it == material_static_state_create_info_it);
-                    attachment.target_submesh_ids.push_back(submesh_id);
-                }
-                else
-                {
-                    m_material_attachements.insert(
-                        std::make_pair(
-                            material_id,
-                            MaterialAttachment{ 
-                                .create_info_it = material_static_state_create_info_it,
-                                .target_submesh_ids = {submesh_id}
-                            }
-                        )
-                    );
-                }
+                MaterialAttachment& attachment = m_material_attachements[material_id];
+                attachment.create_info_it = material_static_state_create_info_it;
+                attachment.target_meshes[mesh_id_in_scene].push_back(submesh_id);
             }
         }
     }

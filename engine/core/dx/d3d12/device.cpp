@@ -68,6 +68,20 @@ Device::Device(
             m_device->QueryInterface(IID_PPV_ARGS(&m_debug_device)),
             S_OK
         );
+        
+        // Upload buffers intentionally reuse the same heap for resource data uploading. This is benign and intentional, so we
+        // silence the corresponding warning
+        ComPtr<ID3D12InfoQueue> info_queue;
+        if (SUCCEEDED(m_device->QueryInterface(IID_PPV_ARGS(&info_queue))))
+        {
+            D3D12_MESSAGE_ID denied_messages[] = {
+                D3D12_MESSAGE_ID_HEAP_ADDRESS_RANGE_INTERSECTS_MULTIPLE_BUFFERS
+            };
+            D3D12_INFO_QUEUE_FILTER filter{};
+            filter.DenyList.NumIDs = _countof(denied_messages);
+            filter.DenyList.pIDList = denied_messages;
+            info_queue->AddStorageFilterEntries(&filter);
+        }
     }
 }
 
