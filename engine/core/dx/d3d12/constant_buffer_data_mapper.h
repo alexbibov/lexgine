@@ -90,6 +90,7 @@ class ConstantBufferDataMapper final
 {
 public:
     explicit ConstantBufferDataMapper(ConstantBufferReflection const& reflection);
+    ConstantBufferDataMapper(ConstantBufferDataMapper&&) noexcept = default;
 
     template<typename T>
     void addDataBinding(std::string const& target_variable_name, T const& data_source)
