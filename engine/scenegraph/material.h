@@ -139,6 +139,7 @@ public:
 
 public:
     Material(MaterialStaticState const& material_static_state);
+    Material(Material&&) noexcept = default;
 
     void setStringName(std::string const& entity_string_name);
 
