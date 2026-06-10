@@ -70,18 +70,18 @@ MaterialStaticState::MaterialStaticState(
     auto* p_global_settings = m_shader_function->globals().get<core::GlobalSettings>();
     core::MSAAMode msaa_mode = p_global_settings->msaaMode();
     auto* p_device = m_shader_function->globals().get<core::dx::d3d12::Device>();
-    uint32_t msaa_quality_level = std::numeric_limits<uint32_t>::max();
+    uint32_t num_quality_levels = std::numeric_limits<uint32_t>::max();
     for (int i = 0; i < static_cast<int>(m_pso_descriptor.num_render_targets); ++i)
     {
         core::dx::d3d12::FeatureMultisampleQualityLevels quality_level = p_device->queryFeatureQualityLevels(m_pso_descriptor.rtv_formats[i], static_cast<uint32_t>(msaa_mode));
-        msaa_quality_level = (std::min)(msaa_quality_level, quality_level.num_quality_levels);
+        num_quality_levels = (std::min)(num_quality_levels, quality_level.num_quality_levels);
     }
-    if (msaa_quality_level == 0 || msaa_quality_level == std::numeric_limits<uint32_t>::max())
+    if (num_quality_levels == 0 || num_quality_levels == std::numeric_limits<uint32_t>::max())
     {
         msaa_mode = core::MSAAMode::none;
-        msaa_quality_level = 1;
+        num_quality_levels = 1;
     }
-    m_pso_descriptor.multi_sampling_format = core::MultiSamplingFormat{ static_cast<uint32_t>(msaa_mode), msaa_quality_level };
+    m_pso_descriptor.multi_sampling_format = core::MultiSamplingFormat{ static_cast<uint32_t>(msaa_mode), num_quality_levels - 1 };
 
     assert(shader_desc.vertex_shader.p_internal && shader_desc.pixel_shader.p_internal);
     m_shader_function->createShaderStage(shader_desc.vertex_shader);
@@ -144,7 +144,7 @@ void MaterialStaticState::bindMaterialParameters(
 void MaterialStaticState::bindObjectParameters(
     core::dx::d3d12::CommandList& target_command_list,
     core::dx::d3d12::ConstantBufferDataMapper& data_mapper
-)
+) const
 {
     auto allocation = m_basic_rendering_services.constantDataStream().allocateAndUpdate(data_mapper);
     m_shader_function->bindRootConstantBuffer(
@@ -157,7 +157,7 @@ void MaterialStaticState::bindObjectParameters(
 void MaterialStaticState::bindSceneParameters(
     core::dx::d3d12::CommandList& target_command_list, 
     core::dx::d3d12::ConstantBufferDataMapper& data_mapper
-)
+) const
 {
     auto allocation = m_basic_rendering_services.constantDataStream().allocateAndUpdate(data_mapper);
     m_shader_function->bindRootConstantBuffer(
@@ -259,11 +259,6 @@ void Material::setEmissiveTexture(Texture* p_texture)
     {
         m_emissive_texture_binding_id = binding_result.binding_register;
     }
-}
-
-void Material::bindMaterialConstants(core::dx::d3d12::CommandList& target_command_list)
-{
-    m_material_static_state.bindMaterialParameters(target_command_list, m_material_parameters_cb_data_mapper);
 }
 
 #pragma endregion

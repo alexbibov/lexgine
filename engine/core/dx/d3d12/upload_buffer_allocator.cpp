@@ -89,7 +89,7 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
     assert(size_in_bytes != 0);
 
     std::lock_guard<std::mutex> lock{ m_access_semaphore };
-	size_in_bytes = misc::align(size_in_bytes, 256);
+    size_in_bytes = misc::align(size_in_bytes, 256);
     
     // try to allocate space in unpartitioned part of the buffer
     if (m_unpartitioned_chunk_size >= size_in_bytes)
@@ -97,7 +97,7 @@ UploadDataAllocator::address_type UploadDataAllocator::allocate(size_t size_in_b
         uint32_t new_allocation_start = m_buffer_size - m_unpartitioned_chunk_size;
         uint32_t new_allocation_end = static_cast<uint32_t>(new_allocation_start + size_in_bytes);
         assert(new_allocation_end - new_allocation_start <= m_unpartitioned_chunk_size);
-		assert(new_allocation_end <= m_buffer_size);
+        assert(new_allocation_end <= m_buffer_size);
         memory_block_type& new_memory_block = allocateNewMemoryBlock(new_allocation_start, new_allocation_end);
         m_unpartitioned_chunk_size -= (new_allocation_end - new_allocation_start);
         assert(m_unpartitioned_chunk_size <= m_buffer_size);
@@ -154,7 +154,7 @@ Resource const& UploadDataAllocator::getUploadResource() const
 
 UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t size_in_bytes, bool is_blocking_call)
 {
-	uint64_t next_controlling_signal_value = nextValueOfControllingSignal();
+    uint64_t next_controlling_signal_value = nextValueOfControllingSignal();
     if (m_allocation_hint.bucket_iter->empty() || m_allocation_hint.block()->m_controlling_signal_value == next_controlling_signal_value)
     {
         return { nullptr };
@@ -163,8 +163,8 @@ UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t s
     // attempt to allocate space within the "allocation hint" (wrap-around mode)
     size_t space_retrieved{ 0 };
     uint64_t controlling_signal_value{ 0 };
-	size_t begin_of_new_allocation = m_allocation_hint.block()->m_allocation_begin;
-	size_t trailing_end_allocation_addr{ begin_of_new_allocation };
+    size_t begin_of_new_allocation = m_allocation_hint.block()->m_allocation_begin;
+    size_t trailing_end_allocation_addr{ begin_of_new_allocation };
     list_of_allocation_buckets::iterator p{};
     allocation_bucket::iterator q{};
     for (p = m_allocation_hint.bucket_iter; p != m_blocks.end(); ++p) {
@@ -183,7 +183,7 @@ UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t s
                 space_retrieved += (current_end_addr - trailing_end_allocation_addr);
                 trailing_end_allocation_addr = current_end_addr; 
             }
-			controlling_signal_value = (std::max)(controlling_signal_value, memory_block->m_controlling_signal_value);
+            controlling_signal_value = (std::max)(controlling_signal_value, memory_block->m_controlling_signal_value);
         }
 
         if (space_retrieved >= size_in_bytes) {
@@ -274,8 +274,8 @@ UploadDataAllocator::address_type UploadDataAllocator::allocateInternal(size_t s
             m_allocation_hint.block_iter = m_blocks.front().begin();
         }
 
-		assert(reused_memory_block->m_allocation_end - reused_memory_block->m_allocation_begin >= size_in_bytes);
-		assert(reused_memory_block->m_allocation_end <= m_buffer_size);
+        assert(reused_memory_block->m_allocation_end - reused_memory_block->m_allocation_begin >= size_in_bytes);
+        assert(reused_memory_block->m_allocation_end <= m_buffer_size);
         return { &reused_memory_block };
     }
 

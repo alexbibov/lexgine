@@ -17,12 +17,13 @@ core::dx::d3d12::DedicatedUploadDataStreamAllocator createUploadStreamAllocator(
     core::GlobalSettings const& global_settings = *globals.get<core::GlobalSettings>();
     core::dx::d3d12::DxResourceFactory& dx_resource_factory = *globals.get<core::dx::d3d12::DxResourceFactory>();
     core::dx::d3d12::Heap& upload_heap = dx_resource_factory.retrieveUploadHeap(*globals.get<core::dx::d3d12::Device>());
-    auto upload_heap_section = dx_resource_factory.allocateSectionInUploadHeap(
-        upload_heap,
-        cb_stream_section_name,
-        global_settings.getStreamedGeometryDataPartitionSize());
-    core::dx::d3d12::UploadHeapPartition upload_heap_partition{ *upload_heap_section };
-    return core::dx::d3d12::DedicatedUploadDataStreamAllocator{ globals, upload_heap_partition.offset, upload_heap_partition.size };
+    lexgine::core::misc::Optional<lexgine::core::dx::d3d12::UploadHeapPartition> upload_heap_section = 
+        dx_resource_factory.allocateSectionInUploadHeap(
+            upload_heap,
+            cb_stream_section_name,
+            global_settings.getStreamedGeometryDataPartitionSize()
+        );
+    return core::dx::d3d12::DedicatedUploadDataStreamAllocator{ globals, upload_heap_section->offset, upload_heap_section->size };
 }
 
 }
@@ -45,14 +46,14 @@ SceneMeshMemory::SceneMeshMemory(core::Globals& globals, uint64_t size)
 SceneMemoryBufferHandle SceneMeshMemory::addData(void const* p_data, size_t size)
 {
     core::dx::d3d12::ResourceDataUploader::DestinationDescriptor destination_desc{
-            .p_destination_resource = &m_gpu_scene_memory_buffer,
-            .destination_resource_state = core::dx::d3d12::ResourceState::base_values::common
+        .p_destination_resource = &m_gpu_scene_memory_buffer,
+        .destination_resource_state = core::dx::d3d12::ResourceState::base_values::common
     };
     destination_desc.segment.base_offset = m_data_upload_offset;
 
     core::dx::d3d12::ResourceDataUploader::BufferSourceDescriptor source_desc{
-            .p_data = p_data,
-            .buffer_size = size
+        .p_data = p_data,
+        .buffer_size = size
     };
 
     if (!m_resource_data_uploader.addResourceForUpload(destination_desc, source_desc))
