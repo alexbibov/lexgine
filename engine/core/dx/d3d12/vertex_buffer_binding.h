@@ -30,6 +30,7 @@ enum struct IndexDataType { _16_bit, _32_bit };
 class IndexBufferBinding final
 {
 public:
+    IndexBufferBinding() = default;
     IndexBufferBinding(Resource const& source_index_data_resource, uint64_t index_data_offset,
         IndexDataType index_format, uint32_t index_count);
 

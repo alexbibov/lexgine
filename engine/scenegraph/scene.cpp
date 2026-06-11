@@ -799,12 +799,11 @@ bool Scene::loadMeshes(
         {
             tg3_primitive const& mesh_primitive = mesh.primitives[pi];
             Submesh submesh{ *m_scene_memory.scene_memory_buffer };
-            VertexBufferView* vb_view = submesh.getVertexBufferView();
 
             if (mesh_primitive.indices >= 0)
             {
                 SceneMemoryBufferHandle index_buffer{};
-                IndexType index_type{};
+                core::dx::d3d12::IndexDataType index_type{};
 
                 tg3_accessor const& indices_accessor = model.accessors[mesh_primitive.indices];
                 assert(indices_accessor.type == TG3_TYPE_SCALAR);
@@ -816,12 +815,12 @@ bool Scene::loadMeshes(
                 {
                 case TG3_COMPONENT_TYPE_INT:
                 case TG3_COMPONENT_TYPE_UNSIGNED_INT:
-                    index_type = IndexType::_default;
+                    index_type = core::dx::d3d12::IndexDataType::_32_bit;
                     break;
 
                 case TG3_COMPONENT_TYPE_SHORT:
                 case TG3_COMPONENT_TYPE_UNSIGNED_SHORT:
-                    index_type = IndexType::_short;
+                    index_type = core::dx::d3d12::IndexDataType::_16_bit;
                     break;
 
                 default:
@@ -867,7 +866,7 @@ bool Scene::loadMeshes(
                         && current_element_count != invalid_value
                         && current_buffer_stride != invalid_value)
                     {
-                        vb_view->setVertexBuffer(
+                        submesh.setVertexBuffer(
                             static_cast<size_t>(current_vb_slot),
                             vertex_buffers[current_vb_slot],
                             vertex_attributes_for_vb_slot,
@@ -903,7 +902,7 @@ bool Scene::loadMeshes(
                 all_vertex_attributes.push_back(vertex_attribute);
             }
             {
-                vb_view->setVertexBuffer(
+                submesh.setVertexBuffer(
                     static_cast<size_t>(current_vb_slot),
                     vertex_buffers[current_vb_slot],
                     vertex_attributes_for_vb_slot,
