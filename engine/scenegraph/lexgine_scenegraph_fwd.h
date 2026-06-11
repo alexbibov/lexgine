@@ -11,7 +11,6 @@ class Mesh;
 class Node;
 class Light;
 class Camera;
-class VertexBufferView;
 struct SceneUniformBuffer;
 
 }

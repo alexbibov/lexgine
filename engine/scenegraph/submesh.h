@@ -1,8 +1,10 @@
 #ifndef LEXGINE_SCENEGRAPH_SUBMESH_H
 #define LEXGINE_SCENEGRAPH_SUBMESH_H
 
+#include "engine/core/vertex_attributes.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
-#include "vertex_buffer_view.h"
+#include "engine/core/dx/d3d12/vertex_buffer_binding.h"
+#include "scene_mesh_memory.h"
 
 namespace lexgine::scenegraph
 {
@@ -20,29 +22,32 @@ enum class SubmeshTopology
     triangle_fan
 };
 
-enum class IndexType
-{
-    _default,
-    _short
-};
-
 class Submesh final
 {
 public:
     Submesh(SceneMeshMemory const& scene_mesh_memory);
 
-    VertexBufferView* getVertexBufferView() { return m_vb_view.get(); }
+    void setVertexBuffer(
+        size_t input_slot,
+        SceneMemoryBufferHandle const& buffer_handle,
+        core::VertexAttributeSpecificationList const& vertex_attributes,
+        size_t vertex_count,
+        size_t vertex_stride
+    );
+
+    core::dx::d3d12::VertexBufferBinding const& getVertexBufferBinding() const { return m_vb_binding; }
+    core::dx::d3d12::IndexBufferBinding const& getIndexBufferBinding() const { return m_ib_binding; }
+
     size_t getInstanceCount() const { return m_instance_count; }
-    void setIndexBuffer(SceneMemoryBufferHandle const& buffer_handle, IndexType index_data_type);
+    void setIndexBuffer(SceneMemoryBufferHandle const& buffer_handle, core::dx::d3d12::IndexDataType index_data_type);
     void setBaseMaterial(Material* p_material) { m_baseMaterialPtr = p_material; }
     Material* getBaseMaterial() const { return m_baseMaterialPtr; }
-    void draw(core::dx::d3d12::CommandList& recording_command_list) const;
 
 private:
-    std::unique_ptr<VertexBufferView> m_vb_view;
+    SceneMeshMemory const& m_scene_mesh_memory;
+    core::dx::d3d12::VertexBufferBinding m_vb_binding;
+    core::dx::d3d12::IndexBufferBinding m_ib_binding;
     size_t m_instance_count;
-    IndexType m_ib_data_type;
-    SceneMemoryBufferHandle m_ib_view;
     Material* m_baseMaterialPtr{ nullptr };
 };
 
