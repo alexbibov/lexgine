@@ -5,7 +5,6 @@
 #include <glm/glm.hpp>
 #include <engine/core/entity.h>
 #include <engine/core/misc/optional.h>
-#include "class_names.h"
 
 namespace lexgine::conversion
 {
@@ -37,7 +36,7 @@ enum class ImageCompressedDataFormat : uint32_t
 };
 
 
-class ImageLoader : public core::NamedEntity<class_names::ImageLoader>
+class ImageLoader : public core::NamedEntity<ImageLoader>
 {
 public:
     struct Mipmap

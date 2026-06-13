@@ -6,7 +6,6 @@
 #include <unordered_map>
 
 #include "engine/core/lexgine_core_fwd.h"
-#include "engine/core/class_names.h"
 #include "engine/core/dx/d3d12/common.h"
 #include "engine/core/dx/d3d12/resource.h"
 #include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
@@ -71,7 +70,7 @@ struct hash<lexgine::core::dx::dxcompilation::ShaderArgumentInfoKey> {
 namespace lexgine::core::dx::dxcompilation 
 {
 
-class ShaderStage : public NamedEntity<lexgine::core::class_names::ShaderStage> {
+class ShaderStage : public NamedEntity<ShaderStage> {
     friend class ShaderStageAttorney<ShaderFunction>;
 public:
     void build();

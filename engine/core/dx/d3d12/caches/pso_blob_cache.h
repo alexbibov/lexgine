@@ -13,7 +13,6 @@
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/gpu_data_blob_cache_key.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/caches/lexgine_core_dx_d3d12_caches_fwd.h"
@@ -43,7 +42,7 @@ struct ComputePSOHandle
     bool operator==(ComputePSOHandle const& other) const { return p_internal == other.p_internal; }
 };
 
-class PSOBlobCache final : public NamedEntity<class_names::D3D12_PSOBlobCache>
+class PSOBlobCache final : public NamedEntity<PSOBlobCache>
 {
 public:
     struct InternalKey

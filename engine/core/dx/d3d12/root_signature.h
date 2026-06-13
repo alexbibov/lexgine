@@ -12,7 +12,6 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/filter.h"
 #include "engine/core/misc/flags.h"
 #include "engine/core/misc/hash_value.h"
@@ -158,7 +157,7 @@ END_FLAGS_DECLARATION(RootSignatureFlags);
 
 
 //! Wrapper that simplifies procedural creation of root signatures
-class RootSignature final : public NamedEntity<class_names::D3D12_RootSignature>
+class RootSignature final : public NamedEntity<RootSignature>
 {
 public:
     RootSignature() = default;
@@ -209,7 +208,7 @@ private:
     mutable std::unique_ptr<misc::HashValue> m_hash_value;
 };
 
-class CompiledRootSignature final : public NamedEntity<class_names::D3D12_CompiledRootSignature>
+class CompiledRootSignature final : public NamedEntity<CompiledRootSignature>
 {
 public:
     ComPtr<ID3D12RootSignature> native() const { return m_root_signature; }

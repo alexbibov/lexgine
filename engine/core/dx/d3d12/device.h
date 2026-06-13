@@ -10,7 +10,6 @@
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/misc/flags.h"
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
 #include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
 
@@ -340,7 +339,7 @@ struct FeatureGPUVirtualAddressSupport final
  in order to provide convenience APIs for the basic Direc3D12 functionality. All features provided by this
  class can be emulated by calling native() and then using the basic APIs of ID3D12Device
  */
-class Device final : public NamedEntity<class_names::D3D12_Device>
+class Device final : public NamedEntity<Device>
 {
     friend class DeviceAttorney<dxgi::HwAdapter>;
 

@@ -5,7 +5,6 @@
 
 #include <glm/glm.hpp>
 #include <engine/core/entity.h>
-#include "class_names.h"
 
 namespace lexgine::scenegraph {
 
@@ -17,7 +16,7 @@ enum class LightType
     count
 };
 
-class Light : public core::NamedEntity<class_names::Light>
+class Light : public core::NamedEntity<Light>
 {
 public:
     Light(LightType type) : m_type{ type } {}

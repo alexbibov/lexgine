@@ -16,10 +16,8 @@
 #include "engine/core/misc/optional.h"
 #include "engine/core/dx/d3d12/d3d12_tools.h"
 #include "engine/core/dx/d3d12/pipeline_state.h"
-#include "class_names.h"
 #include "scene_mesh_memory.h"
 #include "mesh.h"
-#include "buffer_view.h"
 #include "light.h"
 #include "image.h"
 #include "node.h"
@@ -36,7 +34,7 @@ enum class SceneSource
     glb
 };
 
-class Scene : public core::NamedEntity<class_names::Scene>, public std::enable_shared_from_this<Scene>
+class Scene : public core::NamedEntity<Scene>, public std::enable_shared_from_this<Scene>
 {
 public:
     static std::shared_ptr<Scene> loadScene(
@@ -237,12 +235,16 @@ private:
     std::vector<Material> m_materials;
     std::vector<Camera> m_cameras;
     std::vector<Mesh> m_scene_meshes;
-    std::vector<BufferView> m_memory_views;
+
+    std::unordered_map<core::misc::HashedString, size_t> m_camera_names_lut;
+    std::unordered_map<core::misc::HashedString, size_t> m_light_names_lut;
 
     SceneMemory m_scene_memory;
     MaterialStaticStateCreateInfoSet m_material_static_state_create_infos;
     MaterialStaticStateSet m_material_static_states;
     std::unordered_map<size_t, MaterialAttachment> m_material_attachements;
+
+    std::unique_ptr<core::dx::d3d12::ConstantBufferDataMapper> m_scene_parameters_data_mapper;
 };
 
 }

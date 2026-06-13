@@ -17,7 +17,6 @@
 #include <engine/core/dx/d3d12/resource.h>
 #include <engine/core/dx/d3d12/resource_data_uploader.h>
 #include <engine/core/dx/d3d12/upload_buffer_allocator.h>
-#include <engine/conversion/class_names.h>
 #include <engine/scenegraph/image.h>
 
 #include "lexgine_conversion_fwd.h"
@@ -121,7 +120,7 @@ namespace std
 namespace lexgine::conversion
 {
 
-class TextureConverter : public core::NamedEntity<class_names::TextureConverter>
+class TextureConverter : public core::NamedEntity<TextureConverter>
 {
     friend class TextureConversionTask;
     friend class TextureUploadWork;

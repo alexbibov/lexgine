@@ -1,13 +1,12 @@
 #ifndef LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_H
 #define LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_H
 
-#include "engine/core/class_names.h"
 #include "engine/core/entity.h"
 #include "lexgine_core_dx_d3d12_fwd.h"
 
 namespace lexgine::core::dx::d3d12 {
 
-class ConstantBuffer : public NamedEntity<class_names::D3D12_ConstantBuffer>
+class ConstantBuffer : public NamedEntity<ConstantBuffer>
 {
 public:
     ConstantBuffer(Device const& device, uint64_t size, 

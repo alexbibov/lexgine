@@ -4,7 +4,6 @@
 #include <atomic>
 #include <unordered_map>
 
-#include "engine/core/class_names.h"
 #include "engine/core/entity.h"
 #include "engine/core/dx/d3d12/hashable_descriptor.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"

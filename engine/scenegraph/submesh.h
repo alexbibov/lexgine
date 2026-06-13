@@ -1,10 +1,11 @@
 #ifndef LEXGINE_SCENEGRAPH_SUBMESH_H
 #define LEXGINE_SCENEGRAPH_SUBMESH_H
 
+#include "engine/core/entity.h"
 #include "engine/core/vertex_attributes.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/vertex_buffer_binding.h"
-#include "scene_mesh_memory.h"
+#include "engine/scenegraph/scene_mesh_memory.h"
 
 namespace lexgine::scenegraph
 {
@@ -22,7 +23,7 @@ enum class SubmeshTopology
     triangle_fan
 };
 
-class Submesh final
+class Submesh final : public core::NamedEntity<Submesh>
 {
 public:
     Submesh(SceneMeshMemory const& scene_mesh_memory);

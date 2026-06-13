@@ -5,7 +5,6 @@
 #include <wrl.h>
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/dx/d3d12/interface.h"
 
 
@@ -19,7 +18,7 @@ namespace lexgine::core::dx::d3d12 {
  LEXGINE_D3D12DEBUG switch off. DebugInterface::retrieve() on the other hand DOES instantiate the object even
  when LEXGINE_D3D12DEBUG is off, but all the APIs provided on the instance level do nothing
 */
-class DebugInterface final : public NamedEntity<class_names::D3D12_DebugInterface>
+class DebugInterface final : public NamedEntity<DebugInterface>
 {
 public:
     static DebugInterface const* create(GpuBasedValidationSettings const& gpu_based_validation_settings);    //! creates debug interface for Direct3D 12

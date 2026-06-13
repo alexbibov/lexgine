@@ -42,7 +42,7 @@ struct SwapChainDescriptor
     uint32_t back_buffer_count;
 };
 
-class SwapChain final : public core::NamedEntity<lexgine::core::class_names::SwapChain>
+class SwapChain final : public core::NamedEntity<SwapChain>
 {
     friend class SwapChainAttorney<HwAdapter>;
 

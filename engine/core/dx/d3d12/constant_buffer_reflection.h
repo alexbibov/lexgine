@@ -4,13 +4,12 @@
 #include <map>
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/misc/hashed_string.h"
 
 namespace lexgine::core::dx::d3d12 {
 
 //! High-level API for constant buffer usage. This API is tailored for Direct3D 12
-class ConstantBufferReflection final : public NamedEntity<class_names::D3D12_ConstantBufferReflection>
+class ConstantBufferReflection final : public NamedEntity<ConstantBufferReflection>
 {
 public:
     enum class ReflectionEntryBaseType : int

@@ -8,14 +8,13 @@
 #include <engine/core/entity.h>
 #include <engine/conversion/lexgine_conversion_fwd.h>
 #include <engine/conversion/image_loader.h>
-#include <engine/scenegraph/class_names.h>
 
 
 namespace lexgine::scenegraph
 {
 
 
-class Image final : public core::NamedEntity<class_names::Image>
+class Image final : public core::NamedEntity<Image>
 {
 public:
     Image(std::filesystem::path const& uri, conversion::ImageLoaderPool const& image_loader_pool);

@@ -14,8 +14,8 @@ public:
     static long const unknown_line_number = -1;
 
 public:
-    template<char const* ThrowingEntityName>
-    Exception(NamedEntity<ThrowingEntityName> const& throwing_entity,
+    template<typename ThrowingEntity>
+    Exception(NamedEntity<ThrowingEntity> const& throwing_entity,
         std::string const& description = "unknown exception",
         std::string const& module_name = "<unknown_module>",
         std::string const& function_name = "<unknown_function>",

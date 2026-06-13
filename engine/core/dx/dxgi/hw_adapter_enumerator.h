@@ -26,7 +26,7 @@ template<typename T> class HwAdapterAttorney;
 class HwAdapterEnumerator;
 
 //! Tiny wrapper over DXGI adapter interface
-class HwAdapter final : public NamedEntity<class_names::DXGI_HwAdapter>
+class HwAdapter final : public NamedEntity<HwAdapter>
 {
     friend class HwAdapterAttorney<HwAdapterEnumerator>;
 
@@ -143,7 +143,7 @@ private:
 
 
 //! Implements enumeration of hardware adapters supporting D3D12
-class HwAdapterEnumerator final : public NamedEntity<class_names::DXGI_HwAdapterEnumerator>
+class HwAdapterEnumerator final : public NamedEntity<HwAdapterEnumerator>
 {
 public:
     using adapter_list_type = std::vector<std::unique_ptr<HwAdapter>>;

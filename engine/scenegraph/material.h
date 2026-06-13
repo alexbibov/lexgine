@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 
+#include <engine/core/entity.h>
 #include <engine/core/math/vector_types.h>
 #include <engine/core/dx/dxcompilation/shader_function.h>
 #include <engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h>
@@ -19,7 +20,6 @@
 #include <engine/conversion/lexgine_conversion_fwd.h>
 
 #include "lexgine_scenegraph_fwd.h"
-#include "engine/scenegraph/class_names.h"
 #include "image.h"
 
 namespace lexgine::scenegraph {
@@ -68,7 +68,7 @@ struct MaterialShaderDesc
     std::string scene_parameters_uniform_buffer_name;
 };
 
-class MaterialStaticState
+class MaterialStaticState : public core::NamedEntity<MaterialStaticState>
 {
 public:
     constexpr static uint32_t c_reserved_srv_space_id_for_bindless_resources = 50;
@@ -122,7 +122,7 @@ private:
 };
 
 // TODO: decouple shader function, descriptor allocation and PSO from Material
-class Material : public core::NamedEntity<class_names::Material>
+class Material : public core::NamedEntity<Material>
 {
 public:
     static const char* const c_material_parameters_uniform_buffer_name;

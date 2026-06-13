@@ -1,7 +1,6 @@
 #include <algorithm>
 #include "utility.h"
 #include "engine/core/exception.h"
-#include "engine/core/class_names.h"
 #include "engine/core/math/vector_types.h"
 #include "engine/core/math/matrix_types.h"
 
@@ -34,12 +33,13 @@ Matrix4f createProjectionMatrix(
 }
 
 Matrix4f createOrthogonalProjectionMatrix(
-    float position_x, 
+    float position_x,
     float position_y,
     float width,
-    float height, 
+    float height,
     float near_cutoff_distance,
-    float far_cutoff_distance
+    float far_cutoff_distance,
+    bool invert_depth
 )
 {
     float l{ position_x }, r{ position_x + width };
@@ -49,7 +49,9 @@ Matrix4f createOrthogonalProjectionMatrix(
     Vector4f row1{ 0.f, 2.f / (t - b), 0.f, (b + t) / (b - t) };
     Vector4f row3{ 0.f, 0.f, 0.f, 1.f };
     float Q{ 1.f / (f - n) };
-    Vector4f row2{ 0.f, 0.f, Q, f * Q };
+    Vector4f row2 = invert_depth
+        ? Vector4f{ 0.f, 0.f, Q, f * Q }
+        : Vector4f{ 0.f, 0.f, -Q, -n * Q };
     return Matrix4f{ row0, row1, row2, row3 }.transpose();
 }
 

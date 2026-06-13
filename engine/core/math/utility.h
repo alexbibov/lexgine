@@ -17,12 +17,13 @@ Matrix4f createProjectionMatrix(
 );
 
 Matrix4f createOrthogonalProjectionMatrix(
-    float position_x, 
+    float position_x,
     float position_y,
-    float widht, 
-    float height, 
-    float near_cutoff_distance = 1e-3f, 
-    float far_cutoff_distance = 1e4f
+    float widht,
+    float height,
+    float near_cutoff_distance = 1e-3f,
+    float far_cutoff_distance = 1e4f,
+    bool invert_depth = true
 );
 
 }

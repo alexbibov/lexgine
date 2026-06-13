@@ -22,7 +22,7 @@ enum class ResourceUploadPolicy
 };
 
 //! Helper: implements uploading of placed subresources to the GPU-side
-class ResourceDataUploader : public NamedEntity<class_names::D3D12_ResourceDataUploader>
+class ResourceDataUploader : public NamedEntity<ResourceDataUploader>
 {
 public:
     //! Structure that describes destination of the data being uploaded

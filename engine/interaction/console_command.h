@@ -10,7 +10,6 @@
 #include <functional>
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "console_token_autocomplete.h"
 
 namespace lexgine::interaction::console
@@ -69,7 +68,7 @@ struct CommandExecutionSchema
 	ArgMap args;
 };
 
-class CommandRegistry : public core::NamedEntity<core::class_names::ConsoleCommandRegistry>
+class CommandRegistry : public core::NamedEntity<CommandRegistry>
 {
 public:
 	CommandRegistry();
