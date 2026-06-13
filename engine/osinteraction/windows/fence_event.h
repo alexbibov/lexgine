@@ -6,7 +6,6 @@
 #include <windows.h>
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/misc/optional.h"
 
 namespace lexgine::osinteraction::windows {
@@ -14,7 +13,7 @@ namespace lexgine::osinteraction::windows {
 /*! Thin wrapper over Windows system event. The event maintained by the object grants all possible access rights.
   NOTE: this event is not secured by security descriptor and thus will not be inherited by children processes
 */
-class FenceEvent final : public core::NamedEntity<core::class_names::OSWindows_FenceEvent>
+class FenceEvent final : public core::NamedEntity<FenceEvent>
 {
 public:
     FenceEvent(bool is_reset_manually = true);

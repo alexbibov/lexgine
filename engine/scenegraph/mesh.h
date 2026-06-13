@@ -10,7 +10,7 @@
 
 namespace lexgine::scenegraph
 {
-class Mesh final
+class Mesh final : public core::NamedEntity<Mesh>
 {   
 public:
     Mesh(std::string const& name)
@@ -32,7 +32,6 @@ private:
     std::vector<Submesh> m_submeshes;
     std::string m_name;
     std::vector<double> m_morph_weights;
-    
 };
 
 }

@@ -17,7 +17,6 @@
 #include "engine/core/math/rectangle.h"
 #include "engine/core/misc/flags.h"
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 
 #include "engine/osinteraction/listener.h"
 
@@ -25,7 +24,7 @@ namespace lexgine::osinteraction::windows {
 
 
 
-class LEXGINE_CPP_API Window final : public core::NamedEntity<core::class_names::OSWindows_Window>
+class LEXGINE_CPP_API Window final : public core::NamedEntity<Window>
 {
 public:
     LEXGINE_CPP_API BEGIN_FLAGS_DECLARATION(WindowStyle)    //! Window style flags

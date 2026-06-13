@@ -9,7 +9,6 @@
 #include "lexgine_core_dx_d3d12_fwd.h"
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/misc/flags.h"
 
 
@@ -44,7 +43,7 @@ END_FLAGS_DECLARATION(CommandQueueFlags);
 
 
 //! Thin wrapper over Direct3D 12 command queue
-class CommandQueue final : public NamedEntity<class_names::D3D12_CommandQueue>
+class CommandQueue final : public NamedEntity<CommandQueue>
 {
     friend class CommandQueueAttorney<Device>;
 

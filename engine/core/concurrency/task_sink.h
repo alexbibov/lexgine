@@ -2,14 +2,13 @@
 #define LEXGINE_CORE_CONCURRENCY_TASK_SINK_H
 
 #include "task_graph.h"
-#include "engine/core/class_names.h"
 
 #include <vector>
 
 namespace lexgine::core::concurrency {
 
 //! Implements task scheduling based on provided task graph
-class TaskSink final : public NamedEntity<class_names::TaskSink>
+class TaskSink final : public NamedEntity<TaskSink>
 {
 public:
     TaskSink(

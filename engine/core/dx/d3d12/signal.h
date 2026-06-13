@@ -3,7 +3,6 @@
 
 #include "fence.h"
 #include "lexgine_core_dx_d3d12_fwd.h"
-#include "engine/core/class_names.h"
 #include "engine/core/entity.h"
 #include "engine/osinteraction/windows/fence_event.h"
 #include "engine/core/misc/optional.h"

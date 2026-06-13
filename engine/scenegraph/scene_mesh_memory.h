@@ -6,6 +6,7 @@
 #include <queue>
 
 #include "engine/core/globals.h"
+#include "engine/core/entity.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/upload_buffer_allocator.h"
 #include "engine/core/dx/d3d12/resource_data_uploader.h"
@@ -19,7 +20,7 @@ struct SceneMemoryBufferHandle
     size_t size;
 };
 
-class SceneMeshMemory
+class SceneMeshMemory : public core::NamedEntity<SceneMeshMemory>
 {
 public:
     SceneMeshMemory(core::Globals& globals, uint64_t size);

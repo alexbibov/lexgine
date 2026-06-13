@@ -8,7 +8,6 @@
 #include "command_queue.h"
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 
 #include "engine/osinteraction/windows/lexgine_osinteraction_windows_fwd.h"
 
@@ -28,7 +27,7 @@ enum class FenceSharing
 
 
 //! Thin wrapper over Direct3D 12 fence
-class Fence final : public NamedEntity<class_names::D3D12_Fence>
+class Fence final : public NamedEntity<Fence>
 {
     friend class FenceAttorney<Device>;
     friend class FenceAttorney<CommandQueue>;

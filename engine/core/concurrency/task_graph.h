@@ -2,7 +2,6 @@
 #define LEXGINE_CORE_CONCURRENCY_TASK_GRAPH
 
 #include "task_graph_node.h"
-#include "engine/core/class_names.h"
 #include "engine/core/concurrency/lexgine_core_concurrency_fwd.h"
 
 #include <iterator>
@@ -11,7 +10,7 @@ namespace lexgine::core::concurrency {
 
 template<typename T> class TaskGraphAttorney;
 
-class TaskGraph : public NamedEntity<class_names::TaskGraph>
+class TaskGraph : public NamedEntity<TaskGraph>
 {
     friend class TaskGraphAttorney<TaskSink>;
 

@@ -37,7 +37,7 @@ TaskGraph::TaskGraph(std::unordered_set<TaskGraphRootNode const*> const& root_no
 }
 
 TaskGraph::TaskGraph(TaskGraph&& other) :
-    NamedEntity<class_names::TaskGraph>{ std::move(other) },
+    NamedEntity<TaskGraph>{ std::move(other) },
     m_num_workers{ other.m_num_workers },
     m_root_nodes{ std::move(other.m_root_nodes) },
     m_compiled_task_graph{ std::move(other.m_compiled_task_graph) },
@@ -51,7 +51,7 @@ TaskGraph& TaskGraph::operator=(TaskGraph&& other)
 {
     if (this == &other) return *this;
 
-    NamedEntity<class_names::TaskGraph>::operator=(std::move(other));
+    NamedEntity<TaskGraph>::operator=(std::move(other));
 
     m_num_workers = other.m_num_workers;
     m_root_nodes = std::move(other.m_root_nodes);

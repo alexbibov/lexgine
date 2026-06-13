@@ -2,7 +2,6 @@
 #define LEXGINE_CORE_DX_D3D12_DESCRIPTOR_HEAP_H
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 
 #include "lexgine_core_dx_d3d12_fwd.h"
 
@@ -32,7 +31,7 @@ struct DescriptorTable final {
     DescriptorHeap* p_heap;          // pointer to owning heap
 };
 
-class DescriptorHeap final : public NamedEntity<class_names::D3D12_DescriptorHeap>
+class DescriptorHeap final : public NamedEntity<DescriptorHeap>
 {
     friend class Device;    // only devices are allowed to create the heaps
 

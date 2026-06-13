@@ -2,11 +2,13 @@
 
 #include <thread>
 #include <string>
+#include <string_view>
 #include <atomic>
+#include <concepts>
 #include <guiddef.h>
 
 #include "engine/core/error_behavioral.h"
-#include "engine/core/class_names.h"
+#include "engine/core/misc/type_name.h"
 
 namespace lexgine::core {
 
@@ -74,24 +76,32 @@ private:
 };
 
 
-//! Template version of the Entity class that keeps track of user-friendly string name of inherited class.
-//! Note that name should point to a C-string with external linkage
-template<char const* name>
+//! Detects whether a named entity provides an explicit human-readable name via a
+//! 'static constexpr std::string_view c_meta_name' member. When absent, the fully-qualified
+//! type name is derived automatically at compile time.
+template<typename T>
+concept HasCustomMetaName = requires { { T::c_meta_name } -> std::convertible_to<std::string_view>; };
+
+//! Template version of the Entity class that keeps track of the user-friendly string name of the
+//! inherited class. The name is derived automatically from the derived type at compile time, so no
+//! manual registration is required (CRTP: derive as 'class Foo : public NamedEntity<Foo>').
+//! A class may override the derived name by declaring 'static constexpr std::string_view c_meta_name'.
+template<typename Derived>
 class NamedEntity : public Entity
 {
 public:
     //! adds information regarding construction of the named entity into the log
     NamedEntity()
     {
-        logger().out(name + std::string{ " created, id=" } + getId().toString(), lexgine::core::misc::LogMessageType::trace);
+        logger().out(std::string{ getMetaName() } + " created, id=" + getId().toString(), lexgine::core::misc::LogMessageType::trace);
     }
 
     //! adds information regarding copy-construction of the named entity into the log
     NamedEntity(NamedEntity const& other) :
         Entity{ other }
     {
-        logger().out(name + std::string{ " copied from object with id=" } + other.getId().toString()
-            + " to new " + name + ". New id=" + getId().toString(),
+        logger().out(std::string{ getMetaName() } + " copied from object with id=" + other.getId().toString()
+            + " to new " + std::string{ getMetaName() } + ". New id=" + getId().toString(),
             lexgine::core::misc::LogMessageType::trace);
     }
 
@@ -99,8 +109,8 @@ public:
     NamedEntity(NamedEntity&& other) :
         Entity{ std::move(other) }
     {
-        logger().out(name + std::string{ " moved from object with id=" } + other.getId().toString()
-            + " to new " + name + ". New id=" + getId().toString(),
+        logger().out(std::string{ getMetaName() } + " moved from object with id=" + other.getId().toString()
+            + " to new " + std::string{ getMetaName() } + ". New id=" + getId().toString(),
             lexgine::core::misc::LogMessageType::trace);
     }
 
@@ -110,16 +120,22 @@ public:
     //! adds information regarding destruction of the named entity into the log
     virtual ~NamedEntity()
     {
-        logger().out(name + std::string{ " with id=" } + getId().toString() + " destroyed", lexgine::core::misc::LogMessageType::trace);
+        logger().out(std::string{ getMetaName() } + " with id=" + getId().toString() + " destroyed", lexgine::core::misc::LogMessageType::trace);
     }
 
-    //! returns user-friendly string of the named entity
-    static constexpr char const* getMetaName() { return name; }
+    //! returns user-friendly string of the named entity, derived automatically from the type unless overridden
+    static constexpr std::string_view getMetaName()
+    {
+        if constexpr (HasCustomMetaName<Derived>)
+            return Derived::c_meta_name;
+        else
+            return lexgine::core::misc::typeName<Derived>();
+    }
 };
 
 
 //! Dummy named entity. May be used when exact named entity is not accessible (for example, when throwing exceptions by objects that are not descendants of NamedEntity<>)
-class Dummy : public NamedEntity<class_names::Dummy> {};
+class Dummy : public NamedEntity<Dummy> {};
 
 
 }

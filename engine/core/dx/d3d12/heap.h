@@ -5,7 +5,6 @@
 #include <wrl.h>
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/misc/flags.h"
 
 
@@ -52,7 +51,7 @@ enum class GPUMemoryPool
 };
 
 //! Wrapper over Direct3D heap
-class Heap : public NamedEntity<class_names::D3D12_Heap>
+class Heap : public NamedEntity<Heap>
 {
     friend class Device;    // only devices are allowed to create heaps
 

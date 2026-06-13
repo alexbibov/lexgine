@@ -4,13 +4,12 @@
 #include <memory>
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "upload_buffer_allocator.h"
 
 namespace lexgine::core::dx::d3d12 {
 
-class ConstantBufferStream : public NamedEntity<class_names::ConstantBufferStream>
+class ConstantBufferStream : public NamedEntity<ConstantBufferStream>
 {
 public:
     ConstantBufferStream(Globals& globals);

@@ -8,7 +8,6 @@
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/ui/lexgine_core_ui_fwd.h"
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/rendering_configuration.h"
 #include "engine/core/concurrency/task_sink.h"
 #include "engine/core/concurrency/schedulable_task.h"
@@ -35,7 +34,7 @@ public:
 };
 
 
-class RenderingTasks : public NamedEntity<class_names::D3D12_RenderingTasks>
+class RenderingTasks : public NamedEntity<RenderingTasks>
 {
 public:
     class GPURenderingServices;

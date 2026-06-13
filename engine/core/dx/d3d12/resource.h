@@ -4,7 +4,6 @@
 #include <variant>
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/multisampling.h"
 #include "engine/core/misc/flags.h"
 #include "engine/core/misc/optional.h"
@@ -139,7 +138,7 @@ struct ResourceOptimizedClearValue final
 };
 
 
-class Resource : public NamedEntity<class_names::D3D12_Resource>
+class Resource : public NamedEntity<Resource>
 {
 public:
     Resource(ComPtr<ID3D12Resource> const& native = nullptr);

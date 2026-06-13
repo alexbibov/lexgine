@@ -2,7 +2,6 @@
 #define LEXGINE_SCENEGRAPH_SAMPLER_H
 
 #include <engine/core/entity.h>
-#include <engine/scenegraph/class_names.h>
 
 namespace lexgine::scenegraph
 {
@@ -28,7 +27,7 @@ enum class WrapMode {
     clamp_to_edge
 };
 
-struct Sampler final : core::NamedEntity<class_names::Sampler>
+struct Sampler final : core::NamedEntity<Sampler>
 {
     MinificationFilter min_filter;
     MagnificationFilter mag_filter;

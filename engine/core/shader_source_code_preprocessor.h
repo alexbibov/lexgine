@@ -4,14 +4,13 @@
 #include <filesystem>
 
 #include "entity.h"
-#include "class_names.h"
 
 namespace lexgine {namespace core {
 
 /*! Implements preprocessing of shader source code, which does not depend on the shading language
  This API is OS-agnostic
 */
-class ShaderSourceCodePreprocessor : public NamedEntity<class_names::ShaderSourceCodePreprocessor>
+class ShaderSourceCodePreprocessor : public NamedEntity<ShaderSourceCodePreprocessor>
 {
 public:
 

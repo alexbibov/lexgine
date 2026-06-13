@@ -7,7 +7,6 @@
 #include <variant>
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/primitive_topology.h"
 #include "engine/core/lexgine_core_fwd.h"
 
@@ -69,7 +68,7 @@ enum class BundleInvocationContext
 };
 
 
-class CommandList : public NamedEntity<class_names::D3D12_CommandList>
+class CommandList : public NamedEntity<CommandList>
 {
     friend class CommandListAttorney<Device>;
     friend class CommandListAttorney<CommandQueue>;

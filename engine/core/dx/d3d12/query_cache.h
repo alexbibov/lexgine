@@ -10,7 +10,6 @@
 #include <d3d12.h>
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/misc/optional.h"
 
@@ -50,7 +49,7 @@ struct QueryHandle final
 
 template<typename T> class QueryCacheAttorney;
 
-class QueryCache final : public NamedEntity<class_names::D3D12_QueryCache>
+class QueryCache final : public NamedEntity<QueryCache>
 {
     friend class QueryCacheAttorney<CommandList>;
 public:

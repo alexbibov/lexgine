@@ -4,7 +4,6 @@
 #include <array>
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/concurrency/lexgine_core_concurrency_fwd.h"
 
@@ -22,7 +21,7 @@ enum class TaskType
 
 template<typename T> class AbstractTaskAttorney;
 
-class AbstractTask : public NamedEntity<class_names::Task>
+class AbstractTask : public NamedEntity<AbstractTask>
 {
     friend class AbstractTaskAttorney<TaskGraph>;
 

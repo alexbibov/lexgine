@@ -15,7 +15,7 @@ namespace lexgine::core::dx::d3d12 {
 
 template<typename T> class BasicRenderingServicesAttorney;
 
-class BasicRenderingServices final : public NamedEntity<class_names::BasicRenderingServices>, public ProvidesGlobals
+class BasicRenderingServices final : public NamedEntity<BasicRenderingServices>, public ProvidesGlobals
 {
     friend class BasicRenderingServicesAttorney<RenderingTasks>;
 

@@ -8,7 +8,6 @@
 
 #include "pipeline_state.h"
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "caches/hlsl_shader_blob_cache.h"
 #include "caches/lexgine_core_dx_d3d12_caches_fwd.h"
 #include "caches/pso_blob_cache.h"
@@ -21,7 +20,7 @@ namespace lexgine::core::dx::d3d12 {
  corresponding GraphicsPSODescriptor and ComputePSODescriptor structures. Note that this
  class is NOT thread safe
 */
-class D3D12PSOXMLParser : public NamedEntity<class_names::D3D12_PSOXMLParser>
+class D3D12PSOXMLParser : public NamedEntity<D3D12PSOXMLParser>
 {
 public:
 

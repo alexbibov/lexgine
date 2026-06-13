@@ -6,7 +6,6 @@
 
 #include <engine/core/misc/hashed_string.h>
 #include <engine/core/entity.h>
-#include <engine/core/class_names.h>
 #include <engine/core/engine_api.h>
 #include <engine/core/lexgine_core_fwd.h>
 #include <engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h>
@@ -15,7 +14,7 @@
 
 namespace lexgine::core {
 
-class Globals : NamedEntity<class_names::Globals>
+class Globals : NamedEntity<Globals>
 {
 private:
 

@@ -18,7 +18,6 @@
 #include "lexgine_core_fwd.h"
 #include "misc/datetime.h"
 #include "entity.h"
-#include "class_names.h"
 
 namespace lexgine::core
 {
@@ -255,7 +254,7 @@ enum class StreamedCacheCompressionLevel : int
 
 //! Class implementing main functionality for streamed data cache. Use StreamedCacheConcurrencySentinel for synchronized access.
 template<StreamedCacheCompatibleKey Key, size_t cluster_size = 4096U>
-class StreamedCache : public NamedEntity<class_names::StreamedCache>
+class StreamedCache : public NamedEntity<StreamedCache<Key, cluster_size>>
 {
 public:
     using key_type = Key;
@@ -1622,19 +1621,19 @@ inline std::pair<size_t, bool> StreamedCache<Key, cluster_size>::serialize_entry
                 switch (rv)
                 {
                 case Z_MEM_ERROR:
-                    misc::Log::retrieve()->out("Not enough memory to initialize zlib. The streamed cache \"" + getStringName()
+                    misc::Log::retrieve()->out("Not enough memory to initialize zlib. The streamed cache \"" + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName()
                         + "\" will default to uncompressed state", misc::LogMessageType::exclamation);
                     return std::make_pair(0U, false);
 
                 case Z_STREAM_ERROR:
                     misc::Log::retrieve()->out("zlib was provided with incorrect compression level of \"" +
-                        std::to_string(static_cast<int>(m_compression_level)) + "\". The streamed cache \"" + getStringName()
+                        std::to_string(static_cast<int>(m_compression_level)) + "\". The streamed cache \"" + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName()
                         + "\" will default to uncompressed state", misc::LogMessageType::exclamation);
                     return std::make_pair(0U, false);
 
                 case Z_VERSION_ERROR:
                     misc::Log::retrieve()->out("zlib binary version differs from the version assumed by the caller."
-                        " The streamed cache \"" + getStringName()
+                        " The streamed cache \"" + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName()
                         + "\" will default to uncompressed state", misc::LogMessageType::exclamation);
                     return std::make_pair(0U, false);
                 }
@@ -1657,7 +1656,7 @@ inline std::pair<size_t, bool> StreamedCache<Key, cluster_size>::serialize_entry
             if (deflate(&deflation_stream, Z_FINISH) != Z_STREAM_END)
             {
                 misc::Log::retrieve()->out("Unable to compress entry record during serialization to streamed cache \""
-                    + getStringName() + "\" (zlib deflate() error", misc::LogMessageType::error);
+                    + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\" (zlib deflate() error", misc::LogMessageType::error);
                 return std::make_pair(0U, false);
             }
 
@@ -1876,7 +1875,7 @@ inline void StreamedCache<Key, cluster_size>::load_service_data()
         m_cache_stream.read(magic_bytes, sizeof(s_magic_bytes));
         if (memcmp(magic_bytes, s_magic_bytes, sizeof(s_magic_bytes)))
         {
-            misc::Log::retrieve()->out("Streamed cache \"" + getStringName() + "\" "
+            misc::Log::retrieve()->out("Streamed cache \"" + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\" "
                 "cannot be loaded as it has invalid format or has been corrupted",
                 misc::LogMessageType::error);
             m_is_good = false;
@@ -1894,7 +1893,7 @@ inline void StreamedCache<Key, cluster_size>::load_service_data()
 
         if (assumed_major < loaded_major || assumed_major == loaded_major && assumed_minor < loaded_minor)
         {
-            misc::Log::retrieve()->out("Streamed cache \"" + getStringName() + "\" cannot be loaded as it's version is "
+            misc::Log::retrieve()->out("Streamed cache \"" + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\" cannot be loaded as it's version is "
                 + std::to_string(loaded_major) + "." + std::to_string(loaded_minor) + " whereas the highest version supported by "
                 "the parser is " + std::to_string(assumed_major) + "." + std::to_string(assumed_minor), misc::LogMessageType::error);
 
@@ -2220,7 +2219,7 @@ inline bool StreamedCache<Key, cluster_size>::addEntry(entry_type const& entry, 
     {
         if (!force_overwrite && !m_are_overwrites_allowed)
         {
-            misc::Log::retrieve()->out("Unable to serialize entry to stream cache \"" + getStringName() + "\"."
+            misc::Log::retrieve()->out("Unable to serialize entry to stream cache \"" + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\"."
                 "Entry with provided key value \"" + entry.m_key.toString() + "\" already exists", misc::LogMessageType::error);
             return false;
         }
@@ -2230,7 +2229,7 @@ inline bool StreamedCache<Key, cluster_size>::addEntry(entry_type const& entry, 
     std::pair<size_t, bool> rv = serialize_entry(entry, overwrite_offset);
     if (!rv.second)
     {
-        misc::Log::retrieve()->out("Error while serializing entry into stream cache \"" + getStringName() + "\"", misc::LogMessageType::error);
+        misc::Log::retrieve()->out("Error while serializing entry into stream cache \"" + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\"", misc::LogMessageType::error);
         return false;
     }
     if (!overwrite_offset)
@@ -2302,7 +2301,7 @@ inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const
     {
         misc::Log::retrieve()->out("Unable to retrieve entry with key \""
             + entry_key.toString() + "\" from streamed cache \""
-            + getStringName() + "\".", misc::LogMessageType::error);
+            + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\".", misc::LogMessageType::error);
         return SharedDataChunk{};
     }
 
@@ -2324,14 +2323,14 @@ inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const
             case Z_MEM_ERROR:
                 misc::Log::retrieve()->out("Unable to inflate entry with key \""
                     + entry_key.toString() + "\" from streamed cache \""
-                    + getStringName() + "\"; zlib is out of memory",
+                    + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\"; zlib is out of memory",
                     misc::LogMessageType::error);
                 break;
 
             case Z_VERSION_ERROR:
                 misc::Log::retrieve()->out("Unable to inflate entry with key \""
                     + entry_key.toString() + "\" from streamed cache \""
-                    + getStringName() + "\"; zlib version assumed by the streamed cache differs from "
+                    + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\"; zlib version assumed by the streamed cache differs from "
                     "the source actually linked to the executable",
                     misc::LogMessageType::error);
                 break;
@@ -2339,7 +2338,7 @@ inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const
             case Z_STREAM_ERROR:
                 misc::Log::retrieve()->out("Unable to inflate entry with key \""
                     + entry_key.toString() + "\" from streamed cache \""
-                    + getStringName() + "\"; zlib's inflateInit() function was supplied with invalid parameters",
+                    + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\"; zlib's inflateInit() function was supplied with invalid parameters",
                     misc::LogMessageType::error);
                 break;
             }
@@ -2354,7 +2353,7 @@ inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const
         {
             misc::Log::retrieve()->out("Unable to inflate entry with key \""
                 + entry_key.toString() + "\" from streamed cache \""
-                + getStringName() + "\"", misc::LogMessageType::error);
+                + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\"", misc::LogMessageType::error);
             return SharedDataChunk{};
         }
 
@@ -2362,7 +2361,7 @@ inline SharedDataChunk StreamedCache<Key, cluster_size>::retrieveEntry(Key const
         {
             misc::Log::retrieve()->out("Unable to finalize zlib stream after inflating entry with key \""
                 + entry_key.toString() + "\" from streamed cache \""
-                + getStringName() + "\"", misc::LogMessageType::error);
+                + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\"", misc::LogMessageType::error);
             return SharedDataChunk{};
         }
 
@@ -2381,7 +2380,7 @@ inline misc::DateTime StreamedCache<Key, cluster_size>::getEntryTimestamp(Key co
     if (!entry_base_offset.has_value())
     {
         misc::Log::retrieve()->out("Unable to retrieve time stamp of entry with key \""
-            + entry_key.toString() + "\" from stream cache \"" + getStringName() + "\": "
+            + entry_key.toString() + "\" from stream cache \"" + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\": "
             "requested entry does not exist in the cache", misc::LogMessageType::exclamation);
 
         return misc::DateTime::now();
@@ -2401,7 +2400,7 @@ inline size_t StreamedCache<Key, cluster_size>::getEntrySize(Key const& entry_ke
     if (!entry_base_offset.has_value())
     {
         misc::Log::retrieve()->out("Unable to retrieve uncompressed size of entry with key \""
-            + entry_key.toString() + "\" from stream cache \"" + getStringName() + "\": "
+            + entry_key.toString() + "\" from stream cache \"" + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\": "
             "requested entry cannot be located in the cache", misc::LogMessageType::exclamation);
 
         return static_cast<size_t>(-1);
@@ -2422,7 +2421,7 @@ inline bool StreamedCache<Key, cluster_size>::removeEntry(Key const& entry_key)
     if (!rv.has_value())
     {
         misc::Log::retrieve()->out("Unable to remove entry with key \"" + entry_key.toString() + "\" from streamed cache \""
-            + getStringName() + "\". The entry with requested key is not found in the cache", misc::LogMessageType::error);
+            + NamedEntity<StreamedCache<Key, cluster_size>>::getStringName() + "\". The entry with requested key is not found in the cache", misc::LogMessageType::error);
         return false;
     }
 

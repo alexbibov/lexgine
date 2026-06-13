@@ -664,21 +664,21 @@ bool Scene::loadLights(
                 return false;
             }
 
-            Light lexgineLight{ lightType };
+            Light sceneLight{ lightType };
             if (light.name.data && light.name.len)
-                lexgineLight.setStringName(std::string(light.name.data, light.name.len));
+                sceneLight.setStringName(std::string(light.name.data, light.name.len));
 
             // Color and intensity are always present (defaults: {1,1,1} and 1.0)
-            lexgineLight.setColor(glm::vec3{
+            sceneLight.setColor(glm::vec3{
                 static_cast<float>(light.color[0]),
                 static_cast<float>(light.color[1]),
                 static_cast<float>(light.color[2])
-            });
-            lexgineLight.setIntensity(static_cast<float>(light.intensity));
+                });
+            sceneLight.setIntensity(static_cast<float>(light.intensity));
 
             if (lightType != LightType::point)
             {
-                lexgineLight.setDirection({ 0.f, 0.f, -1.f });
+                sceneLight.setDirection({ 0.f, 0.f, -1.f });
             }
 
             switch (lightType)
@@ -687,19 +687,25 @@ bool Scene::loadLights(
                 break;
             case LightType::spot:
                 // v3 fills outer_cone_angle default (PI/4) at parse time
-                lexgineLight.setInnerConeAngle(static_cast<float>(light.spot.inner_cone_angle));
-                lexgineLight.setOuterConeAngle(static_cast<float>(light.spot.outer_cone_angle));
+                sceneLight.setInnerConeAngle(static_cast<float>(light.spot.inner_cone_angle));
+                sceneLight.setOuterConeAngle(static_cast<float>(light.spot.outer_cone_angle));
                 [[fallthrough]];    // spot lights also support range per KHR_lights_punctual
 
             case LightType::point:
                 // range == 0 means infinite per glTF spec
                 if (light.range > 0.0)
-                    lexgineLight.setRange(static_cast<float>(light.range));
+                    sceneLight.setRange(static_cast<float>(light.range));
                 break;
             }
 
             light_id_in_scene = m_lights.size();
-            m_lights.push_back(lexgineLight);
+            m_light_names_lut.emplace(
+                std::make_pair(
+                    core::misc::HashedString{ sceneLight.getStringName() },
+                    static_cast<size_t>(light_id_in_scene)
+                )
+            );
+            m_lights.push_back(sceneLight);
         }
     }
 
@@ -967,6 +973,12 @@ bool Scene::loadCameras(tg3_model const& model, std::unordered_map<int, int>& ca
         }
 
         camera_id_in_scene = static_cast<int>(m_cameras.size());
+        m_camera_names_lut.emplace(
+            std::make_pair(
+                core::misc::HashedString{ sceneCamera.getStringName() }, 
+                static_cast<size_t>(camera_id_in_scene)
+            )
+        );
         m_cameras.push_back(sceneCamera);
     }
     return true;
@@ -1016,51 +1028,6 @@ Scene::MaterialStaticStateCreateInfoSet::const_iterator
     auto [it, _] = m_material_static_state_create_infos.insert(material_ss_create_info);
     return it;
 }
-
-//size_t Scene::registerMaterial(tg3_material const& gltf_material,
-//    const lexgine::core::VertexAttributeSpecificationList& vertex_attributes)
-//{
-//    m_materials.emplace_back(*m_materials.back());
-//    Material& new_material = m_materials.back();
-//    new_material.setStringName(std::string(gltf_material.name.data, gltf_material.name.len));
-//    new_material.setEmissiveFactor(lexgine::core::math::Vector3f{ gltf_material.emissive_factor[0], gltf_material.emissive_factor[1], gltf_material.emissive_factor[2] });
-//    new_material.setAlphaMode(AlphaMode::opaque);
-//    new_material.setAlphaCutoff(gltf_material.alpha_cutoff);
-//    new_material.setDoubleSided(gltf_material.double_sided != 0);
-//
-//    {
-//        // Metallic-roughness
-//        Material::MetallicRoughness mr{};
-//        mr.base_color_factor = lexgine::core::math::Vector4f{
-//            gltf_material.pbr_metallic_roughness.base_color_factor[0],
-//            gltf_material.pbr_metallic_roughness.base_color_factor[1],
-//            gltf_material.pbr_metallic_roughness.base_color_factor[2],
-//            gltf_material.pbr_metallic_roughness.base_color_factor[3]
-//        };
-//        mr.metallic_factor = gltf_material.pbr_metallic_roughness.metallic_factor;
-//        mr.roughness_factor = gltf_material.pbr_metallic_roughness.roughness_factor;
-//        mr.p_base_color = gltf_material.pbr_metallic_roughness.base_color_texture.index >= 0 ? &m_textures[gltf_material.pbr_metallic_roughness.base_color_texture.index] : nullptr;
-//        mr.p_metallic_roughness = gltf_material.pbr_metallic_roughness.metallic_roughness_texture.index >= 0 ? &m_textures[gltf_material.pbr_metallic_roughness.metallic_roughness_texture.index] : nullptr;
-//        new_material.setMetallicRoughness(mr);
-//    }
-//
-//    if (gltf_material.normal_texture.index >= 0)
-//    {
-//        new_material.setNormalTexture(&m_textures[gltf_material.normal_texture.index]);
-//    }
-//
-//    if (gltf_material.occlusion_texture.index >= 0)
-//    {
-//        new_material.setOcclusionTexture(&m_textures[gltf_material.occlusion_texture.index]);
-//    }
-//
-//    if (gltf_material.emissive_texture.index >= 0)
-//    {
-//        new_material.setEmissiveTexture(&m_textures[gltf_material.emissive_texture.index]);
-//    }
-//
-//    return true;
-//}
 
 #pragma endregion
 

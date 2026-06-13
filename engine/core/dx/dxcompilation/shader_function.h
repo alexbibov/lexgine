@@ -39,7 +39,7 @@ FLAG(ModelUniforms, 1 << static_cast<int>(ShaderFunctionConstantBufferRootIds::i
 FLAG(All, static_cast<int>(SceneUniforms) | static_cast<int>(MaterialUniforms) | static_cast<int>(ModelUniforms))
 END_FLAGS_DECLARATION(ShaderFunctionRootUniformBuffers);
 
-class ShaderFunction : public NamedEntity<class_names::ShaderFunction>, public ProvidesGlobals
+class ShaderFunction : public NamedEntity<ShaderFunction>, public ProvidesGlobals
 {
     friend class ShaderFunctionAttorney<ShaderStage>;
 public:

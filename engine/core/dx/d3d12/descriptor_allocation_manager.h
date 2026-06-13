@@ -18,7 +18,7 @@
 
 namespace lexgine::core::dx::d3d12 {
 
-class DescriptorAllocationManager : public NamedEntity<class_names::D3D12_DescriptorHeapAllocationManager>
+class DescriptorAllocationManager : public NamedEntity<DescriptorAllocationManager>
 {
 public:
     static constexpr size_t INVALID_POINTER = static_cast<size_t>(-1);

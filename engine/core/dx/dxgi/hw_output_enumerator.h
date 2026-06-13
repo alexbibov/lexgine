@@ -9,7 +9,6 @@
 #include "engine/core/math/rectangle.h"
 #include "engine/core/misc/flags.h"
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 
 #include "engine/core/dx/dxgi/common.h"
 
@@ -21,7 +20,7 @@ using namespace Microsoft::WRL;
 
 
 //! Represents hardware output device
-class HwOutput final : public NamedEntity<class_names::DXGI_HwOutput>
+class HwOutput final : public NamedEntity<HwOutput>
 {
     friend class HwOutputEnumerator;    // HwOutput objects can only be created by the corresponding enumerators, which is just logical
 
@@ -145,7 +144,7 @@ private:
 
 
 //! Enumerates physical output devices attached to a certain DXGI adapter
-class HwOutputEnumerator final : public NamedEntity<class_names::DXGI_HwOutputEnumerator>
+class HwOutputEnumerator final : public NamedEntity<HwOutputEnumerator>
 {
     friend class HwAdapter; // output enumerator can only be created by adapter classes, which is logical
 

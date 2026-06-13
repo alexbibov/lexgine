@@ -2,7 +2,6 @@
 #define  LEXGINE_CORE_DX_D3D12_RESOURCE_BARRIER_PACK_H
 
 #include "engine/core/entity.h"
-#include "engine/core/class_names.h"
 #include "lexgine_core_dx_d3d12_fwd.h"
 #include "resource.h"
 

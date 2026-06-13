@@ -11,7 +11,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "engine/core/class_names.h"
 #include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/dx/dxcompilation/common.h"
 #include "engine/core/dx/dxcompilation/lexgine_core_dx_dxcompilation_fwd.h"
@@ -92,7 +91,7 @@ struct HLSLShaderHandle
     bool operator==(HLSLShaderHandle const& other) const { return p_internal == other.p_internal; }
 };
 
-class HLSLShaderBlobCache final : public NamedEntity<class_names::D3D12_HLSLShaderBlobCache>
+class HLSLShaderBlobCache final : public NamedEntity<HLSLShaderBlobCache>
 {
 public:
     struct InternalKey

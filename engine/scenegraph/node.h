@@ -6,11 +6,10 @@
 #include "engine/core/math/matrix_types.h"
 #include "engine/core/math/vector_types.h"
 #include "engine/core/entity.h"
-#include "class_names.h"
 
 namespace lexgine::scenegraph {
 
-class Node : public core::NamedEntity<class_names::Node>
+class Node : public core::NamedEntity<Node>
 {
 public:
     Node();

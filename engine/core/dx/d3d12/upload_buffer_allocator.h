@@ -48,7 +48,7 @@ private:
 };
 
 class UploadDataAllocator : public Allocator<UploadDataBlock>,
-    public NamedEntity<class_names::D3D12_UploadBufferAllocator>
+    public NamedEntity<UploadDataAllocator>
 {
 public:
     using address_type = t_address_type<memory_block_type*>;
