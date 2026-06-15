@@ -32,7 +32,7 @@ MaterialPSOCompilationContext::MaterialPSOCompilationContext(core::VertexAttribu
     std::fill(render_target_formats, render_target_formats + sizeof(render_target_formats) / sizeof(DXGI_FORMAT), DXGI_FORMAT_UNKNOWN);
     render_target_formats[0] = DXGI_FORMAT_R11G11B10_FLOAT; // Albedo (RGB)
     render_target_formats[1] = DXGI_FORMAT_R16G16B16A16_FLOAT; // Normals (RG), metallic (LS-bits) and roughness (MS-bits) of B, A - red component of emission
-    render_target_formats[2] = DXGI_FORMAT_R16G16_FLOAT; // Emission intensity (BA components)
+    render_target_formats[2] = DXGI_FORMAT_R16G16_FLOAT; // Emission intensity (GB components)
 }
 #pragma endregion
 

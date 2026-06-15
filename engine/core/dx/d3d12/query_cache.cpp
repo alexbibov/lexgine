@@ -216,7 +216,7 @@ void QueryCache::initQueryCache()
 
             if (need_reinitialize_query_resolve_buffer)
             {
-                ResourceDescriptor desc = ResourceDescriptor::CreateBuffer(m_per_frame_resolve_buffer_capacity, ResourceFlags::base_values::deny_shader_resource);
+                ResourceDescriptor desc = ResourceDescriptor::createBuffer(m_per_frame_resolve_buffer_capacity, ResourceFlags::base_values::deny_shader_resource);
                 m_query_resolve_buffers[i].reset(new CommittedResource{ m_device, ResourceState::base_values::copy_destination,
                     misc::makeEmptyOptional<ResourceOptimizedClearValue>(), desc, AbstractHeapType::readback,
                     HeapCreationFlags::base_values::allow_all });

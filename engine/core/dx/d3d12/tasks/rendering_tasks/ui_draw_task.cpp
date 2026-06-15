@@ -679,7 +679,7 @@ void UIDrawTask::updateTexture(ImTextureData* p_texture)
             m_device,
             ResourceState::base_values::common,
             misc::makeEmptyOptional<ResourceOptimizedClearValue>(),
-            ResourceDescriptor::CreateTexture2D(p_texture->Width, p_texture->Height, 1, DXGI_FORMAT_R8G8B8A8_UNORM),
+            ResourceDescriptor::createTexture2D(p_texture->Width, p_texture->Height, 1, DXGI_FORMAT_R8G8B8A8_UNORM),
             AbstractHeapType::_default,
             HeapCreationFlags::base_values::allow_all
         );

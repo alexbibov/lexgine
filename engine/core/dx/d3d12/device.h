@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <array>
+#include <vector>
 #include <d3d11_4.h>
 
 #include "common.h"
@@ -30,6 +31,8 @@ using namespace Microsoft::WRL;
 namespace lexgine::core::dx::d3d12 {
 
 template<typename T> class DeviceAttorney;
+
+struct ResourceDescriptor;
 
 
 //! Shader precision modes that can be supported by the graphics hardware
@@ -333,6 +336,23 @@ struct FeatureGPUVirtualAddressSupport final
     uint32_t max_gpu_virtual_address_bits_per_process;
 };
 
+//! Thin wrapper over D3D12 resource alignment information structure
+//! describing size and alignment requirements for a set of placed resources
+struct ResourceSetHeapAllocationInfo
+{
+    uint64_t size_in_bytes;
+    uint64_t alignment;
+};
+
+//! Thin wrapper over D3D12 resource alignment information structure
+//! containing allocation details for individual placed resource
+struct ResourceHeapAllocationInfo
+{
+    uint64_t offset;
+    uint64_t size_in_bytes;
+    uint64_t alignment;
+};
+
 
 /*! Thin wrapper over ID3D12Device interface.
  Note that this class is subject for continuous changing: new functionality may be added at any time
@@ -358,6 +378,19 @@ public:
     FeatureMultisampleQualityLevels queryFeatureQualityLevels(DXGI_FORMAT format, uint32_t sample_count) const;
 
     FeatureGPUVirtualAddressSupport queryFeatureGPUVirtualAddressSupport() const;    //! queries details on the adapter's GPU virtual address space limitations, including maximum address bits per resource and per process
+
+    /*! Queries combined size and alignment requirements for a set of placed resources described by @param resource_descriptors.
+     The resources are assumed to be allocated into a single heap in the order they are supplied. When @param out_per_resource_allocation_info
+     is not @c nullptr it is resized to match the number of supplied descriptors and populated with per-resource offset, size and
+     alignment details. Here @param node_exposure_mask identifies the nodes to which the resources are exposed (it may affect the
+     reported size and alignment on multi-adapter setups). Internally relies on ID3D12Device4::GetResourceAllocationInfo1.
+     */
+    ResourceSetHeapAllocationInfo queryResourceAllocationInfo(
+        std::vector<ResourceDescriptor> const& resource_descriptors,
+        std::vector<ResourceHeapAllocationInfo>* out_per_resource_allocation_info = nullptr,
+        uint32_t node_exposure_mask = 0) const;
+
+
 
     uint32_t getNodeCount() const;
 

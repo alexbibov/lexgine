@@ -27,7 +27,7 @@ D3D12_RESOURCE_DESC ResourceDescriptor::native() const
     };
 }
 
-ResourceDescriptor ResourceDescriptor::CreateBuffer(uint64_t size, ResourceFlags flags)
+ResourceDescriptor ResourceDescriptor::createBuffer(uint64_t size, ResourceFlags flags)
 {
     ResourceDescriptor desc;
     desc.dimension = ResourceDimension::buffer;
@@ -46,7 +46,7 @@ ResourceDescriptor ResourceDescriptor::CreateBuffer(uint64_t size, ResourceFlags
 }
 
 
-ResourceDescriptor ResourceDescriptor::CreateTexture1D(uint64_t width, uint16_t array_size,
+ResourceDescriptor ResourceDescriptor::createTexture1D(uint64_t width, uint16_t array_size,
     DXGI_FORMAT format, uint16_t num_mipmaps, ResourceFlags flags,
     MultiSamplingFormat ms_format, ResourceAlignment alignment, TextureLayout layout)
 {
@@ -65,7 +65,7 @@ ResourceDescriptor ResourceDescriptor::CreateTexture1D(uint64_t width, uint16_t 
     return desc;
 }
 
-ResourceDescriptor ResourceDescriptor::CreateTexture2D(uint64_t width, uint32_t height,
+ResourceDescriptor ResourceDescriptor::createTexture2D(uint64_t width, uint32_t height,
     uint16_t array_size, DXGI_FORMAT format, uint16_t num_mipmaps,
     ResourceFlags flags, MultiSamplingFormat ms_format,
     ResourceAlignment alignment, TextureLayout layout)
@@ -85,7 +85,7 @@ ResourceDescriptor ResourceDescriptor::CreateTexture2D(uint64_t width, uint32_t 
     return desc;
 }
 
-ResourceDescriptor ResourceDescriptor::CreateTexture3D(uint64_t width, uint32_t height,
+ResourceDescriptor ResourceDescriptor::createTexture3D(uint64_t width, uint32_t height,
     uint16_t depth, DXGI_FORMAT format, uint16_t num_mipmaps, ResourceFlags flags,
     MultiSamplingFormat ms_format, ResourceAlignment alignment, TextureLayout layout)
 {

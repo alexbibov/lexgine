@@ -365,127 +365,33 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
         }
     }
 
-    std::unordered_map<int, int> scene_light_ids;
-    std::unordered_map<int, int> scene_material_ids;
-    std::unordered_map<int, int> scene_mesh_ids;
-    std::unordered_map<int, int> scene_camera_ids;
-    std::unordered_map<int, int> scene_animation_ids;
-    std::unordered_map<int, int> scene_buffer_ids;
-    std::unordered_map<int, int> scene_texture_ids;
-    std::unordered_map<int, int> scene_sampler_ids;
+    GltfToSceneIndexMap index_map;
     {
         tg3_scene const& scene = model.scenes[scene_index];
+
+        // Reserve up front so that Node* parent/child pointers captured during the
+        // recursive walk are not invalidated by reallocation of m_scene_nodes
+        m_scene_nodes.reserve(model.nodes_count);
 
         for (uint32_t ni = 0; ni < scene.nodes_count; ++ni)
         {
             int node_id = scene.nodes[ni];
             tg3_node const& node = model.nodes[node_id];
-            m_scene_nodes.emplace_back();
-            m_scene_nodes.back().setStringName(std::string(node.name.data, node.name.len));
-
-            if (node.light >= 0)
-            {
-                scene_light_ids.insert({ node.light, -1 });
-            }
-
-            if (node.mesh >= 0)
-            {
-                // Node contains a mesh, count it towards scene memory size
-                scene_mesh_ids.insert({ node.mesh, -1 });
-                tg3_mesh const& mesh = model.meshes[node.mesh];
-                for (uint32_t pi = 0; pi < mesh.primitives_count; ++pi)
-                {
-                    tg3_primitive const& p = mesh.primitives[pi];
-
-                    if (p.indices >= 0)
-                    {
-                        // primitive has index buffer
-                        tg3_accessor const& accessor = model.accessors[p.indices];
-                        if (accessor.buffer_view >= 0)
-                        {
-                            tg3_buffer_view const& buffer_view = model.buffer_views[accessor.buffer_view];
-                            scene_buffer_ids.insert({ buffer_view.buffer, -1 });
-                        }
-                    }
-
-                    for (uint32_t ai = 0; ai < p.attributes_count; ++ai)
-                    {
-                        tg3_accessor const& accessor = model.accessors[p.attributes[ai].value];
-                        if (accessor.buffer_view >= 0)
-                        {
-                            tg3_buffer_view const& buffer_view = model.buffer_views[accessor.buffer_view];
-                            scene_buffer_ids.insert({ buffer_view.buffer, -1 });
-                        }
-                    }
-
-                    if (p.material >= 0)
-                    {
-                        scene_material_ids.insert({ p.material, -1 });
-
-                        tg3_material const& material = model.materials[p.material];
-                        tg3_pbr_metallic_roughness const& pbr = material.pbr_metallic_roughness;
-
-                        if (pbr.base_color_texture.index >= 0)
-                        {
-                            scene_texture_ids.insert({ pbr.base_color_texture.index, -1 });
-                            int sampler_id = model.textures[pbr.base_color_texture.index].sampler;
-                            if (sampler_id >= 0) scene_sampler_ids.insert({ sampler_id, -1 });
-                        }
-
-                        if (pbr.metallic_roughness_texture.index >= 0)
-                        {
-                            scene_texture_ids.insert({ pbr.metallic_roughness_texture.index, -1 });
-                            int sampler_id = model.textures[pbr.metallic_roughness_texture.index].sampler;
-                            if (sampler_id >= 0) scene_sampler_ids.insert({ sampler_id, -1 });
-                        }
-
-                        if (material.normal_texture.index >= 0)
-                        {
-                            scene_texture_ids.insert({ material.normal_texture.index, -1 });
-                            int sampler_id = model.textures[material.normal_texture.index].sampler;
-                            if (sampler_id >= 0) scene_sampler_ids.insert({ sampler_id, -1 });
-                        }
-
-                        if (material.occlusion_texture.index >= 0)
-                        {
-                            scene_texture_ids.insert({ material.occlusion_texture.index, -1 });
-                            int sampler_id = model.textures[material.occlusion_texture.index].sampler;
-                            if (sampler_id >= 0) scene_sampler_ids.insert({ sampler_id, -1 });
-                        }
-
-                        if (material.emissive_texture.index >= 0)
-                        {
-                            scene_texture_ids.insert({ material.emissive_texture.index, -1 });
-                            int sampler_id = model.textures[material.emissive_texture.index].sampler;
-                            if (sampler_id >= 0) scene_sampler_ids.insert({ sampler_id, -1 });
-                        }
-                    }
-                }
-            }
-
-            if (node.camera >= 0)
-            {
-                scene_camera_ids.insert({ node.camera, -1 });
-            }
-
-            if (node.skin >= 0)
-            {
-                scene_animation_ids.insert({ node.skin, -1 });
-            }
+            readSceneNode(model, node, index_map);
         }
     }
 
 
     // Prepare scene memory
     {
-        uint64_t scene_memory_size = std::accumulate(scene_buffer_ids.cbegin(), scene_buffer_ids.cend(), 0ui64,
+        uint64_t scene_memory_size = std::accumulate(index_map.buffer_ids.cbegin(), index_map.buffer_ids.cend(), 0ui64,
             [&model](uint64_t acc, std::pair<int, int> const& e) {
                 return acc + model.buffers[e.first].data.count;
             });
 
         m_scene_memory.scene_memory_buffer.reset(new SceneMeshMemory{ m_globals, scene_memory_size });
 
-        for (auto& [buffer_id, buffer_id_in_scene] : scene_buffer_ids)
+        for (auto& [buffer_id, buffer_id_in_scene] : index_map.buffer_ids)
         {
             buffer_id_in_scene = m_scene_memory.m_scene_memory_handles.size();
             tg3_buffer const& buffer = model.buffers[buffer_id];
@@ -501,17 +407,16 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
 
     bool load_result = true;
     if (!loadLights(
-        model, 
-        scene_light_ids
+        model,
+        index_map
     ))
     {
         LEXGINE_LOG_ERROR(this, "Unable to load lights when reading scene source \"" + m_scene_path.string() + "\"");
         load_result = false;
     }
     if (!loadTextures(
-        model, 
-        scene_texture_ids, 
-        scene_sampler_ids
+        model,
+        index_map
     ))
     {
         LEXGINE_LOG_ERROR(this, "Unable to load textures when reading scene source \"" + m_scene_path.string() + "\"");
@@ -519,11 +424,18 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
     }
     if (!loadMeshes(
         model,
-        scene_mesh_ids,
-        scene_buffer_ids
+        index_map
     ))
     {
         LEXGINE_LOG_ERROR(this, "Unable to load meshes when reading scene source \"" + m_scene_path.string() + "\"");
+        load_result = false;
+    }
+    if (!loadCameras(
+        model,
+        index_map
+    ))
+    {
+        LEXGINE_LOG_ERROR(this, "Unable to load cameras when reading scene source \"" + m_scene_path.string() + "\"");
         load_result = false;
     }
 
@@ -557,7 +469,7 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
             assert(res);
             material_attachment.material_static_state_it = it;
 
-            scene_material_ids[gltf_source_material_id] = m_materials.size();
+            index_map.material_ids[gltf_source_material_id] = m_materials.size();
             m_materials.emplace_back(*it);
             Material& material = m_materials.back();
 
@@ -585,24 +497,24 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
                 mr.metallic_factor = static_cast<float>(source_material.pbr_metallic_roughness.metallic_factor);
                 mr.roughness_factor = static_cast<float>(source_material.pbr_metallic_roughness.roughness_factor);
                 mr.p_base_color = source_material.pbr_metallic_roughness.base_color_texture.index >= 0
-                    ? &m_textures[source_material.pbr_metallic_roughness.base_color_texture.index]
+                    ? &m_textures[index_map.texture_ids.at(source_material.pbr_metallic_roughness.base_color_texture.index)]
                     : nullptr;
                 mr.p_metallic_roughness = source_material.pbr_metallic_roughness.metallic_roughness_texture.index >= 0
-                    ? &m_textures[source_material.pbr_metallic_roughness.metallic_roughness_texture.index]
+                    ? &m_textures[index_map.texture_ids.at(source_material.pbr_metallic_roughness.metallic_roughness_texture.index)]
                     : nullptr;
                 material.setMetallicRoughness(mr);
             }
             if (source_material.normal_texture.index >= 0)
             {
-                material.setNormalTexture(&m_textures[source_material.normal_texture.index]);
+                material.setNormalTexture(&m_textures[index_map.texture_ids.at(source_material.normal_texture.index)]);
             }
             if (source_material.occlusion_texture.index >= 0)
             {
-                material.setNormalTexture(&m_textures[source_material.occlusion_texture.index]);
+                material.setOcclusionTexture(&m_textures[index_map.texture_ids.at(source_material.occlusion_texture.index)]);
             }
             if (source_material.emissive_texture.index >= 0)
             {
-                material.setNormalTexture(&m_textures[source_material.emissive_texture.index]);
+                material.setEmissiveTexture(&m_textures[index_map.texture_ids.at(source_material.emissive_texture.index)]);
             }
             for (auto& [mesh_id, submeshes] : material_attachment.target_meshes)
             {
@@ -612,6 +524,39 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
                     Submesh& submesh = mesh.getSubmesh(submesh_id);
                     submesh.setBaseMaterial(&m_materials.back());
                 }
+            }
+        }
+    }
+
+    for (auto const& [node_index_in_scene, data_desc] : index_map.node_attachments)
+    {
+        Node& n = m_scene_nodes[node_index_in_scene];
+        for (NodeDataDesc const& d : data_desc)
+        {
+            switch (d.attached_data_type)
+            {
+            case NodeDataType::light:
+            {
+                Light& l = m_lights[index_map.light_ids.at(d.gltf_node_index)];
+                n.setLight(&l);
+                break;
+            }
+            case NodeDataType::camera:
+            {
+                Camera& c = m_cameras[index_map.camera_ids.at(d.gltf_node_index)];
+                n.setCamera(&c);
+                break;
+            }
+            case NodeDataType::mesh:
+            {
+                Mesh& m = m_scene_meshes[index_map.mesh_ids.at(d.gltf_node_index)];
+                n.setMesh(&m);
+                break;
+            }
+            case NodeDataType::skin:
+            {
+                break;
+            }
             }
         }
     }
@@ -628,12 +573,149 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
     return load_result;
 }
 
+int Scene::readSceneNode(
+    tg3_model const& model,
+    tg3_node const& node,
+    GltfToSceneIndexMap& index_map
+)
+{
+    int new_node_id = static_cast<int>(m_scene_nodes.size());
+    m_scene_nodes.emplace_back();
+    Node& current_node = m_scene_nodes.back();
+    current_node.setStringName(std::string(node.name.data, node.name.len));
+
+    if (node.light >= 0)
+    {
+        index_map.light_ids.insert({ node.light, -1 });
+        index_map.node_attachments[new_node_id].push_back(
+            {
+                .attached_data_type = NodeDataType::light, 
+                .gltf_node_index = node.light 
+            }
+        );
+    }
+
+    if (node.mesh >= 0)
+    {
+        // Node contains a mesh, count it towards scene memory size
+        index_map.mesh_ids.insert({ node.mesh, -1 });
+        index_map.node_attachments[new_node_id].push_back(
+            { 
+                .attached_data_type = NodeDataType::mesh, 
+                .gltf_node_index = node.mesh 
+            }
+        );
+        tg3_mesh const& mesh = model.meshes[node.mesh];
+        for (uint32_t pi = 0; pi < mesh.primitives_count; ++pi)
+        {
+            tg3_primitive const& p = mesh.primitives[pi];
+
+            if (p.indices >= 0)
+            {
+                // primitive has index buffer
+                tg3_accessor const& accessor = model.accessors[p.indices];
+                if (accessor.buffer_view >= 0)
+                {
+                    tg3_buffer_view const& buffer_view = model.buffer_views[accessor.buffer_view];
+                    index_map.buffer_ids.insert({ buffer_view.buffer, -1 });
+                }
+            }
+
+            for (uint32_t ai = 0; ai < p.attributes_count; ++ai)
+            {
+                tg3_accessor const& accessor = model.accessors[p.attributes[ai].value];
+                if (accessor.buffer_view >= 0)
+                {
+                    tg3_buffer_view const& buffer_view = model.buffer_views[accessor.buffer_view];
+                    index_map.buffer_ids.insert({ buffer_view.buffer, -1 });
+                }
+            }
+
+            if (p.material >= 0)
+            {
+                index_map.material_ids.insert({ p.material, -1 });
+
+                tg3_material const& material = model.materials[p.material];
+                tg3_pbr_metallic_roughness const& pbr = material.pbr_metallic_roughness;
+
+                if (pbr.base_color_texture.index >= 0)
+                {
+                    index_map.texture_ids.insert({ pbr.base_color_texture.index, -1 });
+                    int sampler_id = model.textures[pbr.base_color_texture.index].sampler;
+                    if (sampler_id >= 0) index_map.sampler_ids.insert({ sampler_id, -1 });
+                }
+
+                if (pbr.metallic_roughness_texture.index >= 0)
+                {
+                    index_map.texture_ids.insert({ pbr.metallic_roughness_texture.index, -1 });
+                    int sampler_id = model.textures[pbr.metallic_roughness_texture.index].sampler;
+                    if (sampler_id >= 0) index_map.sampler_ids.insert({ sampler_id, -1 });
+                }
+
+                if (material.normal_texture.index >= 0)
+                {
+                    index_map.texture_ids.insert({ material.normal_texture.index, -1 });
+                    int sampler_id = model.textures[material.normal_texture.index].sampler;
+                    if (sampler_id >= 0) index_map.sampler_ids.insert({ sampler_id, -1 });
+                }
+
+                if (material.occlusion_texture.index >= 0)
+                {
+                    index_map.texture_ids.insert({ material.occlusion_texture.index, -1 });
+                    int sampler_id = model.textures[material.occlusion_texture.index].sampler;
+                    if (sampler_id >= 0) index_map.sampler_ids.insert({ sampler_id, -1 });
+                }
+
+                if (material.emissive_texture.index >= 0)
+                {
+                    index_map.texture_ids.insert({ material.emissive_texture.index, -1 });
+                    int sampler_id = model.textures[material.emissive_texture.index].sampler;
+                    if (sampler_id >= 0) index_map.sampler_ids.insert({ sampler_id, -1 });
+                }
+            }
+        }
+    }
+
+    if (node.camera >= 0)
+    {
+        index_map.camera_ids.insert({ node.camera, -1 });
+        index_map.node_attachments[new_node_id].push_back(
+            { 
+                .attached_data_type = NodeDataType::camera, 
+                .gltf_node_index = node.camera 
+            }
+        );
+    }
+
+    if (node.skin >= 0)
+    {
+        index_map.animation_ids.insert({ node.skin, -1 });
+        index_map.node_attachments[new_node_id].push_back(
+            { 
+                .attached_data_type = NodeDataType::skin, 
+                .gltf_node_index = node.skin
+            }
+        );
+    }
+
+    for (uint32_t i = 0; i < node.children_count; ++i)
+    {
+        int32_t child_node_index = node.children[i];
+        tg3_node const& gltf_node = model.nodes[child_node_index];
+        int node_scene_id = readSceneNode(model, gltf_node, index_map);
+        Node& child_node = m_scene_nodes[node_scene_id];
+        current_node.addChild(&child_node);
+    }
+
+    return new_node_id;
+}
 
 bool Scene::loadLights(
     tg3_model const& model,
-    std::unordered_map<int, int>& light_ids
+    GltfToSceneIndexMap& index_map
 )
 {
+    auto& light_ids = index_map.light_ids;
     if (m_enabled_extensions[c_khr_light_punctual_ext])
     {
         if (light_ids.empty()) return true;
@@ -714,10 +796,12 @@ bool Scene::loadLights(
 
 bool Scene::loadTextures(
     tg3_model const& model,
-    std::unordered_map<int, int>& texture_ids,
-    std::unordered_map<int, int>& sampler_ids
+    GltfToSceneIndexMap& index_map
 )
 {
+    auto& texture_ids = index_map.texture_ids;
+    auto& sampler_ids = index_map.sampler_ids;
+
     conversion::ImageLoaderPool const& image_loader_pool = *m_globals.get<conversion::ImageLoaderPool>();
     conversion::TextureConverter& texture_converter = *m_globals.get<conversion::TextureConverter>();
 
@@ -783,10 +867,12 @@ bool Scene::loadTextures(
 
 bool Scene::loadMeshes(
     tg3_model const& model,
-    std::unordered_map<int, int>& mesh_ids,
-    std::unordered_map<int, int> const& buffer_ids
+    GltfToSceneIndexMap& index_map
 )
 {
+    auto& mesh_ids = index_map.mesh_ids;
+    auto const& buffer_ids = index_map.buffer_ids;
+
     core::dx::d3d12::DxgiFormatFetcher const& dxgi_format_fetcher = m_globals.get<core::dx::d3d12::DxResourceFactory>()->dxgiFormatFetcher();
 
     // Parse meshes
@@ -935,9 +1021,9 @@ bool Scene::loadMeshes(
     return true;
 }
 
-bool Scene::loadCameras(tg3_model const& model, std::unordered_map<int, int>& camera_ids)
+bool Scene::loadCameras(tg3_model const& model, GltfToSceneIndexMap& index_map)
 {
-    for (auto& [camera_id, camera_id_in_scene] : camera_ids)
+    for (auto& [camera_id, camera_id_in_scene] : index_map.camera_ids)
     {
         tg3_camera const& camera = model.cameras[camera_id];
         Camera sceneCamera{ std::string(camera.name.data, camera.name.len) };
@@ -984,7 +1070,7 @@ bool Scene::loadCameras(tg3_model const& model, std::unordered_map<int, int>& ca
     return true;
 }
 
-bool Scene::loadAnimations(tg3_model const& model, std::unordered_map<int, int>& animation_ids)
+bool Scene::loadAnimations(tg3_model const& model, GltfToSceneIndexMap& index_map)
 {
     return true;
 }

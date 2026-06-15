@@ -554,7 +554,7 @@ TextureUploadWork::TextureUploadWork(TextureConverter& texture_converter,
     , m_src_desc{ source_descriptor }
 {
     glm::uvec3 dimensions = texture_description.layers[0].mipmaps[0].dimensions;
-    auto desc = core::dx::d3d12::ResourceDescriptor::CreateTexture2D(static_cast<uint32_t>(dimensions.x), static_cast<uint32_t>(dimensions.y), static_cast<uint32_t>(dimensions.z),
+    auto desc = core::dx::d3d12::ResourceDescriptor::createTexture2D(static_cast<uint32_t>(dimensions.x), static_cast<uint32_t>(dimensions.y), static_cast<uint32_t>(dimensions.z),
         static_cast<DXGI_FORMAT>(texture_description.compression_format), static_cast<uint32_t>(texture_description.layers[0].mipmaps.size()),
         core::dx::d3d12::ResourceFlags::base_values::none, core::MultiSamplingFormat{ 1, 0 }, core::dx::d3d12::ResourceAlignment::_default, core::dx::d3d12::TextureLayout::unknown);
 

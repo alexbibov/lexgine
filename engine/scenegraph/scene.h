@@ -166,6 +166,33 @@ private:
         std::unordered_map<size_t, std::vector<size_t>> target_meshes;
     };
 
+    enum class NodeDataType
+    {
+        light,
+        camera,
+        mesh,
+        skin
+    };
+    struct NodeDataDesc
+    {
+        NodeDataType attached_data_type;
+        int gltf_node_index;
+    };
+
+    //! Maps gltf vector indices to the corresponding in-scene storage indices
+    struct GltfToSceneIndexMap
+    {
+        std::unordered_map<int, int> light_ids;
+        std::unordered_map<int, int> material_ids;
+        std::unordered_map<int, int> mesh_ids;
+        std::unordered_map<int, int> camera_ids;
+        std::unordered_map<int, int> animation_ids;
+        std::unordered_map<int, int> buffer_ids;
+        std::unordered_map<int, int> texture_ids;
+        std::unordered_map<int, int> sampler_ids;
+        std::unordered_map<int, std::vector<NodeDataDesc>> node_attachments;
+    };
+
 private:
     Scene(
         core::Globals& globals, 
@@ -183,27 +210,31 @@ private:
     std::optional<tinygltf3::Model> readGltfModel(std::filesystem::path const& path);
     bool readScene(tg3_model const& model, unsigned scene_index);
 
+    int readSceneNode(
+        tg3_model const& model,
+        tg3_node const& node, 
+        GltfToSceneIndexMap& index_map
+    );
+
     bool loadLights(
         tg3_model const& model,
-        std::unordered_map<int, int>& light_ids
+        GltfToSceneIndexMap& index_map
     );
     bool loadTextures(
         tg3_model const& model,
-        std::unordered_map<int, int>& texture_ids,
-        std::unordered_map<int, int>& sampler_ids
+        GltfToSceneIndexMap& index_map
     );
     bool loadMeshes(
         tg3_model const& model,
-        std::unordered_map<int, int>& mesh_ids,
-        std::unordered_map<int, int> const& buffer_ids
+        GltfToSceneIndexMap& index_map
     );
     bool loadCameras(
         tg3_model const& model,
-        std::unordered_map<int, int>& camera_ids
+        GltfToSceneIndexMap& index_map
     );
     bool loadAnimations(
         tg3_model const& model,
-        std::unordered_map<int, int>& animation_ids
+        GltfToSceneIndexMap& index_map
     );
 
     MaterialStaticStateCreateInfoSet::const_iterator

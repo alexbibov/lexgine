@@ -432,6 +432,44 @@ FeatureGPUVirtualAddressSupport Device::queryFeatureGPUVirtualAddressSupport() c
     return rv;
 }
 
+ResourceSetHeapAllocationInfo Device::queryResourceAllocationInfo(
+    std::vector<ResourceDescriptor> const& resource_descriptors,
+    std::vector<ResourceHeapAllocationInfo>* out_per_resource_allocation_info/* = nullptr*/,
+    uint32_t node_exposure_mask/* = 0*/) const
+{
+    ComPtr<ID3D12Device4> device4;
+    LEXGINE_THROW_ERROR_IF_FAILED(
+        this,
+        m_device.As(&device4),
+        S_OK
+    );
+
+    std::vector<D3D12_RESOURCE_DESC> native_descriptors(resource_descriptors.size());
+    for (size_t i = 0; i < resource_descriptors.size(); ++i)
+        native_descriptors[i] = resource_descriptors[i].native();
+
+    std::vector<D3D12_RESOURCE_ALLOCATION_INFO1> native_per_resource_info(resource_descriptors.size());
+    D3D12_RESOURCE_ALLOCATION_INFO set_info = device4->GetResourceAllocationInfo1(
+        node_exposure_mask,
+        static_cast<UINT>(native_descriptors.size()),
+        native_descriptors.data(),
+        native_per_resource_info.data()
+    );
+
+    if (out_per_resource_allocation_info)
+    {
+        out_per_resource_allocation_info->resize(native_per_resource_info.size());
+        for (size_t i = 0; i < native_per_resource_info.size(); ++i)
+        {
+            (*out_per_resource_allocation_info)[i].offset = native_per_resource_info[i].Offset;
+            (*out_per_resource_allocation_info)[i].size_in_bytes = native_per_resource_info[i].SizeInBytes;
+            (*out_per_resource_allocation_info)[i].alignment = native_per_resource_info[i].Alignment;
+        }
+    }
+
+    return ResourceSetHeapAllocationInfo{ set_info.SizeInBytes, set_info.Alignment };
+}
+
 uint32_t Device::getNodeCount() const
 {
     return static_cast<UINT>(m_device->GetNodeCount());

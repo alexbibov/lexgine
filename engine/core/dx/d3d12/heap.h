@@ -62,7 +62,6 @@ public:
     static void retrieveAbstractHeapTypeProperties(Device const& device, AbstractHeapType heap_type, uint32_t node_mask, CPUPageProperty& out_cpu_page_property, GPUMemoryPool& out_gpu_memory_pool);
 
 public:
-
     Device& device() const;    //! returns device used to create this heap
     size_t capacity() const;    //! returns capacity of the heap in bytes
     ComPtr<ID3D12Heap> native() const;    //! returns native heap
@@ -86,7 +85,7 @@ private:
     */
     Heap(Device& device, CPUPageProperty cpu_page_property, GPUMemoryPool gpu_memory_pool, uint64_t size, HeapCreationFlags flags, bool is_msaa_supported, uint32_t node_mask, uint32_t node_exposure_mask);
 
-
+private:
     Device& m_device;    //!< device used to create this heap
     uint64_t m_size;    //!< size of the heap in bytes
     bool m_is_msaa_supported;    //!< 'true' when the heap can store MSAA resources
