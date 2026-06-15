@@ -59,7 +59,7 @@ void VertexBuffer::build()
         vb_resource_flags |= ResourceFlags::base_values::allow_cross_adapter;
         vb_heap_flags |= HeapCreationFlags::base_values::shared_cross_adapter;
     }
-    ResourceDescriptor vb_descritptor = ResourceDescriptor::CreateBuffer(segment_offsets.back(), vb_resource_flags);
+    ResourceDescriptor vb_descritptor = ResourceDescriptor::createBuffer(segment_offsets.back(), vb_resource_flags);
 
     m_vertex_buffer = std::make_unique<CommittedResource>(m_device, defaultState(),
         Optional<ResourceOptimizedClearValue>{}, vb_descritptor, AbstractHeapType::_default,
@@ -113,7 +113,7 @@ IndexBuffer::IndexBuffer(Device const& device, IndexDataType index_type, uint32_
         resource_flags |= ResourceFlags::base_values::allow_cross_adapter;
         heap_flags |= HeapCreationFlags::base_values::shared_cross_adapter;
     }
-    ResourceDescriptor index_buffer_descriptor = ResourceDescriptor::CreateBuffer(index_buffer_size, resource_flags);
+    ResourceDescriptor index_buffer_descriptor = ResourceDescriptor::createBuffer(index_buffer_size, resource_flags);
 
     m_index_buffer = std::make_unique<CommittedResource>(device, defaultState(),
         Optional<ResourceOptimizedClearValue>{}, index_buffer_descriptor, AbstractHeapType::_default, heap_flags,

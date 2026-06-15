@@ -43,7 +43,7 @@ ShaderFunction::ShaderFunction(Globals& globals, ShaderFunctionRootUniformBuffer
     , m_flags{ flags }
 {
     // Create buffer for atomic counters
-    d3d12::ResourceDescriptor counter_resource_desc = d3d12::ResourceDescriptor::CreateBuffer(D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT * c_max_uav_with_counters_count, d3d12::ResourceFlags::base_values::none);
+    d3d12::ResourceDescriptor counter_resource_desc = d3d12::ResourceDescriptor::createBuffer(D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT * c_max_uav_with_counters_count, d3d12::ResourceFlags::base_values::none);
     m_uav_atomic_counters = d3d12::CommittedResource {
         m_device,
         d3d12::ResourceState::base_values::unordered_access,

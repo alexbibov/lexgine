@@ -1,8 +1,10 @@
 #ifndef LEXGINE_CORE_MULTISAMPLING_H
+#define LEXGINE_CORE_MULTISAMPLING_H
 
 #include <cstdint>
 
-namespace lexgine {namespace core {
+namespace lexgine::core 
+{
 
 //! API- and OS- agnostic description of multi-sampling format
 struct MultiSamplingFormat
@@ -13,9 +15,7 @@ struct MultiSamplingFormat
     MultiSamplingFormat();
     MultiSamplingFormat(uint32_t sample_count, uint32_t ms_quality);
 };
+}
 
 
-}}
-
-#define LEXGINE_CORE_MULTISAMPLING_H
 #endif

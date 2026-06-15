@@ -10,7 +10,7 @@ ConstantBuffer::ConstantBuffer(Device const& device, uint64_t size,
     bool allow_cross_adapter/* = false*/)
 {
     ResourceFlags creation_flags = allow_cross_adapter ? ResourceFlags::base_values::allow_cross_adapter : ResourceFlags::base_values::none;
-    ResourceDescriptor buffer_descriptor = ResourceDescriptor::CreateBuffer(size, creation_flags);
+    ResourceDescriptor buffer_descriptor = ResourceDescriptor::createBuffer(size, creation_flags);
 
     m_resource = std::make_unique<CommittedResource>(device, ResourceState::base_values::generic_read,
         misc::Optional<ResourceOptimizedClearValue>{}, buffer_descriptor, AbstractHeapType::upload,

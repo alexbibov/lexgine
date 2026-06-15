@@ -179,7 +179,7 @@ void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
     m_targets.reserve(back_buffers_count);
 
     auto descriptor =
-        ResourceDescriptor::CreateTexture2D(width, height, back_buffers_count,
+        ResourceDescriptor::createTexture2D(width, height, back_buffers_count,
             m_depth_buffer_native_format, 1, ResourceFlags::base_values::depth_stencil);
 
     m_depth_buffer = std::make_unique<CommittedResource>(m_device, ResourceState::base_values::depth_read,

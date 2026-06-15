@@ -33,7 +33,7 @@ SceneMeshMemory::SceneMeshMemory(core::Globals& globals, uint64_t size)
         *globals.get<core::dx::d3d12::Device>(),
         core::dx::d3d12::ResourceState::base_values::common,
         core::misc::Optional<core::dx::d3d12::ResourceOptimizedClearValue> {},
-        core::dx::d3d12::ResourceDescriptor::CreateBuffer(size, core::dx::d3d12::ResourceFlags::base_values::none),
+        core::dx::d3d12::ResourceDescriptor::createBuffer(size, core::dx::d3d12::ResourceFlags::base_values::none),
         core::dx::d3d12::AbstractHeapType::_default,
         core::dx::d3d12::HeapCreationFlags::base_values::allow_only_buffers
     }
