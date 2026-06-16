@@ -12,8 +12,8 @@ using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
 
 RenderingWork::RenderingWork(Globals& globals, std::string const& debug_name,
     CommandType command_type, bool enable_profiling /* = true */)
-    : SchedulableTask{ debug_name }
-    , m_globals{ globals }
+    : ProvidesGlobals{ globals }
+    , SchedulableTask{ debug_name }
     , m_device{ *globals.get<Device>() }
     , m_command_type{ command_type }
 {

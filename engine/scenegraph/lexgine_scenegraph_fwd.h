@@ -1,4 +1,5 @@
 #ifndef LEXGINE_SCENEGRAPH_FWD_H
+#define LEXGINE_SCENEGRAPH_FWD_H
 
 namespace lexgine::scenegraph {
 

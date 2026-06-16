@@ -9,6 +9,8 @@
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
 #include "engine/core/dx/d3d12/caches/lexgine_core_dx_d3d12_caches_fwd.h"
 
+#include "engine/scenegraph/lexgine_scenegraph_fwd.h"
+
 #include "lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h"
 #include "rendering_work.h"
 
@@ -18,10 +20,21 @@ namespace lexgine::core::dx::d3d12::tasks::rendering_tasks
 class SubmeshRenderingTask final : public RenderingWork
 {
 public:
-    static std::shared_ptr<SubmeshRenderingTask> create(Globals& globals, BasicRenderingServices& rendering_services)
+    static std::shared_ptr<SubmeshRenderingTask> create(
+        Globals& globals, 
+        BasicRenderingServices& rendering_services
+    )
     {
         return std::shared_ptr<SubmeshRenderingTask>{new SubmeshRenderingTask{ globals, rendering_services }};
     }
+
+    void setSourceScene(std::shared_ptr<scenegraph::Scene> const& source_scene);
+
+public:  // Required by RenderinWork
+    void updateRenderingConfiguration(
+        RenderingConfigurationUpdateFlags update_flags,
+        RenderingConfiguration const& rendering_configuration
+    ) override;
 
 private:    // required by AbstractTask interface
     bool doTask(uint8_t worker_id, uint64_t user_data) override;
@@ -31,9 +44,9 @@ private:
     SubmeshRenderingTask(Globals& globals, BasicRenderingServices& rendering_services);
 
 private:
-    Globals& m_globals;
     Device& m_device;
     BasicRenderingServices& m_basic_rendering_services;
+    std::weak_ptr<scenegraph::Scene> m_source_scene;
 };
 
 }

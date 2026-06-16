@@ -10,10 +10,8 @@
 #include "engine/core/dx/d3d12/basic_rendering_services.h"
 #include "profiler.h"
 
-using namespace lexgine::core;
-using namespace lexgine::core::concurrency;
-using namespace lexgine::core::ui;
-using namespace lexgine::core::dx::d3d12;
+namespace lexgine::core::ui
+{
 
 namespace {
 
@@ -29,13 +27,13 @@ ImVec4 convertPixColorMarkerToImGuiColor(uint32_t pix_color_marker)
 
 }
 
-Profiler::Profiler(Globals const& globals, 
+Profiler::Profiler(Globals const& globals,
     dx::d3d12::BasicRenderingServices const& basic_rendering_services,
-    TaskGraph const& task_graph)
+    concurrency::TaskGraph const& task_graph)
     : m_globals{ globals }
     , m_basic_rendering_services{ basic_rendering_services }
     , m_task_graph{ task_graph }
-    , m_query_cache{ *globals.get<Device>()->queryCache() }
+    , m_query_cache{ *globals.get<dx::d3d12::Device>()->queryCache() }
     , m_show_profiler{ true }
     , m_total_times(static_cast<size_t>(ProfilingServiceType::count))
 {
@@ -56,7 +54,7 @@ double Profiler::getGPUTimePerFrame() const
 {
     GlobalSettings const& settings = *m_globals.get<GlobalSettings>();
     double result{ m_total_times[static_cast<size_t>(ProfilingServiceType::gpu_graphics_work_timestamp)] };
-    
+
     double const gpu_compute_work_time = m_total_times[static_cast<size_t>(ProfilingServiceType::gpu_compute_work_timestamp)];
     double const gpu_copy_work_time = m_total_times[static_cast<size_t>(ProfilingServiceType::gpu_copy_work_timestamp)];
 
@@ -86,7 +84,7 @@ void Profiler::constructUI()
     // Update values used by the UI
     for (auto& node : m_task_graph)
     {
-        AbstractTask* p_task = node.task();
+        concurrency::AbstractTask* p_task = node.task();
 
         auto p = m_profiling_summaries.find(p_task);
         if (p == m_profiling_summaries.end() && !p_task->profilingServices().empty())
@@ -121,11 +119,11 @@ void Profiler::constructUI()
     if (ImGui::Begin("Profiler", &m_show_profiler, ImGuiWindowFlags_AlwaysAutoResize))
     {
         {
-            ImVec4 const cpu_legend_color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixCPUJobMarkerColor);
-            ImVec4 const gpu_general_legend_color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixGPUGeneralJobColor);
-            ImVec4 const gpu_graphics_legend_color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixGPUGraphicsJobMarkerColor);
-            ImVec4 const gpu_compute_legend_color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixGPUComputeJobMarkerColor);
-            ImVec4 const gpu_copy_legend_color = convertPixColorMarkerToImGuiColor(pix_marker_colors::PixGPUCopyJobMarkerColor);
+            ImVec4 const cpu_legend_color = convertPixColorMarkerToImGuiColor(dx::d3d12::pix_marker_colors::PixCPUJobMarkerColor);
+            ImVec4 const gpu_general_legend_color = convertPixColorMarkerToImGuiColor(dx::d3d12::pix_marker_colors::PixGPUGeneralJobColor);
+            ImVec4 const gpu_graphics_legend_color = convertPixColorMarkerToImGuiColor(dx::d3d12::pix_marker_colors::PixGPUGraphicsJobMarkerColor);
+            ImVec4 const gpu_compute_legend_color = convertPixColorMarkerToImGuiColor(dx::d3d12::pix_marker_colors::PixGPUComputeJobMarkerColor);
+            ImVec4 const gpu_copy_legend_color = convertPixColorMarkerToImGuiColor(dx::d3d12::pix_marker_colors::PixGPUCopyJobMarkerColor);
 
 
             ImGui::BeginGroup();
@@ -164,4 +162,6 @@ void Profiler::constructUI()
     }
 
     ImGui::End();
+}
+
 }
