@@ -6,6 +6,7 @@
 #include "engine/core/profiling_services.h"
 #include "engine/core/exception.h"
 
+#include "engine/core/dx/d3d12/rendering/gbuffer.h"
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/test_rendering_task.h"
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/ui_draw_task.h"
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/gpu_profiling_queries_flush_task.h"
@@ -17,32 +18,28 @@
 #include "frame_progress_tracker.h"
 
 
-using namespace lexgine;
-using namespace lexgine::core;
-using namespace lexgine::core::ui;
-using namespace lexgine::core::math;
-using namespace lexgine::core::concurrency;
-using namespace lexgine::core::dx::d3d12;
-using namespace lexgine::core::dx::d3d12::tasks::rendering_tasks;
-
+namespace lexgine::core::dx::d3d12
+{
 
 namespace {
 
-RenderingWork::RenderingConfigurationUpdateFlags getRenderingConfigurationUpdateFlags(RenderingConfiguration const& old_configuration,
-    RenderingConfiguration const& new_configuration)
+tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags getRenderingConfigurationUpdateFlags(
+    RenderingConfiguration const& old_configuration,
+    RenderingConfiguration const& new_configuration
+)
 {
-    RenderingWork::RenderingConfigurationUpdateFlags flags{};
+    tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags flags{};
     if (old_configuration.viewport != new_configuration.viewport)
-        flags |= RenderingWork::RenderingConfigurationUpdateFlags::base_values::viewport_changed;
+        flags |= tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::viewport_changed;
 
     if (old_configuration.color_buffer_format != new_configuration.color_buffer_format)
-        flags |= RenderingWork::RenderingConfigurationUpdateFlags::base_values::color_format_changed;
+        flags |= tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::color_format_changed;
 
     if (old_configuration.depth_buffer_format != new_configuration.depth_buffer_format)
-        flags |= RenderingWork::RenderingConfigurationUpdateFlags::base_values::depth_format_changed;
+        flags |= tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::depth_format_changed;
 
     if (old_configuration.p_rendering_window != new_configuration.p_rendering_window)
-        flags |= RenderingWork::RenderingConfigurationUpdateFlags::base_values::rendering_window_changed;
+        flags |= tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::rendering_window_changed;
 
     return flags;
 }
@@ -58,22 +55,23 @@ RenderingTasks::RenderingTasks(Globals& globals)
     , m_basic_rendering_services{ globals }
     , m_rendering_configuration{ Viewport{math::Vector2f{}, math::Vector2f{}, math::Vector2f{}},
                                  DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, nullptr }
+    , m_gbuffer{ std::make_unique<rendering::Gbuffer>(globals) }
 {
-    m_test_rendering_task_build_cmd_list = RenderingTaskFactory::create<TestRenderingTask>(m_globals, m_basic_rendering_services);
-    m_ui_draw_build_cmd_list = RenderingTaskFactory::create<UIDrawTask>(globals, m_basic_rendering_services);
+    m_test_rendering_task_build_cmd_list = RenderingTaskFactory::create<tasks::rendering_tasks::TestRenderingTask>(m_globals, m_basic_rendering_services);
+    m_ui_draw_build_cmd_list = RenderingTaskFactory::create<tasks::rendering_tasks::UIDrawTask>(globals, m_basic_rendering_services);
     m_console = ui::Console::create(globals, m_basic_rendering_services, m_task_graph);
     registerConsoleCommands();
-    m_gpu_profiling_queries_flush_build_cmd_list = RenderingTaskFactory::create<GpuProfilingQueriesFlushTask>(globals);
-    m_profiler = RenderingTaskFactory::create<Profiler>(globals, m_basic_rendering_services, m_task_graph);
+    m_gpu_profiling_queries_flush_build_cmd_list = RenderingTaskFactory::create<tasks::rendering_tasks::GpuProfilingQueriesFlushTask>(globals);
+    m_profiler = RenderingTaskFactory::create<ui::Profiler>(globals, m_basic_rendering_services, m_task_graph);
     m_ui_draw_build_cmd_list->addUIProvider(m_profiler);
     m_ui_draw_build_cmd_list->addUIProvider(m_console);
 
-    m_post_rendering_gpu_tasks = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device,
+    m_post_rendering_gpu_tasks = RenderingTaskFactory::create<tasks::rendering_tasks::GpuWorkExecutionTask>(m_device,
         "GPU draw tasks", m_basic_rendering_services);
     m_post_rendering_gpu_tasks->addSource(*m_test_rendering_task_build_cmd_list);
     m_post_rendering_gpu_tasks->addSource(*m_ui_draw_build_cmd_list);
 
-    m_gpu_profiling_queries_flush_task = RenderingTaskFactory::create<GpuWorkExecutionTask>(m_device,
+    m_gpu_profiling_queries_flush_task = RenderingTaskFactory::create<tasks::rendering_tasks::GpuWorkExecutionTask>(m_device,
         "Flush profiling events", m_basic_rendering_services, false);
 
     m_gpu_profiling_queries_flush_task->addSource(*m_gpu_profiling_queries_flush_build_cmd_list);
@@ -100,23 +98,29 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
 {
     auto flags = getRenderingConfigurationUpdateFlags(m_rendering_configuration, rendering_configuration);
 
-    if (flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::color_format_changed)
-        || flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
+    if (flags.isSet(tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::color_format_changed)
+        || flags.isSet(tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
         BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingTargetFormat(m_basic_rendering_services,
             rendering_configuration.color_buffer_format, rendering_configuration.depth_buffer_format);
     }
 
-    if (flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::viewport_changed))
+    if (flags.isSet(tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::viewport_changed))
     {
         BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingViewport(m_basic_rendering_services, rendering_configuration.viewport);
     }
 
 
-    if (flags.isSet(RenderingWork::RenderingConfigurationUpdateFlags::base_values::rendering_window_changed))
+    if (flags.isSet(tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::rendering_window_changed))
     {
         BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingWindow(m_basic_rendering_services, rendering_configuration.p_rendering_window);
         rendering_configuration.p_rendering_window->addListener(m_console);
+
+        math::Vector2u rendering_window_dimensions = rendering_configuration.p_rendering_window->getDimensions();
+        m_gbuffer->init(
+            static_cast<uint32_t>(rendering_window_dimensions.x), 
+            static_cast<uint32_t>(rendering_window_dimensions.y)
+        );
     }
 
 
@@ -217,3 +221,4 @@ void RenderingTasks::registerConsoleCommands()
 
 
 
+}

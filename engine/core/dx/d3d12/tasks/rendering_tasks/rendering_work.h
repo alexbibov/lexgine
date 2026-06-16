@@ -18,7 +18,7 @@ namespace lexgine::core::dx::d3d12::tasks::rendering_tasks {
 
 template<typename T> class RenderingWorkAttorney;
 
-class RenderingWork : public concurrency::SchedulableTask
+class RenderingWork : public ProvidesGlobals, public concurrency::SchedulableTask
 {
     friend class RenderingWorkAttorney<GpuWorkExecutionTask>;
 
@@ -34,15 +34,16 @@ public:
     RenderingWork(Globals& globals, std::string const& debug_name,
         CommandType command_type, bool enable_profiling = true);
 
-    virtual void updateRenderingConfiguration(RenderingConfigurationUpdateFlags update_flags,
-        RenderingConfiguration const& rendering_configuration) = 0;
+    virtual void updateRenderingConfiguration(
+        RenderingConfigurationUpdateFlags update_flags,
+        RenderingConfiguration const& rendering_configuration
+    ) = 0;
 
     CommandList* addCommandList(uint32_t node_mask = 0x1,
         FenceSharing command_list_sync_mode = FenceSharing::none,
         PipelineState const* initial_pipeline_state = nullptr);
 
 private:
-    Globals& m_globals;
     Device& m_device;
     CommandType m_command_type;
     std::list<CommandList> m_cmd_lists;
