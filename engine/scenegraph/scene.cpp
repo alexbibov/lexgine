@@ -196,6 +196,18 @@ std::shared_ptr<Scene> Scene::loadScene(
     return rv;
 }
 
+uint32_t Scene::getCameraId(core::misc::HashedString const& camera_name) const
+{
+    auto it = m_camera_names_lut.find(camera_name);
+    return it != m_camera_names_lut.end() ? static_cast<uint32_t>(it->second) : c_invalid_id;
+}
+
+uint32_t Scene::getLightId(core::misc::HashedString const& light_name) const
+{
+    auto it = m_light_names_lut.find(light_name);
+    return it != m_light_names_lut.end() ? static_cast<uint32_t>(it->second) : c_invalid_id;
+}
+
 Scene::Scene(
     core::Globals& globals,
     core::dx::d3d12::BasicRenderingServices& basic_rendering_services,
@@ -537,19 +549,21 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
             {
             case NodeDataType::light:
             {
-                Light& l = m_lights[index_map.light_ids.at(d.gltf_node_index)];
+                Light& l = m_lights[index_map.light_ids.at(d.gltf_attachment_index)];
                 n.setLight(&l);
+                m_light_names_lut.emplace(std::make_pair(core::misc::HashedString{ l.getStringName() }, static_cast<size_t>(node_index_in_scene)));
                 break;
             }
             case NodeDataType::camera:
             {
-                Camera& c = m_cameras[index_map.camera_ids.at(d.gltf_node_index)];
+                Camera& c = m_cameras[index_map.camera_ids.at(d.gltf_attachment_index)];
                 n.setCamera(&c);
+                m_camera_names_lut.emplace(std::make_pair(core::misc::HashedString{ c.getStringName() }, static_cast<size_t>(node_index_in_scene)));
                 break;
             }
             case NodeDataType::mesh:
             {
-                Mesh& m = m_scene_meshes[index_map.mesh_ids.at(d.gltf_node_index)];
+                Mesh& m = m_scene_meshes[index_map.mesh_ids.at(d.gltf_attachment_index)];
                 n.setMesh(&m);
                 break;
             }
@@ -781,12 +795,6 @@ bool Scene::loadLights(
             }
 
             light_id_in_scene = m_lights.size();
-            m_light_names_lut.emplace(
-                std::make_pair(
-                    core::misc::HashedString{ sceneLight.getStringName() },
-                    static_cast<size_t>(light_id_in_scene)
-                )
-            );
             m_lights.push_back(sceneLight);
         }
     }
@@ -1059,12 +1067,6 @@ bool Scene::loadCameras(tg3_model const& model, GltfToSceneIndexMap& index_map)
         }
 
         camera_id_in_scene = static_cast<int>(m_cameras.size());
-        m_camera_names_lut.emplace(
-            std::make_pair(
-                core::misc::HashedString{ sceneCamera.getStringName() }, 
-                static_cast<size_t>(camera_id_in_scene)
-            )
-        );
         m_cameras.push_back(sceneCamera);
     }
     return true;

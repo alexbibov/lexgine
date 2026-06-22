@@ -37,6 +37,8 @@ enum class SceneSource
 class Scene : public core::NamedEntity<Scene>, public std::enable_shared_from_this<Scene>
 {
 public:
+    static constexpr uint32_t c_invalid_id = std::numeric_limits<uint32_t>::max();
+public:
     static std::shared_ptr<Scene> loadScene(
         core::Globals& globals, 
         core::dx::d3d12::BasicRenderingServices& basic_rendering_services, 
@@ -48,6 +50,14 @@ public:
         std::filesystem::path const& path_to_scene, 
         std::string const& scene_name
     );
+
+    uint32_t getCameraId(core::misc::HashedString const& camera_name) const;
+    uint32_t getLightId(core::misc::HashedString const& light_name) const;
+
+    Node& getSceneNode(uint32_t node_id) { return m_scene_nodes[node_id]; }
+    Node const& getSceneNode(uint32_t node_id) const { return m_scene_nodes[node_id]; }
+
+    void setCurrentCamera(uint32_t camear_id);
 
     SceneSource getSceneSource() const { return m_scene_source; }
     bool loadStatus() const;
@@ -176,7 +186,7 @@ private:
     struct NodeDataDesc
     {
         NodeDataType attached_data_type;
-        int gltf_node_index;
+        int gltf_attachment_index;
     };
 
     //! Maps gltf vector indices to the corresponding in-scene storage indices
@@ -275,6 +285,7 @@ private:
     MaterialStaticStateSet m_material_static_states;
     std::unordered_map<size_t, MaterialAttachment> m_material_attachements;
 
+    uint32_t m_current_camera_node_id{ 0 };
     std::unique_ptr<core::dx::d3d12::ConstantBufferDataMapper> m_scene_parameters_data_mapper;
 };
 
