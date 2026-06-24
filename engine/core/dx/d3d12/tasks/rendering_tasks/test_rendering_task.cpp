@@ -210,8 +210,8 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
 
          
         m_cb_reflection = p_vs_stage->buildConstantBufferReflection(std::string{ "ConstantData" });
-        m_cb_data_mapping.addDataBinding("ProjectionMatrix", m_projection_transform);
-        m_cb_data_mapping.addDataBinding("rotationAngle", m_box_rotation_angle);
+        m_cb_data_mapping.addOrUpdateDataBinding("ProjectionMatrix", m_projection_transform);
+        m_cb_data_mapping.addOrUpdateDataBinding("rotationAngle", m_box_rotation_angle);
     }
 }
 
