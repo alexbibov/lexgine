@@ -34,10 +34,17 @@ public:
     lexgine::core::math::Matrix4f const& localToParentTransform() const;
     lexgine::core::math::Matrix4f const& worldToLocalTransform() const;
     lexgine::core::math::Matrix4f const& localToWorldTransform() const;
+    lexgine::core::math::Vector4f const& worldPositionH() const;
+    lexgine::core::math::Vector3f worldPosition() const;
 
-    void translate(lexgine::core::math::Vector3f& translation_vector);
-    void rotate(lexgine::core::math::Vector3f& rotation_axis, float angle);
-    void scale(lexgine::core::math::Vector3f& scaling_vector);
+    //! Sets the node's local translation, replacing the previous translation component.
+    void setTranslation(lexgine::core::math::Vector3f const& translation_vector);
+
+    //! Sets the node's local rotation to @p angle radians about @p rotation_axis. The axis is normalized internally.
+    void setRotation(lexgine::core::math::Vector3f const& rotation_axis, float angle);
+
+    //! Sets the node's local per-axis scale, replacing the previous scale component.
+    void setScale(lexgine::core::math::Vector3f const& scaling_vector);
 
     void setLight(Light* light);
     void setCamera(Camera* camera);
@@ -48,6 +55,8 @@ public:
     Mesh* getMesh() const { return m_mesh_ptr; }
 
 private:
+    void recomputeLocalTransform();
+    void invalidateSubtree();
     void updateTransforms() const;
 
 private:
@@ -60,9 +69,13 @@ private:
     std::vector<Node*> m_lods;
     std::vector<Node*> m_children;
 
-    bool m_isDirty = true;
-    mutable lexgine::core::math::Matrix4f m_parent_to_local_transform;
-    mutable lexgine::core::math::Matrix4f m_local_to_parent_transform;
+    lexgine::core::math::Vector3f m_translation{ 0.f, 0.f, 0.f };
+    lexgine::core::math::Matrix4f m_rotation{ 1.f };
+    lexgine::core::math::Vector3f m_scale{ 1.f, 1.f, 1.f };
+
+    mutable bool m_is_dirty = true;
+    lexgine::core::math::Matrix4f m_parent_to_local_transform;
+    lexgine::core::math::Matrix4f m_local_to_parent_transform;
     mutable lexgine::core::math::Matrix4f m_world_to_local_transform;
     mutable lexgine::core::math::Matrix4f m_local_to_world_transform;
 };

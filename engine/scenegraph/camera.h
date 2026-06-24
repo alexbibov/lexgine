@@ -26,9 +26,11 @@ public:
     void setOrthographic(float left, float right, float bottom, float top, float near_z, float far_z);
     void setView(const glm::vec3& position, const glm::vec3& target, const glm::vec3& up);
 
-    glm::mat4 getViewMatrix() const;
-    glm::mat4 getProjectionMatrix() const;
-    glm::mat4 getViewProjectionMatrix() const;
+    lexgine::core::math::Matrix4f const& getViewMatrix() const;
+    lexgine::core::math::Matrix4f const& getProjectionMatrix() const;
+    lexgine::core::math::Matrix4f const& getInverseProjectionMatrix() const;
+    lexgine::core::math::Matrix4f const& getViewProjectionMatrix() const;
+    lexgine::core::math::Matrix4f const& getInverseViewProjectionMatrix() const;
     ProjectionType getProjectionType() const { return m_projection_type; }
 
     bool isAabbVisible(const glm::vec3& min, const glm::vec3& max);
@@ -42,6 +44,8 @@ private:
     lexgine::core::math::Matrix4f m_view_matrix;
     lexgine::core::math::Matrix4f m_projection_matrix;
     lexgine::core::math::Matrix4f m_view_projection_matrix;
+    lexgine::core::math::Matrix4f m_inv_projection_matrix;
+    lexgine::core::math::Matrix4f m_inv_view_projection_matrix;
 
     lexgine::core::math::Vector3f m_position;
     lexgine::core::math::Vector3f m_forward;

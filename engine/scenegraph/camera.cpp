@@ -17,15 +17,19 @@ Camera::Camera(std::string const& name)
     setStringName(name);
 }
 
-void Camera::setPerspective(float fov_y_degrees, float aspect, float near_z, float far_z, bool invert_depth/* = true*/) {
+void Camera::setPerspective(float fov_y_degrees, float aspect, float near_z, float far_z, bool invert_depth/* = true*/) 
+{
     m_projection_type = ProjectionType::Perspective;
     m_projection_matrix = core::math::createProjectionMatrix(aspect, fov_y_degrees, near_z, far_z, invert_depth);
+    m_inv_projection_matrix = glm::inverse(m_projection_matrix);
     updateFrustumPlanes();
 }
 
-void Camera::setOrthographic(float left, float right, float bottom, float top, float near_z, float far_z) {
+void Camera::setOrthographic(float left, float right, float bottom, float top, float near_z, float far_z) 
+{
     m_projection_type = ProjectionType::Orthographic;
     m_projection_matrix = core::math::createOrthogonalProjectionMatrix(left, top, right - left, bottom - top, near_z, far_z);
+    m_inv_projection_matrix = glm::inverse(m_projection_matrix);
     updateFrustumPlanes();
 }
 
@@ -37,20 +41,34 @@ void Camera::setView(const glm::vec3& pos, const glm::vec3& target, const glm::v
     updateFrustumPlanes();
 }
 
-glm::mat4 Camera::getViewMatrix() const {
+core::math::Matrix4f const& Camera::getViewMatrix() const 
+{
     return m_view_matrix;
 }
 
-glm::mat4 Camera::getProjectionMatrix() const {
+core::math::Matrix4f const& Camera::getProjectionMatrix() const
+{
     return m_projection_matrix;
 }
 
-glm::mat4 Camera::getViewProjectionMatrix() const {
+core::math::Matrix4f const& Camera::getInverseProjectionMatrix() const
+{
+    return m_inv_projection_matrix;
+}
+
+core::math::Matrix4f const& Camera::getViewProjectionMatrix() const 
+{
     return m_view_projection_matrix;
+}
+
+core::math::Matrix4f const& Camera::getInverseViewProjectionMatrix() const
+{
+    return m_inv_view_projection_matrix;
 }
 
 void Camera::updateFrustumPlanes() {
     m_view_projection_matrix = m_projection_matrix * m_view_matrix;
+    m_inv_view_projection_matrix = glm::inverse(m_view_projection_matrix);
     const glm::mat4& m = m_view_projection_matrix;
 
     m_frustum_planes[0] = glm::vec4(m[0][3] + m[0][0],
@@ -83,7 +101,8 @@ void Camera::updateFrustumPlanes() {
         m[2][3] - m[2][2],
         m[3][3] - m[3][2]);
 
-    for (auto& plane : m_frustum_planes) {
+    for (auto& plane : m_frustum_planes)
+    {
         float length = glm::length(glm::vec3(plane));
         plane /= length;
     }
@@ -102,6 +121,7 @@ bool Camera::isAabbVisible(const glm::vec3& min, const glm::vec3& max) {
     }
     return true;
 }
+
 
 
 }

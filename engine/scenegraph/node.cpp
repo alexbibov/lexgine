@@ -1,5 +1,8 @@
 #include "node.h"
 
+#include <algorithm>
+#include <cmath>
+
 
 namespace lexgine::scenegraph
 {
@@ -15,10 +18,14 @@ Node::Node()
 
 void Node::addChild(Node* child)
 {
+    if (child->m_parent)
+    {
+        child->m_parent->removeChild(child);
+    }
+
     m_children.push_back(child);
     child->m_parent = this;
-    child->m_isDirty = true;
-    child->m_parent_to_local_transform = child->m_local_to_parent_transform = lexgine::core::math::Matrix4f{ 1.f };
+    child->invalidateSubtree();
 }
 
 void Node::removeChild(Node* child)
@@ -27,7 +34,7 @@ void Node::removeChild(Node* child)
     if (it != m_children.end()) {
         m_children.erase(it);
         child->m_parent = nullptr;
-        child->m_isDirty = true;
+        child->invalidateSubtree();
     }
 }
 
@@ -55,57 +62,80 @@ lexgine::core::math::Matrix4f const& Node::localToWorldTransform() const
     return m_local_to_world_transform;
 }
 
-void Node::translate(lexgine::core::math::Vector3f& translation_vector)
+lexgine::core::math::Vector4f const& Node::worldPositionH() const
 {
-    m_isDirty = true;
-    lexgine::core::math::Matrix4f transform{
-        lexgine::core::math::Vector4f{1.f, 0.f, 0.f, 0.f},
-        lexgine::core::math::Vector4f{0.f, 1.f, 0.f, 0.f},
-        lexgine::core::math::Vector4f { 0.f, 0.f, 1.f, 0.f },
-        lexgine::core::math::Vector4f { translation_vector.x, translation_vector.y, translation_vector.z, 1.f }
-    };
-
-    lexgine::core::math::Matrix4f inverse_transform {
-        lexgine::core::math::Vector4f { 1.f, 0.f, 0.f, 0.f },
-        lexgine::core::math::Vector4f { 0.f, 1.f, 0.f, 0.f },
-        lexgine::core::math::Vector4f { 0.f, 0.f, 1.f, 0.f },
-        lexgine::core::math::Vector4f { -translation_vector.x, -translation_vector.y, -translation_vector.z, 1.f }
-    };
-
-    m_parent_to_local_transform = inverse_transform;
-    m_local_to_parent_transform = transform;
-
+    updateTransforms();
+    return m_local_to_world_transform[3];
 }
 
-void Node::rotate(lexgine::core::math::Vector3f& rotation_axis, float angle)
+lexgine::core::math::Vector3f Node::worldPosition() const
 {
-    lexgine::core::math::Matrix4f K{
-        lexgine::core::math::Vector4f{0.f, rotation_axis.z, -rotation_axis.y, 0.f},
-        lexgine::core::math::Vector4f{-rotation_axis.z, 0.f, rotation_axis.x, 0.f},
-        lexgine::core::math::Vector4f{rotation_axis.y, -rotation_axis.x, 0.f, 0.f},
-        lexgine::core::math::Vector4f{0.f, 0.f, 0.f, 1.f}
+    auto const& position_h = worldPositionH();
+    return lexgine::core::math::Vector3f{ position_h.x, position_h.y, position_h.z };
+}
+
+void Node::setTranslation(lexgine::core::math::Vector3f const& translation_vector)
+{
+    m_translation = translation_vector;
+    recomputeLocalTransform();
+    invalidateSubtree();
+}
+
+void Node::setRotation(lexgine::core::math::Vector3f const& rotation_axis, float angle)
+{
+    float const axis_length = std::sqrt(
+        rotation_axis.x * rotation_axis.x +
+        rotation_axis.y * rotation_axis.y +
+        rotation_axis.z * rotation_axis.z);
+
+    if (axis_length < 1e-6f)
+    {
+        m_rotation = lexgine::core::math::Matrix4f{ 1.f };
+    }
+    else
+    {
+        float const nx = rotation_axis.x / axis_length;
+        float const ny = rotation_axis.y / axis_length;
+        float const nz = rotation_axis.z / axis_length;
+
+        lexgine::core::math::Matrix4f K{
+            lexgine::core::math::Vector4f{ 0.f, nz, -ny, 0.f },
+            lexgine::core::math::Vector4f{ -nz, 0.f, nx, 0.f },
+            lexgine::core::math::Vector4f{ ny, -nx, 0.f, 0.f },
+            lexgine::core::math::Vector4f{ 0.f, 0.f, 0.f, 1.f }
+        };
+        m_rotation = lexgine::core::math::Matrix4f{ 1.f } + std::sin(angle) * K + (1.f - std::cos(angle)) * (K * K);
+    }
+
+    recomputeLocalTransform();
+    invalidateSubtree();
+}
+
+void Node::setScale(lexgine::core::math::Vector3f const& scaling_vector)
+{
+    m_scale = scaling_vector;
+    recomputeLocalTransform();
+    invalidateSubtree();
+}
+
+void Node::recomputeLocalTransform()
+{
+    lexgine::core::math::Matrix4f scale_transform{
+        lexgine::core::math::Vector4f{ m_scale.x, 0.f, 0.f, 0.f },
+        lexgine::core::math::Vector4f{ 0.f, m_scale.y, 0.f, 0.f },
+        lexgine::core::math::Vector4f{ 0.f, 0.f, m_scale.z, 0.f },
+        lexgine::core::math::Vector4f{ 0.f, 0.f, 0.f, 1.f }
     };
-    m_local_to_parent_transform = lexgine::core::math::Matrix4f{ 1.f } + std::sinf(angle) * K + (1.f - std::cosf(angle)) * (K * K);
+
+    lexgine::core::math::Matrix4f translation_transform{
+        lexgine::core::math::Vector4f{ 1.f, 0.f, 0.f, 0.f },
+        lexgine::core::math::Vector4f{ 0.f, 1.f, 0.f, 0.f },
+        lexgine::core::math::Vector4f{ 0.f, 0.f, 1.f, 0.f },
+        lexgine::core::math::Vector4f{ m_translation.x, m_translation.y, m_translation.z, 1.f }
+    };
+
+    m_local_to_parent_transform = translation_transform * m_rotation * scale_transform;
     m_parent_to_local_transform = glm::inverse(m_local_to_parent_transform);
-}
-
-void Node::scale(lexgine::core::math::Vector3f& scaling_vector)
-{
-    m_isDirty = true;
-    lexgine::core::math::Matrix4f transform {
-        lexgine::core::math::Vector4f { scaling_vector.x, 0.f, 0.f, 0.f },
-        lexgine::core::math::Vector4f { 0.f, scaling_vector.y, 0.f, 0.f },
-        lexgine::core::math::Vector4f { 0.f, 0.f, scaling_vector.z, 0.f },
-        lexgine::core::math::Vector4f { 0.f, 0.f, 0.f, 1.f }
-    };
-    lexgine::core::math::Matrix4f inverse_transform {
-        lexgine::core::math::Vector4f { 1.f / scaling_vector.x, 0.f, 0.f, 0.f },
-        lexgine::core::math::Vector4f { 0.f, 1.f / scaling_vector.y, 0.f, 0.f },
-        lexgine::core::math::Vector4f { 0.f, 0.f, 1.f / scaling_vector.z, 0.f },
-        lexgine::core::math::Vector4f { 0.f, 0.f, 0.f, 1.f }
-    };
-    m_parent_to_local_transform = inverse_transform;
-    m_local_to_parent_transform = transform;
 }
 
 void Node::setLight(Light* light)
@@ -129,28 +159,36 @@ void Node::setMesh(Mesh* mesh)
     m_light_ptr = nullptr;
 }
 
+void Node::invalidateSubtree()
+{
+    m_is_dirty = true;
+    for (Node* child : m_children)
+    {
+        child->invalidateSubtree();
+    }
+}
+
 void Node::updateTransforms() const
 {
-    if (!m_isDirty)
+    if (!m_is_dirty)
     {
         return;
     }
 
     if (!m_parent)
     {
-        m_parent_to_local_transform = m_local_to_parent_transform
-            = m_world_to_local_transform = m_local_to_world_transform = lexgine::core::math::Matrix4f{ 1.f };
+        m_world_to_local_transform = m_parent_to_local_transform;
+        m_local_to_world_transform = m_local_to_parent_transform;
     }
     else
     {
-        if (m_parent->m_isDirty)
-        {
-            m_parent->updateTransforms();
-        }
+        m_parent->updateTransforms();
 
-        m_world_to_local_transform = m_parent->m_world_to_local_transform * m_parent_to_local_transform;
-        m_local_to_world_transform = m_local_to_parent_transform * m_parent->m_local_to_world_transform;
+        m_world_to_local_transform = m_parent_to_local_transform * m_parent->m_world_to_local_transform;
+        m_local_to_world_transform = m_parent->m_local_to_world_transform * m_local_to_parent_transform;
     }
+
+    m_is_dirty = false;
 }
 
 }
