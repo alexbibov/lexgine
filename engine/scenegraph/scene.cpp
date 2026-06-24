@@ -208,6 +208,20 @@ uint32_t Scene::getLightId(core::misc::HashedString const& light_name) const
     return it != m_light_names_lut.end() ? static_cast<uint32_t>(it->second) : c_invalid_id;
 }
 
+void Scene::setCurrentCamera(uint32_t camear_id)
+{
+    m_current_camera_node_id = camear_id;
+    Node& current_camera_node = m_scene_nodes[m_current_camera_node_id];
+    Camera* p_current_camera = current_camera_node.getCamera();
+    m_camera_position = current_camera_node.worldPosition();
+    m_scene_parameters_data_mapper->addOrUpdateDataBinding("view", p_current_camera->getViewMatrix());
+    m_scene_parameters_data_mapper->addOrUpdateDataBinding("projection", p_current_camera->getProjectionMatrix());
+    m_scene_parameters_data_mapper->addOrUpdateDataBinding("view_projection", p_current_camera->getViewProjectionMatrix());
+    m_scene_parameters_data_mapper->addOrUpdateDataBinding("inv_projection", p_current_camera->getInverseProjectionMatrix());
+    m_scene_parameters_data_mapper->addOrUpdateDataBinding("inv_view_projection", p_current_camera->getInverseViewProjectionMatrix());
+    m_scene_parameters_data_mapper->addOrUpdateDataBinding("camera_position", m_camera_position);
+}
+
 Scene::Scene(
     core::Globals& globals,
     core::dx::d3d12::BasicRenderingServices& basic_rendering_services,
@@ -383,7 +397,25 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
 
         // Reserve up front so that Node* parent/child pointers captured during the
         // recursive walk are not invalidated by reallocation of m_scene_nodes
-        m_scene_nodes.reserve(model.nodes_count);
+        m_scene_nodes.reserve(model.nodes_count + 2);  // +2 extra nodes for default camera and light
+        
+        {
+            // Create default camera and light nodes
+
+            m_cameras.push_back(Camera{ "default_camera" });
+            Camera& default_camera = m_cameras.back();
+            m_scene_nodes.push_back(Node{});
+            m_scene_nodes.back().setStringName("default_camera_node");
+            m_scene_nodes.back().setCamera(&default_camera);
+            
+            m_lights.push_back(Light{ LightType::directional });
+            Light& default_light = m_lights.back();
+            default_light.setDirection({ 0, -1, 0 });
+            default_light.setIntensity(100.f);
+            default_light.setStringName("default_light");
+            m_scene_nodes.push_back(Node{});
+            m_scene_nodes.back().setLight(&default_light);
+        }
 
         for (uint32_t ni = 0; ni < scene.nodes_count; ++ni)
         {
@@ -584,6 +616,15 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
         p_pso_blob_cache->createPipelineStates();
     }
 
+    if(!m_materials.empty())
+    {
+        // Populate scene parameter data mappings
+        m_scene_parameters_data_mapper = std::make_unique<core::dx::d3d12::ConstantBufferDataMapper>(
+            m_materials[0].getStaticState().getSceneParametersUniformBufferReflection()
+        );
+        setCurrentCamera(0);
+    }
+
     return load_result;
 }
 
@@ -604,7 +645,7 @@ int Scene::readSceneNode(
         index_map.node_attachments[new_node_id].push_back(
             {
                 .attached_data_type = NodeDataType::light, 
-                .gltf_node_index = node.light 
+                .gltf_attachment_index = node.light 
             }
         );
     }
@@ -616,7 +657,7 @@ int Scene::readSceneNode(
         index_map.node_attachments[new_node_id].push_back(
             { 
                 .attached_data_type = NodeDataType::mesh, 
-                .gltf_node_index = node.mesh 
+                .gltf_attachment_index = node.mesh
             }
         );
         tg3_mesh const& mesh = model.meshes[node.mesh];
@@ -696,7 +737,7 @@ int Scene::readSceneNode(
         index_map.node_attachments[new_node_id].push_back(
             { 
                 .attached_data_type = NodeDataType::camera, 
-                .gltf_node_index = node.camera 
+                .gltf_attachment_index = node.camera
             }
         );
     }
@@ -707,7 +748,7 @@ int Scene::readSceneNode(
         index_map.node_attachments[new_node_id].push_back(
             { 
                 .attached_data_type = NodeDataType::skin, 
-                .gltf_node_index = node.skin
+                .gltf_attachment_index = node.skin
             }
         );
     }

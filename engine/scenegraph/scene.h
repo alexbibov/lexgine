@@ -58,6 +58,7 @@ public:
     Node const& getSceneNode(uint32_t node_id) const { return m_scene_nodes[node_id]; }
 
     void setCurrentCamera(uint32_t camear_id);
+    uint32_t getCurrentCamera() const { return m_current_camera_node_id; }
 
     SceneSource getSceneSource() const { return m_scene_source; }
     bool loadStatus() const;
@@ -286,6 +287,7 @@ private:
     std::unordered_map<size_t, MaterialAttachment> m_material_attachements;
 
     uint32_t m_current_camera_node_id{ 0 };
+    core::math::Vector3f m_camera_position;
     std::unique_ptr<core::dx::d3d12::ConstantBufferDataMapper> m_scene_parameters_data_mapper;
 };
 

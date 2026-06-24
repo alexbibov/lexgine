@@ -180,19 +180,19 @@ Material::Material(MaterialStaticState const& material_static_state)
     : m_material_static_state{ material_static_state }
     , m_material_parameters_cb_data_mapper{ material_static_state.getMaterialParametersUniformBufferReflection() }
 {
-    m_material_parameters_cb_data_mapper.addDataBinding("emissive_factor", m_emissive_factor);
-    m_material_parameters_cb_data_mapper.addDataBinding("alpha_mode", static_cast<unsigned int>(m_alpha_mode));
-    m_material_parameters_cb_data_mapper.addDataBinding("alpha_cutoff", m_alpha_cutoff);
-    m_material_parameters_cb_data_mapper.addDataBinding("is_double_sided", m_is_double_sided);
-    m_material_parameters_cb_data_mapper.addDataBinding("base_color_factor", m_base_color_factor);
-    m_material_parameters_cb_data_mapper.addDataBinding("metallic_factor", m_metallic_factor);
-    m_material_parameters_cb_data_mapper.addDataBinding("roughness_factor", m_roughness_factor);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("emissive_factor", m_emissive_factor);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("alpha_mode", static_cast<unsigned int>(m_alpha_mode));
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("alpha_cutoff", m_alpha_cutoff);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("is_double_sided", m_is_double_sided);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("base_color_factor", m_base_color_factor);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("metallic_factor", m_metallic_factor);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("roughness_factor", m_roughness_factor);
 
-    m_material_parameters_cb_data_mapper.addDataBinding("normal_tex_index", m_normal_texture_binding_id);
-    m_material_parameters_cb_data_mapper.addDataBinding("srv_occlusion", m_occlusion_texture_binding_id);
-    m_material_parameters_cb_data_mapper.addDataBinding("emissive_tex_index", m_emissive_texture_binding_id);
-    m_material_parameters_cb_data_mapper.addDataBinding("albedo_tex_index", m_base_color_texture_binding_id);
-    m_material_parameters_cb_data_mapper.addDataBinding("mr_tex_index", m_metallic_roughness_texture_binding_id);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("normal_tex_index", m_normal_texture_binding_id);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("srv_occlusion", m_occlusion_texture_binding_id);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("emissive_tex_index", m_emissive_texture_binding_id);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("albedo_tex_index", m_base_color_texture_binding_id);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("mr_tex_index", m_metallic_roughness_texture_binding_id);
 }
 
 void Material::setStringName(std::string const& entity_string_name)
