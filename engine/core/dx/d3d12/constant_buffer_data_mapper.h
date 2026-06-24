@@ -1,7 +1,7 @@
 #ifndef LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_DATA_MAPPER_H
 #define LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_DATA_MAPPER_H
 
-#include <list>
+#include <unordered_map>
 #include "engine/core/misc/hashed_string.h"
 #include "engine/core/misc/static_vector.h"
 #include "engine/core/math/vector_types.h"
@@ -93,10 +93,9 @@ public:
     ConstantBufferDataMapper(ConstantBufferDataMapper&&) noexcept = default;
 
     template<typename T>
-    void addDataBinding(std::string const& target_variable_name, T const& data_source)
+    void addOrUpdateDataBinding(std::string const& target_variable_name, T const& data_source)
     {
-        m_writers.emplace_back(misc::HashedString{ target_variable_name },
-            std::unique_ptr<AbstractConstantDataProvider>{new ConstantDataProvider<std::remove_const_t<std::remove_reference_t<T>>>{ data_source }});
+        m_writers[target_variable_name] = std::make_unique<ConstantDataProvider<std::remove_all_extents_t<T>>>(data_source);
     }
 
     void writeAllBoundData(uint64_t constant_buffer_allocation_base_address) const;
@@ -105,7 +104,7 @@ public:
 
 private:
     ConstantBufferReflection const& m_reflection;
-    std::vector<std::pair<misc::HashedString, std::unique_ptr<AbstractConstantDataProvider>>> m_writers;
+    std::unordered_map<misc::HashedString, std::unique_ptr<AbstractConstantDataProvider>> m_writers;
 };
 
 }

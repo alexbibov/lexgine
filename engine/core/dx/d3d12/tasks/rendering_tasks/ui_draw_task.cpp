@@ -593,7 +593,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
         m_rs_handle = m_shader_function.buildBindingSignature();
 
         m_constant_buffer_reflection = p_vs_stage->buildConstantBufferReflection(std::string{ "constants" });
-        m_constant_data_mapper.addDataBinding("ProjectionMatrix", m_projection_matrix);
+        m_constant_data_mapper.addOrUpdateDataBinding("ProjectionMatrix", m_projection_matrix);
 
         DescriptorHeap& resource_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav, 0);
         DescriptorHeap& sampler_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler, 0);
