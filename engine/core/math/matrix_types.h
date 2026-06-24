@@ -7,9 +7,15 @@
 
 namespace lexgine::core::math {
 
+template<typename T, uint32_t nelements, glm::qualifier Q>
+class vector;
+
 template<typename T, uint32_t nrows, uint32_t ncolumns, glm::qualifier Q>
 class matrix : public glm::mat<ncolumns, nrows, T, Q>
 {
+public:
+    using ColumnType = vector<T, nrows, Q>;
+
 public:
     using glm::mat<ncolumns, nrows, T, Q>::mat;
 
@@ -20,6 +26,16 @@ public:
     }
 
 public:
+    ColumnType& operator[](glm::length_t column_index)
+    {
+        return reinterpret_cast<ColumnType&>(glm::mat<ncolumns, nrows, T, Q>::operator[](column_index));
+    }
+
+    ColumnType const& operator[](glm::length_t column_index) const
+    {
+        return reinterpret_cast<ColumnType const&>(glm::mat<ncolumns, nrows, T, Q>::operator[](column_index));
+    }
+
     typename glm::mat<ncolumns, nrows, T, Q>::transpose_type transpose() const
     {
         return glm::transpose(*this);
@@ -41,6 +57,9 @@ template<typename T, uint32_t order, glm::qualifier Q>
 class matrix<T, order, order, Q> : public glm::mat<order, order, T, Q>
 {
 public:
+    using ColumnType = vector<T, order, Q>;
+
+public:
     using glm::mat<order, order, T, Q>::mat;
 
     matrix(glm::mat<order, order, T, Q> const& m)
@@ -50,6 +69,16 @@ public:
     }
 
 public:
+    ColumnType& operator[](glm::length_t column_index)
+    {
+        return reinterpret_cast<ColumnType&>(glm::mat<order, order, T, Q>::operator[](column_index));
+    }
+
+    ColumnType const& operator[](glm::length_t column_index) const
+    {
+        return reinterpret_cast<ColumnType const&>(glm::mat<order, order, T, Q>::operator[](column_index));
+    }
+
     typename glm::mat<order, order, T, Q>::transpose_type transpose() const
     {
         return glm::transpose(*this);
