@@ -9,16 +9,16 @@
 
 namespace lexgine::scenegraph {
 
-class Node : public core::NamedEntity<Node>
+class Node final : public core::NamedEntity<Node>
 {
 public:
     Node();
-
     Node(Node const&) = delete;
-    Node(Node&&) = default;
+    Node(Node&& other) noexcept;
+    ~Node() noexcept;
 
     Node& operator=(Node const&) = delete;
-    Node& operator=(Node&&) = default;
+    Node& operator=(Node&& other) noexcept;
 
     Node* getParent() { return m_parent; }
     Node const* getParent() const { return const_cast<Node*>(this)->getParent(); }
