@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 
 namespace lexgine::scenegraph
@@ -16,6 +17,95 @@ Node::Node()
 
 }
 
+Node::Node(Node&& other) noexcept
+    : core::NamedEntity<Node>{ std::move(other)}
+    , m_light_ptr{ other.m_light_ptr }
+    , m_camera_ptr{ other.m_camera_ptr }
+    , m_mesh_ptr{ other.m_mesh_ptr }
+    , m_translation{ other.m_translation }
+    , m_rotation{ other.m_rotation }
+    , m_scale{ other.m_scale }
+    , m_parent_to_local_transform{ other.m_parent_to_local_transform }
+    , m_local_to_parent_transform{ other.m_local_to_parent_transform }
+    , m_world_to_local_transform{ other.m_world_to_local_transform }
+    , m_local_to_world_transform{ other.m_local_to_world_transform }
+{
+    std::swap(m_lods, other.m_lods);
+    if (Node* parent = other.m_parent)
+    {
+        parent->removeChild(&other);
+        parent->addChild(this);
+    }
+    std::swap(m_children, other.m_children);
+    for (Node* n : m_children)
+    {
+        n->m_parent = this;
+    }
+    invalidateSubtree();
+}
+
+Node::~Node() noexcept
+{
+    if (m_parent)
+    {
+        m_parent->removeChild(this);
+        m_parent = nullptr;
+    }
+    for (Node* n : m_children)
+    {
+        n->m_parent = nullptr;
+        n->invalidateSubtree();
+    }
+}
+
+Node& Node::operator=(Node&& other) noexcept
+{
+    if (this == &other)
+        return *this;
+
+    if (m_parent)
+    {
+        m_parent->removeChild(this);
+    }
+    for (Node* n : m_children)
+    {
+        n->m_parent = nullptr;
+        n->invalidateSubtree();
+    }
+    m_children.clear();
+
+    core::NamedEntity<Node>::operator=(std::move(other));
+
+    m_light_ptr = other.m_light_ptr;
+    m_camera_ptr = other.m_camera_ptr;
+    m_mesh_ptr = other.m_mesh_ptr;
+    m_translation = other.m_translation;
+    m_rotation = other.m_rotation;
+    m_scale = other.m_scale;
+    m_parent_to_local_transform = other.m_parent_to_local_transform;
+    m_local_to_parent_transform = other.m_local_to_parent_transform;
+    m_world_to_local_transform = other.m_world_to_local_transform;
+    m_local_to_world_transform = other.m_local_to_world_transform;
+
+    m_lods = std::move(other.m_lods);
+
+    if (Node* parent = other.m_parent)
+    {
+        parent->removeChild(&other);
+        parent->addChild(this);
+    }
+
+    m_children = std::move(other.m_children);
+    for (Node* n : m_children)
+    {
+        n->m_parent = this;
+    }
+
+    invalidateSubtree();
+
+    return *this;
+}
+
 void Node::addChild(Node* child)
 {
     if (child->m_parent)
@@ -25,7 +115,11 @@ void Node::addChild(Node* child)
 
     m_children.push_back(child);
     child->m_parent = this;
-    child->invalidateSubtree();
+
+    if (!child->m_is_dirty)
+    {
+        child->invalidateSubtree();
+    }
 }
 
 void Node::removeChild(Node* child)
