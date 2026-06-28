@@ -16,14 +16,10 @@ SubmeshRenderingTask::SubmeshRenderingTask(Globals& globals, BasicRenderingServi
 }
 
 
-void SubmeshRenderingTask::setSourceScene(std::shared_ptr<scenegraph::Scene> const& source_scene)
-{
-    m_source_scene = source_scene;
-
-}
-
-
-void SubmeshRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags update_flags, RenderingConfiguration const& rendering_configuration)
+void SubmeshRenderingTask::updateRenderingConfiguration(
+    RenderingConfigurationUpdateFlags update_flags,
+    RenderingConfiguration const& rendering_configuration
+)
 {
 
 }

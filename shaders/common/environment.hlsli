@@ -18,7 +18,7 @@ struct EnvironmentData {
 #define MATERIAL_DATA_TEXTURE_USAGE_METALLIC_ROUGHNESS 0x4
 #define MATERIAL_DATA_TEXTURE_USAGE_EMISSIVE           0x8
 
-ConstantBuffer<EnvironmentData> environment_data : register(b0, SHADER_FUNCTION_SPACE);
+ConstantBuffer<EnvironmentData> environment_data : register(SCENE_DATA_REGISTER, SHADER_FUNCTION_SPACE);
 SamplerState linear_sampler : register(s0); // Shared sampler
 
 // G-buffer structure (output per-fragment)

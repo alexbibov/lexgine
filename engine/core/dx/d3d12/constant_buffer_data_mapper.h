@@ -2,6 +2,8 @@
 #define LEXGINE_CORE_DX_D3D12_CONSTANT_BUFFER_DATA_MAPPER_H
 
 #include <unordered_map>
+#include <vector>
+#include <span>
 #include "engine/core/misc/hashed_string.h"
 #include "engine/core/misc/static_vector.h"
 #include "engine/core/math/vector_types.h"
@@ -54,7 +56,7 @@ public:
 
     void const* fetchDataElement(size_t element_index /* = 0U */) const override
     {
-        return ConstantElementProvider<T>::fetch(m_value);
+        return ConstantElementProvider<std::remove_cv_t<T>>::fetch(m_value);
     }
 
     size_t dataElementCount() const override { return 1; }
@@ -63,11 +65,11 @@ private:
     T const& m_value;
 };
 
-template<typename T> class ConstantDataProvider<std::vector<T>> 
+template<typename T> class ConstantDataProvider<std::span<T>> 
     : public AbstractConstantDataProvider
 {
 public:
-    ConstantDataProvider(std::vector<T> const& value)
+    ConstantDataProvider(std::span<T> const& value)
         : m_value{ value }
     {
 
@@ -82,8 +84,9 @@ public:
     size_t dataElementCount() const override { return m_value.size(); }
 
 private:
-    std::vector<T> const& m_value;
+    std::span<T> m_value;
 };
+
 
 
 class ConstantBufferDataMapper final

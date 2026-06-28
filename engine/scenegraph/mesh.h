@@ -2,6 +2,7 @@
 #define LEXGINE_SCENEGRAPH_MESH_H
 
 #include <vector>
+#include <functional>
 
 #include "material.h"
 #include "engine/core/vertex_attributes.h"
@@ -19,12 +20,23 @@ public:
 
     }
 
+    Mesh(Mesh const&) = delete;
+    Mesh(Mesh&&) noexcept = default;
+
+    ~Mesh() = default;
+
+    Mesh& operator=(Mesh const&) = delete;
+    Mesh& operator=(Mesh&&) noexcept = default;
+
     size_t addSubmesh(Submesh&& submesh);
     void clearSubmeshes() { m_submeshes.clear(); }
     size_t getSubmeshCount() const { return m_submeshes.size(); }
 
     Submesh const& getSubmesh(size_t index) const { return m_submeshes[index]; }
     Submesh& getSubmesh(size_t index) { return m_submeshes[index]; }
+
+    void forEachSubmesh(std::function<void(Submesh&)> const& op);
+    void forEachSubmesh(std::function<void(Submesh const&)> const& op) const;
 
     void applyMorphWeights(std::vector<double> const& morph_target_weights) { m_morph_weights = morph_target_weights; }
 

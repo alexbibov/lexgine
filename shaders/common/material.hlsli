@@ -3,10 +3,6 @@
 
 #include "common/common.hlsli"
 
-struct ObjectData {
-    float4x4 model;
-};
-
 struct MaterialData {
     float3 base_color_factor;
     float metallic_factor;
@@ -25,7 +21,6 @@ struct MaterialData {
     uint usage_flags; // Bitmask for texture usage
 };
 
-ConstantBuffer<ObjectData> object_data : register(b1, SHADER_FUNCTION_SPACE);
-ConstantBuffer<MaterialData> material_data : register(b2, SHADER_FUNCTION_SPACE);
+ConstantBuffer<MaterialData> material_data : register(MATERIAL_DATA_REGISTER, SHADER_FUNCTION_SPACE);
 
 #endif
