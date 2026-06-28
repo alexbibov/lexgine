@@ -1,4 +1,5 @@
 #include "common/environment.hlsli"
+#include "common/object.hlsli"
 #include "common/material.hlsli"
 
 struct VSInput {

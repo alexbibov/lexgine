@@ -1,6 +1,7 @@
 #include "engine/core/dx/d3d12/resource.h"
 
 #include "submesh.h"
+#include "material.h"
 
 namespace lexgine::scenegraph
 {
@@ -55,6 +56,14 @@ void Submesh::setIndexBuffer(SceneMemoryBufferHandle const& buffer_handle, core:
         index_data_type,
         index_count
     };
+}
+
+void Submesh::setBaseMaterial(Material* p_material)
+{
+    m_base_material_ptr = p_material;
+    m_object_parameters_data_mapper = std::make_unique<core::dx::d3d12::ConstantBufferDataMapper>(
+        p_material->getStaticState().getObjectParametersUniformBufferReflection()
+    );
 }
 
 }

@@ -28,7 +28,10 @@ public:
         return std::shared_ptr<SubmeshRenderingTask>{new SubmeshRenderingTask{ globals, rendering_services }};
     }
 
-    void setSourceScene(std::shared_ptr<scenegraph::Scene> const& source_scene);
+    void setSourceScene(std::shared_ptr<scenegraph::Scene> const& source_scene)
+    {
+        m_source_scene = source_scene;
+    }
 
 public:  // Required by RenderinWork
     void updateRenderingConfiguration(

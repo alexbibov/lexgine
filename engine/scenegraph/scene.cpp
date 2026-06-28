@@ -1,6 +1,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <future>
 #include <numeric>
 #include <thread>
@@ -196,6 +197,225 @@ std::shared_ptr<Scene> Scene::loadScene(
     return rv;
 }
 
+#pragma region SceneNode
+Scene::Node::Node(Scene* owner, uint32_t self_id)
+    : m_owner{ owner }
+    , m_self_id{ self_id }
+    , m_parent_to_local_transform{ 1.f }
+    , m_local_to_parent_transform{ 1.f }
+    , m_world_to_local_transform{ 1.f }
+    , m_local_to_world_transform{ 1.f }
+{
+
+}
+
+void Scene::Node::addChild(uint32_t child_id)
+{
+    Node& child = m_owner->m_scene_nodes[child_id];
+    if (child.m_parent_id != c_invalid_id)
+    {
+        m_owner->m_scene_nodes[child.m_parent_id].removeChild(child_id);
+    }
+
+    m_children.push_back(child_id);
+    child.m_parent_id = m_self_id;
+
+    if (!child.m_is_dirty)
+    {
+        child.invalidateSubtree();
+    }
+}
+
+void Scene::Node::removeChild(uint32_t child_id)
+{
+    auto it = std::find(m_children.begin(), m_children.end(), child_id);
+    if (it != m_children.end())
+    {
+        m_children.erase(it);
+        Node& child = m_owner->m_scene_nodes[child_id];
+        child.m_parent_id = c_invalid_id;
+        child.invalidateSubtree();
+    }
+}
+
+core::math::Matrix4f const& Scene::Node::parentToLocalTransform() const
+{
+    updateTransforms();
+    return m_parent_to_local_transform;
+}
+
+core::math::Matrix4f const& Scene::Node::localToParentTransform() const
+{
+    updateTransforms();
+    return m_local_to_parent_transform;
+}
+
+core::math::Matrix4f const& Scene::Node::worldToLocalTransform() const
+{
+    updateTransforms();
+    return m_world_to_local_transform;
+}
+
+core::math::Matrix4f const& Scene::Node::localToWorldTransform() const
+{
+    updateTransforms();
+    return m_local_to_world_transform;
+}
+
+core::math::Vector4f const& Scene::Node::worldPositionH() const
+{
+    updateTransforms();
+    return m_local_to_world_transform[3];
+}
+
+core::math::Vector3f Scene::Node::worldPosition() const
+{
+    auto const& position_h = worldPositionH();
+    return core::math::Vector3f{ position_h.x, position_h.y, position_h.z };
+}
+
+void Scene::Node::setTranslation(core::math::Vector3f const& translation_vector)
+{
+    m_translation = translation_vector;
+    recomputeLocalTransform();
+    invalidateSubtree();
+}
+
+void Scene::Node::setRotation(core::math::Vector3f const& rotation_axis, float angle)
+{
+    float const axis_length = std::sqrt(
+        rotation_axis.x * rotation_axis.x +
+        rotation_axis.y * rotation_axis.y +
+        rotation_axis.z * rotation_axis.z);
+
+    if (axis_length < 1e-6f)
+    {
+        m_rotation = core::math::Matrix4f{ 1.f };
+    }
+    else
+    {
+        float const nx = rotation_axis.x / axis_length;
+        float const ny = rotation_axis.y / axis_length;
+        float const nz = rotation_axis.z / axis_length;
+
+        core::math::Matrix4f K{
+            core::math::Vector4f{ 0.f, nz, -ny, 0.f },
+            core::math::Vector4f{ -nz, 0.f, nx, 0.f },
+            core::math::Vector4f{ ny, -nx, 0.f, 0.f },
+            core::math::Vector4f{ 0.f, 0.f, 0.f, 1.f }
+        };
+        m_rotation = core::math::Matrix4f{ 1.f } + std::sin(angle) * K + (1.f - std::cos(angle)) * (K * K);
+    }
+
+    recomputeLocalTransform();
+    invalidateSubtree();
+}
+
+void Scene::Node::setScale(core::math::Vector3f const& scaling_vector)
+{
+    m_scale = scaling_vector;
+    recomputeLocalTransform();
+    invalidateSubtree();
+}
+
+void Scene::Node::recomputeLocalTransform()
+{
+    core::math::Matrix4f scale_transform{
+        core::math::Vector4f{ m_scale.x, 0.f, 0.f, 0.f },
+        core::math::Vector4f{ 0.f, m_scale.y, 0.f, 0.f },
+        core::math::Vector4f{ 0.f, 0.f, m_scale.z, 0.f },
+        core::math::Vector4f{ 0.f, 0.f, 0.f, 1.f }
+    };
+
+    core::math::Matrix4f translation_transform{
+        core::math::Vector4f{ 1.f, 0.f, 0.f, 0.f },
+        core::math::Vector4f{ 0.f, 1.f, 0.f, 0.f },
+        core::math::Vector4f{ 0.f, 0.f, 1.f, 0.f },
+        core::math::Vector4f{ m_translation.x, m_translation.y, m_translation.z, 1.f }
+    };
+
+    m_local_to_parent_transform = translation_transform * m_rotation * scale_transform;
+    m_parent_to_local_transform = glm::inverse(m_local_to_parent_transform);
+}
+
+void Scene::Node::setLight(uint32_t light_id)
+{
+    m_light_id = light_id;
+    m_camera_id = c_invalid_id;
+    m_mesh_id = c_invalid_id;
+}
+
+void Scene::Node::setCamera(uint32_t camera_id)
+{
+    m_camera_id = camera_id;
+    m_light_id = c_invalid_id;
+    m_mesh_id = c_invalid_id;
+}
+
+void Scene::Node::setMesh(uint32_t mesh_id)
+{
+    m_mesh_id = mesh_id;
+    m_camera_id = c_invalid_id;
+    m_light_id = c_invalid_id;
+}
+
+void Scene::Node::invalidateSubtree()
+{
+    m_is_dirty = true;
+    for (uint32_t child_id : m_children)
+    {
+        m_owner->m_scene_nodes[child_id].invalidateSubtree();
+    }
+}
+
+void Scene::Node::updateTransforms() const
+{
+    if (!m_is_dirty)
+    {
+        return;
+    }
+
+    if (m_parent_id == c_invalid_id)
+    {
+        m_world_to_local_transform = m_parent_to_local_transform;
+        m_local_to_world_transform = m_local_to_parent_transform;
+    }
+    else
+    {
+        Node const& parent = m_owner->m_scene_nodes[m_parent_id];
+        parent.updateTransforms();
+
+        m_world_to_local_transform = m_parent_to_local_transform * parent.m_world_to_local_transform;
+        m_local_to_world_transform = parent.m_local_to_world_transform * m_local_to_parent_transform;
+    }
+
+    m_is_dirty = false;
+}
+#pragma endregion SceneNode
+
+void Scene::removeNode(uint32_t node_id)
+{
+    Node& node = m_scene_nodes[node_id];
+
+    uint32_t const parent_id = node.getParentId();
+    if (parent_id != c_invalid_id)
+    {
+        m_scene_nodes[parent_id].removeChild(node_id);
+    }
+
+    // Orphan children. Copy the id list first since removeChild mutates the child vector.
+    std::vector<uint32_t> const children = node.children();
+    for (uint32_t child_id : children)
+    {
+        node.removeChild(child_id);
+    }
+}
+
+void Scene::updateGeometryTransforms()
+{
+    
+}
+
 uint32_t Scene::getCameraId(core::misc::HashedString const& camera_name) const
 {
     auto it = m_camera_names_lut.find(camera_name);
@@ -212,14 +432,14 @@ void Scene::setCurrentCamera(uint32_t camear_id)
 {
     m_current_camera_node_id = camear_id;
     Node& current_camera_node = m_scene_nodes[m_current_camera_node_id];
-    Camera* p_current_camera = current_camera_node.getCamera();
-    m_camera_position = current_camera_node.worldPosition();
-    m_scene_parameters_data_mapper->addOrUpdateDataBinding("view", p_current_camera->getViewMatrix());
-    m_scene_parameters_data_mapper->addOrUpdateDataBinding("projection", p_current_camera->getProjectionMatrix());
-    m_scene_parameters_data_mapper->addOrUpdateDataBinding("view_projection", p_current_camera->getViewProjectionMatrix());
-    m_scene_parameters_data_mapper->addOrUpdateDataBinding("inv_projection", p_current_camera->getInverseProjectionMatrix());
-    m_scene_parameters_data_mapper->addOrUpdateDataBinding("inv_view_projection", p_current_camera->getInverseViewProjectionMatrix());
-    m_scene_parameters_data_mapper->addOrUpdateDataBinding("camera_position", m_camera_position);
+    Camera& current_camera = m_cameras[current_camera_node.getCamera()];
+    m_current_camera_position = current_camera_node.worldPosition();
+    m_scene_parameters_data_mapper->addOrUpdateDataBinding("view", current_camera.getViewMatrix());
+    m_scene_parameters_data_mapper->addOrUpdateDataBinding("projection", current_camera.getProjectionMatrix());
+    m_scene_parameters_data_mapper->addOrUpdateDataBinding("view_projection", current_camera.getViewProjectionMatrix());
+    m_scene_parameters_data_mapper->addOrUpdateDataBinding("inv_projection", current_camera.getInverseProjectionMatrix());
+    m_scene_parameters_data_mapper->addOrUpdateDataBinding("inv_view_projection", current_camera.getInverseViewProjectionMatrix());
+    m_scene_parameters_data_mapper->addOrUpdateDataBinding("camera_position", m_current_camera_position);
 }
 
 Scene::Scene(
@@ -395,28 +615,28 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
     {
         tg3_scene const& scene = model.scenes[scene_index];
 
-        // Reserve up front so that Node* parent/child pointers captured during the
-        // recursive walk are not invalidated by reallocation of m_scene_nodes
-        m_scene_nodes.reserve(model.nodes_count + 2);  // +2 extra nodes for default camera and light
-        
         {
             // Create default camera and light nodes
 
             m_cameras.push_back(Camera{ "default_camera" });
-            Camera& default_camera = m_cameras.back();
-            m_scene_nodes.push_back(Node{});
+            uint32_t const default_camera_id = static_cast<uint32_t>(m_cameras.size() - 1);
+            uint32_t const default_camera_node_id = static_cast<uint32_t>(m_scene_nodes.size());
+            m_scene_nodes.emplace_back(this, default_camera_node_id);
             m_scene_nodes.back().setStringName("default_camera_node");
-            m_scene_nodes.back().setCamera(&default_camera);
-            
+            m_scene_nodes.back().setCamera(default_camera_id);
+
             m_lights.push_back(Light{ LightType::directional });
             Light& default_light = m_lights.back();
             default_light.setDirection({ 0, -1, 0 });
             default_light.setIntensity(100.f);
             default_light.setStringName("default_light");
-            m_scene_nodes.push_back(Node{});
-            m_scene_nodes.back().setLight(&default_light);
+            uint32_t const default_light_id = static_cast<uint32_t>(m_lights.size() - 1);
+            uint32_t const default_light_node_id = static_cast<uint32_t>(m_scene_nodes.size());
+            m_scene_nodes.emplace_back(this, default_light_node_id);
+            m_scene_nodes.back().setLight(default_light_id);
         }
 
+        m_total_submesh_count = 0;
         for (uint32_t ni = 0; ni < scene.nodes_count; ++ni)
         {
             int node_id = scene.nodes[ni];
@@ -581,22 +801,24 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
             {
             case NodeDataType::light:
             {
-                Light& l = m_lights[index_map.light_ids.at(d.gltf_attachment_index)];
-                n.setLight(&l);
+                uint32_t const light_id = static_cast<uint32_t>(index_map.light_ids.at(d.gltf_attachment_index));
+                Light& l = m_lights[light_id];
+                n.setLight(light_id);
                 m_light_names_lut.emplace(std::make_pair(core::misc::HashedString{ l.getStringName() }, static_cast<size_t>(node_index_in_scene)));
                 break;
             }
             case NodeDataType::camera:
             {
-                Camera& c = m_cameras[index_map.camera_ids.at(d.gltf_attachment_index)];
-                n.setCamera(&c);
+                uint32_t const camera_id = static_cast<uint32_t>(index_map.camera_ids.at(d.gltf_attachment_index));
+                Camera& c = m_cameras[camera_id];
+                n.setCamera(camera_id);
                 m_camera_names_lut.emplace(std::make_pair(core::misc::HashedString{ c.getStringName() }, static_cast<size_t>(node_index_in_scene)));
                 break;
             }
             case NodeDataType::mesh:
             {
-                Mesh& m = m_scene_meshes[index_map.mesh_ids.at(d.gltf_attachment_index)];
-                n.setMesh(&m);
+                uint32_t const mesh_id = static_cast<uint32_t>(index_map.mesh_ids.at(d.gltf_attachment_index));
+                n.setMesh(mesh_id);
                 break;
             }
             case NodeDataType::skin:
@@ -625,6 +847,8 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
         setCurrentCamera(0);
     }
 
+    buildDraws();
+
     return load_result;
 }
 
@@ -635,9 +859,8 @@ int Scene::readSceneNode(
 )
 {
     int new_node_id = static_cast<int>(m_scene_nodes.size());
-    m_scene_nodes.emplace_back();
-    Node& current_node = m_scene_nodes.back();
-    current_node.setStringName(std::string(node.name.data, node.name.len));
+    m_scene_nodes.emplace_back(this, static_cast<uint32_t>(new_node_id));
+    m_scene_nodes[new_node_id].setStringName(std::string(node.name.data, node.name.len));
 
     if (node.light >= 0)
     {
@@ -728,6 +951,11 @@ int Scene::readSceneNode(
                     if (sampler_id >= 0) index_map.sampler_ids.insert({ sampler_id, -1 });
                 }
             }
+
+            if (p.indices >= 0 && p.attributes_count > 0 && p.material >= 0)
+            {
+                ++m_total_submesh_count;
+            }
         }
     }
 
@@ -758,8 +986,7 @@ int Scene::readSceneNode(
         int32_t child_node_index = node.children[i];
         tg3_node const& gltf_node = model.nodes[child_node_index];
         int node_scene_id = readSceneNode(model, gltf_node, index_map);
-        Node& child_node = m_scene_nodes[node_scene_id];
-        current_node.addChild(&child_node);
+        m_scene_nodes[new_node_id].addChild(static_cast<uint32_t>(node_scene_id));
     }
 
     return new_node_id;
@@ -1156,6 +1383,14 @@ Scene::MaterialStaticStateCreateInfoSet::const_iterator
     material_ss_create_info.vertex_data_format = vertex_attributes;
     auto [it, _] = m_material_static_state_create_infos.insert(material_ss_create_info);
     return it;
+}
+
+void Scene::buildDraws()
+{
+    for (Node& n : m_scene_nodes)
+    {
+
+    }
 }
 
 #pragma endregion

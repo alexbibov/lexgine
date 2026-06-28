@@ -4,7 +4,8 @@
 #include <optional>
 
 #include <glm/glm.hpp>
-#include <engine/core/entity.h>
+
+#include "engine/core/entity.h"
 
 namespace lexgine::scenegraph {
 

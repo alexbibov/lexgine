@@ -9,7 +9,6 @@ class Scene;
 class SceneMeshMemory;
 class BufferView;
 class Mesh;
-class Node;
 class Light;
 class Camera;
 struct SceneUniformBuffer;
