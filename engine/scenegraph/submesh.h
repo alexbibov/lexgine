@@ -7,12 +7,11 @@
 #include "engine/core/vertex_attributes.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/vertex_buffer_binding.h"
+#include "engine/scenegraph/lexgine_scenegraph_fwd.h"
 #include "engine/scenegraph/scene_mesh_memory.h"
 
 namespace lexgine::scenegraph
 {
-
-class Material;
 
 enum class SubmeshTopology
 {
@@ -31,10 +30,12 @@ class Submesh final : public core::NamedEntity<Submesh>
     friend class Mesh;
 
 public:
-    Submesh(SceneMeshMemory const& scene_mesh_memory);
+    Submesh(Scene const& owner);
     Submesh(Submesh&&) noexcept = default;
     Submesh& operator=(Submesh&&) noexcept = default;
     ~Submesh() = default;
+
+    Scene const& getScene() const { return m_owner; }
 
     void setVertexBuffer(
         size_t input_slot,
@@ -50,15 +51,16 @@ public:
 
     size_t getInstanceCount() const { return m_instance_count; }
     void setIndexBuffer(SceneMemoryBufferHandle const& buffer_handle, core::dx::d3d12::IndexDataType index_data_type);
-    void setBaseMaterial(Material* p_material);
-    Material* getBaseMaterial() const { return m_base_material_ptr; }
+    void setBaseMaterial(uint32_t material_id);
+    uint32_t getBaseMaterial() const { return m_base_material_id; }
 
 private:
-    SceneMeshMemory const& m_scene_mesh_memory;
+    Scene const& m_owner;
+    SceneMemory const& m_scene_memory;
     core::dx::d3d12::VertexBufferBinding m_vb_binding;
     core::dx::d3d12::IndexBufferBinding m_ib_binding;
     size_t m_instance_count;
-    Material* m_base_material_ptr{ nullptr };
+    uint32_t m_base_material_id{ c_scene_resource_invalid_id };
     std::unique_ptr<core::dx::d3d12::ConstantBufferDataMapper> m_object_parameters_data_mapper;
 };
 

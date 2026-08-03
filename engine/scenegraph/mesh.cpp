@@ -1,14 +1,14 @@
 #include "mesh.h"
-
+#include "submesh.h"
 
 namespace lexgine::scenegraph
 {
 
-size_t Mesh::addSubmesh(Submesh&& submesh)
+uint32_t Mesh::addSubmesh()
 {
     size_t rv = m_submeshes.size();
-    //m_submeshes.emplace_back(std::move(submesh));
-    return rv;
+    m_submeshes.emplace_back(m_owner);
+    return static_cast<uint32_t>(rv);
 }
 
 void Mesh::forEachSubmesh(std::function<void(Submesh&)> const& op)

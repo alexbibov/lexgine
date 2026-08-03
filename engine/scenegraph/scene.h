@@ -35,17 +35,22 @@ enum class SceneSource
     glb
 };
 
+struct SceneMemory
+{
+    std::unique_ptr<SceneMeshMemory> scene_memory_buffer;
+    std::vector<SceneMemoryBufferHandle> m_scene_memory_handles;
+
+    SceneMemoryBufferHandle getBuffer(size_t id) const { return m_scene_memory_handles[id]; }
+};
+
 class Scene : public core::NamedEntity<Scene>, public std::enable_shared_from_this<Scene>
 {
-public:
-    static constexpr uint32_t c_invalid_id = std::numeric_limits<uint32_t>::max();
-
 public:
 
 #pragma region SceneNode
     //! Scene graph node. Owned by a Scene; refers to its parent, children, LODs and attached
     //! light/camera/mesh by uint32_t ids (indices into the owning Scene's vectors). An id equal
-    //! to Scene::c_invalid_id denotes "none". Ids are stable across reallocation of the owning
+    //! to Scene::c_scene_resource_invalid_id denotes "none". Ids are stable across reallocation of the owning
     //! vectors, so the node is freely relocatable (move ctor/assignment are defaulted).
     class Node final : public core::NamedEntity<Node>
     {
@@ -99,11 +104,11 @@ public:
 
     private:
         Scene* m_owner{ nullptr };
-        uint32_t m_self_id{ c_invalid_id };
-        uint32_t m_light_id{ c_invalid_id };
-        uint32_t m_camera_id{ c_invalid_id };
-        uint32_t m_mesh_id{ c_invalid_id };
-        uint32_t m_parent_id{ c_invalid_id };
+        uint32_t m_self_id{ c_scene_resource_invalid_id };
+        uint32_t m_light_id{ c_scene_resource_invalid_id };
+        uint32_t m_camera_id{ c_scene_resource_invalid_id };
+        uint32_t m_mesh_id{ c_scene_resource_invalid_id };
+        uint32_t m_parent_id{ c_scene_resource_invalid_id };
 
         std::vector<uint32_t> m_lods;
         std::vector<uint32_t> m_children;
@@ -118,7 +123,6 @@ public:
         mutable core::math::Matrix4f m_world_to_local_transform;
         mutable core::math::Matrix4f m_local_to_world_transform;
     };
-
 #pragma endregion SceneNode
 
 public:
@@ -141,11 +145,15 @@ public:
     uint32_t getCameraId(core::misc::HashedString const& camera_name) const;
     uint32_t getLightId(core::misc::HashedString const& light_name) const;
 
-    Node& getSceneNode(uint32_t node_id) { return m_scene_nodes[node_id]; }
     Node const& getSceneNode(uint32_t node_id) const { return m_scene_nodes[node_id]; }
+    Light const& getSceneLight(uint32_t light_id) const { return m_lights[light_id]; }
+    Texture const& getSceneTexture(uint32_t texture_id) const { return m_textures[texture_id]; }
+    Material const& getSceneMaterial(uint32_t material_id) const { return m_materials[material_id]; }
+    Camera const& getSceneCamera(uint32_t camera_id) const { return m_cameras[camera_id]; }
+    Mesh const& getSceneMesh(uint32_t mesh_id) const { return m_scene_meshes[mesh_id]; }
 
     //! Detaches a node from the scene graph: removes it from its parent's child list and
-    //! orphans its children (their parent becomes c_invalid_id). Does not reclaim the node's
+    //! orphans its children (their parent becomes c_scene_resource_invalid_id). Does not reclaim the node's
     //! storage slot.
     void removeNode(uint32_t node_id);
 
@@ -155,19 +163,13 @@ public:
     SceneSource getSceneSource() const { return m_scene_source; }
     bool loadStatus() const;
 
+    SceneMemory const& getSceneMemory() const { return m_scene_memory; }
+
 private:
     static constexpr char const* c_khr_light_punctual_ext = "KHR_lights_punctual";
     static constexpr char const* c_ext_mesh_gpu_instancing = "EXT_mesh_gpu_instancing";
 
 private:
-    struct SceneMemory
-    {
-        std::unique_ptr<SceneMeshMemory> scene_memory_buffer;
-        std::vector<SceneMemoryBufferHandle> m_scene_memory_handles;
-
-        SceneMemoryBufferHandle getBuffer(size_t id) { return m_scene_memory_handles[id]; }
-    };
-
     struct MaterialStaticStateCreateInfo
     {
         core::dx::d3d12::caches::HLSLShaderHandle vertex_shader;
@@ -266,7 +268,7 @@ private:
     {
         MaterialStaticStateCreateInfoSet::const_iterator create_info_it;
         MaterialStaticStateSet::const_iterator material_static_state_it;
-        std::unordered_map<size_t, std::vector<size_t>> target_meshes;
+        std::unordered_map<uint32_t, std::vector<uint32_t>> target_meshes;  // mesh id -> vector of submesh ids, which use the material
     };
 
     enum class NodeDataType
@@ -414,7 +416,7 @@ private:
     SceneMemory m_scene_memory;
     MaterialStaticStateCreateInfoSet m_material_static_state_create_infos;
     MaterialStaticStateSet m_material_static_states;
-    std::unordered_map<size_t, MaterialAttachment> m_material_attachements;
+    std::unordered_map<int32_t, MaterialAttachment> m_material_attachements;  // gltf material id -> MaterialAttachment
 
     uint32_t m_current_camera_node_id{ 0 };
     core::math::Vector3f m_current_camera_position;
@@ -423,8 +425,8 @@ private:
     size_t m_total_submesh_count{ 0 };
 
 #pragma region DrawDataMemory
-    std::unordered_map<uint32_t, uint32_t> m_material_to_draw_query_lut;  // maps material id to draw query id
-    std::unordered_map<DrawInstanceId, uint32_t, DrawInstanceIdHahser> m_draw_instance_id_to_draw_lut;  // maps draw instance id to draw id
+    std::unordered_map<uint32_t, uint32_t> m_material_to_draw_query_lut;  // material id -> draw query id
+    std::unordered_map<DrawInstanceId, uint32_t, DrawInstanceIdHahser> m_draw_instance_id_to_draw_lut;  // DrawInstanceId -> draw id
     std::vector<DrawQuery> m_draw_queries;
     std::vector<Draw> m_draws;
     std::vector<PerInstanceCpuData> m_instances_cpu_data;

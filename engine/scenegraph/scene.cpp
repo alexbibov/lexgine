@@ -212,7 +212,7 @@ Scene::Node::Node(Scene* owner, uint32_t self_id)
 void Scene::Node::addChild(uint32_t child_id)
 {
     Node& child = m_owner->m_scene_nodes[child_id];
-    if (child.m_parent_id != c_invalid_id)
+    if (child.m_parent_id != c_scene_resource_invalid_id)
     {
         m_owner->m_scene_nodes[child.m_parent_id].removeChild(child_id);
     }
@@ -233,7 +233,7 @@ void Scene::Node::removeChild(uint32_t child_id)
     {
         m_children.erase(it);
         Node& child = m_owner->m_scene_nodes[child_id];
-        child.m_parent_id = c_invalid_id;
+        child.m_parent_id = c_scene_resource_invalid_id;
         child.invalidateSubtree();
     }
 }
@@ -341,22 +341,22 @@ void Scene::Node::recomputeLocalTransform()
 void Scene::Node::setLight(uint32_t light_id)
 {
     m_light_id = light_id;
-    m_camera_id = c_invalid_id;
-    m_mesh_id = c_invalid_id;
+    m_camera_id = c_scene_resource_invalid_id;
+    m_mesh_id = c_scene_resource_invalid_id;
 }
 
 void Scene::Node::setCamera(uint32_t camera_id)
 {
     m_camera_id = camera_id;
-    m_light_id = c_invalid_id;
-    m_mesh_id = c_invalid_id;
+    m_light_id = c_scene_resource_invalid_id;
+    m_mesh_id = c_scene_resource_invalid_id;
 }
 
 void Scene::Node::setMesh(uint32_t mesh_id)
 {
     m_mesh_id = mesh_id;
-    m_camera_id = c_invalid_id;
-    m_light_id = c_invalid_id;
+    m_camera_id = c_scene_resource_invalid_id;
+    m_light_id = c_scene_resource_invalid_id;
 }
 
 void Scene::Node::invalidateSubtree()
@@ -375,7 +375,7 @@ void Scene::Node::updateTransforms() const
         return;
     }
 
-    if (m_parent_id == c_invalid_id)
+    if (m_parent_id == c_scene_resource_invalid_id)
     {
         m_world_to_local_transform = m_parent_to_local_transform;
         m_local_to_world_transform = m_local_to_parent_transform;
@@ -398,7 +398,7 @@ void Scene::removeNode(uint32_t node_id)
     Node& node = m_scene_nodes[node_id];
 
     uint32_t const parent_id = node.getParentId();
-    if (parent_id != c_invalid_id)
+    if (parent_id != c_scene_resource_invalid_id)
     {
         m_scene_nodes[parent_id].removeChild(node_id);
     }
@@ -419,13 +419,13 @@ void Scene::updateGeometryTransforms()
 uint32_t Scene::getCameraId(core::misc::HashedString const& camera_name) const
 {
     auto it = m_camera_names_lut.find(camera_name);
-    return it != m_camera_names_lut.end() ? static_cast<uint32_t>(it->second) : c_invalid_id;
+    return it != m_camera_names_lut.end() ? static_cast<uint32_t>(it->second) : c_scene_resource_invalid_id;
 }
 
 uint32_t Scene::getLightId(core::misc::HashedString const& light_name) const
 {
     auto it = m_light_names_lut.find(light_name);
-    return it != m_light_names_lut.end() ? static_cast<uint32_t>(it->second) : c_invalid_id;
+    return it != m_light_names_lut.end() ? static_cast<uint32_t>(it->second) : c_scene_resource_invalid_id;
 }
 
 void Scene::setCurrentCamera(uint32_t camear_id)
@@ -733,7 +733,8 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
             assert(res);
             material_attachment.material_static_state_it = it;
 
-            index_map.material_ids[gltf_source_material_id] = m_materials.size();
+            uint32_t new_material_id = static_cast<uint32_t>(m_materials.size());
+            index_map.material_ids[gltf_source_material_id] = static_cast<int>(new_material_id);
             m_materials.emplace_back(*it);
             Material& material = m_materials.back();
 
@@ -786,7 +787,7 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
                 for (size_t submesh_id : submeshes)
                 {
                     Submesh& submesh = mesh.getSubmesh(submesh_id);
-                    submesh.setBaseMaterial(&m_materials.back());
+                    submesh.setBaseMaterial(new_material_id);
                 }
             }
         }
@@ -1160,13 +1161,15 @@ bool Scene::loadMeshes(
         std::vector<double> morph_weights(mesh.weights, mesh.weights + mesh.weights_count);
 
         mesh_id_in_scene = m_scene_meshes.size();
-        m_scene_meshes.emplace_back(Mesh{ std::string(mesh.name.data, mesh.name.len) });
-        m_scene_meshes.back().applyMorphWeights(morph_weights);
+        m_scene_meshes.emplace_back(Mesh{ *this, std::string(mesh.name.data, mesh.name.len) });
+        Mesh& new_mesh = m_scene_meshes.back();
+        new_mesh.applyMorphWeights(morph_weights);
 
         for (uint32_t pi = 0; pi < mesh.primitives_count; ++pi)
         {
             tg3_primitive const& mesh_primitive = mesh.primitives[pi];
-            Submesh submesh{ *m_scene_memory.scene_memory_buffer };
+            uint32_t submesh_id = new_mesh.addSubmesh();
+            Submesh& submesh = new_mesh.getSubmesh(submesh_id);
 
             if (mesh_primitive.indices >= 0)
             {
@@ -1279,7 +1282,7 @@ bool Scene::loadMeshes(
                 );
             }
             
-            size_t submesh_id = m_scene_meshes.back().addSubmesh(std::move(submesh));
+            
             if (mesh_primitive.material >= 0)
             {
                 int32_t material_id = mesh_primitive.material;
@@ -1389,7 +1392,70 @@ void Scene::buildDraws()
 {
     for (Node& n : m_scene_nodes)
     {
+        uint32_t mesh_id = n.getMesh();
+        if (mesh_id != c_scene_resource_invalid_id)
+        {
+            Mesh& mesh = m_scene_meshes[mesh_id];
+            for (uint32_t submesh_id = 0; submesh_id < mesh.getSubmeshCount(); ++submesh_id)
+            {
+                Submesh& submesh = mesh.getSubmesh(submesh_id);
+                uint32_t material_id = submesh.getBaseMaterial();
+                if (material_id != c_scene_resource_invalid_id)
+                {
+                    DrawInstanceId instance{ .mesh_id = mesh_id, .submesh_id = submesh_id };
+                    auto it = m_material_to_draw_query_lut.find(material_id);
+                    if (it == m_material_to_draw_query_lut.end())
+                    {
+                        uint32_t draw_query_id = static_cast<uint32_t>(m_draw_queries.size());
+                        uint32_t draw_id = static_cast<uint32_t>(m_draws.size());
+                        uint32_t instance_id = static_cast<uint32_t>(m_instances_cpu_data.size());
 
+                        PerInstanceCpuData cpu_instance{ .owning_node_id = n.getSelfId(), .draw_id = draw_id };
+                        m_instances_cpu_data.push_back(cpu_instance);
+
+                        Draw draw{ .draw_query_id = draw_query_id, .draw_instance_id = instance, .instance_indices = {instance_id} };
+                        m_draws.push_back(draw);
+
+                        DrawQuery new_draw_query{ .material_id = material_id, .draw_ids = {draw_id} };
+                        m_draw_queries.push_back(new_draw_query);
+
+                        m_material_to_draw_query_lut[material_id] = draw_query_id;
+                        m_draw_instance_id_to_draw_lut[instance] = draw_id;
+                    }
+                    else
+                    {
+                        uint32_t draw_query_id = it->second;
+                        DrawQuery& draw_query = m_draw_queries[draw_query_id];
+                        auto it = m_draw_instance_id_to_draw_lut.find(instance);
+                        if (it == m_draw_instance_id_to_draw_lut.end())
+                        {
+                            uint32_t draw_id = static_cast<uint32_t>(m_draws.size());
+                            draw_query.draw_ids.push_back(draw_id);
+                            m_draw_instance_id_to_draw_lut[instance] = draw_id;
+
+                            uint32_t instance_id = static_cast<uint32_t>(m_instances_cpu_data.size());
+
+                            Draw new_draw{ .draw_query_id = draw_query_id, .draw_instance_id = instance, .instance_indices = {instance_id} };
+                            m_draws.push_back(new_draw);
+
+                            PerInstanceCpuData new_instance{ .owning_node_id = n.getSelfId(), .draw_id = draw_id };
+                            m_instances_cpu_data.push_back(new_instance);
+                        }
+                        else
+                        {
+                            uint32_t draw_id = it->second;
+                            Draw& draw = m_draws[draw_id];
+
+                            uint32_t instance_id = static_cast<uint32_t>(m_instances_cpu_data.size());
+                            draw.instance_indices.push_back(instance_id);
+
+                            PerInstanceCpuData new_instance{ .owning_node_id = n.getSelfId(), .draw_id = draw_id };
+                            m_instances_cpu_data.push_back(new_instance);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
