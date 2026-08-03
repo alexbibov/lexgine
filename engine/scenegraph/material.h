@@ -121,7 +121,6 @@ private:
     core::dx::d3d12::caches::GraphicsPSOHandle m_pso_handle { nullptr };
 };
 
-// TODO: decouple shader function, descriptor allocation and PSO from Material
 class Material : public core::NamedEntity<Material>
 {
 public:
