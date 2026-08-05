@@ -310,16 +310,16 @@ private:
         uint32_t draw_id;
     };
 
-    struct DrawInstanceId
+    struct DrawKey
     {
         uint32_t mesh_id;
         uint32_t submesh_id;
-        bool operator==(DrawInstanceId const&) const = default;
+        bool operator==(DrawKey const&) const = default;
     };
 
     struct DrawInstanceIdHahser
     {
-        size_t operator()(DrawInstanceId const& value) const
+        size_t operator()(DrawKey const& value) const
         {
             return static_cast<size_t>(value.mesh_id) ^ std::rotl(static_cast<size_t>(value.submesh_id), 17);
         }
@@ -328,7 +328,8 @@ private:
     struct Draw
     {
         uint32_t draw_query_id;
-        DrawInstanceId draw_instance_id;
+        DrawKey draw_instance_id;
+        uint32_t gpu_instancing_section_start_index;
         std::vector<uint32_t> instance_indices;
     };
 
@@ -392,6 +393,11 @@ private:
     void buildDraws();
 
 private:
+    uint32_t registerDrawQuery(uint32_t material_id);
+    uint32_t registerDraw(uint32_t draw_query_id, DrawKey const& draw_key);
+    uint32_t registerInstance(Node& instance_owning_node, uint32_t parent_draw_id);
+
+private:
     core::Globals& m_globals;
     core::dx::d3d12::BasicRenderingServices& m_basic_rendering_services;
     core::GlobalSettings& m_global_settings;
@@ -426,7 +432,7 @@ private:
 
 #pragma region DrawDataMemory
     std::unordered_map<uint32_t, uint32_t> m_material_to_draw_query_lut;  // material id -> draw query id
-    std::unordered_map<DrawInstanceId, uint32_t, DrawInstanceIdHahser> m_draw_instance_id_to_draw_lut;  // DrawInstanceId -> draw id
+    std::unordered_map<DrawKey, uint32_t, DrawInstanceIdHahser> m_draw_key_to_draw_lut;  // DrawInstanceId -> draw id
     std::vector<DrawQuery> m_draw_queries;
     std::vector<Draw> m_draws;
     std::vector<PerInstanceCpuData> m_instances_cpu_data;

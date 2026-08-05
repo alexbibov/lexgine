@@ -413,7 +413,19 @@ void Scene::removeNode(uint32_t node_id)
 
 void Scene::updateGeometryTransforms()
 {
-    
+    uint32_t gpu_instance_section_carret = 0;
+    for (Draw& d : m_draws)
+    {
+        d.gpu_instancing_section_start_index = gpu_instance_section_carret;
+        for (uint32_t cpu_instance_id : d.instance_indices)
+        {
+            PerInstanceCpuData const& instance_cpu_data = m_instances_cpu_data[cpu_instance_id];
+            PerInstanceGpuData& instance_gpu_data = m_instances_gpu_data[gpu_instance_section_carret];
+            Node const& n = m_scene_nodes[instance_cpu_data.owning_node_id];
+            instance_gpu_data.transform = n.localToWorldTransform();
+            ++gpu_instance_section_carret;
+        }
+    }
 }
 
 uint32_t Scene::getCameraId(core::misc::HashedString const& camera_name) const
@@ -1402,61 +1414,73 @@ void Scene::buildDraws()
                 uint32_t material_id = submesh.getBaseMaterial();
                 if (material_id != c_scene_resource_invalid_id)
                 {
-                    DrawInstanceId instance{ .mesh_id = mesh_id, .submesh_id = submesh_id };
-                    auto it = m_material_to_draw_query_lut.find(material_id);
-                    if (it == m_material_to_draw_query_lut.end())
-                    {
-                        uint32_t draw_query_id = static_cast<uint32_t>(m_draw_queries.size());
-                        uint32_t draw_id = static_cast<uint32_t>(m_draws.size());
-                        uint32_t instance_id = static_cast<uint32_t>(m_instances_cpu_data.size());
-
-                        PerInstanceCpuData cpu_instance{ .owning_node_id = n.getSelfId(), .draw_id = draw_id };
-                        m_instances_cpu_data.push_back(cpu_instance);
-
-                        Draw draw{ .draw_query_id = draw_query_id, .draw_instance_id = instance, .instance_indices = {instance_id} };
-                        m_draws.push_back(draw);
-
-                        DrawQuery new_draw_query{ .material_id = material_id, .draw_ids = {draw_id} };
-                        m_draw_queries.push_back(new_draw_query);
-
-                        m_material_to_draw_query_lut[material_id] = draw_query_id;
-                        m_draw_instance_id_to_draw_lut[instance] = draw_id;
-                    }
-                    else
-                    {
-                        uint32_t draw_query_id = it->second;
-                        DrawQuery& draw_query = m_draw_queries[draw_query_id];
-                        auto it = m_draw_instance_id_to_draw_lut.find(instance);
-                        if (it == m_draw_instance_id_to_draw_lut.end())
-                        {
-                            uint32_t draw_id = static_cast<uint32_t>(m_draws.size());
-                            draw_query.draw_ids.push_back(draw_id);
-                            m_draw_instance_id_to_draw_lut[instance] = draw_id;
-
-                            uint32_t instance_id = static_cast<uint32_t>(m_instances_cpu_data.size());
-
-                            Draw new_draw{ .draw_query_id = draw_query_id, .draw_instance_id = instance, .instance_indices = {instance_id} };
-                            m_draws.push_back(new_draw);
-
-                            PerInstanceCpuData new_instance{ .owning_node_id = n.getSelfId(), .draw_id = draw_id };
-                            m_instances_cpu_data.push_back(new_instance);
-                        }
-                        else
-                        {
-                            uint32_t draw_id = it->second;
-                            Draw& draw = m_draws[draw_id];
-
-                            uint32_t instance_id = static_cast<uint32_t>(m_instances_cpu_data.size());
-                            draw.instance_indices.push_back(instance_id);
-
-                            PerInstanceCpuData new_instance{ .owning_node_id = n.getSelfId(), .draw_id = draw_id };
-                            m_instances_cpu_data.push_back(new_instance);
-                        }
-                    }
+                    DrawKey instance{ .mesh_id = mesh_id, .submesh_id = submesh_id };
+                    uint32_t draw_query_id = registerDrawQuery(material_id);
+                    uint32_t draw_id = registerDraw(draw_query_id, instance);
+                    registerInstance(n, draw_id);
                 }
             }
         }
     }
+
+    m_instances_gpu_data.resize(m_instances_cpu_data.size());
+}
+
+uint32_t Scene::registerDrawQuery(uint32_t material_id)
+{
+    {
+        auto it = m_material_to_draw_query_lut.find(material_id);
+        if (it != m_material_to_draw_query_lut.end())
+        {
+            return it->second;
+        }
+    }
+    DrawQuery new_draw_query{ .material_id = material_id };
+    uint32_t draw_query_id = static_cast<uint32_t>(m_draw_queries.size());
+    m_draw_queries.push_back(new_draw_query);
+    m_material_to_draw_query_lut[material_id] = draw_query_id;
+    return draw_query_id;
+}
+
+uint32_t Scene::registerDraw(uint32_t draw_query_id, DrawKey const& draw_key)
+{
+    {
+        auto it = m_draw_key_to_draw_lut.find(draw_key);
+        if (it != m_draw_key_to_draw_lut.end())
+        {
+            uint32_t draw_id = it->second;
+            assert(m_draws[draw_id].draw_query_id == draw_query_id);
+            return draw_id;
+        }
+    }
+
+    DrawQuery& draw_query = m_draw_queries[draw_query_id];
+
+    uint32_t draw_id = static_cast<uint32_t>(m_draws.size());
+    draw_query.draw_ids.push_back(draw_id);
+
+    Draw new_draw { 
+        .draw_query_id = draw_query_id, 
+        .draw_instance_id = draw_key, 
+        .gpu_instancing_section_start_index = c_scene_resource_invalid_id 
+    };
+    m_draws.push_back(new_draw);
+    m_draw_key_to_draw_lut[draw_key] = draw_id;
+
+    return draw_id;
+}
+
+uint32_t Scene::registerInstance(Node& instance_owning_node, uint32_t parent_draw_id)
+{
+    Draw& draw = m_draws[parent_draw_id];
+
+    uint32_t instance_id = static_cast<uint32_t>(m_instances_cpu_data.size());
+    draw.instance_indices.push_back(instance_id);
+
+    PerInstanceCpuData new_instance{ .owning_node_id = instance_owning_node.getSelfId(), .draw_id = parent_draw_id };
+    m_instances_cpu_data.push_back(new_instance);
+
+    return instance_id;
 }
 
 #pragma endregion
