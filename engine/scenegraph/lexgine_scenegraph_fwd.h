@@ -17,7 +17,7 @@ class Camera;
 struct SceneUniformBuffer;
 struct SceneMemory;
 
-static constexpr uint32_t c_scene_resource_invalid_id = std::numeric_limits<uint32_t>::max();
+static constexpr uint32_t c_scene_resource_invalid_id = (std::numeric_limits<uint32_t>::max)();
 
 }
 

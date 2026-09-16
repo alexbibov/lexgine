@@ -82,8 +82,8 @@ target_include_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}"
                                               "${CMAKE_SOURCE_DIR}/3rd_party/DirectXTex/"
                                               "${imgui_SOURCE_DIR}")
 
-target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
-target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
+target_link_directories(${_target} PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${_dxc_arch_folder}")
+target_link_directories(${_target} PRIVATE "${_build_lib_output_directory}")
 
 set(_engine_lib_dependencies
 "zlib.lib" 
@@ -141,7 +141,11 @@ if (MSVC)
     endif()
 
     # choose arch folder (expand as needed)
-    set(_pix_arch "$<$<STREQUAL:${CMAKE_VS_PLATFORM_NAME},ARM64>:ARM64>$<$<STREQUAL:${CMAKE_VS_PLATFORM_NAME},x64>:x64>")
+    if(_dxc_arch_folder STREQUAL "arm64")
+        set(_pix_arch "ARM64")
+    else()
+        set(_pix_arch "x64")
+    endif()
 
     add_library(WinPixEventRuntime INTERFACE)
     target_include_directories(WinPixEventRuntime INTERFACE "${PIX_ROOT}/include/WinPixEventRuntime")
@@ -154,7 +158,7 @@ if (MSVC)
         TARGET ${_target} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PIX_ROOT}/bin/${_pix_arch}/WinPixEventRuntime.dll"
-        "${_build_runtime_output_directory}/WinPixEventRuntime.dll"
+        "$<TARGET_FILE_DIR:${_target}>/WinPixEventRuntime.dll"
          VERBATIM
     )
 
@@ -162,8 +166,10 @@ endif()
 
 set(_dxc_binary_path ${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/bin/${_dxc_arch_folder}/)
 message(STATUS ${_dxc_binary_path})
-file(COPY ${_dxc_binary_path}dxcompiler.dll DESTINATION ${_build_runtime_output_directory})
-file(COPY ${_dxc_binary_path}dxil.dll DESTINATION ${_build_runtime_output_directory})
+foreach(config ${_build_config_list})
+    file(COPY ${_dxc_binary_path}dxcompiler.dll DESTINATION ${_build_output_root}/${config})
+    file(COPY ${_dxc_binary_path}dxil.dll DESTINATION ${_build_output_root}/${config})
+endforeach()
 
 
 set_property(TARGET ${_target} PROPERTY OUTPUT_NAME "lexgine")
@@ -181,8 +187,8 @@ target_include_directories(basic_tests PRIVATE "${CMAKE_SOURCE_DIR}"
                                                "${CMAKE_SOURCE_DIR}/3rd_party/DirectXTex/"
                                                "${glm_SOURCE_DIR}")
 
-target_link_directories(basic_tests PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${CMAKE_VS_PLATFORM_NAME}")
-target_link_directories(basic_tests PRIVATE "${CMAKE_BINARY_DIR}/bin/lib")
+target_link_directories(basic_tests PRIVATE "${CMAKE_SOURCE_DIR}/3rd_party/dxcompiler/lib/${_dxc_arch_folder}")
+target_link_directories(basic_tests PRIVATE "${_build_lib_output_directory}")
 
 target_link_libraries(basic_tests PRIVATE GTest::gtest_main)
 target_link_libraries(basic_tests PRIVATE $<TARGET_OBJECTS:${_target}>)

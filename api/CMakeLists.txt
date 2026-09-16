@@ -37,7 +37,7 @@ source_group(TREE ${PROJECT_SOURCE_DIR} PREFIX "Header files" FILES ${_headers_l
 add_library(${_target} STATIC ${_generated_sources_list} ${_sources_list} ${_generated_headers_list} ${_headers_list})
 
 target_include_directories(${_target} PUBLIC "${CMAKE_BINARY_DIR}" "${PROJECT_BINARY_DIR}" "${CMAKE_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}")
-target_link_directories(${_target} PUBLIC "${CMAKE_BINARY_DIR}/bin/lib")
+target_link_directories(${_target} PUBLIC "${_build_lib_output_directory}")
 target_link_libraries(${_target} PUBLIC common)
 
 target_compile_definitions(${_target} PUBLIC LEXGINE_API_LIB)

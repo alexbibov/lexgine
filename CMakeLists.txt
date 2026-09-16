@@ -12,31 +12,56 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(_build_runtime_output_directory ${CMAKE_BINARY_DIR}/bin/)
-set(_build_lib_output_directory ${CMAKE_BINARY_DIR}/bin/lib/)
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/lib)
+set(_build_output_root ${CMAKE_BINARY_DIR}/bin)
 
 get_property(isMultiConfigGenerator GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 
-# Set the output directories at top scope, before any dependency is declared, so
-# that every target -- including CPM/FetchContent third-party deps (freetype,
-# blake3, xxhash, googletest, ...) -- emits its runtime artifacts into bin/.
-# Otherwise, with BUILD_SHARED_LIBS=ON those deps build DLLs that land in their
-# own _deps/<name>-build/<config>/ folders, and the test/app executables in bin/
-# fail to load them at runtime (exit 127 / gtest_discover_tests MSB3073).
 if (isMultiConfigGenerator)
-    foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
-        string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
-        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${_build_runtime_output_directory})
-        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${_build_runtime_output_directory})
-        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${_build_lib_output_directory})
-    endforeach()
+    set(_build_config_list ${CMAKE_CONFIGURATION_TYPES})
 else()
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${_build_runtime_output_directory})
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${_build_runtime_output_directory})
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${_build_lib_output_directory})
+    if (NOT CMAKE_BUILD_TYPE)
+        set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build configuration of a single-configuration generator" FORCE)
+    endif()
+    set(_build_config_list ${CMAKE_BUILD_TYPE})
 endif()
+
+# Every configuration owns a separate bin/<Config> sub-tree so that artifacts of
+# different configurations never overwrite each other, which previously happened
+# for multi-configuration generators emitting all configurations into bin/.
+# These two variables carry a $<CONFIG> generator expression and hence are only
+# usable in target_* commands; use _build_output_root together with
+# _build_config_list where a configure-time path is required.
+set(_build_runtime_output_directory ${_build_output_root}/$<CONFIG>)
+set(_build_lib_output_directory ${_build_output_root}/$<CONFIG>/lib)
+
+foreach(config ${_build_config_list})
+    file(MAKE_DIRECTORY ${_build_output_root}/${config}/lib)
+endforeach()
+
+# Sets the artifact output directories of the current scope. Invoked at top
+# scope, before any dependency is declared, so that every target -- including
+# CPM/FetchContent third-party deps (freetype, blake3, xxhash, googletest, ...)
+# -- emits its runtime artifacts into bin/<Config>. Otherwise, with
+# BUILD_SHARED_LIBS=ON those deps build DLLs that land in their own
+# _deps/<name>-build/<config>/ folders, and the test/app executables in
+# bin/<Config> fail to load them at runtime (exit 127 / gtest_discover_tests
+# MSB3073).
+macro(set_output_directories)
+    if (isMultiConfigGenerator)
+        foreach(_config ${CMAKE_CONFIGURATION_TYPES})
+            string(TOUPPER ${_config} _config_uppercase)
+            set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${_config_uppercase} ${_build_output_root}/${_config})
+            set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${_config_uppercase} ${_build_output_root}/${_config})
+            set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${_config_uppercase} ${_build_output_root}/${_config}/lib)
+        endforeach()
+    else()
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${_build_output_root}/${CMAKE_BUILD_TYPE})
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${_build_output_root}/${CMAKE_BUILD_TYPE})
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${_build_output_root}/${CMAKE_BUILD_TYPE}/lib)
+    endif()
+endmacro()
+
+set_output_directories()
 
 function(add_subproject)
     set(options USE_ABSOLUTE_PATH)
@@ -46,18 +71,7 @@ function(add_subproject)
         ${options} ${oneValueArgs} ${multiValueArgs}
     )
 
-    if (isMultiConfigGenerator)
-        foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
-            string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
-            set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${_build_runtime_output_directory})
-            set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${_build_runtime_output_directory})
-            set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${_build_lib_output_directory})
-        endforeach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
-    else(_isMultiConfigGenerator)
-        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${_build_runtime_output_directory})
-        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${_build_runtime_output_directory})
-        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${_build_lib_output_directory})
-    endif()
+    set_output_directories()
 
     message(STATUS "Adding sub-project ${add_subproject_arg_NAME}")
     if(add_subproject_arg_USE_ABSOLUTE_PATH)
