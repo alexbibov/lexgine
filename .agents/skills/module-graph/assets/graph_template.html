@@ -758,7 +758,7 @@ const DRAG_SLOP = 5;
 
 (function wirePanZoom(){
   let dragging = false, captured = false, moved = 0, sx = 0, sy = 0, ox = 0, oy = 0, pid = null;
-  let node = null, nox = 0, noy = 0, raf = 0;
+  let dragBox = null, nox = 0, noy = 0, raf = 0;
 
   const release = () => {
     if (captured){ try { el.canvas.releasePointerCapture(pid); } catch (e) {} }
@@ -766,31 +766,32 @@ const DRAG_SLOP = 5;
     dragging = false;
     el.canvas.classList.remove("dragging");
     el.stage.classList.remove("arranging");
-    if (node) node.classList.remove("moving");
+    if (dragBox) dragBox.classList.remove("moving");
   };
 
   el.canvas.addEventListener("pointerdown", ev => {
     if (ev.button === 2) return;
     dragging = true; captured = false; moved = 0; pid = ev.pointerId;
     sx = ev.clientX; sy = ev.clientY; ox = state.tx; oy = state.ty;
-    const box = ev.target.closest(".node");
-    node = box || null;
-    if (node){
-      nox = parseFloat(node.style.left);
-      noy = parseFloat(node.style.top);
+    dragBox = ev.target.closest(".node") || null;
+    if (dragBox){
+      nox = parseFloat(dragBox.style.left);
+      noy = parseFloat(dragBox.style.top);
     }
   });
 
   el.canvas.addEventListener("pointermove", ev => {
     if (!dragging || ev.pointerId !== pid) return;
+    // the button came up somewhere we never heard about: end rather than stick
+    if (ev.buttons === 0){ end(ev); return; }
     const dx = ev.clientX - sx, dy = ev.clientY - sy;
     moved = Math.max(moved, Math.hypot(dx, dy));
     if (moved < DRAG_SLOP) return;
     if (!captured){
       captured = true;
       try { el.canvas.setPointerCapture(pid); } catch (e) {}
-      if (node){
-        node.classList.add("moving");
+      if (dragBox){
+        dragBox.classList.add("moving");
         el.stage.classList.add("arranging");
         closeMenu();
       } else {
@@ -798,10 +799,10 @@ const DRAG_SLOP = 5;
         el.canvas.classList.add("dragging");
       }
     }
-    if (node){
+    if (dragBox){
       // the stage is scaled, so screen travel has to be divided back out
-      node.style.left = Math.max(0, nox + dx / state.k) + "px";
-      node.style.top  = Math.max(0, noy + dy / state.k) + "px";
+      dragBox.style.left = Math.max(0, nox + dx / state.k) + "px";
+      dragBox.style.top  = Math.max(0, noy + dy / state.k) + "px";
       if (!raf) raf = requestAnimationFrame(() => { raf = 0; layoutGeometry(true); });
       return;
     }
@@ -809,27 +810,29 @@ const DRAG_SLOP = 5;
     applyTransform();
   });
 
-  const end = ev => {
+  function end(ev){
     if (!dragging) return;
     const tap = moved < DRAG_SLOP;
-    const dragged = node;
+    const dragged = dragBox;
     release();
-    if (!tap && dragged){
-      if (raf){ cancelAnimationFrame(raf); raf = 0; }
-      commitMove(dragged);
-      node = null;
+    dragBox = null;
+    if (raf){ cancelAnimationFrame(raf); raf = 0; }
+    if (!tap){
+      if (dragged) commitMove(dragged);
       return;
     }
-    node = null;
-    if (!tap) return;
     // pointer capture retargets the event at the canvas, so hit-test by coordinate
     const hit = document.elementFromPoint(ev.clientX, ev.clientY);
     if (hit && hit.closest(".menu")) return;
-    const node = hit && hit.closest(".node");
-    if (node) select(node.dataset.id); else selectBackground();
-  };
+    const hitNode = hit && hit.closest(".node");
+    if (hitNode) select(hitNode.dataset.id); else selectBackground();
+  }
+
+  // the pointer can come up outside the canvas, so listen wider than the canvas
   el.canvas.addEventListener("pointerup", end);
-  el.canvas.addEventListener("pointercancel", release);
+  window.addEventListener("pointerup", end, true);
+  window.addEventListener("pointercancel", () => { release(); dragBox = null; }, true);
+  window.addEventListener("blur", () => { release(); dragBox = null; });
 
   el.canvas.addEventListener("wheel", ev => {
     ev.preventDefault();
