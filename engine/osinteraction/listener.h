@@ -46,7 +46,7 @@ protected:
 };
 
 
-template<uint64_t head_message, uint64_t ... tail_messages>
+template<uint32_t head_message, uint32_t ... tail_messages>
 class ConcreteListener<head_message, tail_messages...> : public ConcreteListener<tail_messages...>
 {
 protected:

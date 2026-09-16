@@ -17,12 +17,12 @@ else()
   message(FATAL_ERROR "Unsupported: ${CMAKE_SYSTEM_PROCESSOR}")
 endif()
 
+# Consumes the imported target rather than OpenMP_CXX_FLAGS, which is a single
+# space-separated string and therefore reaches clang-cl as one unparsable argument.
 function (configure_openmp_support target_name)
-	if(OpenMP_CXX_FOUND)
-	target_compile_options(${target_name} PRIVATE ${OpenMP_CXX_FLAGS})
-	target_include_directories(${target_name} PRIVATE ${OpenMP_CXX_INCLUDE_DIRS})
-	target_link_libraries(${target_name} PRIVATE ${OpenMP_CXX_LIBRARIES})
-	endif()
+    if(OpenMP_CXX_FOUND)
+        target_link_libraries(${target_name} PRIVATE OpenMP::OpenMP_CXX)
+    endif()
 endfunction()
 
 file(
