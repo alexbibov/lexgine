@@ -4,6 +4,7 @@ description: Build an interactive HTML module/dataflow graph of a codebase — d
 argument-hint: "maxLevels=<N>"
 allowed-tools:
   - Read
+  - Bash(node *)
   - Glob
   - Grep
   - Write
@@ -156,6 +157,19 @@ python ${CLAUDE_SKILL_DIR}/scripts/build_graph.py <output-dir>/model.json \
 the cheapest way to catch invented file names. Fix every error; nothing is
 written while one remains. Warnings about levels past `maxLevels` are only worth
 acting on if you authored data you meant to be reachable.
+
+Then run the smoke test, every time — especially after editing the template:
+
+```bash
+node ${CLAUDE_SKILL_DIR}/scripts/smoke_test.js <output-dir>/index.html
+```
+
+It boots the page against a small DOM stub and drives the real pointer paths:
+box drag, sheet pan, tap-to-select, tap-to-deselect and the layout export. It
+exists because `node --check` only parses — it cannot see a runtime fault like a
+binding shadowed inside a pointer handler, which is enough to leave a drag stuck
+to the cursor with nothing in the file looking wrong. Treat a failure here as a
+release blocker.
 
 ## 6. Rearranging the graph
 
