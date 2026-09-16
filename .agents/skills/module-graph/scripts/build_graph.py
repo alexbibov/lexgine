@@ -18,6 +18,8 @@ TEMPLATE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         os.pardir, "assets", "graph_template.html")
 
 NODE_KEYS = {"id", "name", "sig", "desc", "col", "row", "files"}
+MODEL_KEYS = {"title", "brand", "subtitle", "maxLevels", "editor",
+              "modelFileName", "graphs"}
 
 
 def fail(problems, msg):
@@ -35,6 +37,10 @@ def validate(model, repo, check_files):
     if not isinstance(graphs, dict) or "root" not in graphs:
         fail(problems, 'graphs must be an object containing a "root" graph')
         return problems, warnings, {}
+
+    for key in model:
+        if key not in MODEL_KEYS:
+            warnings.append("model has unknown top-level field '%s'" % key)
 
     node_owner = {}
     for gid, g in graphs.items():
@@ -57,6 +63,9 @@ def validate(model, repo, check_files):
             for key in n:
                 if key not in NODE_KEYS:
                     warnings.append("node '%s' has unknown field '%s'" % (nid, key))
+            for key in ("col", "row"):
+                if isinstance(n.get(key), (int, float)) and n[key] < 0:
+                    fail(problems, "node '%s' has a negative '%s'" % (nid, key))
             if nid in node_owner:
                 fail(problems, "node id '%s' is used in both '%s' and '%s' "
                                "(ids must be globally unique)" % (nid, node_owner[nid], gid))
@@ -118,7 +127,7 @@ def validate(model, repo, check_files):
 DEFAULT_EDITOR_URI = "vscode://file/{root}/{path}"
 
 
-def render(model, repo, editor_uri):
+def render(model, repo, editor_uri, model_name):
     with open(TEMPLATE, encoding="utf-8") as fh:
         tpl = fh.read()
 
@@ -129,12 +138,16 @@ def render(model, repo, editor_uri):
     root = os.path.abspath(repo).replace(os.sep, "/").rstrip("/")
     uri = uri_template.replace("{root}", root)
 
+    # the page re-serializes this to save a rearranged layout, so hand it the
+    # model as authored, with the file name it should suggest on download
+    page_model = dict(model)
+    page_model.setdefault("modelFileName", model_name)
+
     out = tpl
+    out = out.replace("__MODEL__", json.dumps(page_model, indent=2, ensure_ascii=False))
     out = out.replace("__EDITOR_URI__", json.dumps(uri))
     out = out.replace("__EDITOR_NAME__", json.dumps(editor.get("name", "VS Code")))
     out = out.replace("__REPO_ROOT__", json.dumps(root))
-    out = out.replace("__MAX_LEVELS__", str(model["maxLevels"]))
-    out = out.replace("__GRAPHS__", json.dumps(model["graphs"], indent=2, ensure_ascii=False))
     out = out.replace("__TITLE__", model.get("title", "Module Atlas"))
     out = out.replace("__BRAND__", model.get("brand", "Modules"))
     out = out.replace("__SUBTITLE__", model.get("subtitle", "module atlas"))
@@ -168,7 +181,8 @@ def main():
             print("error: %s" % p, file=sys.stderr)
         raise SystemExit("%d problem(s) found; nothing written" % len(problems))
 
-    html = render(model, args.repo, args.editor_uri)
+    html = render(model, args.repo, args.editor_uri,
+                  os.path.basename(args.model))
     out_dir = os.path.dirname(os.path.abspath(args.out))
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
