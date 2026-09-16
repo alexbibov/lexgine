@@ -1,0 +1,2357 @@
+{
+  "title": "Lexgine Module Atlas",
+  "brand": "Lexgine",
+  "subtitle": "D3D12 renderer &middot; module atlas",
+  "maxLevels": 3,
+  "editor": {
+    "name": "VS Code",
+    "uriTemplate": "vscode://file/{root}/{path}"
+  },
+  "graphs": {
+    "root": {
+      "label": "lexgine",
+      "kind": "Engine",
+      "sig": "C++20 &middot; Direct3D 12 &middot; ~300 translation units",
+      "desc": "Top-level module map of the engine. Arrows run from a provider to its downstream consumer.",
+      "nodes": [
+        {
+          "id": "dll-interface",
+          "name": "Interface Codegen",
+          "sig": "Ioc / generate_dll_interfaces.py",
+          "col": 0,
+          "row": 0,
+          "desc": "Annotation tokens and the Python generator that emit the engine's exported DLL surface."
+        },
+        {
+          "id": "core-foundation",
+          "name": "Core Foundation",
+          "sig": "class Globals, GlobalSettings",
+          "col": 0,
+          "row": 1.18,
+          "desc": "Global object pool, JSON settings, entity identity, diagnostics, math and utility library."
+        },
+        {
+          "id": "concurrency",
+          "name": "Task Scheduling",
+          "sig": "class TaskGraph, TaskSink",
+          "col": 0,
+          "row": 2.36,
+          "desc": "Lock-free worker pool that executes a task DAG; the substrate every frame is built on."
+        },
+        {
+          "id": "os-interaction",
+          "name": "OS Integration",
+          "sig": "class Window, WindowHandler",
+          "col": 0,
+          "row": 3.54,
+          "desc": "Win32 window, message pump and the listener chain that delivers input and resize events."
+        },
+        {
+          "id": "shader-compilation",
+          "name": "Shader Compilation",
+          "sig": "class DXCompilerProxy, ShaderStage",
+          "col": 1,
+          "row": 0.38,
+          "desc": "DXC shader-model 6.x front end plus reflection that resolves binding points into root layout."
+        },
+        {
+          "id": "dxgi",
+          "name": "DXGI Layer",
+          "sig": "class HwAdapterEnumerator, SwapChain",
+          "col": 1,
+          "row": 2.66,
+          "desc": "Adapter and output enumeration, memory budgets, display modes and swap-chain presentation."
+        },
+        {
+          "id": "gpu-caches",
+          "name": "GPU Artifact Caches",
+          "sig": "class PSOBlobCache, HLSLShaderBlobCache",
+          "col": 2,
+          "row": 0.38,
+          "desc": "On-disk streamed caches for shader, root-signature and PSO blobs keyed by content hash."
+        },
+        {
+          "id": "d3d12-device",
+          "name": "D3D12 Device Layer",
+          "sig": "class Device, DxResourceFactory",
+          "col": 2,
+          "row": 2.06,
+          "desc": "The engine's Direct3D 12 abstraction: device, heaps, resources, descriptors, commands, sync."
+        },
+        {
+          "id": "asset-pipeline",
+          "name": "Asset Conversion",
+          "sig": "class ImageLoaderPool, TextureConverter",
+          "col": 3,
+          "row": 0.1,
+          "desc": "Decodes KTX/PNG/JPEG images and converts them to GPU-ready, block-compressed textures."
+        },
+        {
+          "id": "scenegraph",
+          "name": "Scene Graph",
+          "sig": "class Scene, Mesh, Material",
+          "col": 3,
+          "row": 1.3,
+          "desc": "glTF-backed node hierarchy with meshes, materials, lights and cameras, batched into draws."
+        },
+        {
+          "id": "ui-console",
+          "name": "Debug UI",
+          "sig": "class Console, Profiler",
+          "col": 3,
+          "row": 3.34,
+          "desc": "ImGui overlays: a command console with autocomplete and a CPU/GPU profiling view."
+        },
+        {
+          "id": "rendering-tasks",
+          "name": "Rendering Tasks",
+          "sig": "class RenderingWork",
+          "col": 4,
+          "row": 2.2,
+          "desc": "Schedulable units that record command lists \u2014 submesh draws, UI, query flush, GPU submission."
+        },
+        {
+          "id": "rendering-pipeline",
+          "name": "Frame Orchestration",
+          "sig": "class RenderingTasks, SwapChainLink",
+          "col": 5,
+          "row": 2.2,
+          "desc": "Owns the frame graph, per-frame services and the swap-chain link that drives presentation."
+        },
+        {
+          "id": "bootstrap",
+          "name": "Engine Bootstrap",
+          "sig": "class Initializer",
+          "col": 6,
+          "row": 2.2,
+          "desc": "Public entry point: brings up logging, settings, device and render loop from EngineSettings."
+        }
+      ],
+      "edges": [
+        [
+          "dll-interface",
+          "core-foundation",
+          "LEXGINE_CPP_API, DEPENDS_ON tokens"
+        ],
+        [
+          "dll-interface",
+          "os-interaction",
+          "exported interface annotations"
+        ],
+        [
+          "core-foundation",
+          "concurrency",
+          "NamedEntity, allocators, profiling"
+        ],
+        [
+          "core-foundation",
+          "shader-compilation",
+          "Globals, hashed strings"
+        ],
+        [
+          "core-foundation",
+          "dxgi",
+          "MSAA modes, exceptions, log"
+        ],
+        [
+          "core-foundation",
+          "gpu-caches",
+          "StreamedCache, blob cache keys"
+        ],
+        [
+          "core-foundation",
+          "d3d12-device",
+          "Globals, settings, API-agnostic descriptors"
+        ],
+        [
+          "core-foundation",
+          "scenegraph",
+          "math types, vertex attributes"
+        ],
+        [
+          "core-foundation",
+          "ui-console",
+          "log, profiling services"
+        ],
+        [
+          "core-foundation",
+          "asset-pipeline",
+          "cache budget, UUIDs"
+        ],
+        [
+          "concurrency",
+          "rendering-tasks",
+          "SchedulableTask base"
+        ],
+        [
+          "concurrency",
+          "rendering-pipeline",
+          "TaskGraph + TaskSink workers"
+        ],
+        [
+          "os-interaction",
+          "dxgi",
+          "HWND for swap chain"
+        ],
+        [
+          "os-interaction",
+          "d3d12-device",
+          "FenceEvent waits"
+        ],
+        [
+          "os-interaction",
+          "ui-console",
+          "keyboard & mouse events"
+        ],
+        [
+          "os-interaction",
+          "rendering-pipeline",
+          "window resize events"
+        ],
+        [
+          "shader-compilation",
+          "gpu-caches",
+          "DXIL blobs & reflection"
+        ],
+        [
+          "dxgi",
+          "d3d12-device",
+          "adapter selection, device creation"
+        ],
+        [
+          "dxgi",
+          "rendering-pipeline",
+          "back buffers & Present()"
+        ],
+        [
+          "gpu-caches",
+          "d3d12-device",
+          "cached PSO & root signature blobs"
+        ],
+        [
+          "d3d12-device",
+          "shader-compilation",
+          "device & descriptor heaps"
+        ],
+        [
+          "d3d12-device",
+          "asset-pipeline",
+          "upload heaps, resource uploader"
+        ],
+        [
+          "d3d12-device",
+          "scenegraph",
+          "buffers, PSOs, command lists"
+        ],
+        [
+          "d3d12-device",
+          "ui-console",
+          "ImGui font & vertex resources"
+        ],
+        [
+          "d3d12-device",
+          "rendering-tasks",
+          "command lists, descriptor tables"
+        ],
+        [
+          "d3d12-device",
+          "rendering-pipeline",
+          "device, queues, frame tracker"
+        ],
+        [
+          "asset-pipeline",
+          "scenegraph",
+          "decoded images & mip chains"
+        ],
+        [
+          "scenegraph",
+          "rendering-tasks",
+          "draw list & instance data"
+        ],
+        [
+          "ui-console",
+          "rendering-tasks",
+          "UI providers to draw"
+        ],
+        [
+          "rendering-tasks",
+          "rendering-pipeline",
+          "recorded command lists"
+        ],
+        [
+          "rendering-pipeline",
+          "bootstrap",
+          "render loop & swap-chain link"
+        ]
+      ]
+    },
+    "dll-interface": {
+      "nodes": [
+        {
+          "id": "di-tokens",
+          "name": "Annotation Tokens",
+          "sig": "preprocessor_tokens.h",
+          "col": 0,
+          "row": 0.5,
+          "desc": "LEXGINE_CPP_API and DEPENDS_ON macros that mark types and methods for export.",
+          "files": [
+            "engine/preprocessing/preprocessor_tokens.h"
+          ]
+        },
+        {
+          "id": "di-codegen",
+          "name": "Interface Generator",
+          "sig": "generate_dll_interfaces.py",
+          "col": 1,
+          "row": 0.5,
+          "desc": "Python pass that scans annotated headers and emits DLL interface and IoC glue from templates.",
+          "files": [
+            "engine/preprocessing/generate_dll_interfaces.py",
+            "engine/preprocessing/interface_creators.py",
+            "engine/preprocessing/interface_ioc.py",
+            "engine/preprocessing/token_fetch_functions.py",
+            "engine/preprocessing/parser_helpers.py",
+            "engine/preprocessing/template_helpers.py",
+            "engine/preprocessing/common_types.py",
+            "engine/preprocessing/global_names.py",
+            "engine/preprocessing/lexgine_utils.py",
+            "engine/preprocessing/util.py",
+            "engine/preprocessing/config.json"
+          ]
+        },
+        {
+          "id": "di-ioc",
+          "name": "IoC Object Model",
+          "sig": "class Ioc, LexgineObject",
+          "col": 2,
+          "row": 0.5,
+          "desc": "Runtime container the generated facades resolve through, with compile-time call detection.",
+          "files": [
+            "api/ioc.h",
+            "api/ioc.cpp",
+            "api/lexgine_object.h",
+            "api/lexgine_object.cpp",
+            "api/link_result.h",
+            "api/link_result.cpp",
+            "api/is_call_possible.h"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "di-tokens",
+          "di-codegen",
+          "annotated declarations to scan"
+        ],
+        [
+          "di-codegen",
+          "di-ioc",
+          "generated facades & bindings"
+        ]
+      ]
+    },
+    "core-foundation": {
+      "nodes": [
+        {
+          "id": "cf-misc",
+          "name": "Utility Library",
+          "sig": "misc/",
+          "col": 0,
+          "row": 1.1,
+          "desc": "Flags, static containers, hashing, logging, dates and compile-time helpers used everywhere."
+        },
+        {
+          "id": "cf-entity",
+          "name": "Entity & Diagnostics",
+          "sig": "class NamedEntity, Exception",
+          "col": 1,
+          "row": 0.35,
+          "desc": "Typed entity identity plus the exception and error-behavioral base shared by every subsystem.",
+          "files": [
+            "engine/core/entity.h",
+            "engine/core/entity.cpp",
+            "engine/core/entity_exported_interface.cpp",
+            "engine/core/exception.h",
+            "engine/core/exception.cpp",
+            "engine/core/error_behavioral.h",
+            "engine/core/error_behavioral.cpp"
+          ]
+        },
+        {
+          "id": "cf-math",
+          "name": "Linear Algebra",
+          "sig": "math::vector, math::matrix",
+          "col": 1,
+          "row": 2.1,
+          "desc": "Vector and matrix templates, boxes and rectangles, and projection/transform helpers.",
+          "files": [
+            "engine/core/math/vector_types.h",
+            "engine/core/math/matrix_types.h",
+            "engine/core/math/linear_algebra_types.inl",
+            "engine/core/math/box.h",
+            "engine/core/math/box.cpp",
+            "engine/core/math/rectangle.h",
+            "engine/core/math/rectangle.cpp",
+            "engine/core/math/utility.h",
+            "engine/core/math/utility.cpp"
+          ]
+        },
+        {
+          "id": "cf-globals",
+          "name": "Globals & Settings",
+          "sig": "class Globals, GlobalSettings",
+          "col": 2,
+          "row": 0.35,
+          "desc": "Type-keyed global object pool and the JSON-backed settings that size every engine budget.",
+          "files": [
+            "engine/core/globals.h",
+            "engine/core/globals.cpp",
+            "engine/core/global_settings.h",
+            "engine/core/global_settings.cpp",
+            "engine/core/global_constants.h",
+            "engine/core/engine_api.h",
+            "engine/core/rendering_configuration.h",
+            "engine/core/lexgine_core_fwd.h"
+          ]
+        },
+        {
+          "id": "cf-descriptors",
+          "name": "Pipeline Descriptors",
+          "sig": "BlendDescriptor, RasterizerDescriptor",
+          "col": 2,
+          "row": 1.55,
+          "desc": "API-agnostic state descriptions later translated to their Direct3D 12 equivalents.",
+          "files": [
+            "engine/core/blend_descriptor.h",
+            "engine/core/blend_descriptor.cpp",
+            "engine/core/rasterizer_descriptor.h",
+            "engine/core/rasterizer_descriptor.cpp",
+            "engine/core/depth_stencil_descriptor.h",
+            "engine/core/depth_stencil_descriptor.cpp",
+            "engine/core/multisampling.h",
+            "engine/core/multisampling.cpp",
+            "engine/core/primitive_topology.h",
+            "engine/core/vertex_attributes.h",
+            "engine/core/stream_output.h",
+            "engine/core/stream_output.cpp",
+            "engine/core/filter.h",
+            "engine/core/filter.cpp",
+            "engine/core/viewport.h",
+            "engine/core/viewport.cpp",
+            "engine/core/swap_chain_desc.h"
+          ]
+        },
+        {
+          "id": "cf-memory",
+          "name": "Allocators & Blobs",
+          "sig": "class RingBufferAllocator, DataBlob",
+          "col": 1,
+          "row": 3.3,
+          "desc": "Allocator concept, ring-buffer and default allocators, and the owning/non-owning blob wrappers.",
+          "files": [
+            "engine/core/allocator.h",
+            "engine/core/default_allocator.h",
+            "engine/core/ring_buffer_allocator.h",
+            "engine/core/data_blob.h",
+            "engine/core/data_blob.cpp"
+          ]
+        },
+        {
+          "id": "cf-cache",
+          "name": "Streamed Cache",
+          "sig": "class StreamedCache, GpuDataBlobCache",
+          "col": 3,
+          "row": 1.0,
+          "desc": "Red-black-indexed, cluster-based on-disk cache with eviction; the store behind GPU blob caches.",
+          "files": [
+            "engine/core/streamed_cache.h",
+            "engine/core/gpu_data_blob_cache.h",
+            "engine/core/gpu_data_blob_cache.cpp",
+            "engine/core/gpu_data_blob_cache_key.h",
+            "engine/core/gpu_data_blob_cache_key.cpp"
+          ]
+        },
+        {
+          "id": "cf-profiling",
+          "name": "Profiling Services",
+          "sig": "class CPUTaskProfilingService",
+          "col": 3,
+          "row": 2.2,
+          "desc": "Per-task CPU and GPU timing services that feed the profiler overlay and PIX markers.",
+          "files": [
+            "engine/core/profiling_services.h",
+            "engine/core/profiling_services.cpp"
+          ]
+        },
+        {
+          "id": "cf-shaderprep",
+          "name": "Shader Preprocessor",
+          "sig": "class ShaderSourceCodePreprocessor",
+          "col": 3,
+          "row": 3.3,
+          "desc": "Resolves #include directives in HLSL sources before they reach the DXC front end.",
+          "files": [
+            "engine/core/shader_source_code_preprocessor.h",
+            "engine/core/shader_source_code_preprocessor.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "cf-misc",
+          "cf-entity",
+          "hashed strings, logging, optional"
+        ],
+        [
+          "cf-misc",
+          "cf-descriptors",
+          "flag sets, constant converters"
+        ],
+        [
+          "cf-misc",
+          "cf-cache",
+          "hash functions, datetime"
+        ],
+        [
+          "cf-misc",
+          "cf-math",
+          "type traits & helpers"
+        ],
+        [
+          "cf-entity",
+          "cf-globals",
+          "NamedEntity identity"
+        ],
+        [
+          "cf-entity",
+          "cf-profiling",
+          "NamedEntity, exceptions"
+        ],
+        [
+          "cf-entity",
+          "cf-memory",
+          "exceptions, export macros"
+        ],
+        [
+          "cf-globals",
+          "cf-cache",
+          "cache directory & size budget"
+        ],
+        [
+          "cf-globals",
+          "cf-shaderprep",
+          "shader lookup paths"
+        ],
+        [
+          "cf-memory",
+          "cf-shaderprep",
+          "DataBlob source buffers"
+        ],
+        [
+          "cf-descriptors",
+          "cf-globals",
+          "rendering configuration"
+        ]
+      ]
+    },
+    "cf-misc": {
+      "nodes": [
+        {
+          "id": "mi-hashes",
+          "name": "Hash Functions",
+          "sig": "blake3_256, xxhash128, fnv1a_64",
+          "col": 0,
+          "row": 0.5,
+          "desc": "Fixed-width digest type plus BLAKE3, xxHash, FNV-1a and SpookyHash implementations.",
+          "files": [
+            "engine/core/misc/hash_value.h",
+            "engine/core/misc/hashes/blake3_256.h",
+            "engine/core/misc/hashes/blake3_256.cpp",
+            "engine/core/misc/hashes/xxhash128.h",
+            "engine/core/misc/hashes/xxhash128.cpp",
+            "engine/core/misc/hashes/xxhash64.h",
+            "engine/core/misc/hashes/xxhash64.cpp",
+            "engine/core/misc/hashes/fnv1a_64.h",
+            "engine/core/misc/hashes/fnv1a_64.cpp",
+            "engine/core/misc/hashes/spooky.h",
+            "engine/core/misc/hashes/spooky.cpp"
+          ]
+        },
+        {
+          "id": "mi-strings",
+          "name": "Hashed Strings & UUIDs",
+          "sig": "class HashedString, Uuid",
+          "col": 1,
+          "row": 0.5,
+          "desc": "Interned, hash-keyed strings used as map keys, and UUID generation for cache identity.",
+          "files": [
+            "engine/core/misc/hashed_string.h",
+            "engine/core/misc/hashed_string.cpp",
+            "engine/core/misc/uuid.h",
+            "engine/core/misc/uuid.cpp"
+          ]
+        },
+        {
+          "id": "mi-meta",
+          "name": "Compile-Time Utilities",
+          "sig": "template_argument_iterator.h",
+          "col": 0,
+          "row": 1.6,
+          "desc": "Type-list iteration, type naming, ordering predicates and constant conversion traits.",
+          "files": [
+            "engine/core/misc/static_template_iterator.h",
+            "engine/core/misc/template_argument_iterator.h",
+            "engine/core/misc/type_name.h",
+            "engine/core/misc/constant_converter.h",
+            "engine/core/misc/strict_weak_ordering.h"
+          ]
+        },
+        {
+          "id": "mi-flags",
+          "name": "Type-Safe Flag Sets",
+          "sig": "BEGIN_FLAGS_DECLARATION",
+          "col": 1,
+          "row": 1.6,
+          "desc": "Macro-generated strongly typed bit flags that wrap the native Direct3D 12 flag enums.",
+          "files": [
+            "engine/core/misc/flags.h"
+          ]
+        },
+        {
+          "id": "mi-containers",
+          "name": "Small Containers",
+          "sig": "class StaticVector, Optional",
+          "col": 1,
+          "row": 2.7,
+          "desc": "Fixed-capacity vector and an optional container used to return fallible results.",
+          "files": [
+            "engine/core/misc/static_vector.h",
+            "engine/core/misc/optional.h"
+          ]
+        },
+        {
+          "id": "mi-diag",
+          "name": "Logging & Date/Time",
+          "sig": "class Log, DateTime",
+          "col": 2,
+          "row": 2.1,
+          "desc": "Time-zone aware timestamps and the engine-wide log sink with severity filtering.",
+          "files": [
+            "engine/core/misc/log.h",
+            "engine/core/misc/log.cpp",
+            "engine/core/misc/datetime.h",
+            "engine/core/misc/datetime.cpp",
+            "engine/core/misc/misc.h",
+            "engine/core/misc/misc.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "mi-hashes",
+          "mi-strings",
+          "FNV-1a / xxHash digests"
+        ],
+        [
+          "mi-meta",
+          "mi-flags",
+          "constant converters"
+        ],
+        [
+          "mi-meta",
+          "mi-containers",
+          "static iterators"
+        ],
+        [
+          "mi-containers",
+          "mi-diag",
+          "optional results"
+        ],
+        [
+          "mi-strings",
+          "mi-diag",
+          "message keys"
+        ]
+      ]
+    },
+    "concurrency": {
+      "nodes": [
+        {
+          "id": "cc-hazard",
+          "name": "Hazard Pointer Pool",
+          "sig": "class HazardPointerPool",
+          "col": 0,
+          "row": 0.2,
+          "desc": "Deferred reclamation scheme that makes lock-free node retirement safe under contention.",
+          "files": [
+            "engine/core/concurrency/hazard_pointer_pool.h"
+          ]
+        },
+        {
+          "id": "cc-queues",
+          "name": "Lock-Free Queues",
+          "sig": "class LockFreeQueue, RingBufferTaskQueue",
+          "col": 1,
+          "row": 0.2,
+          "desc": "MPMC queues: an unbounded linked queue and the fixed-capacity ring used by the sink.",
+          "files": [
+            "engine/core/concurrency/lock_free_queue.h",
+            "engine/core/concurrency/ring_buffer_task_queue.h"
+          ]
+        },
+        {
+          "id": "cc-abstract",
+          "name": "Task Abstractions",
+          "sig": "class AbstractTask, SchedulableTask",
+          "col": 0,
+          "row": 1.5,
+          "desc": "Task base classes with profiling hooks, including the no-concurrency variant for pinned work.",
+          "files": [
+            "engine/core/concurrency/abstract_task.h",
+            "engine/core/concurrency/abstract_task.cpp",
+            "engine/core/concurrency/schedulable_task.h",
+            "engine/core/concurrency/schedulable_task.cpp"
+          ]
+        },
+        {
+          "id": "cc-graph",
+          "name": "Task Graph",
+          "sig": "class TaskGraph, TaskGraphNode",
+          "col": 1,
+          "row": 1.5,
+          "desc": "Dependency DAG with barrier sync nodes, topological setup and per-frame node duplication.",
+          "files": [
+            "engine/core/concurrency/task_graph.h",
+            "engine/core/concurrency/task_graph.cpp",
+            "engine/core/concurrency/task_graph_node.h",
+            "engine/core/concurrency/task_graph_node.cpp"
+          ]
+        },
+        {
+          "id": "cc-sink",
+          "name": "Task Sink",
+          "sig": "class TaskSink",
+          "col": 2,
+          "row": 0.85,
+          "desc": "Worker-thread pool that dispatches graph nodes, propagates errors and drains on shutdown.",
+          "files": [
+            "engine/core/concurrency/task_sink.h",
+            "engine/core/concurrency/task_sink.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "cc-hazard",
+          "cc-queues",
+          "safe node reclamation"
+        ],
+        [
+          "cc-queues",
+          "cc-sink",
+          "concurrent task queue"
+        ],
+        [
+          "cc-abstract",
+          "cc-graph",
+          "task nodes to wire"
+        ],
+        [
+          "cc-graph",
+          "cc-sink",
+          "executable DAG"
+        ]
+      ]
+    },
+    "os-interaction": {
+      "nodes": [
+        {
+          "id": "os-listeners",
+          "name": "Event Listeners",
+          "sig": "class Listeners<...>",
+          "col": 0,
+          "row": 0.8,
+          "desc": "Variadic listener mix-in plus the concrete keyboard, mouse, size and paint listener contracts.",
+          "files": [
+            "engine/osinteraction/listener.h",
+            "engine/osinteraction/listener.cpp",
+            "engine/osinteraction/keyboard.h",
+            "engine/osinteraction/mouse.h",
+            "engine/osinteraction/windows/window_listeners.h",
+            "engine/osinteraction/windows/window_listeners.cpp"
+          ]
+        },
+        {
+          "id": "os-window",
+          "name": "Win32 Window",
+          "sig": "class Window",
+          "col": 1,
+          "row": 0.2,
+          "desc": "Window creation, message pump and dispatch of native messages into registered listeners.",
+          "files": [
+            "engine/osinteraction/windows/window.h",
+            "engine/osinteraction/windows/window.cpp",
+            "engine/osinteraction/windows/lexgine_osinteraction_windows_fwd.h"
+          ]
+        },
+        {
+          "id": "os-handler",
+          "name": "Window Handler",
+          "sig": "class WindowHandler",
+          "col": 2,
+          "row": 0.8,
+          "desc": "Facade handed to the application: binds a window to the swap chain and the render loop.",
+          "files": [
+            "engine/osinteraction/window_handler.h",
+            "engine/osinteraction/window_handler.cpp",
+            "engine/osinteraction/lexgine_osinteraction_fwd.h"
+          ]
+        },
+        {
+          "id": "os-fence-event",
+          "name": "Fence Event",
+          "sig": "class FenceEvent",
+          "col": 1,
+          "row": 1.7,
+          "desc": "Win32 event object the D3D12 sync layer signals and blocks on when waiting for a fence.",
+          "files": [
+            "engine/osinteraction/windows/fence_event.h",
+            "engine/osinteraction/windows/fence_event.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "os-listeners",
+          "os-window",
+          "message dispatch targets"
+        ],
+        [
+          "os-window",
+          "os-handler",
+          "HWND & message loop"
+        ],
+        [
+          "os-listeners",
+          "os-handler",
+          "size & input callbacks"
+        ],
+        [
+          "os-window",
+          "os-fence-event",
+          "thread affinity for waits"
+        ]
+      ]
+    },
+    "dxgi": {
+      "nodes": [
+        {
+          "id": "dxgi-common",
+          "name": "DXGI Interop",
+          "sig": "DxgiGpuPreference",
+          "col": 0,
+          "row": 0.8,
+          "desc": "Shared DXGI enums, COM interface helpers and the exported DXGI facade declarations.",
+          "files": [
+            "engine/core/dx/dxgi/common.h",
+            "engine/core/dx/dxgi/interface.h",
+            "engine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
+          ]
+        },
+        {
+          "id": "dxgi-adapters",
+          "name": "Adapter Enumeration",
+          "sig": "class HwAdapterEnumerator, HwAdapter",
+          "col": 1,
+          "row": 0.2,
+          "desc": "Enumerates adapters including WARP, reports feature level, memory budget and properties.",
+          "files": [
+            "engine/core/dx/dxgi/hw_adapter_enumerator.h",
+            "engine/core/dx/dxgi/hw_adapter_enumerator.cpp"
+          ]
+        },
+        {
+          "id": "dxgi-outputs",
+          "name": "Outputs & Display Modes",
+          "sig": "class HwOutputEnumerator, HwOutput",
+          "col": 2,
+          "row": 0.2,
+          "desc": "Per-adapter display outputs, supported display modes and desktop coordinate queries.",
+          "files": [
+            "engine/core/dx/dxgi/hw_output_enumerator.h",
+            "engine/core/dx/dxgi/hw_output_enumerator.cpp"
+          ]
+        },
+        {
+          "id": "dxgi-swapchain",
+          "name": "Swap Chain",
+          "sig": "class SwapChain",
+          "col": 2,
+          "row": 1.5,
+          "desc": "Flip-model swap chain: back-buffer retrieval, resize on window change and Present().",
+          "files": [
+            "engine/core/dx/dxgi/swap_chain.h",
+            "engine/core/dx/dxgi/swap_chain.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "dxgi-common",
+          "dxgi-adapters",
+          "GPU preference flags"
+        ],
+        [
+          "dxgi-adapters",
+          "dxgi-outputs",
+          "attached outputs per adapter"
+        ],
+        [
+          "dxgi-adapters",
+          "dxgi-swapchain",
+          "factory & device pairing"
+        ],
+        [
+          "dxgi-outputs",
+          "dxgi-swapchain",
+          "supported display modes"
+        ]
+      ]
+    },
+    "shader-compilation": {
+      "nodes": [
+        {
+          "id": "sc-common",
+          "name": "HLSL Types & Macros",
+          "sig": "struct HLSLMacroDefinition",
+          "col": 0,
+          "row": 0.6,
+          "desc": "Shader model, stage and compilation-target enums plus macro definition records passed to DXC.",
+          "files": [
+            "engine/core/dx/dxcompilation/common.h",
+            "engine/core/dx/dxcompilation/lexgine_core_dx_dxcompilation_fwd.h"
+          ]
+        },
+        {
+          "id": "sc-proxy",
+          "name": "DXC Compiler Proxy",
+          "sig": "class DXCompilerProxy",
+          "col": 1,
+          "row": 0.6,
+          "desc": "Loads dxcompiler.dll dynamically and compiles HLSL to DXIL with reflection data attached.",
+          "files": [
+            "engine/core/dx/dxcompilation/dx_compiler_proxy.h",
+            "engine/core/dx/dxcompilation/dx_compiler_proxy.cpp"
+          ]
+        },
+        {
+          "id": "sc-function",
+          "name": "Shader Function",
+          "sig": "class ShaderFunction",
+          "col": 2,
+          "row": 0.2,
+          "desc": "One compiled entry point with its reflected binding points, descriptor tables and counters.",
+          "files": [
+            "engine/core/dx/dxcompilation/shader_function.h",
+            "engine/core/dx/dxcompilation/shader_function.cpp"
+          ]
+        },
+        {
+          "id": "sc-stage",
+          "name": "Shader Stage Linking",
+          "sig": "class ShaderStage",
+          "col": 2,
+          "row": 1.5,
+          "desc": "Groups functions into a pipeline stage and resolves shader arguments into a binding layout.",
+          "files": [
+            "engine/core/dx/dxcompilation/shader_stage.h",
+            "engine/core/dx/dxcompilation/shader_stage.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "sc-common",
+          "sc-proxy",
+          "macros, targets, shader model"
+        ],
+        [
+          "sc-proxy",
+          "sc-function",
+          "DXIL blob & reflection"
+        ],
+        [
+          "sc-function",
+          "sc-stage",
+          "binding points & table keys"
+        ]
+      ]
+    },
+    "gpu-caches": {
+      "nodes": [
+        {
+          "id": "gc-hlsl",
+          "name": "Shader Blob Cache",
+          "sig": "class HLSLShaderBlobCache",
+          "col": 0,
+          "row": 0.2,
+          "desc": "Caches compiled HLSL translation units by source digest, with deferred compilation contracts.",
+          "files": [
+            "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h",
+            "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.cpp"
+          ]
+        },
+        {
+          "id": "gc-rootsig",
+          "name": "Root Signature Cache",
+          "sig": "class RootSignatureBlobCache",
+          "col": 0,
+          "row": 1.5,
+          "desc": "Caches serialized root signatures so identical layouts are compiled once per cache lifetime.",
+          "files": [
+            "engine/core/dx/d3d12/caches/root_signature_blob_cache.h",
+            "engine/core/dx/d3d12/caches/root_signature_blob_cache.cpp",
+            "engine/core/dx/d3d12/caches/lexgine_core_dx_d3d12_caches_fwd.h"
+          ]
+        },
+        {
+          "id": "gc-pso",
+          "name": "PSO Blob Cache",
+          "sig": "class PSOBlobCache",
+          "col": 1,
+          "row": 0.85,
+          "desc": "Caches graphics and compute pipeline-state blobs keyed by their full descriptor contract.",
+          "files": [
+            "engine/core/dx/d3d12/caches/pso_blob_cache.h",
+            "engine/core/dx/d3d12/caches/pso_blob_cache.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "gc-hlsl",
+          "gc-pso",
+          "shader bytecode for PSO contracts"
+        ],
+        [
+          "gc-rootsig",
+          "gc-pso",
+          "compiled root signature blob"
+        ]
+      ]
+    },
+    "d3d12-device": {
+      "nodes": [
+        {
+          "id": "dd-debug",
+          "name": "Debug & Validation",
+          "sig": "class DebugInterface",
+          "col": 0,
+          "row": 0.2,
+          "desc": "Enables the D3D12 debug layer, GPU-based validation and PIX marker instrumentation.",
+          "files": [
+            "engine/core/dx/d3d12/debug_interface.h",
+            "engine/core/dx/d3d12/debug_interface.cpp",
+            "engine/core/dx/d3d12/pix_support.h"
+          ]
+        },
+        {
+          "id": "dd-tools",
+          "name": "State Converters",
+          "sig": "class DxgiFormatFetcher",
+          "col": 0,
+          "row": 1.4,
+          "desc": "Maps API-agnostic blend, raster, filter and format constants onto their D3D12 equivalents.",
+          "files": [
+            "engine/core/dx/d3d12/d3d12_tools.h",
+            "engine/core/dx/d3d12/d3d12_tools.cpp",
+            "engine/core/dx/d3d12/d3d12_min_mag_filter_converter.inl",
+            "engine/core/dx/d3d12/d3d12_type_traits.inl"
+          ]
+        },
+        {
+          "id": "dd-device",
+          "name": "Device & Capabilities",
+          "sig": "class Device",
+          "col": 1,
+          "row": 0.8,
+          "desc": "ID3D12Device wrapper: object creation plus a typed view over every D3D12 feature tier.",
+          "files": [
+            "engine/core/dx/d3d12/device.h",
+            "engine/core/dx/d3d12/device.cpp",
+            "engine/core/dx/d3d12/common.h",
+            "engine/core/dx/d3d12/interface.h",
+            "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
+          ]
+        },
+        {
+          "id": "dd-factory",
+          "name": "Resource Factory",
+          "sig": "class DxResourceFactory",
+          "col": 2,
+          "row": 0.0,
+          "desc": "Owns the long-lived per-device pools: descriptor heaps, upload heap and its named partitions.",
+          "files": [
+            "engine/core/dx/d3d12/dx_resource_factory.h",
+            "engine/core/dx/d3d12/dx_resource_factory.cpp"
+          ]
+        },
+        {
+          "id": "dd-memory",
+          "name": "Heaps & Resources",
+          "sig": "class Heap, Resource",
+          "col": 2,
+          "row": 1.2,
+          "desc": "Memory heaps, placement of resources inside them, and committed/placed resource wrappers."
+        },
+        {
+          "id": "dd-sync",
+          "name": "GPU Synchronization",
+          "sig": "class Fence, Signal, FrameProgressTracker",
+          "col": 1,
+          "row": 2.5,
+          "desc": "Fences and events, plus frame-level tracking of which GPU work has actually retired."
+        },
+        {
+          "id": "dd-descriptors",
+          "name": "Descriptors & Views",
+          "sig": "class DescriptorHeap, SRVDescriptor",
+          "col": 3,
+          "row": 1.2,
+          "desc": "Descriptor heaps, every view type, table builders and bindless allocation management."
+        },
+        {
+          "id": "dd-upload",
+          "name": "Upload & Streaming",
+          "sig": "class UploadBufferAllocator",
+          "col": 3,
+          "row": 0.0,
+          "desc": "Per-frame and dedicated upload allocators, subresource uploader and constant data stream."
+        },
+        {
+          "id": "dd-pso",
+          "name": "Pipeline State",
+          "sig": "class PipelineState, RootSignature",
+          "col": 2,
+          "row": 3.2,
+          "desc": "Root signature construction, graphics/compute PSOs, D3D blobs and XML-described PSO presets."
+        },
+        {
+          "id": "dd-constants",
+          "name": "Constant Buffers",
+          "sig": "class ConstantBufferDataMapper",
+          "col": 4,
+          "row": 0.0,
+          "desc": "Reflection-driven constant buffer layout and typed mapping of CPU data into GPU memory."
+        },
+        {
+          "id": "dd-geometry",
+          "name": "Vertex & Index Buffers",
+          "sig": "class VertexBuffer, IndexBufferBinding",
+          "col": 4,
+          "row": 2.4,
+          "desc": "Segmented vertex/index buffer construction and the view bindings the command list consumes."
+        },
+        {
+          "id": "dd-commands",
+          "name": "Command Submission",
+          "sig": "class CommandQueue, CommandList",
+          "col": 4,
+          "row": 1.2,
+          "desc": "Queues, recorded command lists, recycled allocator rings and batched resource barriers."
+        },
+        {
+          "id": "dd-queries",
+          "name": "GPU Queries",
+          "sig": "class QueryCache",
+          "col": 5,
+          "row": 1.2,
+          "desc": "Timestamp, occlusion and statistics query heaps with per-frame resolve into readback memory.",
+          "files": [
+            "engine/core/dx/d3d12/query_cache.h",
+            "engine/core/dx/d3d12/query_cache.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "dd-debug",
+          "dd-device",
+          "debug layer & GBV setup"
+        ],
+        [
+          "dd-tools",
+          "dd-device",
+          "format & state mapping"
+        ],
+        [
+          "dd-device",
+          "dd-factory",
+          "per-device pools"
+        ],
+        [
+          "dd-device",
+          "dd-memory",
+          "heap & resource creation"
+        ],
+        [
+          "dd-device",
+          "dd-sync",
+          "fence creation"
+        ],
+        [
+          "dd-device",
+          "dd-pso",
+          "PSO & root signature creation"
+        ],
+        [
+          "dd-device",
+          "dd-commands",
+          "queues, lists, allocators"
+        ],
+        [
+          "dd-factory",
+          "dd-descriptors",
+          "pooled descriptor heaps"
+        ],
+        [
+          "dd-factory",
+          "dd-upload",
+          "named upload heap sections"
+        ],
+        [
+          "dd-memory",
+          "dd-upload",
+          "upload heap partitions"
+        ],
+        [
+          "dd-memory",
+          "dd-descriptors",
+          "resources to describe"
+        ],
+        [
+          "dd-memory",
+          "dd-geometry",
+          "placed buffer storage"
+        ],
+        [
+          "dd-upload",
+          "dd-constants",
+          "streamed constant allocations"
+        ],
+        [
+          "dd-descriptors",
+          "dd-commands",
+          "descriptor tables to bind"
+        ],
+        [
+          "dd-constants",
+          "dd-commands",
+          "CBV bindings"
+        ],
+        [
+          "dd-geometry",
+          "dd-commands",
+          "vertex & index buffer views"
+        ],
+        [
+          "dd-pso",
+          "dd-commands",
+          "bound pipeline state"
+        ],
+        [
+          "dd-sync",
+          "dd-commands",
+          "fence-based list recycling"
+        ],
+        [
+          "dd-sync",
+          "dd-upload",
+          "per-frame allocator reset"
+        ],
+        [
+          "dd-commands",
+          "dd-queries",
+          "query resolve commands"
+        ]
+      ]
+    },
+    "dd-memory": {
+      "nodes": [
+        {
+          "id": "dm-heap",
+          "name": "Memory Heaps",
+          "sig": "class Heap",
+          "col": 0,
+          "row": 0.5,
+          "desc": "Typed D3D12 heaps with CPU page property and memory pool selection for UMA and NUMA adapters.",
+          "files": [
+            "engine/core/dx/d3d12/heap.h",
+            "engine/core/dx/d3d12/heap.cpp"
+          ]
+        },
+        {
+          "id": "dm-placer",
+          "name": "Heap Resource Placer",
+          "sig": "class HeapResourcePlacer",
+          "col": 1,
+          "row": 0.5,
+          "desc": "Walks a heap linearly, honouring per-resource alignment, to hand out placement offsets.",
+          "files": [
+            "engine/core/dx/d3d12/heap_resource_placer.h",
+            "engine/core/dx/d3d12/heap_resource_placer.cpp"
+          ]
+        },
+        {
+          "id": "dm-resource",
+          "name": "Resources",
+          "sig": "class PlacedResource, CommittedResource",
+          "col": 2,
+          "row": 0.5,
+          "desc": "Resource descriptors, state tracking and the placed/committed allocation strategies.",
+          "files": [
+            "engine/core/dx/d3d12/resource.h",
+            "engine/core/dx/d3d12/resource.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "dm-heap",
+          "dm-placer",
+          "heap space & alignment rules"
+        ],
+        [
+          "dm-placer",
+          "dm-resource",
+          "placement offsets"
+        ],
+        [
+          "dm-heap",
+          "dm-resource",
+          "committed allocation path"
+        ]
+      ]
+    },
+    "dd-descriptors": {
+      "nodes": [
+        {
+          "id": "de-hash",
+          "name": "Hashable Descriptors",
+          "sig": "class HashableDescriptor",
+          "col": 0,
+          "row": 1.4,
+          "desc": "Hash wrapper that lets identical view descriptions collapse onto one descriptor slot.",
+          "files": [
+            "engine/core/dx/d3d12/hashable_descriptor.h"
+          ]
+        },
+        {
+          "id": "de-views",
+          "name": "Resource View Descriptors",
+          "sig": "SRV / UAV / CBV / RTV / DSV",
+          "col": 1,
+          "row": 0.4,
+          "desc": "Per-view descriptions for buffers, textures and texture arrays, plus sampler descriptors.",
+          "files": [
+            "engine/core/dx/d3d12/srv_descriptor.h",
+            "engine/core/dx/d3d12/srv_descriptor.cpp",
+            "engine/core/dx/d3d12/uav_descriptor.h",
+            "engine/core/dx/d3d12/uav_descriptor.cpp",
+            "engine/core/dx/d3d12/cbv_descriptor.h",
+            "engine/core/dx/d3d12/cbv_descriptor.cpp",
+            "engine/core/dx/d3d12/rtv_descriptor.h",
+            "engine/core/dx/d3d12/rtv_descriptor.cpp",
+            "engine/core/dx/d3d12/dsv_descriptor.h",
+            "engine/core/dx/d3d12/dsv_descriptor.cpp",
+            "engine/core/dx/d3d12/sampler_descriptor.h",
+            "engine/core/dx/d3d12/sampler_descriptor.cpp"
+          ]
+        },
+        {
+          "id": "de-tables",
+          "name": "Descriptor Table Builders",
+          "sig": "class ResourceViewDescriptorTableBuilder",
+          "col": 2,
+          "row": 0.4,
+          "desc": "Accumulate views and emit one contiguous descriptor table for resources, samplers, RTVs and DSVs.",
+          "files": [
+            "engine/core/dx/d3d12/descriptor_table_builders.h",
+            "engine/core/dx/d3d12/descriptor_table_builders.cpp"
+          ]
+        },
+        {
+          "id": "de-heap",
+          "name": "Descriptor Heaps",
+          "sig": "class DescriptorHeap",
+          "col": 2,
+          "row": 1.6,
+          "desc": "Shader-visible and staging heaps sized from global settings, one set per frame in flight.",
+          "files": [
+            "engine/core/dx/d3d12/descriptor_heap.h",
+            "engine/core/dx/d3d12/descriptor_heap.cpp"
+          ]
+        },
+        {
+          "id": "de-alloc",
+          "name": "Allocation Managers",
+          "sig": "class UnorderedSRVTableAllocationManager",
+          "col": 3,
+          "row": 1.0,
+          "desc": "Sub-allocates heap ranges and reserves bindless SRV slots that shaders index dynamically.",
+          "files": [
+            "engine/core/dx/d3d12/descriptor_allocation_manager.h",
+            "engine/core/dx/d3d12/unordered_srv_table_allocation_manager.h",
+            "engine/core/dx/d3d12/unordered_srv_table_allocation_manager.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "de-hash",
+          "de-views",
+          "de-duplication keys"
+        ],
+        [
+          "de-views",
+          "de-tables",
+          "views to pack"
+        ],
+        [
+          "de-tables",
+          "de-heap",
+          "contiguous table writes"
+        ],
+        [
+          "de-heap",
+          "de-alloc",
+          "heap ranges to sub-allocate"
+        ],
+        [
+          "de-alloc",
+          "de-tables",
+          "bindless slot reservations"
+        ]
+      ]
+    },
+    "dd-commands": {
+      "nodes": [
+        {
+          "id": "dc-allocator",
+          "name": "Allocator Ring",
+          "sig": "class CommandAllocatorRing",
+          "col": 0,
+          "row": 0.5,
+          "desc": "Per-frame command allocator ring that recycles allocators once their frame has retired.",
+          "files": [
+            "engine/core/dx/d3d12/command_allocator_ring.h",
+            "engine/core/dx/d3d12/command_allocator_ring.cpp"
+          ]
+        },
+        {
+          "id": "dc-barriers",
+          "name": "Resource Barriers",
+          "sig": "class StaticResourceBarrierPack",
+          "col": 0,
+          "row": 1.7,
+          "desc": "Static and dynamic barrier packs, including split begin/end barriers, applied in one call.",
+          "files": [
+            "engine/core/dx/d3d12/resource_barrier_pack.h",
+            "engine/core/dx/d3d12/resource_barrier_pack.cpp"
+          ]
+        },
+        {
+          "id": "dc-list",
+          "name": "Command Lists",
+          "sig": "class CommandList",
+          "col": 1,
+          "row": 1.1,
+          "desc": "Recording surface for draws, dispatches, copies, clears and bundle invocation contexts.",
+          "files": [
+            "engine/core/dx/d3d12/command_list.h",
+            "engine/core/dx/d3d12/command_list.cpp"
+          ]
+        },
+        {
+          "id": "dc-queue",
+          "name": "Command Queues",
+          "sig": "class CommandQueue",
+          "col": 2,
+          "row": 1.1,
+          "desc": "Direct, compute and copy queues with priority, GPU timeout control and timestamp frequency.",
+          "files": [
+            "engine/core/dx/d3d12/command_queue.h",
+            "engine/core/dx/d3d12/command_queue.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "dc-allocator",
+          "dc-list",
+          "recycled allocators"
+        ],
+        [
+          "dc-barriers",
+          "dc-list",
+          "state transition batches"
+        ],
+        [
+          "dc-list",
+          "dc-queue",
+          "recorded lists to execute"
+        ]
+      ]
+    },
+    "dd-pso": {
+      "nodes": [
+        {
+          "id": "dp-blob",
+          "name": "D3D Data Blobs",
+          "sig": "class D3DDataBlob",
+          "col": 0,
+          "row": 0.8,
+          "desc": "Wrapper over ID3DBlob used to carry shader bytecode and serialized root signatures.",
+          "files": [
+            "engine/core/dx/d3d12/d3d_data_blob.h",
+            "engine/core/dx/d3d12/d3d_data_blob.cpp"
+          ]
+        },
+        {
+          "id": "dp-rootsig",
+          "name": "Root Signatures",
+          "sig": "class RootSignature, CompiledRootSignature",
+          "col": 1,
+          "row": 0.2,
+          "desc": "Root entries, descriptor tables, static samplers and shader visibility, compiled to a blob.",
+          "files": [
+            "engine/core/dx/d3d12/root_signature.h",
+            "engine/core/dx/d3d12/root_signature.cpp"
+          ]
+        },
+        {
+          "id": "dp-xml",
+          "name": "PSO XML Parser",
+          "sig": "class D3D12PSOXMLParser",
+          "col": 1,
+          "row": 1.7,
+          "desc": "Parses the XML PSO descriptions under scripts/d3d12_PSOs into PSO descriptor structures.",
+          "files": [
+            "engine/core/dx/d3d12/d3d12_pso_xml_parser.h",
+            "engine/core/dx/d3d12/d3d12_pso_xml_parser.cpp"
+          ]
+        },
+        {
+          "id": "dp-pso",
+          "name": "Pipeline States",
+          "sig": "class PipelineState",
+          "col": 2,
+          "row": 0.8,
+          "desc": "Graphics and compute PSO descriptors and the compiled, cache-aware pipeline state object.",
+          "files": [
+            "engine/core/dx/d3d12/pipeline_state.h",
+            "engine/core/dx/d3d12/pipeline_state.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "dp-blob",
+          "dp-rootsig",
+          "serialization target"
+        ],
+        [
+          "dp-blob",
+          "dp-pso",
+          "shader bytecode"
+        ],
+        [
+          "dp-rootsig",
+          "dp-pso",
+          "bound root signature"
+        ],
+        [
+          "dp-xml",
+          "dp-pso",
+          "parsed PSO descriptors"
+        ]
+      ]
+    },
+    "dd-upload": {
+      "nodes": [
+        {
+          "id": "du-alloc",
+          "name": "Upload Allocators",
+          "sig": "class PerFrameUploadDataStreamAllocator",
+          "col": 0,
+          "row": 0.8,
+          "desc": "Dedicated and per-frame ring allocators carving staging blocks out of the upload heap.",
+          "files": [
+            "engine/core/dx/d3d12/upload_buffer_allocator.h",
+            "engine/core/dx/d3d12/upload_buffer_allocator.cpp"
+          ]
+        },
+        {
+          "id": "du-uploader",
+          "name": "Resource Data Uploader",
+          "sig": "class ResourceDataUploader",
+          "col": 1,
+          "row": 0.2,
+          "desc": "Copies placed subresources from staging memory into their destination GPU resources.",
+          "files": [
+            "engine/core/dx/d3d12/resource_data_uploader.h",
+            "engine/core/dx/d3d12/resource_data_uploader.cpp"
+          ]
+        },
+        {
+          "id": "du-cbstream",
+          "name": "Constant Buffer Stream",
+          "sig": "class ConstantBufferStream",
+          "col": 1,
+          "row": 1.5,
+          "desc": "Frame-scoped stream that hands out constant buffer allocations to rendering tasks.",
+          "files": [
+            "engine/core/dx/d3d12/constant_buffer_stream.h",
+            "engine/core/dx/d3d12/constant_buffer_stream.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "du-alloc",
+          "du-uploader",
+          "staging allocations"
+        ],
+        [
+          "du-alloc",
+          "du-cbstream",
+          "per-frame constant partition"
+        ]
+      ]
+    },
+    "dd-sync": {
+      "nodes": [
+        {
+          "id": "ds-fence",
+          "name": "Fences",
+          "sig": "class Fence",
+          "col": 0,
+          "row": 0.5,
+          "desc": "ID3D12Fence wrapper with sharing modes for cross-queue and cross-adapter signalling.",
+          "files": [
+            "engine/core/dx/d3d12/fence.h",
+            "engine/core/dx/d3d12/fence.cpp"
+          ]
+        },
+        {
+          "id": "ds-signal",
+          "name": "Signals",
+          "sig": "class Signal",
+          "col": 1,
+          "row": 0.5,
+          "desc": "Couples a fence with an OS event so the CPU can block until a target value is reached.",
+          "files": [
+            "engine/core/dx/d3d12/signal.h",
+            "engine/core/dx/d3d12/signal.cpp"
+          ]
+        },
+        {
+          "id": "ds-frame",
+          "name": "Frame Progress Tracker",
+          "sig": "class FrameProgressTracker",
+          "col": 2,
+          "row": 0.5,
+          "desc": "Tracks scheduled versus completed frames to bound frames in flight and drive resource reuse.",
+          "files": [
+            "engine/core/dx/d3d12/frame_progress_tracker.h",
+            "engine/core/dx/d3d12/frame_progress_tracker.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "ds-fence",
+          "ds-signal",
+          "fence + event pairing"
+        ],
+        [
+          "ds-signal",
+          "ds-frame",
+          "frame completion waits"
+        ]
+      ]
+    },
+    "dd-constants": {
+      "nodes": [
+        {
+          "id": "dk-reflection",
+          "name": "Constant Buffer Reflection",
+          "sig": "class ConstantBufferReflection",
+          "col": 0,
+          "row": 0.5,
+          "desc": "Declares constant buffer members and computes HLSL-conformant offsets and padding.",
+          "files": [
+            "engine/core/dx/d3d12/constant_buffer_reflection.h",
+            "engine/core/dx/d3d12/constant_buffer_reflection.cpp"
+          ]
+        },
+        {
+          "id": "dk-mapper",
+          "name": "Constant Data Mapper",
+          "sig": "class ConstantBufferDataMapper",
+          "col": 1,
+          "row": 0.5,
+          "desc": "Binds typed CPU data providers to reflected members and writes them into mapped memory.",
+          "files": [
+            "engine/core/dx/d3d12/constant_buffer_data_mapper.h",
+            "engine/core/dx/d3d12/constant_buffer_data_mapper.cpp",
+            "engine/core/dx/d3d12/constant_buffer_impl.inl",
+            "engine/core/dx/d3d12/constant_buffer_impl_converters_scalar_types.inl",
+            "engine/core/dx/d3d12/constant_buffer_impl_converters_vector_types.inl",
+            "engine/core/dx/d3d12/constant_buffer_impl_converters_matrix_types.inl"
+          ]
+        },
+        {
+          "id": "dk-buffer",
+          "name": "Constant Buffer",
+          "sig": "class ConstantBuffer",
+          "col": 2,
+          "row": 0.5,
+          "desc": "The GPU-side constant buffer resource the mapped, reflected data is finally committed to.",
+          "files": [
+            "engine/core/dx/d3d12/constant_buffer.h",
+            "engine/core/dx/d3d12/constant_buffer.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "dk-reflection",
+          "dk-mapper",
+          "member offsets & types"
+        ],
+        [
+          "dk-mapper",
+          "dk-buffer",
+          "packed constant payload"
+        ]
+      ]
+    },
+    "dd-geometry": {
+      "nodes": [
+        {
+          "id": "dg-buffers",
+          "name": "Vertex & Index Buffers",
+          "sig": "class VertexBuffer, IndexBuffer",
+          "col": 0,
+          "row": 0.5,
+          "desc": "Segmented buffer construction over placed resources with per-attribute stride bookkeeping.",
+          "files": [
+            "engine/core/dx/d3d12/vertex_buffer.h",
+            "engine/core/dx/d3d12/vertex_buffer.cpp"
+          ]
+        },
+        {
+          "id": "dg-bindings",
+          "name": "Buffer Bindings",
+          "sig": "class VertexBufferBinding, IndexBufferBinding",
+          "col": 1,
+          "row": 0.5,
+          "desc": "Immutable view sets handed to the command list when binding geometry for a draw.",
+          "files": [
+            "engine/core/dx/d3d12/vertex_buffer_binding.h",
+            "engine/core/dx/d3d12/vertex_buffer_binding.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "dg-buffers",
+          "dg-bindings",
+          "buffer views & strides"
+        ]
+      ]
+    },
+    "asset-pipeline": {
+      "nodes": [
+        {
+          "id": "ap-loader",
+          "name": "Image Loader Contract",
+          "sig": "class ImageLoader",
+          "col": 0,
+          "row": 0.8,
+          "desc": "Abstract loader exposing mip, layer and format description for a decoded source image.",
+          "files": [
+            "engine/conversion/image_loader.h",
+            "engine/conversion/image_loader.cpp",
+            "engine/conversion/lexgine_conversion_fwd.h"
+          ]
+        },
+        {
+          "id": "ap-ktx",
+          "name": "KTX Loader",
+          "sig": "class KtxImageLoader",
+          "col": 1,
+          "row": 0.2,
+          "desc": "Reads KTX containers, including already block-compressed and cube/array textures.",
+          "files": [
+            "engine/conversion/ktx_image_loader.h",
+            "engine/conversion/ktx_image_loader.cpp"
+          ]
+        },
+        {
+          "id": "ap-pngjpg",
+          "name": "PNG / JPEG Loader",
+          "sig": "class PNGJPGImageLoader",
+          "col": 1,
+          "row": 1.5,
+          "desc": "Decodes PNG and JPEG sources into linear RGBA surfaces ready for conversion.",
+          "files": [
+            "engine/conversion/png_jpg_image_loader.h",
+            "engine/conversion/png_jpg_image_loader.cpp"
+          ]
+        },
+        {
+          "id": "ap-pool",
+          "name": "Image Loader Pool",
+          "sig": "class ImageLoaderPool",
+          "col": 2,
+          "row": 0.8,
+          "desc": "Picks the loader that matches a source and pools loader instances across scene loads.",
+          "files": [
+            "engine/conversion/image_loader_pool.h",
+            "engine/conversion/image_loader_pool.cpp"
+          ]
+        },
+        {
+          "id": "ap-converter",
+          "name": "GPU Texture Converter",
+          "sig": "class TextureConverter",
+          "col": 3,
+          "row": 0.8,
+          "desc": "Mip generation and GPU-accelerated block compression, with results kept in the texture cache.",
+          "files": [
+            "engine/conversion/texture_converter.h",
+            "engine/conversion/texture_converter.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "ap-loader",
+          "ap-ktx",
+          "ImageLoader contract"
+        ],
+        [
+          "ap-loader",
+          "ap-pngjpg",
+          "ImageLoader contract"
+        ],
+        [
+          "ap-ktx",
+          "ap-pool",
+          "registered loader"
+        ],
+        [
+          "ap-pngjpg",
+          "ap-pool",
+          "registered loader"
+        ],
+        [
+          "ap-pool",
+          "ap-converter",
+          "decoded surfaces & mip chains"
+        ]
+      ]
+    },
+    "scenegraph": {
+      "nodes": [
+        {
+          "id": "sg-textures",
+          "name": "Images & Samplers",
+          "sig": "class Image, struct Sampler",
+          "col": 0,
+          "row": 0.2,
+          "desc": "Scene-owned GPU textures and sampler states resolved from glTF texture references.",
+          "files": [
+            "engine/scenegraph/image.h",
+            "engine/scenegraph/image.cpp",
+            "engine/scenegraph/sampler.h"
+          ]
+        },
+        {
+          "id": "sg-memory",
+          "name": "Scene Mesh Memory",
+          "sig": "class SceneMeshMemory",
+          "col": 0,
+          "row": 1.5,
+          "desc": "Single large GPU buffer sub-allocated into vertex, index and instance regions per scene.",
+          "files": [
+            "engine/scenegraph/scene_mesh_memory.h",
+            "engine/scenegraph/scene_mesh_memory.cpp"
+          ]
+        },
+        {
+          "id": "sg-material",
+          "name": "Materials",
+          "sig": "class Material, MaterialStaticState",
+          "col": 1,
+          "row": 0.2,
+          "desc": "Metallic-roughness parameters plus the de-duplicated static state that selects a PSO.",
+          "files": [
+            "engine/scenegraph/material.h",
+            "engine/scenegraph/material.cpp"
+          ]
+        },
+        {
+          "id": "sg-mesh",
+          "name": "Meshes & Submeshes",
+          "sig": "class Mesh, Submesh",
+          "col": 1,
+          "row": 1.5,
+          "desc": "Meshes as submesh collections, each with its own attribute layout and material binding.",
+          "files": [
+            "engine/scenegraph/mesh.h",
+            "engine/scenegraph/mesh.cpp",
+            "engine/scenegraph/submesh.h",
+            "engine/scenegraph/submesh.cpp"
+          ]
+        },
+        {
+          "id": "sg-lightcam",
+          "name": "Lights & Cameras",
+          "sig": "class Light, Camera",
+          "col": 1,
+          "row": 2.8,
+          "desc": "Light and camera objects attached to scene nodes, supplying view and projection transforms.",
+          "files": [
+            "engine/scenegraph/light.h",
+            "engine/scenegraph/light.cpp",
+            "engine/scenegraph/camera.h",
+            "engine/scenegraph/camera.cpp"
+          ]
+        },
+        {
+          "id": "sg-scene",
+          "name": "Scene & Nodes",
+          "sig": "class Scene, Scene::Node",
+          "col": 2,
+          "row": 1.2,
+          "desc": "glTF import, id-based node hierarchy with lazy transforms, and GPU instancing draw queries.",
+          "files": [
+            "engine/scenegraph/scene.h",
+            "engine/scenegraph/scene.cpp",
+            "engine/scenegraph/lexgine_scenegraph_fwd.h"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "sg-textures",
+          "sg-material",
+          "texture views & samplers"
+        ],
+        [
+          "sg-memory",
+          "sg-mesh",
+          "vertex & index allocations"
+        ],
+        [
+          "sg-material",
+          "sg-mesh",
+          "per-submesh material binding"
+        ],
+        [
+          "sg-material",
+          "sg-scene",
+          "static state dedup & PSO keys"
+        ],
+        [
+          "sg-mesh",
+          "sg-scene",
+          "mesh instances per node"
+        ],
+        [
+          "sg-lightcam",
+          "sg-scene",
+          "attached lights & cameras"
+        ]
+      ]
+    },
+    "rendering-tasks": {
+      "nodes": [
+        {
+          "id": "rt-work",
+          "name": "Rendering Work Base",
+          "sig": "class RenderingWork",
+          "col": 0,
+          "row": 1.1,
+          "desc": "Schedulable base that owns command lists and reacts to rendering configuration changes.",
+          "files": [
+            "engine/core/dx/d3d12/tasks/rendering_tasks/rendering_work.h",
+            "engine/core/dx/d3d12/tasks/rendering_tasks/rendering_work.cpp",
+            "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h",
+            "engine/core/dx/d3d12/tasks/rendering_tasks/lexgine_core_dx_d3d12_tasks_rendering_tasks_fwd.h"
+          ]
+        },
+        {
+          "id": "rt-submesh",
+          "name": "Submesh Draw Task",
+          "sig": "class SubmeshRenderingTask",
+          "col": 1,
+          "row": 0.0,
+          "desc": "Records instanced draws for a scene's submeshes using its cached PSOs and descriptor tables.",
+          "files": [
+            "engine/core/dx/d3d12/tasks/rendering_tasks/submesh_rendering_task.h",
+            "engine/core/dx/d3d12/tasks/rendering_tasks/submesh_rendering_task.cpp"
+          ]
+        },
+        {
+          "id": "rt-ui",
+          "name": "UI Draw Task",
+          "sig": "class UIDrawTask",
+          "col": 1,
+          "row": 1.1,
+          "desc": "Drives ImGui: feeds OS input, builds UI provider geometry and records its draw commands.",
+          "files": [
+            "engine/core/dx/d3d12/tasks/rendering_tasks/ui_draw_task.h",
+            "engine/core/dx/d3d12/tasks/rendering_tasks/ui_draw_task.cpp"
+          ]
+        },
+        {
+          "id": "rt-test",
+          "name": "Test Rendering Task",
+          "sig": "class TestRenderingTask",
+          "col": 1,
+          "row": 2.2,
+          "desc": "Reference task that exercises PSO caching, constant streaming and dynamic geometry.",
+          "files": [
+            "engine/core/dx/d3d12/tasks/rendering_tasks/test_rendering_task.h",
+            "engine/core/dx/d3d12/tasks/rendering_tasks/test_rendering_task.cpp"
+          ]
+        },
+        {
+          "id": "rt-profiling",
+          "name": "Query Flush Task",
+          "sig": "class GpuProfilingQueriesFlushTask",
+          "col": 1,
+          "row": 3.3,
+          "desc": "Resolves the frame's timestamp and statistics queries into CPU-readable memory.",
+          "files": [
+            "engine/core/dx/d3d12/tasks/rendering_tasks/gpu_profiling_queries_flush_task.h",
+            "engine/core/dx/d3d12/tasks/rendering_tasks/gpu_profiling_queries_flush_task.cpp"
+          ]
+        },
+        {
+          "id": "rt-exec",
+          "name": "GPU Work Execution",
+          "sig": "class GpuWorkExecutionTask",
+          "col": 2,
+          "row": 1.6,
+          "desc": "Terminal node that closes the recorded lists and submits them to the matching command queue.",
+          "files": [
+            "engine/core/dx/d3d12/tasks/rendering_tasks/gpu_work_execution_task.h",
+            "engine/core/dx/d3d12/tasks/rendering_tasks/gpu_work_execution_task.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "rt-work",
+          "rt-submesh",
+          "command list recording base"
+        ],
+        [
+          "rt-work",
+          "rt-ui",
+          "command list recording base"
+        ],
+        [
+          "rt-work",
+          "rt-test",
+          "command list recording base"
+        ],
+        [
+          "rt-work",
+          "rt-profiling",
+          "command list recording base"
+        ],
+        [
+          "rt-submesh",
+          "rt-exec",
+          "recorded draw lists"
+        ],
+        [
+          "rt-ui",
+          "rt-exec",
+          "recorded UI lists"
+        ],
+        [
+          "rt-test",
+          "rt-exec",
+          "recorded draw lists"
+        ],
+        [
+          "rt-profiling",
+          "rt-exec",
+          "query resolve lists"
+        ]
+      ]
+    },
+    "rendering-pipeline": {
+      "nodes": [
+        {
+          "id": "rp-target",
+          "name": "Rendering Target",
+          "sig": "class RenderingTarget",
+          "col": 0,
+          "row": 0.3,
+          "desc": "Colour and depth attachment set with its RTV/DSV tables and current resource states.",
+          "files": [
+            "engine/core/dx/d3d12/rendering_target.h",
+            "engine/core/dx/d3d12/rendering_target.cpp"
+          ]
+        },
+        {
+          "id": "rp-frame",
+          "name": "Frame Progress",
+          "sig": "class FrameProgressTracker",
+          "col": 0,
+          "row": 1.5,
+          "desc": "Frame index and completion state shared by allocators, descriptor heaps and upload rings.",
+          "files": [
+            "engine/core/dx/d3d12/frame_progress_tracker.h",
+            "engine/core/dx/d3d12/frame_progress_tracker.cpp"
+          ]
+        },
+        {
+          "id": "rp-gbuffer",
+          "name": "G-Buffer",
+          "sig": "class Gbuffer",
+          "col": 0,
+          "row": 2.7,
+          "desc": "Deferred-shading attachment set allocated against the device and current MSAA mode.",
+          "files": [
+            "engine/core/dx/d3d12/rendering/gbuffer.h",
+            "engine/core/dx/d3d12/rendering/gbuffer.cpp",
+            "engine/core/dx/d3d12/rendering/lexgine_core_dx_d3d12_rendering_fwd.h"
+          ]
+        },
+        {
+          "id": "rp-services",
+          "name": "Basic Rendering Services",
+          "sig": "class BasicRenderingServices",
+          "col": 1,
+          "row": 0.9,
+          "desc": "Per-frame defaults every task uses: viewport, target binding, constant and geometry streams.",
+          "files": [
+            "engine/core/dx/d3d12/basic_rendering_services.h",
+            "engine/core/dx/d3d12/basic_rendering_services.cpp"
+          ]
+        },
+        {
+          "id": "rp-link",
+          "name": "Swap Chain Link",
+          "sig": "class SwapChainLink",
+          "col": 1,
+          "row": 2.2,
+          "desc": "Owns back-buffer targets and the depth buffer, and rebuilds them on window size change.",
+          "files": [
+            "engine/core/dx/d3d12/swap_chain_link.h",
+            "engine/core/dx/d3d12/swap_chain_link.cpp"
+          ]
+        },
+        {
+          "id": "rp-tasks",
+          "name": "Rendering Loop",
+          "sig": "class RenderingTasks",
+          "col": 2,
+          "row": 1.5,
+          "desc": "Builds the frame task graph, runs it through the task sink and flushes the GPU on teardown.",
+          "files": [
+            "engine/core/dx/d3d12/rendering_tasks.h",
+            "engine/core/dx/d3d12/rendering_tasks.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "rp-target",
+          "rp-services",
+          "current rendering target"
+        ],
+        [
+          "rp-target",
+          "rp-link",
+          "per-back-buffer targets"
+        ],
+        [
+          "rp-frame",
+          "rp-services",
+          "frames in flight"
+        ],
+        [
+          "rp-frame",
+          "rp-tasks",
+          "frame completion fences"
+        ],
+        [
+          "rp-gbuffer",
+          "rp-tasks",
+          "deferred attachments"
+        ],
+        [
+          "rp-services",
+          "rp-tasks",
+          "shared per-frame state"
+        ],
+        [
+          "rp-link",
+          "rp-tasks",
+          "frame target & present callback"
+        ]
+      ]
+    },
+    "ui-console": {
+      "nodes": [
+        {
+          "id": "uc-provider",
+          "name": "UI Provider Contract",
+          "sig": "class UIProvider",
+          "col": 0,
+          "row": 0.8,
+          "desc": "Interface each overlay implements so the UI draw task can build its ImGui geometry.",
+          "files": [
+            "engine/core/ui/ui_provider.h",
+            "engine/core/ui/lexgine_core_ui_fwd.h"
+          ]
+        },
+        {
+          "id": "uc-commands",
+          "name": "Console Commands",
+          "sig": "class ConsoleCommand",
+          "col": 0,
+          "row": 2.0,
+          "desc": "Command registry with token filtering and autocomplete over registered command names.",
+          "files": [
+            "engine/interaction/console_command.h",
+            "engine/interaction/console_command.cpp",
+            "engine/interaction/console_token_autocomplete.h",
+            "engine/interaction/console_token_autocomplete.cpp",
+            "engine/interaction/console_token_filter.h",
+            "engine/interaction/console_token_filter.cpp"
+          ]
+        },
+        {
+          "id": "uc-console",
+          "name": "Debug Console",
+          "sig": "class Console",
+          "col": 1,
+          "row": 1.4,
+          "desc": "Scrollback console with keyboard capture, log mirroring and inline command execution.",
+          "files": [
+            "engine/core/ui/console.h",
+            "engine/core/ui/console.cpp"
+          ]
+        },
+        {
+          "id": "uc-profiler",
+          "name": "Profiler Overlay",
+          "sig": "class Profiler",
+          "col": 1,
+          "row": 0.2,
+          "desc": "Live CPU and GPU timing view built from the profiling services attached to each task.",
+          "files": [
+            "engine/core/ui/profiler.h",
+            "engine/core/ui/profiler.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "uc-provider",
+          "uc-console",
+          "draw callback contract"
+        ],
+        [
+          "uc-provider",
+          "uc-profiler",
+          "draw callback contract"
+        ],
+        [
+          "uc-commands",
+          "uc-console",
+          "parsing & autocomplete"
+        ]
+      ]
+    },
+    "bootstrap": {
+      "nodes": [
+        {
+          "id": "bs-d3d12init",
+          "name": "D3D12 Initializer",
+          "sig": "class D3D12Initializer",
+          "col": 0,
+          "row": 0.8,
+          "desc": "Brings up logging, settings, caches and the device; creates swap chains and the render loop.",
+          "files": [
+            "engine/core/dx/d3d12_initializer.h",
+            "engine/core/dx/d3d12_initializer.cpp",
+            "engine/core/dx/lexgine_core_dx_fwd.h"
+          ]
+        },
+        {
+          "id": "bs-initializer",
+          "name": "Public Initializer",
+          "sig": "class Initializer, EngineSettings",
+          "col": 1,
+          "row": 0.8,
+          "desc": "API-agnostic front door: takes EngineSettings, picks an adapter and returns a window handler.",
+          "files": [
+            "engine/initializer.h",
+            "engine/initializer.cpp"
+          ]
+        },
+        {
+          "id": "bs-demo",
+          "name": "Demo Application",
+          "sig": "demos/swe_demo",
+          "col": 2,
+          "row": 0.2,
+          "desc": "Sample host that opens a window, drives the render loop and exercises the public API.",
+          "files": [
+            "demos/swe_demo/main.cpp"
+          ]
+        },
+        {
+          "id": "bs-tests",
+          "name": "Test Harness",
+          "sig": "engine/tests",
+          "col": 2,
+          "row": 1.5,
+          "desc": "Unit tests over task graphs, streamed caches, PSO XML parsing and image conversion.",
+          "files": [
+            "engine/tests/basic_tests.cpp"
+          ]
+        }
+      ],
+      "edges": [
+        [
+          "bs-d3d12init",
+          "bs-initializer",
+          "device, swap chain, rendering tasks"
+        ],
+        [
+          "bs-initializer",
+          "bs-demo",
+          "window handler & render loop"
+        ],
+        [
+          "bs-initializer",
+          "bs-tests",
+          "engine under test"
+        ]
+      ]
+    }
+  }
+}
