@@ -25,8 +25,8 @@ add_executable(${_target} ${_sources_list} ${_headers_list})
 add_dependencies(${_target} api)
 
 target_include_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}")
-target_link_directories(${_target} PRIVATE "${CMAKE_BINARY_DIR}/bin/lib/")
+target_link_directories(${_target} PRIVATE "${_build_lib_output_directory}")
 target_link_libraries(${_target} PRIVATE api)
-target_compile_definitions(${_target} PRIVATE LEXGINE_DLL_PATH=L"${CMAKE_BINARY_DIR}/bin/lexgine.dll" LEXGINE_API_LIB)
+target_compile_definitions(${_target} PRIVATE LEXGINE_DLL_PATH=L"$<TARGET_FILE:engine>" LEXGINE_API_LIB)
 
 set_property(TARGET ${_target} PROPERTY OUTPUT_NAME "swe")

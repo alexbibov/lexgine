@@ -86,3 +86,7 @@ api/*
 common/*
 !common/CMakeLists.txt
 !common/ioc_traits.h
+
+# CMake build trees and local presets
+build/
+CMakeUserPresets.json

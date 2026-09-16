@@ -1,0 +1,123 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 25,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "windows-base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "vs",
+            "displayName": "Visual Studio (Debug + Release)",
+            "description": "Generates a Visual Studio solution carrying both the Debug and the Release configuration",
+            "inherits": "windows-base",
+            "generator": "Visual Studio 18 2026",
+            "architecture": "x64",
+            "cacheVariables": {
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release"
+            }
+        },
+        {
+            "name": "clion-base",
+            "hidden": true,
+            "inherits": "windows-base",
+            "generator": "Ninja",
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl"
+            }
+        },
+        {
+            "name": "clion-debug",
+            "displayName": "CLion Debug",
+            "inherits": "clion-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "clion-release",
+            "displayName": "CLion Release",
+            "inherits": "clion-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "vs-debug",
+            "displayName": "Visual Studio Debug",
+            "configurePreset": "vs",
+            "configuration": "Debug"
+        },
+        {
+            "name": "vs-release",
+            "displayName": "Visual Studio Release",
+            "configurePreset": "vs",
+            "configuration": "Release"
+        },
+        {
+            "name": "clion-debug",
+            "displayName": "CLion Debug",
+            "configurePreset": "clion-debug"
+        },
+        {
+            "name": "clion-release",
+            "displayName": "CLion Release",
+            "configurePreset": "clion-release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "test-base",
+            "hidden": true,
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error"
+            }
+        },
+        {
+            "name": "vs-debug",
+            "displayName": "Visual Studio Debug",
+            "inherits": "test-base",
+            "configurePreset": "vs",
+            "configuration": "Debug"
+        },
+        {
+            "name": "vs-release",
+            "displayName": "Visual Studio Release",
+            "inherits": "test-base",
+            "configurePreset": "vs",
+            "configuration": "Release"
+        },
+        {
+            "name": "clion-debug",
+            "displayName": "CLion Debug",
+            "inherits": "test-base",
+            "configurePreset": "clion-debug"
+        },
+        {
+            "name": "clion-release",
+            "displayName": "CLion Release",
+            "inherits": "test-base",
+            "configurePreset": "clion-release"
+        }
+    ]
+}
