@@ -89,9 +89,14 @@ Edges, as `[from, to, "label"]`:
 - Prefer a connected level. An isolated node usually means it belongs one level
   up, or its consumer is missing.
 
-Layout is hand-placed on a grid via `col` and `row` (floats allowed). Put
-providers left and consumers right so the flow reads left-to-right, and stagger
-`row` to keep arrows off each other.
+Layout is hand-placed on a grid via `col` and `row` (floats allowed, but never
+negative). Put providers left and consumers right so the flow reads
+left-to-right, and stagger `row` to keep arrows off each other.
+
+Do not agonise over the first placement. Boxes are draggable in the page, and
+**Save** writes the arranged positions straight back into `col`/`row` — see
+*Rearranging the graph* below. Getting the modules and edges right matters far
+more than getting the grid right on the first pass.
 
 ## 4. Write the model
 
@@ -152,7 +157,27 @@ the cheapest way to catch invented file names. Fix every error; nothing is
 written while one remains. Warnings about levels past `maxLevels` are only worth
 acting on if you authored data you meant to be reachable.
 
-## 6. Publish
+## 6. Rearranging the graph
+
+Boxes are dragged in the page, not edited by hand. The round trip is:
+
+1. Drag boxes on any level. Edges re-route live, moved boxes get a corner dot,
+   and the positions survive a reload via `localStorage` for that viewer.
+2. **Save** re-serializes the whole model with every moved box written back into
+   its `col`/`row`, downloads it under the model's own file name, and copies the
+   same JSON to the clipboard.
+3. Overwrite the model file with what came down, then rebuild (step 5). The
+   export uses 2-space JSON and preserves key order, so the diff shows only the
+   `col`/`row` lines that actually moved.
+
+**Reset** restores the authored positions for the level on screen.
+
+When the user asks for a rearranged graph to be regenerated, expect the saved
+model in the repo already — rebuild from it rather than re-deriving the layout.
+`{root}` in the editor URI is absolute, so rebuild on the machine that will open
+the page.
+
+## 7. Publish
 
 Publish `<output-dir>/index.html` with the `Artifact` tool and give the user the
 link. Keep `model.json` next to it so the graph can be regenerated and amended
@@ -185,8 +210,10 @@ supply data, do not rewrite the page:
 - **Default** (the opening view) frames the graph at full size for reading and
   expects panning; **Fit** scales the whole graph on screen. Panning or zooming
   by hand clears both, and `d` / `f` are shortcuts.
-- Drag to pan, wheel to zoom, **Labels** to toggle labels between always-on and
-  hover-only.
+- Dragging a box moves it; dragging the sheet pans. **Save** exports the moved
+  layout as a model, **Reset** restores the authored positions for the current
+  level, and both are disabled until something has actually moved.
+- Wheel to zoom, **Labels** to toggle labels between always-on and hover-only.
 - A theme button cycling Auto / Light / Dark — Auto follows the host, an explicit
   choice overrides it and is remembered per viewer.
 - A phone layout where the side panel becomes a bottom sheet.

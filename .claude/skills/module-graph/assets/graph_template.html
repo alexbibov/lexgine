@@ -35,7 +35,6 @@
     --hairline-2:#222c38;
     --electric:#4cb2ff;
     --electric-soft:rgba(76,178,255,.12);
-  --electric-ink:#07121c;
     --electric-ink:#07121c;
     --edge:#4c5a6c;
     --dot:#1d2733;
@@ -55,6 +54,7 @@
   --hairline-2:#222c38;
   --electric:#4cb2ff;
   --electric-soft:rgba(76,178,255,.12);
+  --electric-ink:#07121c;
   --edge:#4c5a6c;
   --dot:#1d2733;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 24px -16px rgba(0,0,0,.7);
@@ -158,6 +158,15 @@ button{font:inherit;color:inherit}
   transition:box-shadow .13s ease,border-color .13s ease,transform .13s ease;
 }
 .node:hover{border-color:var(--electric);box-shadow:var(--shadow-hot)}
+.node.moving{
+  cursor:grabbing;z-index:5;opacity:.92;
+  box-shadow:0 0 0 2px var(--electric),0 18px 34px -12px rgba(0,0,0,.45);
+}
+.node.moved::after{
+  content:"";position:absolute;top:7px;right:7px;width:5px;height:5px;
+  border-radius:50%;background:var(--electric);
+}
+.stage.arranging .elabel{visibility:hidden}
 .node.linked{border-color:var(--electric)}
 .node.selected{
   border-color:var(--electric);
@@ -306,6 +315,8 @@ button{font:inherit;color:inherit}
       <span class="depth" id="depth"></span>
       <button class="tool" id="t-theme" aria-pressed="false" title="Theme">Auto</button>
       <button class="tool" id="t-labels" aria-pressed="true" title="Toggle dependency labels">Labels</button>
+      <button class="tool" id="t-save" title="Save the moved layout back to model.json" disabled>Save</button>
+      <button class="tool" id="t-reset" title="Restore the authored positions on this level" disabled>Reset</button>
       <button class="tool" id="t-default" title="Reading view: full size, pan to explore">Default</button>
       <button class="tool" id="t-fit" title="Fit the whole graph on screen">Fit</button>
       <button class="tool" id="t-back" title="Return to the parent graph (Esc)">Back</button>
@@ -343,12 +354,13 @@ button{font:inherit;color:inherit}
    maxLevels = 3 (root graph + two drill-in levels)
    Edge direction: provider -> consumer (B is downstream of A).
    ═══════════════════════════════════════════════════════════════════════ */
-const MAX_LEVELS = __MAX_LEVELS__;
+const MODEL = __MODEL__;
+const MAX_LEVELS = MODEL.maxLevels;
 const EDITOR_URI = __EDITOR_URI__;   // carries a {path} slot
 const EDITOR_NAME = __EDITOR_NAME__;
 const REPO_ROOT = __REPO_ROOT__;
 
-const GRAPHS = __GRAPHS__;
+const GRAPHS = MODEL.graphs;
 
 /* ═══════════════════════════════════════════════════════════════════════
    Derived indices
@@ -400,6 +412,42 @@ const PAD = 88;
 
 const state = { graph:"root", selected:null, labelsAlways:true, theme:"system",
                 view:"default", k:1, tx:0, ty:0 };
+
+/* ── moved boxes: {nodeId: [col, row]} over the authored placement ── */
+const LAYOUT_KEY = "module-atlas-layout:" + (MODEL.title || "atlas");
+let overrides = {};
+try {
+  const raw = localStorage.getItem(LAYOUT_KEY);
+  if (raw) overrides = JSON.parse(raw) || {};
+} catch (e) { overrides = {}; }
+
+function placementOf(node){
+  const o = overrides[node.id];
+  return o ? { col:o[0], row:o[1] } : { col:node.col, row:node.row };
+}
+
+function persistOverrides(){
+  try {
+    if (Object.keys(overrides).length) localStorage.setItem(LAYOUT_KEY, JSON.stringify(overrides));
+    else localStorage.removeItem(LAYOUT_KEY);
+  } catch (e) {}
+  syncLayoutTools();
+}
+
+function movedCount(){ return Object.keys(overrides).length; }
+
+//! The model as it would be re-saved, with every moved box written back into
+//! the col/row it now occupies.
+function modelWithLayout(){
+  const out = JSON.parse(JSON.stringify(MODEL));
+  Object.keys(out.graphs).forEach(gid => {
+    out.graphs[gid].nodes.forEach(nd => {
+      const o = overrides[nd.id];
+      if (o){ nd.col = o[0]; nd.row = o[1]; }
+    });
+  });
+  return out;
+}
 const geom  = { rects:{}, edges:[], adj:{} };
 
 const el = {
@@ -416,6 +464,8 @@ const el = {
   panelIn: document.getElementById("panel-in"),
   back: document.getElementById("t-back"),
   fitBtn: document.getElementById("t-fit"),
+  saveBtn: document.getElementById("t-save"),
+  resetBtn: document.getElementById("t-reset"),
   defBtn: document.getElementById("t-default"),
   labelBtn: document.getElementById("t-labels"),
   themeBtn: document.getElementById("t-theme")
@@ -498,24 +548,37 @@ function renderGraph(){
   geom.rects = {}; geom.edges = []; geom.adj = {};
 
   g.nodes.forEach(n => {
+    const at = placementOf(n);
     const d = document.createElement("div");
     d.className = "node";
     d.dataset.id = n.id;
     d.setAttribute("role", "button");
     d.tabIndex = 0;
-    d.style.left = (PAD + n.col * COL_STEP) + "px";
-    d.style.top  = (PAD + n.row * ROW_STEP) + "px";
+    d.style.left = (PAD + at.col * COL_STEP) + "px";
+    d.style.top  = (PAD + at.row * ROW_STEP) + "px";
     const subCount = hasSub(n.id) ? GRAPHS[n.id].nodes.length : 0;
     d.innerHTML =
       '<span class="sig">' + n.sig + '</span>' +
       '<h3>' + esc(n.name) + '</h3>' +
       '<p>' + esc(n.desc) + '</p>' +
       (subCount ? '<span class="sub">&#9656; ' + subCount + ' sub-modules</span>' : '');
+    if (overrides[n.id]) d.classList.add("moved");
     el.nodes.appendChild(d);
     geom.adj[n.id] = [];
   });
 
-  // measure
+  layoutGeometry(false);
+  syncLayoutTools();
+  syncLabelMode();
+  renderCrumbs();
+  applyView(state.view || "default");
+  paintSelection();
+}
+
+//! Measures the boxes where they now sit, sizes the sheet and draws the edges.
+//! `fast` skips the label collision pass, for use inside a drag loop.
+function layoutGeometry(fast){
+  const g = GRAPHS[state.graph];
   let maxX = 0, maxY = 0;
   Array.prototype.forEach.call(el.nodes.children, d => {
     const id = d.dataset.id;
@@ -532,37 +595,39 @@ function renderGraph(){
   el.svg.setAttribute("height", H);
   el.svg.setAttribute("viewBox", "0 0 " + W + " " + H);
 
+  const fresh = geom.edges.length === 0;
   const placed = [];
   g.edges.forEach((e, i) => {
     const a = geom.rects[e[0]], b = geom.rects[e[1]];
     if (!a || !b) return;
     const route = routeEdge(a, b);
-    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    p.setAttribute("class", "edge");
-    p.setAttribute("d", route.d);
-    p.setAttribute("marker-end", "url(#ah)");
-    el.edgeLayer.appendChild(p);
 
-    const lab = document.createElement("div");
-    lab.className = "elabel";
-    lab.textContent = e[2];
-    el.labels.appendChild(lab);
-    const lw = lab.offsetWidth, lh = lab.offsetHeight;
+    let rec = fresh ? null : geom.edges[i];
+    if (!rec){
+      const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      p.setAttribute("class", "edge");
+      p.setAttribute("marker-end", "url(#ah)");
+      el.edgeLayer.appendChild(p);
+
+      const lab = document.createElement("div");
+      lab.className = "elabel";
+      lab.textContent = e[2];
+      el.labels.appendChild(lab);
+
+      rec = { path:p, label:lab, from:e[0], to:e[1] };
+      geom.edges[i] = rec;
+      geom.adj[e[0]].push(i);
+      geom.adj[e[1]].push(i);
+    }
+
+    rec.path.setAttribute("d", route.d);
+    if (fast) return;
+    const lw = rec.label.offsetWidth, lh = rec.label.offsetHeight;
     const pos = avoidOverlap(route.mid, lw, lh, placed);
     placed.push({ x:pos.x - lw/2, y:pos.y - lh/2, w:lw, h:lh });
-    lab.style.left = pos.x + "px";
-    lab.style.top  = pos.y + "px";
-
-    const rec = { path:p, label:lab, from:e[0], to:e[1] };
-    geom.edges.push(rec);
-    geom.adj[e[0]].push(i);
-    geom.adj[e[1]].push(i);
+    rec.label.style.left = pos.x + "px";
+    rec.label.style.top  = pos.y + "px";
   });
-
-  syncLabelMode();
-  renderCrumbs();
-  applyView(state.view || "default");
-  paintSelection();
 }
 
 function routeEdge(a, b){
@@ -693,18 +758,27 @@ const DRAG_SLOP = 5;
 
 (function wirePanZoom(){
   let dragging = false, captured = false, moved = 0, sx = 0, sy = 0, ox = 0, oy = 0, pid = null;
+  let node = null, nox = 0, noy = 0, raf = 0;
 
   const release = () => {
     if (captured){ try { el.canvas.releasePointerCapture(pid); } catch (e) {} }
     captured = false;
     dragging = false;
     el.canvas.classList.remove("dragging");
+    el.stage.classList.remove("arranging");
+    if (node) node.classList.remove("moving");
   };
 
   el.canvas.addEventListener("pointerdown", ev => {
     if (ev.button === 2) return;
     dragging = true; captured = false; moved = 0; pid = ev.pointerId;
     sx = ev.clientX; sy = ev.clientY; ox = state.tx; oy = state.ty;
+    const box = ev.target.closest(".node");
+    node = box || null;
+    if (node){
+      nox = parseFloat(node.style.left);
+      noy = parseFloat(node.style.top);
+    }
   });
 
   el.canvas.addEventListener("pointermove", ev => {
@@ -714,9 +788,22 @@ const DRAG_SLOP = 5;
     if (moved < DRAG_SLOP) return;
     if (!captured){
       captured = true;
-      viewFreed();
-      el.canvas.classList.add("dragging");
       try { el.canvas.setPointerCapture(pid); } catch (e) {}
+      if (node){
+        node.classList.add("moving");
+        el.stage.classList.add("arranging");
+        closeMenu();
+      } else {
+        viewFreed();
+        el.canvas.classList.add("dragging");
+      }
+    }
+    if (node){
+      // the stage is scaled, so screen travel has to be divided back out
+      node.style.left = Math.max(0, nox + dx / state.k) + "px";
+      node.style.top  = Math.max(0, noy + dy / state.k) + "px";
+      if (!raf) raf = requestAnimationFrame(() => { raf = 0; layoutGeometry(true); });
+      return;
     }
     state.tx = ox + dx; state.ty = oy + dy;
     applyTransform();
@@ -725,7 +812,15 @@ const DRAG_SLOP = 5;
   const end = ev => {
     if (!dragging) return;
     const tap = moved < DRAG_SLOP;
+    const dragged = node;
     release();
+    if (!tap && dragged){
+      if (raf){ cancelAnimationFrame(raf); raf = 0; }
+      commitMove(dragged);
+      node = null;
+      return;
+    }
+    node = null;
     if (!tap) return;
     // pointer capture retargets the event at the canvas, so hit-test by coordinate
     const hit = document.elementFromPoint(ev.clientX, ev.clientY);
@@ -949,6 +1044,8 @@ function showPanel(id, mode){
     '<p><b>Hover</b> a module to light its dependencies in electric blue.</p>' +
     '<p><b>Click</b> a module for its sources; click empty sheet for the level above.</p>' +
     '<p><b>Click a source file</b> to open it in ' + esc(EDITOR_NAME) + '.</p>' +
+    '<p><b>Drag a module</b> to rearrange it; <b>Save</b> writes the layout back ' +
+    'to model.json, <b>Reset</b> restores this level.</p>' +
     '<p><b>Right-click</b> a module with sub-modules to expand it. <kbd>Esc</kbd> goes back.</p>' +
     '<p>Drag to pan, wheel to zoom, <b>Fit</b> to reframe, <b>Auto</b> to switch theme.</p>' +
     '</div>';
@@ -974,7 +1071,61 @@ el.panelIn.addEventListener("click", ev => {
   }
 });
 
+/* ── moving boxes ──────────────────────────────────────────────── */
+//! Turns the dragged pixel position back into the model's col/row units, so a
+//! saved model stays independent of the current step sizes.
+function commitMove(box){
+  const id = box.dataset.id;
+  const col = (parseFloat(box.style.left) - PAD) / COL_STEP;
+  const row = (parseFloat(box.style.top) - PAD) / ROW_STEP;
+  overrides[id] = [Math.round(col * 100) / 100, Math.round(row * 100) / 100];
+  box.classList.add("moved");
+  persistOverrides();
+  layoutGeometry(false);
+}
+
+function syncLayoutTools(){
+  const count = movedCount();
+  el.saveBtn.disabled = count === 0;
+  el.resetBtn.disabled = count === 0;
+  el.saveBtn.title = count
+    ? "Save " + count + " moved box" + (count === 1 ? "" : "es") + " back to model.json"
+    : "Move a box first — then its position can be saved";
+}
+
+function resetLayout(){
+  const ids = (GRAPHS[state.graph].nodes || []).map(nd => nd.id);
+  let hit = 0;
+  ids.forEach(id => { if (overrides[id]){ delete overrides[id]; hit++; } });
+  if (!hit){ toast("Nothing moved on this level"); return; }
+  persistOverrides();
+  renderGraph();
+  toast("Restored " + hit + " box" + (hit === 1 ? "" : "es") + " on this level");
+}
+
+function saveLayout(){
+  const json = JSON.stringify(modelWithLayout(), null, 2) + "\n";
+  let downloaded = false;
+  try {
+    const blob = new Blob([json], { type:"application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = MODEL.modelFileName || "model.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    downloaded = true;
+  } catch (e) {}
+  // a sandboxed host blocks the download outright, so leave the JSON on the
+  // clipboard as well — either way the layout can get back to the model file
+  try { if (navigator.clipboard) navigator.clipboard.writeText(json); } catch (e) {}
+  toast(movedCount() + " moved box(es) · " +
+        (downloaded ? "model.json downloaded" : "download blocked") + " · JSON copied");
+}
+
 /* ── toolbar & keys ──────────────────────────────────────────────────── */
+el.saveBtn.addEventListener("click", saveLayout);
+el.resetBtn.addEventListener("click", resetLayout);
 el.fitBtn.addEventListener("click", () => applyView("fit"));
 el.defBtn.addEventListener("click", () => applyView("default"));
 el.back.addEventListener("click", back);
