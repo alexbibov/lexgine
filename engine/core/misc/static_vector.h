@@ -144,11 +144,11 @@ public:
     T const& front() const { return const_cast<StaticVector*>(this)->front(); }
 
 private:
-    template<typename = typename std::enable_if<std::is_destructible<T>::value && !std::is_trivially_destructible<T>::value>::type>
-    static void destruct_element(T* p_e) { p_e->~T(); }
-
-    template<typename = typename std::enable_if<!std::is_destructible<T>::value || std::is_trivially_destructible<T>::value>::type>
-    static void destruct_element(T* p_e, int = 0) {}
+    static void destruct_element(T* p_e)
+    {
+        if constexpr (std::is_destructible_v<T> && !std::is_trivially_destructible_v<T>)
+            p_e->~T();
+    }
 
 private:
     static constexpr size_t m_capacity = sizeof(T) * max_size;

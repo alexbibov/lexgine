@@ -1,5 +1,5 @@
 #ifndef LEXGINE_CONVERSION_TEXTURE_CONVERTER_H
-#define LEXGINE_CONVERSION_TEXTURE_CONTERTER_H
+#define LEXGINE_CONVERSION_TEXTURE_CONVERTER_H
 
 #include <unordered_map>
 #include <fstream>
@@ -169,7 +169,7 @@ public:
 
 private:
     CachedTextureData readTextureFromCache(TextureConversionTaskKey const& key, core::misc::UUID& uuid) const;
-    static [[nodiscard]] TextureConversionTaskKey createConversionTaskKey(scenegraph::Image& source_image);
+    [[nodiscard]] static TextureConversionTaskKey createConversionTaskKey(scenegraph::Image& source_image);
 
 private:
     core::Globals& m_globals;

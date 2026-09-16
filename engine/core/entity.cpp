@@ -61,12 +61,14 @@ UUID EntityID::asUUID() const
     size_t const part1 = owningThread();
     uint64_t const part2 = m_id_counter;
 
+    auto const byte_of = [part2](uint8_t shift) { return static_cast<uint8_t>((part2 >> shift) & 0xFF); };
+
     return UUID{
-        part1 & 0xFFFFFFFF,
-        (part1 >> 32) & 0xFFFF,
-        (part1 >> 48) & 0xFFFF,
-        {part2 & 0xFF, (part2 >> 8) & 0xFF, (part2 >> 16) & 0xFF, (part2 >> 24) & 0xFF,
-        (part2 >> 32) & 0xFF, (part2 >> 40) & 0xFF, (part2 >> 48) & 0xFF, (part2 >> 56) & 0xFF}
+        static_cast<uint32_t>(part1 & 0xFFFFFFFF),
+        static_cast<uint16_t>((part1 >> 32) & 0xFFFF),
+        static_cast<uint16_t>((part1 >> 48) & 0xFFFF),
+        {byte_of(0), byte_of(8), byte_of(16), byte_of(24),
+        byte_of(32), byte_of(40), byte_of(48), byte_of(56)}
     };
 }
 

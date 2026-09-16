@@ -7,6 +7,22 @@ if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
 set(_64_bit_build TRUE)
 else()
 set(_64_bit_build FALSE)
+message(FATAL_ERROR
+"lexgine requires a 64-bit toolchain, but ${CMAKE_CXX_COMPILER} targets a "
+"${CMAKE_SIZEOF_VOID_P}-byte pointer architecture. For the Ninja presets the target "
+"architecture comes from the environment, so select an amd64 (or arm64) toolchain in "
+"the IDE -- in CLion under Settings | Build, Execution, Deployment | Toolchains | "
+"Architecture.")
+endif()
+
+if(NOT MSVC)
+message(FATAL_ERROR
+"lexgine requires an MSVC-compatible toolchain (cl.exe or clang-cl.exe), but the "
+"configured C++ compiler is ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER}). The engine "
+"targets Direct3D 12 and links the x64 dxcompiler and WinPixEventRuntime import "
+"libraries, neither of which is consumable by GCC/MinGW. Select a Visual Studio "
+"toolchain -- in CLion under Settings | Build, Execution, Deployment | Toolchains, where "
+"it must also be the toolchain of the CMake profile.")
 endif()
 
 set(CMAKE_CXX_STANDARD 20)

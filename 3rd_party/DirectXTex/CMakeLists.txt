@@ -121,6 +121,6 @@ endif()
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
-target_compile_options(${PROJECT_NAME} PRIVATE ${OpenMP_CXX_FLAGS})
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
