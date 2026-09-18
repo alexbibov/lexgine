@@ -17,24 +17,24 @@ namespace lexgine::core::dx::d3d12
 
 namespace {
 
-    PerFrameUploadDataStreamAllocator createDynamicGeometryStreamAllocator(Globals& globals)
+PerFrameUploadDataStreamAllocator createDynamicGeometryStreamAllocator(Globals& globals)
+{
+    GlobalSettings& global_settings = *globals.get<GlobalSettings>();
+    DxResourceFactory& dx_resource_factory = *globals.get<DxResourceFactory>();
+    Device& device = *globals.get<Device>();
+    Heap& upload_heap = dx_resource_factory.retrieveUploadHeap(device);
+
+    UploadHeapPartition upload_heap_partition {};
     {
-        GlobalSettings& global_settings = *globals.get<GlobalSettings>();
-        DxResourceFactory& dx_resource_factory = *globals.get<DxResourceFactory>();
-        Device& device = *globals.get<Device>();
-        Heap& upload_heap = dx_resource_factory.retrieveUploadHeap(device);
-
-        UploadHeapPartition upload_heap_partition {};
-        {
-            auto upload_heap_partition_handle = dx_resource_factory.allocateSectionInUploadHeap(upload_heap, DxResourceFactory::c_dynamic_geometry_section_name, global_settings.getStreamedGeometryDataPartitionSize());
-            if (!upload_heap_partition_handle.isValid()) {
-                LEXGINE_THROW_ERROR("Unable to allocate " + std::string{ DxResourceFactory::c_dynamic_geometry_section_name } + " in upload heap");
-            }
-            upload_heap_partition = *upload_heap_partition_handle;
+        auto upload_heap_partition_handle = dx_resource_factory.allocateSectionInUploadHeap(upload_heap, DxResourceFactory::c_dynamic_geometry_section_name, global_settings.getStreamedGeometryDataPartitionSize());
+        if (!upload_heap_partition_handle.isValid()) {
+            LEXGINE_THROW_ERROR("Unable to allocate " + std::string{ DxResourceFactory::c_dynamic_geometry_section_name } + " in upload heap");
         }
-
-        return PerFrameUploadDataStreamAllocator { globals, upload_heap_partition.offset, upload_heap_partition.size, device.frameProgressTracker() };
+        upload_heap_partition = *upload_heap_partition_handle;
     }
+
+    return PerFrameUploadDataStreamAllocator { globals, upload_heap_partition.offset, upload_heap_partition.size, device.frameProgressTracker() };
+}
 
 }  // namespace
 

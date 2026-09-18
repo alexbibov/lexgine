@@ -427,7 +427,7 @@ public:
         FenceSharing command_list_sync_mode = FenceSharing::none, PipelineState const* initial_pipeline_state = nullptr);
 
     FrameProgressTracker& frameProgressTracker() { return m_frame_progress_tracker; }
-    FrameProgressTracker const& frameProgressTracker() const { return frameProgressTracker(); }
+    FrameProgressTracker const& frameProgressTracker() const { return const_cast<Device*>(this)->frameProgressTracker(); }
 
     QueryCache* queryCache() const { return m_query_cache.get(); }
 

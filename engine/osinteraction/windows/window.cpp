@@ -18,8 +18,8 @@ uint32_t Window::m_window_counter = 0;
 
 namespace {
 
-static wchar_t const window_class_name[] = L"LexgineWindow"; //!< string name of Lexgine window class
-static std::map<HWND, Window*> window_pool{};    //!< pool of windows managed by this window callback procedure
+static wchar_t const g_window_class_name[] = L"LexgineWindow"; //!< string name of Lexgine window class
+static std::map<HWND, Window*> g_window_pool{};    //!< pool of windows managed by this window callback procedure
 
 //! Helper. Returns the last error recorded by the operating system for this app
 std::string getLastSystemError()
@@ -72,13 +72,13 @@ HWND createWindow(Window* p_window, ATOM& atom, HINSTANCE hInstance, uint32_t x,
         wndclassex.hCursor = static_cast<HCURSOR>(LoadImage(NULL, MAKEINTRESOURCE(OCR_NORMAL), IMAGE_CURSOR, 0, 0, LR_SHARED | LR_DEFAULTSIZE));
         wndclassex.hbrBackground = CreateSolidBrush(RGB(255, 255, 255));
         wndclassex.lpszMenuName = NULL;
-        wndclassex.lpszClassName = const_cast<wchar_t*>(window_class_name);
+        wndclassex.lpszClassName = const_cast<wchar_t*>(g_window_class_name);
         wndclassex.hIconSm = NULL;	//This should be changed to the TinyWorld icon in future!!!
 
         if (!(atom = RegisterClassEx(&wndclassex))) return NULL;
     }
 
-    return CreateWindowEx(window_ex_style_flags, const_cast<wchar_t*>(window_class_name), title.c_str(), window_style_flags, x, y, width, height,
+    return CreateWindowEx(window_ex_style_flags, const_cast<wchar_t*>(g_window_class_name), title.c_str(), window_style_flags, x, y, width, height,
         NULL, NULL, hInstance, static_cast<LPVOID>(p_window));
 }
 
@@ -122,7 +122,7 @@ Window::~Window()
 
     if (!m_window_counter && m_atom)
     {
-        checkSystemCall(UnregisterClass(const_cast<wchar_t*>(window_class_name), m_hinstance));
+        checkSystemCall(UnregisterClass(const_cast<wchar_t*>(g_window_class_name), m_hinstance));
     }
 }
 
@@ -233,14 +233,15 @@ void Window::processMessages() const
 {
     MSG msg;
 
-    for (auto& e : window_pool)
+    auto p = g_window_pool.begin();
+    while(p != g_window_pool.end())
     {
-        BOOL res = PeekMessage(&msg, e.first, 0, 0, PM_REMOVE);
-        if (res)
+        while (PeekMessage(&msg, p->first, 0, 0, PM_REMOVE))
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+        ++p;
     }
 }
 
@@ -293,7 +294,7 @@ LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wPar
         Window* p_window = reinterpret_cast<Window*>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
         if (p_window)
         {
-            window_pool[hWnd] = p_window;
+            g_window_pool[hWnd] = p_window;
             return 0;
         }
         else
@@ -302,39 +303,57 @@ LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wPar
 
     case WM_CLOSE:
     {
-        window_pool[hWnd]->m_should_close = true;
+        if (Window* p_window = g_window_pool[hWnd])
+        {
+            p_window->m_should_close = true;
+        }
         return 0;
     }
 
     case WM_DESTROY:
     {
-        window_pool.erase(hWnd);
+        if (Window* p_window = g_window_pool[hWnd])
+        {
+            p_window->m_destroyed = true;
+        }
         return 0;
     }
 
     default:
     {
-        Window* p_window = window_pool[hWnd];
+        Window* p_window = g_window_pool[hWnd];
         if (p_window == nullptr)
         {
             return DefWindowProc(hWnd, uMsg, wParam, lParam);
         }
 
-        for (auto listener : p_window->m_listener_list)
+        size_t expired_listeners_count = 0;
+        size_t i = 0;
+        size_t window_listener_count = p_window->m_listener_list.size();
+        while (i < window_listener_count)
         {
-            if (auto ptr = listener.lock())
+            std::weak_ptr<AbstractListener>& listener = p_window->m_listener_list[i];
+            if (listener.expired())
             {
-                MessageHandlingResult result = ptr->handle(uMsg, reinterpret_cast<uint64_t>(p_window), wParam, lParam, 0, 0, 0, 0, 0);
-                if (result == MessageHandlingResult::fail)
-                {
-                    p_window->logger().out(
-                        std::format("Failed to handle message {} for window {}", uMsg, p_window->getStringName()),
-                        core::misc::LogMessageType::exclamation
-                    );
-                }
+                std::swap(listener, p_window->m_listener_list[--window_listener_count]);
+                ++expired_listeners_count;
+                continue;
             }
+            auto ptr = listener.lock();
+            MessageHandlingResult result = ptr->handle(uMsg, reinterpret_cast<uint64_t>(p_window), wParam, lParam, 0, 0, 0, 0, 0);
+            if (result == MessageHandlingResult::fail)
+            {
+                p_window->logger().out(
+                    std::format("Failed to handle message {} for window {}", uMsg, p_window->getStringName()),
+                    core::misc::LogMessageType::exclamation
+                );
+            }
+            ++i;
         }
-
+        if (expired_listeners_count)
+        {
+            p_window->m_listener_list.erase(p_window->m_listener_list.end() - expired_listeners_count, p_window->m_listener_list.end());
+        }
         return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
     }

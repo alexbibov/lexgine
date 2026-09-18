@@ -6,6 +6,7 @@
 #include <array>
 #include <chrono>
 #include <unordered_map>
+#include <list>
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
