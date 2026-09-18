@@ -23,7 +23,7 @@ public:
     TaskGraphNode(TaskGraphNode&& other);
 
     TaskGraphNode& operator=(TaskGraphNode const&) = delete;
-    TaskGraphNode& operator=(TaskGraphNode&&) = default;
+    TaskGraphNode& operator=(TaskGraphNode&&) = delete;
 
     virtual ~TaskGraphNode() = default;
 

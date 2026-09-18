@@ -36,8 +36,9 @@ bool GpuWorkExecutionTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
     if (m_gpu_work_sources.empty()) return true;
 
-    if (m_packed_gpu_work.empty())    // prepare GPU work package on first invocation
+    // prepare GPU work package
     {
+        m_packed_gpu_work.clear();
         size_t total_command_list_count = std::accumulate(m_gpu_work_sources.begin(),
             m_gpu_work_sources.end(), 0ULL,
             [](size_t current, RenderingWork* next)
@@ -64,15 +65,15 @@ bool GpuWorkExecutionTask::doTask(uint8_t worker_id, uint64_t user_data)
     switch (RenderingWorkAttorney<GpuWorkExecutionTask>::renderingWorkCommandType(*m_gpu_work_sources.back()))
     {
     case CommandType::direct:
-        m_device.defaultCommandQueue().executeCommandLists(m_packed_gpu_work.data(), m_gpu_work_sources.size());
+        m_device.defaultCommandQueue().executeCommandLists(m_packed_gpu_work.data(), m_packed_gpu_work.size());
         break;
 
     case CommandType::compute:
-        m_device.asyncCommandQueue().executeCommandLists(m_packed_gpu_work.data(), m_gpu_work_sources.size());
+        m_device.asyncCommandQueue().executeCommandLists(m_packed_gpu_work.data(), m_packed_gpu_work.size());
         break;
 
     case CommandType::copy:
-        m_device.copyCommandQueue().executeCommandLists(m_packed_gpu_work.data(), m_gpu_work_sources.size());
+        m_device.copyCommandQueue().executeCommandLists(m_packed_gpu_work.data(), m_packed_gpu_work.size());
         break;
 
     case CommandType::bundle:
