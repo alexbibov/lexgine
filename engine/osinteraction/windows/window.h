@@ -99,7 +99,6 @@ private:
     WindowStyle m_window_style;	//!< window style bitset
     WindowExStyle m_window_ex_style;	//!< extended window style description
     bool m_should_close;	//!< equals 'true' if the window is ready to close. Equals 'false' otherwise
-    bool m_destroyed{ false };    //!< equals 'true' when the window received WM_DESTROY message and should be removed from further handling
     std::deque<std::weak_ptr<AbstractListener>> m_listener_list;    //!< list of window listeners
 
 
