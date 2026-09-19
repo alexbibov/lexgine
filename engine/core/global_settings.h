@@ -34,6 +34,9 @@ public:
     uint64_t getMaxCombinedTextureCacheSize() const;
 
     uint32_t getDescriptorHeapCapacity(dx::d3d12::DescriptorHeapType descriptor_heap_type) const;
+    uint32_t getCbvSrvUavDescriptorHeapPersistentPartitionCapacity() const;
+    uint32_t getCbvSrvUavDescriptorHeapDynamicPartitionCapacity() const;
+    
     uint32_t getUploadHeapCapacity() const;
     size_t getStreamedConstantDataPartitionSize() const;    //! returns size of upload buffer partition dedicated to constant data streaming
     size_t getStreamedGeometryDataPartitionSize() const;    //! returns size of upload buffer partition dedicated to dynamic geometry data streaming
@@ -91,6 +94,7 @@ private:
     bool m_enable_inverse_depth_clip_space;
 
     std::array<uint32_t, static_cast<size_t>(dx::d3d12::DescriptorHeapType::count)> m_descriptor_heap_capacity;
+    float m_cbv_srv_uav_persistent_partition_fraction;
 };
 
 }

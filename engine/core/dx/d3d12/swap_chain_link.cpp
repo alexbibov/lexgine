@@ -174,8 +174,8 @@ void SwapChainLink::releaseBuffers()
 void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
 {
     auto dx_resource_factory = m_globals.get<DxResourceFactory>();
-    dx_resource_factory->retrieveDescriptorHeap(m_device, DescriptorHeapType::rtv, 0).reset();
-    dx_resource_factory->retrieveDescriptorHeap(m_device, DescriptorHeapType::dsv, 0).reset();
+    dx_resource_factory->retrieveDescriptorHeap(m_device, DescriptorHeapType::rtv).reset();
+    dx_resource_factory->retrieveDescriptorHeap(m_device, DescriptorHeapType::dsv).reset();
 
     uint16_t back_buffers_count = m_linked_swap_chain.backBufferCount();
     m_color_buffers.reserve(back_buffers_count);

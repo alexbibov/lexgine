@@ -198,8 +198,8 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         p_ps_stage->build();
         m_rs_handle = m_shader_function.buildBindingSignature();
 
-        DescriptorHeap& resource_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav, 0);
-        DescriptorHeap& sampler_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler, 0);
+        DescriptorHeap& resource_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav);
+        DescriptorHeap& sampler_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler);
         m_shader_function.assignResourceDescriptors(dxcompilation::ShaderFunction::ShaderInputKind::srv, 0, DescriptorAllocationManager{ resource_heap });
         m_shader_function.assignResourceDescriptors(dxcompilation::ShaderFunction::ShaderInputKind::sampler, 0, DescriptorAllocationManager{ sampler_heap });
 

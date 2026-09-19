@@ -47,7 +47,7 @@ RenderingTarget::RenderingTarget(Globals& globals,
     , m_depth_target{ depth_target }
     , m_depth_target_format{ DXGI_FORMAT_UNKNOWN }
 {
-    RenderTargetViewTableBuilder rtv_table_builder{ globals, 0U };
+    RenderTargetViewTableBuilder rtv_table_builder{ globals };
     m_color_target_formats.resize(color_targets.size());
     for (size_t i = 0U; i < color_targets.size(); ++i)
     {
@@ -77,7 +77,7 @@ RenderingTarget::RenderingTarget(Globals& globals,
         auto const& target = *depth_target;
         m_depth_target_format = target.target_view.associatedResource().descriptor().format;
 
-        DepthStencilViewTableBuilder dsv_table_builder{ globals, 0U };
+        DepthStencilViewTableBuilder dsv_table_builder{ globals };
         dsv_table_builder.addDescriptor(target.target_view);
         m_dsv_table = dsv_table_builder.build();
 

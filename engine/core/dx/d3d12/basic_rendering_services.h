@@ -67,7 +67,6 @@ private:
     misc::StaticVector<Viewport, CommandList::c_maximal_viewport_count> m_default_viewports;
     misc::StaticVector<math::Rectangle, CommandList::c_maximal_viewport_count> m_default_scissor_rectangles;
 
-    std::vector<std::array<DescriptorHeap const*, 2>> m_descriptor_heap_pointers;
     ConstantBufferStream m_constant_data_stream;
     PerFrameUploadDataStreamAllocator m_dynamic_geometry_allocator;
 

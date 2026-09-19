@@ -405,7 +405,7 @@ void CommandList::setPipelineState(PipelineState const& pipeline_state) const
     m_command_list->SetPipelineState(pipeline_state.native().Get());
 }
 
-void CommandList::setDescriptorHeaps(std::array<DescriptorHeap const*, 2> const& descriptor_heaps) const
+void CommandList::setDescriptorHeaps(std::span<DescriptorHeap const*> descriptor_heaps) const
 {
     auto cmd_list_type = commandType();
 
@@ -415,9 +415,12 @@ void CommandList::setDescriptorHeaps(std::array<DescriptorHeap const*, 2> const&
     assert((cmd_list_type == CommandType::direct || cmd_list_type == CommandType::compute));
 
     std::array<ID3D12DescriptorHeap*, 2> native_descriptor_heaps{};
-    native_descriptor_heaps[0] = descriptor_heaps[0]->native().Get();
-    native_descriptor_heaps[1] = descriptor_heaps[1]->native().Get();
-   
+    assert(descriptor_heaps.size() <= native_descriptor_heaps.size());
+    for (size_t i = 0; i < descriptor_heaps.size(); ++i)
+    {
+        native_descriptor_heaps[i] = descriptor_heaps[i]->native().Get();
+    }
+
     m_command_list->SetDescriptorHeaps(static_cast<UINT>(descriptor_heaps.size()), native_descriptor_heaps.data());
 }
 

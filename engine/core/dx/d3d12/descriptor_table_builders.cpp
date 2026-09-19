@@ -15,9 +15,8 @@
 using namespace lexgine::core;
 using namespace lexgine::core::dx::d3d12;
 
-ResourceViewDescriptorTableBuilder::ResourceViewDescriptorTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page_id) :
+ResourceViewDescriptorTableBuilder::ResourceViewDescriptorTableBuilder(Globals& globals) :
     m_globals{ globals },
-    m_target_descriptor_heap_page_id{ target_descriptor_heap_page_id },
     m_currently_assembled_range{ descriptor_cache_type::none }
 {
 
@@ -83,7 +82,7 @@ DescriptorTable ResourceViewDescriptorTableBuilder::build() const
 
     auto& target_descriptor_heap =
         m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(*m_globals.get<Device>(),
-            DescriptorHeapType::cbv_srv_uav, m_target_descriptor_heap_page_id);
+            DescriptorHeapType::cbv_srv_uav);
 
     DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(total_descriptor_count);
     size_t offset = rv.offset;
@@ -117,9 +116,8 @@ DescriptorTable ResourceViewDescriptorTableBuilder::build() const
     return rv;
 }
 
-SamplerDescriptorTableBuilder::SamplerDescriptorTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page) :
-    m_globals{ globals },
-    m_target_descriptor_heap_page_id{ target_descriptor_heap_page }
+SamplerDescriptorTableBuilder::SamplerDescriptorTableBuilder(Globals& globals) :
+    m_globals{ globals }
 {
 }
 
@@ -131,7 +129,7 @@ void SamplerDescriptorTableBuilder::addDescriptor(SamplerDescriptor const& descr
 DescriptorTable SamplerDescriptorTableBuilder::build() const
 {
     auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
-        *m_globals.get<Device>(), DescriptorHeapType::sampler, m_target_descriptor_heap_page_id);
+        *m_globals.get<Device>(), DescriptorHeapType::sampler);
 
     DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(static_cast<uint32_t>(m_sampler_descriptors.size()));
     size_t offset = rv.offset;
@@ -140,9 +138,8 @@ DescriptorTable SamplerDescriptorTableBuilder::build() const
     return rv;
 }
 
-RenderTargetViewTableBuilder::RenderTargetViewTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page) :
-    m_globals{ globals },
-    m_target_descriptor_heap_page_id{ target_descriptor_heap_page }
+RenderTargetViewTableBuilder::RenderTargetViewTableBuilder(Globals& globals) :
+    m_globals{ globals }
 {
 }
 
@@ -154,7 +151,7 @@ void RenderTargetViewTableBuilder::addDescriptor(RTVDescriptor const& descriptor
 DescriptorTable RenderTargetViewTableBuilder::build() const
 {
     auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
-        *m_globals.get<Device>(), DescriptorHeapType::rtv, m_target_descriptor_heap_page_id);
+        *m_globals.get<Device>(), DescriptorHeapType::rtv);
 
     DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(static_cast<uint32_t>(m_rtv_descriptors.size()));
     size_t offset = rv.offset;
@@ -163,9 +160,8 @@ DescriptorTable RenderTargetViewTableBuilder::build() const
     return rv;
 }
 
-DepthStencilViewTableBuilder::DepthStencilViewTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page) :
-    m_globals{ globals },
-    m_target_descriptor_heap_page_id{ target_descriptor_heap_page }
+DepthStencilViewTableBuilder::DepthStencilViewTableBuilder(Globals& globals) :
+    m_globals{ globals }
 {
 }
 
@@ -177,7 +173,7 @@ void DepthStencilViewTableBuilder::addDescriptor(DSVDescriptor const& descriptor
 DescriptorTable DepthStencilViewTableBuilder::build() const
 {
     auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
-        *m_globals.get<Device>(), DescriptorHeapType::dsv, m_target_descriptor_heap_page_id);
+        *m_globals.get<Device>(), DescriptorHeapType::dsv);
 
     DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(static_cast<uint32_t>(m_dsv_descriptors.size()));
     size_t offset = rv.offset;

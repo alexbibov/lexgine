@@ -18,7 +18,7 @@ namespace lexgine::core::dx::d3d12 {
 class ResourceViewDescriptorTableBuilder final
 {
 public:
-    ResourceViewDescriptorTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page_id);
+    ResourceViewDescriptorTableBuilder(Globals& globals);
 
     void addDescriptor(CBVDescriptor const& descriptor);
     void addDescriptor(SRVDescriptor const& descriptor);
@@ -47,7 +47,6 @@ private:
 
 private:
     Globals& m_globals;
-    uint32_t m_target_descriptor_heap_page_id;
 
     descriptor_cache_type m_currently_assembled_range;
 
@@ -63,7 +62,7 @@ private:
 class SamplerDescriptorTableBuilder final
 {
 public:
-    SamplerDescriptorTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page);
+    SamplerDescriptorTableBuilder(Globals& globals);
 
     void addDescriptor(SamplerDescriptor const& descriptor);
 
@@ -71,7 +70,6 @@ public:
 
 private:
     Globals& m_globals;
-    uint32_t m_target_descriptor_heap_page_id;
     std::vector<SamplerDescriptor> m_sampler_descriptors;
 };
 
@@ -80,14 +78,13 @@ private:
 class RenderTargetViewTableBuilder final
 {
 public:
-    RenderTargetViewTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page);
+    RenderTargetViewTableBuilder(Globals& globals);
     void addDescriptor(RTVDescriptor const& descriptor);
 
     DescriptorTable build() const;
 
 private:
     Globals& m_globals;
-    uint32_t m_target_descriptor_heap_page_id;
     std::vector<RTVDescriptor> m_rtv_descriptors;
 };
 
@@ -96,14 +93,13 @@ private:
 class DepthStencilViewTableBuilder final
 {
 public:
-    DepthStencilViewTableBuilder(Globals& globals, uint32_t target_descriptor_heap_page);
+    DepthStencilViewTableBuilder(Globals& globals);
     void addDescriptor(DSVDescriptor const& descriptor);
 
     DescriptorTable build() const;
 
 private:
     Globals& m_globals;
-    uint32_t m_target_descriptor_heap_page_id;
     std::vector<DSVDescriptor> m_dsv_descriptors;
 };
 

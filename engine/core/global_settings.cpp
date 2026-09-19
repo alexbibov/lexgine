@@ -93,6 +93,7 @@ GlobalSettings::GlobalSettings(std::filesystem::path const& json_settings_source
             // Descriptor heaps total and per-page capacity default settings
 
             m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] = 1000000;
+            m_cbv_srv_uav_persistent_partition_fraction = 0.3f;  // defaults to 30%
             m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::sampler)] = 32;
             m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::rtv)] = 128;
             m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::dsv)] = 128;
@@ -407,6 +408,16 @@ GlobalSettings::GlobalSettings(std::filesystem::path const& json_settings_source
                     m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)]);
             }
 
+            if ((p = document.find("resource_view_heap_persistent_partition_fraction")) != document.end())
+            {
+                m_cbv_srv_uav_persistent_partition_fraction = p->get<float>() / 100.f;
+            }
+            else
+            {
+                yield_warning_log_message("resource_view_heap_persistent_partition_fraction",
+                    m_cbv_srv_uav_persistent_partition_fraction * 100.f);
+            }
+
             if ((p = document.find("sampler_descriptors_count")) != document.end()
                 && p->is_number_unsigned())
             {
@@ -544,6 +555,26 @@ uint32_t GlobalSettings::getDescriptorHeapCapacity(DescriptorHeapType descriptor
 {
     return m_descriptor_heap_capacity[static_cast<size_t>(descriptor_heap_type)];
 }
+
+
+uint32_t GlobalSettings::getCbvSrvUavDescriptorHeapPersistentPartitionCapacity() const
+{
+    uint32_t cbv_srv_uav_descriptor_count = m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)];
+    uint32_t dynamic_section_size = getCbvSrvUavDescriptorHeapDynamicPartitionCapacity() * getMaxFramesInFlight();
+    assert(cbv_srv_uav_descriptor_count > dynamic_section_size);
+    return cbv_srv_uav_descriptor_count - dynamic_section_size;
+}
+
+
+uint32_t GlobalSettings::getCbvSrvUavDescriptorHeapDynamicPartitionCapacity() const
+{
+    uint32_t cbv_srv_uav_descriptor_count = m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)];
+    uint32_t dynamic_section_capacity = cbv_srv_uav_descriptor_count - static_cast<uint32_t>(cbv_srv_uav_descriptor_count * m_cbv_srv_uav_persistent_partition_fraction);
+    uint32_t dynamic_section_single_frame_capacity = dynamic_section_capacity / getMaxFramesInFlight();
+    assert(dynamic_section_single_frame_capacity > 0);
+    return dynamic_section_single_frame_capacity;
+}
+
 
 uint32_t GlobalSettings::getUploadHeapCapacity() const
 {
