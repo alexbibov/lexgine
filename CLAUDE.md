@@ -1,3 +1,8 @@
+# Commit conventions
+* Commit messages are short and to the point.
+* Do _NOT_ add any AI attribution to commit messages or pull request descriptions. No `Co-Authored-By: Claude`,
+  no "Generated with Claude Code", no equivalent trailer or footer in any wording.
+
 # Project conventions
 * We use spaces for indentation. One scope indentation is 4 consequent spaces.
 * Class names use pattern `ThisIsMyClass`
