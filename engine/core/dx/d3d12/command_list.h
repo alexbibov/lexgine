@@ -5,6 +5,7 @@
 #include <d3d12.h>
 
 #include <variant>
+#include <span>
 
 #include "engine/core/entity.h"
 #include "engine/core/primitive_topology.h"
@@ -158,7 +159,7 @@ public:
 
     //! Data binding routines
 
-    void setDescriptorHeaps(std::array<DescriptorHeap const*, 2> const& descriptor_heaps) const;
+    void setDescriptorHeaps(std::span<DescriptorHeap const*> descriptor_heaps) const;
 
     void setRootSignature(CompiledRootSignature const& root_signature,
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;

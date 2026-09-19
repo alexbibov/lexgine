@@ -51,16 +51,6 @@ BasicRenderingServices::BasicRenderingServices(Globals& globals)
     , m_dynamic_geometry_allocator{ createDynamicGeometryStreamAllocator(globals) }
     , m_max_frames_in_flight{ globals.get<GlobalSettings>()->getMaxFramesInFlight() }
 {
-    {    // initialize descriptor heap pages
-        m_descriptor_heap_pointers.resize(m_max_frames_in_flight);
-        for (uint32_t i = 0; i < m_max_frames_in_flight; ++i)
-        {
-            DescriptorHeap const& cbv_srv_uav_descriptor_heap = m_dx_resources.retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav, i);
-            DescriptorHeap const& sampler_descriptor_heap = m_dx_resources.retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler, i);
-            m_descriptor_heap_pointers[i][0] = &cbv_srv_uav_descriptor_heap;
-            m_descriptor_heap_pointers[i][1] = &sampler_descriptor_heap;
-        }
-    }
 }
 
 void BasicRenderingServices::beginRendering(CommandList& command_list) const
@@ -75,9 +65,14 @@ void BasicRenderingServices::endRendering(CommandList& command_list) const
 
 void BasicRenderingServices::setDefaultResources(CommandList& command_list) const
 {
-    uint32_t heap_descriptors_page_index =
-        static_cast<uint32_t>(m_device.frameProgressTracker().currentFrameIndex() % m_max_frames_in_flight);
-    command_list.setDescriptorHeaps(m_descriptor_heap_pointers[0]);
+    std::array<DescriptorHeap const*, 2> descriptor_heaps;
+    {
+        DescriptorHeap& cbv_srv_uav_heap = m_dx_resources.retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav);
+        DescriptorHeap& sampler_heap = m_dx_resources.retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler);
+        descriptor_heaps[0] = &cbv_srv_uav_heap;
+        descriptor_heaps[1] = &sampler_heap;
+    }
+    command_list.setDescriptorHeaps(std::span{ descriptor_heaps.begin(), descriptor_heaps.size() });
 }
 
 void BasicRenderingServices::setDefaultViewport(CommandList& command_list) const
