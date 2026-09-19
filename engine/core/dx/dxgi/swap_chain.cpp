@@ -51,7 +51,10 @@ void SwapChain::present() const
 {
     if (!m_swapChainIsIdle)
     {
-        HRESULT rv = m_dxgi_swap_chain->Present(m_descriptor.enable_vsync ? 1 : 0, (m_descriptor.enable_vsync && m_descriptor.windowed ? DXGI_PRESENT_ALLOW_TEARING : 0));
+        HRESULT rv = m_dxgi_swap_chain->Present(
+            m_descriptor.enable_vsync ? 1 : 0,
+            (!m_descriptor.enable_vsync && m_descriptor.windowed ? DXGI_PRESENT_ALLOW_TEARING : 0)
+        );
 
         if (rv == DXGI_STATUS_OCCLUDED)
         {
