@@ -119,10 +119,12 @@ Window::Window(HINSTANCE hInstance /* = NULL */,
 Window::~Window()
 {
     checkSystemCall(DestroyWindow(m_hwnd));
-
+    --m_window_counter;
     if (!m_window_counter && m_atom)
     {
         checkSystemCall(UnregisterClass(const_cast<wchar_t*>(g_window_class_name), m_hinstance));
+        m_atom = 0;
+        g_window_pool.clear();
     }
 }
 
@@ -236,11 +238,21 @@ void Window::processMessages() const
     auto p = g_window_pool.begin();
     while(p != g_window_pool.end())
     {
+        bool window_is_stale = false;
         while (PeekMessage(&msg, p->first, 0, 0, PM_REMOVE))
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
+            if (!p->second)  // window was destroyed
+            {
+                auto q = std::next(p);
+                g_window_pool.erase(p);
+                p = q;
+                window_is_stale = true;
+                break;
+            }
         }
+        if (window_is_stale) continue;
         ++p;
     }
 }
@@ -312,17 +324,19 @@ LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wPar
 
     case WM_DESTROY:
     {
-        if (Window* p_window = g_window_pool[hWnd])
-        {
-            p_window->m_destroyed = true;
-        }
+        g_window_pool[hWnd] = nullptr;
         return 0;
     }
 
     default:
     {
-        Window* p_window = g_window_pool[hWnd];
-        if (p_window == nullptr)
+        Window* p_window = nullptr;
+        auto p = g_window_pool.find(hWnd);
+        if (p != g_window_pool.end())
+        {
+            p_window = p->second;
+        }
+        if (!p_window)
         {
             return DefWindowProc(hWnd, uMsg, wParam, lParam);
         }
@@ -339,20 +353,25 @@ LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wPar
                 ++expired_listeners_count;
                 continue;
             }
-            auto ptr = listener.lock();
-            MessageHandlingResult result = ptr->handle(uMsg, reinterpret_cast<uint64_t>(p_window), wParam, lParam, 0, 0, 0, 0, 0);
-            if (result == MessageHandlingResult::fail)
+            if (auto ptr = listener.lock())
             {
-                p_window->logger().out(
-                    std::format("Failed to handle message {} for window {}", uMsg, p_window->getStringName()),
-                    core::misc::LogMessageType::exclamation
-                );
+                MessageHandlingResult result = ptr->handle(uMsg, reinterpret_cast<uint64_t>(p_window), wParam, lParam, 0, 0, 0, 0, 0);
+                if (result == MessageHandlingResult::fail)
+                {
+                    p_window->logger().out(
+                        std::format("Failed to handle message {} for window {}", uMsg, p_window->getStringName()),
+                        core::misc::LogMessageType::exclamation
+                    );
+                }
+                ++i;
             }
-            ++i;
         }
         if (expired_listeners_count)
         {
-            p_window->m_listener_list.erase(p_window->m_listener_list.end() - expired_listeners_count, p_window->m_listener_list.end());
+            p_window->m_listener_list.erase(
+                p_window->m_listener_list.begin() + window_listener_count,
+                p_window->m_listener_list.begin() + window_listener_count + expired_listeners_count
+            );
         }
         return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
