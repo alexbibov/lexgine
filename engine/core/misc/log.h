@@ -27,7 +27,12 @@ enum class LogMessageType
     critical
 };
 
-//! Implements simple logging system. NOT thread-safe. Create one logging object per thread to avoid racing.
+/*! Implements simple logging system.
+
+ The logger is a process-wide singleton shared by every thread, and writes through mutex-protected
+ spdlog sinks, so out() may be called from any thread. retrieve() yields nullptr before create() and
+ after shutdown(), which callers reached from arbitrary threads are expected to check.
+*/
 class Log
 {
 public:
