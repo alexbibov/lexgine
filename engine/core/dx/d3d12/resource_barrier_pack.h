@@ -46,11 +46,15 @@ public:
 
     void applyBarriers(CommandList const& cmd_list) const;
 
+    //! Discards every barrier added so far, leaving the pack as if freshly constructed
+    void clear();
+
 private:
     virtual void emplaceResourceBarrier(D3D12_RESOURCE_BARRIER&& barrier) = 0;
     virtual uint32_t nativeBarrierCount() const = 0;
     virtual D3D12_RESOURCE_BARRIER const* nativeBarriers() const = 0;
-    
+    virtual void discardResourceBarriers() = 0;
+
 };
 
 
@@ -61,10 +65,11 @@ private:    // required by ResourceBarrierPack interface
     void emplaceResourceBarrier(D3D12_RESOURCE_BARRIER&& barrier) override;
     uint32_t nativeBarrierCount() const override;
     D3D12_RESOURCE_BARRIER const* nativeBarriers() const override;
+    void discardResourceBarriers() override;
 
 private:
     std::vector<D3D12_RESOURCE_BARRIER> m_barriers;    //!< list of the barriers to be applied
-    
+
 };
 
 
@@ -94,6 +99,11 @@ private:    // required by ResourceBarrierPack interface
     D3D12_RESOURCE_BARRIER const* nativeBarriers() const override
     {
         return m_barriers;
+    }
+
+    void discardResourceBarriers() override
+    {
+        m_barrier_count = 0U;
     }
 
 private:

@@ -76,6 +76,11 @@ void ResourceBarrierPack::applyBarriers(CommandList const& cmd_list) const
     cmd_list.resourceBarrier(nativeBarrierCount(), nativeBarriers());
 }
 
+void ResourceBarrierPack::clear()
+{
+    discardResourceBarriers();
+}
+
 void DynamicResourceBarrierPack::emplaceResourceBarrier(D3D12_RESOURCE_BARRIER&& barrier)
 {
     m_barriers.emplace_back(std::move(barrier));
@@ -89,4 +94,9 @@ uint32_t DynamicResourceBarrierPack::nativeBarrierCount() const
 D3D12_RESOURCE_BARRIER const* DynamicResourceBarrierPack::nativeBarriers() const
 {
     return m_barriers.data();
+}
+
+void DynamicResourceBarrierPack::discardResourceBarriers()
+{
+    m_barriers.clear();
 }

@@ -37,9 +37,36 @@ struct DepthTarget
 
 class RenderingTarget
 {
+    //! Everything about an attached target that outlives the ColorTarget/DepthTarget the caller handed over
+    struct TargetSnapshot
+    {
+        Resource const* p_resource;
+        ResourceState default_state;
+        uint16_t mipmap_level;
+        uint64_t array_offset;
+        uint32_t array_size;
+    };
+
 public:
-    RenderingTarget(Globals& globals, 
+    RenderingTarget(Globals& globals,
         std::vector<ColorTarget> const& color_targets, misc::Optional<DepthTarget> const& depth_target);
+
+    /*! Repoints some or all of the attached targets at new resources, keeping the descriptor tables this
+     rendering target already owns: the new views are written straight into the slots the existing tables
+     occupy, so rtvTable() and dsvTable() stay valid and no caller has to rebind anything.
+
+     @param new_color_targets replacements for the leading color targets, in the order the targets were
+     attached at construction. Passing fewer than are attached updates only that leading run; passing an
+     invalidated depth target likewise leaves the depth target alone.
+
+     @return 'false' if the request named targets this rendering target does not have -- more color targets
+     than are attached, or a depth target when none was attached at construction. Such a request is logged
+     and its surplus dropped, while every target that could legally be updated still is.
+    */
+    bool updateRenderingTargets(
+        std::vector<ColorTarget> const& new_color_targets,
+        misc::Optional<DepthTarget> const& depth_target
+    );
 
     void switchToRenderAccessState(CommandList const& command_list) const;
     void switchToInitialState(CommandList const& command_list) const;
@@ -61,13 +88,20 @@ public:
     DescriptorTable const& dsvTable() const;
 
 private:
+    //! captures from a ColorTarget or a DepthTarget everything needed to re-derive its transition barriers
+    template<typename Target>
+    static TargetSnapshot makeSnapshot(Target const& target);
+
+    void rebuildBarriers();    //!< re-derives both barrier packs from the currently attached targets
+
+private:
     DynamicResourceBarrierPack m_forward_barriers;
     DynamicResourceBarrierPack m_backward_barriers;
     DescriptorTable m_rtvs_table;
     DescriptorTable m_dsv_table;
 
-    std::vector<ColorTarget> m_color_targets;
-    misc::Optional<DepthTarget> m_depth_target;
+    std::vector<TargetSnapshot> m_color_targets;
+    misc::Optional<TargetSnapshot> m_depth_target;
 
     std::vector<DXGI_FORMAT> m_color_target_formats;
     DXGI_FORMAT m_depth_target_format;
