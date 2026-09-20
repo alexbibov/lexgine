@@ -29,9 +29,9 @@ public:
         auto p_dummy_node = m_allocator.allocate();
         p_dummy_node.setTag(m_allocator.createTag());
         auto next = typename allocator_type::address_type{ &m_allocator }; next.setTag(p_dummy_node.getTag());
-        std::atomic_init(&p_dummy_node->next, static_cast<uint64_t>(next));    // next = 0xffffffff encodes invalid pointer
-        std::atomic_init(&m_head.value, static_cast<uint64_t>(p_dummy_node));
-        std::atomic_init(&m_tail.value, static_cast<uint64_t>(p_dummy_node));
+        p_dummy_node->next.store(static_cast<uint64_t>(next), std::memory_order_relaxed);    // next = 0xffffffff encodes invalid pointer
+        m_head.value.store(static_cast<uint64_t>(p_dummy_node), std::memory_order_relaxed);
+        m_tail.value.store(static_cast<uint64_t>(p_dummy_node), std::memory_order_relaxed);
     }
 
     LockFreeQueue(LockFreeQueue const&) = delete;
@@ -46,7 +46,7 @@ public:
         new_node_ptr.setTag(m_allocator.createTag());
         new_node_ptr->data = value;
         auto next = typename allocator_type::address_type{ &m_allocator }; next.setTag(new_node_ptr.getTag());
-        std::atomic_init(&new_node_ptr->next, static_cast<uint64_t>(next));    // next = 0xffffffff encodes invalid pointer
+        new_node_ptr->next.store(static_cast<uint64_t>(next), std::memory_order_relaxed);    // next = 0xffffffff encodes invalid pointer
         uint64_t tail{};
         while (true)
         {
