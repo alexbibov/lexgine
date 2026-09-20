@@ -66,6 +66,7 @@ private:
     dxgi::SwapChain& m_linked_swap_chain;
     RenderingTasks* m_linked_rendering_tasks_ptr;
     bool m_suspend_rendering = false;
+    bool m_buffers_acquired = false;
 
     std::vector<Resource> m_color_buffers;
     std::unique_ptr<CommittedResource> m_depth_buffer;

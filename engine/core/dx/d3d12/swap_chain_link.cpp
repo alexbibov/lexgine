@@ -3,7 +3,6 @@
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/dx/dxgi/swap_chain.h"
-#include "engine/core/dx/d3d12/dx_resource_factory.h"
 
 #include "device.h"
 #include "heap.h"
@@ -63,6 +62,8 @@ SwapChainLink::SwapChainLink(SwapChainLink&& other)
     , m_device{ other.m_device }
     , m_linked_swap_chain{ other.m_linked_swap_chain }
     , m_linked_rendering_tasks_ptr{ other.m_linked_rendering_tasks_ptr }
+    , m_suspend_rendering{ other.m_suspend_rendering }
+    , m_buffers_acquired{ other.m_buffers_acquired }
     , m_color_buffers{ std::move(other.m_color_buffers) }
     , m_depth_buffer{ std::move(other.m_depth_buffer) }
     , m_depth_buffer_native_format{ other.m_depth_buffer_native_format }
@@ -92,7 +93,7 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 
 void SwapChainLink::render()
 {
-    if (m_targets.empty())
+    if (!m_buffers_acquired)
     {
         core::math::Vector2u swap_chain_dimensions = m_linked_swap_chain.getDimensions();
         acquireBuffers(swap_chain_dimensions.x, swap_chain_dimensions.y);
@@ -168,18 +169,12 @@ void SwapChainLink::releaseBuffers()
 
     m_color_buffers.clear();
     m_depth_buffer.reset(nullptr);
-    m_targets.clear();
+    m_buffers_acquired = false;
 }
 
 void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
 {
-    auto dx_resource_factory = m_globals.get<DxResourceFactory>();
-    dx_resource_factory->retrieveDescriptorHeap(m_device, DescriptorHeapType::rtv).reset();
-    dx_resource_factory->retrieveDescriptorHeap(m_device, DescriptorHeapType::dsv).reset();
-
     uint16_t back_buffers_count = m_linked_swap_chain.backBufferCount();
-    m_color_buffers.reserve(back_buffers_count);
-    m_targets.reserve(back_buffers_count);
 
     auto descriptor =
         ResourceDescriptor::createTexture2D(width, height, back_buffers_count,
@@ -189,13 +184,25 @@ void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
         m_depth_optimized_clear_value, descriptor, AbstractHeapType::_default,
         HeapCreationFlags::base_values::allow_all, 0x1, 0x1);
 
-
-    for (uint16_t i = 0U; i < m_linked_swap_chain.backBufferCount(); ++i)
+    m_color_buffers.reserve(back_buffers_count);
+    for (uint16_t i = 0U; i < back_buffers_count; ++i)
     {
         m_color_buffers.emplace_back(m_linked_swap_chain.getBackBuffer(i));
+    }
 
+    // the rendering targets outlive the buffers they point at, so a resize repoints the descriptor tables
+    // they already own instead of allocating a fresh set out of the shared RTV/DSV heaps
+    bool build_targets = m_targets.size() != back_buffers_count;
+    if (build_targets)
+    {
+        m_targets.clear();
+        m_targets.reserve(back_buffers_count);
+    }
+
+    for (uint16_t i = 0U; i < back_buffers_count; ++i)
+    {
         RTVTextureInfo rtv_texture_info{};
-        ColorTarget color_target{ m_color_buffers.back(), ResourceState::base_values::common, rtv_texture_info };
+        ColorTarget color_target{ m_color_buffers[i], ResourceState::base_values::common, rtv_texture_info };
 
         DSVTextureArrayInfo dsv_texture_array_info{};
         dsv_texture_array_info.mip_level_slice = 0;
@@ -204,6 +211,17 @@ void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
         DepthTarget depth_target{ *m_depth_buffer, ResourceState::base_values::depth_read, dsv_texture_array_info };
         depth_target.target_view.overrideFormat(getValidDepthStencilFormatFromTypelessFormat(m_depth_buffer_native_format));
 
-        m_targets.emplace_back(m_globals, std::vector<ColorTarget>{ color_target }, misc::makeOptional<DepthTarget>(depth_target));
+        if (build_targets)
+        {
+            m_targets.emplace_back(m_globals, std::vector<ColorTarget>{ color_target },
+                misc::makeOptional<DepthTarget>(depth_target));
+        }
+        else
+        {
+            m_targets[i].updateRenderingTargets(std::vector<ColorTarget>{ color_target },
+                misc::makeOptional<DepthTarget>(depth_target));
+        }
     }
+
+    m_buffers_acquired = true;
 }
