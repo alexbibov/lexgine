@@ -24,7 +24,23 @@ RenderingWork::RenderingWork(Globals& globals, std::string const& debug_name,
         addProfilingService(std::make_unique<GPUTaskProfilingService>(global_settings, debug_name + " GPU execution time"))
             ->assignCommandLists(m_cmd_lists, m_device, m_command_type);
     }
-    
+
+}
+
+void RenderingWork::prepare()
+{
+    for (auto& cmd_list : m_cmd_lists)
+    {
+        cmd_list.reset();
+    }
+}
+
+void RenderingWork::tearDown()
+{
+    for (auto& cmd_list : m_cmd_lists)
+    {
+        cmd_list.close();
+    }
 }
 
 CommandList* RenderingWork::addCommandList(uint32_t node_mask/* = 0x1*/,

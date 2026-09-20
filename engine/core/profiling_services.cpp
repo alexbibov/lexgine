@@ -226,12 +226,7 @@ void GPUTaskProfilingService::assignCommandLists(std::list<dx::d3d12::CommandLis
 
 void GPUTaskProfilingService::beginProfilingEventImpl(bool global_profiling_enabled)
 {
-    for (auto& cmd_list : *m_command_lists_to_patch_ptr)
-    {
-        cmd_list.reset();
-    }
-
-    if (global_profiling_enabled)
+    if (global_profiling_enabled && !m_command_lists_to_patch_ptr->empty())
     {
         PIXBeginEvent(m_command_lists_to_patch_ptr->front().native().Get(), uid(), name().c_str());
         m_command_lists_to_patch_ptr->front().endQuery(m_timestamp_query);
@@ -240,14 +235,9 @@ void GPUTaskProfilingService::beginProfilingEventImpl(bool global_profiling_enab
 
 void GPUTaskProfilingService::endProfilingEventImpl(bool global_profiling_enabled)
 {
-    if (global_profiling_enabled)
+    if (global_profiling_enabled && !m_command_lists_to_patch_ptr->empty())
     {
         m_command_lists_to_patch_ptr->back().endQuery(m_timestamp_query);
         PIXEndEvent(m_command_lists_to_patch_ptr->back().native().Get());
-    }
-
-    for (auto& cmd_list : *m_command_lists_to_patch_ptr)
-    {
-        cmd_list.close();
     }
 }

@@ -23,17 +23,21 @@ AbstractTask::~AbstractTask() = default;
 
 bool AbstractTask::execute(uint8_t worker_id, uint64_t user_data)
 {
+    prepare();
+
     for (auto& ps : m_profiling_services)
     {
         ps->beginProfilingEvent();
     }
-    
+
     bool result = doTask(worker_id, user_data);
 
     for (auto& ps : m_profiling_services)
     {
         ps->endProfilingEvent();
     }
+
+    tearDown();
 
     return result;
 }

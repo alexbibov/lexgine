@@ -254,8 +254,6 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
 
 bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    //cmd_list.reset();
-
     m_basic_rendering_services.beginRendering(*m_cmd_list_ptr);
     
     m_cmd_list_ptr->setPipelineState(*m_pso);
@@ -283,8 +281,6 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
     m_shader_function.bindResourceDescriptors(*m_cmd_list_ptr, dxcompilation::ShaderFunction::ShaderInputKind::srv, 0);
     m_shader_function.bindResourceDescriptors(*m_cmd_list_ptr, dxcompilation::ShaderFunction::ShaderInputKind::sampler, 0);
     m_cmd_list_ptr->drawIndexedInstanced(36, 1, 0, 0, 0);
-
-    //cmd_list.close();
 
     return true;
 }

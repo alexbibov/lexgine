@@ -66,6 +66,22 @@ public:
 
     virtual TaskType type() const = 0;    //! returns type of the task
 
+protected:
+    /*! Brings the resources the task records into, into a state fit for recording.
+
+     Invoked by execute() before anything else, in particular before the profiling services open their
+     events, so that a service may record into those resources. Does nothing unless overridden.
+    */
+    virtual void prepare() {}
+
+    /*! Returns the resources the task records into to a state fit for submission.
+
+     Invoked by execute() after everything else, in particular after the profiling services close their
+     events, so that a service may record into those resources. Runs regardless of what doTask() returned.
+     Does nothing unless overridden.
+    */
+    virtual void tearDown() {}
+
 private:
     bool m_exposed_in_task_graph;    //!< 'true' if the task1 should be included into DOT representation of the task graph for debugging purposes, 'false' otherwise. Default is 'true'
     std::vector<std::unique_ptr<ProfilingService>> m_profiling_services;    //!< profiling services employed by the task

@@ -43,6 +43,10 @@ public:
         FenceSharing command_list_sync_mode = FenceSharing::none,
         PipelineState const* initial_pipeline_state = nullptr);
 
+protected:    // owns the reset/close contract for the command lists of every rendering task
+    void prepare() override;
+    void tearDown() override;
+
 private:
     Device& m_device;
     CommandType m_command_type;
