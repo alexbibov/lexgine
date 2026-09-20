@@ -161,7 +161,7 @@ private:
 };
 
 template<typename T>
-using RingBufferAllocator = RingBufferAllocatorN<T, 128>;
+using RingBufferAllocator = RingBufferAllocatorN<T, 2048>;
 
 }
 
