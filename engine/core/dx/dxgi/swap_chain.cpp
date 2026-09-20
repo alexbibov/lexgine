@@ -150,6 +150,13 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
         S_OK
     );
     p_swap_chain1->Release();
+
+    // the application owns the fullscreen toggle; DXGI's default Alt+Enter handling would fight it
+    LEXGINE_THROW_ERROR_IF_FAILED(
+        this,
+        m_dxgi_factory->MakeWindowAssociation(m_window.native(), DXGI_MWA_NO_ALT_ENTER),
+        S_OK
+    );
 }
 
 }
