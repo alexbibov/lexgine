@@ -1,6 +1,7 @@
 #ifndef LEXGINE_CORE_DX_D3D12_BASIC_RENDERING_SERVICES_H
 #define LEXGINE_CORE_DX_D3D12_BASIC_RENDERING_SERVICES_H
 
+#include <array>
 #include <memory>
 
 #include "engine/core/math/vector_types.h"
@@ -71,7 +72,7 @@ private:
     PerFrameUploadDataStreamAllocator m_dynamic_geometry_allocator;
 
     osinteraction::windows::Window* m_rendering_window_ptr = nullptr;
-    uint32_t m_max_frames_in_flight;
+    std::array<DescriptorHeap const*, 2> m_descriptor_heaps;
 };
 
 template<> class BasicRenderingServicesAttorney<RenderingTasks>

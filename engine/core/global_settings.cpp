@@ -6,6 +6,7 @@
 
 
 #include "3rd_party/json/json.hpp"
+#include <algorithm>
 #include <format>
 #include <fstream>
 
@@ -408,9 +409,11 @@ GlobalSettings::GlobalSettings(std::filesystem::path const& json_settings_source
                     m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)]);
             }
 
-            if ((p = document.find("resource_view_heap_persistent_partition_fraction")) != document.end())
+            if ((p = document.find("resource_view_heap_persistent_partition_fraction")) != document.end()
+                && p->is_number())
             {
-                m_cbv_srv_uav_persistent_partition_fraction = p->get<float>() / 100.f;
+                m_cbv_srv_uav_persistent_partition_fraction =
+                    std::clamp(p->get<float>() / 100.f, c_min_persistent_partition_fraction, c_max_persistent_partition_fraction);
             }
             else
             {
@@ -490,6 +493,7 @@ void GlobalSettings::serialize(std::string const& json_serialization_path) const
         { "max_non_blocking_upload_buffer_allocation_timeout", m_max_non_blocking_upload_buffer_allocation_timeout },
 
         { "resource_view_descriptors_count", m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::cbv_srv_uav)] },
+        { "resource_view_heap_persistent_partition_fraction", m_cbv_srv_uav_persistent_partition_fraction * 100.f },
         { "sampler_descriptors_count", m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::sampler)] },
         { "render_target_view_descriptors_count", m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::rtv)] },
         { "depth_stencil_view_descriptors_count", m_descriptor_heap_capacity[static_cast<size_t>(DescriptorHeapType::dsv)] },

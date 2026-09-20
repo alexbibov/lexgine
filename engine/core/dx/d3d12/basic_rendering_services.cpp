@@ -49,7 +49,9 @@ BasicRenderingServices::BasicRenderingServices(Globals& globals)
     , m_rendering_target_depth_format{ DXGI_FORMAT_UNKNOWN }
     , m_constant_data_stream{ globals }
     , m_dynamic_geometry_allocator{ createDynamicGeometryStreamAllocator(globals) }
-    , m_max_frames_in_flight{ globals.get<GlobalSettings>()->getMaxFramesInFlight() }
+    , m_descriptor_heaps{
+        &m_dx_resources.retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav),
+        &m_dx_resources.retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler) }
 {
 }
 
@@ -65,14 +67,7 @@ void BasicRenderingServices::endRendering(CommandList& command_list) const
 
 void BasicRenderingServices::setDefaultResources(CommandList& command_list) const
 {
-    std::array<DescriptorHeap const*, 2> descriptor_heaps;
-    {
-        DescriptorHeap& cbv_srv_uav_heap = m_dx_resources.retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav);
-        DescriptorHeap& sampler_heap = m_dx_resources.retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler);
-        descriptor_heaps[0] = &cbv_srv_uav_heap;
-        descriptor_heaps[1] = &sampler_heap;
-    }
-    command_list.setDescriptorHeaps(std::span{ descriptor_heaps.begin(), descriptor_heaps.size() });
+    command_list.setDescriptorHeaps(std::span{ m_descriptor_heaps });
 }
 
 void BasicRenderingServices::setDefaultViewport(CommandList& command_list) const

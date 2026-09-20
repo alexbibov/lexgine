@@ -405,7 +405,7 @@ void CommandList::setPipelineState(PipelineState const& pipeline_state) const
     m_command_list->SetPipelineState(pipeline_state.native().Get());
 }
 
-void CommandList::setDescriptorHeaps(std::span<DescriptorHeap const*> descriptor_heaps) const
+void CommandList::setDescriptorHeaps(std::span<DescriptorHeap const* const> descriptor_heaps) const
 {
     auto cmd_list_type = commandType();
 

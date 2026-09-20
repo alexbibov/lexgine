@@ -159,7 +159,7 @@ public:
 
     //! Data binding routines
 
-    void setDescriptorHeaps(std::span<DescriptorHeap const*> descriptor_heaps) const;
+    void setDescriptorHeaps(std::span<DescriptorHeap const* const> descriptor_heaps) const;
 
     void setRootSignature(CompiledRootSignature const& root_signature,
         BundleInvocationContext bundle_invokation_context = BundleInvocationContext::none) const;

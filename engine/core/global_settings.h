@@ -16,6 +16,9 @@ namespace lexgine::core {
 //! Encapsulates global settings of the engine
 class GlobalSettings
 {
+    static constexpr float c_min_persistent_partition_fraction = 0.05f;
+    static constexpr float c_max_persistent_partition_fraction = 0.95f;
+
 public:
     GlobalSettings() = default;
     explicit GlobalSettings(std::filesystem::path const& json_settings_source_path);
