@@ -115,12 +115,14 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
     {
         BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingWindow(m_basic_rendering_services, rendering_configuration.p_rendering_window);
         rendering_configuration.p_rendering_window->addListener(m_console);
+    }
 
-        math::Vector2u rendering_window_dimensions = rendering_configuration.p_rendering_window->getDimensions();
-        m_gbuffer->init(
-            static_cast<uint32_t>(rendering_window_dimensions.x), 
-            static_cast<uint32_t>(rendering_window_dimensions.y)
-        );
+    if (flags.isSet(tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::viewport_changed)
+        || flags.isSet(tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::rendering_window_changed))
+    {
+        auto gbuffer_width = static_cast<uint32_t>(rendering_configuration.viewport.width());
+        auto gbuffer_height = static_cast<uint32_t>(rendering_configuration.viewport.height());
+        if (gbuffer_width && gbuffer_height) m_gbuffer->init(gbuffer_width, gbuffer_height);
     }
 
 
