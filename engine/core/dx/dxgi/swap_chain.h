@@ -30,6 +30,16 @@ enum class SwapChainScaling
 };
 
 
+//! Outcome of a request to present the contents of the back buffer
+enum class PresentResult
+{
+    ok,    //!< the frame was handed to the presentation engine
+    occluded,    //!< the window is fully occluded; the swap chain has entered idle presentation
+    device_lost,    //!< the device was removed or reset; nothing can be presented until it is recreated
+    failed    //!< the presentation engine rejected the frame for some other reason
+};
+
+
 //! Describes parameters of the swap chain
 struct SwapChainDescriptor
 {
@@ -70,8 +80,13 @@ public:
     //! Returns index of the current back buffer of the swap chain
     uint32_t getCurrentBackBufferIndex() const;
 
-    //! Puts contents of the back buffer into the front buffer.
-    void present() const;
+    /*! Puts contents of the back buffer into the front buffer.
+
+     Never throws on a presentation failure: a lost device, or any other rejection by the presentation engine,
+     is logged and reported through the return value. Once the device is lost every subsequent call is a
+     no-op returning PresentResult::device_lost until the device is recreated.
+    */
+    PresentResult present() const;
 
     //! Total back buffer count
     uint32_t backBufferCount() const;
@@ -85,12 +100,17 @@ public:
     //! Checks if the swap chain is in idle state
     bool isIdle() const { return m_swapChainIsIdle; }
 
+    //! Checks if the device backing the swap chain has been lost
+    bool isDeviceLost() const { return m_device_lost; }
+
 private:
     SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
         d3d12::Device& device,
         d3d12::CommandQueue const& default_command_queue,
         osinteraction::windows::Window& window,
         SwapChainDescriptor const& desc);
+
+    PresentResult reportPresentFailure(HRESULT hres) const;
 
 private:
     ComPtr<IDXGIFactory6> m_dxgi_factory;   //!< DXGI factory used to create the swap chain
@@ -100,6 +120,7 @@ private:
     SwapChainDescriptor m_descriptor;    //!< Descriptor of the swap chain
     ComPtr<IDXGISwapChain4> m_dxgi_swap_chain;   //!< DXGI interface representing the swap chain
     mutable bool m_swapChainIsIdle{ false };    //!< determines if swap chain is in idle state
+    mutable bool m_device_lost{ false };    //!< set once the device has been removed or reset
 };
 
 

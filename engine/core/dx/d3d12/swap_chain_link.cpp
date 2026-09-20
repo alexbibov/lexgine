@@ -93,6 +93,8 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 
 void SwapChainLink::render()
 {
+    if (m_linked_swap_chain.isDeviceLost()) return;    // recovery is not implemented yet
+
     if (!m_buffers_acquired)
     {
         core::math::Vector2u swap_chain_dimensions = m_linked_swap_chain.getDimensions();

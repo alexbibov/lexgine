@@ -1,10 +1,21 @@
+#include <sstream>
+
 #include "engine/core/exception.h"
+#include "engine/core/misc/log.h"
 #include "engine/core/dx/d3d12/command_queue.h"
 
 #include "swap_chain.h"
 
 
 namespace lexgine::core::dx::dxgi {
+
+namespace
+{
+    bool isDeviceLostResult(HRESULT hres)
+    {
+        return hres == DXGI_ERROR_DEVICE_REMOVED || hres == DXGI_ERROR_DEVICE_RESET;
+    }
+}  // namespace
 
 d3d12::Device& lexgine::core::dx::dxgi::SwapChain::device() const
 {
@@ -47,8 +58,10 @@ uint32_t SwapChain::getCurrentBackBufferIndex() const
     return static_cast<uint32_t>(m_dxgi_swap_chain->GetCurrentBackBufferIndex());
 }
 
-void SwapChain::present() const
+PresentResult SwapChain::present() const
 {
+    if (m_device_lost) return PresentResult::device_lost;
+
     if (!m_swapChainIsIdle)
     {
         HRESULT rv = m_dxgi_swap_chain->Present(
@@ -59,23 +72,41 @@ void SwapChain::present() const
         if (rv == DXGI_STATUS_OCCLUDED)
         {
             m_swapChainIsIdle = true;
+            return PresentResult::occluded;
         }
-        else if (rv != S_OK)
-        {
-            std::stringstream err{};
-            err << "Present failed with error " << std::hex << rv << std::endl;
-            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, err.str().c_str());
-        }
-    }
-    else
-    {
-        HRESULT rv = m_dxgi_swap_chain->Present(m_descriptor.enable_vsync ? 1 : 0, DXGI_PRESENT_TEST);
 
-        if (rv == S_OK)
-        {
-            m_swapChainIsIdle = false;
-        }
+        if (rv != S_OK) return reportPresentFailure(rv);
+
+        return PresentResult::ok;
     }
+
+    HRESULT rv = m_dxgi_swap_chain->Present(m_descriptor.enable_vsync ? 1 : 0, DXGI_PRESENT_TEST);
+
+    if (rv == S_OK)
+    {
+        m_swapChainIsIdle = false;
+        return PresentResult::ok;
+    }
+
+    if (isDeviceLostResult(rv)) return reportPresentFailure(rv);
+
+    return PresentResult::occluded;
+}
+
+PresentResult SwapChain::reportPresentFailure(HRESULT hres) const
+{
+    bool const device_lost = isDeviceLostResult(hres);
+    if (device_lost) m_device_lost = true;
+
+    if (misc::Log* p_logger = misc::Log::retrieve())
+    {
+        std::stringstream err{};
+        err << "ERROR: " << (device_lost ? "the device backing the swap chain was lost" : "Present failed")
+            << " (0x" << std::hex << hres << ")";
+        p_logger->out(err.str(), misc::LogMessageType::error);
+    }
+
+    return device_lost ? PresentResult::device_lost : PresentResult::failed;
 }
 
 uint32_t SwapChain::backBufferCount() const
