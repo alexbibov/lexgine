@@ -5,6 +5,7 @@
 #include <array>
 #include <vector>
 #include <d3d11_4.h>
+#include <d3d12sdklayers.h>
 
 #include "common.h"
 
@@ -452,6 +453,8 @@ private:
     dxgi::HwAdapter* m_owning_adapter_ptr;    //!< pointer to the DXGI adapter, which created this device
     ComPtr<ID3D12Device6> m_device;    //!< encapsulated pointer to Direct3D12 device interface
     ComPtr<ID3D12DebugDevice2> m_debug_device;    //!< interface used by GPU based validation
+    ComPtr<ID3D12InfoQueue1> m_info_queue;    //!< debug layer message queue, held so the message callback can be unregistered
+    DWORD m_debug_message_callback_cookie{ 0 };    //!< identifies the registered debug layer message callback
     ComPtr<ID3D11Device5> m_d3d11_device;    //!< D3D11 device used by GPU texture conversion
     ComPtr<ID3D11DeviceContext4> m_d3d11_device_context;    //!< D3D11 auxiliary device context, which may be used for D3D11<->D3D12 interop
 

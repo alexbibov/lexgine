@@ -4,6 +4,7 @@
 #include "engine/core/global_settings.h"
 #include "engine/core/profiling_services.h"
 #include "engine/core/misc/misc.h"
+#include "engine/core/misc/log.h"
 #include "engine/core/dx/d3d12/debug_interface.h"
 #include "command_list.h"
 #include "query_cache.h"
@@ -39,7 +40,28 @@ bool isWindows11OrNewer()
 }
 
 
+misc::LogMessageType translateDebugMessageSeverity(D3D12_MESSAGE_SEVERITY severity)
+{
+    switch (severity)
+    {
+    case D3D12_MESSAGE_SEVERITY_CORRUPTION: return misc::LogMessageType::critical;
+    case D3D12_MESSAGE_SEVERITY_ERROR: return misc::LogMessageType::error;
+    case D3D12_MESSAGE_SEVERITY_WARNING: return misc::LogMessageType::exclamation;
+    default: return misc::LogMessageType::information;
+    }
 }
+
+void __stdcall debugLayerMessageCallback(D3D12_MESSAGE_CATEGORY, D3D12_MESSAGE_SEVERITY severity,
+    D3D12_MESSAGE_ID id, LPCSTR description, void*)
+{
+    misc::Log* p_logger = misc::Log::retrieve();
+    if (!p_logger) return;
+
+    p_logger->out("D3D12 debug layer (" + std::to_string(static_cast<int>(id)) + "): " + description,
+        translateDebugMessageSeverity(severity));
+}
+
+}  // namespace
 
 
 Device::Device(
@@ -81,6 +103,13 @@ Device::Device(
             filter.DenyList.NumIDs = _countof(denied_messages);
             filter.DenyList.pIDList = denied_messages;
             info_queue->AddStorageFilterEntries(&filter);
+
+            // D3D12_MESSAGE_CALLBACK_FLAG_NONE keeps the deny list above in force on the callback path
+            if (SUCCEEDED(info_queue.As(&m_info_queue)))
+            {
+                m_info_queue->RegisterMessageCallback(debugLayerMessageCallback,
+                    D3D12_MESSAGE_CALLBACK_FLAG_NONE, nullptr, &m_debug_message_callback_cookie);
+            }
         }
     }
 }
@@ -547,7 +576,13 @@ CommandList Device::createCommandList(CommandType command_list_workload_type, ui
         node_mask, command_list_sync_mode, initial_pipeline_state);
 }
 
-Device::~Device() = default;
+Device::~Device()
+{
+    if (m_info_queue && m_debug_message_callback_cookie)
+    {
+        m_info_queue->UnregisterMessageCallback(m_debug_message_callback_cookie);
+    }
+}
 
 
 
