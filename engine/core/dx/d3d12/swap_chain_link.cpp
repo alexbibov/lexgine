@@ -176,8 +176,10 @@ void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
 {
     uint16_t back_buffers_count = m_linked_swap_chain.backBufferCount();
 
+    // depth is never presented and the frames serialise on the direct queue, so one buffer serves every
+    // back buffer
     auto descriptor =
-        ResourceDescriptor::createTexture2D(width, height, back_buffers_count,
+        ResourceDescriptor::createTexture2D(width, height, 1,
             m_depth_buffer_native_format, 1, ResourceFlags::base_values::depth_stencil);
 
     m_depth_buffer = std::make_unique<CommittedResource>(m_device, ResourceState::base_values::depth_read,
@@ -204,11 +206,9 @@ void SwapChainLink::acquireBuffers(uint32_t width, uint32_t height)
         RTVTextureInfo rtv_texture_info{};
         ColorTarget color_target{ m_color_buffers[i], ResourceState::base_values::common, rtv_texture_info };
 
-        DSVTextureArrayInfo dsv_texture_array_info{};
-        dsv_texture_array_info.mip_level_slice = 0;
-        dsv_texture_array_info.first_array_element = i;
-        dsv_texture_array_info.num_array_elements = 1;
-        DepthTarget depth_target{ *m_depth_buffer, ResourceState::base_values::depth_read, dsv_texture_array_info };
+        DSVTextureInfo dsv_texture_info{};
+        dsv_texture_info.mip_level_slice = 0;
+        DepthTarget depth_target{ *m_depth_buffer, ResourceState::base_values::depth_read, dsv_texture_info };
         depth_target.target_view.overrideFormat(getValidDepthStencilFormatFromTypelessFormat(m_depth_buffer_native_format));
 
         if (build_targets)
