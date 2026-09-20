@@ -1,3 +1,9 @@
+# Build conventions
+* Build directories live outside the source tree at `../cmake-builds/lexgine/<preset-name>`, e.g.
+  `C:/Repositories/cmake-builds/lexgine/vs` for the `vs` preset. Never configure into `build/` inside the repo.
+* Build with `cmake --build ../cmake-builds/lexgine/<preset-name> --config <Debug|Release>`.
+* Demo and test binaries land in `<build-dir>/bin/<config>/`; the demo is `swe.exe`.
+
 # Commit conventions
 * Commit messages are short and to the point.
 * Do _NOT_ add any AI attribution to commit messages or pull request descriptions. No `Co-Authored-By: Claude`,
