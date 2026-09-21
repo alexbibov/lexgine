@@ -41,7 +41,6 @@ D3D12EngineSettings::D3D12EngineSettings()
 
 
 D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
-    : m_engine_api{ EngineApi::Direct3D12 }
 {
     // std::string corrected_logging_output_path = correct_path(settings.logging_output_path);
     // std::string corrected_global_lookup_prefix = correct_path(settings.global_lookup_prefix);
@@ -62,28 +61,30 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
         misc::Log::create(settings.logging_output_path / (settings.log_name.stem().string() + ".html"), settings.log_name.string(), settings.log_level);
     }
 
+    m_globals = std::make_unique<Globals>(EngineApi::Direct3D12);
+
     // Load the global settings
-    m_global_settings.reset(new GlobalSettings{ settings.global_lookup_prefix / settings.settings_lookup_path / settings.global_settings_json_file });
+    auto global_settings = std::make_unique<GlobalSettings>(settings.global_lookup_prefix / settings.settings_lookup_path / settings.global_settings_json_file);
 
     // Correct shader lookup directories
 	{
 		std::vector<std::filesystem::path> new_shader_lookup_directories;
-		for (auto& shader_lookup_path : m_global_settings->getShaderLookupDirectories())
+		for (auto& shader_lookup_path : global_settings->getShaderLookupDirectories())
 		{
 			new_shader_lookup_directories.push_back(settings.global_lookup_prefix / shader_lookup_path);
 		}
-		m_global_settings->clearShaderLookupDirectories();
+		global_settings->clearShaderLookupDirectories();
 		for (auto& new_shader_lookup_path : new_shader_lookup_directories)
 		{
-			m_global_settings->addShaderLookupDirectory(new_shader_lookup_path);
+			global_settings->addShaderLookupDirectory(new_shader_lookup_path);
 		}
-		m_global_settings->addShaderLookupDirectory(settings.global_lookup_prefix);
+		global_settings->addShaderLookupDirectory(settings.global_lookup_prefix);
 	}
 
     // Correct cache path
     {
-        std::filesystem::path corrected_cache_path = settings.global_lookup_prefix / m_global_settings->getCacheDirectory();
-        m_global_settings->setCacheDirectory(corrected_cache_path);
+        std::filesystem::path corrected_cache_path = settings.global_lookup_prefix / global_settings->getCacheDirectory();
+        global_settings->setCacheDirectory(corrected_cache_path);
 
         std::error_code ec;
         std::filesystem::create_directories(corrected_cache_path, ec);
@@ -95,31 +96,25 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
     }
 
     // Set profiling enable state
-    m_global_settings->setIsProfilingEnabled(settings.enable_profiling);
+    global_settings->setIsProfilingEnabled(settings.enable_profiling);
 
-    // Initialize resource factory
-    m_resource_factory.reset(new dx::d3d12::DxResourceFactory{ *m_global_settings, settings.debug_mode, settings.gpu_based_validation_settings,
-        settings.adapter_enumeration_preference });
+    GlobalsAttorney<D3D12Initializer>::setGlobalSettings(*m_globals, std::move(global_settings));
 
-    // Initialize caches
-    {
-        m_gpu_data_blob_cache = std::make_unique<GpuDataBlobCache>(*m_global_settings);
-    }
+    GlobalSettings& global_settings_ref = m_globals->globalSettings();
 
-    buildGlobals();
+    GlobalsAttorney<D3D12Initializer>::setDxResourceFactory(*m_globals,
+        std::make_unique<dx::d3d12::DxResourceFactory>(global_settings_ref, settings.debug_mode,
+            settings.gpu_based_validation_settings, settings.adapter_enumeration_preference));
+
+    GlobalsAttorney<D3D12Initializer>::setGpuDataBlobCache(*m_globals,
+        std::make_unique<GpuDataBlobCache>(global_settings_ref));
+
     setCurrentDevice(0);
 }
 
 D3D12Initializer::~D3D12Initializer()
 {
-    m_pso_blob_cache.reset();
-    m_root_signature_blob_cache.reset();
-    m_hlsl_shader_blob_cache.reset();
-    m_texture_converter.reset();
-    m_gpu_data_blob_cache.reset();
-    m_resource_factory.reset();
     m_globals.reset();
-    m_global_settings.reset();
 
     misc::Log::retrieve()->out("Alive engine objects: " + std::to_string(Entity::aliveEntities()), misc::LogMessageType::information);
 
@@ -135,17 +130,14 @@ core::Globals& D3D12Initializer::globals()
 
 bool D3D12Initializer::setCurrentDevice(uint32_t adapter_id)
 {
-    auto& hw_adapter_enumerator = m_resource_factory->hardwareAdapterEnumerator();
+    auto& hw_adapter_enumerator = m_globals->dxResourceFactory().hardwareAdapterEnumerator();
     if (adapter_id >= hw_adapter_enumerator.getAdapterCount()) return false;
 
-    dx::d3d12::Device& device_ref = hw_adapter_enumerator[adapter_id]->device();
-    m_globals->put(&device_ref);
+    GlobalsAttorney<D3D12Initializer>::setDevice(*m_globals, hw_adapter_enumerator[adapter_id]->device());
 
     // Texture converter is re-created each time the device is switched as it relies on batch texture uploader that is device dependent
-    {
-        m_texture_converter.reset(new conversion::TextureConverter{ *m_globals });
-        m_globals->put(m_texture_converter.get());
-    }
+    GlobalsAttorney<D3D12Initializer>::setTextureConverter(*m_globals,
+        std::make_unique<conversion::TextureConverter>(*m_globals));
 
     rebuildDeviceDependentCaches();
     return true;
@@ -153,19 +145,19 @@ bool D3D12Initializer::setCurrentDevice(uint32_t adapter_id)
 
 dx::d3d12::Device& D3D12Initializer::getCurrentDevice() const
 {
-    return *m_globals->get<dx::d3d12::Device>();
+    return m_globals->device();
 }
 
 void D3D12Initializer::setWARPAdapterAsCurrent() const
 {
-    dx::d3d12::Device& warp_device_ref = m_resource_factory->hardwareAdapterEnumerator().getWARPAdapter()->device();
-    m_globals->put(&warp_device_ref);
+    GlobalsAttorney<D3D12Initializer>::setDevice(*m_globals,
+        m_globals->dxResourceFactory().hardwareAdapterEnumerator().getWARPAdapter()->device());
     const_cast<D3D12Initializer*>(this)->rebuildDeviceDependentCaches();
 }
 
 uint32_t D3D12Initializer::getAdapterCount() const
 {
-    return m_resource_factory->hardwareAdapterEnumerator().getAdapterCount();
+    return m_globals->dxResourceFactory().hardwareAdapterEnumerator().getAdapterCount();
 }
 
 dx::dxgi::SwapChain D3D12Initializer::createSwapChainForCurrentDevice(osinteraction::windows::Window& window, dx::dxgi::SwapChainDescriptor const& desc) const
@@ -187,27 +179,16 @@ std::shared_ptr<dx::d3d12::SwapChainLink> D3D12Initializer::createSwapChainLink(
     return rv;
 }
 
-void D3D12Initializer::buildGlobals()
-{
-    m_globals = std::make_unique<Globals>();
-    m_globals->put(const_cast<EngineApi*>(&m_engine_api));
-    m_globals->put(m_global_settings.get());
-    m_globals->put(m_resource_factory.get());
-    m_globals->put(m_gpu_data_blob_cache.get());
-}
-
 void D3D12Initializer::rebuildDeviceDependentCaches()
 {
-    m_pso_blob_cache.reset();
-    m_root_signature_blob_cache.reset();
-    m_hlsl_shader_blob_cache.reset();
+    GlobalsAttorney<D3D12Initializer>::resetDeviceDependentCaches(*m_globals);
 
-    m_hlsl_shader_blob_cache = std::make_unique<d3d12::caches::HLSLShaderBlobCache>(*m_globals);
-    m_globals->put(m_hlsl_shader_blob_cache.get());
-    m_root_signature_blob_cache = std::make_unique<d3d12::caches::RootSignatureBlobCache>(*m_globals);
-    m_globals->put(m_root_signature_blob_cache.get());
-    m_pso_blob_cache = std::make_unique<d3d12::caches::PSOBlobCache>(*m_globals);
-    m_globals->put(m_pso_blob_cache.get());
+    GlobalsAttorney<D3D12Initializer>::setHlslShaderBlobCache(*m_globals,
+        std::make_unique<d3d12::caches::HLSLShaderBlobCache>(*m_globals));
+    GlobalsAttorney<D3D12Initializer>::setRootSignatureBlobCache(*m_globals,
+        std::make_unique<d3d12::caches::RootSignatureBlobCache>(*m_globals));
+    GlobalsAttorney<D3D12Initializer>::setPsoBlobCache(*m_globals,
+        std::make_unique<d3d12::caches::PSOBlobCache>(*m_globals));
 }
 
 

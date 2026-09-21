@@ -69,7 +69,6 @@ private:
     std::unique_ptr<core::dx::d3d12::RenderingTasks> m_rendering_tasks;
     std::shared_ptr<core::dx::d3d12::SwapChainLink> m_swap_chain_link;
     std::unique_ptr<osinteraction::WindowHandler> m_window_handler;
-    std::unique_ptr<conversion::ImageLoaderPool> m_image_loader_pool;
 };
 
 }

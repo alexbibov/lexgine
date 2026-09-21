@@ -81,7 +81,7 @@ DescriptorTable ResourceViewDescriptorTableBuilder::build() const
     );
 
     auto& target_descriptor_heap =
-        m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(*m_globals.get<Device>(),
+        m_globals.dxResourceFactory().retrieveDescriptorHeap(m_globals.device(),
             DescriptorHeapType::cbv_srv_uav);
 
     DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(total_descriptor_count);
@@ -128,8 +128,8 @@ void SamplerDescriptorTableBuilder::addDescriptor(SamplerDescriptor const& descr
 
 DescriptorTable SamplerDescriptorTableBuilder::build() const
 {
-    auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
-        *m_globals.get<Device>(), DescriptorHeapType::sampler);
+    auto& target_descriptor_heap = m_globals.dxResourceFactory().retrieveDescriptorHeap(
+        m_globals.device(), DescriptorHeapType::sampler);
 
     DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(static_cast<uint32_t>(m_sampler_descriptors.size()));
     size_t offset = rv.offset;
@@ -150,8 +150,8 @@ void RenderTargetViewTableBuilder::addDescriptor(RTVDescriptor const& descriptor
 
 DescriptorTable RenderTargetViewTableBuilder::build() const
 {
-    auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
-        *m_globals.get<Device>(), DescriptorHeapType::rtv);
+    auto& target_descriptor_heap = m_globals.dxResourceFactory().retrieveDescriptorHeap(
+        m_globals.device(), DescriptorHeapType::rtv);
 
     DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(static_cast<uint32_t>(m_rtv_descriptors.size()));
     size_t offset = rv.offset;
@@ -172,8 +172,8 @@ void DepthStencilViewTableBuilder::addDescriptor(DSVDescriptor const& descriptor
 
 DescriptorTable DepthStencilViewTableBuilder::build() const
 {
-    auto& target_descriptor_heap = m_globals.get<DxResourceFactory>()->retrieveDescriptorHeap(
-        *m_globals.get<Device>(), DescriptorHeapType::dsv);
+    auto& target_descriptor_heap = m_globals.dxResourceFactory().retrieveDescriptorHeap(
+        m_globals.device(), DescriptorHeapType::dsv);
 
     DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(static_cast<uint32_t>(m_dsv_descriptors.size()));
     size_t offset = rv.offset;

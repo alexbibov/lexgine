@@ -70,10 +70,10 @@ misc::hashes::Blake3_256 combinedHash(
 
 PSOBlobCache::PSOBlobCache(Globals& globals)
     : m_globals { globals }
-    , m_device { *globals.get<Device>() }
-    , m_gpu_blob_cache { *globals.get<GpuDataBlobCache>() }
-    , m_rs_blob_cache { *globals.get<RootSignatureBlobCache>() }
-    , m_async_pso_creation { globals.get<GlobalSettings>()->isDeferredGpuResourceCompilationOn() }
+    , m_device { globals.device() }
+    , m_gpu_blob_cache { globals.gpuDataBlobCache() }
+    , m_rs_blob_cache { globals.rootSignatureBlobCache() }
+    , m_async_pso_creation { globals.globalSettings().isDeferredGpuResourceCompilationOn() }
 {
 }
 
@@ -165,7 +165,7 @@ void PSOBlobCache::createPipelineStates()
     size_t total = m_unresolved_graphics.size() + m_unresolved_compute.size();
     if (total == 0) return;
 
-    size_t num_threads = m_globals.get<GlobalSettings>()->getNumberOfWorkers();
+    size_t num_threads = m_globals.globalSettings().getNumberOfWorkers();
     if (m_async_pso_creation && num_threads > 0)
     {
         size_t per_bucket_count = total / num_threads;
@@ -252,7 +252,7 @@ std::pair<PipelineState const*, PSOBlobCompilationStatus> PSOBlobCache::getGraph
     }
     if (status == PSOBlobCompilationStatus::Started)
     {
-        GlobalSettings const& global_settings = *m_globals.get<GlobalSettings>();
+        GlobalSettings const& global_settings = m_globals.globalSettings();
         uint32_t timeout = global_settings.getMaxNonBlockingUploadBufferAllocationTimeout();
         if (it->second.future.wait_for(std::chrono::milliseconds{ timeout }) != std::future_status::ready)
         {
@@ -293,7 +293,7 @@ std::pair<PipelineState const*, PSOBlobCompilationStatus> PSOBlobCache::getCompu
     }
     if (status == PSOBlobCompilationStatus::Started)
     {
-        GlobalSettings const& global_settings = *m_globals.get<GlobalSettings>();
+        GlobalSettings const& global_settings = m_globals.globalSettings();
         uint32_t timeout = global_settings.getMaxNonBlockingUploadBufferAllocationTimeout();
         if (it->second.future.wait_for(std::chrono::milliseconds{ timeout }) != std::future_status::ready)
         {

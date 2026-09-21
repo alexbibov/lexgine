@@ -429,7 +429,7 @@ std::unordered_map<ShaderArgumentInfoKey, ShaderArgumentInfo> const& ShaderStage
 
 ShaderStage::ShaderStage(Globals const& globals, d3d12::caches::HLSLShaderHandle shader_handle, ShaderFunction* p_owning_shader_function)
     : m_globals{ globals }
-    , m_shader_blob_cache{ *globals.get<d3d12::caches::HLSLShaderBlobCache>() }
+    , m_shader_blob_cache{ globals.hlslShaderBlobCache() }
     , m_shader_handle{ shader_handle }
     , m_owning_shader_function_ptr{ p_owning_shader_function }
     , m_shader_name { m_shader_blob_cache.getShaderCacheName(shader_handle) }
@@ -462,7 +462,7 @@ uint32_t ShaderStage::getDataTypeSize(TextureResourceDataType data_type)
 
 void ShaderStage::collectShaderBindings()
 {
-    core::GlobalSettings const global_settings = *m_globals.get<core::GlobalSettings>();
+    core::GlobalSettings const& global_settings = m_globals.globalSettings();
     uint32_t const unbounded_descriptor_table_physical_capacity = global_settings.getDescriptorHeapCapacity(core::dx::d3d12::DescriptorHeapType::cbv_srv_uav) / 10;
     for (UINT i = 0; i < m_shader_desc.BoundResources; ++i)
     {
@@ -734,8 +734,8 @@ void ShaderStage::collectShaderArguments(ShaderArgumentKind kind)
             LEXGINE_ASSUME;
         }
 
-        dx::d3d12::DxResourceFactory const* p_dx_resource_factory = m_globals.get<dx::d3d12::DxResourceFactory>();
-        arg_info.format = p_dx_resource_factory->dxgiFormatFetcher().fetch(is_fp, is_signed, false, element_count, element_size);
+        dx::d3d12::DxResourceFactory const& dx_resource_factory = m_globals.dxResourceFactory();
+        arg_info.format = dx_resource_factory.dxgiFormatFetcher().fetch(is_fp, is_signed, false, element_count, element_size);
 
         p_target_map->insert(std::make_pair(arg_key, arg_info));
     }

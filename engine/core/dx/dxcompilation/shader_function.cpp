@@ -39,7 +39,7 @@ char const* shaderInputKindToString(ShaderFunction::ShaderInputKind kind)
 
 ShaderFunction::ShaderFunction(Globals& globals, ShaderFunctionRootUniformBuffers const& flags/* = ShaderFunctionRootUniformBuffers::base_values::None*/)
     : ProvidesGlobals { globals }
-    , m_device { *globals.get<d3d12::Device>() }
+    , m_device { globals.device() }
     , m_flags{ flags }
 {
     // Create buffer for atomic counters
@@ -214,7 +214,7 @@ void ShaderFunction::buildInternal()
         }
     }
 
-    d3d12::caches::RootSignatureBlobCache* rs_blob_cache = m_globals.get<d3d12::caches::RootSignatureBlobCache>();
+    d3d12::caches::RootSignatureBlobCache& rs_blob_cache = m_globals.rootSignatureBlobCache();
     d3d12::RootSignatureFlags rs_flags = d3d12::RootSignatureFlags::base_values::deny_vertex_shader
         | d3d12::RootSignatureFlags::base_values::deny_hull_shader
         | d3d12::RootSignatureFlags::base_values::deny_domain_shader
@@ -247,7 +247,7 @@ void ShaderFunction::buildInternal()
         }
     }
 
-    m_root_signature_handle = rs_blob_cache->createRootSignatureBlobCompilationContract(std::move(rs), rs_flags);
+    m_root_signature_handle = rs_blob_cache.createRootSignatureBlobCompilationContract(std::move(rs), rs_flags);
     m_shader_function_stale = false;
 }
 

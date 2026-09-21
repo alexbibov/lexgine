@@ -13,11 +13,11 @@ using namespace lexgine::core::dx::d3d12;
 ConstantBufferStream::ConstantBufferStream(Globals& globals)
     : m_allocator{ nullptr }
 {
-    GlobalSettings const& global_settings = *globals.get<GlobalSettings>();
+    GlobalSettings const& global_settings = globals.globalSettings();
     size_t constant_data_section_size = global_settings.getStreamedConstantDataPartitionSize();
     
-    DxResourceFactory& dx_resources = *globals.get<DxResourceFactory>();
-    Device& device = *globals.get<Device>();
+    DxResourceFactory& dx_resources = globals.dxResourceFactory();
+    Device& device = globals.device();
 
     auto section_in_upload_heap =
         dx_resources.allocateSectionInUploadHeap(dx_resources.retrieveUploadHeap(device),

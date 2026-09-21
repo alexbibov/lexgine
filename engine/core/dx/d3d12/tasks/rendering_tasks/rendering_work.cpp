@@ -14,10 +14,10 @@ RenderingWork::RenderingWork(Globals& globals, std::string const& debug_name,
     CommandType command_type, bool enable_profiling /* = true */)
     : ProvidesGlobals{ globals }
     , SchedulableTask{ debug_name }
-    , m_device{ *globals.get<Device>() }
+    , m_device{ globals.device() }
     , m_command_type{ command_type }
 {
-    GlobalSettings& global_settings = *globals.get<GlobalSettings>();
+    GlobalSettings& global_settings = globals.globalSettings();
     if (enable_profiling)
     {
         addProfilingService(std::make_unique<CPUTaskProfilingService>(global_settings, debug_name + " CPU execution time"));

@@ -36,12 +36,12 @@ using uint64_t_packer = value_packer<uint64_t>;
 
 core::GlobalSettings const* getGlobalSettings(core::Globals const& globals)
 {
-    return globals.get<core::GlobalSettings>();
+    return &globals.globalSettings();
 }
 
 DXGI_FORMAT getImageFormat(core::Globals const& globals, conversion::ImageLoader::Description const& image_desc)
 {
-    dx::d3d12::DxgiFormatFetcher const& format_fetcher = globals.get<dx::d3d12::DxResourceFactory>()->dxgiFormatFetcher();
+    dx::d3d12::DxgiFormatFetcher const& format_fetcher = globals.dxResourceFactory().dxgiFormatFetcher();
     auto const color_space = image_desc.color_space;
 
     bool const is_fp = color_space == conversion::ImageColorSpace::hdr;
@@ -149,9 +149,9 @@ void updateImageDescForcompressionFormat(conversion::ImageCompressedDataFormat c
 
 dx::d3d12::DedicatedUploadDataStreamAllocator createUploadStreamAllocator(core::Globals& globals)
 {
-    GlobalSettings const& global_settings = *globals.get<GlobalSettings>();
-    dx::d3d12::DxResourceFactory& dx_resource_factory = *globals.get<dx::d3d12::DxResourceFactory>();
-    dx::d3d12::Heap& upload_heap = dx_resource_factory.retrieveUploadHeap(*globals.get<dx::d3d12::Device>());
+    GlobalSettings const& global_settings = globals.globalSettings();
+    dx::d3d12::DxResourceFactory& dx_resource_factory = globals.dxResourceFactory();
+    dx::d3d12::Heap& upload_heap = dx_resource_factory.retrieveUploadHeap(globals.device());
     auto upload_heap_section = dx_resource_factory.allocateSectionInUploadHeap(upload_heap, dx::d3d12::DxResourceFactory::c_texture_section_name, global_settings.getTextureUploadPartitionSize());
     if (!upload_heap_section.isValid()) {
         LEXGINE_THROW_ERROR("Unable to create texture upload heap");
@@ -319,8 +319,8 @@ void TextureConversionTask::operator()(void)
         misc::UUID uuid = misc::UUID::generate();
         core::SharedDataChunk scratch_blob_data{ m_source_image.size() + calculateBlobPreambleSizeForImage(image_desc, TextureConverter::sha256_provider::c_hash_length) };
 
-        auto p_device = m_texture_converter.m_globals.get<core::dx::d3d12::Device>();
-        auto nativeD3d11Device = p_device->nativeD3d11();
+        auto& device = m_texture_converter.m_globals.device();
+        auto nativeD3d11Device = device.nativeD3d11();
 
         size_t element_count = image_desc.element_count;
         conversion::ImageCompressedDataFormat current_compression{ image_desc.compression_format };
@@ -559,7 +559,7 @@ TextureUploadWork::TextureUploadWork(TextureConverter& texture_converter,
         core::dx::d3d12::ResourceFlags::base_values::none, core::MultiSamplingFormat{ 1, 0 }, core::dx::d3d12::ResourceAlignment::_default, core::dx::d3d12::TextureLayout::unknown);
 
     m_texture = core::dx::d3d12::CommittedResource{ 
-        *m_texture_converter.m_globals.get<core::dx::d3d12::Device>(),
+        m_texture_converter.m_globals.device(),
         core::dx::d3d12::ResourceState::base_values::common,
         misc::Optional<core::dx::d3d12::ResourceOptimizedClearValue>(), 
         desc, 

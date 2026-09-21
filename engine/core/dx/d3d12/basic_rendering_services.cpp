@@ -19,9 +19,9 @@ namespace {
 
 PerFrameUploadDataStreamAllocator createDynamicGeometryStreamAllocator(Globals& globals)
 {
-    GlobalSettings& global_settings = *globals.get<GlobalSettings>();
-    DxResourceFactory& dx_resource_factory = *globals.get<DxResourceFactory>();
-    Device& device = *globals.get<Device>();
+    GlobalSettings& global_settings = globals.globalSettings();
+    DxResourceFactory& dx_resource_factory = globals.dxResourceFactory();
+    Device& device = globals.device();
     Heap& upload_heap = dx_resource_factory.retrieveUploadHeap(device);
 
     UploadHeapPartition upload_heap_partition {};
@@ -41,9 +41,9 @@ PerFrameUploadDataStreamAllocator createDynamicGeometryStreamAllocator(Globals& 
 
 BasicRenderingServices::BasicRenderingServices(Globals& globals)
     : ProvidesGlobals{ globals }
-    , m_device{ *globals.get<Device>() }
-    , m_dx_resources{ *globals.get<DxResourceFactory>() }
-    , m_resource_uploader{ globals.get<conversion::TextureConverter>()->getDataUploader() }
+    , m_device{ globals.device() }
+    , m_dx_resources{ globals.dxResourceFactory() }
+    , m_resource_uploader{ globals.textureConverter().getDataUploader() }
     , m_current_rendering_target_ptr{ nullptr }
     , m_rendering_target_color_format{ DXGI_FORMAT_UNKNOWN }
     , m_rendering_target_depth_format{ DXGI_FORMAT_UNKNOWN }

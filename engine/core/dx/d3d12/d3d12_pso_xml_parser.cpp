@@ -1338,9 +1338,9 @@ private:
 
 lexgine::core::dx::d3d12::D3D12PSOXMLParser::D3D12PSOXMLParser(core::Globals& globals, std::string const& xml_source, bool deferred_shader_compilation, uint32_t node_mask) :
     m_globals{ globals },
-    m_root_signature_blob_cache{ *globals.get<caches::RootSignatureBlobCache>() },
-    m_hlsl_shader_blob_cache{ *globals.get<caches::HLSLShaderBlobCache>() },
-    m_pso_blob_cache{ *globals.get<caches::PSOBlobCache>() },
+    m_root_signature_blob_cache{ globals.rootSignatureBlobCache() },
+    m_hlsl_shader_blob_cache{ globals.hlslShaderBlobCache() },
+    m_pso_blob_cache{ globals.psoBlobCache() },
     m_source_xml{ xml_source },
     m_impl{ new impl{*this} }
 {

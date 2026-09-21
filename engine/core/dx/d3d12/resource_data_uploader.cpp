@@ -14,8 +14,8 @@
 namespace lexgine::core::dx::d3d12 {
 
 ResourceDataUploader::ResourceDataUploader(Globals& globals, DedicatedUploadDataStreamAllocator& upload_buffer_allocator, ResourceUploadPolicy upload_policy)
-    : m_device{ *globals.get<Device>() }
-    , m_is_async_copy_enabled{ globals.get<GlobalSettings>()->isAsyncCopyEnabled() }
+    : m_device{ globals.device() }
+    , m_is_async_copy_enabled{ globals.globalSettings().isAsyncCopyEnabled() }
     , m_upload_buffer_allocator{ upload_buffer_allocator }
     , m_upload_command_list{ m_device.createCommandList(m_is_async_copy_enabled ? CommandType::copy : CommandType::direct, 0x1) }
     , m_upload_policy{ upload_policy }

@@ -46,8 +46,8 @@ DXGI_FORMAT getValidDepthStencilFormatFromTypelessFormat(DXGI_FORMAT format)
 SwapChainLink::SwapChainLink(Globals& globals, dxgi::SwapChain& swap_chain_to_link,
     SwapChainDepthBufferFormat depth_buffer_format)
     : m_globals{ globals }
-    , m_global_settings{ *globals.get<GlobalSettings>() }
-    , m_device{ *m_globals.get<Device>() }
+    , m_global_settings{ globals.globalSettings() }
+    , m_device{ m_globals.device() }
     , m_linked_swap_chain{ swap_chain_to_link }
     , m_linked_rendering_tasks_ptr{ nullptr }
     , m_depth_buffer_native_format{ static_cast<DXGI_FORMAT>(depth_buffer_format) }

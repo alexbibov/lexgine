@@ -63,10 +63,10 @@ UploadDataBlock::UploadDataBlock(UploadDataAllocator const& allocator,
 
 UploadDataAllocator::UploadDataAllocator(Globals& globals,
     uint64_t offset_from_heap_start, size_t upload_buffer_size)
-    : m_upload_heap{ globals.get<DxResourceFactory>()->retrieveUploadHeap(*globals.get<Device>()) }
+    : m_upload_heap{ globals.dxResourceFactory().retrieveUploadHeap(globals.device()) }
     , m_upload_buffer{ m_upload_heap, offset_from_heap_start, ResourceState::base_values::generic_read,
         misc::Optional<ResourceOptimizedClearValue>{}, ResourceDescriptor::createBuffer(upload_buffer_size) }
-    , m_max_non_blocking_allocation_timeout{ globals.get<GlobalSettings>()->getMaxNonBlockingUploadBufferAllocationTimeout() }
+    , m_max_non_blocking_allocation_timeout{ globals.globalSettings().getMaxNonBlockingUploadBufferAllocationTimeout() }
     , m_buffer_size{ upload_buffer_size }
     , m_unpartitioned_chunk_size{ upload_buffer_size }
 {
@@ -299,7 +299,7 @@ UploadDataAllocator::memory_block_type& UploadDataAllocator::allocateNewMemoryBl
 
 DedicatedUploadDataStreamAllocator::DedicatedUploadDataStreamAllocator(Globals& globals, uint64_t offset_from_heap_start, size_t upload_buffer_size)
     : UploadDataAllocator{ globals, offset_from_heap_start, upload_buffer_size }
-    , m_progress_tracking_signal{ *globals.get<Device>(), FenceSharing::none }
+    , m_progress_tracking_signal{ globals.device(), FenceSharing::none }
 {
 
 }

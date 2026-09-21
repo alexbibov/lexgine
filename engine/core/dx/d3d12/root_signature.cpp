@@ -478,7 +478,7 @@ CompiledRootSignature::CompiledRootSignature(
     core::Globals& globals,
     D3DDataBlob const& serialized_root_signature,
     uint32_t node_mask)
-    : m_device{ *globals.get<Device>() }
+    : m_device{ globals.device() }
 {
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,

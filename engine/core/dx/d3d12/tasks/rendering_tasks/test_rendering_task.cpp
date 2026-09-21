@@ -27,7 +27,7 @@ using namespace lexgine::core::dx::d3d12::caches;
 TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& rendering_services)
     : RenderingWork{ globals, "Test rendering task", CommandType::direct }
     , m_globals{ globals }
-    , m_device{ *globals.get<Device>() }
+    , m_device{ globals.device() }
     , m_basic_rendering_services{ rendering_services }
     , m_vb{ m_device }
     , m_ib{ m_device, IndexDataType::_16_bit, 32 * 1024 }
@@ -182,7 +182,7 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
             "}\n"
             "\n";
 
-        HLSLShaderBlobCache& hlsl_shader_blob_cache = *globals.get<HLSLShaderBlobCache>();
+        HLSLShaderBlobCache& hlsl_shader_blob_cache = globals.hlslShaderBlobCache();
 
         HLSLSourceTranslationUnit hlsl_translation_unit{ globals, "test_rendering_shader", hlsl_source };
 
@@ -220,8 +220,8 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
     if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::color_format_changed)
         || update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
-        PSOBlobCache& pso_blob_cache = *m_globals.get<PSOBlobCache>();
-        RootSignatureBlobCache& rs_blob_cache = *m_globals.get<RootSignatureBlobCache>();
+        PSOBlobCache& pso_blob_cache = m_globals.psoBlobCache();
+        RootSignatureBlobCache& rs_blob_cache = m_globals.rootSignatureBlobCache();
 
         GraphicsPSODescriptor pso_descriptor{};
         pso_descriptor.vertex_attributes = m_va_list;

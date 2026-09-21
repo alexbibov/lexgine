@@ -13,6 +13,7 @@
 #include <engine/core/global_constants.h>
 #include <engine/core/streamed_cache.h>
 #include <engine/core/entity.h>
+#include <engine/core/misc/hashed_string.h>
 #include <engine/core/misc/uuid.h>
 #include <engine/core/dx/d3d12/resource.h>
 #include <engine/core/dx/d3d12/resource_data_uploader.h>

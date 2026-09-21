@@ -66,11 +66,10 @@ public:
         : HLSLTranslationUnit { globals }
     {
         m_source_name = source_name;
-        auto const* global_settings = globals.get<lexgine::core::GlobalSettings>();
         m_hlsl_source_code = ShaderSourceCodePreprocessor {
             hlsl_source_code,
             ShaderSourceCodePreprocessor::SourceType::string,
-            global_settings->getShaderLookupDirectories()
+            globals.globalSettings().getShaderLookupDirectories()
         }.getPreprocessedSource();
         m_timestamp = misc::DateTime::buildTime();
     }

@@ -477,7 +477,7 @@ TEST(EngineTests_gpu, TestD3D12PSOXMLParser)
             RootSignature rs{};
             rs.addParameter(0, table0, ShaderVisibility::all);
 
-            auto& rs_compilation_tasks_cache = *globals.get<caches::RootSignatureBlobCache>();
+            auto& rs_compilation_tasks_cache = globals.rootSignatureBlobCache();
 
             auto flags = RootSignatureFlags::base_values::allow_input_assembler | RootSignatureFlags::base_values::allow_stream_output;
             rs_compilation_tasks_cache.createRootSignatureBlobCompilationContract(std::move(rs), flags);
@@ -885,8 +885,8 @@ TEST(EngineTests_gpu, TestTextureCompression)
     initializer.setCurrentDevice(0);
 
 
-    conversion::TextureConverter* p_texture_converter = initializer.globals().get<conversion::TextureConverter>();
-    scenegraph::Image test_image{ std::filesystem::path{LEXGINE_GLOBAL_LOOKUP_PREFIX} / "engine/tests/data/Lenna_(test_image).png", *initializer.globals().get<ImageLoaderPool>()};
+    conversion::TextureConverter* p_texture_converter = &initializer.globals().textureConverter();
+    scenegraph::Image test_image{ std::filesystem::path{LEXGINE_GLOBAL_LOOKUP_PREFIX} / "engine/tests/data/Lenna_(test_image).png", initializer.globals().imageLoaderPool()};
     p_texture_converter->addTextureConversionTask(test_image, false);
     p_texture_converter->convertTextures();
     p_texture_converter->uploadTextures();

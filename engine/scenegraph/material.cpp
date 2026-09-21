@@ -67,9 +67,9 @@ MaterialStaticState::MaterialStaticState(
     }
     m_pso_descriptor.dsv_format = context.depth_stencil_format;
 
-    auto* p_global_settings = m_shader_function->globals().get<core::GlobalSettings>();
+    auto* p_global_settings = &m_shader_function->globals().globalSettings();
     core::MSAAMode msaa_mode = p_global_settings->msaaMode();
-    auto* p_device = m_shader_function->globals().get<core::dx::d3d12::Device>();
+    auto* p_device = &m_shader_function->globals().device();
     uint32_t num_quality_levels = std::numeric_limits<uint32_t>::max();
     for (int i = 0; i < static_cast<int>(m_pso_descriptor.num_render_targets); ++i)
     {
@@ -106,7 +106,7 @@ void MaterialStaticState::buildPipeline()
 
     {
         // Setup shader function resources
-        core::dx::d3d12::Device& device = *m_basic_rendering_services.globals().get<core::dx::d3d12::Device>();
+        core::dx::d3d12::Device& device = m_basic_rendering_services.globals().device();
         core::dx::d3d12::DescriptorHeap& resource_descriptor_heap = m_basic_rendering_services.dxResources().retrieveDescriptorHeap(device, core::dx::d3d12::DescriptorHeapType::cbv_srv_uav);
         core::dx::d3d12::UnorderedSRVTableAllocationManager& allocator = m_basic_rendering_services.dxResources().retrieveBindlessSRVAllocationManager(resource_descriptor_heap);
         m_shader_function->assignResourceDescriptors(core::dx::dxcompilation::ShaderFunction::ShaderInputKind::srv, 0, allocator);
@@ -124,7 +124,7 @@ void MaterialStaticState::buildPipeline()
         m_pso_descriptor.geometry_shader = p_stage->getShaderBytecode();
     m_pso_descriptor.invalidateHash();
 
-    core::dx::d3d12::caches::PSOBlobCache& pso_blob_cache = *m_basic_rendering_services.globals().get<core::dx::d3d12::caches::PSOBlobCache>();
+    core::dx::d3d12::caches::PSOBlobCache& pso_blob_cache = m_basic_rendering_services.globals().psoBlobCache();
     m_pso_handle = pso_blob_cache.createGraphicsPSOBlobCompilationContract(m_pso_descriptor, m_rs_handle);
 }
 

@@ -49,7 +49,7 @@ void ProfilingService::endProfilingEvent()
 
 void ProfilingService::initializeProfilingServices(Globals& globals)
 {
-    globals.get<dx::d3d12::Device>()->queryCache()->initQueryCache();
+    globals.device().queryCache()->initQueryCache();
 }
 
 ProfilingServiceType ProfilingService::serviceType() const

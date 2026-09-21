@@ -19,16 +19,15 @@ namespace {
 
 bool isWARPAdapterCurrentlySelected(Globals const& globals)
 {
-    DxResourceFactory const& dx_resource_factory_ref = *globals.get<DxResourceFactory>();
-    Device const& current_device_ref = *globals.get<Device>();
+    DxResourceFactory const& dx_resource_factory_ref = globals.dxResourceFactory();
+    Device const& current_device_ref = globals.device();
     Device const& warp_device_ref = dx_resource_factory_ref.hardwareAdapterEnumerator().getWARPAdapter()->device();
 
     return &current_device_ref == &warp_device_ref;
 }
 
-bool isDebugModeEnabled(Globals const& globals)
+bool isDebugModeEnabled()
 {
-    DxResourceFactory const& dx_resource_factory_ref = *globals.get<DxResourceFactory>();
     return DebugInterface::retrieve() != nullptr;
 }
 
@@ -303,7 +302,7 @@ D3DDataBlob PipelineState::getCache() const
 
 PipelineState::PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const& root_signature,
     GraphicsPSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso):
-    m_device{ *globals.get<Device>() }
+    m_device{ globals.device() }
 {
     D3D12_GRAPHICS_PIPELINE_STATE_DESC desc;
     memset(&desc, 0, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -471,7 +470,7 @@ PipelineState::PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const
     else
         desc.CachedPSO = D3D12_CACHED_PIPELINE_STATE{ NULL, 0U };
 
-    desc.Flags = isWARPAdapterCurrentlySelected(globals) && isDebugModeEnabled(globals) ? 
+    desc.Flags = isWARPAdapterCurrentlySelected(globals) && isDebugModeEnabled() ? 
         D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG
         : D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
 
@@ -486,7 +485,7 @@ PipelineState::PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const
 
 PipelineState::PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const& root_signature,
     ComputePSODescriptor const & pso_descriptor, D3DDataBlob const& cached_pso):
-    m_device{ *globals.get<Device>() }
+    m_device{ globals.device() }
 {
     D3D12_COMPUTE_PIPELINE_STATE_DESC desc;
     desc.pRootSignature = root_signature.Get();
@@ -498,7 +497,7 @@ PipelineState::PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const
     else
         desc.CachedPSO = D3D12_CACHED_PIPELINE_STATE{ NULL, 0U };
 
-    desc.Flags = isWARPAdapterCurrentlySelected(globals) && isDebugModeEnabled(globals) ?
+    desc.Flags = isWARPAdapterCurrentlySelected(globals) && isDebugModeEnabled() ?
         D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG
         : D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
 

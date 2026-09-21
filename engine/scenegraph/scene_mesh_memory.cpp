@@ -14,9 +14,9 @@ namespace
 
 core::dx::d3d12::DedicatedUploadDataStreamAllocator createUploadStreamAllocator(core::Globals& globals, std::string const& cb_stream_section_name)
 {
-    core::GlobalSettings const& global_settings = *globals.get<core::GlobalSettings>();
-    core::dx::d3d12::DxResourceFactory& dx_resource_factory = *globals.get<core::dx::d3d12::DxResourceFactory>();
-    core::dx::d3d12::Heap& upload_heap = dx_resource_factory.retrieveUploadHeap(*globals.get<core::dx::d3d12::Device>());
+    core::GlobalSettings const& global_settings = globals.globalSettings();
+    core::dx::d3d12::DxResourceFactory& dx_resource_factory = globals.dxResourceFactory();
+    core::dx::d3d12::Heap& upload_heap = dx_resource_factory.retrieveUploadHeap(globals.device());
     lexgine::core::misc::Optional<lexgine::core::dx::d3d12::UploadHeapPartition> upload_heap_section = 
         dx_resource_factory.allocateSectionInUploadHeap(
             upload_heap,
@@ -30,7 +30,7 @@ core::dx::d3d12::DedicatedUploadDataStreamAllocator createUploadStreamAllocator(
 
 SceneMeshMemory::SceneMeshMemory(core::Globals& globals, uint64_t size)
     : m_gpu_scene_memory_buffer{
-        *globals.get<core::dx::d3d12::Device>(),
+        globals.device(),
         core::dx::d3d12::ResourceState::base_values::common,
         core::misc::Optional<core::dx::d3d12::ResourceOptimizedClearValue> {},
         core::dx::d3d12::ResourceDescriptor::createBuffer(size, core::dx::d3d12::ResourceFlags::base_values::none),

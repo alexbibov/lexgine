@@ -43,8 +43,6 @@ EngineSettings::EngineSettings()
 Initializer::Initializer(EngineSettings const& settings)
     : m_engine_api{ settings.engine_api }
 {
-    core::Globals* p_globals = nullptr;
-
     switch (settings.engine_api)
     {
     case core::EngineApi::Direct3D12:
@@ -77,8 +75,6 @@ Initializer::Initializer(EngineSettings const& settings)
         d3d12_engine_settings.logging_output_path = settings.logging_output_path;
         d3d12_engine_settings.log_name = settings.log_name;
         m_d3d12_initializer = std::make_unique<core::dx::D3D12Initializer>(d3d12_engine_settings);
-        auto& globals = m_d3d12_initializer->globals();
-        p_globals = &globals;
         break;
     }
 
@@ -91,8 +87,8 @@ Initializer::Initializer(EngineSettings const& settings)
         LEXGINE_ASSUME;
     }
 
-    m_image_loader_pool = std::make_unique<conversion::ImageLoaderPool>();
-    p_globals->put(m_image_loader_pool.get());
+    core::GlobalsAttorney<Initializer>::setImageLoaderPool(m_d3d12_initializer->globals(),
+        std::make_unique<conversion::ImageLoaderPool>());
 }
 
 

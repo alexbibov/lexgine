@@ -10,8 +10,8 @@ namespace lexgine::core::dx::d3d12::rendering
 
 Gbuffer::Gbuffer(Globals& globals)
     : m_globals{ globals }
-    , m_globals_settings{ *globals.get<GlobalSettings>() }
-    , m_device{ *m_globals.get<core::dx::d3d12::Device>() }
+    , m_globals_settings{ globals.globalSettings() }
+    , m_device{ m_globals.device() }
 {
 
 }

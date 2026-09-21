@@ -90,7 +90,7 @@ HLSLFileTranslationUnit::HLSLFileTranslationUnit(Globals& globals, std::string c
 {
     m_source_name = source_name;
 
-    auto& global_settings = *globals.get<GlobalSettings>();
+    auto& global_settings = globals.globalSettings();
     auto const& shader_lookup_directories = global_settings.getShaderLookupDirectories();
 
     bool shader_found { false };
@@ -240,9 +240,9 @@ std::string HLSLShaderBlobCache::shaderModelAndTypeToTargetName(dxcompilation::S
 
 HLSLShaderBlobCache::HLSLShaderBlobCache(Globals& globals)
     : m_globals { globals }
-    , m_gpu_blob_cache { *globals.get<GpuDataBlobCache>() }
-    , m_dxc_proxy{ globals.get<DxResourceFactory>()->shaderModel6xDxCompilerProxy() }
-    , m_async_shader_compilation { globals.get<GlobalSettings>()->isDeferredShaderCompilationOn() }
+    , m_gpu_blob_cache { globals.gpuDataBlobCache() }
+    , m_dxc_proxy{ globals.dxResourceFactory().shaderModel6xDxCompilerProxy() }
+    , m_async_shader_compilation { globals.globalSettings().isDeferredShaderCompilationOn() }
 {
 }
 
@@ -453,7 +453,7 @@ void HLSLShaderBlobCache::createShaderBlobs()
     }
     if (m_unresolved_contracts.empty()) return;
 
-    size_t num_threads = m_globals.get<GlobalSettings>()->getNumberOfWorkers();
+    size_t num_threads = m_globals.globalSettings().getNumberOfWorkers();
     if (m_async_shader_compilation && num_threads > 0)
     {
         size_t per_bucket_count = m_unresolved_contracts.size() / num_threads;
@@ -536,7 +536,7 @@ std::pair<D3DDataBlob, HLSLShaderBlobCompilationStatus> HLSLShaderBlobCache::get
     }
     if (status == HLSLShaderBlobCompilationStatus::Started)
     {
-        GlobalSettings const& global_settings = *m_globals.get<GlobalSettings>();
+        GlobalSettings const& global_settings = m_globals.globalSettings();
         uint32_t timeout = global_settings.getMaxNonBlockingUploadBufferAllocationTimeout();
         if (it->second.future.wait_for(std::chrono::milliseconds { timeout }) != std::future_status::ready)
         {
@@ -678,7 +678,7 @@ D3DDataBlob HLSLShaderBlobCache::compileShaderBlob(HLSLShaderHandle handle, uint
         }
         else
         {
-            dxcompilation::DXCompilerProxy& dxc_proxy = m_globals.get<DxResourceFactory>()->shaderModel6xDxCompilerProxy();
+            dxcompilation::DXCompilerProxy& dxc_proxy = m_globals.dxResourceFactory().shaderModel6xDxCompilerProxy();
             if (!dxc_proxy.compile(worker_id, contract.hlsl_source, contract.source_name, contract.shader_entry_point, target,
                 contract.macro_definitions, contract.optimization_level, contract.strict_mode,
                 contract.force_all_resources_be_bound, contract.force_ieee_standard, contract.treat_warnings_as_errors,
