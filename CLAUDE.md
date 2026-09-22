@@ -3,6 +3,8 @@
   `C:/Repositories/cmake-builds/lexgine/vs` for the `vs` preset. Never configure into `build/` inside the repo.
 * Build with `cmake --build ../cmake-builds/lexgine/<preset-name> --config <Debug|Release>`.
 * Demo and test binaries land in `<build-dir>/bin/<config>/`; the demo is `swe.exe`.
+* Integrate branches by rebasing, _NEVER_ by merging. No merge commits: use `git rebase` to replay work onto
+  the target branch, and `git pull --rebase` to take upstream changes. History stays linear.
 
 # Commit conventions
 * Commit messages are short and to the point.
