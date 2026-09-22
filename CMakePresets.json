@@ -9,7 +9,6 @@
         {
             "name": "windows-base",
             "hidden": true,
-            "binaryDir": "${sourceDir}/build/${presetName}",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",

@@ -1,4 +1,17 @@
 cmake_minimum_required(VERSION 3.23)
+
+file(REAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}" _source_root)
+file(REAL_PATH "${CMAKE_BINARY_DIR}" _binary_root)
+cmake_path(IS_PREFIX _source_root "${_binary_root}" NORMALIZE _binary_root_is_in_source)
+
+if(_binary_root_is_in_source)
+message(FATAL_ERROR
+"lexgine must be configured out of source, but the binary directory ${_binary_root} lies "
+"inside the source tree ${_source_root}. The presets deliberately leave binaryDir unset, so "
+"pass the build tree explicitly, e.g. cmake --preset <preset-name> -B "
+"${_source_root}/../cmake-builds/lexgine/<preset-name>.")
+endif()
+
 project(lexgine)
 
 set(ENV{PATH} "${CMAKE_SOURCE_DIR};$ENV{PATH}")
