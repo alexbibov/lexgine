@@ -19,6 +19,7 @@ class D3D12PSOXMLParser;
 class D3DDataBlob;
 class DebugInterface;
 class DescriptorHeap;
+class DescriptorAllocator;
 class DescriptorAllocationManager;
 class UnorderedSRVTableAllocationManager;
 class Device;
