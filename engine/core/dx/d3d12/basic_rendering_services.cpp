@@ -50,8 +50,8 @@ BasicRenderingServices::BasicRenderingServices(Globals& globals)
     , m_constant_data_stream{ globals }
     , m_dynamic_geometry_allocator{ createDynamicGeometryStreamAllocator(globals) }
     , m_descriptor_heaps{
-        &m_dx_resources.retrieveDescriptorHeap(m_device, DescriptorHeapType::cbv_srv_uav),
-        &m_dx_resources.retrieveDescriptorHeap(m_device, DescriptorHeapType::sampler) }
+        &m_device.descriptorHeap(DescriptorHeapType::cbv_srv_uav),
+        &m_device.descriptorHeap(DescriptorHeapType::sampler) }
 {
 }
 

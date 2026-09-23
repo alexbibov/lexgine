@@ -404,6 +404,9 @@ public:
 
     std::unique_ptr<DescriptorHeap> createDescriptorHeap(DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask = 0);    //! creates descriptor heap
 
+    DescriptorHeap& descriptorHeap(DescriptorHeapType type);    //! retrieves descriptor heap of the given type owned by this device
+    DescriptorAllocator& descriptorAllocator();    //! retrieves allocator of persistent and transient descriptors residing in the cbv_srv_uav descriptor heap owned by this device
+
     /*! creates heap of one of the abstract types. Here parameter node_mask identifies the node where the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
      and node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
      */
@@ -465,6 +468,9 @@ private:
     CommandQueue m_default_command_queue;
     CommandQueue m_async_command_queue;
     CommandQueue m_copy_command_queue;
+
+    std::array<std::unique_ptr<DescriptorHeap>, static_cast<size_t>(DescriptorHeapType::count)> m_descriptor_heaps;    //!< descriptor heaps owned by this device indexed by DescriptorHeapType
+    std::unique_ptr<DescriptorAllocator> m_descriptor_allocator;    //!< allocator of descriptors residing in the cbv_srv_uav descriptor heap
 
     mutable std::unique_ptr<FeatureD3D12Options> m_features;    //!< device features
 };

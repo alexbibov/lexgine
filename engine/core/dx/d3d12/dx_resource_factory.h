@@ -42,7 +42,6 @@ public:
     dxgi::HwAdapterEnumerator const& hardwareAdapterEnumerator() const;
     dxcompilation::DXCompilerProxy& shaderModel6xDxCompilerProxy();
 
-    DescriptorHeap& retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type);
     Heap& retrieveUploadHeap(Device const& device);
     UnorderedSRVTableAllocationManager& retrieveBindlessSRVAllocationManager(DescriptorHeap const& descriptor_heap);
 
@@ -66,15 +65,6 @@ public:
     size_t getUploadHeapFreeSpace(Device const& owning_device) const;    //!< Returns size of unallocated space in the upload heap owned by given device
 
 private:
-    struct PoolOfDescriptorHeaps
-    {
-        size_t cbv_srv_uav_persistent_region_size = 0;
-        std::unique_ptr<DescriptorHeap> cbv_srv_uav;
-        std::unique_ptr<DescriptorHeap> sampler;
-        std::unique_ptr<DescriptorHeap> rtv;
-        std::unique_ptr<DescriptorHeap> dsv;
-    };
-
     struct UploadHeapPartitionTable
     {
         size_t partitioned_space_size = 0ULL;
@@ -86,7 +76,6 @@ private:
     dxgi::HwAdapterEnumerator m_hw_adapter_enumerator;
     dxcompilation::DXCompilerProxy m_dxc_proxy;
 
-    std::unordered_map<Device const*, PoolOfDescriptorHeaps> m_descriptor_heaps;
     std::unordered_map<Device const*, Heap> m_upload_heaps;
     std::unordered_map<Heap const*, UploadHeapPartitionTable> m_upload_heap_partitions;
     std::unordered_map<DescriptorHeap const*, UnorderedSRVTableAllocationManager> m_unordered_descriptor_allocators;

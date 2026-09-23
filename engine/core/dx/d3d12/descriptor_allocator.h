@@ -18,10 +18,10 @@ enum class DescriptorLifetime
     transient 
 };
 
-class DescriptorAllocator : public ProvidesGlobals, public NamedEntity<DescriptorAllocator>
+class DescriptorAllocator : public NamedEntity<DescriptorAllocator>
 {
 public:
-    DescriptorAllocator(Globals& globals);
+    DescriptorAllocator(DescriptorHeap& cbv_srv_uav_descriptor_heap, FrameProgressTracker const& frame_progress_tracker, GlobalSettings const& global_settings);
     uint64_t createConstantBufferViewDescriptors(std::vector<CBVDescriptor> const& cbv_descriptors, DescriptorLifetime lifetime);
     uint64_t createShaderResourceViewDescriptors(std::vector<SRVDescriptor> const& srv_descriptors, DescriptorLifetime lifetime);
     uint64_t createUnorderedAccessViewDescriptors(std::vector<UAVDescriptor> const& uav_descriptors, DescriptorLifetime lifetime);

@@ -7,6 +7,7 @@
 #include "engine/core/misc/log.h"
 #include "engine/core/dx/d3d12/debug_interface.h"
 #include "command_list.h"
+#include "descriptor_allocator.h"
 #include "query_cache.h"
 #include "resource.h"
 
@@ -61,6 +62,20 @@ void __stdcall debugLayerMessageCallback(D3D12_MESSAGE_CATEGORY, D3D12_MESSAGE_S
         translateDebugMessageSeverity(severity));
 }
 
+std::string descriptorHeapName(DescriptorHeapType type)
+{
+    switch (type)
+    {
+    case DescriptorHeapType::cbv_srv_uav: return "descriptor_heap(cbv_srv_uav)";
+    case DescriptorHeapType::sampler: return "descriptor_heap(sampler)";
+    case DescriptorHeapType::rtv: return "descriptor_heap(rtv)";
+    case DescriptorHeapType::dsv: return "descriptor_heap(dsv)";
+    default: LEXGINE_ASSUME;
+    }
+
+    return {};
+}
+
 }  // namespace
 
 
@@ -81,6 +96,14 @@ Device::Device(
     m_default_command_queue.setStringName("default_command_queue");
     m_async_command_queue.setStringName("async_command_queue");
     m_copy_command_queue.setStringName("copy_command_queue");
+
+    for (size_t i = 0; i < m_descriptor_heaps.size(); ++i)
+    {
+        DescriptorHeapType type = static_cast<DescriptorHeapType>(i);
+        m_descriptor_heaps[i] = createDescriptorHeap(type, global_settings.getDescriptorHeapCapacity(type), 0x1);
+        m_descriptor_heaps[i]->setStringName(descriptorHeapName(type));
+    }
+    m_descriptor_allocator = std::make_unique<DescriptorAllocator>(descriptorHeap(DescriptorHeapType::cbv_srv_uav), m_frame_progress_tracker, global_settings);
 
     DebugInterface const* p_debug_interface = DebugInterface::retrieve();
     if (p_debug_interface)
@@ -526,6 +549,11 @@ void Device::setStringName(std::string const& entity_string_name)
     m_default_command_queue.setStringName(entity_string_name + "__direct_cmd_queue");
     m_async_command_queue.setStringName(entity_string_name + "__compute_cmd_queue");
     m_copy_command_queue.setStringName(entity_string_name + "__copy_cmd_queue");
+
+    for (size_t i = 0; i < m_descriptor_heaps.size(); ++i)
+    {
+        m_descriptor_heaps[i]->setStringName(entity_string_name + "__" + descriptorHeapName(static_cast<DescriptorHeapType>(i)));
+    }
 }
 
 Fence Device::createFence(FenceSharing sharing/* = FenceSharing::none*/)
@@ -536,6 +564,16 @@ Fence Device::createFence(FenceSharing sharing/* = FenceSharing::none*/)
 std::unique_ptr<DescriptorHeap> Device::createDescriptorHeap(DescriptorHeapType type, uint32_t num_descriptors, uint32_t node_mask)
 {
     return std::unique_ptr<DescriptorHeap>{new DescriptorHeap{ *this, type, num_descriptors, node_mask }};
+}
+
+DescriptorHeap& Device::descriptorHeap(DescriptorHeapType type)
+{
+    return *m_descriptor_heaps[static_cast<size_t>(type)];
+}
+
+DescriptorAllocator& Device::descriptorAllocator()
+{
+    return *m_descriptor_allocator;
 }
 
 Heap Device::createHeap(AbstractHeapType type, uint64_t size, HeapCreationFlags flags, bool is_msaa_supported, uint32_t node_mask, uint32_t node_exposure_mask)

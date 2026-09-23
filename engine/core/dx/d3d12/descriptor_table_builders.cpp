@@ -80,9 +80,7 @@ DescriptorTable ResourceViewDescriptorTableBuilder::build() const
         }
     );
 
-    auto& target_descriptor_heap =
-        m_globals.dxResourceFactory().retrieveDescriptorHeap(m_globals.device(),
-            DescriptorHeapType::cbv_srv_uav);
+    auto& target_descriptor_heap = m_globals.device().descriptorHeap(DescriptorHeapType::cbv_srv_uav);
 
     DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(total_descriptor_count);
     size_t offset = rv.offset;
@@ -128,8 +126,7 @@ void SamplerDescriptorTableBuilder::addDescriptor(SamplerDescriptor const& descr
 
 DescriptorTable SamplerDescriptorTableBuilder::build() const
 {
-    auto& target_descriptor_heap = m_globals.dxResourceFactory().retrieveDescriptorHeap(
-        m_globals.device(), DescriptorHeapType::sampler);
+    auto& target_descriptor_heap = m_globals.device().descriptorHeap(DescriptorHeapType::sampler);
 
     DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(static_cast<uint32_t>(m_sampler_descriptors.size()));
     size_t offset = rv.offset;
@@ -150,8 +147,7 @@ void RenderTargetViewTableBuilder::addDescriptor(RTVDescriptor const& descriptor
 
 DescriptorTable RenderTargetViewTableBuilder::build() const
 {
-    auto& target_descriptor_heap = m_globals.dxResourceFactory().retrieveDescriptorHeap(
-        m_globals.device(), DescriptorHeapType::rtv);
+    auto& target_descriptor_heap = m_globals.device().descriptorHeap(DescriptorHeapType::rtv);
 
     DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(static_cast<uint32_t>(m_rtv_descriptors.size()));
     size_t offset = rv.offset;
@@ -172,8 +168,7 @@ void DepthStencilViewTableBuilder::addDescriptor(DSVDescriptor const& descriptor
 
 DescriptorTable DepthStencilViewTableBuilder::build() const
 {
-    auto& target_descriptor_heap = m_globals.dxResourceFactory().retrieveDescriptorHeap(
-        m_globals.device(), DescriptorHeapType::dsv);
+    auto& target_descriptor_heap = m_globals.device().descriptorHeap(DescriptorHeapType::dsv);
 
     DescriptorTable rv = target_descriptor_heap.allocateDescriptorTable(static_cast<uint32_t>(m_dsv_descriptors.size()));
     size_t offset = rv.offset;

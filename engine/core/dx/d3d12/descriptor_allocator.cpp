@@ -1,20 +1,22 @@
 #include "engine/core/global_settings.h"
-#include "engine/core/dx/d3d12/dx_resource_factory.h"
-#include "engine/core/dx/d3d12/device.h"
+#include "engine/core/misc/misc.h"
+#include "engine/core/dx/d3d12/frame_progress_tracker.h"
+#include "engine/core/dx/d3d12/cbv_descriptor.h"
+#include "engine/core/dx/d3d12/srv_descriptor.h"
+#include "engine/core/dx/d3d12/uav_descriptor.h"
 
 #include "descriptor_allocator.h"
 
 
 namespace lexgine::core::dx::d3d12 {
 
-DescriptorAllocator::DescriptorAllocator(Globals& globals)
-    : ProvidesGlobals{ globals }
-    , m_descriptor_heap{ globals.dxResourceFactory().retrieveDescriptorHeap(globals.device(), DescriptorHeapType::cbv_srv_uav) }
-    , m_frame_progress_tracker{ globals.device().frameProgressTracker() }
-    , m_frames_in_flight{ globals.globalSettings().getMaxFramesInFlight() }
-    , m_persistent_page_size{ globals.globalSettings().getCbvSrvUavDescriptorHeapPersistentPartitionCapacity() }
-    , m_transient_page_size{ globals.globalSettings().getCbvSrvUavDescriptorHeapDynamicPartitionCapacity() }
-    , m_active_frame_index{ m_frame_progress_tracker.currentFrameIndex() }
+DescriptorAllocator::DescriptorAllocator(DescriptorHeap& cbv_srv_uav_descriptor_heap, FrameProgressTracker const& frame_progress_tracker, GlobalSettings const& global_settings)
+    : m_descriptor_heap{ cbv_srv_uav_descriptor_heap }
+    , m_frame_progress_tracker{ frame_progress_tracker }
+    , m_frames_in_flight{ global_settings.getMaxFramesInFlight() }
+    , m_persistent_page_size{ global_settings.getCbvSrvUavDescriptorHeapPersistentPartitionCapacity() }
+    , m_transient_page_size{ global_settings.getCbvSrvUavDescriptorHeapDynamicPartitionCapacity() }
+    , m_active_frame_index{ static_cast<uint32_t>(m_frame_progress_tracker.currentFrameIndex() % m_frames_in_flight) }
     , m_static_allocation_offset{ 0 }
     , m_per_frame_transient_allocation_offset(m_frames_in_flight)
 {
@@ -81,6 +83,8 @@ std::optional<size_t> DescriptorAllocator::reserveDescriptors(uint32_t descripto
     default:
         LEXGINE_ASSUME;
     }
+
+    return std::nullopt;
 }
 
 void DescriptorAllocator::nextFrame()

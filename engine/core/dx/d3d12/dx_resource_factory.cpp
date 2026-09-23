@@ -29,49 +29,12 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
     {
         Device& dev_ref = adapter->device();
 
-        uint32_t node_mask = 1;
-
-        // initialize pool of descriptor_heaps
-        PoolOfDescriptorHeaps pool{};
-		
-		{
-            // Create CBV-SRV-UAV descriptor heaps
-			uint32_t const cbv_srv_uav_descriptor_count = global_settings.getDescriptorHeapCapacity(DescriptorHeapType::cbv_srv_uav);
-            pool.cbv_srv_uav_persistent_region_size = m_global_settings.getCbvSrvUavDescriptorHeapPersistentPartitionCapacity();
-            pool.cbv_srv_uav = dev_ref.createDescriptorHeap(DescriptorHeapType::cbv_srv_uav, cbv_srv_uav_descriptor_count, node_mask);
-			pool.cbv_srv_uav->setStringName(
-                dev_ref.getStringName() + "__descriptor_heap(cbv_srv_uav)"
-            );
-			m_unordered_descriptor_allocators.emplace(
-				std::piecewise_construct,
-				std::forward_as_tuple(pool.cbv_srv_uav.get()),
-				std::forward_as_tuple(*pool.cbv_srv_uav)
-			);
-		}
-
-        {
-            // Create sampler descriptor heaps
-            uint32_t const sampler_descriptor_count = global_settings.getDescriptorHeapCapacity(DescriptorHeapType::sampler);
-            pool.sampler = dev_ref.createDescriptorHeap(DescriptorHeapType::sampler, sampler_descriptor_count, node_mask);
-            pool.sampler->setStringName(
-                dev_ref.getStringName() + "__descriptor_heap(sampler)"
-            );
-        }
-        pool.rtv = dev_ref.createDescriptorHeap(
-            DescriptorHeapType::rtv, 
-            global_settings.getDescriptorHeapCapacity(DescriptorHeapType::rtv), 
-            node_mask
+        DescriptorHeap& cbv_srv_uav_heap = dev_ref.descriptorHeap(DescriptorHeapType::cbv_srv_uav);
+        m_unordered_descriptor_allocators.emplace(
+            std::piecewise_construct,
+            std::forward_as_tuple(&cbv_srv_uav_heap),
+            std::forward_as_tuple(cbv_srv_uav_heap)
         );
-        pool.rtv->setStringName(dev_ref.getStringName() + "__descriptor_heap(rtv)");
-
-        pool.dsv = dev_ref.createDescriptorHeap(
-            DescriptorHeapType::dsv,
-            global_settings.getDescriptorHeapCapacity(DescriptorHeapType::dsv),
-            node_mask
-        );
-        pool.dsv->setStringName(dev_ref.getStringName() + "__descriptor_heap(dsv)");
-
-        m_descriptor_heaps.emplace(&dev_ref, std::move(pool));
 
         // initialize upload heaps
         {
@@ -97,24 +60,6 @@ dxgi::HwAdapterEnumerator const& DxResourceFactory::hardwareAdapterEnumerator() 
 dxcompilation::DXCompilerProxy& DxResourceFactory::shaderModel6xDxCompilerProxy()
 {
     return m_dxc_proxy;
-}
-
-DescriptorHeap& DxResourceFactory::retrieveDescriptorHeap(Device const& device, DescriptorHeapType descriptor_heap_type)
-{
-    PoolOfDescriptorHeaps& pool = m_descriptor_heaps[&device];
-    switch (descriptor_heap_type)
-    {
-    case DescriptorHeapType::cbv_srv_uav:
-        return *pool.cbv_srv_uav;
-    case DescriptorHeapType::sampler:
-        return *pool.sampler;
-    case lexgine::core::dx::d3d12::DescriptorHeapType::rtv:
-        return *pool.rtv;
-    case lexgine::core::dx::d3d12::DescriptorHeapType::dsv:
-        return *pool.dsv;
-    default:
-        __assume(0);
-    }
 }
 
 Heap& DxResourceFactory::retrieveUploadHeap(Device const& device)
