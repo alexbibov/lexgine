@@ -183,7 +183,7 @@ void ShaderFunction::buildInternal()
         m_assumed_register_spaces.insert(key.space_id);
 
         d3d12::RootEntryDescriptorTable& target_descriptor_table = m_assumed_descriptor_tables[key];
-        d3d12::RootEntryDescriptorTable::RangeType range_type = static_cast<d3d12::RootEntryDescriptorTable::RangeType>(binding_point.kind);
+        d3d12::ShaderVisibleMemoryResourceType range_type = static_cast<d3d12::ShaderVisibleMemoryResourceType>(binding_point.kind);
         d3d12::RootEntryDescriptorTable::Range range{ range_type, binding_point.register_count, binding_point.first_register, binding_point.register_space, binding_point.first_register };
         target_descriptor_table.addRange(range);
     }

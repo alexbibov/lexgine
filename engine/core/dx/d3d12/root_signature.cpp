@@ -96,12 +96,12 @@ void RootEntryDescriptorTable::addRange(Range const& range)
     m_ranges.push_back(range);
 }
 
-void RootEntryDescriptorTable::addRange(RangeType type, uint32_t num_descriptors, uint32_t base_register, uint32_t register_space, uint32_t offset_from_start)
+void RootEntryDescriptorTable::addRange(ShaderVisibleMemoryResourceType type, uint32_t num_descriptors, uint32_t base_register, uint32_t register_space, uint32_t offset_from_start)
 {
     m_ranges.emplace_back(type, num_descriptors, base_register, register_space, offset_from_start);
 }
 
-RootEntryDescriptorTable::Range::Range(RangeType type, uint32_t num_descriptors, uint32_t base_register, uint32_t register_space, uint32_t offset) :
+RootEntryDescriptorTable::Range::Range(ShaderVisibleMemoryResourceType type, uint32_t num_descriptors, uint32_t base_register, uint32_t register_space, uint32_t offset) :
     type{ type },
     num_descriptors{ num_descriptors },
     base_register{ base_register },

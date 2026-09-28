@@ -80,20 +80,15 @@ class RootEntryDescriptorTable final
     friend class RootSignature;
 
 public:
-    enum class RangeType : uint8_t
-    {
-        srv, uav, cbv, sampler      // note: the order is important for compliance with D3D12 API
-    };
-
     struct Range
     {
-        RangeType type;    //!< type of virtual register range contained in descriptor table
+        ShaderVisibleMemoryResourceType type;    //!< type of virtual register range contained in descriptor table
         uint32_t num_descriptors;    //!< number of descriptors contained in descriptor table
         uint32_t base_register;    //!< first register from which to begin binding the descriptors
         uint32_t register_space;    //!< virtual register space in which to bind the descriptors
         uint32_t offset;    //!< offset from the physical table start where this range should be bound
 
-        Range(RangeType type, uint32_t num_descriptors, uint32_t base_register, uint32_t register_space, uint32_t offset);
+        Range(ShaderVisibleMemoryResourceType type, uint32_t num_descriptors, uint32_t base_register, uint32_t register_space, uint32_t offset);
     };
 
 
@@ -105,7 +100,7 @@ public:
     void addRange(Range const& range);
 
     //! adds new register range to descriptor table
-    void addRange(RangeType type, uint32_t num_descriptors, uint32_t base_register, uint32_t register_space, uint32_t offset_from_start);
+    void addRange(ShaderVisibleMemoryResourceType type, uint32_t num_descriptors, uint32_t base_register, uint32_t register_space, uint32_t offset_from_start);
 
     //! checks if descriptor table is empty
     bool empty() const { return m_ranges.empty(); }

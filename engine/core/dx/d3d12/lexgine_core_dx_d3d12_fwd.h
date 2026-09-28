@@ -1,6 +1,8 @@
 #ifndef LEXGINE_CORE_DX_D3D12_LEXGINE_CORE_DX_D3D12_FWD_H
 #define LEXGINE_CORE_DX_D3D12_LEXGINE_CORE_DX_D3D12_FWD_H
 
+#include <cstdint>
+
 #include <d3d12.h>
 #include <wrl.h>
 
@@ -40,6 +42,12 @@ template<unsigned int capacity> class StaticResourceBarrierPack;
 class RootSignature;
 class CompiledRootSignature;
 class Signal;
+
+//! Enumerates shader-visible memory resource types used in descriptor table ranges. Complies with D3D12 constant definitions
+enum class ShaderVisibleMemoryResourceType : uint8_t
+{
+    srv, uav, cbv, sampler, count      // note: the order is important for compliance with D3D12 API
+};
 
 struct SRVBufferInfo;
 struct SRVTextureInfo;

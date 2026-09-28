@@ -156,7 +156,7 @@ private:
     BindingResult bindInternal(misc::HashedString const& name, size_t register_offset, 
         std::function<size_t(ShaderFunction::ShaderBindingPoint const&, d3d12::DescriptorAllocationManager*)> const& descriptor_creator);
     /*void fillDescriptorTableRanges(d3d12::RootEntryDescriptorTable& target_descriptor_table,
-        d3d12::RootEntryDescriptorTable::RangeType range_type);*/
+        d3d12::ShaderVisibleMemoryResourceType range_type);*/
 
 private:
     Globals const& m_globals;

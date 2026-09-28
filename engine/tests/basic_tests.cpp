@@ -472,7 +472,7 @@ TEST(EngineTests_gpu, TestD3D12PSOXMLParser)
         auto& globals = engine_init.globals();
         {
             RootEntryDescriptorTable table0{};
-            table0.addRange(RootEntryDescriptorTable::RangeType::cbv, 1, 0, 0, 0);
+            table0.addRange(ShaderVisibleMemoryResourceType::cbv, 1, 0, 0, 0);
 
             RootSignature rs{};
             rs.addParameter(0, table0, ShaderVisibility::all);
