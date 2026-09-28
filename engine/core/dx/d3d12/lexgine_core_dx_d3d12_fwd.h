@@ -22,6 +22,8 @@ class D3DDataBlob;
 class DebugInterface;
 class DescriptorHeap;
 class DescriptorAllocator;
+class PersistentDescriptorAllocator;
+class TransientDescriptorAllocator;
 class DescriptorAllocationManager;
 class UnorderedSRVTableAllocationManager;
 class Device;

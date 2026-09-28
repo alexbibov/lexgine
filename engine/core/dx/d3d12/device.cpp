@@ -102,8 +102,19 @@ Device::Device(
         DescriptorHeapType type = static_cast<DescriptorHeapType>(i);
         m_descriptor_heaps[i] = createDescriptorHeap(type, global_settings.getDescriptorHeapCapacity(type), 0x1);
         m_descriptor_heaps[i]->setStringName(descriptorHeapName(type));
+
+        uint32_t persistent_region_size = type == DescriptorHeapType::cbv_srv_uav
+            ? global_settings.getCbvSrvUavDescriptorHeapPersistentPartitionCapacity()
+            : m_descriptor_heaps[i]->capacity();
+        m_persistent_descriptor_allocators[i] = std::make_unique<PersistentDescriptorAllocator>(*m_descriptor_heaps[i], 0, persistent_region_size);
     }
-    m_descriptor_allocator = std::make_unique<DescriptorAllocator>(descriptorHeap(DescriptorHeapType::cbv_srv_uav), m_frame_progress_tracker, global_settings);
+
+    m_transient_descriptor_allocator = std::make_unique<TransientDescriptorAllocator>(
+        descriptorHeap(DescriptorHeapType::cbv_srv_uav),
+        global_settings.getCbvSrvUavDescriptorHeapPersistentPartitionCapacity(),
+        global_settings.getCbvSrvUavDescriptorHeapDynamicPartitionCapacity(),
+        global_settings
+    );
 
     DebugInterface const* p_debug_interface = DebugInterface::retrieve();
     if (p_debug_interface)
@@ -571,9 +582,14 @@ DescriptorHeap& Device::descriptorHeap(DescriptorHeapType type)
     return *m_descriptor_heaps[static_cast<size_t>(type)];
 }
 
-DescriptorAllocator& Device::descriptorAllocator()
+PersistentDescriptorAllocator& Device::persistentDescriptorAllocator(DescriptorHeapType type)
 {
-    return *m_descriptor_allocator;
+    return *m_persistent_descriptor_allocators[static_cast<size_t>(type)];
+}
+
+TransientDescriptorAllocator& Device::transientDescriptorAllocator()
+{
+    return *m_transient_descriptor_allocator;
 }
 
 Heap Device::createHeap(AbstractHeapType type, uint64_t size, HeapCreationFlags flags, bool is_msaa_supported, uint32_t node_mask, uint32_t node_exposure_mask)

@@ -2,7 +2,11 @@
 #include <cassert>
 #include <string>
 
+#include "engine/core/globals.h"
 #include "engine/core/misc/log.h"
+#include "engine/core/dx/d3d12/device.h"
+#include "engine/core/dx/d3d12/descriptor_allocator.h"
+#include "engine/core/dx/d3d12/descriptor_table_builders.h"
 
 #include "rendering_target.h"
 
@@ -74,7 +78,7 @@ RenderingTarget::RenderingTarget(Globals& globals,
     std::vector<ColorTarget> const& color_targets, misc::Optional<DepthTarget> const& depth_target)
     : m_depth_target_format{ DXGI_FORMAT_UNKNOWN }
 {
-    RenderTargetViewTableBuilder rtv_table_builder{ globals };
+    RenderTargetViewTableBuilder rtv_table_builder{};
     m_color_target_formats.resize(color_targets.size());
     m_color_targets.reserve(color_targets.size());
     for (size_t i = 0U; i < color_targets.size(); ++i)
@@ -85,7 +89,7 @@ RenderingTarget::RenderingTarget(Globals& globals,
 
         rtv_table_builder.addDescriptor(target.target_view);
     }
-    m_rtvs_table = rtv_table_builder.build();
+    m_rtvs_table = rtv_table_builder.build(globals.device().persistentDescriptorAllocator(DescriptorHeapType::rtv));
 
 
     if (depth_target.isValid())
@@ -94,9 +98,9 @@ RenderingTarget::RenderingTarget(Globals& globals,
         m_depth_target_format = target.target_view.associatedResource().descriptor().format;
         m_depth_target = makeSnapshot(target);
 
-        DepthStencilViewTableBuilder dsv_table_builder{ globals };
+        DepthStencilViewTableBuilder dsv_table_builder{};
         dsv_table_builder.addDescriptor(target.target_view);
-        m_dsv_table = dsv_table_builder.build();
+        m_dsv_table = dsv_table_builder.build(globals.device().persistentDescriptorAllocator(DescriptorHeapType::dsv));
     }
 
     rebuildBarriers();

@@ -6,6 +6,7 @@
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "lexgine_core_dx_d3d12_fwd.h"
+#include "engine/core/dx/d3d12/descriptor_allocator.h"
 #include "engine/core/dx/d3d12/srv_descriptor.h"
 #include "engine/core/dx/d3d12/uav_descriptor.h"
 #include "engine/core/dx/d3d12/cbv_descriptor.h"
@@ -18,43 +19,31 @@ namespace lexgine::core::dx::d3d12 {
 class ResourceViewDescriptorTableBuilder final
 {
 public:
-    ResourceViewDescriptorTableBuilder(Globals& globals);
+    ResourceViewDescriptorTableBuilder() = default;
 
     void addDescriptor(CBVDescriptor const& descriptor);
     void addDescriptor(SRVDescriptor const& descriptor);
     void addDescriptor(UAVDescriptor const& descriptor);
-    
-    DescriptorTable build() const;
+
+    DescriptorTable build(DescriptorAllocator& allocator) const;    //! allocates the table using allocator serving cbv_srv_uav descriptor heap
 
 private:
-    enum class descriptor_cache_type
-    {
-        cbv, srv, uav, none
-    };
 
     struct descriptor_range
     {
-        descriptor_cache_type cache_type;
+        ShaderVisibleMemoryResourceType resource_type;
         size_t start;
         size_t end;
     };
 
-    using table_footprint = std::vector<descriptor_range>;
-
-    using cbv_descriptor_cache = std::vector<CBVDescriptor>;
-    using srv_descriptor_cache = std::vector<SRVDescriptor>;
-    using uav_descriptor_cache = std::vector<UAVDescriptor>;
-
 private:
-    Globals& m_globals;
+    ShaderVisibleMemoryResourceType m_currently_assembled_range_type{ ShaderVisibleMemoryResourceType::count };
 
-    descriptor_cache_type m_currently_assembled_range;
+    std::vector<CBVDescriptor> m_cbv_descriptors;
+    std::vector<SRVDescriptor> m_srv_descriptors;
+    std::vector<UAVDescriptor> m_uav_descriptors;
 
-    cbv_descriptor_cache m_cbv_descriptors;
-    srv_descriptor_cache m_srv_descriptors;
-    uav_descriptor_cache m_uav_descriptors;
-
-    table_footprint m_descriptor_table_footprint;
+    std::vector<descriptor_range> m_descriptor_table_footprint;
 };
 
 
@@ -62,14 +51,11 @@ private:
 class SamplerDescriptorTableBuilder final
 {
 public:
-    SamplerDescriptorTableBuilder(Globals& globals);
-
     void addDescriptor(SamplerDescriptor const& descriptor);
 
-    DescriptorTable build() const;
+    DescriptorTable build(PersistentDescriptorAllocator& allocator) const;    //! allocates the table using allocator serving sampler descriptor heap
 
 private:
-    Globals& m_globals;
     std::vector<SamplerDescriptor> m_sampler_descriptors;
 };
 
@@ -78,13 +64,11 @@ private:
 class RenderTargetViewTableBuilder final
 {
 public:
-    RenderTargetViewTableBuilder(Globals& globals);
     void addDescriptor(RTVDescriptor const& descriptor);
 
-    DescriptorTable build() const;
+    DescriptorTable build(PersistentDescriptorAllocator& allocator) const;    //! allocates the table using allocator serving rtv descriptor heap
 
 private:
-    Globals& m_globals;
     std::vector<RTVDescriptor> m_rtv_descriptors;
 };
 
@@ -93,13 +77,11 @@ private:
 class DepthStencilViewTableBuilder final
 {
 public:
-    DepthStencilViewTableBuilder(Globals& globals);
     void addDescriptor(DSVDescriptor const& descriptor);
 
-    DescriptorTable build() const;
+    DescriptorTable build(PersistentDescriptorAllocator& allocator) const;    //! allocates the table using allocator serving dsv descriptor heap
 
 private:
-    Globals& m_globals;
     std::vector<DSVDescriptor> m_dsv_descriptors;
 };
 
