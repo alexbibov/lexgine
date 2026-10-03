@@ -102,7 +102,8 @@ MaterialStaticState::MaterialStaticState(
 
 void MaterialStaticState::buildPipeline()
 {
-    m_rs_handle = m_shader_function->buildBindingSignature();
+    m_shader_function->collectInputResourceBindings();
+    m_rs_handle = m_shader_function->buildInputResourceBindings();
 
     {
         // Setup shader function resources

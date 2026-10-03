@@ -100,7 +100,8 @@ public:
     bool isReady() const { return m_is_ready; }
 
 private:
-    enum class TextureResourceDataType {
+    enum class StorageResourceDataType 
+    {
         unorm = 1,
         snorm,
         sint,
@@ -111,11 +112,18 @@ private:
         continued
     };
 
-    enum class TextureResourceType
+    enum class ResourceDimension
     {
         texture1d,
         texture2d,
         texture3d,
+        buffer,
+        none
+    };
+
+    enum class TextureResourceType
+    {
+        resource_with_dimension,
         tbuffer,
         structured_buffer,
         raw_buffer
@@ -123,7 +131,7 @@ private:
 
     enum class StorageBlockResourceType
     {
-        typed,
+        resource_with_dimension,
         structured_buffer,
         structured_buffer_with_counter,
         raw_buffer,
@@ -135,21 +143,28 @@ private:
     {
         bool is_cube = false;
         bool is_ms = false;
+        bool is_array = false;
+        bool is_buffer = false;
         uint32_t ms_count;
         TextureResourceType resource_type;
-        TextureResourceDataType data_type;
+        ResourceDimension dimension = ResourceDimension::none;
+        StorageResourceDataType data_type;
     };
 
     struct StorageBlockShaderInputInfo
     {
+        bool is_ms = false;
+        bool is_array = false;
+        bool is_buffer = false;
         StorageBlockResourceType resource_type;
+        ResourceDimension dimension = ResourceDimension::none;
+        StorageResourceDataType data_type;
     };
-
 
 private:
     ShaderStage(Globals const& globals, d3d12::caches::HLSLShaderHandle shader_handle, ShaderFunction* p_owning_shader_function);
 
-    static uint32_t getDataTypeSize(TextureResourceDataType data_type);
+    static uint32_t getDataTypeSize(StorageResourceDataType data_type);
     void collectShaderBindings();
     void collectShaderArguments(ShaderArgumentKind kind);
 
@@ -175,7 +190,7 @@ private:
 
     std::unordered_map<misc::HashedString, ShaderFunction::ShaderBindingPoint> m_shader_resource_names_pool;
     std::unordered_map<ShaderFunction::ShaderBindingPoint, TextureShaderInputInfo, ShaderFunction::ShaderInputBindingPointHash> m_texture_shader_inputs;
-    std::unordered_map<ShaderFunction::ShaderBindingPoint, StorageBlockShaderInputInfo, ShaderFunction::ShaderInputBindingPointHash> m_storage_block_inputs;
+    std::unordered_map<ShaderFunction::ShaderBindingPoint, StorageBlockShaderInputInfo, ShaderFunction::ShaderInputBindingPointHash> m_storage_block_shader_inputs;
 };
 
 template<>

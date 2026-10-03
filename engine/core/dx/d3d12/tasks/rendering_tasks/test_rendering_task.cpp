@@ -196,7 +196,8 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         dxcompilation::ShaderStage* p_ps_stage = m_shader_function.createShaderStage(m_ps);
         p_vs_stage->build();
         p_ps_stage->build();
-        m_rs_handle = m_shader_function.buildBindingSignature();
+        m_shader_function.collectInputResourceBindings();
+        m_rs_handle = m_shader_function.buildInputResourceBindings();
 
         DescriptorHeap& resource_heap = m_device.descriptorHeap(DescriptorHeapType::cbv_srv_uav);
         DescriptorHeap& sampler_heap = m_device.descriptorHeap(DescriptorHeapType::sampler);

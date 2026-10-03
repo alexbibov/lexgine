@@ -92,6 +92,7 @@ const char shaderInputKindToRegisterLiteral(ShaderFunction::ShaderInputKind kind
     case ShaderFunction::ShaderInputKind::cbv:
         return 'b';
     case ShaderFunction::ShaderInputKind::sampler:
+    case ShaderFunction::ShaderInputKind::comparison_sampler:
         return 's';
     default:
         return 0;
@@ -170,9 +171,12 @@ BindingResult ShaderStage::bindTexture(misc::HashedString const& name, d3d12::Re
             assert(binding_point.kind == ShaderFunction::ShaderInputKind::srv);
 
             TextureShaderInputInfo& texture_info = m_texture_shader_inputs[binding_point];
-            assert(texture_info.resource_type == TextureResourceType::texture1d
-                || texture_info.resource_type == TextureResourceType::texture2d
-                || texture_info.resource_type == TextureResourceType::texture3d);
+            assert(texture_info.resource_type == TextureResourceType::resource_with_dimension
+                && !texture_info.is_buffer
+                && !texture_info.is_array
+                && (texture_info.dimension == ResourceDimension::texture1d
+                    || texture_info.dimension == ResourceDimension::texture2d
+                    || texture_info.dimension == ResourceDimension::texture3d));
 
             d3d12::SRVTextureInfo info {};
             return p_allocator->getOrCreateDescriptor(binding_point.first_register + register_offset, core::dx::d3d12::SRVDescriptor { texture, info, texture_info.is_cube });
@@ -190,8 +194,10 @@ BindingResult ShaderStage::bindTextureArray(misc::HashedString const& name, d3d1
             assert(binding_point.kind == ShaderFunction::ShaderInputKind::srv);
 
             TextureShaderInputInfo& texture_info = m_texture_shader_inputs[binding_point];
-            assert(texture_info.resource_type == TextureResourceType::texture1d
-                || texture_info.resource_type == TextureResourceType::texture2d);
+            assert(texture_info.resource_type == TextureResourceType::resource_with_dimension
+                && texture_info.is_array
+                && (texture_info.dimension == ResourceDimension::texture1d
+                    || texture_info.dimension == ResourceDimension::texture2d));
 
             d3d12::SRVTextureArrayInfo info{};
             info.first_array_element = first_array_element;
@@ -261,16 +267,15 @@ BindingResult ShaderStage::bindStorageBlock(misc::HashedString const& name, d3d1
         {
             assert(binding_point.kind == ShaderFunction::ShaderInputKind::uav);
 
-            StorageBlockShaderInputInfo& storage_block_info = m_storage_block_inputs[binding_point];
+            StorageBlockShaderInputInfo& storage_block_info = m_storage_block_shader_inputs[binding_point];
             switch (storage_block_info.resource_type)
             {
-            case StorageBlockResourceType::typed:
+            case StorageBlockResourceType::resource_with_dimension:
             {
-                if (binding_point.register_count > 1)
+                if (storage_block_info.is_array)
                 {
-                    // shader input resource is an array
                     d3d12::UAVTextureArrayInfo info{};
-                    info.num_array_elements = binding_point.register_count;
+                    info.num_array_elements = static_cast<uint32_t>(storage_block.descriptor().depth);
                     return p_allocator->getOrCreateDescriptor(binding_point.first_register + register_offset, d3d12::UAVDescriptor{ storage_block, info });
                 }
                 else
@@ -437,22 +442,22 @@ ShaderStage::ShaderStage(Globals const& globals, d3d12::caches::HLSLShaderHandle
     
 }
 
-uint32_t ShaderStage::getDataTypeSize(TextureResourceDataType data_type)
+uint32_t ShaderStage::getDataTypeSize(StorageResourceDataType data_type)
 {
     switch (data_type)
     {
-    case ShaderStage::TextureResourceDataType::unorm:
-    case ShaderStage::TextureResourceDataType::snorm:
-    case ShaderStage::TextureResourceDataType::sint:
-    case ShaderStage::TextureResourceDataType::uint:
-    case ShaderStage::TextureResourceDataType::float32:
+    case ShaderStage::StorageResourceDataType::unorm:
+    case ShaderStage::StorageResourceDataType::snorm:
+    case ShaderStage::StorageResourceDataType::sint:
+    case ShaderStage::StorageResourceDataType::uint:
+    case ShaderStage::StorageResourceDataType::float32:
         return 4;
    
-    case ShaderStage::TextureResourceDataType::float64:
-    case ShaderStage::TextureResourceDataType::continued:
+    case ShaderStage::StorageResourceDataType::float64:
+    case ShaderStage::StorageResourceDataType::continued:
         return 8;
 
-    case ShaderStage::TextureResourceDataType::unknown:
+    case ShaderStage::StorageResourceDataType::unknown:
         return 0;
     default:
         LEXGINE_ASSUME;
@@ -462,8 +467,10 @@ uint32_t ShaderStage::getDataTypeSize(TextureResourceDataType data_type)
 
 void ShaderStage::collectShaderBindings()
 {
-    core::GlobalSettings const& global_settings = m_globals.globalSettings();
-    uint32_t const unbounded_descriptor_table_physical_capacity = global_settings.getDescriptorHeapCapacity(core::dx::d3d12::DescriptorHeapType::cbv_srv_uav) / 10;
+    m_shader_resource_names_pool.clear();
+    m_texture_shader_inputs.clear();
+    m_storage_block_shader_inputs.clear();
+
     for (UINT i = 0; i < m_shader_desc.BoundResources; ++i)
     {
         D3D12_SHADER_INPUT_BIND_DESC desc{};
@@ -473,8 +480,9 @@ void ShaderStage::collectShaderBindings()
         assert(!m_shader_resource_names_pool.contains(hashed_name));
 
         ShaderFunction::ShaderBindingPoint binding_point{};
+        binding_point.is_unbounded = desc.BindCount == 0;
         binding_point.first_register = static_cast<uint32_t>(desc.BindPoint);
-        binding_point.register_count = desc.BindCount ? static_cast<uint32_t>(desc.BindCount) : unbounded_descriptor_table_physical_capacity;
+        binding_point.register_count = binding_point.is_unbounded ? 0 : static_cast<uint32_t>(desc.BindCount);
         binding_point.register_space = static_cast<uint32_t>(desc.Space);
 
         switch (desc.Type)
@@ -485,6 +493,10 @@ void ShaderStage::collectShaderBindings()
 
         case D3D_SIT_SAMPLER:
             binding_point.kind = ShaderFunction::ShaderInputKind::sampler;
+            if (desc.uFlags & D3D_SIF_COMPARISON_SAMPLER)
+            {
+                binding_point.kind = ShaderFunction::ShaderInputKind::comparison_sampler;
+            }
             break;
 
         case D3D_SIT_TEXTURE:
@@ -495,7 +507,7 @@ void ShaderStage::collectShaderBindings()
             binding_point.kind = ShaderFunction::ShaderInputKind::srv;
             TextureShaderInputInfo extra_info{};
             extra_info.ms_count = static_cast<uint32_t>(desc.NumSamples);
-            extra_info.data_type = static_cast<TextureResourceDataType>(desc.ReturnType);
+            extra_info.data_type = static_cast<StorageResourceDataType>(desc.ReturnType);
             m_texture_shader_inputs[binding_point] = extra_info;
             break;
         }
@@ -508,7 +520,36 @@ void ShaderStage::collectShaderBindings()
         case D3D_SIT_UAV_CONSUME_STRUCTURED:
         {
             binding_point.kind = ShaderFunction::ShaderInputKind::uav;
+            StorageBlockShaderInputInfo extra_info{};
+            extra_info.data_type = static_cast<StorageResourceDataType>(desc.ReturnType);
+            m_storage_block_shader_inputs[binding_point] = extra_info;
             break;
+        }
+
+        case D3D_SIT_UAV_FEEDBACKTEXTURE:
+        {
+            LEXGINE_LOG_ERROR(
+                this,
+                std::format("Sampler feedback texture binding was "
+                    "encountered at register range {}{}..{}. Sampler feedback textures are not currently supported. "
+                    "This shader input will be ignored and attempts to execute it will result in undefined behaviour",
+                    'u', binding_point.first_register, binding_point.first_register + binding_point.register_count - 1
+                )
+            );
+            continue;
+        }
+
+        case D3D_SIT_RTACCELERATIONSTRUCTURE:
+        {
+            LEXGINE_LOG_ERROR(
+                this,
+                std::format("Ray-tracing acceleration structure binding was "
+                    "encountered at register range {}{}..{}. Ray-tracing is not currently supported. "
+                    "This shader input will be ignored and attempts to execute it will result in undefined behaviour",
+                    't', binding_point.first_register, binding_point.first_register + binding_point.register_count - 1
+                )
+            );
+            continue;
         }
 
         default:
@@ -520,38 +561,61 @@ void ShaderStage::collectShaderBindings()
         {
         case ShaderFunction::ShaderInputKind::cbv:
         case ShaderFunction::ShaderInputKind::sampler:
+        case ShaderFunction::ShaderInputKind::comparison_sampler:
             break;
 
         case ShaderFunction::ShaderInputKind::srv:
         {
+            TextureShaderInputInfo& info = m_texture_shader_inputs[binding_point];
             switch (desc.Type)
             {
             case D3D_SIT_TEXTURE:
             {
                 switch (desc.Dimension)
                 {
-                case D3D_SRV_DIMENSION_TEXTURE1D:
                 case D3D_SRV_DIMENSION_TEXTURE1DARRAY:
-                    m_texture_shader_inputs[binding_point].resource_type = TextureResourceType::texture1d;
+                    info.is_array = true;
+                    [[fallthrough]];
+                case D3D_SRV_DIMENSION_TEXTURE1D:
+                    info.resource_type = TextureResourceType::resource_with_dimension;
+                    info.dimension = ResourceDimension::texture1d;
                     break;
 
-                case D3D_SRV_DIMENSION_TEXTURE2DMS:
                 case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY:
-                    m_texture_shader_inputs[binding_point].is_ms = true;
+                    info.is_array = true;
+                    [[fallthrough]];
+                case D3D_SRV_DIMENSION_TEXTURE2DMS:
+                    info.is_ms = true;
+                    info.resource_type = TextureResourceType::resource_with_dimension;
+                    info.dimension = ResourceDimension::texture2d;
+                    break;
 
-                case D3D_SRV_DIMENSION_TEXTURE2D:
                 case D3D_SRV_DIMENSION_TEXTURE2DARRAY:
-                    m_texture_shader_inputs[binding_point].resource_type = TextureResourceType::texture2d;
+                    info.is_array = true;
+                    [[fallthrough]];
+                case D3D_SRV_DIMENSION_TEXTURE2D:
+                    info.resource_type = TextureResourceType::resource_with_dimension;
+                    info.dimension = ResourceDimension::texture2d;
                     break;
                
                 case D3D_SRV_DIMENSION_TEXTURE3D:
-                    m_texture_shader_inputs[binding_point].resource_type = TextureResourceType::texture3d;
+                    info.resource_type = TextureResourceType::resource_with_dimension;
+                    info.dimension = ResourceDimension::texture3d;
                     break;
 
-                case D3D_SRV_DIMENSION_TEXTURECUBE:
                 case D3D_SRV_DIMENSION_TEXTURECUBEARRAY:
-                    m_texture_shader_inputs[binding_point].is_cube = true;
-                    m_texture_shader_inputs[binding_point].resource_type = TextureResourceType::texture2d;
+                    info.is_array = true;
+                    [[fallthrough]];
+                case D3D_SRV_DIMENSION_TEXTURECUBE:
+                    info.is_cube = true;
+                    info.resource_type = TextureResourceType::resource_with_dimension;
+                    info.dimension = ResourceDimension::texture2d;
+                    break;
+
+                case D3D_SRV_DIMENSION_BUFFER:
+                    info.resource_type = TextureResourceType::resource_with_dimension;
+                    info.dimension = ResourceDimension::buffer;
+                    info.is_buffer = true;
                     break;
 
                 default:
@@ -561,15 +625,18 @@ void ShaderStage::collectShaderBindings()
             }
 
             case D3D_SIT_TBUFFER:
-                m_texture_shader_inputs[binding_point].resource_type = TextureResourceType::tbuffer;
+                info.resource_type = TextureResourceType::tbuffer;
+                info.is_buffer = true;
                 break;
 
             case D3D_SIT_STRUCTURED:
-                m_texture_shader_inputs[binding_point].resource_type = TextureResourceType::structured_buffer;
+                info.resource_type = TextureResourceType::structured_buffer;
+                info.is_buffer = true;
                 break;
 
             case D3D_SIT_BYTEADDRESS:
-                m_texture_shader_inputs[binding_point].resource_type = TextureResourceType::raw_buffer;
+                info.resource_type = TextureResourceType::raw_buffer;
+                info.is_buffer = true;
                 break;
 
             default:
@@ -581,30 +648,82 @@ void ShaderStage::collectShaderBindings()
 
         case ShaderFunction::ShaderInputKind::uav:
         {
+            StorageBlockShaderInputInfo& info = m_storage_block_shader_inputs[binding_point];
             switch (desc.Type)
             {
             case D3D_SIT_UAV_RWTYPED:
-                m_storage_block_inputs[binding_point].resource_type = StorageBlockResourceType::typed;
+                switch (desc.Dimension)
+                {
+                case D3D_SRV_DIMENSION_BUFFER:
+                    info.resource_type = StorageBlockResourceType::resource_with_dimension;
+                    info.dimension = ResourceDimension::buffer;
+                    info.is_buffer = true;
+                    break;
+
+                case D3D_SRV_DIMENSION_TEXTURE1DARRAY:
+                    info.is_array = true;
+                    [[fallthrough]];
+                case D3D_SRV_DIMENSION_TEXTURE1D:
+                    info.resource_type = StorageBlockResourceType::resource_with_dimension;
+                    info.dimension = ResourceDimension::texture1d;
+                    break;
+
+                case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY:
+                    info.is_array = true;
+                    [[fallthrough]];
+                case D3D_SRV_DIMENSION_TEXTURE2DMS:
+                    info.is_ms = true;
+                    info.resource_type = StorageBlockResourceType::resource_with_dimension;
+                    info.dimension = ResourceDimension::texture2d;
+                    break;
+
+                case D3D_SRV_DIMENSION_TEXTURE2DARRAY:
+                    info.is_array = true;
+                    [[fallthrough]];
+                case D3D_SRV_DIMENSION_TEXTURE2D:
+                    info.resource_type = StorageBlockResourceType::resource_with_dimension;
+                    info.dimension = ResourceDimension::texture2d;
+                    break;
+
+                case D3D_SRV_DIMENSION_TEXTURE3D:
+                    info.resource_type = StorageBlockResourceType::resource_with_dimension;
+                    info.dimension = ResourceDimension::texture3d;
+                    break;
+
+                default:
+                    LEXGINE_LOG_ERROR(
+                        this,
+                        std::format("Typed UAV binding '{}' at register u{} has unsupported dimension {}",
+                            desc.Name, binding_point.first_register, static_cast<int>(desc.Dimension)
+                        )
+                    );
+                    break;
+                }
                 break;
 
             case D3D_SIT_UAV_RWSTRUCTURED:
-                m_storage_block_inputs[binding_point].resource_type = StorageBlockResourceType::structured_buffer;
+                info.resource_type = StorageBlockResourceType::structured_buffer;
+                info.is_buffer = true;
                 break;
 
             case D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER:
-                m_storage_block_inputs[binding_point].resource_type = StorageBlockResourceType::structured_buffer_with_counter;
+                info.resource_type = StorageBlockResourceType::structured_buffer_with_counter;
+                info.is_buffer = true;
                 break;
 
             case D3D_SIT_UAV_RWBYTEADDRESS:
-                m_storage_block_inputs[binding_point].resource_type = StorageBlockResourceType::raw_buffer;
+                info.resource_type = StorageBlockResourceType::raw_buffer;
+                info.is_buffer = true;
                 break;
 
             case D3D_SIT_UAV_APPEND_STRUCTURED:
-                m_storage_block_inputs[binding_point].resource_type = StorageBlockResourceType::append_structured_buffer;
+                info.resource_type = StorageBlockResourceType::append_structured_buffer;
+                info.is_buffer = true;
                 break;
 
             case D3D_SIT_UAV_CONSUME_STRUCTURED:
-                m_storage_block_inputs[binding_point].resource_type = StorageBlockResourceType::consume_structured_buffer;
+                info.resource_type = StorageBlockResourceType::consume_structured_buffer;
+                info.is_buffer = true;
                 break;
 
             default:
@@ -643,6 +762,7 @@ void ShaderStage::collectShaderArguments(ShaderArgumentKind kind)
         LEXGINE_ASSUME;
     }
 
+    p_target_map->clear();
     for (int i = 0; i < argument_count; ++i)
     {
         D3D12_SIGNATURE_PARAMETER_DESC desc{};
@@ -652,14 +772,14 @@ void ShaderStage::collectShaderArguments(ShaderArgumentKind kind)
             misc::Log::retrieve()->out("Unable to retrieve shader input parameter description for input #" + std::to_string(i), misc::LogMessageType::exclamation);
             return;
         }
-        if (desc.SystemValueType != D3D_NAME_UNDEFINED) 
+        if (desc.SystemValueType != D3D_NAME_UNDEFINED)
         {
             continue;
         }
 
-        ShaderArgumentInfoKey arg_key{ 
+        ShaderArgumentInfoKey arg_key{
             .semantic_name = std::string{desc.SemanticName, strlen(desc.SemanticName)},
-            .semantic_index = static_cast<uint32_t>(desc.SemanticIndex) 
+            .semantic_index = static_cast<uint32_t>(desc.SemanticIndex)
         };
         ShaderArgumentInfo arg_info{};
         arg_info.kind = kind;
@@ -669,45 +789,45 @@ void ShaderStage::collectShaderArguments(ShaderArgumentKind kind)
         unsigned char element_count{}, element_size{};
         switch (desc.ComponentType)
         {
-        // case D3D_REGISTER_COMPONENT_UINT64:
+            // case D3D_REGISTER_COMPONENT_UINT64:
         case D3D_REGISTER_COMPONENT_UINT32:
             is_fp = false;
             is_signed = false;
             element_size = 4;
             break;
 
-        // case D3D_REGISTER_COMPONENT_SINT64:
+            // case D3D_REGISTER_COMPONENT_SINT64:
         case D3D_REGISTER_COMPONENT_SINT32:
             is_fp = false;
             is_signed = true;
             element_size = 4;
             break;
 
-        // case D3D_REGISTER_COMPONENT_FLOAT64:
+            // case D3D_REGISTER_COMPONENT_FLOAT64:
         case D3D_REGISTER_COMPONENT_FLOAT32:
             is_fp = true;
             is_signed = true;
             element_size = 4;
             break;
 
-        /*case D3D_REGISTER_COMPONENT_UINT16:
-            is_fp = false;
-            is_signed = false;
-            element_size = 2;
-            break;
+            /*case D3D_REGISTER_COMPONENT_UINT16:
+                is_fp = false;
+                is_signed = false;
+                element_size = 2;
+                break;
 
-        case D3D_REGISTER_COMPONENT_SINT16:
-            is_fp = false;
-            is_signed = true;
-            element_size = 2;
-            break;
+            case D3D_REGISTER_COMPONENT_SINT16:
+                is_fp = false;
+                is_signed = true;
+                element_size = 2;
+                break;
 
-        case D3D_REGISTER_COMPONENT_FLOAT16:
-            is_fp = true;
-            is_signed = true;
-            element_size = 2;
-            break;*/
-        
+            case D3D_REGISTER_COMPONENT_FLOAT16:
+                is_fp = true;
+                is_signed = true;
+                element_size = 2;
+                break;*/
+
         default:
             LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, "Unsupported shader input parameter component type");
         }
@@ -736,7 +856,14 @@ void ShaderStage::collectShaderArguments(ShaderArgumentKind kind)
 
         dx::d3d12::DxResourceFactory const& dx_resource_factory = m_globals.dxResourceFactory();
         arg_info.format = dx_resource_factory.dxgiFormatFetcher().fetch(is_fp, is_signed, false, element_count, element_size);
-
+        if (arg_info.format == DXGI_FORMAT_UNKNOWN)
+        {
+            LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(
+                this,
+                std::format("Unable to find requested support format with the following properties: fp={}, signed={}, normalized={}, element_count={}, element_size={}",
+                    is_fp, is_signed, false, element_count, element_size)
+            );
+        }
         p_target_map->insert(std::make_pair(arg_key, arg_info));
     }
 }

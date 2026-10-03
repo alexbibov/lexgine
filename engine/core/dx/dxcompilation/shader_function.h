@@ -39,14 +39,26 @@ FLAG(ModelUniforms, 1 << static_cast<int>(ShaderFunctionConstantBufferRootIds::i
 FLAG(All, static_cast<int>(SceneUniforms) | static_cast<int>(MaterialUniforms) | static_cast<int>(ModelUniforms))
 END_FLAGS_DECLARATION(ShaderFunctionRootUniformBuffers);
 
+enum class ShaderResourceBindingFrequency
+{
+    persistent,
+    per_frame
+};
+
 class ShaderFunction : public NamedEntity<ShaderFunction>, public ProvidesGlobals
 {
     friend class ShaderFunctionAttorney<ShaderStage>;
 public:
     constexpr static uint32_t c_reserved_constant_buffer_space_id = 100;
 
-    enum class ShaderInputKind {
-        srv, uav, cbv, sampler, count
+    enum class ShaderInputKind 
+    {
+        srv, 
+        uav, 
+        cbv,
+        sampler, 
+        comparison_sampler,
+        count
     };
 
     struct ShaderBindingPoint {
@@ -54,6 +66,7 @@ public:
         uint32_t first_register;
         uint32_t register_count;
         uint32_t register_space;
+        bool is_unbounded;
 
         bool operator==(ShaderBindingPoint const&) const = default;
     };
@@ -61,10 +74,18 @@ public:
     struct ShaderInputBindingPointHash {
         size_t operator()(ShaderBindingPoint const& binding_point) const
         {
-            return static_cast<uint64_t>(binding_point.kind)
-                | (static_cast<uint64_t>(binding_point.first_register) << 2)
-                | (static_cast<uint64_t>(binding_point.register_count) << 18)
-                | (static_cast<uint64_t>(binding_point.register_space) << 34);
+            uint32_t const fields[] = {
+                static_cast<uint32_t>(binding_point.kind),
+                binding_point.first_register,
+                binding_point.register_count,
+                binding_point.register_space,
+                static_cast<uint32_t>(binding_point.is_unbounded)
+            };
+
+            misc::hashes::XXHash128 hash_value{};
+            hash_value.create(fields, sizeof(fields));
+            hash_value.finalize();
+            return static_cast<size_t>(hash_value.fold());
         }
     };
 
@@ -76,7 +97,8 @@ public:
     ShaderStage* getShaderStage(ShaderType shader_type) const { return m_shader_stages[static_cast<size_t>(shader_type)].get(); }
     ShaderStage* createShaderStage(d3d12::caches::HLSLShaderHandle shader_handle);
 
-    d3d12::caches::RootSignatureHandle buildBindingSignature();
+    void collectInputResourceBindings();
+    d3d12::caches::RootSignatureHandle buildInputResourceBindings();
 
     uint32_t occupiedRootSignatureSlotsCount() const { return m_occupied_rs_slots; }
 
@@ -90,6 +112,7 @@ public:
 private:
     struct ShaderInputDesc
     {
+        ShaderResourceBindingFrequency binding_frequency;
         std::bitset<static_cast<size_t>(ShaderType::count)> shader_stage_presence;
     };
 
@@ -114,9 +137,6 @@ private:
 
 private:
     static const size_t c_max_uav_with_counters_count = 32;
-
-private:
-    void buildInternal();
 
 private:
     d3d12::Device& m_device;
@@ -169,7 +189,9 @@ class ShaderFunctionAttorney<ShaderStage>
     static AtomicCounterDesc allocateAtomicCounter(ShaderFunction& shader_function)
     {
         assert(shader_function.m_next_counter_offset / D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT < ShaderFunction::c_max_uav_with_counters_count);
-        return { shader_function.m_uav_atomic_counters, shader_function.m_next_counter_offset += D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT };
+        uint64_t counter_offset = shader_function.m_next_counter_offset;
+        shader_function.m_next_counter_offset += D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT;
+        return { shader_function.m_uav_atomic_counters, counter_offset };
     }
 };
 

@@ -1,4 +1,5 @@
 #include <sstream>
+#include <thread>
 #include <windows.h>
 #include <utility>
 #include <fstream>
@@ -29,7 +30,12 @@
 #include <engine/scenegraph/image.h>
 
 #include <engine/core/gpu_data_blob_cache_key.h>
+#include <engine/core/globals.h>
 #include <engine/core/dx/d3d12/caches/root_signature_blob_cache.h>
+#include <engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h>
+
+#include <dxcapi.h>
+#include <d3d12shader.h>
 
 #include <engine/core/misc/uuid.h>
 #include <engine/interaction/console_command.h>
@@ -487,6 +493,117 @@ TEST(EngineTests_gpu, TestD3D12PSOXMLParser)
         D3D12PSOXMLParser xml_parser{ globals, *content };
     }
 
+}
+
+
+TEST(EngineTests_gpu, TestShaderReflectionBindingDescriptions)
+{
+    using namespace lexgine;
+    using namespace lexgine::core;
+    using namespace lexgine::core::dx;
+    using namespace lexgine::core::dx::d3d12;
+    using namespace lexgine::core::dx::d3d12::caches;
+
+    D3D12EngineSettings settings{};
+    settings.debug_mode = true;
+    settings.global_lookup_prefix = LEXGINE_GLOBAL_LOOKUP_PREFIX;
+    settings.settings_lookup_path = LEXGINE_SETTINGS_PATH;
+    D3D12Initializer engine_init{ settings };
+    Globals& globals = engine_init.globals();
+
+    std::string const hlsl_source =
+        "Buffer<float4> typed_buffer : register(t0);\n"
+        "Texture1DArray<float4> texture_1d_array : register(t1);\n"
+        "Texture2DArray<float4> texture_2d_array : register(t2);\n"
+        "TextureCubeArray<float4> texture_cube_array : register(t3);\n"
+        "Texture2D<float> depth_texture : register(t4);\n"
+        "Texture2D<float4> unbounded_textures[] : register(t0, space20);\n"
+        "RWBuffer<float4> rw_buffer : register(u0);\n"
+        "RWTexture1D<float4> rw_texture_1d : register(u1);\n"
+        "RWTexture1DArray<float4> rw_texture_1d_array : register(u2);\n"
+        "RWTexture2D<float4> rw_texture_2d : register(u3);\n"
+        "RWTexture2DArray<float4> rw_texture_2d_array : register(u4);\n"
+        "RWTexture3D<float4> rw_texture_3d : register(u5);\n"
+        "SamplerState linear_sampler : register(s0);\n"
+        "SamplerComparisonState comparison_sampler : register(s1);\n"
+        "cbuffer Indices : register(b0) { uint texture_index; };\n"
+        "\n"
+        "[numthreads(1, 1, 1)]\n"
+        "void CSMain(uint3 id : SV_DispatchThreadID)\n"
+        "{\n"
+        "    float4 v = typed_buffer[id.x];\n"
+        "    v += texture_1d_array.SampleLevel(linear_sampler, float2(0.f, 0.f), 0.f);\n"
+        "    v += texture_2d_array.SampleLevel(linear_sampler, float3(0.f, 0.f, 0.f), 0.f);\n"
+        "    v += texture_cube_array.SampleLevel(linear_sampler, float4(0.f, 0.f, 1.f, 0.f), 0.f);\n"
+        "    v += unbounded_textures[NonUniformResourceIndex(texture_index)].SampleLevel(linear_sampler, float2(0.f, 0.f), 0.f);\n"
+        "    v.x += depth_texture.SampleCmpLevelZero(comparison_sampler, float2(0.f, 0.f), 0.5f);\n"
+        "    rw_buffer[id.x] = v;\n"
+        "    rw_texture_1d[id.x] = v;\n"
+        "    rw_texture_1d_array[id.xy] = v;\n"
+        "    rw_texture_2d[id.xy] = v;\n"
+        "    rw_texture_2d_array[id] = v;\n"
+        "    rw_texture_3d[id] = v;\n"
+        "}\n";
+
+    HLSLShaderBlobCache& hlsl_shader_blob_cache = globals.hlslShaderBlobCache();
+    HLSLSourceTranslationUnit translation_unit{ globals, "reflection_probe_shader", hlsl_source };
+    HLSLShaderHandle shader_handle = hlsl_shader_blob_cache.createHLSLShaderBlobCompilationContract(
+        translation_unit, dxcompilation::ShaderModel::model_62, dxcompilation::ShaderType::compute, "CSMain");
+
+    auto [shader_blob, shader_status] = hlsl_shader_blob_cache.getShaderBlob(shader_handle);
+    for (int attempt = 0; attempt < 600 && shader_status != HLSLShaderBlobCompilationStatus::Completed
+        && shader_status != HLSLShaderBlobCompilationStatus::Failed; ++attempt)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds{ 100 });
+        std::tie(shader_blob, shader_status) = hlsl_shader_blob_cache.getShaderBlob(shader_handle);
+    }
+    ASSERT_EQ(shader_status, HLSLShaderBlobCompilationStatus::Completed);
+
+    Microsoft::WRL::ComPtr<IDxcUtils> dxc_utils;
+    ASSERT_EQ(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(dxc_utils.GetAddressOf())), S_OK);
+
+    DxcBuffer shader_blob_buffer{ .Ptr = shader_blob.data(), .Size = shader_blob.size(), .Encoding = 0 };
+    Microsoft::WRL::ComPtr<ID3D12ShaderReflection> reflection;
+    ASSERT_EQ(dxc_utils->CreateReflection(&shader_blob_buffer, IID_PPV_ARGS(reflection.GetAddressOf())), S_OK);
+
+    auto binding_description = [&reflection](char const* name)
+    {
+        D3D12_SHADER_INPUT_BIND_DESC desc{};
+        EXPECT_EQ(reflection->GetResourceBindingDescByName(name, &desc), S_OK) << name;
+        return desc;
+    };
+
+    auto expectTyped = [&binding_description](char const* name, D3D_SHADER_INPUT_TYPE type, D3D_SRV_DIMENSION dimension)
+    {
+        D3D12_SHADER_INPUT_BIND_DESC desc = binding_description(name);
+        EXPECT_EQ(desc.Type, type) << name;
+        EXPECT_EQ(desc.Dimension, dimension) << name;
+    };
+
+    expectTyped("typed_buffer", D3D_SIT_TEXTURE, D3D_SRV_DIMENSION_BUFFER);
+    expectTyped("texture_1d_array", D3D_SIT_TEXTURE, D3D_SRV_DIMENSION_TEXTURE1DARRAY);
+    expectTyped("texture_2d_array", D3D_SIT_TEXTURE, D3D_SRV_DIMENSION_TEXTURE2DARRAY);
+    expectTyped("texture_cube_array", D3D_SIT_TEXTURE, D3D_SRV_DIMENSION_TEXTURECUBEARRAY);
+    expectTyped("rw_buffer", D3D_SIT_UAV_RWTYPED, D3D_SRV_DIMENSION_BUFFER);
+    expectTyped("rw_texture_1d", D3D_SIT_UAV_RWTYPED, D3D_SRV_DIMENSION_TEXTURE1D);
+    expectTyped("rw_texture_1d_array", D3D_SIT_UAV_RWTYPED, D3D_SRV_DIMENSION_TEXTURE1DARRAY);
+    expectTyped("rw_texture_2d", D3D_SIT_UAV_RWTYPED, D3D_SRV_DIMENSION_TEXTURE2D);
+    expectTyped("rw_texture_2d_array", D3D_SIT_UAV_RWTYPED, D3D_SRV_DIMENSION_TEXTURE2DARRAY);
+    expectTyped("rw_texture_3d", D3D_SIT_UAV_RWTYPED, D3D_SRV_DIMENSION_TEXTURE3D);
+
+    D3D12_SHADER_INPUT_BIND_DESC linear_sampler_desc = binding_description("linear_sampler");
+    EXPECT_EQ(linear_sampler_desc.Type, D3D_SIT_SAMPLER);
+    EXPECT_EQ(linear_sampler_desc.uFlags & D3D_SIF_COMPARISON_SAMPLER, 0u);
+
+    D3D12_SHADER_INPUT_BIND_DESC comparison_sampler_desc = binding_description("comparison_sampler");
+    EXPECT_EQ(comparison_sampler_desc.Type, D3D_SIT_SAMPLER);
+    EXPECT_NE(comparison_sampler_desc.uFlags & D3D_SIF_COMPARISON_SAMPLER, 0u);
+
+    D3D12_SHADER_INPUT_BIND_DESC unbounded_desc = binding_description("unbounded_textures");
+    EXPECT_EQ(unbounded_desc.Type, D3D_SIT_TEXTURE);
+    EXPECT_EQ(unbounded_desc.Dimension, D3D_SRV_DIMENSION_TEXTURE2D);
+    EXPECT_EQ(unbounded_desc.Space, 20u);
+    EXPECT_EQ(unbounded_desc.BindCount, 0u);
 }
 
 class LogTestBase : public testing::Test
