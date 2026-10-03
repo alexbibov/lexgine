@@ -446,18 +446,18 @@ uint32_t ShaderStage::getDataTypeSize(StorageResourceDataType data_type)
 {
     switch (data_type)
     {
-    case ShaderStage::StorageResourceDataType::unorm:
-    case ShaderStage::StorageResourceDataType::snorm:
-    case ShaderStage::StorageResourceDataType::sint:
-    case ShaderStage::StorageResourceDataType::uint:
-    case ShaderStage::StorageResourceDataType::float32:
+    case StorageResourceDataType::unorm:
+    case StorageResourceDataType::snorm:
+    case StorageResourceDataType::sint:
+    case StorageResourceDataType::uint:
+    case StorageResourceDataType::float32:
         return 4;
    
-    case ShaderStage::StorageResourceDataType::float64:
-    case ShaderStage::StorageResourceDataType::continued:
+    case StorageResourceDataType::float64:
+    case StorageResourceDataType::continued:
         return 8;
 
-    case ShaderStage::StorageResourceDataType::unknown:
+    case StorageResourceDataType::unknown:
         return 0;
     default:
         LEXGINE_ASSUME;

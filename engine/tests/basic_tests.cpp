@@ -1,4 +1,5 @@
 #include <sstream>
+#include <climits>
 #include <thread>
 #include <windows.h>
 #include <utility>
@@ -33,6 +34,7 @@
 #include <engine/core/globals.h>
 #include <engine/core/dx/d3d12/caches/root_signature_blob_cache.h>
 #include <engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h>
+#include <engine/core/dx/dxcompilation/shader_binding_layout.h>
 
 #include <dxcapi.h>
 #include <d3d12shader.h>
@@ -604,6 +606,326 @@ TEST(EngineTests_gpu, TestShaderReflectionBindingDescriptions)
     EXPECT_EQ(unbounded_desc.Dimension, D3D_SRV_DIMENSION_TEXTURE2D);
     EXPECT_EQ(unbounded_desc.Space, 20u);
     EXPECT_EQ(unbounded_desc.BindCount, 0u);
+}
+
+
+namespace
+{
+    using lexgine::core::dx::dxcompilation::BindingDomain;
+    using lexgine::core::dx::dxcompilation::BindingLayoutCompilationResult;
+    using lexgine::core::dx::dxcompilation::CompiledBindingLayout;
+    using lexgine::core::dx::dxcompilation::ReflectedDeclaration;
+    using lexgine::core::dx::dxcompilation::ResourceDimension;
+    using lexgine::core::dx::dxcompilation::ShaderInputKind;
+    using lexgine::core::dx::dxcompilation::ShaderType;
+    using lexgine::core::dx::dxcompilation::StorageBlockShaderInputInfo;
+    using lexgine::core::dx::dxcompilation::StorageResourceDataType;
+    using lexgine::core::dx::dxcompilation::TextureShaderInputInfo;
+    using lexgine::core::dx::dxcompilation::ViewRequirements;
+    using lexgine::core::dx::dxcompilation::compileBindingLayout;
+    using lexgine::core::dx::d3d12::DescriptorHeapType;
+    using lexgine::core::dx::d3d12::ShaderVisibility;
+    using lexgine::core::dx::d3d12::ShaderVisibleMemoryResourceType;
+
+    TextureShaderInputInfo texture2dView()
+    {
+        TextureShaderInputInfo info{};
+        info.dimension = ResourceDimension::texture2d;
+        info.data_type = StorageResourceDataType::float32;
+        return info;
+    }
+
+    StorageBlockShaderInputInfo rwTexture2dView()
+    {
+        StorageBlockShaderInputInfo info{};
+        info.dimension = ResourceDimension::texture2d;
+        info.data_type = StorageResourceDataType::float32;
+        return info;
+    }
+
+    ViewRequirements defaultView(ShaderInputKind kind)
+    {
+        switch (kind)
+        {
+        case ShaderInputKind::srv:
+            return texture2dView();
+        case ShaderInputKind::uav:
+            return rwTexture2dView();
+        default:
+            return std::monostate{};
+        }
+    }
+
+    ReflectedDeclaration declaration(ShaderType stage, char const* name, ShaderInputKind kind,
+        uint32_t first_register, uint32_t register_count, uint32_t register_space)
+    {
+        return ReflectedDeclaration{
+            .stage = stage,
+            .name = name,
+            .binding = { .kind = kind, .first_register = first_register, .register_count = register_count,
+                .register_space = register_space, .is_unbounded = false },
+            .view = defaultView(kind)
+        };
+    }
+
+    ReflectedDeclaration unboundedDeclaration(ShaderType stage, char const* name, ShaderInputKind kind,
+        uint32_t first_register, uint32_t register_space)
+    {
+        ReflectedDeclaration rv = declaration(stage, name, kind, first_register, 0, register_space);
+        rv.binding.is_unbounded = true;
+        return rv;
+    }
+
+    std::string errorOf(BindingLayoutCompilationResult const& result)
+    {
+        std::string const* p_error = std::get_if<std::string>(&result);
+        return p_error ? *p_error : std::string{};
+    }
+
+    void expectError(BindingLayoutCompilationResult const& result)
+    {
+        EXPECT_TRUE(std::holds_alternative<std::string>(result)) << "binding layout compilation was expected to fail";
+    }
+}
+
+TEST(EngineTests_Basic, BindingLayoutMergesOverlappingDeclarationsAcrossStages)
+{
+    auto result = compileBindingLayout({
+        declaration(ShaderType::vertex, "textures", ShaderInputKind::srv, 0, 4, 0),
+        declaration(ShaderType::pixel, "textures", ShaderInputKind::srv, 0, 8, 0)
+    }, {});
+    ASSERT_TRUE(std::holds_alternative<CompiledBindingLayout>(result)) << errorOf(result);
+    CompiledBindingLayout const& layout = std::get<CompiledBindingLayout>(result);
+
+    ASSERT_EQ(layout.descriptor_tables.size(), 1u);
+    auto const& ranges = layout.descriptor_tables[0].declaration.ranges();
+    ASSERT_EQ(ranges.size(), 1u);
+    EXPECT_EQ(ranges[0].base_register, 0u);
+    EXPECT_EQ(ranges[0].num_descriptors, 8u);
+    EXPECT_EQ(layout.descriptor_tables[0].descriptor_count, 8u);
+    EXPECT_EQ(layout.descriptor_tables[0].visibility, ShaderVisibility::all);
+    EXPECT_EQ(layout.bindings.at("textures").capacity, 8u);
+}
+
+TEST(EngineTests_Basic, BindingLayoutPacksResourceKindsOfDomainIntoSingleTable)
+{
+    auto result = compileBindingLayout({
+        declaration(ShaderType::pixel, "material_constants", ShaderInputKind::cbv, 2, 1, 10),
+        declaration(ShaderType::pixel, "albedo", ShaderInputKind::srv, 8, 1, 10),
+        declaration(ShaderType::pixel, "normals", ShaderInputKind::srv, 9, 1, 11),
+        declaration(ShaderType::pixel, "output", ShaderInputKind::uav, 0, 1, 12)
+    }, {});
+    ASSERT_TRUE(std::holds_alternative<CompiledBindingLayout>(result)) << errorOf(result);
+    CompiledBindingLayout const& layout = std::get<CompiledBindingLayout>(result);
+
+    ASSERT_EQ(layout.descriptor_tables.size(), 1u);
+    auto const& table = layout.descriptor_tables[0];
+    EXPECT_EQ(table.domain, BindingDomain::material);
+    EXPECT_EQ(table.heap_type, DescriptorHeapType::cbv_srv_uav);
+    EXPECT_EQ(table.visibility, ShaderVisibility::pixel);
+    EXPECT_EQ(table.descriptor_count, 4u);
+
+    auto const& ranges = table.declaration.ranges();
+    ASSERT_EQ(ranges.size(), 4u);
+    EXPECT_EQ(ranges[0].type, ShaderVisibleMemoryResourceType::cbv);
+    EXPECT_EQ(ranges[0].offset, 0u);
+    EXPECT_EQ(ranges[1].type, ShaderVisibleMemoryResourceType::srv);
+    EXPECT_EQ(ranges[1].offset, 1u);
+    EXPECT_EQ(ranges[2].type, ShaderVisibleMemoryResourceType::srv);
+    EXPECT_EQ(ranges[2].offset, 2u);
+    EXPECT_EQ(ranges[3].type, ShaderVisibleMemoryResourceType::uav);
+    EXPECT_EQ(ranges[3].offset, 3u);
+
+    EXPECT_EQ(layout.bindings.at("material_constants").first_descriptor, 0u);
+    EXPECT_EQ(layout.bindings.at("albedo").first_descriptor, 1u);
+    EXPECT_EQ(layout.bindings.at("normals").first_descriptor, 2u);
+    EXPECT_EQ(layout.bindings.at("output").first_descriptor, 3u);
+}
+
+TEST(EngineTests_Basic, BindingLayoutSeparatesDomainsAndHeapTypes)
+{
+    auto result = compileBindingLayout({
+        declaration(ShaderType::pixel, "frame_texture", ShaderInputKind::srv, 0, 1, 0),
+        declaration(ShaderType::pixel, "frame_sampler", ShaderInputKind::sampler, 0, 1, 0),
+        declaration(ShaderType::pixel, "material_texture", ShaderInputKind::srv, 0, 1, 10)
+    }, { 0 });
+    ASSERT_TRUE(std::holds_alternative<CompiledBindingLayout>(result)) << errorOf(result);
+    CompiledBindingLayout const& layout = std::get<CompiledBindingLayout>(result);
+
+    ASSERT_EQ(layout.root_constant_buffers.size(), 1u);
+    EXPECT_EQ(layout.root_constant_buffers[0].root_slot, 0u);
+    ASSERT_EQ(layout.descriptor_tables.size(), 3u);
+    EXPECT_EQ(layout.descriptor_tables[0].domain, BindingDomain::pass);
+    EXPECT_EQ(layout.descriptor_tables[0].heap_type, DescriptorHeapType::cbv_srv_uav);
+    EXPECT_EQ(layout.descriptor_tables[1].domain, BindingDomain::pass);
+    EXPECT_EQ(layout.descriptor_tables[1].heap_type, DescriptorHeapType::sampler);
+    EXPECT_EQ(layout.descriptor_tables[2].domain, BindingDomain::material);
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        EXPECT_EQ(layout.descriptor_tables[i].root_slot, i + 1);
+    }
+}
+
+TEST(EngineTests_Basic, BindingLayoutRejectsIncompatibleOverlappingDeclarations)
+{
+    ReflectedDeclaration texture_array = declaration(ShaderType::pixel, "texture_array", ShaderInputKind::srv, 0, 1, 0);
+    std::get<TextureShaderInputInfo>(texture_array.view).is_array = true;
+
+    expectError(compileBindingLayout({
+        declaration(ShaderType::vertex, "texture", ShaderInputKind::srv, 0, 1, 0),
+        texture_array
+    }, {}));
+
+    expectError(compileBindingLayout({
+        declaration(ShaderType::vertex, "linear_sampler", ShaderInputKind::sampler, 0, 1, 0),
+        declaration(ShaderType::pixel, "shadow_sampler", ShaderInputKind::comparison_sampler, 0, 1, 0)
+    }, {}));
+}
+
+TEST(EngineTests_Basic, BindingLayoutAcceptsAliasesWithCompatibleViews)
+{
+    auto result = compileBindingLayout({
+        declaration(ShaderType::vertex, "height_map", ShaderInputKind::srv, 0, 1, 0),
+        declaration(ShaderType::pixel, "displacement", ShaderInputKind::srv, 0, 1, 0)
+    }, {});
+    ASSERT_TRUE(std::holds_alternative<CompiledBindingLayout>(result)) << errorOf(result);
+    CompiledBindingLayout const& layout = std::get<CompiledBindingLayout>(result);
+
+    ASSERT_EQ(layout.descriptor_tables.size(), 1u);
+    EXPECT_EQ(layout.descriptor_tables[0].descriptor_count, 1u);
+    EXPECT_EQ(layout.bindings.at("height_map").first_descriptor, layout.bindings.at("displacement").first_descriptor);
+}
+
+TEST(EngineTests_Basic, BindingLayoutRejectsConflictingNames)
+{
+    expectError(compileBindingLayout({
+        declaration(ShaderType::vertex, "texture", ShaderInputKind::srv, 0, 1, 0),
+        declaration(ShaderType::pixel, "texture", ShaderInputKind::srv, 1, 1, 0)
+    }, {}));
+}
+
+TEST(EngineTests_Basic, BindingLayoutDerivesVisibilityFromReferencingStages)
+{
+    auto result = compileBindingLayout({
+        declaration(ShaderType::vertex, "vertex_data", ShaderInputKind::srv, 0, 1, 0),
+        declaration(ShaderType::pixel, "pixel_sampler", ShaderInputKind::sampler, 0, 1, 0)
+    }, {});
+    ASSERT_TRUE(std::holds_alternative<CompiledBindingLayout>(result)) << errorOf(result);
+    CompiledBindingLayout const& layout = std::get<CompiledBindingLayout>(result);
+
+    ASSERT_EQ(layout.descriptor_tables.size(), 2u);
+    EXPECT_EQ(layout.descriptor_tables[0].visibility, ShaderVisibility::vertex);
+    EXPECT_EQ(layout.descriptor_tables[1].visibility, ShaderVisibility::pixel);
+}
+
+TEST(EngineTests_Basic, BindingLayoutRestrictsUnboundedArraysToBindlessSpaces)
+{
+    expectError(compileBindingLayout({
+        unboundedDeclaration(ShaderType::pixel, "textures", ShaderInputKind::srv, 0, 0)
+    }, {}));
+
+    expectError(compileBindingLayout({
+        declaration(ShaderType::pixel, "texture", ShaderInputKind::srv, 0, 1, 20)
+    }, {}));
+
+    expectError(compileBindingLayout({
+        unboundedDeclaration(ShaderType::pixel, "textures_a", ShaderInputKind::srv, 0, 20),
+        unboundedDeclaration(ShaderType::pixel, "textures_b", ShaderInputKind::srv, 4, 20)
+    }, {}));
+}
+
+TEST(EngineTests_Basic, BindingLayoutPlacesBindlessArraysIntoSingleHeapWideTable)
+{
+    ReflectedDeclaration cube_textures = unboundedDeclaration(ShaderType::pixel, "cube_textures", ShaderInputKind::srv, 0, 21);
+    std::get<TextureShaderInputInfo>(cube_textures.view).is_cube = true;
+
+    auto result = compileBindingLayout({
+        unboundedDeclaration(ShaderType::pixel, "textures_2d", ShaderInputKind::srv, 0, 20),
+        cube_textures
+    }, {});
+    ASSERT_TRUE(std::holds_alternative<CompiledBindingLayout>(result)) << errorOf(result);
+    CompiledBindingLayout const& layout = std::get<CompiledBindingLayout>(result);
+
+    ASSERT_EQ(layout.descriptor_tables.size(), 1u);
+    auto const& table = layout.descriptor_tables[0];
+    EXPECT_EQ(table.domain, BindingDomain::bindless);
+    EXPECT_EQ(table.descriptor_count, 0u);
+    auto const& ranges = table.declaration.ranges();
+    ASSERT_EQ(ranges.size(), 2u);
+    for (auto const& range : ranges)
+    {
+        EXPECT_EQ(range.offset, 0u);
+        EXPECT_EQ(range.num_descriptors, UINT_MAX);
+    }
+    EXPECT_TRUE(layout.bindings.at("textures_2d").is_unbounded);
+    EXPECT_EQ(layout.bindings.at("cube_textures").first_descriptor, 0u);
+}
+
+TEST(EngineTests_Basic, BindingLayoutValidatesRootConstantBuffers)
+{
+    auto result = compileBindingLayout({
+        declaration(ShaderType::vertex, "scene_data", ShaderInputKind::cbv, 0, 1, 100)
+    }, { 0 });
+    ASSERT_TRUE(std::holds_alternative<CompiledBindingLayout>(result)) << errorOf(result);
+    CompiledBindingLayout const& layout = std::get<CompiledBindingLayout>(result);
+    EXPECT_TRUE(layout.descriptor_tables.empty());
+    EXPECT_FALSE(layout.bindings.contains("scene_data"));
+
+    expectError(compileBindingLayout({
+        declaration(ShaderType::vertex, "object_data", ShaderInputKind::cbv, 1, 1, 100)
+    }, { 0 }));
+
+    expectError(compileBindingLayout({
+        declaration(ShaderType::vertex, "texture", ShaderInputKind::srv, 0, 1, 100)
+    }, { 0 }));
+
+    expectError(compileBindingLayout({
+        declaration(ShaderType::vertex, "texture", ShaderInputKind::srv, 0, 1, 50)
+    }, {}));
+}
+
+TEST(EngineTests_Basic, BindingLayoutIsIndependentOfDeclarationOrder)
+{
+    std::vector<ReflectedDeclaration> declarations{
+        declaration(ShaderType::vertex, "frame_constants", ShaderInputKind::cbv, 0, 1, 0),
+        declaration(ShaderType::pixel, "frame_texture", ShaderInputKind::srv, 3, 2, 1),
+        declaration(ShaderType::pixel, "frame_sampler", ShaderInputKind::sampler, 0, 1, 0),
+        declaration(ShaderType::pixel, "material_texture", ShaderInputKind::srv, 0, 1, 10),
+        declaration(ShaderType::vertex, "material_texture", ShaderInputKind::srv, 0, 1, 10)
+    };
+
+    auto reference_result = compileBindingLayout(declarations, { 0 });
+    ASSERT_TRUE(std::holds_alternative<CompiledBindingLayout>(reference_result)) << errorOf(reference_result);
+    CompiledBindingLayout const& reference = std::get<CompiledBindingLayout>(reference_result);
+
+    std::reverse(declarations.begin(), declarations.end());
+    auto reversed_result = compileBindingLayout(declarations, { 0 });
+    ASSERT_TRUE(std::holds_alternative<CompiledBindingLayout>(reversed_result)) << errorOf(reversed_result);
+    CompiledBindingLayout const& reversed = std::get<CompiledBindingLayout>(reversed_result);
+
+    ASSERT_EQ(reference.descriptor_tables.size(), reversed.descriptor_tables.size());
+    for (size_t i = 0; i < reference.descriptor_tables.size(); ++i)
+    {
+        auto const& lhs = reference.descriptor_tables[i];
+        auto const& rhs = reversed.descriptor_tables[i];
+        EXPECT_EQ(lhs.domain, rhs.domain);
+        EXPECT_EQ(lhs.heap_type, rhs.heap_type);
+        EXPECT_EQ(lhs.visibility, rhs.visibility);
+        EXPECT_EQ(lhs.root_slot, rhs.root_slot);
+        ASSERT_EQ(lhs.declaration.ranges().size(), rhs.declaration.ranges().size());
+        for (size_t j = 0; j < lhs.declaration.ranges().size(); ++j)
+        {
+            EXPECT_EQ(lhs.declaration.ranges()[j].base_register, rhs.declaration.ranges()[j].base_register);
+            EXPECT_EQ(lhs.declaration.ranges()[j].register_space, rhs.declaration.ranges()[j].register_space);
+            EXPECT_EQ(lhs.declaration.ranges()[j].offset, rhs.declaration.ranges()[j].offset);
+        }
+    }
+
+    for (auto const& [name, placement] : reference.bindings)
+    {
+        EXPECT_EQ(placement.table, reversed.bindings.at(name).table);
+        EXPECT_EQ(placement.first_descriptor, reversed.bindings.at(name).first_descriptor);
+    }
 }
 
 class LogTestBase : public testing::Test

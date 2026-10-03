@@ -15,6 +15,7 @@
 #include "engine/core/misc/hashes/xxhash128.h"
 #include "lexgine_core_dx_dxcompilation_fwd.h"
 #include "common.h"
+#include "shader_binding_layout.h"
 
 
 namespace lexgine::core::dx::dxcompilation {
@@ -49,45 +50,12 @@ class ShaderFunction : public NamedEntity<ShaderFunction>, public ProvidesGlobal
 {
     friend class ShaderFunctionAttorney<ShaderStage>;
 public:
-    constexpr static uint32_t c_reserved_constant_buffer_space_id = 100;
+    constexpr static uint32_t c_reserved_constant_buffer_space_id = c_root_constant_buffer_register_space;
 
-    enum class ShaderInputKind 
-    {
-        srv, 
-        uav, 
-        cbv,
-        sampler, 
-        comparison_sampler,
-        count
-    };
-
-    struct ShaderBindingPoint {
-        ShaderInputKind kind;
-        uint32_t first_register;
-        uint32_t register_count;
-        uint32_t register_space;
-        bool is_unbounded;
-
-        bool operator==(ShaderBindingPoint const&) const = default;
-    };
-
-    struct ShaderInputBindingPointHash {
-        size_t operator()(ShaderBindingPoint const& binding_point) const
-        {
-            uint32_t const fields[] = {
-                static_cast<uint32_t>(binding_point.kind),
-                binding_point.first_register,
-                binding_point.register_count,
-                binding_point.register_space,
-                static_cast<uint32_t>(binding_point.is_unbounded)
-            };
-
-            misc::hashes::XXHash128 hash_value{};
-            hash_value.create(fields, sizeof(fields));
-            hash_value.finalize();
-            return static_cast<size_t>(hash_value.fold());
-        }
-    };
+public:
+    using ShaderInputKind = dxcompilation::ShaderInputKind;
+    using ShaderBindingPoint = dxcompilation::ShaderBindingPoint;
+    using ShaderInputBindingPointHash = dxcompilation::ShaderInputBindingPointHash;
 
 public:
     ShaderFunction(Globals& globals, ShaderFunctionRootUniformBuffers const& flags);

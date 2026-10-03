@@ -100,68 +100,6 @@ public:
     bool isReady() const { return m_is_ready; }
 
 private:
-    enum class StorageResourceDataType 
-    {
-        unorm = 1,
-        snorm,
-        sint,
-        uint,
-        float32,
-        unknown,
-        float64,
-        continued
-    };
-
-    enum class ResourceDimension
-    {
-        texture1d,
-        texture2d,
-        texture3d,
-        buffer,
-        none
-    };
-
-    enum class TextureResourceType
-    {
-        resource_with_dimension,
-        tbuffer,
-        structured_buffer,
-        raw_buffer
-    };
-
-    enum class StorageBlockResourceType
-    {
-        resource_with_dimension,
-        structured_buffer,
-        structured_buffer_with_counter,
-        raw_buffer,
-        append_structured_buffer,
-        consume_structured_buffer
-    };
-
-    struct TextureShaderInputInfo
-    {
-        bool is_cube = false;
-        bool is_ms = false;
-        bool is_array = false;
-        bool is_buffer = false;
-        uint32_t ms_count;
-        TextureResourceType resource_type;
-        ResourceDimension dimension = ResourceDimension::none;
-        StorageResourceDataType data_type;
-    };
-
-    struct StorageBlockShaderInputInfo
-    {
-        bool is_ms = false;
-        bool is_array = false;
-        bool is_buffer = false;
-        StorageBlockResourceType resource_type;
-        ResourceDimension dimension = ResourceDimension::none;
-        StorageResourceDataType data_type;
-    };
-
-private:
     ShaderStage(Globals const& globals, d3d12::caches::HLSLShaderHandle shader_handle, ShaderFunction* p_owning_shader_function);
 
     static uint32_t getDataTypeSize(StorageResourceDataType data_type);
