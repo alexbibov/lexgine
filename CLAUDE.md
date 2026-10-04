@@ -9,6 +9,10 @@
 * Demo and test binaries land in `<build-dir>/bin/<config>/`; the demo is `swe.exe`.
 * Integrate branches by rebasing, _NEVER_ by merging. No merge commits: use `git rebase` to replay work onto
   the target branch, and `git pull --rebase` to take upstream changes. History stays linear.
+* Terminology for publishing work:
+    * **push** means pushing the current branch to its own remote branch (e.g. `dev` to `origin/dev`). It never
+      touches `master`.
+    * **land** means rebasing the current branch onto `master` and pushing the result to `origin/master`.
 
 # Commit conventions
 * Commit messages are short and to the point.
