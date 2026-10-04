@@ -61,12 +61,12 @@ void TaskSink::submit(uint64_t user_data)
 
     uint64_t error_status{ 0x0 };
     m_source_task_graph.setUserData(user_data);
+    uint32_t yield_counter{ 0U };
 
     while (!TaskGraphAttorney<TaskSink>::isTaskGraphCompleted(m_source_task_graph)
         && !(error_status = m_error_watchdog.load(std::memory_order_acquire)))
     {
         bool some_tasks_were_dispatched{ false };
-        uint32_t yield_counter{ 0U };
 
         // try to put more tasks into the task queue
         for (auto& task : m_source_task_graph)
