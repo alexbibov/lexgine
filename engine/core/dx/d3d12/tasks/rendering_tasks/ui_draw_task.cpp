@@ -596,14 +596,12 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
         m_constant_buffer_reflection = p_vs_stage->buildConstantBufferReflection(std::string{ "constants" });
         m_constant_data_mapper.addOrUpdateDataBinding("ProjectionMatrix", m_projection_matrix);
 
-        DescriptorHeap& resource_heap = m_device.descriptorHeap(DescriptorHeapType::cbv_srv_uav);
-        DescriptorHeap& sampler_heap = m_device.descriptorHeap(DescriptorHeapType::sampler);
+        m_texture_table_id = m_shader_function.findDescriptorTable(dxcompilation::BindingDomain::pass, DescriptorHeapType::cbv_srv_uav).value();
+        m_sampler_table = m_shader_function.createDescriptorTable(
+            m_shader_function.findDescriptorTable(dxcompilation::BindingDomain::pass, DescriptorHeapType::sampler).value(),
+            m_device.persistentDescriptorAllocator(DescriptorHeapType::sampler));
 
-        m_shader_function.assignResourceDescriptors(dxcompilation::ShaderFunction::ShaderInputKind::srv, 0, DescriptorAllocationManager{ resource_heap });
-        m_shader_function.assignResourceDescriptors(dxcompilation::ShaderFunction::ShaderInputKind::sampler, 0, DescriptorAllocationManager{ sampler_heap });
-
-        // p_ps_stage->bindTexture(std::string{ "texture0" }, *m_fonts_texture);
-        p_ps_stage->bindSampler(std::string{ "sampler0" }, FilterPack{ MinificationFilter::linear, MagnificationFilter::linear, 16,
+        m_shader_function.bindSampler(m_sampler_table, "sampler0", FilterPack{ MinificationFilter::linear, MagnificationFilter::linear, 16,
             WrapMode::clamp, WrapMode::clamp, WrapMode::clamp }, math::Vector4f{ 0.f });
     }
     
@@ -803,8 +801,8 @@ void UIDrawTask::drawFrame()
             auto allocation = m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_constant_data_mapper);
             
             m_shader_function.bindRootConstantBuffer(*m_cmd_list_ptr, dxcompilation::ShaderFunctionConstantBufferRootIds::scene_uniforms, allocation->virtualGpuAddress());
-            m_shader_function.bindResourceDescriptors(*m_cmd_list_ptr, dxcompilation::ShaderFunction::ShaderInputKind::srv, 0);
-            m_shader_function.bindResourceDescriptors(*m_cmd_list_ptr, dxcompilation::ShaderFunction::ShaderInputKind::sampler, 0);
+            m_shader_function.setDescriptorTable(*m_cmd_list_ptr, m_sampler_table);
+            m_currentlyBoundImGuiTextureId = ImTextureID_Invalid;
         };
 
         // upload vertex data and set rendering context state
@@ -890,11 +888,13 @@ void UIDrawTask::drawFrame()
                         math::Vector2f scissor_rectangle_size = clip_max - clip_min;
                         scissor_rectangle.setSize(scissor_rectangle_size.x, scissor_rectangle_size.y);
                         m_cmd_list_ptr->rasterizerStateSetScissorRectangles(m_scissor_rectangles);
-                        auto* p_shader_stage = m_shader_function.getShaderStage(dxcompilation::ShaderType::pixel);
                         ImTextureID textureId = p_draw_command->GetTexID();
                         if (textureId != m_currentlyBoundImGuiTextureId)
                         {
-                            p_shader_stage->bindTexture("texture0", *m_imgui_textures[textureId]);
+                            dxcompilation::ShaderFunctionDescriptorTable texture_table = m_shader_function.createDescriptorTable(m_texture_table_id,
+                                m_device.transientDescriptorAllocator());
+                            m_shader_function.bindTexture(texture_table, "texture0", *m_imgui_textures[textureId]);
+                            m_shader_function.setDescriptorTable(*m_cmd_list_ptr, texture_table);
                             m_currentlyBoundImGuiTextureId = textureId;
                         }
                         m_cmd_list_ptr->drawIndexedInstanced(

@@ -407,6 +407,7 @@ public:
     DescriptorHeap& descriptorHeap(DescriptorHeapType type);    //! retrieves descriptor heap of the given type owned by this device
     PersistentDescriptorAllocator& persistentDescriptorAllocator(DescriptorHeapType type);    //! retrieves allocator of persistent descriptors residing in the descriptor heap of the given type owned by this device
     TransientDescriptorAllocator& transientDescriptorAllocator();    //! retrieves allocator of per-frame descriptors residing in the cbv_srv_uav descriptor heap owned by this device
+    BindlessDescriptorCache& bindlessDescriptorCache();    //! retrieves cache of persistent shader resource views accessed through bindless descriptor tables
 
     /*! creates heap of one of the abstract types. Here parameter node_mask identifies the node where the heap will reside (exactly one bit in the mask corresponding to the target node should be set),
      and node_exposure_mask identifies, which nodes will "see" the heap (the bits corresponding to these nodes should be set)
@@ -473,6 +474,7 @@ private:
     std::array<std::unique_ptr<DescriptorHeap>, static_cast<size_t>(DescriptorHeapType::count)> m_descriptor_heaps;    //!< descriptor heaps owned by this device indexed by DescriptorHeapType
     std::array<std::unique_ptr<PersistentDescriptorAllocator>, static_cast<size_t>(DescriptorHeapType::count)> m_persistent_descriptor_allocators;    //!< persistent descriptor allocators indexed by DescriptorHeapType
     std::unique_ptr<TransientDescriptorAllocator> m_transient_descriptor_allocator;    //!< per-frame descriptor allocator residing in the cbv_srv_uav descriptor heap
+    std::unique_ptr<BindlessDescriptorCache> m_bindless_descriptor_cache;    //!< cache of persistent shader resource views accessed through bindless descriptor tables
 
     mutable std::unique_ptr<FeatureD3D12Options> m_features;    //!< device features
 };

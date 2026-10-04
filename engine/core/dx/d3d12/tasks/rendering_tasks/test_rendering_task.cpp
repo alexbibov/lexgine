@@ -7,6 +7,7 @@
 #include "engine/core/rendering_configuration.h"
 #include "engine/core/math/utility.h"
 #include "engine/core/dx/d3d12/device.h"
+#include "engine/core/dx/d3d12/descriptor_allocator.h"
 #include "engine/core/dx/d3d12/basic_rendering_services.h"
 #include "engine/core/dx/d3d12/caches/root_signature_blob_cache.h"
 #include "engine/core/dx/d3d12/caches/pso_blob_cache.h"
@@ -199,13 +200,15 @@ TestRenderingTask::TestRenderingTask(Globals& globals, BasicRenderingServices& r
         m_shader_function.collectInputResourceBindings();
         m_rs_handle = m_shader_function.buildInputResourceBindings();
 
-        DescriptorHeap& resource_heap = m_device.descriptorHeap(DescriptorHeapType::cbv_srv_uav);
-        DescriptorHeap& sampler_heap = m_device.descriptorHeap(DescriptorHeapType::sampler);
-        m_shader_function.assignResourceDescriptors(dxcompilation::ShaderFunction::ShaderInputKind::srv, 0, DescriptorAllocationManager{ resource_heap });
-        m_shader_function.assignResourceDescriptors(dxcompilation::ShaderFunction::ShaderInputKind::sampler, 0, DescriptorAllocationManager{ sampler_heap });
+        m_texture_table = m_shader_function.createDescriptorTable(
+            m_shader_function.findDescriptorTable(dxcompilation::BindingDomain::pass, DescriptorHeapType::cbv_srv_uav).value(),
+            m_device.persistentDescriptorAllocator(DescriptorHeapType::cbv_srv_uav));
+        m_sampler_table = m_shader_function.createDescriptorTable(
+            m_shader_function.findDescriptorTable(dxcompilation::BindingDomain::pass, DescriptorHeapType::sampler).value(),
+            m_device.persistentDescriptorAllocator(DescriptorHeapType::sampler));
 
-        p_ps_stage->bindTexture(std::string { "SampleTexture" }, m_texture);
-        p_ps_stage->bindSampler(std::string { "BillinearSampler" },
+        m_shader_function.bindTexture(m_texture_table, "SampleTexture", m_texture);
+        m_shader_function.bindSampler(m_sampler_table, "BillinearSampler",
             FilterPack { MinificationFilter::linear, MagnificationFilter::linear, 16, WrapMode::clamp, WrapMode::clamp, WrapMode::clamp },
             math::Vector4f { 0.f });
 
@@ -279,8 +282,8 @@ bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
         m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_cb_data_mapping);
 
     m_shader_function.bindRootConstantBuffer(*m_cmd_list_ptr, dxcompilation::ShaderFunctionConstantBufferRootIds::scene_uniforms, m_allocation->virtualGpuAddress());
-    m_shader_function.bindResourceDescriptors(*m_cmd_list_ptr, dxcompilation::ShaderFunction::ShaderInputKind::srv, 0);
-    m_shader_function.bindResourceDescriptors(*m_cmd_list_ptr, dxcompilation::ShaderFunction::ShaderInputKind::sampler, 0);
+    m_shader_function.setDescriptorTable(*m_cmd_list_ptr, m_texture_table);
+    m_shader_function.setDescriptorTable(*m_cmd_list_ptr, m_sampler_table);
     m_cmd_list_ptr->drawIndexedInstanced(36, 1, 0, 0, 0);
 
     return true;

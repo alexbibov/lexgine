@@ -136,6 +136,8 @@ private:
     CompiledRootSignature const* m_compiled_rs = nullptr;
     VertexAttributeSpecificationList m_va_list;
     dxcompilation::ShaderFunction m_shader_function;
+    dxcompilation::DescriptorTableId m_texture_table_id{ dxcompilation::ShaderFunctionDescriptorTable::c_invalid_id };
+    dxcompilation::ShaderFunctionDescriptorTable m_sampler_table;
     GraphicsPSODescriptor m_pso_desc;
 
     ConstantBufferReflection m_constant_buffer_reflection;

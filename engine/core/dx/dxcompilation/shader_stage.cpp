@@ -7,7 +7,6 @@
 #include "engine/core/dx/d3d12/d3d_data_blob.h"
 #include "engine/core/misc/log.h"
 #include "engine/core/misc/strict_weak_ordering.h"
-#include "engine/core/dx/d3d12/descriptor_allocation_manager.h"
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
 
 #include "shader_stage.h"
@@ -81,24 +80,6 @@ void collectStructReflection(ID3D12ShaderReflectionType* p_type_reflection, D3D1
     }
 }
 
-const char shaderInputKindToRegisterLiteral(ShaderFunction::ShaderInputKind kind)
-{
-    switch (kind)
-    {
-    case ShaderFunction::ShaderInputKind::srv:
-        return 't';
-    case ShaderFunction::ShaderInputKind::uav:
-        return 'u';
-    case ShaderFunction::ShaderInputKind::cbv:
-        return 'b';
-    case ShaderFunction::ShaderInputKind::sampler:
-    case ShaderFunction::ShaderInputKind::comparison_sampler:
-        return 's';
-    default:
-        return 0;
-    }
-}
-
 }
 
 void ShaderStage::build()
@@ -160,189 +141,6 @@ void ShaderStage::build()
 unsigned int ShaderStage::getInstructionCount()
 {
     return static_cast<unsigned int>(m_shader_desc.InstructionCount);
-}
-
-BindingResult ShaderStage::bindTexture(misc::HashedString const& name, d3d12::Resource const& texture, uint32_t register_offset/* = 0*/)
-{
-    return bindInternal(name, register_offset,
-        [this, &texture, register_offset]
-        (ShaderFunction::ShaderBindingPoint const& binding_point, d3d12::DescriptorAllocationManager* p_allocator) -> size_t
-        {
-            assert(binding_point.kind == ShaderFunction::ShaderInputKind::srv);
-
-            TextureShaderInputInfo& texture_info = m_texture_shader_inputs[binding_point];
-            assert(texture_info.resource_type == TextureResourceType::resource_with_dimension
-                && !texture_info.is_buffer
-                && !texture_info.is_array
-                && (texture_info.dimension == ResourceDimension::texture1d
-                    || texture_info.dimension == ResourceDimension::texture2d
-                    || texture_info.dimension == ResourceDimension::texture3d));
-
-            d3d12::SRVTextureInfo info {};
-            return p_allocator->getOrCreateDescriptor(binding_point.first_register + register_offset, core::dx::d3d12::SRVDescriptor { texture, info, texture_info.is_cube });
-        }
-    );
-}
-
-BindingResult ShaderStage::bindTextureArray(misc::HashedString const& name, d3d12::Resource const& texture,
-    uint32_t first_array_element, uint32_t array_element_count, uint32_t register_offset/* = 0*/)
-{
-    return bindInternal(name, register_offset,
-        [this, &texture, first_array_element, array_element_count, register_offset]
-    (ShaderFunction::ShaderBindingPoint const& binding_point, d3d12::DescriptorAllocationManager* p_allocator) -> size_t
-        {
-            assert(binding_point.kind == ShaderFunction::ShaderInputKind::srv);
-
-            TextureShaderInputInfo& texture_info = m_texture_shader_inputs[binding_point];
-            assert(texture_info.resource_type == TextureResourceType::resource_with_dimension
-                && texture_info.is_array
-                && (texture_info.dimension == ResourceDimension::texture1d
-                    || texture_info.dimension == ResourceDimension::texture2d));
-
-            d3d12::SRVTextureArrayInfo info{};
-            info.first_array_element = first_array_element;
-            info.num_array_elements = array_element_count;
-            return p_allocator->getOrCreateDescriptor(binding_point.first_register + register_offset, core::dx::d3d12::SRVDescriptor{ texture, info, texture_info.is_cube });
-        });
-}
-
-BindingResult ShaderStage::bindTextureBuffer(misc::HashedString const& name, d3d12::Resource const& buffer_texture, uint64_t first_buffer_element, uint32_t buffer_element_stride, uint32_t register_offset/* = 0*/)
-{
-    return bindInternal(name, register_offset,
-        [this, &buffer_texture, first_buffer_element, buffer_element_stride, register_offset]
-    (ShaderFunction::ShaderBindingPoint const& binding_point, d3d12::DescriptorAllocationManager* p_allocator) -> size_t {
-            assert(binding_point.kind == ShaderFunction::ShaderInputKind::srv);
-
-            TextureShaderInputInfo& texture_info = m_texture_shader_inputs[binding_point];
-            assert(texture_info.resource_type == TextureResourceType::tbuffer
-                || texture_info.resource_type == TextureResourceType::structured_buffer
-                || texture_info.resource_type == TextureResourceType::raw_buffer);
-
-            d3d12::ResourceDescriptor const& resource_desc = buffer_texture.descriptor();
-            assert(resource_desc.dimension == d3d12::ResourceDimension::buffer);
-
-            uint32_t stride{};
-            if (texture_info.resource_type == TextureResourceType::tbuffer) {
-                stride = getDataTypeSize(texture_info.data_type);
-            }
-            else if (texture_info.resource_type == TextureResourceType::raw_buffer) {
-                stride = 1;
-            }
-            else {
-                stride = buffer_element_stride;
-            }
-
-            d3d12::SRVBufferInfo info{
-                .first_element = first_buffer_element,
-                .num_elements = static_cast<uint32_t>((resource_desc.width - first_buffer_element * buffer_element_stride) / buffer_element_stride),
-                .structure_byte_stride = buffer_element_stride,
-                .flags = texture_info.resource_type == TextureResourceType::raw_buffer ? d3d12::SRVBufferInfoFlags::raw : d3d12::SRVBufferInfoFlags::none
-            };
-
-            d3d12::SRVDescriptor srv_descriptor{ buffer_texture, info };
-            if (texture_info.resource_type == TextureResourceType::raw_buffer) {
-                srv_descriptor.overrideFormat(DXGI_FORMAT_R32_TYPELESS);
-            }
-
-            return p_allocator->getOrCreateDescriptor(binding_point.first_register + register_offset, srv_descriptor);
-        });
-}
-
-BindingResult ShaderStage::bindConstantBuffer(misc::HashedString const& name, d3d12::Resource const& buffer, uint32_t offset_from_buffer_start, uint32_t size_in_bytes, uint32_t register_offset/* = 0*/)
-{
-    return bindInternal(name, register_offset,
-        [this, &buffer, offset_from_buffer_start, size_in_bytes, register_offset]
-    (ShaderFunction::ShaderBindingPoint const& binding_point, d3d12::DescriptorAllocationManager* p_allocator) -> size_t {
-            assert(binding_point.kind == ShaderFunction::ShaderInputKind::cbv);
-
-            return p_allocator->getOrCreateDescriptor(binding_point.first_register + register_offset, d3d12::CBVDescriptor{ buffer, offset_from_buffer_start, size_in_bytes });
-        });
-}
-
-BindingResult ShaderStage::bindStorageBlock(misc::HashedString const& name, d3d12::Resource const& storage_block, uint64_t first_buffer_element, uint32_t buffer_element_stride, uint32_t register_offset/* = 0*/)
-{
-    return bindInternal(name, register_offset,
-        [this, &storage_block, first_buffer_element, buffer_element_stride, register_offset]
-    (ShaderFunction::ShaderBindingPoint const& binding_point, d3d12::DescriptorAllocationManager* p_allocator) -> size_t
-        {
-            assert(binding_point.kind == ShaderFunction::ShaderInputKind::uav);
-
-            StorageBlockShaderInputInfo& storage_block_info = m_storage_block_shader_inputs[binding_point];
-            switch (storage_block_info.resource_type)
-            {
-            case StorageBlockResourceType::resource_with_dimension:
-            {
-                if (storage_block_info.is_array)
-                {
-                    d3d12::UAVTextureArrayInfo info{};
-                    info.num_array_elements = static_cast<uint32_t>(storage_block.descriptor().depth);
-                    return p_allocator->getOrCreateDescriptor(binding_point.first_register + register_offset, d3d12::UAVDescriptor{ storage_block, info });
-                }
-                else
-                {
-                    d3d12::UAVTextureInfo info{};
-                    return p_allocator->getOrCreateDescriptor(binding_point.first_register + register_offset, d3d12::UAVDescriptor{ storage_block, info });
-                }
-                break;
-            }
-
-            case StorageBlockResourceType::structured_buffer_with_counter:
-            case StorageBlockResourceType::append_structured_buffer:
-            {
-                auto atomic_counter_desc = ShaderFunctionAttorney<ShaderStage>::allocateAtomicCounter(*m_owning_shader_function_ptr);
-                d3d12::ResourceDescriptor const& resource_desc = storage_block.descriptor();
-                d3d12::UAVBufferInfo info{
-                    .first_element = 0,
-                    .num_elements = static_cast<uint32_t>((resource_desc.width - first_buffer_element * buffer_element_stride) / buffer_element_stride),
-                    .structure_byte_stride = buffer_element_stride,
-                    .counter_offset_in_bytes = atomic_counter_desc.offset
-                };
-
-                return p_allocator->getOrCreateDescriptor(binding_point.first_register + register_offset, d3d12::UAVDescriptor{ storage_block, info, &atomic_counter_desc.atomic_counter_resource });
-            }
-
-            case StorageBlockResourceType::structured_buffer:
-            case StorageBlockResourceType::raw_buffer:
-            {
-                d3d12::ResourceDescriptor const& resource_desc = storage_block.descriptor();
-                d3d12::UAVBufferInfo info {
-                    .first_element = 0,
-                    .num_elements = static_cast<uint32_t>((resource_desc.width - first_buffer_element * buffer_element_stride) / buffer_element_stride),
-                    .structure_byte_stride = buffer_element_stride,
-                    .counter_offset_in_bytes = 0
-                };
-                if (storage_block_info.resource_type == StorageBlockResourceType::raw_buffer)
-                {
-                    info.flags = d3d12::UnorderedAccessViewBufferInfoFlags::raw;
-                }
-
-                d3d12::UAVDescriptor desc{ storage_block, info };
-                if (storage_block_info.resource_type == StorageBlockResourceType::raw_buffer)
-                {
-                    desc.overrideFormat(DXGI_FORMAT_R32_TYPELESS);
-                }
-
-                return p_allocator->getOrCreateDescriptor(binding_point.first_register + register_offset, desc);
-            }
-
-            default:
-                return d3d12::DescriptorAllocationManager::INVALID_POINTER;
-            }
-
-            return d3d12::DescriptorAllocationManager::INVALID_POINTER;
-        });
-}
-
-
-BindingResult ShaderStage::bindSampler(misc::HashedString const& name, FilterPack const& filter, math::Vector4f const& border_color, uint32_t register_offset/* = 0*/)
-{
-    return bindInternal(name, register_offset,
-        [&filter, &border_color, register_offset]
-    (ShaderFunction::ShaderBindingPoint const& binding_point, d3d12::DescriptorAllocationManager* p_allocator)->size_t
-        {
-            d3d12::SamplerDescriptor desc{ filter, border_color };
-            return p_allocator->getOrCreateDescriptor(binding_point.first_register + register_offset, desc);
-        });
 }
 
 lexgine::core::dx::d3d12::D3DDataBlob ShaderStage::getShaderBytecode() const
@@ -440,29 +238,6 @@ ShaderStage::ShaderStage(Globals const& globals, d3d12::caches::HLSLShaderHandle
     , m_shader_name { m_shader_blob_cache.getShaderCacheName(shader_handle) }
 {
     
-}
-
-uint32_t ShaderStage::getDataTypeSize(StorageResourceDataType data_type)
-{
-    switch (data_type)
-    {
-    case StorageResourceDataType::unorm:
-    case StorageResourceDataType::snorm:
-    case StorageResourceDataType::sint:
-    case StorageResourceDataType::uint:
-    case StorageResourceDataType::float32:
-        return 4;
-   
-    case StorageResourceDataType::float64:
-    case StorageResourceDataType::continued:
-        return 8;
-
-    case StorageResourceDataType::unknown:
-        return 0;
-    default:
-        LEXGINE_ASSUME;
-    }
-    return 0;
 }
 
 void ShaderStage::collectShaderBindings()
@@ -868,44 +643,31 @@ void ShaderStage::collectShaderArguments(ShaderArgumentKind kind)
     }
 }
 
-BindingResult ShaderStage::bindInternal(misc::HashedString const& name, size_t register_offset, 
-    std::function<size_t(ShaderFunction::ShaderBindingPoint const&, d3d12::DescriptorAllocationManager*)> const& descriptor_creator)
+std::vector<ReflectedDeclaration> ShaderStage::reflectedDeclarations() const
 {
-    if (!m_shader_resource_names_pool.contains(name)) {
-        misc::Log::retrieve()->out(std::string { "ERROR: cannot find shader input resource '" } + name.string() + "'",
-            misc::LogMessageType::error);
-        return { false, d3d12::DescriptorAllocationManager::INVALID_POINTER };
-    }
-
-    ShaderFunction::ShaderBindingPoint const& binding_point_desc = m_shader_resource_names_pool[name];
-    if (register_offset >= binding_point_desc.register_count)
+    std::vector<ReflectedDeclaration> declarations;
+    declarations.reserve(m_shader_resource_names_pool.size());
+    for (auto const& [name, binding_point] : m_shader_resource_names_pool)
     {
-        char register_literal = shaderInputKindToRegisterLiteral(binding_point_desc.kind);
-        misc::Log::retrieve()->out(std::string{ "ERROR: invalid resource binding request at register " }
-            + register_literal
-            + std::to_string(binding_point_desc.first_register + register_offset)
-            + ": the binding is out bounds.Valid binding range is "
-            + register_literal + std::to_string(binding_point_desc.first_register)
-            + "-" + register_literal + std::to_string(binding_point_desc.first_register + binding_point_desc.register_count - 1),
-            misc::LogMessageType::error);
-        return { false, d3d12::DescriptorAllocationManager::INVALID_POINTER };
+        ViewRequirements view{};
+        switch (binding_point.kind)
+        {
+        case ShaderInputKind::srv:
+            view = m_texture_shader_inputs.at(binding_point);
+            break;
+        case ShaderInputKind::uav:
+            view = m_storage_block_shader_inputs.at(binding_point);
+            break;
+        default:
+            break;
+        }
+
+        declarations.push_back(ReflectedDeclaration{ .stage = getShaderType(), .name = name, .binding = binding_point, .view = view });
     }
 
-    size_t allocation_offset = descriptor_creator(binding_point_desc, ShaderFunctionAttorney<ShaderStage>::getDescriptorAllocationManager(*m_owning_shader_function_ptr, binding_point_desc.kind, binding_point_desc.register_space));
-
-    if (allocation_offset >= binding_point_desc.register_count) {
-        misc::Log::retrieve()->out(std::string{ "ERROR: invalid resource binding at register " }
-                + shaderInputKindToRegisterLiteral(binding_point_desc.kind) 
-                + std::to_string(binding_point_desc.first_register + register_offset)
-                + ", space#" + std::to_string(binding_point_desc.register_space)
-                + ": resource descriptor was created at offset " + std::to_string(allocation_offset)
-                + " which is out of bounds",
-            misc::LogMessageType::error);
-        return { false, d3d12::DescriptorAllocationManager::INVALID_POINTER };
-    }
-
-    return { true, allocation_offset };
+    return declarations;
 }
+
 
 
 } // namespace lexgine::core::dx::dxcompilation

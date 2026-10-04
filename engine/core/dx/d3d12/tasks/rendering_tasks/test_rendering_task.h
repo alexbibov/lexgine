@@ -67,6 +67,8 @@ private:
     CommandList* m_cmd_list_ptr = nullptr;
 
     dxcompilation::ShaderFunction m_shader_function;
+    dxcompilation::ShaderFunctionDescriptorTable m_texture_table;
+    dxcompilation::ShaderFunctionDescriptorTable m_sampler_table;
 };
 
 }

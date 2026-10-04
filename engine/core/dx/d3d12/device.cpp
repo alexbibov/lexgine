@@ -6,6 +6,7 @@
 #include "engine/core/misc/misc.h"
 #include "engine/core/misc/log.h"
 #include "engine/core/dx/d3d12/debug_interface.h"
+#include "bindless_descriptor_cache.h"
 #include "command_list.h"
 #include "descriptor_allocator.h"
 #include "query_cache.h"
@@ -115,6 +116,7 @@ Device::Device(
         global_settings.getCbvSrvUavDescriptorHeapDynamicPartitionCapacity(),
         global_settings
     );
+    m_bindless_descriptor_cache = std::make_unique<BindlessDescriptorCache>(persistentDescriptorAllocator(DescriptorHeapType::cbv_srv_uav));
 
     DebugInterface const* p_debug_interface = DebugInterface::retrieve();
     if (p_debug_interface)
@@ -590,6 +592,11 @@ PersistentDescriptorAllocator& Device::persistentDescriptorAllocator(DescriptorH
 TransientDescriptorAllocator& Device::transientDescriptorAllocator()
 {
     return *m_transient_descriptor_allocator;
+}
+
+BindlessDescriptorCache& Device::bindlessDescriptorCache()
+{
+    return *m_bindless_descriptor_cache;
 }
 
 Heap Device::createHeap(AbstractHeapType type, uint64_t size, HeapCreationFlags flags, bool is_msaa_supported, uint32_t node_mask, uint32_t node_exposure_mask)

@@ -24,6 +24,7 @@ class DescriptorHeap;
 class DescriptorAllocator;
 class PersistentDescriptorAllocator;
 class TransientDescriptorAllocator;
+class BindlessDescriptorCache;
 class DescriptorAllocationManager;
 class UnorderedSRVTableAllocationManager;
 class Device;

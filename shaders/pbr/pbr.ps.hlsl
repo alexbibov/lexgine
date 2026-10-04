@@ -1,7 +1,7 @@
 #include "common/environment.hlsli"
 #include "common/material.hlsli"
 
-Texture2D material_textures[] : register(t0, space0);
+Texture2D material_textures[] : register(t0, BINDLESS_TEXTURE2D_SPACE);
 
 // float3 GetNormalFromMap(VSOutput input) {
 //     float3 tangentNormal = normalTex.Sample(gSampler, input.uv).xyz * 2.0 - 1.0;

@@ -14,6 +14,7 @@
 #include "engine/core/ui/profiler.h"
 
 #include "dx_resource_factory.h"
+#include "descriptor_allocator.h"
 #include "device.h"
 #include "frame_progress_tracker.h"
 
@@ -146,6 +147,7 @@ void RenderingTasks::render(RenderingTarget& rendering_target, const std::functi
 
     BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingTarget(m_basic_rendering_services, rendering_target);
 
+    m_device.transientDescriptorAllocator().nextFrame();
     m_device.queryCache()->markFrameBegin();
     m_task_sink.submit(m_frame_progress_tracker.currentFrameIndex());
     presenter();

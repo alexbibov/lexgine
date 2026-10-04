@@ -19,7 +19,7 @@ struct EnvironmentData {
 #define MATERIAL_DATA_TEXTURE_USAGE_EMISSIVE           0x8
 
 ConstantBuffer<EnvironmentData> environment_data : register(SCENE_DATA_REGISTER, SHADER_FUNCTION_SPACE);
-SamplerState linear_sampler : register(s0); // Shared sampler
+SamplerState linear_sampler : register(s0, PASS_SPACE); // Shared sampler
 
 // G-buffer structure (output per-fragment)
 struct GBufferOutput {

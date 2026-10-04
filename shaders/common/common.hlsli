@@ -7,6 +7,9 @@
 #define OBJECT_DATA_REGISTER   b1
 #define MATERIAL_DATA_REGISTER b2
 
-#define SHADER_FUNCTION_SPACE space100
+#define PASS_SPACE               space0
+#define MATERIAL_SPACE           space10
+#define BINDLESS_TEXTURE2D_SPACE space20
+#define SHADER_FUNCTION_SPACE    space100
 
 #endif

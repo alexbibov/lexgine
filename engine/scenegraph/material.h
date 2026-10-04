@@ -89,6 +89,12 @@ public:
         return m_shader_function->getShaderStage(shader_type);
     }
 
+    //! writes descriptor of @param texture into the bindless material texture array and returns its index in the array
+    std::optional<uint32_t> bindMaterialTexture(core::dx::d3d12::Resource const& texture) const;
+
+    //! binds bindless descriptor tables and the shared sampler table of the material pipeline
+    void bindDescriptorTables(core::dx::d3d12::CommandList& target_command_list) const;
+
     void bindMaterialParameters(
         core::dx::d3d12::CommandList& target_command_list,
         core::dx::d3d12::ConstantBufferDataMapper& data_mapper
@@ -119,6 +125,7 @@ private:
     core::dx::d3d12::GraphicsPSODescriptor m_pso_descriptor;
     core::dx::d3d12::caches::RootSignatureHandle m_rs_handle { nullptr };
     core::dx::d3d12::caches::GraphicsPSOHandle m_pso_handle { nullptr };
+    std::optional<core::dx::dxcompilation::ShaderFunctionDescriptorTable> m_sampler_table;
 };
 
 class Material : public core::NamedEntity<Material>

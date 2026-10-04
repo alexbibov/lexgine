@@ -4,12 +4,12 @@
 #include <dxcapi.h>
 #include <d3d12shader.h>
 #include <unordered_map>
+#include <vector>
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/dx/d3d12/common.h"
 #include "engine/core/dx/d3d12/resource.h"
 #include "engine/core/dx/d3d12/caches/hlsl_shader_blob_cache.h"
-#include "engine/core/dx/d3d12/descriptor_table_builders.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/constant_buffer_reflection.h"
 #include "engine/core/misc/hashed_string.h"
@@ -41,14 +41,6 @@ struct ShaderArgumentInfo {
     ShaderArgumentKind kind;
 };
 
-struct BindingResult
-{
-    bool was_successful;
-    size_t binding_register;
-
-    operator bool() const { return was_successful; }
-};
-
 } // namespace lexgine::core::dx::dxcompilation
 
 namespace std {
@@ -77,17 +69,6 @@ public:
 
     unsigned int getInstructionCount();
 
-    BindingResult bindTexture(misc::HashedString const& name, d3d12::Resource const& texture, uint32_t register_offset = 0);
-    BindingResult bindTextureArray(misc::HashedString const& name, d3d12::Resource const& texture,
-        uint32_t first_array_element, uint32_t array_element_count, uint32_t register_offset = 0);
-    BindingResult bindTextureBuffer(misc::HashedString const& name, d3d12::Resource const& buffer_texture, uint64_t first_buffer_element, uint32_t buffer_element_stride, uint32_t register_offset = 0);
-    
-    BindingResult bindConstantBuffer(misc::HashedString const& name, d3d12::Resource const& buffer, uint32_t offset_from_buffer_start, uint32_t size_in_bytes, uint32_t register_offset = 0);
-    
-    BindingResult bindStorageBlock(misc::HashedString const& name, d3d12::Resource const& storage_block, uint64_t first_buffer_element, uint32_t buffer_element_stride, uint32_t register_offset = 0);
-    
-    BindingResult bindSampler(misc::HashedString const& name, FilterPack const& filter, math::Vector4f const& border_color, uint32_t register_offset = 0);
-
     lexgine::core::dx::d3d12::D3DDataBlob getShaderBytecode() const;
     d3d12::ConstantBufferReflection buildConstantBufferReflection(misc::HashedString const& constant_buffer_name) const;
     ShaderType getShaderType() const;
@@ -102,14 +83,9 @@ public:
 private:
     ShaderStage(Globals const& globals, d3d12::caches::HLSLShaderHandle shader_handle, ShaderFunction* p_owning_shader_function);
 
-    static uint32_t getDataTypeSize(StorageResourceDataType data_type);
     void collectShaderBindings();
     void collectShaderArguments(ShaderArgumentKind kind);
-
-    BindingResult bindInternal(misc::HashedString const& name, size_t register_offset, 
-        std::function<size_t(ShaderFunction::ShaderBindingPoint const&, d3d12::DescriptorAllocationManager*)> const& descriptor_creator);
-    /*void fillDescriptorTableRanges(d3d12::RootEntryDescriptorTable& target_descriptor_table,
-        d3d12::ShaderVisibleMemoryResourceType range_type);*/
+    std::vector<ReflectedDeclaration> reflectedDeclarations() const;
 
 private:
     Globals const& m_globals;
@@ -142,9 +118,9 @@ private:
         return std::unique_ptr<ShaderStage>{ new ShaderStage{ globals, shader_handle, p_owning_shader_function } };
     }
 
-    static std::unordered_map<misc::HashedString, ShaderFunction::ShaderBindingPoint> const& getShaderStageBindings(ShaderStage const* p_shader_stage)
+    static std::vector<ReflectedDeclaration> getShaderStageDeclarations(ShaderStage const* p_shader_stage)
     {
-        return p_shader_stage->m_shader_resource_names_pool;
+        return p_shader_stage->reflectedDeclarations();
     }
 };
 
