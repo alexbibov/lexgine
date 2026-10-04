@@ -36,7 +36,6 @@ private:
     RingBufferTaskQueue<TaskGraphNode*> m_task_queue;    //!< concurrent task queue
 
 
-    std::atomic_uint8_t m_num_threads_finished;    //!< number of threads finished their tasks
     std::atomic_bool m_stop_signal;    //!< acquires 'true' when the sink is to be stopped
 
     /*!< equals 0 if all tasks have been completed without errors. Acquires a non-zero value otherwise. 

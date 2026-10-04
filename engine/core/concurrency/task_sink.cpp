@@ -10,7 +10,6 @@ TaskSink::TaskSink(TaskGraph& source_task_graph,
     std::string const& debug_name) :
     m_source_task_graph{ source_task_graph },
     m_task_queue{},
-    m_num_threads_finished{ source_task_graph.getNumberOfWorkerThreads() },
     m_stop_signal{ true },
     m_error_watchdog{ 0 }
 {
@@ -34,7 +33,6 @@ void TaskSink::start()
 
     TaskGraphAttorney<TaskSink>::compileTaskGraph(m_source_task_graph);
 
-    m_num_threads_finished.store(0, std::memory_order_release);
     m_stop_signal.store(false, std::memory_order_release);
     m_error_watchdog.store(0, std::memory_order_release);
 
@@ -43,6 +41,8 @@ void TaskSink::start()
 
     for (auto worker = m_workers_list.begin(); worker != m_workers_list.end(); ++worker, ++i)
     {
+        assert(!worker->joinable());
+
         logger().out(misc::formatString("Starting worker thread %i", i), LogMessageType::information);
         *worker = std::thread{ &TaskSink::dispatch, this, i };
 
@@ -50,8 +50,6 @@ void TaskSink::start()
         HANDLE threadNativeHandle = worker->native_handle();
         SetThreadDescription(threadNativeHandle,std::format(L"{} thread #{}", asciiStringToWstring(getStringName()), i).c_str());
         #endif
-
-        worker->detach();
     }
 }
 
@@ -109,8 +107,11 @@ void TaskSink::shutdown()
     logger().out(misc::formatString("Task sink %s is shutting down", getStringName().c_str()), LogMessageType::information);
 
     m_stop_signal.store(true, std::memory_order_release);    //! dispatch the stop signal
-    while (m_num_threads_finished.load(std::memory_order_acquire) < m_workers_list.size())
-        std::this_thread::yield();
+
+    for (auto& worker : m_workers_list)
+    {
+        if (worker.joinable()) worker.join();
+    }
     m_task_queue.shutdown();
 
     logger().out("Worker threads finished", LogMessageType::information);
@@ -159,6 +160,4 @@ void TaskSink::dispatch(uint8_t worker_id)
 
     m_task_queue.shutdown();
     logger().out(misc::formatString("###### Worker thread %i log end ######", worker_id), LogMessageType::information);
-
-    ++m_num_threads_finished;
 }
