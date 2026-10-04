@@ -4,7 +4,6 @@
 
 #include "device.h"
 #include "descriptor_heap.h"
-#include "unordered_srv_table_allocation_manager.h"
 
 #include "dx_resource_factory.h"
 
@@ -28,13 +27,6 @@ DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
     for (auto& adapter : m_hw_adapter_enumerator)
     {
         Device& dev_ref = adapter->device();
-
-        DescriptorHeap& cbv_srv_uav_heap = dev_ref.descriptorHeap(DescriptorHeapType::cbv_srv_uav);
-        m_unordered_descriptor_allocators.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(&cbv_srv_uav_heap),
-            std::forward_as_tuple(cbv_srv_uav_heap)
-        );
 
         // initialize upload heaps
         {
@@ -65,11 +57,6 @@ dxcompilation::DXCompilerProxy& DxResourceFactory::shaderModel6xDxCompilerProxy(
 Heap& DxResourceFactory::retrieveUploadHeap(Device const& device)
 {
     return m_upload_heaps.at(&device);
-}
-
-UnorderedSRVTableAllocationManager& DxResourceFactory::retrieveBindlessSRVAllocationManager(DescriptorHeap const& descriptor_heap)
-{
-    return m_unordered_descriptor_allocators.at(&descriptor_heap);
 }
 
 misc::Optional<UploadHeapPartition> DxResourceFactory::allocateSectionInUploadHeap(Heap const& upload_heap, std::string const& section_name, size_t section_size)

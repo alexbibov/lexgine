@@ -43,7 +43,6 @@ public:
     dxcompilation::DXCompilerProxy& shaderModel6xDxCompilerProxy();
 
     Heap& retrieveUploadHeap(Device const& device);
-    UnorderedSRVTableAllocationManager& retrieveBindlessSRVAllocationManager(DescriptorHeap const& descriptor_heap);
 
     /*! Attempts to allocate a new named section in the given upload heap.
      Returns details of the new allocation in case of success or an empty misc::Optional<T>
@@ -78,7 +77,6 @@ private:
 
     std::unordered_map<Device const*, Heap> m_upload_heaps;
     std::unordered_map<Heap const*, UploadHeapPartitionTable> m_upload_heap_partitions;
-    std::unordered_map<DescriptorHeap const*, UnorderedSRVTableAllocationManager> m_unordered_descriptor_allocators;
 
     DxgiFormatFetcher const m_dxgiFormatFetcher;
     

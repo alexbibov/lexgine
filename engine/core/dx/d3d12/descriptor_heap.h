@@ -7,7 +7,6 @@
 
 #include <d3d12.h>
 #include <wrl.h>
-#include <atomic>
 
 using namespace Microsoft::WRL;
 
@@ -49,39 +48,29 @@ public:
 
     DescriptorHeapType type() const { return m_type; }
 
-    void reset();    // resets the descriptor heap
-
     uint32_t capacity() const;
 
-    
-    uint32_t descriptorsAllocated() const;    //! descriptor count reserved in the descriptor heap by the moment this function was invoked
-
-    uint32_t reserveDescriptors(uint32_t count);    //! reserves "count" descriptors in the descriptor heap and returns offset of the first descriptor reserved
-
-    DescriptorTable allocateDescriptorTable(uint32_t capacity);
-
     /*! creates single CBV descriptor and places it into descriptor heap starting at position provided by
-     the offset value. The offset can be obtained using reserveDescriptors(...).
+     the offset value. The offset is normally obtained from a DescriptorAllocator serving this heap.
      The return value of this function is GPU address of the created descriptor.
     */
     uint64_t createConstantBufferViewDescriptor(size_t offset, CBVDescriptor const& cbv_descriptor);
 
     /*! creates CBV descriptors and places them into this descriptor heap beginning from position determined by
-     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     provided offset value. The offset is normally obtained from a DescriptorAllocator serving this heap.
      The return value of this function is GPU address of the first created descriptor.
     */
     uint64_t createConstantBufferViewDescriptors(size_t offset, std::vector<CBVDescriptor> const& cbv_descriptors);
 
 
-
     /*! creates single SRV descriptor and places it into this descriptor heap beginning from position determined by
-    provided offset value. The offset can be obtained using reserveDescriptors(...).
+    provided offset value. The offset is normally obtained from a DescriptorAllocator serving this heap.
     The return value of this function is GPU address of the created descriptor.
    */
     uint64_t createShaderResourceViewDescriptor(size_t offset, SRVDescriptor const& srv_descriptor);
 
     /*! creates SRV descriptors and places them into this descriptor heap beginning from position determined by
-     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     provided offset value. The offset is normally obtained from a DescriptorAllocator serving this heap.
      The return value of this function is GPU address of the first created descriptor.
     */
     uint64_t createShaderResourceViewDescriptors(size_t offset, std::vector<SRVDescriptor> const& srv_descriptors);
@@ -89,13 +78,13 @@ public:
 
 
     /*! creates single UAV descriptor and places it into this descriptor heap beginning from position determined by
-     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     provided offset value. The offset is normally obtained from a DescriptorAllocator serving this heap.
      The return value of this function is GPU address of the created descriptor.
     */
     uint64_t createUnorderedAccessViewDescriptor(size_t offset, UAVDescriptor const& uav_descriptor);
 
     /*! creates UAV descriptors and places them into this descriptor heap beginning from position determined by
-     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     provided offset value. The offset is normally obtained from a DescriptorAllocator serving this heap.
      The return value of this function is GPU address of the first created descriptor.
     */
     uint64_t createUnorderedAccessViewDescriptors(size_t offset, std::vector<UAVDescriptor> const& uav_descriptors);
@@ -103,13 +92,13 @@ public:
 
 
     /*! creates single sampler descriptor and places it into descriptor heap starting at position determined by
-     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     provided offset value. The offset is normally obtained from a DescriptorAllocator serving this heap.
      The return value of this function is GPU address of the created descriptor.
     */
     uint64_t createSamplerDescriptor(size_t offset, SamplerDescriptor const& sampler_descriptor);
 
     /*! creates sampler descriptors and places them into this descriptor heap beginning from position determined by
-     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     provided offset value. The offset is normally obtained from a DescriptorAllocator serving this heap.
      The return value of this function is GPU address of the first created descriptor.
     */
     uint64_t createSamplerDescriptors(size_t offset, std::vector<SamplerDescriptor> const& sampler_descriptors);
@@ -117,13 +106,13 @@ public:
   
 
     /*! creates single RTV descriptor and places it into descriptor heap starting at position provided by
-     the offset value. The offset can be obtained using reserveDescriptors(...).
+     the offset value. The offset is normally obtained from a DescriptorAllocator serving this heap.
      The return value of this function is GPU address of the created descriptor
     */
     uint64_t createRenderTargetViewDescriptor(size_t offset, RTVDescriptor const& rtv_descriptor);
     
     /*! creates RTV descriptors and places them into this descriptor heap beginning from position determined by
-     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     provided offset value. The offset is normally obtained from a DescriptorAllocator serving this heap.
      The return value of this function is GPU address of the first created descriptor.
     */
     uint64_t createRenderTargetViewDescriptors(size_t offset, std::vector<RTVDescriptor> const& rtv_descriptors);
@@ -131,13 +120,13 @@ public:
 
 
     /*! creates single DSV descriptor and places it into descriptor heap starting at position provided by
-     offset value. The offset can be obtained using reserveDescriptors(...).
+     offset value. The offset is normally obtained from a DescriptorAllocator serving this heap.
      The return value of this function is GPU address of the created descriptor.
     */
     uint64_t createDepthStencilViewDescriptor(size_t offset, DSVDescriptor const& dsv_descriptor);
 
     /*! creates DSV descriptors and places them into this descriptor heap beginning from position determined by
-     provided offset value. The offset can be obtained using reserveDescriptors(...).
+     provided offset value. The offset is normally obtained from a DescriptorAllocator serving this heap.
      The return value of this function is GPU address of the first created descriptor.
     */
     uint64_t createDepthStencilViewDescriptors(size_t offset, std::vector<DSVDescriptor> const& dsv_descriptors);
@@ -151,7 +140,6 @@ private:
     uint32_t const m_descriptor_size;    //!< size of a single descriptor in the heap
     uint32_t const m_descriptor_capacity;    //!< number of descriptors that could be stored in the heap
     uint32_t m_node_mask;    //!< mask determining adapter, to which the heap is assigned
-    std::atomic<uint32_t> m_num_descriptors_allocated;    //!< number of currently allocated descriptors
 
     size_t m_heap_start_cpu_address;    //!< CPU address of the beginning of the heap
     uint64_t m_heap_start_gpu_address;    //!< GPU address of the beginning of the heap

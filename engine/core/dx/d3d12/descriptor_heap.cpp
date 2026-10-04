@@ -42,49 +42,9 @@ uint64_t DescriptorHeap::getBaseGPUPointer() const
     return m_is_gpu_visible ? m_descriptor_heap->GetGPUDescriptorHandleForHeapStart().ptr : 0;
 }
 
-void DescriptorHeap::reset()
-{
-    m_num_descriptors_allocated.store(0, std::memory_order_release);
-}
-
 uint32_t DescriptorHeap::capacity() const
 {
     return m_descriptor_capacity;
-}
-
-uint32_t DescriptorHeap::descriptorsAllocated() const
-{
-    return (std::min)(m_num_descriptors_allocated.load(std::memory_order::memory_order_acquire), m_descriptor_capacity);
-}
-
-uint32_t DescriptorHeap::reserveDescriptors(uint32_t count)
-{
-    uint32_t offset;
-    if (count <= m_descriptor_capacity - descriptorsAllocated())
-    {
-        offset = m_num_descriptors_allocated.fetch_add(count, std::memory_order::memory_order_acq_rel);
-    }
-    else
-    {
-        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(*this,
-            "Unable to reserve " + std::to_string(count) + " descriptors from descriptor heap \""
-            + getStringName() + "\": the descriptor heap is exhausted");
-    }
-
-    return offset;
-}
-
-DescriptorTable DescriptorHeap::allocateDescriptorTable(uint32_t capacity)
-{
-    uint32_t offset = reserveDescriptors(capacity);
-    return {
-        .offset = offset,
-        .cpu_pointer = getBaseCPUPointer() + m_descriptor_size * offset,
-        .gpu_pointer = getBaseGPUPointer() + m_descriptor_size * offset,
-        .descriptor_count = capacity,
-        .descriptor_size = m_descriptor_size,
-        .p_heap = this
-    };
 }
 
 uint64_t DescriptorHeap::createConstantBufferViewDescriptor(size_t offset, CBVDescriptor const& cbv_descriptor)
@@ -223,8 +183,7 @@ DescriptorHeap::DescriptorHeap(Device& device, DescriptorHeapType type, uint32_t
     m_type{ type },
     m_descriptor_size{ device.native()->GetDescriptorHandleIncrementSize(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(type)) },
     m_descriptor_capacity{ descriptor_capacity },
-    m_node_mask{ node_mask },
-    m_num_descriptors_allocated{ 0U }
+    m_node_mask{ node_mask }
 {
     D3D12_DESCRIPTOR_HEAP_DESC desc;
     desc.Type = static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(type);
