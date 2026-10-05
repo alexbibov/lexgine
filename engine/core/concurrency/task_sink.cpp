@@ -12,7 +12,8 @@ TaskSink::TaskSink(TaskGraph& source_task_graph,
     m_task_queue{},
     m_stop_signal{ true },
     m_error_watchdog{ 0 },
-    m_work_epoch{ 0 }
+    m_work_epoch{ 0 },
+    m_submission_finished{ false }
 {
     m_workers_list.resize(source_task_graph.getNumberOfWorkerThreads());
     setStringName(debug_name);
@@ -58,8 +59,12 @@ void TaskSink::submit(uint64_t user_data)
 {
     assert(!m_stop_signal.load(std::memory_order_acquire));
 
-    uint64_t error_status{ 0x0 };
     m_source_task_graph.setUserData(user_data);
+
+    {
+        std::lock_guard lock{ m_frame_completion_mutex };
+        m_submission_finished = false;
+    }
 
     // the rest of the graph is scheduled by the workers as the dependencies of each node are met
     for (auto& task : m_source_task_graph)
@@ -69,11 +74,16 @@ void TaskSink::submit(uint64_t user_data)
 
     notifyWorkAvailable();
 
-    while (!TaskGraphAttorney<TaskSink>::isTaskGraphCompleted(m_source_task_graph)
-        && !(error_status = m_error_watchdog.load(std::memory_order_acquire)))
     {
-        std::this_thread::yield();
+        std::unique_lock lock{ m_frame_completion_mutex };
+        m_frame_completion_signal.wait(lock,
+            [this]
+            {
+                return m_submission_finished || m_error_watchdog.load(std::memory_order_acquire);
+            });
     }
+
+    uint64_t error_status = m_error_watchdog.load(std::memory_order_acquire);
 
     // errors may occur at any time during execution
     if (error_status)
@@ -134,6 +144,16 @@ void TaskSink::notifyWorkAvailable()
     m_work_availability_signal.notify_all();
 }
 
+void TaskSink::notifyFrameFinished()
+{
+    {
+        std::lock_guard lock{ m_frame_completion_mutex };
+        m_submission_finished = true;
+    }
+
+    m_frame_completion_signal.notify_all();
+}
+
 void TaskSink::dispatch(uint8_t worker_id)
 {
     logger().out(misc::formatString("###### Worker thread %i log start ######", worker_id), LogMessageType::information);
@@ -176,10 +196,13 @@ void TaskSink::dispatch(uint8_t worker_id)
         {
             m_error_watchdog.store(reinterpret_cast<uint64_t>(p_contained_task), std::memory_order_release);
             notifyWorkAvailable();
+            notifyFrameFinished();
         }
-        else if (task_was_completed && unwrapped_task->scheduleReadyDependents(m_task_queue))
+        else if (task_was_completed)
         {
-            notifyWorkAvailable();
+            if (unwrapped_task->scheduleReadyDependents(m_task_queue)) notifyWorkAvailable();
+
+            if (TaskGraphAttorney<TaskSink>::isTaskGraphCompleted(m_source_task_graph)) notifyFrameFinished();
         }
     }
 

@@ -32,6 +32,7 @@ private:
     void dispatch(uint8_t worker_id);    //! function looped by worker threads
     void waitForWork(uint64_t observed_work_epoch);    //! parks the calling worker until work is enqueued, the sink is stopped or a task fails
     void notifyWorkAvailable();    //! wakes up the workers parked in waitForWork
+    void notifyFrameFinished();    //! wakes up the thread parked in submit waiting for the task graph to be done
     
 private:
     TaskGraph& m_source_task_graph;    //!< the task graph executed by the sink
@@ -50,6 +51,10 @@ private:
     std::mutex m_work_availability_mutex;    //!< guards the updates of m_work_epoch against the workers about to park
     std::condition_variable m_work_availability_signal;    //!< signalled whenever the workers may have something to do
     std::atomic_uint64_t m_work_epoch;    //!< incremented on every event that may unblock a parked worker
+
+    std::mutex m_frame_completion_mutex;    //!< guards m_submission_finished
+    std::condition_variable m_frame_completion_signal;    //!< signalled when the submitted task graph is done or has failed
+    bool m_submission_finished;    //!< 'true' once the submitted task graph has been completed or abandoned due to an error
 };
 
 }
