@@ -3,6 +3,8 @@
 
 #include "task_graph.h"
 
+#include <condition_variable>
+#include <mutex>
 #include <vector>
 
 namespace lexgine::core::concurrency {
@@ -28,6 +30,8 @@ public:
 
 private:
     void dispatch(uint8_t worker_id);    //! function looped by worker threads
+    void waitForWork(uint64_t observed_work_epoch);    //! parks the calling worker until work is enqueued, the sink is stopped or a task fails
+    void notifyWorkAvailable();    //! wakes up the workers parked in waitForWork
     
 private:
     TaskGraph& m_source_task_graph;    //!< the task graph executed by the sink
@@ -42,6 +46,10 @@ private:
      The value acquired in the latter case contains a pointer to the task graph node was the source of the error.
     */
     std::atomic_uint64_t m_error_watchdog;
+
+    std::mutex m_work_availability_mutex;    //!< guards the updates of m_work_epoch against the workers about to park
+    std::condition_variable m_work_availability_signal;    //!< signalled whenever the workers may have something to do
+    std::atomic_uint64_t m_work_epoch;    //!< incremented on every event that may unblock a parked worker
 };
 
 }

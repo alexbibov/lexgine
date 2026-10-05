@@ -11,7 +11,8 @@ TaskSink::TaskSink(TaskGraph& source_task_graph,
     m_source_task_graph{ source_task_graph },
     m_task_queue{},
     m_stop_signal{ true },
-    m_error_watchdog{ 0 }
+    m_error_watchdog{ 0 },
+    m_work_epoch{ 0 }
 {
     m_workers_list.resize(source_task_graph.getNumberOfWorkerThreads());
     setStringName(debug_name);
@@ -77,6 +78,8 @@ void TaskSink::submit(uint64_t user_data)
             }
         }
 
+        if (some_tasks_were_dispatched) notifyWorkAvailable();
+
         if (!some_tasks_were_dispatched)
         {
             std::this_thread::yield();
@@ -107,6 +110,7 @@ void TaskSink::shutdown()
     logger().out(misc::formatString("Task sink %s is shutting down", getStringName().c_str()), LogMessageType::information);
 
     m_stop_signal.store(true, std::memory_order_release);    //! dispatch the stop signal
+    notifyWorkAvailable();
 
     for (auto& worker : m_workers_list)
     {
@@ -123,38 +127,65 @@ bool TaskSink::isRunning() const
 }
 
 
+void TaskSink::waitForWork(uint64_t observed_work_epoch)
+{
+    std::unique_lock lock{ m_work_availability_mutex };
+    m_work_availability_signal.wait(lock,
+        [this, observed_work_epoch]
+        {
+            return m_work_epoch.load(std::memory_order_acquire) != observed_work_epoch
+                || m_stop_signal.load(std::memory_order_acquire)
+                || m_error_watchdog.load(std::memory_order_acquire);
+        });
+}
+
+void TaskSink::notifyWorkAvailable()
+{
+    {
+        std::lock_guard lock{ m_work_availability_mutex };
+        m_work_epoch.fetch_add(1, std::memory_order_release);
+    }
+
+    m_work_availability_signal.notify_all();
+}
+
 void TaskSink::dispatch(uint8_t worker_id)
 {
     logger().out(misc::formatString("###### Worker thread %i log start ######", worker_id), LogMessageType::information);
 
-    Optional<TaskGraphNode*> task;
-    while (!m_error_watchdog.load(std::memory_order_acquire)
-        && ((task = m_task_queue.dequeueTask()).isValid() || !m_stop_signal.load(std::memory_order_acquire)))
+    while (!m_error_watchdog.load(std::memory_order_acquire))
     {
-        if (task.isValid())
-        {
-            TaskGraphNode* unwrapped_task = *task;
-            AbstractTask* p_contained_task = unwrapped_task->task();
-            try
-            {
-                if (!unwrapped_task->execute(worker_id))
-                {
-                    // if execution returns 'false', this means that the task has to be rescheduled
-                    unwrapped_task->resetExecutionStatus();
-                }
-            }
-            catch (lexgine::core::Exception const&)
-            {
-                // we don't do anything here as the logging is done by the tasks themselves via call of raiseError(...)
-                // Note that the same call puts the task into erroneous state
-            }
+        uint64_t const observed_work_epoch = m_work_epoch.load(std::memory_order_acquire);
+        Optional<TaskGraphNode*> task = m_task_queue.dequeueTask();
 
-            if (p_contained_task->getErrorState())
-                m_error_watchdog.store(reinterpret_cast<uint64_t>(p_contained_task), std::memory_order_release);
-        }
-        else
+        if (!task.isValid())
         {
-            std::this_thread::yield();
+            if (m_stop_signal.load(std::memory_order_acquire)) break;
+
+            waitForWork(observed_work_epoch);
+            continue;
+        }
+
+        TaskGraphNode* unwrapped_task = *task;
+        AbstractTask* p_contained_task = unwrapped_task->task();
+        try
+        {
+            if (!unwrapped_task->execute(worker_id))
+            {
+                // if execution returns 'false', this means that the task has to be rescheduled
+                unwrapped_task->resetExecutionStatus();
+            }
+        }
+        catch (lexgine::core::Exception const&)
+        {
+            // we don't do anything here as the logging is done by the tasks themselves via call of raiseError(...)
+            // Note that the same call puts the task into erroneous state
+        }
+
+        if (p_contained_task->getErrorState())
+        {
+            m_error_watchdog.store(reinterpret_cast<uint64_t>(p_contained_task), std::memory_order_release);
+            notifyWorkAvailable();
         }
     }
 
