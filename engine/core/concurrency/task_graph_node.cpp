@@ -12,27 +12,33 @@ static uint64_t id_counter = 0U;
 
 TaskGraphNode::TaskGraphNode(AbstractTask& task) :
     m_id{ ++id_counter },
+    m_user_data{ 0 },
     m_contained_task{ &task },
     m_is_completed{ false },
-    m_is_scheduled{ false }
+    m_is_scheduled{ false },
+    m_unmet_dependency_count{ 0 }
 {
 
 }
 
 TaskGraphNode::TaskGraphNode(TaskGraphNode const& other) :
     m_id{ other.m_id },
+    m_user_data{ 0 },
     m_contained_task{ other.m_contained_task },
     m_is_completed{ false },
-    m_is_scheduled{ false }
+    m_is_scheduled{ false },
+    m_unmet_dependency_count{ 0 }
 {
 
 }
 
 TaskGraphNode::TaskGraphNode(TaskGraphNode&& other) :
     m_id{ other.m_id },
+    m_user_data{ other.m_user_data },
     m_contained_task{ other.m_contained_task },
     m_is_completed{ other.m_is_completed.load(std::memory_order_acquire) },
     m_is_scheduled{ other.m_is_scheduled.load(std::memory_order_acquire) },
+    m_unmet_dependency_count{ other.m_unmet_dependency_count.load(std::memory_order_acquire) },
     m_dependencies{ std::move(other.m_dependencies) },
     m_dependents{ std::move(other.m_dependents) }
 {
@@ -80,6 +86,11 @@ bool TaskGraphNode::isScheduled() const
     return m_is_scheduled.load(std::memory_order_acquire);
 }
 
+uint32_t TaskGraphNode::unmetDependencyCount() const
+{
+    return m_unmet_dependency_count.load(std::memory_order_acquire);
+}
+
 bool TaskGraphNode::addDependent(TaskGraphNode& task)
 {
     m_dependents.insert(&task);
@@ -116,6 +127,7 @@ void TaskGraphNode::resetExecutionStatus()
 {
     m_is_completed.store(false, std::memory_order_release);
     m_is_scheduled.store(false, std::memory_order_release);
+    m_unmet_dependency_count.store(static_cast<uint32_t>(m_dependencies.size()), std::memory_order_release);
 }
 
 AbstractTask* TaskGraphNode::task() const

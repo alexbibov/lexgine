@@ -1,6 +1,7 @@
 #ifndef LEXGINE_CORE_CONCURRENCY_TASK_GRAPH_NODE_H
 #define LEXGINE_CORE_CONCURRENCY_TASK_GRAPH_NODE_H
 
+#include <atomic>
 #include <unordered_set>
 
 #include "engine/core/entity.h"
@@ -42,6 +43,9 @@ public:
     bool isReadyToLaunch() const;    //! returns 'true' if all of this task's dependencies have been executed and the task is ready to launch
 
     bool isScheduled() const;    //! returns 'true' if the node has been scheduled
+
+    //! returns the number of this node's dependencies still outstanding within the current execution pass
+    uint32_t unmetDependencyCount() const;
 
     /*! adds a task that depends on this task, i.e. provided task can only begin execution when this task is completed.
      Returns 'true' if the specified dependent task has been added successfully; returns 'false' if this dependent task has already been added to this node
@@ -89,6 +93,7 @@ private:
     AbstractTask* m_contained_task;    //!< task contained by the node
     std::atomic_bool m_is_completed;    //!< equals 'true' if the task was completed. Equals 'false' otherwise
     std::atomic_bool m_is_scheduled;    //!< equals true if the node has already been scheduled, equals 'false' otherwise
+    std::atomic_uint32_t m_unmet_dependency_count;    //!< number of dependencies of this node, which are not completed yet within the current execution pass
 
     set_of_nodes m_dependencies;    //!< dependencies of this task. This task cannot run before all of its dependencies are executed
     set_of_nodes m_dependents;    //!< dependencies of this task. This task cannot be executed before the dependent tasks are completed

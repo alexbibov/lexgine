@@ -244,6 +244,8 @@ void TaskGraph::compile()
         auto sync_node_iter = --m_compiled_task_graph.end();
         for (auto p = m_compiled_task_graph.begin(); p != sync_node_iter; ++p) p->addDependent(*sync_node_iter);
     }
+
+    resetExecutionStatus();
 }
 
 bool TaskGraph::isCompleted() const

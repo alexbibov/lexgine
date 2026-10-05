@@ -328,6 +328,87 @@ TEST(EngineTests_Concurrency, TestTaskGraphParser)
 }
 
 
+TEST(EngineTests_Concurrency, TestTaskGraphNodeDependencyCounter)
+{
+    using namespace lexgine::core::concurrency;
+    using namespace lexgine::core::misc;
+
+    std::filesystem::path test_logging_path = std::filesystem::current_path() / "test.log";
+    Log::create(test_logging_path, "Test Task Graph Node Dependency Counter", LogMessageType::information);
+
+    {
+        class CountedTask : public SchedulableTask
+        {
+        public:
+            CountedTask(std::string const& name) :
+                SchedulableTask{ name }
+            {
+
+            }
+
+        private:
+            bool doTask(uint8_t worker_id, uint64_t user_data) override
+            {
+                return true;
+            }
+
+            TaskType type() const override
+            {
+                return TaskType::cpu;
+            }
+        };
+
+        // diamond: A feeds B and C, both of which feed D
+        CountedTask A{ "A" };
+        CountedTask B{ "B" };
+        CountedTask C{ "C" };
+        CountedTask D{ "D" };
+
+        A.addDependent(B);
+        A.addDependent(C);
+        B.addDependent(D);
+        C.addDependent(D);
+
+        TaskGraph task_graph{ std::unordered_set<TaskGraphRootNode const*>{ ROOT_NODE_CAST(&A) }, 2U, "counter_test_graph" };
+        ASSERT_FALSE(task_graph.getErrorState()) << task_graph.getErrorString();
+
+        TaskSink task_sink{ task_graph, "counter_test_sink" };
+        task_sink.start();
+
+        auto check_counts_match_dependencies = [&task_graph]()
+        {
+            size_t node_count = 0;
+            for (auto const& node : task_graph)
+            {
+                EXPECT_EQ(node.unmetDependencyCount(), node.getDependencies().size())
+                    << "node " << node.getId() << " disagrees with its dependency set";
+                ++node_count;
+            }
+
+            return node_count;
+        };
+
+        // the compiled graph is the four tasks plus the barrier node appended by compile()
+        size_t const node_count = check_counts_match_dependencies();
+        EXPECT_EQ(node_count, 5U);
+
+        // the barrier node is the last one and depends on every other node of the graph
+        EXPECT_EQ((--task_graph.end())->unmetDependencyCount(), node_count - 1);
+
+        // a full execution pass must leave the counters seeded again
+        task_sink.submit(0ULL);
+        check_counts_match_dependencies();
+
+        task_graph.resetExecutionStatus();
+        check_counts_match_dependencies();
+
+        task_sink.shutdown();
+    }
+
+    Log::shutdown();
+}
+
+
 TEST(EngineTests_Concurrency, TestTaskScheuling)
 {
     using namespace lexgine;
