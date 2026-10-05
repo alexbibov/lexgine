@@ -69,8 +69,18 @@ public:
     //! Retrieves all dependent nodes of this node
     set_of_nodes getDependents() const;
 
-    //! Resets execution status of the graph node, so it appears as undone
+    //! Resets execution status of the graph node, so it appears as undone and awaiting all of its dependencies again
     void resetExecutionStatus();
+
+    /*! Resets execution status of the graph node leaving its dependencies accounted as met. This is the form of reset
+     required by a task, which asked to be run again within the same execution pass
+    */
+    void resetForReexecution();
+
+    /*! Accounts completion of this node for every node depending on it and schedules those, which have no other
+     outstanding dependencies left, in the given queue. Returns the number of the nodes scheduled this way
+    */
+    uint32_t scheduleReadyDependents(RingBufferTaskQueue<TaskGraphNode*>& queue);
 
     //! Retrieves task contained in the node
     AbstractTask* task() const;

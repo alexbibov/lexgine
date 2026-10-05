@@ -130,6 +130,28 @@ void TaskGraphNode::resetExecutionStatus()
     m_unmet_dependency_count.store(static_cast<uint32_t>(m_dependencies.size()), std::memory_order_release);
 }
 
+void TaskGraphNode::resetForReexecution()
+{
+    m_is_completed.store(false, std::memory_order_release);
+    m_is_scheduled.store(false, std::memory_order_release);
+}
+
+uint32_t TaskGraphNode::scheduleReadyDependents(RingBufferTaskQueue<TaskGraphNode*>& queue)
+{
+    uint32_t scheduled_dependent_count = 0;
+
+    for (auto node : m_dependents)
+    {
+        if (node->m_unmet_dependency_count.fetch_sub(1, std::memory_order_acq_rel) == 1)
+        {
+            node->schedule(queue);
+            ++scheduled_dependent_count;
+        }
+    }
+
+    return scheduled_dependent_count;
+}
+
 AbstractTask* TaskGraphNode::task() const
 {
     return m_contained_task;

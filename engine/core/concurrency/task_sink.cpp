@@ -60,34 +60,19 @@ void TaskSink::submit(uint64_t user_data)
 
     uint64_t error_status{ 0x0 };
     m_source_task_graph.setUserData(user_data);
-    uint32_t yield_counter{ 0U };
+
+    // the rest of the graph is scheduled by the workers as the dependencies of each node are met
+    for (auto& task : m_source_task_graph)
+    {
+        if (!task.unmetDependencyCount()) task.schedule(m_task_queue);
+    }
+
+    notifyWorkAvailable();
 
     while (!TaskGraphAttorney<TaskSink>::isTaskGraphCompleted(m_source_task_graph)
         && !(error_status = m_error_watchdog.load(std::memory_order_acquire)))
     {
-        bool some_tasks_were_dispatched{ false };
-
-        // try to put more tasks into the task queue
-        for (auto& task : m_source_task_graph)
-        {
-            if (!task.isCompleted() && task.isReadyToLaunch())
-            {
-                task.schedule(m_task_queue);
-                some_tasks_were_dispatched = true;
-                yield_counter = 0;
-            }
-        }
-
-        if (some_tasks_were_dispatched) notifyWorkAvailable();
-
-        if (!some_tasks_were_dispatched)
-        {
-            std::this_thread::yield();
-            ++yield_counter;
-
-            if (yield_counter >= 60)
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
+        std::this_thread::yield();
     }
 
     // errors may occur at any time during execution
@@ -168,12 +153,17 @@ void TaskSink::dispatch(uint8_t worker_id)
 
         TaskGraphNode* unwrapped_task = *task;
         AbstractTask* p_contained_task = unwrapped_task->task();
+        bool task_was_completed{ false };
         try
         {
-            if (!unwrapped_task->execute(worker_id))
+            task_was_completed = unwrapped_task->execute(worker_id);
+            if (!task_was_completed)
             {
-                // if execution returns 'false', this means that the task has to be rescheduled
-                unwrapped_task->resetExecutionStatus();
+                // if execution returns 'false', this means that the task has to be rescheduled. Its dependencies
+                // stay met, so the node is put back into the queue instead of awaiting them anew
+                unwrapped_task->resetForReexecution();
+                unwrapped_task->schedule(m_task_queue);
+                notifyWorkAvailable();
             }
         }
         catch (lexgine::core::Exception const&)
@@ -185,6 +175,10 @@ void TaskSink::dispatch(uint8_t worker_id)
         if (p_contained_task->getErrorState())
         {
             m_error_watchdog.store(reinterpret_cast<uint64_t>(p_contained_task), std::memory_order_release);
+            notifyWorkAvailable();
+        }
+        else if (task_was_completed && unwrapped_task->scheduleReadyDependents(m_task_queue))
+        {
             notifyWorkAvailable();
         }
     }

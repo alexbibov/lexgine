@@ -1,5 +1,8 @@
 #include <sstream>
 #include <climits>
+#include <algorithm>
+#include <mutex>
+#include <vector>
 #include <thread>
 #include <windows.h>
 #include <utility>
@@ -403,6 +406,118 @@ TEST(EngineTests_Concurrency, TestTaskGraphNodeDependencyCounter)
         check_counts_match_dependencies();
 
         task_sink.shutdown();
+    }
+
+    Log::shutdown();
+}
+
+
+TEST(EngineTests_Concurrency, TestTaskGraphDependencyPush)
+{
+    using namespace lexgine::core::concurrency;
+    using namespace lexgine::core::misc;
+
+    std::filesystem::path test_logging_path = std::filesystem::current_path() / "test.log";
+    Log::create(test_logging_path, "Test Task Graph Dependency Push", LogMessageType::information);
+
+    {
+        struct ExecutionJournal
+        {
+            std::mutex mutex;
+            std::vector<std::string> order;
+
+            void record(std::string const& name)
+            {
+                std::lock_guard lock{ mutex };
+                order.push_back(name);
+            }
+
+            size_t runCount(std::string const& name)
+            {
+                std::lock_guard lock{ mutex };
+                return std::count(order.begin(), order.end(), name);
+            }
+
+            size_t positionOf(std::string const& name)
+            {
+                std::lock_guard lock{ mutex };
+                return std::distance(order.begin(), std::find(order.begin(), order.end(), name));
+            }
+        };
+
+        class JournallingTask : public SchedulableTask
+        {
+        public:
+            JournallingTask(std::string const& name, ExecutionJournal& journal, uint32_t reschedule_count = 0) :
+                SchedulableTask{ name },
+                m_journal{ journal },
+                m_remaining_reschedules{ reschedule_count }
+            {
+
+            }
+
+        private:
+            bool doTask(uint8_t worker_id, uint64_t user_data) override
+            {
+                m_journal.record(getStringName());
+                if (m_remaining_reschedules)
+                {
+                    --m_remaining_reschedules;
+                    return false;
+                }
+
+                return true;
+            }
+
+            TaskType type() const override
+            {
+                return TaskType::cpu;
+            }
+
+        private:
+            ExecutionJournal& m_journal;
+            uint32_t m_remaining_reschedules;
+        };
+
+        ExecutionJournal journal{};
+
+        // diamond: A feeds B and C, both of which feed D. C asks to be run a second time
+        JournallingTask A{ "A", journal };
+        JournallingTask B{ "B", journal };
+        JournallingTask C{ "C", journal, 1 };
+        JournallingTask D{ "D", journal };
+
+        A.addDependent(B);
+        A.addDependent(C);
+        B.addDependent(D);
+        C.addDependent(D);
+
+        TaskGraph task_graph{ std::unordered_set<TaskGraphRootNode const*>{ ROOT_NODE_CAST(&A) }, 4U, "push_test_graph" };
+        ASSERT_FALSE(task_graph.getErrorState()) << task_graph.getErrorString();
+
+        TaskSink task_sink{ task_graph, "push_test_sink" };
+        task_sink.start();
+        task_sink.submit(0ULL);
+        task_sink.shutdown();
+
+        EXPECT_EQ(journal.runCount("A"), 1U);
+        EXPECT_EQ(journal.runCount("B"), 1U);
+        EXPECT_EQ(journal.runCount("D"), 1U);
+
+        // C returned 'false' once, so it must have been put back into the queue and run again
+        EXPECT_EQ(journal.runCount("C"), 2U);
+
+        // topological order: A before B and C, both of them before D
+        EXPECT_LT(journal.positionOf("A"), journal.positionOf("B"));
+        EXPECT_LT(journal.positionOf("A"), journal.positionOf("C"));
+        EXPECT_LT(journal.positionOf("B"), journal.positionOf("D"));
+        EXPECT_LT(journal.positionOf("C"), journal.positionOf("D"));
+
+        // every node is accounted for again once the pass is over
+        for (auto const& node : task_graph)
+        {
+            EXPECT_EQ(node.unmetDependencyCount(), node.getDependencies().size());
+        }
     }
 
     Log::shutdown();
