@@ -22,6 +22,26 @@
 
 namespace lexgine::osinteraction::windows {
 
+//! Kinds of the window events, which are recorded by the window procedure for a later deferred handling
+enum class WindowEventType
+{
+    resized,    //!< client area of the window has been resized
+    minimized,    //!< the window has been minimized and has no client area to render into
+    maximized,    //!< the window has been maximized
+    restored,    //!< the window has been restored from the minimized or maximized state
+    dpi_changed,    //!< the window has been moved to a display with a different dots per inch setting
+    close    //!< the user has requested the window to close
+};
+
+
+//! Window event recorded by the window procedure. The payload fields are only meaningful for certain event types
+struct WindowEvent
+{
+    WindowEventType type;    //!< kind of the event
+    uint32_t width;    //!< new width of the client area; only set for resized, maximized and restored events
+    uint32_t height;    //!< new height of the client area; only set for resized, maximized and restored events
+    uint32_t dpi;    //!< new dots per inch setting of the window; only set for dpi_changed events
+};
 
 
 class LEXGINE_CPP_API Window final : public core::NamedEntity<Window>
@@ -83,13 +103,26 @@ public:
 
     void update() const;    //! updates the window
 
+    /*! returns the events recorded by the window procedure since the last call of clearPendingEvents().
+
+     The event queue is filled from the window procedure and is therefore only safe to touch from the thread,
+     which pumps the messages of this window.
+    */
+    std::vector<WindowEvent> const& pendingEvents() const { return m_pending_events; }
+
+    void clearPendingEvents();    //! drops the events recorded by the window procedure
+
 private:
     void adjustClientAreaSize(core::math::Vector2u const& desired_position, core::math::Vector2u const& desired_dimensions,
         core::math::Vector2u& adjusted_position, core::math::Vector2u& adjusted_dimensions);    //! adjusts window size to accommodate the requested client area
     inline void checkSystemCall(bool result) const;    //! if the value of result is 'false', puts the window to erroneous state and logs the corresponding system error
+    void pushEvent(WindowEvent const& event);    //! records an event for a later deferred handling, dropping the oldest one if the queue is full
+    void recordEvent(UINT message, WPARAM w_param, LPARAM l_param);    //! translates a window message into a WindowEvent and records it, if the message describes one
 
 private:
     // Window properties
+
+    static constexpr size_t c_max_pending_events = 256;    //!< upper bound on the number of the events awaiting to be handled
 
     static ATOM m_atom;    //!< atom of the window class. Shared by all windows in the application (however, in majority of cases it is expected that the engine will just create a single window to which it is going to render)
     static uint32_t m_window_counter;    //!< counts total number of windows created by the application
@@ -100,6 +133,7 @@ private:
     WindowExStyle m_window_ex_style;	//!< extended window style description
     bool m_should_close;	//!< equals 'true' if the window is ready to close. Equals 'false' otherwise
     std::deque<std::weak_ptr<AbstractListener>> m_listener_list;    //!< list of window listeners
+    std::vector<WindowEvent> m_pending_events;    //!< events recorded by the window procedure and awaiting to be handled
 
 
     //! Window callback procedure shared by all windows in the application
