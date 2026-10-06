@@ -57,6 +57,7 @@ private:
     void updateRenderingConfiguration() const;
     void releaseBuffers();
     void acquireBuffers(uint32_t width, uint32_t height);
+    void applyPendingResize();    //! recreates the swap chain buffers if a resize was requested by the window
 
 
 private:
@@ -67,6 +68,9 @@ private:
     RenderingTasks* m_linked_rendering_tasks_ptr;
     bool m_suspend_rendering = false;
     bool m_buffers_acquired = false;
+    bool m_pending_resize = false;
+    uint32_t m_pending_width = 0U;
+    uint32_t m_pending_height = 0U;
 
     std::vector<Resource> m_color_buffers;
     std::unique_ptr<CommittedResource> m_depth_buffer;

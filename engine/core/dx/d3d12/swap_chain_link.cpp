@@ -95,6 +95,8 @@ void SwapChainLink::render()
 {
     if (m_linked_swap_chain.isDeviceLost()) return;    // recovery is not implemented yet
 
+    applyPendingResize();
+
     if (!m_buffers_acquired)
     {
         core::math::Vector2u swap_chain_dimensions = m_linked_swap_chain.getDimensions();
@@ -135,16 +137,27 @@ bool SwapChainLink::maximized(uint16_t new_width, uint16_t new_height)
 
 bool SwapChainLink::size_changed(uint16_t new_width, uint16_t new_height)
 {
-    if (m_linked_rendering_tasks_ptr)
-    {
-        releaseBuffers();
-        m_linked_swap_chain.resizeBuffers(math::Vector2u{ new_width, new_height });
-        acquireBuffers(new_width, new_height);
-        updateRenderingConfiguration();
-        m_suspend_rendering = false;
-    }
+    m_pending_width = new_width;
+    m_pending_height = new_height;
+    m_pending_resize = true;
 
     return true;
+}
+
+void SwapChainLink::applyPendingResize()
+{
+    if (!m_pending_resize || !m_linked_rendering_tasks_ptr) return;
+
+    // a minimized window has no client area to resize to, so the request is kept until the window is back
+    if (!m_pending_width || !m_pending_height) return;
+
+    m_pending_resize = false;
+
+    releaseBuffers();
+    m_linked_swap_chain.resizeBuffers(math::Vector2u{ m_pending_width, m_pending_height });
+    acquireBuffers(m_pending_width, m_pending_height);
+    updateRenderingConfiguration();
+    m_suspend_rendering = false;
 }
 
 void SwapChainLink::updateRenderingConfiguration() const
