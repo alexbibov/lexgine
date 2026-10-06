@@ -1,6 +1,7 @@
 #ifndef LEXGINE_CORE_DX_D3D12_SWAP_CHAIN_LINK_H
 #define LEXGINE_CORE_DX_D3D12_SWAP_CHAIN_LINK_H
 
+#include <optional>
 #include <vector>
 #include <thread>
 #include <functional>
@@ -12,6 +13,7 @@
 #include "engine/osinteraction/listener.h"
 #include "engine/osinteraction/windows/window_listeners.h"
 
+#include "frame_pacer.h"
 #include "render_output.h"
 
 
@@ -56,6 +58,7 @@ private:
     bool m_suspend_rendering = false;
 
     RenderOutput m_render_output;
+    std::optional<FramePacer> m_frame_pacer;    //!< available once the rendering tasks owning the frame progress tracker are linked
 };
 
 }

@@ -30,6 +30,7 @@ SwapChainLink::SwapChainLink(SwapChainLink&& other)
     , m_linked_rendering_tasks_ptr{ other.m_linked_rendering_tasks_ptr }
     , m_suspend_rendering{ other.m_suspend_rendering }
     , m_render_output{ std::move(other.m_render_output) }
+    , m_frame_pacer{ other.m_frame_pacer }
 {
 
 }
@@ -49,6 +50,8 @@ SwapChainLink::~SwapChainLink()
 void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 {
     m_linked_rendering_tasks_ptr = p_rendering_loop_to_link;
+    m_frame_pacer.emplace(p_rendering_loop_to_link->frameProgressTracker(),
+        m_global_settings.getMaxFramesInFlight());
     updateRenderingConfiguration();
 }
 
@@ -56,8 +59,7 @@ void SwapChainLink::render()
 {
     if (m_linked_swap_chain.isDeviceLost()) return;    // recovery is not implemented yet
 
-    if (m_linked_rendering_tasks_ptr
-        && m_render_output.applyPendingResize(m_linked_rendering_tasks_ptr->frameProgressTracker()))
+    if (m_frame_pacer && m_render_output.applyPendingResize(m_frame_pacer->frameProgressTracker()))
     {
         updateRenderingConfiguration();
         m_suspend_rendering = false;
@@ -77,14 +79,7 @@ void SwapChainLink::render()
     else if (!m_suspend_rendering && m_linked_rendering_tasks_ptr)
     {
         RenderingTarget& target = m_render_output.currentTarget();
-        FrameProgressTracker const& frame_progress_tracker = m_linked_rendering_tasks_ptr->frameProgressTracker();
-
-        uint64_t scheduled_frames_count = frame_progress_tracker.scheduledFramesCount();
-        uint64_t completed_frames_count = frame_progress_tracker.completedFramesCount();
-        if (scheduled_frames_count - completed_frames_count >= m_global_settings.getMaxFramesInFlight())
-        {
-            frame_progress_tracker.waitForFrameCompletion(completed_frames_count);
-        }
+        m_frame_pacer->waitForFrameSlot();
 
         m_linked_rendering_tasks_ptr->render(target, [this](void) { m_linked_swap_chain.present(); });
     }
