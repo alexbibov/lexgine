@@ -32,6 +32,16 @@ protected:
     Globals& m_globals;
 };
 
+class ProvidesConstGlobals
+{
+public:
+    ProvidesConstGlobals(Globals const& globals) : m_globals{ globals } {}
+    Globals const& globals() const { return m_globals; }
+
+protected:
+    Globals const& m_globals;
+};
+
 class RasterizerDescriptor;
 class ShaderSourceCodePreprocessor;
 class Viewport;
