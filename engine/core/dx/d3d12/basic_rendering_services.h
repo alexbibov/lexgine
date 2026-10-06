@@ -4,6 +4,7 @@
 #include <array>
 #include <memory>
 
+#include "engine/core/concurrency/thread_affinity.h"
 #include "engine/core/math/vector_types.h"
 #include "engine/core/misc/static_vector.h"
 #include "engine/core/viewport.h"
@@ -41,7 +42,11 @@ public:
     ResourceDataUploader& resourceDataUploader() { return m_resource_uploader; }
 
 private:
-    void defineRenderingTarget(RenderingTarget& rendering_target) { m_current_rendering_target_ptr = &rendering_target; }
+    void defineRenderingTarget(RenderingTarget& rendering_target)
+    {
+        concurrency::assertOnRenderThread();
+        m_current_rendering_target_ptr = &rendering_target;
+    }
 
     void defineRenderingTargetFormat(DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format)
     {

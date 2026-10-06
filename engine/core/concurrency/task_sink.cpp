@@ -7,8 +7,10 @@ using namespace lexgine::core::concurrency;
 using namespace lexgine::core::misc;
 
 TaskSink::TaskSink(TaskGraph& source_task_graph,
-    std::string const& debug_name) :
+    std::string const& debug_name,
+    WorkerEntryHook worker_entry_hook) :
     m_source_task_graph{ source_task_graph },
+    m_worker_entry_hook{ std::move(worker_entry_hook) },
     m_task_queue{},
     m_stop_signal{ true },
     m_error_watchdog{ 0 },
@@ -156,6 +158,8 @@ void TaskSink::notifyFrameFinished()
 
 void TaskSink::dispatch(uint8_t worker_id)
 {
+    if (m_worker_entry_hook) m_worker_entry_hook(worker_id);
+
     logger().out(misc::formatString("###### Worker thread %i log start ######", worker_id), LogMessageType::information);
 
     while (!m_error_watchdog.load(std::memory_order_acquire))

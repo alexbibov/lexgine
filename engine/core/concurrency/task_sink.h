@@ -4,6 +4,7 @@
 #include "task_graph.h"
 
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <vector>
 
@@ -13,9 +14,17 @@ namespace lexgine::core::concurrency {
 class TaskSink final : public NamedEntity<TaskSink>
 {
 public:
+    using WorkerEntryHook = std::function<void(uint8_t worker_id)>;
+
+public:
+    /*! creates a sink executing @param source_task_graph. When supplied, @param worker_entry_hook is invoked
+     once on every worker thread before it begins to dispatch, which lets the owner of the sink give its
+     workers whatever thread-local context they need
+    */
     TaskSink(
         TaskGraph& source_task_graph,
-        std::string const& debug_name = "");
+        std::string const& debug_name = "",
+        WorkerEntryHook worker_entry_hook = nullptr);
 
     ~TaskSink();
 
@@ -36,6 +45,7 @@ private:
     
 private:
     TaskGraph& m_source_task_graph;    //!< the task graph executed by the sink
+    WorkerEntryHook m_worker_entry_hook;    //!< invoked on every worker thread before it begins to dispatch
 
     std::vector<std::thread> m_workers_list;    //!< vector of worker threads
     RingBufferTaskQueue<TaskGraphNode*> m_task_queue;    //!< concurrent task queue

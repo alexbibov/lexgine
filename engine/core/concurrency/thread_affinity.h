@@ -6,29 +6,29 @@
 
 namespace lexgine::core::concurrency {
 
-/*! Records the calling thread as the one driving the simulation. The engine state owned by the simulation
- must only be touched from that thread
+/*! Claims the simulation role for the calling thread. The simulation state must only be touched from a
+ thread holding that role
 */
 void registerSimulationThread();
 
-/*! Records the calling thread as the one driving the rendering. The engine state owned by the renderer must
- only be touched from that thread
+/*! Claims the rendering role for the calling thread. The role is held by every thread doing rendering work:
+ the thread orchestrating the frames as well as each worker recording the command lists
 */
 void registerRenderThread();
 
-//! returns 'true' if the calling thread is the one registered as the simulation thread
+//! returns 'true' if the calling thread holds the simulation role
 bool isOnSimulationThread();
 
-//! returns 'true' if the calling thread is the one registered as the render thread
+//! returns 'true' if the calling thread holds the rendering role
 bool isOnRenderThread();
 
-//! asserts in the debug builds that the caller runs on the simulation thread. Compiles to nothing otherwise
+//! asserts in the debug builds that the caller holds the simulation role. Compiles to nothing otherwise
 inline void assertOnSimulationThread()
 {
     assert(isOnSimulationThread());
 }
 
-//! asserts in the debug builds that the caller runs on the render thread. Compiles to nothing otherwise
+//! asserts in the debug builds that the caller holds the rendering role. Compiles to nothing otherwise
 inline void assertOnRenderThread()
 {
     assert(isOnRenderThread());

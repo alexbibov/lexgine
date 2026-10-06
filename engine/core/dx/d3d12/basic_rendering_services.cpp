@@ -1,3 +1,4 @@
+#include "engine/core/concurrency/thread_affinity.h"
 #include "engine/core/globals.h"
 #include "engine/core/exception.h"
 #include "engine/core/viewport.h"
@@ -67,17 +68,23 @@ void BasicRenderingServices::endRendering(CommandList& command_list) const
 
 void BasicRenderingServices::setDefaultResources(CommandList& command_list) const
 {
+    concurrency::assertOnRenderThread();
+
     command_list.setDescriptorHeaps(std::span{ m_descriptor_heaps });
 }
 
 void BasicRenderingServices::setDefaultViewport(CommandList& command_list) const
 {
+    concurrency::assertOnRenderThread();
+
     command_list.rasterizerStateSetScissorRectangles(m_default_scissor_rectangles);
     command_list.rasterizerStateSetViewports(m_default_viewports);
 }
 
 void BasicRenderingServices::setDefaultRenderingTarget(CommandList& command_list) const
 {
+    concurrency::assertOnRenderThread();
+
     DescriptorTable const& rtv_table = m_current_rendering_target_ptr->rtvTable();
     DescriptorTable const& dsv_table_ptr = m_current_rendering_target_ptr->dsvTable();
 
@@ -88,6 +95,8 @@ void BasicRenderingServices::setDefaultRenderingTarget(CommandList& command_list
 void BasicRenderingServices::clearDefaultRenderingTarget(CommandList& command_list,
     math::Vector4f const& color_clear_value, float depth_clear_value) const
 {
+    concurrency::assertOnRenderThread();
+
     command_list.clearRenderTargetView(m_current_rendering_target_ptr->rtvTable(), 0, color_clear_value);
     command_list.clearDepthStencilView(m_current_rendering_target_ptr->dsvTable(), 0, DSVClearFlags::clear_depth, depth_clear_value, 0);
 }

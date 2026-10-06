@@ -535,18 +535,36 @@ TEST(EngineTests_Concurrency, TestThreadAffinity)
     EXPECT_TRUE(isOnSimulationThread());
     EXPECT_TRUE(isOnRenderThread());
 
-    bool simulation_role_seen_elsewhere = true;
-    bool render_role_seen_elsewhere = true;
-    std::thread other_thread{ [&simulation_role_seen_elsewhere, &render_role_seen_elsewhere]()
+    bool simulation_role_inherited = true;
+    bool render_role_inherited = true;
+    std::thread unclaimed_thread{ [&simulation_role_inherited, &render_role_inherited]()
         {
-            simulation_role_seen_elsewhere = isOnSimulationThread();
-            render_role_seen_elsewhere = isOnRenderThread();
+            simulation_role_inherited = isOnSimulationThread();
+            render_role_inherited = isOnRenderThread();
         } };
-    other_thread.join();
+    unclaimed_thread.join();
 
-    // the roles belong to the threads, which claimed them, and to no other
-    EXPECT_FALSE(simulation_role_seen_elsewhere);
-    EXPECT_FALSE(render_role_seen_elsewhere);
+    // the roles are claimed per thread and are never inherited
+    EXPECT_FALSE(simulation_role_inherited);
+    EXPECT_FALSE(render_role_inherited);
+
+    // the rendering role is held by every thread doing rendering work, not by a single one
+    bool render_role_claimed_elsewhere = false;
+    bool simulation_role_leaked = true;
+    std::thread rendering_thread{ [&render_role_claimed_elsewhere, &simulation_role_leaked]()
+        {
+            registerRenderThread();
+            render_role_claimed_elsewhere = isOnRenderThread();
+            simulation_role_leaked = isOnSimulationThread();
+        } };
+    rendering_thread.join();
+
+    EXPECT_TRUE(render_role_claimed_elsewhere);
+    EXPECT_FALSE(simulation_role_leaked);
+
+    // claiming the role elsewhere leaves this thread's roles untouched
+    EXPECT_TRUE(isOnSimulationThread());
+    EXPECT_TRUE(isOnRenderThread());
 }
 
 

@@ -1,5 +1,6 @@
 #include "swap_chain_link.h"
 
+#include "engine/core/concurrency/thread_affinity.h"
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/dx/dxgi/swap_chain.h"
@@ -85,11 +86,15 @@ void SwapChainLink::render()
 
 void SwapChainLink::requestResize(uint32_t new_width, uint32_t new_height)
 {
+    concurrency::assertOnRenderThread();
+
     m_render_output.requestResize(new_width, new_height);
 }
 
 void SwapChainLink::suspendRendering()
 {
+    concurrency::assertOnRenderThread();
+
     m_suspend_rendering = true;
 }
 

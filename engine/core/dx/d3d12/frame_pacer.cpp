@@ -4,6 +4,8 @@
 
 #include "engine/core/misc/log.h"
 
+#include "engine/core/concurrency/thread_affinity.h"
+
 #include "frame_progress_tracker.h"
 
 using namespace lexgine::core::dx::d3d12;
@@ -55,6 +57,8 @@ FramePacer::FramePacer(FrameProgressTracker const& frame_progress_tracker, uint1
 
 void FramePacer::waitForFrameSlot() const
 {
+    concurrency::assertOnRenderThread();
+
     uint64_t scheduled_frames_count = m_frame_progress_tracker.scheduledFramesCount();
     uint64_t completed_frames_count = m_frame_progress_tracker.completedFramesCount();
 

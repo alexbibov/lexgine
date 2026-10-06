@@ -1,6 +1,7 @@
 #include "engine/scenegraph/scene.h"
 
 #include "rendering_tasks.h"
+#include "engine/core/concurrency/thread_affinity.h"
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/profiling_services.h"
@@ -49,7 +50,8 @@ RenderingTasks::RenderingTasks(Globals& globals, osinteraction::windows::Window&
     , m_device{ globals.device() }
     , m_frame_progress_tracker{ m_device.frameProgressTracker() }
     , m_task_graph{ globals.globalSettings().getNumberOfWorkers(), "RenderingTasksGraph" }
-    , m_task_sink{ m_task_graph, "RenderingTasksSink" }
+    , m_task_sink{ m_task_graph, "RenderingTasksSink",
+                   [](uint8_t) { concurrency::registerRenderThread(); } }
     , m_basic_rendering_services{ globals }
     , m_rendering_configuration{ Viewport{math::Vector2f{}, math::Vector2f{}, math::Vector2f{}},
                                  DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN }
@@ -135,6 +137,8 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
 
 void RenderingTasks::render(RenderingTarget& rendering_target, const std::function<void(void)>& presenter)
 {
+    concurrency::assertOnRenderThread();
+
     // Submit and present frame
 
     BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingTarget(m_basic_rendering_services, rendering_target);
@@ -148,6 +152,8 @@ void RenderingTasks::render(RenderingTarget& rendering_target, const std::functi
 
 void RenderingTasks::flush()
 {
+    concurrency::assertOnRenderThread();
+
     if (m_frame_progress_tracker.started())
     {
         m_frame_progress_tracker.waitForFrameCompletion(m_frame_progress_tracker.lastScheduledFrameIndex());
@@ -156,6 +162,8 @@ void RenderingTasks::flush()
 
 void RenderingTasks::cleanup()
 {
+    concurrency::assertOnRenderThread();
+
     if (m_task_sink.isRunning()) m_task_sink.shutdown();
     flush();
 }
