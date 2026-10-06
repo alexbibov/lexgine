@@ -14,7 +14,12 @@ namespace lexgine::core::dx::d3d12 {
 class FramePacer final
 {
 public:
-    FramePacer(FrameProgressTracker const& frame_progress_tracker, uint16_t max_frames_in_flight);
+    /*! creates a pacer enforcing a budget of @param max_frames_in_flight frames against the progress reported
+     by @param frame_progress_tracker. A budget exceeding @param back_buffer_count leaves the pacing to the
+     presentation engine rather than to this gate, so it is reported and reduced to the number of back buffers.
+    */
+    FramePacer(FrameProgressTracker const& frame_progress_tracker, uint16_t max_frames_in_flight,
+        uint32_t back_buffer_count);
 
     //! returns the tracker reporting the progress of the frames being paced
     FrameProgressTracker const& frameProgressTracker() const { return m_frame_progress_tracker; }

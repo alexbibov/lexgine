@@ -356,7 +356,9 @@ GlobalSettings::GlobalSettings(std::filesystem::path const& json_settings_source
         if ((p = document.find("max_frames_in_flight")) != document.end()
             && p->is_number_unsigned())
         {
-            m_max_frames_in_flight = p->get<uint16_t>();
+            // a budget of 0 frames would stall every frame and divide by zero when the per-frame resources
+            // of the query cache are indexed
+            m_max_frames_in_flight = (std::max)(static_cast<uint16_t>(1), p->get<uint16_t>());
         }
         else
         {

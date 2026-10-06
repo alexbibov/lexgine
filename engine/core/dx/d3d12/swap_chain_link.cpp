@@ -51,7 +51,7 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 {
     m_linked_rendering_tasks_ptr = p_rendering_loop_to_link;
     m_frame_pacer.emplace(p_rendering_loop_to_link->frameProgressTracker(),
-        m_global_settings.getMaxFramesInFlight());
+        m_global_settings.getMaxFramesInFlight(), m_linked_swap_chain.backBufferCount());
     updateRenderingConfiguration();
 }
 
