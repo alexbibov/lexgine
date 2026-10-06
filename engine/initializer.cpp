@@ -1,6 +1,7 @@
 #include "initializer.h"
 
 #include <engine/core/globals.h>
+#include <engine/core/concurrency/thread_affinity.h>
 #include <engine/core/dx/d3d12_initializer.h>
 #include <engine/core/dx/d3d12/d3d12_tools.h>
 #include <engine/core/dx/d3d12/device.h>
@@ -43,6 +44,10 @@ EngineSettings::EngineSettings()
 Initializer::Initializer(EngineSettings const& settings)
     : m_engine_api{ settings.engine_api }
 {
+    // the frame is driven by the thread initializing the engine until the rendering is moved off it
+    core::concurrency::registerSimulationThread();
+    core::concurrency::registerRenderThread();
+
     switch (settings.engine_api)
     {
     case core::EngineApi::Direct3D12:

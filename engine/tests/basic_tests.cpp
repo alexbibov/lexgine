@@ -21,6 +21,7 @@
 #include <engine/core/concurrency/task_graph.h>
 #include <engine/core/concurrency/task_sink.h>
 #include <engine/core/concurrency/schedulable_task.h>
+#include <engine/core/concurrency/thread_affinity.h>
 #include <engine/core/misc/misc.h>
 #include <engine/core/exception.h>
 #include <engine/initializer.h>
@@ -521,6 +522,31 @@ TEST(EngineTests_Concurrency, TestTaskGraphDependencyPush)
     }
 
     Log::shutdown();
+}
+
+
+TEST(EngineTests_Concurrency, TestThreadAffinity)
+{
+    using namespace lexgine::core::concurrency;
+
+    registerSimulationThread();
+    registerRenderThread();
+
+    EXPECT_TRUE(isOnSimulationThread());
+    EXPECT_TRUE(isOnRenderThread());
+
+    bool simulation_role_seen_elsewhere = true;
+    bool render_role_seen_elsewhere = true;
+    std::thread other_thread{ [&simulation_role_seen_elsewhere, &render_role_seen_elsewhere]()
+        {
+            simulation_role_seen_elsewhere = isOnSimulationThread();
+            render_role_seen_elsewhere = isOnRenderThread();
+        } };
+    other_thread.join();
+
+    // the roles belong to the threads, which claimed them, and to no other
+    EXPECT_FALSE(simulation_role_seen_elsewhere);
+    EXPECT_FALSE(render_role_seen_elsewhere);
 }
 
 
