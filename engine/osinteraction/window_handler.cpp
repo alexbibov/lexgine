@@ -97,7 +97,7 @@ public:    // ClientAreaUpdateListener
 
     bool paint(core::math::Rectangle const& update_region) override
     {
-        m_swap_chain_link.render();
+        // the frame is driven by the engine tick; the presented back buffer is what the client area shows
         return true;
     }
 
@@ -163,7 +163,12 @@ windows::Window* WindowHandler::attachedWindow() const
 void WindowHandler::update() const
 {
     m_target_os_window.processMessages();
-    m_target_os_window.update();
+
+    // the recorded events are consumed once the window binding owns the resize path; until then the swap
+    // chain link keeps handling the size messages through its listener
+    m_target_os_window.clearPendingEvents();
+
+    m_impl->render();
 }
 
 

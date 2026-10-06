@@ -299,14 +299,6 @@ void Window::processMessages() const
     }
 }
 
-void Window::update() const
-{
-    RECT rect{};
-    checkSystemCall(GetClientRect(m_hwnd, &rect));
-    checkSystemCall(InvalidateRect(m_hwnd, &rect, FALSE));
-    checkSystemCall(UpdateWindow(m_hwnd));
-}
-
 void Window::adjustClientAreaSize(core::math::Vector2u const& desired_position, core::math::Vector2u const& desired_dimensions,
     core::math::Vector2u& adjusted_position, core::math::Vector2u& adjusted_dimensions)
 {

@@ -101,8 +101,6 @@ public:
 
     void processMessages() const;    //! retrieves messages addressed to the window from the message queue and dispatches them to the window
 
-    void update() const;    //! updates the window
-
     /*! returns the events recorded by the window procedure since the last call of clearPendingEvents().
 
      The event queue is filled from the window procedure and is therefore only safe to touch from the thread,
