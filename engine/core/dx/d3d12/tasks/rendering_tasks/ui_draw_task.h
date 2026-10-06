@@ -73,6 +73,11 @@ public:
 public:
     ~UIDrawTask();
 
+    /*! binds the task to the window supplying the user input. Must be called once the task is owned by a
+     shared pointer, since the task registers itself as a listener of that window
+    */
+    void bindRenderingWindow(osinteraction::windows::Window& rendering_window);
+
     void addUIProvider(std::weak_ptr<ui::UIProvider> const& ui_provider) { m_ui_providers.push_back(ui_provider); }
 
 public:    // RenderingWork interface

@@ -27,11 +27,6 @@ d3d12::CommandQueue const& SwapChain::defaultCommandQueue() const
     return m_default_command_queue;
 }
 
-osinteraction::windows::Window& SwapChain::window() const
-{
-    return m_window;
-}
-
 math::Vector2u SwapChain::getDimensions() const
 {
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc1;
@@ -138,18 +133,18 @@ void SwapChain::resizeBuffers(math::Vector2u const& new_dimensions)
 SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     d3d12::Device& device,
     d3d12::CommandQueue const& default_command_queue,
-    osinteraction::windows::Window& window,
+    HWND hwnd,
+    math::Vector2u const& client_area_size,
     SwapChainDescriptor const& desc)
     : m_dxgi_factory{ dxgi_factory }
     , m_device{ device }
-    , m_window{ window }
+    , m_hwnd{ hwnd }
     , m_default_command_queue{ default_command_queue }
     , m_descriptor{ desc }
 {
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc1{};
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC swap_chain_fs_desc{};
 
-    math::Vector2f client_area_size = m_window.getClientArea().size();
     swap_chain_desc1.Width = static_cast<UINT>(client_area_size.x);
     swap_chain_desc1.Height = static_cast<UINT>(client_area_size.y);
     swap_chain_desc1.Format = desc.format;
@@ -171,7 +166,7 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_dxgi_factory->CreateSwapChainForHwnd(m_default_command_queue.native().Get(),
-            m_window.native(), &swap_chain_desc1, &swap_chain_fs_desc, NULL, &p_swap_chain1),
+            m_hwnd, &swap_chain_desc1, &swap_chain_fs_desc, NULL, &p_swap_chain1),
         S_OK
     );
 
@@ -185,7 +180,7 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     // the application owns the fullscreen toggle; DXGI's default Alt+Enter handling would fight it
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
-        m_dxgi_factory->MakeWindowAssociation(m_window.native(), DXGI_MWA_NO_ALT_ENTER),
+        m_dxgi_factory->MakeWindowAssociation(m_hwnd, DXGI_MWA_NO_ALT_ENTER),
         S_OK
     );
 }

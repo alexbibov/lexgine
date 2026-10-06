@@ -39,15 +39,12 @@ tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags getRend
     if (old_configuration.depth_buffer_format != new_configuration.depth_buffer_format)
         flags |= tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::depth_format_changed;
 
-    if (old_configuration.p_rendering_window != new_configuration.p_rendering_window)
-        flags |= tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::rendering_window_changed;
-
     return flags;
 }
 
 }
 
-RenderingTasks::RenderingTasks(Globals& globals)
+RenderingTasks::RenderingTasks(Globals& globals, osinteraction::windows::Window& rendering_window)
     : m_globals{ globals }
     , m_device{ globals.device() }
     , m_frame_progress_tracker{ m_device.frameProgressTracker() }
@@ -55,12 +52,14 @@ RenderingTasks::RenderingTasks(Globals& globals)
     , m_task_sink{ m_task_graph, "RenderingTasksSink" }
     , m_basic_rendering_services{ globals }
     , m_rendering_configuration{ Viewport{math::Vector2f{}, math::Vector2f{}, math::Vector2f{}},
-                                 DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, nullptr }
+                                 DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN }
     , m_gbuffer{ std::make_unique<rendering::Gbuffer>(globals) }
 {
     m_test_rendering_task_build_cmd_list = RenderingTaskFactory::create<tasks::rendering_tasks::TestRenderingTask>(m_globals, m_basic_rendering_services);
     m_ui_draw_build_cmd_list = RenderingTaskFactory::create<tasks::rendering_tasks::UIDrawTask>(globals, m_basic_rendering_services);
+    m_ui_draw_build_cmd_list->bindRenderingWindow(rendering_window);
     m_console = ui::Console::create(globals, m_basic_rendering_services, m_task_graph);
+    rendering_window.addListener(m_console);
     registerConsoleCommands();
     m_gpu_profiling_queries_flush_build_cmd_list = RenderingTaskFactory::create<tasks::rendering_tasks::GpuProfilingQueriesFlushTask>(globals);
     m_profiler = RenderingTaskFactory::create<ui::Profiler>(globals, m_basic_rendering_services, m_task_graph);
@@ -112,14 +111,7 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
     }
 
 
-    if (flags.isSet(tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::rendering_window_changed))
-    {
-        BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingWindow(m_basic_rendering_services, rendering_configuration.p_rendering_window);
-        rendering_configuration.p_rendering_window->addListener(m_console);
-    }
-
-    if (flags.isSet(tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::viewport_changed)
-        || flags.isSet(tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::rendering_window_changed))
+    if (flags.isSet(tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags::base_values::viewport_changed))
     {
         auto gbuffer_width = static_cast<uint32_t>(rendering_configuration.viewport.width());
         auto gbuffer_height = static_cast<uint32_t>(rendering_configuration.viewport.height());

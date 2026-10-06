@@ -51,11 +51,6 @@ private:
 
     void defineRenderingViewport(Viewport const& viewport);
 
-    void defineRenderingWindow(osinteraction::windows::Window* p_rendering_window)
-    {
-        m_rendering_window_ptr = p_rendering_window;
-    }
-
 private:
     Device& m_device;
     DxResourceFactory& m_dx_resources;
@@ -71,7 +66,6 @@ private:
     ConstantBufferStream m_constant_data_stream;
     PerFrameUploadDataStreamAllocator m_dynamic_geometry_allocator;
 
-    osinteraction::windows::Window* m_rendering_window_ptr = nullptr;
     std::array<DescriptorHeap const*, 2> m_descriptor_heaps;
 };
 
@@ -93,12 +87,6 @@ template<> class BasicRenderingServicesAttorney<RenderingTasks>
     static void defineRenderingViewport(BasicRenderingServices& basic_rendering_services, Viewport const& viewport)
     {
         basic_rendering_services.defineRenderingViewport(viewport);
-    }
-
-    static void defineRenderingWindow(BasicRenderingServices& basic_rendering_services,
-        osinteraction::windows::Window* p_rendering_window)
-    {
-        basic_rendering_services.defineRenderingWindow(p_rendering_window);
     }
 };
 

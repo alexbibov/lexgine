@@ -27,7 +27,6 @@ public:
     FLAG(viewport_changed, 0x1)
     FLAG(color_format_changed, 0x2)
     FLAG(depth_format_changed, 0x4)
-    FLAG(rendering_window_changed, 0x8)
     END_FLAGS_DECLARATION(RenderingConfigurationUpdateFlags);
 
 public:

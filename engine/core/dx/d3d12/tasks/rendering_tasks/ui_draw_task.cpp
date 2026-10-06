@@ -299,18 +299,19 @@ UIDrawTask::~UIDrawTask()
     ImGui::DestroyContext();
 }
 
+void UIDrawTask::bindRenderingWindow(osinteraction::windows::Window& rendering_window)
+{
+    m_os_data.rendering_window_ptr = &rendering_window;
+    rendering_window.addListener(shared_from_this());
+
+    ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+    main_viewport->PlatformHandle = rendering_window.native();
+}
+
 
 void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags update_flags,
     RenderingConfiguration const& rendering_configuration)
 {
-    if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::rendering_window_changed))
-    {
-        m_os_data.rendering_window_ptr = rendering_configuration.p_rendering_window;
-        m_os_data.rendering_window_ptr->addListener(shared_from_this());
-        ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-        main_viewport->PlatformHandle = m_os_data.rendering_window_ptr->native();
-    }
-
     if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::color_format_changed)
         || update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {

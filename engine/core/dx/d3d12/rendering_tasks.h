@@ -41,7 +41,7 @@ public:
     class GPURenderingServices;
 
 public:
-    RenderingTasks(Globals& globals);
+    RenderingTasks(Globals& globals, osinteraction::windows::Window& rendering_window);
     ~RenderingTasks();
 
     /*! Assigns default color and depth formats assumed for the rendering targets

@@ -305,8 +305,10 @@ HwOutputEnumerator HwAdapter::getOutputEnumerator() const
 
 lexgine::core::dx::dxgi::SwapChain HwAdapter::createSwapChain(osinteraction::windows::Window& window, SwapChainDescriptor const& desc) const
 {
+    math::Vector2f client_area_size = window.getClientArea().size();
     return SwapChainAttorney<HwAdapter>::makeSwapChain(m_dxgi_adapter_factory, *m_device,
-        m_device->defaultCommandQueue(), window, desc);
+        m_device->defaultCommandQueue(), window.native(),
+        math::Vector2u{ static_cast<uint32_t>(client_area_size.x), static_cast<uint32_t>(client_area_size.y) }, desc);
 }
 
 dx::d3d12::Device& HwAdapter::device() const

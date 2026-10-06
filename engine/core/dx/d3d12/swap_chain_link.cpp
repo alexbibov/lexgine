@@ -103,9 +103,8 @@ void SwapChainLink::updateRenderingConfiguration() const
     m_linked_rendering_tasks_ptr->defineRenderingConfiguration(
         RenderingConfiguration{
             viewport,
-            m_linked_swap_chain.descriptor().format, 
-            m_render_output.depthBufferFormat(),
-            &m_linked_swap_chain.window() 
+            m_linked_swap_chain.descriptor().format,
+            m_render_output.depthBufferFormat()
         }
     );
 }

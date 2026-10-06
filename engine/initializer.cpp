@@ -162,7 +162,7 @@ osinteraction::WindowHandler* Initializer::createWindowHandler(osinteraction::wi
             std::move(m_d3d12_initializer->createSwapChainForCurrentDevice(window, dxgi_swap_chain_descriptor))
             );
 
-        m_rendering_tasks = m_d3d12_initializer->createRenderingTasks();
+        m_rendering_tasks = m_d3d12_initializer->createRenderingTasks(window);
 
         m_swap_chain_link = m_d3d12_initializer->createSwapChainLink(*m_swap_chain, convertSwapChainDepthFormatD3d12(depth_format), *m_rendering_tasks);
 

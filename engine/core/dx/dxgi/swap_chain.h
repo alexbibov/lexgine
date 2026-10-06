@@ -11,7 +11,6 @@
 #include "engine/core/dx/d3d12/resource.h"
 #include "engine/core/math/vector_types.h"
 #include "engine/core/multisampling.h"
-#include "engine/osinteraction/windows/window.h"
 
 
 using namespace Microsoft::WRL;
@@ -68,9 +67,6 @@ public:
     //! Retrieves graphics command queue associated with the swap chain
     d3d12::CommandQueue const& defaultCommandQueue() const;
 
-    //! Retrieves Window object to which the swap chain is attached
-    osinteraction::windows::Window& window() const;
-
     //! Retrieves current width and height of the swap chain packed into a 2D vector
     math::Vector2u getDimensions() const;
 
@@ -107,7 +103,8 @@ private:
     SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
         d3d12::Device& device,
         d3d12::CommandQueue const& default_command_queue,
-        osinteraction::windows::Window& window,
+        HWND hwnd,
+        math::Vector2u const& client_area_size,
         SwapChainDescriptor const& desc);
 
     PresentResult reportPresentFailure(HRESULT hres) const;
@@ -115,7 +112,7 @@ private:
 private:
     ComPtr<IDXGIFactory6> m_dxgi_factory;   //!< DXGI factory used to create the swap chain
     d3d12::Device& m_device;    //!< Direct3D12 device interface
-    osinteraction::windows::Window& m_window;    //!< window, which holds the swap chain
+    HWND m_hwnd;    //!< handle of the window, which holds the swap chain
     d3d12::CommandQueue const& m_default_command_queue;    //!< graphics command queue associated with the swap chain
     SwapChainDescriptor m_descriptor;    //!< Descriptor of the swap chain
     ComPtr<IDXGISwapChain4> m_dxgi_swap_chain;   //!< DXGI interface representing the swap chain
@@ -132,10 +129,11 @@ private:
     static SwapChain makeSwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
         d3d12::Device& device,
         d3d12::CommandQueue const& default_command_queue,
-        osinteraction::windows::Window& window,
+        HWND hwnd,
+        math::Vector2u const& client_area_size,
         SwapChainDescriptor const& desc)
     {
-        return SwapChain{ dxgi_factory, device, default_command_queue, window, desc };
+        return SwapChain{ dxgi_factory, device, default_command_queue, hwnd, client_area_size, desc };
     }
 };
 

@@ -74,7 +74,7 @@ public:
     dx::dxgi::SwapChain createSwapChainForCurrentDevice(osinteraction::windows::Window& window, dx::dxgi::SwapChainDescriptor const& desc) const;
 
     //! hepler function creating the main rendering loop abstraction
-    std::unique_ptr<dx::d3d12::RenderingTasks> createRenderingTasks() const;
+    std::unique_ptr<dx::d3d12::RenderingTasks> createRenderingTasks(osinteraction::windows::Window& rendering_window) const;
 
     //! helper function that simplifies linking swap chain to rendering tasks
     std::shared_ptr<dx::d3d12::SwapChainLink> createSwapChainLink(dx::dxgi::SwapChain& target_swap_chain,
