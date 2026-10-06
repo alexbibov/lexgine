@@ -111,6 +111,24 @@ public:    // Construction
 
     void render() const { m_swap_chain_link.render(); }
 
+    void handleWindowEvent(windows::WindowEvent const& event) const
+    {
+        switch (event.type)
+        {
+        case windows::WindowEventType::resized:
+        case windows::WindowEventType::maximized:
+            m_swap_chain_link.requestResize(event.width, event.height);
+            break;
+
+        case windows::WindowEventType::minimized:
+            m_swap_chain_link.suspendRendering();
+            break;
+
+        default:
+            break;
+        }
+    }
+
 public:
     void setKeyInputCallbackPtr(KeyInputHandler key_input_handler) { m_key_input_handler = key_input_handler; }
     void setMouseButtonCallbackPtr(MouseButtonHandler mouse_button_handler) { m_mouse_button_handler = mouse_button_handler; }
@@ -164,8 +182,10 @@ void WindowHandler::update() const
 {
     m_target_os_window.processMessages();
 
-    // the recorded events are consumed once the window binding owns the resize path; until then the swap
-    // chain link keeps handling the size messages through its listener
+    for (windows::WindowEvent const& event : m_target_os_window.pendingEvents())
+    {
+        m_impl->handleWindowEvent(event);
+    }
     m_target_os_window.clearPendingEvents();
 
     m_impl->render();

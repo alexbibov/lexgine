@@ -37,9 +37,7 @@ SwapChainLink::SwapChainLink(SwapChainLink&& other)
 
 std::shared_ptr<SwapChainLink> SwapChainLink::create(Globals& globals, dxgi::SwapChain& swap_chain_to_link, SwapChainDepthBufferFormat depth_buffer_format)
 {
-    std::shared_ptr<SwapChainLink> rv{ new SwapChainLink{globals, swap_chain_to_link, depth_buffer_format} };
-    swap_chain_to_link.window().addListener(rv);
-    return rv;
+    return std::shared_ptr<SwapChainLink>{ new SwapChainLink{globals, swap_chain_to_link, depth_buffer_format} };
 }
 
 SwapChainLink::~SwapChainLink()
@@ -85,21 +83,14 @@ void SwapChainLink::render()
     }
 }
 
-bool SwapChainLink::minimized()
-{
-    m_suspend_rendering = true;
-    return true;
-}
-
-bool SwapChainLink::maximized(uint16_t new_width, uint16_t new_height)
-{
-    return size_changed(new_width, new_height);
-}
-
-bool SwapChainLink::size_changed(uint16_t new_width, uint16_t new_height)
+void SwapChainLink::requestResize(uint32_t new_width, uint32_t new_height)
 {
     m_render_output.requestResize(new_width, new_height);
-    return true;
+}
+
+void SwapChainLink::suspendRendering()
+{
+    m_suspend_rendering = true;
 }
 
 void SwapChainLink::updateRenderingConfiguration() const

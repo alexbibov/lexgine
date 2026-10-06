@@ -10,9 +10,6 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
 
-#include "engine/osinteraction/listener.h"
-#include "engine/osinteraction/windows/window_listeners.h"
-
 #include "frame_pacer.h"
 #include "render_output.h"
 
@@ -20,8 +17,7 @@
 namespace lexgine::core::dx::d3d12 {
 
 //! Implements link between swap chain and main rendering loop
-class SwapChainLink final :
-    public osinteraction::Listeners<osinteraction::windows::WindowSizeChangeListener>
+class SwapChainLink final
 {
 public:
     static std::shared_ptr<SwapChainLink> create(Globals& globals, dxgi::SwapChain& swap_chain_to_link,
@@ -37,10 +33,11 @@ public:
 
     void render();
 
-public:    // WindowSizeChangeListener events
-    bool minimized() override;
-    bool maximized(uint16_t new_width, uint16_t new_height) override;
-    bool size_changed(uint16_t new_width, uint16_t new_height) override;
+    //! records a request to resize the output; the surfaces are recreated by the next rendered frame
+    void requestResize(uint32_t new_width, uint32_t new_height);
+
+    //! stops the frames from being rendered until the output has a client area to render into again
+    void suspendRendering();
 
 private:
     SwapChainLink(Globals& globals, dxgi::SwapChain& swap_chain_to_link,
