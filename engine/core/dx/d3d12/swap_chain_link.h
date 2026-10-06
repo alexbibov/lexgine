@@ -12,19 +12,10 @@
 #include "engine/osinteraction/listener.h"
 #include "engine/osinteraction/windows/window_listeners.h"
 
-#include "resource.h"
-#include "rendering_target.h"
+#include "render_output.h"
 
 
 namespace lexgine::core::dx::d3d12 {
-
-enum class SwapChainDepthBufferFormat
-{
-    d32float_s8x24_uint = DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
-    d32float = DXGI_FORMAT_D32_FLOAT,
-    d24unorm_s8uint = DXGI_FORMAT_D24_UNORM_S8_UINT,
-    d16unorm = DXGI_FORMAT_D16_UNORM
-};
 
 //! Implements link between swap chain and main rendering loop
 class SwapChainLink final :
@@ -55,30 +46,16 @@ private:
 
 
     void updateRenderingConfiguration() const;
-    void releaseBuffers();
-    void acquireBuffers(uint32_t width, uint32_t height);
-    void applyPendingResize();    //! recreates the swap chain buffers if a resize was requested by the window
 
 
 private:
     Globals& m_globals;
     GlobalSettings const& m_global_settings;
-    Device& m_device;
     dxgi::SwapChain& m_linked_swap_chain;
     RenderingTasks* m_linked_rendering_tasks_ptr;
     bool m_suspend_rendering = false;
-    bool m_buffers_acquired = false;
-    bool m_pending_resize = false;
-    uint32_t m_pending_width = 0U;
-    uint32_t m_pending_height = 0U;
 
-    std::vector<Resource> m_color_buffers;
-    std::unique_ptr<CommittedResource> m_depth_buffer;
-
-    DXGI_FORMAT m_depth_buffer_native_format;
-    ResourceOptimizedClearValue m_depth_optimized_clear_value;
-
-    std::vector<RenderingTarget> m_targets;
+    RenderOutput m_render_output;
 };
 
 }
