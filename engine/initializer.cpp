@@ -2,6 +2,7 @@
 
 #include <engine/core/globals.h>
 #include <engine/core/concurrency/thread_affinity.h>
+#include <engine/core/rendering/render_thread.h>
 #include <engine/core/dx/d3d12_initializer.h>
 #include <engine/core/dx/d3d12/d3d12_tools.h>
 #include <engine/core/dx/d3d12/device.h>
@@ -44,9 +45,8 @@ EngineSettings::EngineSettings()
 Initializer::Initializer(EngineSettings const& settings)
     : m_engine_api{ settings.engine_api }
 {
-    // the frame is driven by the thread initializing the engine until the rendering is moved off it
+    // the frames are driven by a thread of their own, which claims the rendering role itself
     core::concurrency::registerSimulationThread();
-    core::concurrency::registerRenderThread();
 
     switch (settings.engine_api)
     {
@@ -170,6 +170,9 @@ osinteraction::WindowHandler* Initializer::createWindowHandler(osinteraction::wi
         m_rendering_tasks = m_d3d12_initializer->createRenderingTasks(window);
 
         m_swap_chain_link = m_d3d12_initializer->createSwapChainLink(*m_swap_chain, convertSwapChainDepthFormatD3d12(depth_format), *m_rendering_tasks);
+
+        m_render_thread = std::make_unique<core::RenderThread>(window, *m_swap_chain_link);
+        m_render_thread->start();
 
         m_window_handler = std::make_unique<osinteraction::WindowHandler>(
             std::move(osinteraction::WindowHandlerAttorney<Initializer>::makeWindowHandler(m_d3d12_initializer->globals(), window, *m_swap_chain_link)

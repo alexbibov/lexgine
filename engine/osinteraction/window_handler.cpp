@@ -109,25 +109,6 @@ public:    // Construction
 
     }
 
-    void render() const { m_swap_chain_link.render(); }
-
-    void handleWindowEvent(windows::WindowEvent const& event) const
-    {
-        switch (event.type)
-        {
-        case windows::WindowEventType::resized:
-        case windows::WindowEventType::maximized:
-            m_swap_chain_link.requestResize(event.width, event.height);
-            break;
-
-        case windows::WindowEventType::minimized:
-            m_swap_chain_link.suspendRendering();
-            break;
-
-        default:
-            break;
-        }
-    }
 
 public:
     void setKeyInputCallbackPtr(KeyInputHandler key_input_handler) { m_key_input_handler = key_input_handler; }
@@ -180,15 +161,12 @@ windows::Window* WindowHandler::attachedWindow() const
 
 void WindowHandler::update() const
 {
+    // the frames are driven by the rendering thread, so there is nothing to do here until the next message
+    // arrives. The wait returns at once when there is input and only bounds how often the close request is
+    // noticed while the window is idle
+    MsgWaitForMultipleObjects(0, nullptr, FALSE, 1, QS_ALLINPUT);
+
     m_target_os_window.processMessages();
-
-    for (windows::WindowEvent const& event : m_target_os_window.pendingEvents())
-    {
-        m_impl->handleWindowEvent(event);
-    }
-    m_target_os_window.clearPendingEvents();
-
-    m_impl->render();
 }
 
 

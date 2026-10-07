@@ -45,7 +45,9 @@ BasicRenderingServices::BasicRenderingServices(Globals& globals)
     , m_device{ globals.device() }
     , m_dx_resources{ globals.dxResourceFactory() }
     , m_resource_uploader{ globals.textureConverter().getDataUploader() }
-    , m_frame_contexts(globals.globalSettings().getMaxFramesInFlight(), FrameContext{})
+    // one slot beyond the frames in flight, so that the context of the next frame may be prepared before the
+    // gate admits it
+    , m_frame_contexts(globals.globalSettings().getMaxFramesInFlight() + 1u, FrameContext{})
     , m_rendering_target_color_format{ DXGI_FORMAT_UNKNOWN }
     , m_rendering_target_depth_format{ DXGI_FORMAT_UNKNOWN }
     , m_constant_data_stream{ globals }

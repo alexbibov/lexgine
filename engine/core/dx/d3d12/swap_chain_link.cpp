@@ -43,7 +43,8 @@ std::shared_ptr<SwapChainLink> SwapChainLink::create(Globals& globals, dxgi::Swa
 
 SwapChainLink::~SwapChainLink()
 {
-    if (m_linked_rendering_tasks_ptr) m_linked_rendering_tasks_ptr->flush();
+    // the thread driving the frames flushes the GPU work before it leaves its loop, and it is joined before
+    // the link it drives is destroyed, so there is nothing left to await here
 }
 
 void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
@@ -54,9 +55,9 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
     updateRenderingConfiguration();
 }
 
-void SwapChainLink::render()
+bool SwapChainLink::render()
 {
-    if (m_linked_swap_chain.isDeviceLost()) return;    // recovery is not implemented yet
+    if (m_linked_swap_chain.isDeviceLost()) return false;    // recovery is not implemented yet
 
     if (m_frame_pacer && m_render_output.applyPendingResize(m_frame_pacer->frameProgressTracker()))
     {
@@ -74,14 +75,22 @@ void SwapChainLink::render()
 
     if (m_linked_swap_chain.isIdle()) {    // check if we should exit idle presentation state
         m_linked_swap_chain.present();
+        return false;
     }
-    else if (!m_suspend_rendering && m_linked_rendering_tasks_ptr)
-    {
-        RenderingTarget& target = m_render_output.currentTarget();
-        m_frame_pacer->waitForFrameSlot();
 
-        m_linked_rendering_tasks_ptr->render(target, [this](void) { m_linked_swap_chain.present(); });
-    }
+    if (m_suspend_rendering || !m_linked_rendering_tasks_ptr) return false;
+
+    RenderingTarget& target = m_render_output.currentTarget();
+    m_frame_pacer->waitForFrameSlot();
+
+    m_linked_rendering_tasks_ptr->render(target, [this](void) { m_linked_swap_chain.present(); });
+
+    return true;
+}
+
+void SwapChainLink::flushRenderingTasks()
+{
+    if (m_linked_rendering_tasks_ptr) m_linked_rendering_tasks_ptr->flush();
 }
 
 void SwapChainLink::requestResize(uint32_t new_width, uint32_t new_height)

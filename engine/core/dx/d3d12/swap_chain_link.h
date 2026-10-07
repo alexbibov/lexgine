@@ -31,7 +31,10 @@ public:
 
     void linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link);
 
-    void render();
+    //! renders a single frame. Returns 'false' when the output had nothing to present this iteration
+    bool render();
+
+    void flushRenderingTasks();    //! awaits the GPU work scheduled so far; called by the thread driving the frames
 
     //! records a request to resize the output; the surfaces are recreated by the next rendered frame
     void requestResize(uint32_t new_width, uint32_t new_height);

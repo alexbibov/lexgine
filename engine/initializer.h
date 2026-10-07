@@ -69,6 +69,11 @@ private:
     std::unique_ptr<core::dx::d3d12::RenderingTasks> m_rendering_tasks;
     std::shared_ptr<core::dx::d3d12::SwapChainLink> m_swap_chain_link;
     std::unique_ptr<osinteraction::WindowHandler> m_window_handler;
+
+    /*!< declared last so that it is destroyed first: the thread has to leave its loop before the swap chain
+     link and the rendering tasks it drives are torn down
+    */
+    std::unique_ptr<core::RenderThread> m_render_thread;
 };
 
 }

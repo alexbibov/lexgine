@@ -226,15 +226,22 @@ bool Window::getVisibility() const
 bool Window::shouldClose() const { return  m_should_close; }
 
 
-void Window::clearPendingEvents()
+std::vector<WindowEvent> Window::takePendingEvents()
 {
-    m_pending_events.clear();
+    std::vector<WindowEvent> taken_events;
+    {
+        std::lock_guard lock{ m_pending_events_mutex };
+        taken_events.swap(m_pending_events);
+    }
+
+    return taken_events;
 }
 
 void Window::pushEvent(WindowEvent const& event)
 {
-    // nothing drains the queue until the frame loop is driven by the engine tick, so the oldest events are
-    // dropped rather than allowed to accumulate without a bound
+    std::lock_guard lock{ m_pending_events_mutex };
+
+    // the oldest events are dropped when the consumer falls behind, so that the newest size always survives
     if (m_pending_events.size() >= c_max_pending_events) m_pending_events.erase(m_pending_events.begin());
 
     m_pending_events.push_back(event);

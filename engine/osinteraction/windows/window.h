@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <string>
 #include <deque>
+#include <mutex>
 #include <vector>
 
 
@@ -101,14 +102,12 @@ public:
 
     void processMessages() const;    //! retrieves messages addressed to the window from the message queue and dispatches them to the window
 
-    /*! returns the events recorded by the window procedure since the last call of clearPendingEvents().
+    /*! removes the events recorded by the window procedure since the last call and returns them.
 
-     The event queue is filled from the window procedure and is therefore only safe to touch from the thread,
-     which pumps the messages of this window.
+     The queue is filled by the thread pumping the messages of this window and is drained by the thread
+     driving the frames, so the events are taken under a lock rather than inspected in place.
     */
-    std::vector<WindowEvent> const& pendingEvents() const { return m_pending_events; }
-
-    void clearPendingEvents();    //! drops the events recorded by the window procedure
+    std::vector<WindowEvent> takePendingEvents();
 
 private:
     void adjustClientAreaSize(core::math::Vector2u const& desired_position, core::math::Vector2u const& desired_dimensions,
@@ -131,6 +130,7 @@ private:
     WindowExStyle m_window_ex_style;	//!< extended window style description
     bool m_should_close;	//!< equals 'true' if the window is ready to close. Equals 'false' otherwise
     std::deque<std::weak_ptr<AbstractListener>> m_listener_list;    //!< list of window listeners
+    mutable std::mutex m_pending_events_mutex;    //!< guards the recorded events against the thread draining them
     std::vector<WindowEvent> m_pending_events;    //!< events recorded by the window procedure and awaiting to be handled
 
 

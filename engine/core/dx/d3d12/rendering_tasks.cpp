@@ -156,7 +156,8 @@ void RenderingTasks::render(RenderingTarget& rendering_target, const std::functi
 
 void RenderingTasks::flush()
 {
-    concurrency::assertOnRenderThread();
+    // no thread role is asserted here: this is reached from the rendering thread before it leaves its loop
+    // and from cleanup(), which the owning thread runs while the engine is torn down
 
     if (m_frame_progress_tracker.started())
     {
@@ -166,7 +167,8 @@ void RenderingTasks::flush()
 
 void RenderingTasks::cleanup()
 {
-    concurrency::assertOnRenderThread();
+    // no thread role is asserted here: this is reached both from a rendering configuration change, which
+    // happens on the rendering thread, and from the destructor, which runs on the owning thread
 
     if (m_task_sink.isRunning()) m_task_sink.shutdown();
     flush();

@@ -43,6 +43,8 @@ protected:
 };
 
 class RasterizerDescriptor;
+class RenderCommandPipe;
+class RenderThread;
 class ShaderSourceCodePreprocessor;
 class Viewport;
 
