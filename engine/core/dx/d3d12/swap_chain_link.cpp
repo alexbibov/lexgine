@@ -95,14 +95,14 @@ void SwapChainLink::flushRenderingTasks()
 
 void SwapChainLink::requestResize(uint32_t new_width, uint32_t new_height)
 {
-    concurrency::assertOnRenderThread();
+    concurrency::assertOnMasterWorkerThread();
 
     m_render_output.requestResize(new_width, new_height);
 }
 
 void SwapChainLink::suspendRendering()
 {
-    concurrency::assertOnRenderThread();
+    concurrency::assertOnMasterWorkerThread();
 
     m_suspend_rendering = true;
 }

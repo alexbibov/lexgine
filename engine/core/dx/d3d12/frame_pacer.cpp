@@ -57,7 +57,7 @@ FramePacer::FramePacer(FrameProgressTracker const& frame_progress_tracker, uint1
 
 void FramePacer::waitForFrameSlot() const
 {
-    concurrency::assertOnRenderThread();
+    concurrency::assertOnMasterWorkerThread();
 
     uint64_t scheduled_frames_count = m_frame_progress_tracker.scheduledFramesCount();
     uint64_t completed_frames_count = m_frame_progress_tracker.completedFramesCount();

@@ -29,6 +29,12 @@ template<typename T> class GlobalsAttorney;
  population of the registry is restricted to the engine initializers through GlobalsAttorney.
 
  Adding a new engine-wide object requires declaring a corresponding entry here.
+
+ Every entry is reachable from the simulation thread, from the master worker and from the slave workers, so
+ each of them stays safe by one of three means, noted on the accessors below: the entry is immutable once the
+ engine is initialized, it synchronizes itself, or it is only ever mutated while the engine is initialized and
+ while a scene is loaded. The last of these holds because the scene commands are drained by the master worker
+ before the task graph of the frame is seeded, so they never overlap the recording.
 */
 class Globals : NamedEntity<Globals>
 {
@@ -45,31 +51,43 @@ public:
     //! Returns the graphics API backing the engine
     EngineApi engineApi() const { return m_engine_api; }
 
+    //! Immutable once the engine is initialized
     GlobalSettings& globalSettings() { return *m_global_settings; }
     GlobalSettings const& globalSettings() const { return *m_global_settings; }
 
+    //! Not synchronized: its upload heap partitioning is only mutated at initialization and at scene load
     dx::d3d12::DxResourceFactory& dxResourceFactory() { return *m_dx_resource_factory; }
     dx::d3d12::DxResourceFactory const& dxResourceFactory() const { return *m_dx_resource_factory; }
 
     GpuDataBlobCache& gpuDataBlobCache() { return *m_gpu_data_blob_cache; }
     GpuDataBlobCache const& gpuDataBlobCache() const { return *m_gpu_data_blob_cache; }
 
-    //! Returns the device currently selected for graphics and compute work
+    /*! Returns the device currently selected for graphics and compute work.
+
+     Its descriptor allocators reserve through atomic counters and its bindless descriptor cache
+     synchronizes itself, so the device is reachable from every thread recording the rendering work. Rotating
+     the page of the transient allocator belongs to the master worker alone and asserts as much.
+    */
     dx::d3d12::Device& device() { return *m_device; }
     dx::d3d12::Device const& device() const { return *m_device; }
 
+    //! Not synchronized: reached while the engine is initialized and while a scene is loaded
     conversion::TextureConverter& textureConverter() { return *m_texture_converter; }
     conversion::TextureConverter const& textureConverter() const { return *m_texture_converter; }
 
+    //! Not synchronized: reached while the engine is initialized and while a scene is loaded
     conversion::ImageLoaderPool& imageLoaderPool() { return *m_image_loader_pool; }
     conversion::ImageLoaderPool const& imageLoaderPool() const { return *m_image_loader_pool; }
 
+    //! Synchronizes itself; reached from every thread recording the rendering work
     dx::d3d12::caches::HLSLShaderBlobCache& hlslShaderBlobCache() { return *m_hlsl_shader_blob_cache; }
     dx::d3d12::caches::HLSLShaderBlobCache const& hlslShaderBlobCache() const { return *m_hlsl_shader_blob_cache; }
 
+    //! Synchronizes itself; reached from every thread recording the rendering work
     dx::d3d12::caches::RootSignatureBlobCache& rootSignatureBlobCache() { return *m_root_signature_blob_cache; }
     dx::d3d12::caches::RootSignatureBlobCache const& rootSignatureBlobCache() const { return *m_root_signature_blob_cache; }
 
+    //! Synchronizes itself; reached from every thread recording the rendering work
     dx::d3d12::caches::PSOBlobCache& psoBlobCache() { return *m_pso_blob_cache; }
     dx::d3d12::caches::PSOBlobCache const& psoBlobCache() const { return *m_pso_blob_cache; }
 

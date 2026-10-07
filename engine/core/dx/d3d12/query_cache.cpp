@@ -2,6 +2,7 @@
 #include <numeric>
 #include <chrono>
 
+#include "engine/core/concurrency/thread_affinity.h"
 #include "engine/core/exception.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/misc/misc.h"
@@ -228,6 +229,9 @@ void QueryCache::initQueryCache()
 
 void QueryCache::markFrameBegin()
 {
+    // the frame walls bracket the whole frame, so they belong to the thread sequencing it
+    concurrency::assertOnMasterWorkerThread();
+
     FrameProgressTrackerAttorney<QueryCache>::signalCPUBeginFrame(m_frame_progress_tracker);
     FrameProgressTrackerAttorney<QueryCache>::signalGPUBeginFrame(m_frame_progress_tracker,
         m_device.defaultCommandQueue());
@@ -235,6 +239,8 @@ void QueryCache::markFrameBegin()
 
 void QueryCache::markFrameEnd()
 {
+    concurrency::assertOnMasterWorkerThread();
+
     FrameProgressTrackerAttorney<QueryCache>::signalGPUEndFrame(m_frame_progress_tracker,
         m_device.defaultCommandQueue());
     FrameProgressTrackerAttorney<QueryCache>::signalCPUEndFrame(m_frame_progress_tracker);

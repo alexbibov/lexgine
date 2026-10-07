@@ -16,7 +16,7 @@ bool RenderCommandPipe::enqueue(RenderCommand command)
 
 void RenderCommandPipe::drain()
 {
-    concurrency::assertOnRenderThread();
+    concurrency::assertOnMasterWorkerThread();
 
     // the commands run outside the lock, so that one of them may queue another without deadlocking
     std::vector<RenderCommand> commands_to_run;

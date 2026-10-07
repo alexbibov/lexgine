@@ -75,7 +75,7 @@ void RenderOutput::requestResize(uint32_t new_width, uint32_t new_height)
 
 bool RenderOutput::applyPendingResize(FrameProgressTracker const& frame_progress_tracker)
 {
-    concurrency::assertOnRenderThread();
+    concurrency::assertOnMasterWorkerThread();
 
     if (!m_pending_resize) return false;
 
@@ -93,7 +93,7 @@ bool RenderOutput::applyPendingResize(FrameProgressTracker const& frame_progress
 
 void RenderOutput::releaseBuffers(FrameProgressTracker const& frame_progress_tracker)
 {
-    concurrency::assertOnRenderThread();
+    concurrency::assertOnMasterWorkerThread();
 
     // there is nothing to await before the very first frame has been scheduled
     if (frame_progress_tracker.started()) frame_progress_tracker.synchronize();
@@ -105,7 +105,7 @@ void RenderOutput::releaseBuffers(FrameProgressTracker const& frame_progress_tra
 
 void RenderOutput::acquireBuffers(uint32_t width, uint32_t height)
 {
-    concurrency::assertOnRenderThread();
+    concurrency::assertOnMasterWorkerThread();
 
     uint16_t back_buffers_count = m_swap_chain.backBufferCount();
 
@@ -161,7 +161,7 @@ void RenderOutput::acquireBuffers(uint32_t width, uint32_t height)
 
 RenderingTarget& RenderOutput::currentTarget()
 {
-    concurrency::assertOnRenderThread();
+    concurrency::assertOnMasterWorkerThread();
 
     return m_targets[m_swap_chain.getCurrentBackBufferIndex()];
 }

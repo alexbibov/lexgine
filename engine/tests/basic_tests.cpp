@@ -530,9 +530,10 @@ TEST(EngineTests_Concurrency, TestThreadAffinity)
     using namespace lexgine::core::concurrency;
 
     registerSimulationThread();
-    registerRenderThread();
+    registerMasterWorkerThread();
 
     EXPECT_TRUE(isOnSimulationThread());
+    EXPECT_TRUE(isOnMasterWorkerThread());
     EXPECT_TRUE(isOnRenderThread());
 
     bool simulation_role_inherited = true;
@@ -548,23 +549,27 @@ TEST(EngineTests_Concurrency, TestThreadAffinity)
     EXPECT_FALSE(simulation_role_inherited);
     EXPECT_FALSE(render_role_inherited);
 
-    // the rendering role is held by every thread doing rendering work, not by a single one
-    bool render_role_claimed_elsewhere = false;
+    // a slave worker records the rendering work without being the thread sequencing the frames
+    bool slave_records_rendering_work = false;
+    bool slave_mistaken_for_master = true;
     bool simulation_role_leaked = true;
-    std::thread rendering_thread{ [&render_role_claimed_elsewhere, &simulation_role_leaked]()
+    std::thread slave_worker_thread{ [&slave_records_rendering_work, &slave_mistaken_for_master, &simulation_role_leaked]()
         {
-            registerRenderThread();
-            render_role_claimed_elsewhere = isOnRenderThread();
+            registerSlaveWorkerThread();
+            slave_records_rendering_work = isOnRenderThread();
+            slave_mistaken_for_master = isOnMasterWorkerThread();
             simulation_role_leaked = isOnSimulationThread();
         } };
-    rendering_thread.join();
+    slave_worker_thread.join();
 
-    EXPECT_TRUE(render_role_claimed_elsewhere);
+    EXPECT_TRUE(slave_records_rendering_work);
+    EXPECT_FALSE(slave_mistaken_for_master);
     EXPECT_FALSE(simulation_role_leaked);
 
-    // claiming the role elsewhere leaves this thread's roles untouched
+    // claiming a role elsewhere leaves this thread's roles untouched
     EXPECT_TRUE(isOnSimulationThread());
-    EXPECT_TRUE(isOnRenderThread());
+    EXPECT_TRUE(isOnMasterWorkerThread());
+    EXPECT_FALSE(isOnSlaveWorkerThread());
 }
 
 

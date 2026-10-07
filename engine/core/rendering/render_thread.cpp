@@ -39,7 +39,7 @@ void RenderThread::stop()
 
 void RenderThread::loop()
 {
-    concurrency::registerRenderThread();
+    concurrency::registerMasterWorkerThread();
 
     while (!m_stop_requested.load(std::memory_order_acquire))
     {

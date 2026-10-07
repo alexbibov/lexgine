@@ -51,7 +51,7 @@ RenderingTasks::RenderingTasks(Globals& globals, osinteraction::windows::Window&
     , m_frame_progress_tracker{ m_device.frameProgressTracker() }
     , m_task_graph{ globals.globalSettings().getNumberOfWorkers(), "RenderingTasksGraph" }
     , m_task_sink{ m_task_graph, "RenderingTasksSink",
-                   [](uint8_t) { concurrency::registerRenderThread(); } }
+                   [](uint8_t) { concurrency::registerSlaveWorkerThread(); } }
     , m_basic_rendering_services{ globals }
     , m_rendering_configuration{ Viewport{math::Vector2f{}, math::Vector2f{}, math::Vector2f{}},
                                  DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN }
@@ -137,7 +137,7 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
 
 void RenderingTasks::render(RenderingTarget& rendering_target, const std::function<void(void)>& presenter)
 {
-    concurrency::assertOnRenderThread();
+    concurrency::assertOnMasterWorkerThread();
 
     // Submit and present frame
 
@@ -177,7 +177,7 @@ void RenderingTasks::cleanup()
 
 void RenderingTasks::loadScene(std::string const& path, unsigned scene_id)
 {
-    concurrency::assertOnRenderThread();
+    concurrency::assertOnMasterWorkerThread();
 
     m_current_scene = scenegraph::Scene::loadScene(m_globals, m_basic_rendering_services, path, scene_id);
     if (m_current_scene)
@@ -191,7 +191,7 @@ void RenderingTasks::loadScene(std::string const& path, unsigned scene_id)
 
 void RenderingTasks::loadScene(std::string const& path, std::string const& scene_name)
 {
-    concurrency::assertOnRenderThread();
+    concurrency::assertOnMasterWorkerThread();
 
     m_current_scene = scenegraph::Scene::loadScene(m_globals, m_basic_rendering_services, path, scene_name);
     if (m_current_scene)

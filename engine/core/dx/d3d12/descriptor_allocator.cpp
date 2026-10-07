@@ -1,5 +1,6 @@
 #include <cassert>
 
+#include "engine/core/concurrency/thread_affinity.h"
 #include "engine/core/exception.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/dx/d3d12/cbv_descriptor.h"
@@ -92,6 +93,10 @@ TransientDescriptorAllocator::TransientDescriptorAllocator(DescriptorHeap& descr
 
 void TransientDescriptorAllocator::nextFrame()
 {
+    // rotating the page belongs to the frame sequencing: a slave worker doing it would hand the frame being
+    // recorded the page of another one
+    concurrency::assertOnMasterWorkerThread();
+
     m_active_frame_index = (m_active_frame_index + 1) % m_frames_in_flight;
     m_per_frame_allocation_offset[m_active_frame_index].store(0, std::memory_order_relaxed);
 }

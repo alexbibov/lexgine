@@ -65,7 +65,7 @@ FrameContext const& BasicRenderingServices::frameContext(uint64_t frame_index) c
 
 void BasicRenderingServices::defineFrameContext(uint64_t frame_index, RenderingTarget& rendering_target)
 {
-    concurrency::assertOnRenderThread();
+    concurrency::assertOnMasterWorkerThread();
 
     m_frame_contexts[frame_index % m_frame_contexts.size()] =
         FrameContext{ .frame_index = frame_index, .p_rendering_target = &rendering_target };
