@@ -122,7 +122,7 @@ private:    // required by AbstractTask interface
 private:
     void updateTexture(ImTextureData* p_texture);
     void processEvents();
-    void drawFrame();
+    void drawFrame(FrameContext const& frame_context);
 
 private:
     Globals& m_globals;

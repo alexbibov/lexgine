@@ -662,7 +662,7 @@ bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
     }
 
     ImGui::Render();
-    drawFrame();
+    drawFrame(m_basic_rendering_services.frameContext(user_data));
 
     return true;
 }
@@ -768,11 +768,11 @@ void UIDrawTask::processEvents()
     // TODO: support gamepads
 }
 
-void UIDrawTask::drawFrame()
+void UIDrawTask::drawFrame(FrameContext const& frame_context)
 {
     if (ImDrawData* p_draw_data = ImGui::GetDrawData())
     {
-        auto setup_render_state_lambda = [this, p_draw_data]()
+        auto setup_render_state_lambda = [this, p_draw_data, &frame_context]()
         {
             Viewport viewport{
                 math::Vector2f{0.f},
@@ -798,7 +798,7 @@ void UIDrawTask::drawFrame()
             m_cmd_list_ptr->rasterizerStateSetViewports(m_viewports);
             m_cmd_list_ptr->inputAssemblySetPrimitiveTopology(PrimitiveTopology::triangle_list);
             m_cmd_list_ptr->outputMergerSetBlendFactor(math::Vector4f{ 0.f });
-            m_basic_rendering_services.setDefaultRenderingTarget(*m_cmd_list_ptr);
+            m_basic_rendering_services.setDefaultRenderingTarget(*m_cmd_list_ptr, frame_context);
             auto allocation = m_basic_rendering_services.constantDataStream().allocateAndUpdate(m_constant_data_mapper);
             
             m_shader_function.bindRootConstantBuffer(*m_cmd_list_ptr, dxcompilation::ShaderFunctionConstantBufferRootIds::scene_uniforms, allocation->virtualGpuAddress());
@@ -912,6 +912,6 @@ void UIDrawTask::drawFrame()
             }
         }
 
-        m_basic_rendering_services.endRendering(*m_cmd_list_ptr);
+        m_basic_rendering_services.endRendering(*m_cmd_list_ptr, frame_context);
     }
 }

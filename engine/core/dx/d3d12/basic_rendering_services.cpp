@@ -45,7 +45,7 @@ BasicRenderingServices::BasicRenderingServices(Globals& globals)
     , m_device{ globals.device() }
     , m_dx_resources{ globals.dxResourceFactory() }
     , m_resource_uploader{ globals.textureConverter().getDataUploader() }
-    , m_current_rendering_target_ptr{ nullptr }
+    , m_frame_contexts(globals.globalSettings().getMaxFramesInFlight(), FrameContext{})
     , m_rendering_target_color_format{ DXGI_FORMAT_UNKNOWN }
     , m_rendering_target_depth_format{ DXGI_FORMAT_UNKNOWN }
     , m_constant_data_stream{ globals }
@@ -56,14 +56,31 @@ BasicRenderingServices::BasicRenderingServices(Globals& globals)
 {
 }
 
-void BasicRenderingServices::beginRendering(CommandList& command_list) const
+FrameContext const& BasicRenderingServices::frameContext(uint64_t frame_index) const
 {
-    m_current_rendering_target_ptr->switchToRenderAccessState(command_list);
+    return m_frame_contexts[frame_index % m_frame_contexts.size()];
 }
 
-void BasicRenderingServices::endRendering(CommandList& command_list) const
+void BasicRenderingServices::defineFrameContext(uint64_t frame_index, RenderingTarget& rendering_target)
 {
-    m_current_rendering_target_ptr->switchToInitialState(command_list);
+    concurrency::assertOnRenderThread();
+
+    m_frame_contexts[frame_index % m_frame_contexts.size()] =
+        FrameContext{ .frame_index = frame_index, .p_rendering_target = &rendering_target };
+}
+
+void BasicRenderingServices::beginRendering(CommandList& command_list, FrameContext const& frame_context) const
+{
+    concurrency::assertOnRenderThread();
+
+    frame_context.p_rendering_target->switchToRenderAccessState(command_list);
+}
+
+void BasicRenderingServices::endRendering(CommandList& command_list, FrameContext const& frame_context) const
+{
+    concurrency::assertOnRenderThread();
+
+    frame_context.p_rendering_target->switchToInitialState(command_list);
 }
 
 void BasicRenderingServices::setDefaultResources(CommandList& command_list) const
@@ -81,24 +98,28 @@ void BasicRenderingServices::setDefaultViewport(CommandList& command_list) const
     command_list.rasterizerStateSetViewports(m_default_viewports);
 }
 
-void BasicRenderingServices::setDefaultRenderingTarget(CommandList& command_list) const
+void BasicRenderingServices::setDefaultRenderingTarget(CommandList& command_list,
+    FrameContext const& frame_context) const
 {
     concurrency::assertOnRenderThread();
 
-    DescriptorTable const& rtv_table = m_current_rendering_target_ptr->rtvTable();
-    DescriptorTable const& dsv_table_ptr = m_current_rendering_target_ptr->dsvTable();
+    RenderingTarget& rendering_target = *frame_context.p_rendering_target;
+    DescriptorTable const& rtv_table = rendering_target.rtvTable();
+    DescriptorTable const& dsv_table_ptr = rendering_target.dsvTable();
 
-    command_list.outputMergerSetRenderTargets(&rtv_table, (1ULL << m_current_rendering_target_ptr->count()) - 1,
-        m_current_rendering_target_ptr->hasDepth() ? &dsv_table_ptr : nullptr, 0U);
+    command_list.outputMergerSetRenderTargets(&rtv_table, (1ULL << rendering_target.count()) - 1,
+        rendering_target.hasDepth() ? &dsv_table_ptr : nullptr, 0U);
 }
 
 void BasicRenderingServices::clearDefaultRenderingTarget(CommandList& command_list,
+    FrameContext const& frame_context,
     math::Vector4f const& color_clear_value, float depth_clear_value) const
 {
     concurrency::assertOnRenderThread();
 
-    command_list.clearRenderTargetView(m_current_rendering_target_ptr->rtvTable(), 0, color_clear_value);
-    command_list.clearDepthStencilView(m_current_rendering_target_ptr->dsvTable(), 0, DSVClearFlags::clear_depth, depth_clear_value, 0);
+    RenderingTarget& rendering_target = *frame_context.p_rendering_target;
+    command_list.clearRenderTargetView(rendering_target.rtvTable(), 0, color_clear_value);
+    command_list.clearDepthStencilView(rendering_target.dsvTable(), 0, DSVClearFlags::clear_depth, depth_clear_value, 0);
 }
 
 void BasicRenderingServices::defineRenderingViewport(Viewport const& viewport)

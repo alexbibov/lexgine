@@ -2,10 +2,12 @@
 #define LEXGINE_CORE_DX_D3D12_BASIC_RENDERING_SERVICES_H
 
 #include <array>
+#include <vector>
 #include <memory>
 
 #include "engine/core/concurrency/thread_affinity.h"
 #include "engine/core/math/vector_types.h"
+#include "engine/core/rendering/frame_context.h"
 #include "engine/core/misc/static_vector.h"
 #include "engine/core/viewport.h"
 
@@ -24,13 +26,16 @@ class BasicRenderingServices final : public NamedEntity<BasicRenderingServices>,
 public:
     BasicRenderingServices(Globals& globals);
 
-    void beginRendering(CommandList& command_list) const;
-    void endRendering(CommandList& command_list) const;
+    //! returns the context of the frame with the given index
+    FrameContext const& frameContext(uint64_t frame_index) const;
+
+    void beginRendering(CommandList& command_list, FrameContext const& frame_context) const;
+    void endRendering(CommandList& command_list, FrameContext const& frame_context) const;
 
     void setDefaultResources(CommandList& command_list) const;
     void setDefaultViewport(CommandList& command_list) const;
-    void setDefaultRenderingTarget(CommandList& command_list) const;
-    void clearDefaultRenderingTarget(CommandList& command_list,
+    void setDefaultRenderingTarget(CommandList& command_list, FrameContext const& frame_context) const;
+    void clearDefaultRenderingTarget(CommandList& command_list, FrameContext const& frame_context,
         math::Vector4f const& color_clear_value = math::Vector4f{ 0.f, 0.f, 0.f, 0.f },
         float depth_clear_value = 1.f) const;
 
@@ -42,11 +47,7 @@ public:
     ResourceDataUploader& resourceDataUploader() { return m_resource_uploader; }
 
 private:
-    void defineRenderingTarget(RenderingTarget& rendering_target)
-    {
-        concurrency::assertOnRenderThread();
-        m_current_rendering_target_ptr = &rendering_target;
-    }
+    void defineFrameContext(uint64_t frame_index, RenderingTarget& rendering_target);
 
     void defineRenderingTargetFormat(DXGI_FORMAT rendering_target_color_format, DXGI_FORMAT rendering_target_depth_format)
     {
@@ -61,7 +62,7 @@ private:
     DxResourceFactory& m_dx_resources;
     ResourceDataUploader& m_resource_uploader;
 
-    RenderingTarget* m_current_rendering_target_ptr;
+    std::vector<FrameContext> m_frame_contexts;    //!< ring of the contexts of the frames in flight
     DXGI_FORMAT m_rendering_target_color_format;
     DXGI_FORMAT m_rendering_target_depth_format;
 
@@ -78,9 +79,10 @@ template<> class BasicRenderingServicesAttorney<RenderingTasks>
 {
     friend class RenderingTasks;
 
-    static void defineRenderingTarget(BasicRenderingServices& basic_rendering_services, RenderingTarget& rendering_target)
+    static void defineFrameContext(BasicRenderingServices& basic_rendering_services, uint64_t frame_index,
+        RenderingTarget& rendering_target)
     {
-        basic_rendering_services.defineRenderingTarget(rendering_target);
+        basic_rendering_services.defineFrameContext(frame_index, rendering_target);
     }
 
     static void defineRenderingTargetFormat(BasicRenderingServices& basic_rendering_services,

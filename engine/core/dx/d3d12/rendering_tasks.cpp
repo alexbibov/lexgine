@@ -141,7 +141,8 @@ void RenderingTasks::render(RenderingTarget& rendering_target, const std::functi
 
     // Submit and present frame
 
-    BasicRenderingServicesAttorney<RenderingTasks>::defineRenderingTarget(m_basic_rendering_services, rendering_target);
+    BasicRenderingServicesAttorney<RenderingTasks>::defineFrameContext(m_basic_rendering_services,
+        m_frame_progress_tracker.currentFrameIndex(), rendering_target);
 
     m_device.transientDescriptorAllocator().nextFrame();
     m_device.queryCache()->markFrameBegin();
