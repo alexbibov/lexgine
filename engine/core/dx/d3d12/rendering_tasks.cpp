@@ -144,6 +144,9 @@ void RenderingTasks::render(RenderingTarget& rendering_target, const std::functi
     BasicRenderingServicesAttorney<RenderingTasks>::defineFrameContext(m_basic_rendering_services,
         m_frame_progress_tracker.currentFrameIndex(), rendering_target);
 
+    // the scene may only change between the frames, never while the workers are recording one
+    m_render_command_pipe.drain();
+
     m_device.transientDescriptorAllocator().nextFrame();
     m_device.queryCache()->markFrameBegin();
     m_task_sink.submit(m_frame_progress_tracker.currentFrameIndex());
@@ -170,6 +173,36 @@ void RenderingTasks::cleanup()
 }
 
 
+void RenderingTasks::loadScene(std::string const& path, unsigned scene_id)
+{
+    concurrency::assertOnRenderThread();
+
+    m_current_scene = scenegraph::Scene::loadScene(m_globals, m_basic_rendering_services, path, scene_id);
+    if (m_current_scene)
+    {
+        misc::Log::retrieve()->out("Scene loaded: " + path, misc::LogMessageType::information);
+        return;
+    }
+
+    misc::Log::retrieve()->out("ERROR: failed to load scene: " + path, misc::LogMessageType::error);
+}
+
+void RenderingTasks::loadScene(std::string const& path, std::string const& scene_name)
+{
+    concurrency::assertOnRenderThread();
+
+    m_current_scene = scenegraph::Scene::loadScene(m_globals, m_basic_rendering_services, path, scene_name);
+    if (m_current_scene)
+    {
+        misc::Log::retrieve()->out("Scene loaded: " + path + " (\"" + scene_name + "\")",
+            misc::LogMessageType::information);
+        return;
+    }
+
+    misc::Log::retrieve()->out("ERROR: failed to load scene \"" + scene_name + "\": " + path,
+        misc::LogMessageType::error);
+}
+
 void RenderingTasks::registerConsoleCommands()
 {
     auto& reg = m_console->consoleCommandRegistry();
@@ -190,13 +223,13 @@ void RenderingTasks::registerConsoleCommands()
         {
             std::string path = std::get<std::string>(args.at("path"));
             unsigned id = static_cast<unsigned>(std::get<int>(args.at("scene_id")));
-            m_current_scene = scenegraph::Scene::loadScene(m_globals, m_basic_rendering_services, path, id);
-            if (m_current_scene)
+
+            if (!m_render_command_pipe.enqueue([this, path, id]() { loadScene(path, id); }))
             {
-                misc::Log::retrieve()->out("Scene loaded: " + path, misc::LogMessageType::information);
-                return { .succeeded = true };
+                return { .succeeded = false, .msg = "Unable to schedule loading of the scene: " + path };
             }
-            return { .succeeded = false, .msg = "Failed to load scene: " + path };
+
+            return { .succeeded = true };
         });
 
     // scene.load_named path=<path> name=<string>
@@ -213,14 +246,13 @@ void RenderingTasks::registerConsoleCommands()
         {
             std::string path = std::get<std::string>(args.at("path"));
             std::string name = std::get<std::string>(args.at("name"));
-            m_current_scene = scenegraph::Scene::loadScene(m_globals, m_basic_rendering_services, path, name);
-            if (m_current_scene)
+
+            if (!m_render_command_pipe.enqueue([this, path, name]() { loadScene(path, name); }))
             {
-                misc::Log::retrieve()->out("Scene loaded: " + path + " (\"" + name + "\")",
-                    misc::LogMessageType::information);
-                return { .succeeded = true };
+                return { .succeeded = false, .msg = "Unable to schedule loading of the scene: " + path };
             }
-            return { .succeeded = false, .msg = "Failed to load scene \"" + name + "\": " + path };
+
+            return { .succeeded = true };
         });
 }
 

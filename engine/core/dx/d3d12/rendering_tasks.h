@@ -9,6 +9,7 @@
 #include "engine/core/ui/lexgine_core_ui_fwd.h"
 #include "engine/core/entity.h"
 #include "engine/core/rendering_configuration.h"
+#include "engine/core/rendering/render_command_pipe.h"
 #include "engine/core/concurrency/task_sink.h"
 #include "engine/core/concurrency/schedulable_task.h"
 #include "engine/core/misc/static_vector.h"
@@ -61,6 +62,9 @@ private:
     void cleanup();    //! flushes the rendering pipeline and shutdowns the task submission sink
     void registerConsoleCommands();
 
+    void loadScene(std::string const& path, unsigned scene_id);    //! replaces the current scene, between the frames
+    void loadScene(std::string const& path, std::string const& scene_name);    //! replaces the current scene, between the frames
+
 private:
     Globals& m_globals;
     Device& m_device;
@@ -70,6 +74,7 @@ private:
     concurrency::TaskSink m_task_sink;
 
     BasicRenderingServices m_basic_rendering_services;
+    RenderCommandPipe m_render_command_pipe;    //!< carries the state changes requested while a frame is recorded
     RenderingConfiguration m_rendering_configuration;
 
 private:    // rendering tasks
