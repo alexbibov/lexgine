@@ -31,7 +31,10 @@ public:
     //! Sets new root nodes for the task graph
     void setRootNodes(std::unordered_set<TaskGraphRootNode const*> const& root_nodes);    
 
-    uint8_t getNumberOfWorkerThreads() const;    //! returns number of worker threads assigned to the task graph
+    /*! returns the number of workers assigned to the task graph, the thread submitting it included: the
+     sink spawns one thread fewer and lets the submitting thread occupy the remaining worker slot
+    */
+    uint8_t getNumberOfWorkerThreads() const;
 
     void createDotRepresentation(std::string const& destination_path);    //! creates representation of the task graph using DOT language and saves it to the given destination path
 

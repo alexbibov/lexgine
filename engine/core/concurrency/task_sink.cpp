@@ -14,10 +14,11 @@ TaskSink::TaskSink(TaskGraph& source_task_graph,
     m_task_queue{},
     m_stop_signal{ true },
     m_error_watchdog{ 0 },
-    m_work_epoch{ 0 },
-    m_submission_finished{ false }
+    m_work_epoch{ 0 }
 {
-    m_workers_list.resize(source_task_graph.getNumberOfWorkerThreads());
+    // the thread submitting the graph works on it as well, so it occupies one of the worker slots
+    assert(source_task_graph.getNumberOfWorkerThreads() > 0);
+    m_workers_list.resize(source_task_graph.getNumberOfWorkerThreads() - 1u);
     setStringName(debug_name);
 }
 
@@ -52,7 +53,7 @@ void TaskSink::start()
 
         #ifdef _WIN32
         HANDLE threadNativeHandle = worker->native_handle();
-        SetThreadDescription(threadNativeHandle,std::format(L"{} thread #{}", asciiStringToWstring(getStringName()), i).c_str());
+        SetThreadDescription(threadNativeHandle,std::format(L"{} slave render thread #{}", asciiStringToWstring(getStringName()), i).c_str());
         #endif
     }
 }
@@ -63,11 +64,6 @@ void TaskSink::submit(uint64_t user_data)
 
     m_source_task_graph.setUserData(user_data);
 
-    {
-        std::lock_guard lock{ m_frame_completion_mutex };
-        m_submission_finished = false;
-    }
-
     // the rest of the graph is scheduled by the workers as the dependencies of each node are met
     for (auto& task : m_source_task_graph)
     {
@@ -76,13 +72,21 @@ void TaskSink::submit(uint64_t user_data)
 
     notifyWorkAvailable();
 
+    // the submitting thread occupies the worker slot left over by the spawned ones
+    uint8_t const submitting_worker_id = static_cast<uint8_t>(m_workers_list.size());
+
+    while (true)
     {
-        std::unique_lock lock{ m_frame_completion_mutex };
-        m_frame_completion_signal.wait(lock,
-            [this]
-            {
-                return m_submission_finished || m_error_watchdog.load(std::memory_order_acquire);
-            });
+        uint64_t const observed_work_epoch = m_work_epoch.load(std::memory_order_acquire);
+        if (!TaskGraphAttorney<TaskSink>::isTaskGraphCompleted(m_source_task_graph)
+            && !m_error_watchdog.load(std::memory_order_acquire))
+        {
+            if (!executeNextTask(submitting_worker_id)) waitForWork(observed_work_epoch);
+        }
+        else
+        {
+            break;
+        }
     }
 
     uint64_t error_status = m_error_watchdog.load(std::memory_order_acquire);
@@ -146,14 +150,54 @@ void TaskSink::notifyWorkAvailable()
     m_work_availability_signal.notify_all();
 }
 
-void TaskSink::notifyFrameFinished()
+bool TaskSink::executeNextTask(uint8_t worker_id)
 {
+    Optional<TaskGraphNode*> task = m_task_queue.dequeueTask();
+    if (!task.isValid()) return false;
+
+    TaskGraphNode* unwrapped_task = *task;
+    AbstractTask* p_contained_task = unwrapped_task->task();
+    bool task_was_completed{ false };
+    try
     {
-        std::lock_guard lock{ m_frame_completion_mutex };
-        m_submission_finished = true;
+        task_was_completed = unwrapped_task->execute(worker_id);
+        if (!task_was_completed)
+        {
+            // if execution returns 'false', this means that the task has to be rescheduled. Its dependencies
+            // stay met, so the node is put back into the queue instead of awaiting them anew
+            unwrapped_task->resetForReexecution();
+            unwrapped_task->schedule(m_task_queue);
+            notifyWorkAvailable();
+        }
+    }
+    catch (lexgine::core::Exception const&)
+    {
+        // we don't do anything here as the logging is done by the tasks themselves via call of raiseError(...)
+        // Note that the same call puts the task into erroneous state
     }
 
-    m_frame_completion_signal.notify_all();
+    if (p_contained_task->getErrorState())
+    {
+        m_error_watchdog.store(reinterpret_cast<uint64_t>(p_contained_task), std::memory_order_release);
+        notifyWorkAvailable();
+    }
+    else if (task_was_completed)
+    {
+        if (unwrapped_task->scheduleReadyDependents(m_task_queue))
+        {
+            notifyWorkAvailable();
+        }
+
+        // the submitting thread may be waiting for the work it will never be offered: the barrier node has
+        // no dependents, so completing it schedules nothing and would notify nobody
+        if (TaskGraphAttorney<TaskSink>::isTaskGraphCompleted(m_source_task_graph))
+        {
+            m_last_worker_id.store(worker_id, std::memory_order_release);
+            notifyWorkAvailable();
+        }
+    }
+
+    return true;
 }
 
 void TaskSink::dispatch(uint8_t worker_id)
@@ -165,48 +209,12 @@ void TaskSink::dispatch(uint8_t worker_id)
     while (!m_error_watchdog.load(std::memory_order_acquire))
     {
         uint64_t const observed_work_epoch = m_work_epoch.load(std::memory_order_acquire);
-        Optional<TaskGraphNode*> task = m_task_queue.dequeueTask();
 
-        if (!task.isValid())
+        if (!executeNextTask(worker_id))
         {
             if (m_stop_signal.load(std::memory_order_acquire)) break;
 
             waitForWork(observed_work_epoch);
-            continue;
-        }
-
-        TaskGraphNode* unwrapped_task = *task;
-        AbstractTask* p_contained_task = unwrapped_task->task();
-        bool task_was_completed{ false };
-        try
-        {
-            task_was_completed = unwrapped_task->execute(worker_id);
-            if (!task_was_completed)
-            {
-                // if execution returns 'false', this means that the task has to be rescheduled. Its dependencies
-                // stay met, so the node is put back into the queue instead of awaiting them anew
-                unwrapped_task->resetForReexecution();
-                unwrapped_task->schedule(m_task_queue);
-                notifyWorkAvailable();
-            }
-        }
-        catch (lexgine::core::Exception const&)
-        {
-            // we don't do anything here as the logging is done by the tasks themselves via call of raiseError(...)
-            // Note that the same call puts the task into erroneous state
-        }
-
-        if (p_contained_task->getErrorState())
-        {
-            m_error_watchdog.store(reinterpret_cast<uint64_t>(p_contained_task), std::memory_order_release);
-            notifyWorkAvailable();
-            notifyFrameFinished();
-        }
-        else if (task_was_completed)
-        {
-            if (unwrapped_task->scheduleReadyDependents(m_task_queue)) notifyWorkAvailable();
-
-            if (TaskGraphAttorney<TaskSink>::isTaskGraphCompleted(m_source_task_graph)) notifyFrameFinished();
         }
     }
 
