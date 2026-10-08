@@ -17,7 +17,6 @@ ComPtr<ID3D12Fence> lexgine::core::dx::d3d12::Fence::native() const
 
 void Fence::setEvent(uint64_t signaling_value, lexgine::osinteraction::windows::FenceEvent const& event) const
 {
-    assert(signaling_value != 0);
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_fence->SetEventOnCompletion(signaling_value, event.native()),
@@ -32,6 +31,7 @@ void Fence::signalFromCPU()
         m_fence->Signal(m_next_signal_value++),
         S_OK
     );
+    m_started = true;
 }
 
 FenceSharing Fence::sharingMode() const
@@ -39,13 +39,9 @@ FenceSharing Fence::sharingMode() const
     return m_sharing_mode;
 }
 
-uint64_t Fence::lastValueRecorded() const
-{
-    return m_next_signal_value - 1;
-}
-
 uint64_t Fence::lastValueSignaled() const
 {
+    if (!m_started) return 0;
     return static_cast<uint64_t>(m_fence->GetCompletedValue());
 }
 

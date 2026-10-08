@@ -1,6 +1,7 @@
+#include "rendering_tasks.h"
+
 #include "engine/scenegraph/scene.h"
 
-#include "rendering_tasks.h"
 #include "engine/core/concurrency/thread_affinity.h"
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
@@ -159,10 +160,7 @@ void RenderingTasks::flush()
     // no thread role is asserted here: this is reached from the rendering thread before it leaves its loop
     // and from cleanup(), which the owning thread runs while the engine is torn down
 
-    if (m_frame_progress_tracker.started())
-    {
-        m_frame_progress_tracker.waitForFrameCompletion(m_frame_progress_tracker.lastScheduledFrameIndex());
-    }
+    m_frame_progress_tracker.synchronize();
 }
 
 void RenderingTasks::cleanup()

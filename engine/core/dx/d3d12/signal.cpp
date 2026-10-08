@@ -31,11 +31,6 @@ void Signal::signalFromGPU(CommandQueue const& signaling_queue)
     signaling_queue.signal(m_fence);
 }
 
-uint64_t Signal::lastValueRecorded() const
-{
-    return m_fence.lastValueRecorded();
-}
-
 uint64_t Signal::lastValueSignaled() const
 {
     return m_fence.lastValueSignaled();

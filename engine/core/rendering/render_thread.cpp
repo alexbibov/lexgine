@@ -27,6 +27,11 @@ void RenderThread::start()
 
     m_stop_requested.store(false, std::memory_order_release);
     m_thread = std::thread{ &RenderThread::loop, this };
+
+#ifdef _WIN32
+    HANDLE threadNativeHandle = m_thread.native_handle();
+    SetThreadDescription(threadNativeHandle, L"Master render thread");
+#endif
 }
 
 void RenderThread::stop()

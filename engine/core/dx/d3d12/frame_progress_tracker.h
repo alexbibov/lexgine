@@ -17,8 +17,12 @@ class FrameProgressTracker
 public:
     FrameProgressTracker(Device& device);
 
-    bool started() const { return scheduledFramesCount() > 0; }
-    uint64_t lastScheduledFrameIndex() const { return scheduledFramesCount() - 1; }
+    Device& device() { return m_device; }
+    Device const& device() const { return m_device; }
+
+    uint64_t markFrameBegin();  //! marks beginning of new frame recording and returns the index of that frame
+    uint64_t markFrameEnd();  //! marks the end of the frame, which is currently being recorded
+
     uint64_t lastCompletedFrameIndex() const { return completedFramesCount() - 1; }
     uint64_t scheduledFramesCount() const;
     uint64_t completedFramesCount() const;
@@ -27,47 +31,49 @@ public:
     void waitForFrameCompletion(uint64_t frame_index) const;
     bool waitForFrameCompletion(uint64_t frame_index, uint32_t timeout_in_milliseconds) const;
 
-    void synchronize() const { waitForFrameCompletion(lastScheduledFrameIndex()); }
-    void synchronize(uint32_t timeout_in_milliseconds) const { waitForFrameCompletion(lastScheduledFrameIndex(), timeout_in_milliseconds); }
+    void synchronize() const;
+    void synchronize(uint32_t timeout_in_milliseconds) const;
 
 private:
+    Device& m_device;
     Signal m_cpu_wall_signal;
     Signal m_gpu_wall_signal;
+    uint64_t m_current_recorded_frame_index;
 };
 
 
-template<> class FrameProgressTrackerAttorney<QueryCache>
-{
-    friend class QueryCache;
-
-    static void signalCPUBeginFrame(FrameProgressTracker& progress_tracker)
-    {
-        PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
-            "CPU job for frame %i start", progress_tracker.currentFrameIndex());
-    }
-
-    static void signalCPUEndFrame(FrameProgressTracker& progress_tracker)
-    {
-        PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
-            "CPU job for frame %i finished", progress_tracker.currentFrameIndex());
-        progress_tracker.m_cpu_wall_signal.signalFromCPU();
-    }
-
-    static void signalGPUBeginFrame(FrameProgressTracker& progress_tracker,
-        CommandQueue const& signalling_gpu_queue)
-    {
-        PIXSetMarker(signalling_gpu_queue.native().Get(), pix_marker_colors::PixGPUGeneralJobColor,
-            "GPU job for frame %i start", progress_tracker.currentFrameIndex());
-    }
-
-    static void signalGPUEndFrame(FrameProgressTracker& progress_tracker,
-        CommandQueue const& signalling_gpu_queue)
-    {
-        PIXSetMarker(signalling_gpu_queue.native().Get(), pix_marker_colors::PixGPUGeneralJobColor,
-            "GPU job for frame %i finished", progress_tracker.currentFrameIndex());
-        progress_tracker.m_gpu_wall_signal.signalFromGPU(signalling_gpu_queue);
-    }
-};
+//template<> class FrameProgressTrackerAttorney<QueryCache>
+//{
+//    friend class QueryCache;
+//
+//    static void signalCPUBeginFrame(FrameProgressTracker& progress_tracker)
+//    {
+//        PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
+//            "CPU job for frame %i start", progress_tracker.currentFrameIndex());
+//    }
+//
+//    static void signalCPUEndFrame(FrameProgressTracker& progress_tracker)
+//    {
+//        PIXSetMarker(pix_marker_colors::PixCPUJobMarkerColor,
+//            "CPU job for frame %i finished", progress_tracker.currentFrameIndex());
+//        progress_tracker.m_cpu_wall_signal.signalFromCPU();
+//    }
+//
+//    static void signalGPUBeginFrame(FrameProgressTracker& progress_tracker,
+//        CommandQueue const& signalling_gpu_queue)
+//    {
+//        PIXSetMarker(signalling_gpu_queue.native().Get(), pix_marker_colors::PixGPUGeneralJobColor,
+//            "GPU job for frame %i start", progress_tracker.currentFrameIndex());
+//    }
+//
+//    static void signalGPUEndFrame(FrameProgressTracker& progress_tracker,
+//        CommandQueue const& signalling_gpu_queue)
+//    {
+//        PIXSetMarker(signalling_gpu_queue.native().Get(), pix_marker_colors::PixGPUGeneralJobColor,
+//            "GPU job for frame %i finished", progress_tracker.currentFrameIndex());
+//        progress_tracker.m_gpu_wall_signal.signalFromGPU(signalling_gpu_queue);
+//    }
+//};
 
 }
 

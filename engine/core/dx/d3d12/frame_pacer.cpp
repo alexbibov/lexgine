@@ -6,8 +6,6 @@
 
 #include "engine/core/concurrency/thread_affinity.h"
 
-#include "frame_progress_tracker.h"
-
 using namespace lexgine::core::dx::d3d12;
 
 
@@ -47,7 +45,7 @@ uint16_t reconcileFramesInFlight(uint16_t max_frames_in_flight, uint32_t back_bu
 }  // namespace
 
 
-FramePacer::FramePacer(FrameProgressTracker const& frame_progress_tracker, uint16_t max_frames_in_flight,
+FramePacer::FramePacer(FrameProgressTracker& frame_progress_tracker, uint16_t max_frames_in_flight,
     uint32_t back_buffer_count)
     : m_frame_progress_tracker{ frame_progress_tracker }
     , m_max_frames_in_flight{ reconcileFramesInFlight(max_frames_in_flight, back_buffer_count) }
@@ -59,11 +57,13 @@ void FramePacer::waitForFrameSlot() const
 {
     concurrency::assertOnMasterWorkerThread();
 
+    uint64_t current_frame_index = m_frame_progress_tracker.currentFrameIndex();
     uint64_t scheduled_frames_count = m_frame_progress_tracker.scheduledFramesCount();
     uint64_t completed_frames_count = m_frame_progress_tracker.completedFramesCount();
-
-    if (scheduled_frames_count - completed_frames_count >= m_max_frames_in_flight)
+    uint64_t last_scheduled_frame_index = scheduled_frames_count - 1;
+    if (current_frame_index >= m_max_frames_in_flight
+        && scheduled_frames_count - completed_frames_count >= m_max_frames_in_flight)
     {
-        m_frame_progress_tracker.waitForFrameCompletion(completed_frames_count);
+        m_frame_progress_tracker.waitForFrameCompletion(scheduled_frames_count - m_max_frames_in_flight);
     }
 }

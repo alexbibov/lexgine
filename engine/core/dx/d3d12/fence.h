@@ -42,7 +42,6 @@ public:
     FenceSharing sharingMode() const;    //! returns the sharing mode of the fence
     void signalFromCPU();    //! signals the fence on the CPU side
 
-    uint64_t lastValueRecorded() const;    //! retrieves the last value that the fence has recorded, but not necessarily signaled
     uint64_t lastValueSignaled() const;    //! retrieves the last value that the fence has ALREADY signaled
     uint64_t nextValueOfSignal() const;    //! the next value to be used for the fence's signal
 
@@ -58,6 +57,7 @@ private:
     ComPtr<ID3D12Fence> m_fence;    //!< reference to the native Direct3D 12 interface
     Device& m_device;    //!< reference to the device interface that was used to create the fence
     FenceSharing m_sharing_mode;    //!< sharing mode of the fence
+    mutable bool m_started{ false };    //!< false until the fence is signalled for the first time
     uint64_t mutable m_next_signal_value;    //!< the next value the fence has to reach
 };
 
@@ -86,6 +86,7 @@ private:
             command_queue.native()->Signal(fence.m_fence.Get(), fence.m_next_signal_value++),
             S_OK
         );
+        fence.m_started = true;
     }
 };
 

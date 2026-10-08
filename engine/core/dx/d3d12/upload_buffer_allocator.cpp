@@ -131,11 +131,6 @@ uint64_t UploadDataAllocator::completedWork() const
     return lastSignaledValueOfControllingSignal();
 }
 
-uint64_t UploadDataAllocator::scheduledWork() const
-{
-    return lastRecordedValueOfControllingSignal();
-}
-
 uint64_t UploadDataAllocator::recordingWork() const
 {
     return nextValueOfControllingSignal();
@@ -329,11 +324,6 @@ uint64_t DedicatedUploadDataStreamAllocator::lastSignaledValueOfControllingSigna
     return m_progress_tracking_signal.lastValueSignaled();
 }
 
-uint64_t DedicatedUploadDataStreamAllocator::lastRecordedValueOfControllingSignal() const
-{
-    return m_progress_tracking_signal.lastValueRecorded();
-}
-
 PerFrameUploadDataStreamAllocator::PerFrameUploadDataStreamAllocator(Globals& globals, uint64_t offset_from_heap_start, uint64_t upload_buffer_size,
     FrameProgressTracker const& frame_progress_tracker)
     : UploadDataAllocator{ globals, offset_from_heap_start, upload_buffer_size }
@@ -366,11 +356,6 @@ uint64_t PerFrameUploadDataStreamAllocator::nextValueOfControllingSignal() const
 uint64_t PerFrameUploadDataStreamAllocator::lastSignaledValueOfControllingSignal() const
 {
     return m_frame_progress_tracker.completedFramesCount();
-}
-
-uint64_t PerFrameUploadDataStreamAllocator::lastRecordedValueOfControllingSignal() const
-{
-    return m_frame_progress_tracker.scheduledFramesCount();
 }
 
 }

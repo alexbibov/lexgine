@@ -54,7 +54,9 @@ public:
     void render(RenderingTarget& rendering_target, const std::function<void(void)>& presenter);
 
     BasicRenderingServices& basicRenderingServices() { return m_basic_rendering_services; }
-    FrameProgressTracker const& frameProgressTracker() { return m_frame_progress_tracker; }
+
+    FrameProgressTracker& frameProgressTracker() { return m_frame_progress_tracker; }
+    FrameProgressTracker const& frameProgressTracker() const { return m_frame_progress_tracker; }
 
     void flush();    //! flushes the rendering pipeline making sure that all GPU job scheduled so far has been completed
 

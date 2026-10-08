@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "lexgine_core_dx_d3d12_fwd.h"
+#include "frame_progress_tracker.h"
 
 
 namespace lexgine::core::dx::d3d12 {
@@ -18,7 +19,7 @@ public:
      by @param frame_progress_tracker. A budget exceeding @param back_buffer_count leaves the pacing to the
      presentation engine rather than to this gate, so it is reported and reduced to the number of back buffers.
     */
-    FramePacer(FrameProgressTracker const& frame_progress_tracker, uint16_t max_frames_in_flight,
+    FramePacer(FrameProgressTracker& frame_progress_tracker, uint16_t max_frames_in_flight,
         uint32_t back_buffer_count);
 
     //! returns the tracker reporting the progress of the frames being paced
@@ -29,8 +30,11 @@ public:
     //! blocks until another frame may be scheduled without exceeding the frames in flight budget
     void waitForFrameSlot() const;
 
+    uint64_t markFrameBegin() { return m_frame_progress_tracker.markFrameBegin(); }
+    uint64_t markFrameEnd() { return m_frame_progress_tracker.markFrameEnd(); }
+
 private:
-    FrameProgressTracker const& m_frame_progress_tracker;
+    FrameProgressTracker& m_frame_progress_tracker;
     uint16_t m_max_frames_in_flight;
 };
 

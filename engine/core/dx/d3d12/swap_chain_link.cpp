@@ -83,7 +83,9 @@ bool SwapChainLink::render()
     RenderingTarget& target = m_render_output.currentTarget();
     m_frame_pacer->waitForFrameSlot();
 
+    m_frame_pacer->markFrameBegin();
     m_linked_rendering_tasks_ptr->render(target, [this](void) { m_linked_swap_chain.present(); });
+    m_frame_pacer->markFrameEnd();
 
     return true;
 }

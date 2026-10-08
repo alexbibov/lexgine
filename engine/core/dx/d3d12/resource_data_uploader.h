@@ -110,9 +110,8 @@ public:
     void waitUntilUploadIsFinished() const;    //! blocks calling thread until all upload tasks are finished
     bool isUploadFinished() const;    //! returns 'true' if all uploads have been finished and 'false' otherwise
 
-    uint64_t scheduledWork() const { return m_upload_buffer_allocator.scheduledWork(); }
     uint64_t recordingWork() const { return m_upload_buffer_allocator.recordingWork(); }
-    bool isWorkCompleted(uint64_t scheduled_work) { return m_upload_buffer_allocator.completedWork() >= scheduled_work; }
+    bool isWorkCompleted(uint64_t scheduled_work) const { return m_upload_buffer_allocator.completedWork() >= scheduled_work; }
 
     uint64_t availableCapacity() const;    //! returns best estimate of available capacity of the staging buffer known at that point
 

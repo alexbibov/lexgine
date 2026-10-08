@@ -96,7 +96,7 @@ void RenderOutput::releaseBuffers(FrameProgressTracker const& frame_progress_tra
     concurrency::assertOnMasterWorkerThread();
 
     // there is nothing to await before the very first frame has been scheduled
-    if (frame_progress_tracker.started()) frame_progress_tracker.synchronize();
+    if (frame_progress_tracker.scheduledFramesCount() > 0) frame_progress_tracker.synchronize();
 
     m_color_buffers.clear();
     m_depth_buffer.reset(nullptr);

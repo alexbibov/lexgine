@@ -232,35 +232,25 @@ void QueryCache::markFrameBegin()
     // the frame walls bracket the whole frame, so they belong to the thread sequencing it
     concurrency::assertOnMasterWorkerThread();
 
-    FrameProgressTrackerAttorney<QueryCache>::signalCPUBeginFrame(m_frame_progress_tracker);
+    /*FrameProgressTrackerAttorney<QueryCache>::signalCPUBeginFrame(m_frame_progress_tracker);
     FrameProgressTrackerAttorney<QueryCache>::signalGPUBeginFrame(m_frame_progress_tracker,
-        m_device.defaultCommandQueue());
+        m_device.defaultCommandQueue());*/
+
+    m_last_measured_time_point = std::chrono::high_resolution_clock::now();
 }
 
 void QueryCache::markFrameEnd()
 {
     concurrency::assertOnMasterWorkerThread();
 
-    FrameProgressTrackerAttorney<QueryCache>::signalGPUEndFrame(m_frame_progress_tracker,
-        m_device.defaultCommandQueue());
-    FrameProgressTrackerAttorney<QueryCache>::signalCPUEndFrame(m_frame_progress_tracker);
+    /* FrameProgressTrackerAttorney<QueryCache>::signalGPUEndFrame(m_frame_progress_tracker,
+         m_device.defaultCommandQueue());
+     FrameProgressTrackerAttorney<QueryCache>::signalCPUEndFrame(m_frame_progress_tracker);*/
 
-    {
-        static bool first_call{ true };
-        if (first_call)
-        {
-            first_call = false;
-        }
-        else
-        {
-            m_frame_times[m_frame_time_measurement_index] =
-                std::chrono::duration_cast<frame_time_resolution>(std::chrono::high_resolution_clock::now()
-                    - m_last_measured_time_point);
-            m_frame_time_measurement_index = (m_frame_time_measurement_index + 1) % c_statistics_package_length;
-        }
-
-        m_last_measured_time_point = std::chrono::high_resolution_clock::now();
-    }
+    m_frame_times[m_frame_time_measurement_index] =
+        std::chrono::duration_cast<frame_time_resolution>(std::chrono::high_resolution_clock::now()
+            - m_last_measured_time_point);
+    m_frame_time_measurement_index = (m_frame_time_measurement_index + 1) % c_statistics_package_length;
 }
 
 float QueryCache::averageFrameTime() const

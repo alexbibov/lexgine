@@ -207,7 +207,9 @@ void ResourceDataUploader::waitUntilUploadIsFinished() const
 
 bool ResourceDataUploader::isUploadFinished() const
 {
-    return m_upload_buffer_allocator.scheduledWork() == m_upload_buffer_allocator.completedWork();
+    uint64_t current_recording_work_token = m_upload_buffer_allocator.recordingWork();
+    return current_recording_work_token == 0
+        || isWorkCompleted(current_recording_work_token - 1);
 }
 
 uint64_t ResourceDataUploader::availableCapacity() const
