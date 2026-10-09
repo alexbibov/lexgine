@@ -65,7 +65,6 @@ private:
     std::mutex m_work_availability_mutex;    //!< guards the updates of m_work_epoch against the workers about to park
     std::condition_variable m_work_availability_signal;    //!< signalled whenever the workers may have something to do
     std::atomic_uint64_t m_work_epoch;    //!< incremented on every event that may unblock a parked worker
-    std::atomic_uint8_t m_last_worker_id;
 };
 
 }

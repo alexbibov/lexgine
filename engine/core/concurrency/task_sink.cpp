@@ -192,7 +192,6 @@ bool TaskSink::executeNextTask(uint8_t worker_id)
         // no dependents, so completing it schedules nothing and would notify nobody
         if (TaskGraphAttorney<TaskSink>::isTaskGraphCompleted(m_source_task_graph))
         {
-            m_last_worker_id.store(worker_id, std::memory_order_release);
             notifyWorkAvailable();
         }
     }

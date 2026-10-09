@@ -60,7 +60,6 @@ void FramePacer::waitForFrameSlot() const
     uint64_t current_frame_index = m_frame_progress_tracker.currentFrameIndex();
     uint64_t scheduled_frames_count = m_frame_progress_tracker.scheduledFramesCount();
     uint64_t completed_frames_count = m_frame_progress_tracker.completedFramesCount();
-    uint64_t last_scheduled_frame_index = scheduled_frames_count - 1;
     if (current_frame_index >= m_max_frames_in_flight
         && scheduled_frames_count - completed_frames_count >= m_max_frames_in_flight)
     {
