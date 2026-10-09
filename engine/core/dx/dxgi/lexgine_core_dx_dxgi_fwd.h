@@ -10,6 +10,7 @@ class HwAdapterEnumerator;
 class HwAdapter;
 class HwOutput;
 class SwapChain;
+enum class PresentResult;
 
 }
 

@@ -159,6 +159,16 @@ void RenderOutput::acquireBuffers(uint32_t width, uint32_t height)
     m_buffers_acquired = true;
 }
 
+dxgi::PresentResult RenderOutput::present() const
+{
+    return m_swap_chain.present();
+}
+
+bool RenderOutput::isOccluded() const
+{
+    return m_swap_chain.isIdle();
+}
+
 RenderingTarget& RenderOutput::currentTarget()
 {
     concurrency::assertOnMasterWorkerThread();

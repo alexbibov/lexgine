@@ -61,6 +61,12 @@ public:
 
     RenderingTarget& currentTarget();    //! returns the rendering target describing the back buffer to be presented next
 
+    //! hands the back buffer to the presentation engine and reports how that went
+    dxgi::PresentResult present() const;
+
+    //! returns 'true' while the output is fully obscured and the presentation engine idles
+    bool isOccluded() const;
+
 private:
     Globals& m_globals;
     dxgi::SwapChain& m_swap_chain;

@@ -9,6 +9,18 @@
 
 namespace lexgine::core {
 
+namespace {
+
+/*! How long the loop idles when a frame is not worth rendering. The intervals are judgement calls rather
+ than derived values: an obscured or minimized output costs nothing but the delay before it is noticed to be
+ back, and a lost device has nothing to be noticed at all until the recovery is implemented.
+*/
+constexpr std::chrono::milliseconds c_occluded_poll_interval{ 50 };
+constexpr std::chrono::milliseconds c_suspended_poll_interval{ 16 };
+constexpr std::chrono::milliseconds c_device_lost_poll_interval{ 250 };
+
+}  // namespace
+
 RenderThread::RenderThread(osinteraction::windows::Window& window, dx::d3d12::SwapChainLink& swap_chain_link)
     : m_window{ window }
     , m_swap_chain_link{ swap_chain_link }
@@ -66,8 +78,24 @@ void RenderThread::loop()
             }
         }
 
-        // a suspended output paces nothing, so the loop would otherwise spin through the frames it skips
-        if (!m_swap_chain_link.render()) std::this_thread::sleep_for(std::chrono::milliseconds{ 1 });
+        // only a rendered frame paces the loop; the rest describe how long there is nothing worth doing
+        switch (m_swap_chain_link.render())
+        {
+        case dx::d3d12::FrameOutcome::rendered:
+            break;
+
+        case dx::d3d12::FrameOutcome::occluded:
+            std::this_thread::sleep_for(c_occluded_poll_interval);
+            break;
+
+        case dx::d3d12::FrameOutcome::suspended:
+            std::this_thread::sleep_for(c_suspended_poll_interval);
+            break;
+
+        case dx::d3d12::FrameOutcome::device_lost:
+            std::this_thread::sleep_for(c_device_lost_poll_interval);
+            break;
+        }
     }
 
     m_swap_chain_link.flushRenderingTasks();

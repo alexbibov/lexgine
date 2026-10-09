@@ -55,9 +55,9 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
     updateRenderingConfiguration();
 }
 
-bool SwapChainLink::render()
+FrameOutcome SwapChainLink::render()
 {
-    if (m_linked_swap_chain.isDeviceLost()) return false;    // recovery is not implemented yet
+    if (m_linked_swap_chain.isDeviceLost()) return FrameOutcome::device_lost;    // recovery is not implemented yet
 
     if (m_frame_pacer && m_render_output.applyPendingResize(m_frame_pacer->frameProgressTracker()))
     {
@@ -73,21 +73,24 @@ bool SwapChainLink::render()
         m_suspend_rendering = false;
     }
 
-    if (m_linked_swap_chain.isIdle()) {    // check if we should exit idle presentation state
-        m_linked_swap_chain.present();
-        return false;
+    if (m_render_output.isOccluded())
+    {
+        // the presentation engine idles while the output is obscured: the test present is what reveals that
+        // it has become visible again
+        m_render_output.present();
+        return m_render_output.isOccluded() ? FrameOutcome::occluded : FrameOutcome::rendered;
     }
 
-    if (m_suspend_rendering || !m_linked_rendering_tasks_ptr) return false;
+    if (m_suspend_rendering || !m_linked_rendering_tasks_ptr) return FrameOutcome::suspended;
 
     RenderingTarget& target = m_render_output.currentTarget();
     m_frame_pacer->waitForFrameSlot();
 
     m_frame_pacer->markFrameBegin();
-    m_linked_rendering_tasks_ptr->render(target, [this](void) { m_linked_swap_chain.present(); });
+    m_linked_rendering_tasks_ptr->render(target, [this](void) { m_render_output.present(); });
     m_frame_pacer->markFrameEnd();
 
-    return true;
+    return m_render_output.isOccluded() ? FrameOutcome::occluded : FrameOutcome::rendered;
 }
 
 void SwapChainLink::flushRenderingTasks()
