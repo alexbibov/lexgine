@@ -261,7 +261,7 @@ void updateMouseDataWin32(HWND hwnd, MouseTrackedArea mouse_tracked_area)
 {
     ImGuiIO& io = ImGui::GetIO();
     HWND focused_window = GetForegroundWindow();
-    bool is_focused = hwnd = focused_window;
+    bool is_focused = hwnd == focused_window;
 
     if (is_focused)
     {
