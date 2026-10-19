@@ -1,7 +1,9 @@
 #ifndef LEXGINE_CORE_DX_D3D12_TASKS_RENDERING_TASKS_UI_DRAW_TASK_H
 #define LEXGINE_CORE_DX_D3D12_TASKS_RENDERING_TASKS_UI_DRAW_TASK_H
 
+#include <atomic>
 #include <chrono>
+#include <variant>
 
 #include "imgui.h"
 
@@ -19,6 +21,7 @@
 #include "engine/core/dx/d3d12/constant_buffer_data_mapper.h"
 
 #include "engine/core/dx/dxcompilation/lexgine_core_dx_dxcompilation_fwd.h"
+#include "engine/core/concurrency/deferred_event_queue.h"
 #include "engine/core/concurrency/schedulable_task.h"
 #include "engine/osinteraction/windows/lexgine_osinteraction_windows_fwd.h"
 #include "engine/osinteraction/listener.h"
@@ -38,14 +41,12 @@ enum class MouseTrackedArea
 struct OsInterationData
 {
     std::chrono::high_resolution_clock::time_point system_time;
-    ImGuiMouseCursor last_mouse_cursor;
     osinteraction::windows::Window* rendering_window_ptr;
     uint32_t keyboard_code_page;
     MouseTrackedArea mouse_tracked_area;
 
     OsInterationData()
         : system_time{ std::chrono::high_resolution_clock::now() }
-        , last_mouse_cursor{ ImGuiMouseCursor_COUNT }
         , rendering_window_ptr{ nullptr }
         , keyboard_code_page{ std::numeric_limits<uint32_t>::max() }
         , mouse_tracked_area{ MouseTrackedArea::none }
@@ -113,6 +114,50 @@ public:    // InputLanguageChangedListener
     bool inputLanguageChanged() override;
 
 private:
+    struct KeyEvent
+    {
+        ImGuiKey key;
+        bool is_down;
+        bool is_ctrl_down;
+        bool is_shift_down;
+        bool is_alt_down;
+        bool is_super_down;
+    };
+
+    struct CharacterEvent
+    {
+        ImWchar16 utf16_code_unit;
+    };
+
+    struct MouseButtonEvent
+    {
+        int button;
+        bool is_down;
+        ImGuiMouseSource source;
+    };
+
+    struct MouseWheelEvent
+    {
+        float horizontal_delta;
+        float vertical_delta;
+    };
+
+    struct MousePositionEvent
+    {
+        float x;
+        float y;
+        ImGuiMouseSource source;
+    };
+
+    struct FocusEvent
+    {
+        bool is_focused;
+    };
+
+    using InputEvent = std::variant<KeyEvent, CharacterEvent, MouseButtonEvent, MouseWheelEvent,
+        MousePositionEvent, FocusEvent>;
+
+private:
     UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services);
 
 private:    // required by AbstractTask interface
@@ -120,6 +165,9 @@ private:    // required by AbstractTask interface
     concurrency::TaskType type() const override { return concurrency::TaskType::cpu; }
 
 private:
+    bool recordKeyEvent(osinteraction::SystemKey key, bool is_down);
+    bool recordMouseButtonEvent(osinteraction::MouseButton button, uint16_t xbutton_id, bool is_down);
+    void replayInputEvents();
     void updateTexture(ImTextureData* p_texture);
     void processEvents();
     void drawFrame(FrameContext const& frame_context);
@@ -164,6 +212,14 @@ private:
     std::list<std::weak_ptr<ui::UIProvider>> m_ui_providers;
 
     CommandList* m_cmd_list_ptr = nullptr;
+
+    concurrency::DeferredEventQueue<InputEvent> m_input_events{ c_input_event_capacity };
+    std::atomic<ImGuiMouseCursor> m_requested_mouse_cursor{ c_unrequested_mouse_cursor };
+    uint32_t m_held_mouse_buttons = 0U;
+
+private:
+    static constexpr size_t c_input_event_capacity = 1024;
+    static constexpr ImGuiMouseCursor c_unrequested_mouse_cursor = ImGuiMouseCursor_COUNT;
 
 private:
     static std::string const c_interface_update_section;

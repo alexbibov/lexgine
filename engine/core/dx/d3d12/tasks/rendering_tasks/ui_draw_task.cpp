@@ -144,27 +144,7 @@ bool isVkDownWin32(int vk_key)
     return (GetKeyState(vk_key) & 0x8000) != 0;
 }
 
-void updateKeyModifiersWin32(ImGuiIO& io)
-{
-    io.AddKeyEvent(ImGuiMod_Ctrl, isVkDownWin32(VK_CONTROL));
-    io.AddKeyEvent(ImGuiMod_Shift, isVkDownWin32(VK_SHIFT));
-    io.AddKeyEvent(ImGuiMod_Alt, isVkDownWin32(VK_MENU));
-    io.AddKeyEvent(ImGuiMod_Super, isVkDownWin32(VK_LWIN | VK_RWIN));
-}
-
-bool processKeyEventWin32(ImGuiIO& io, osinteraction::SystemKey key, bool is_key_down)
-{
-    if (!systemKeyToImGuiLUT.contains(key))
-    {
-        return false;
-    }
-    updateKeyModifiersWin32(io);
-    ImGuiKey imgui_key = systemKeyToImGuiLUT.at(key);
-    io.AddKeyEvent(imgui_key, is_key_down);
-    return true;
-}
-
-void updateKeyboardCodepageWin32(ImGuiIO& io, uint32_t& keyboard_code_page)
+void updateKeyboardCodepageWin32(uint32_t& keyboard_code_page)
 {
     // Configure keyboard layout
     HKL keyboard_layout = GetKeyboardLayout(0);
@@ -179,49 +159,26 @@ void updateKeyboardCodepageWin32(ImGuiIO& io, uint32_t& keyboard_code_page)
     }
 }
 
-bool mouseButtonHandler(osinteraction::MouseButton button, uint16_t xbutton_id,
-    osinteraction::windows::Window const& window, bool acquire_capture)
+int imGuiMouseButtonIndex(osinteraction::MouseButton button, uint16_t xbutton_id)
 {
-    ImGuiIO& io = ImGui::GetIO();
-
     switch (button)
     {
     case osinteraction::MouseButton::left:
-        io.MouseDown[0] = acquire_capture;
-        break;
-    case osinteraction::MouseButton::middle:
-        io.MouseDown[2] = acquire_capture;
-        break;
+        return ImGuiMouseButton_Left;
     case osinteraction::MouseButton::right:
-        io.MouseDown[1] = acquire_capture;
-        break;
+        return ImGuiMouseButton_Right;
+    case osinteraction::MouseButton::middle:
+        return ImGuiMouseButton_Middle;
     case osinteraction::MouseButton::x:
-        io.MouseDown[xbutton_id + 2] = acquire_capture;
-        break;
+        return ImGuiMouseButton_Middle + xbutton_id;
     default:
         __assume(0);
     }
-
-    if (acquire_capture)
-    {
-        if (!ImGui::IsAnyMouseDown() && GetCapture() == NULL)
-            SetCapture(window.native());
-    }
-    else
-    {
-        if (!ImGui::IsAnyMouseDown() && GetCapture() == window.native())
-            ReleaseCapture();
-    }
-
-    return true;
 }
 
-bool updateMouseCursorWin32(ImGuiIO& io, ImGuiMouseCursor imgui_cursor)
+void applyMouseCursorWin32(ImGuiMouseCursor imgui_cursor)
 {
-    if (io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange)
-        return false;
-
-    if (imgui_cursor == ImGuiMouseCursor_None || io.MouseDrawCursor)
+    if (imgui_cursor == ImGuiMouseCursor_None)
     {
         SetCursor(NULL);
     }
@@ -244,7 +201,6 @@ bool updateMouseCursorWin32(ImGuiIO& io, ImGuiMouseCursor imgui_cursor)
         }
         SetCursor(LoadCursor(NULL, win32_cursor));
     }
-    return true;
 }
 
 ImGuiMouseSource getMouseSourceFromMessageExtraInfoWin32()
@@ -286,7 +242,7 @@ void updateMouseDataWin32(HWND hwnd, MouseTrackedArea mouse_tracked_area)
     }
 }
 
-}
+}  // namespace
 
 std::shared_ptr<UIDrawTask> UIDrawTask::create(Globals& globals, BasicRenderingServices& basic_rendering_services)
 {
@@ -385,14 +341,12 @@ bool UIDrawTask::keyUp(osinteraction::SystemKey key)
 
 bool UIDrawTask::character(uint64_t char_key_code)
 {
-    ImGuiIO& io = ImGui::GetIO();
-
     // char_key_code is wParam in case of Windows OS
     if (IsWindowUnicode(m_os_data.rendering_window_ptr->native()))
     {
         if (char_key_code > 0 && char_key_code < 0x10000)
         {
-            io.AddInputCharacterUTF16(static_cast<unsigned short>(char_key_code));
+            m_input_events.record(CharacterEvent{ static_cast<ImWchar16>(char_key_code) });
         }
     }
     else
@@ -406,39 +360,38 @@ bool UIDrawTask::character(uint64_t char_key_code)
             &wch,
             1
         );
-        io.AddInputCharacter(wch);
+        m_input_events.record(CharacterEvent{ static_cast<ImWchar16>(wch) });
     }
     return true;
 }
 
 bool UIDrawTask::systemKeyDown(osinteraction::SystemKey key)
 {
-    return processKeyEventWin32(ImGui::GetIO(), key, true);
+    return recordKeyEvent(key, true);
 }
 
 bool UIDrawTask::systemKeyUp(osinteraction::SystemKey key)
 {
-    ImGuiIO& io = ImGui::GetIO();
     if (key == osinteraction::SystemKey::print_screen)
     {
         // Special behavior for VK_SNAPSHOT / ImGuiKey_PrintScreen as Windows doesn't emit the key down event.
-        if (!processKeyEventWin32(io, osinteraction::SystemKey::print_screen, true))
+        if (!recordKeyEvent(osinteraction::SystemKey::print_screen, true))
         {
             return false;
         }
     }
-    return processKeyEventWin32(io, key, false);
+    return recordKeyEvent(key, false);
 }
 
 
 bool UIDrawTask::buttonDown(osinteraction::MouseButton button, uint16_t xbutton_id, osinteraction::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
-    return mouseButtonHandler(button, xbutton_id, *m_os_data.rendering_window_ptr, true);
+    return recordMouseButtonEvent(button, xbutton_id, true);
 }
 
 bool UIDrawTask::buttonUp(osinteraction::MouseButton button, uint16_t xbutton_id, osinteraction::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
-    return mouseButtonHandler(button, xbutton_id, *m_os_data.rendering_window_ptr, false);
+    return recordMouseButtonEvent(button, xbutton_id, false);
 }
 
 bool UIDrawTask::doubleClick(osinteraction::MouseButton button, uint16_t xbutton_id, osinteraction::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
@@ -448,27 +401,16 @@ bool UIDrawTask::doubleClick(osinteraction::MouseButton button, uint16_t xbutton
 
 bool UIDrawTask::wheelMove(double move_delta, bool is_horizontal_wheel, osinteraction::ControlKeyFlag const& control_key_flag, uint16_t x, uint16_t y)
 {
-    ImGuiIO& io = ImGui::GetIO();
-
-    if (is_horizontal_wheel)
-    {
-        io.MouseWheelH += static_cast<float>(move_delta);
-    }
-    else
-    {
-        io.MouseWheel += static_cast<float>(move_delta);
-    }
-
+    float delta = static_cast<float>(move_delta);
+    m_input_events.record(is_horizontal_wheel ? MouseWheelEvent{ delta, 0.f } : MouseWheelEvent{ 0.f, delta });
     return true;
 }
 
 
 bool UIDrawTask::move(uint16_t x, uint16_t y, osinteraction::ControlKeyFlag const& control_key_flag)
 {
-    ImGuiMouseSource mouse_source = getMouseSourceFromMessageExtraInfoWin32();
-    ImGuiIO& io = ImGui::GetIO();
-
-    io.MousePos = ImVec2{ static_cast<float>(x), static_cast<float>(y) };
+    m_input_events.record(MousePositionEvent{ static_cast<float>(x), static_cast<float>(y),
+        getMouseSourceFromMessageExtraInfoWin32() });
     return true;
 }
 
@@ -484,28 +426,28 @@ bool UIDrawTask::leave_client_area()
 
 bool UIDrawTask::setCursor(uint64_t/* wparam*/, uint64_t/* lparam*/)
 {
-    ImGuiIO& io = ImGui::GetIO();
-    return updateMouseCursorWin32(io, m_os_data.last_mouse_cursor);
+    ImGuiMouseCursor mouse_cursor = m_requested_mouse_cursor.load(std::memory_order_relaxed);
+    if (mouse_cursor == c_unrequested_mouse_cursor) return false;
+
+    applyMouseCursorWin32(mouse_cursor);
+    return true;
 }
  
 bool UIDrawTask::setFocus(uint64_t/* param*/)
 {
-    ImGuiIO& io = ImGui::GetIO();
-    io.AddFocusEvent(true);
+    m_input_events.record(FocusEvent{ true });
     return true;
 }
 
 bool UIDrawTask::killFocus(uint64_t/* param*/)
 {
-    ImGuiIO& io = ImGui::GetIO();
-    io.AddFocusEvent(false);
+    m_input_events.record(FocusEvent{ false });
     return true;
 }
 
 bool UIDrawTask::inputLanguageChanged()
 {
-    ImGuiIO& io = ImGui::GetIO();
-    updateKeyboardCodepageWin32(io, m_os_data.keyboard_code_page);
+    updateKeyboardCodepageWin32(m_os_data.keyboard_code_page);
     return true;
 }
 
@@ -536,7 +478,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
     io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
     io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
-    updateKeyboardCodepageWin32(io, m_os_data.keyboard_code_page);
+    updateKeyboardCodepageWin32(m_os_data.keyboard_code_page);
 
     // Setup UI device objects
 
@@ -647,6 +589,7 @@ bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
     if (!m_os_data.rendering_window_ptr) return true;
 
+    replayInputEvents();
     processEvents();
     ImGui::NewFrame();
 
@@ -665,6 +608,87 @@ bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
     drawFrame(m_basic_rendering_services.frameContext(user_data));
 
     return true;
+}
+
+bool UIDrawTask::recordKeyEvent(osinteraction::SystemKey key, bool is_down)
+{
+    auto lut_entry = systemKeyToImGuiLUT.find(key);
+    if (lut_entry == systemKeyToImGuiLUT.end()) return false;
+
+    m_input_events.record(KeyEvent{
+        .key = lut_entry->second,
+        .is_down = is_down,
+        .is_ctrl_down = isVkDownWin32(VK_CONTROL),
+        .is_shift_down = isVkDownWin32(VK_SHIFT),
+        .is_alt_down = isVkDownWin32(VK_MENU),
+        .is_super_down = isVkDownWin32(VK_LWIN) || isVkDownWin32(VK_RWIN)
+    });
+    return true;
+}
+
+bool UIDrawTask::recordMouseButtonEvent(osinteraction::MouseButton button, uint16_t xbutton_id, bool is_down)
+{
+    int imgui_button = imGuiMouseButtonIndex(button, xbutton_id);
+    uint32_t button_mask = 1U << imgui_button;
+    HWND hwnd = m_os_data.rendering_window_ptr->native();
+
+    if (is_down)
+    {
+        if (!m_held_mouse_buttons && GetCapture() == NULL) SetCapture(hwnd);
+        m_held_mouse_buttons |= button_mask;
+    }
+    else
+    {
+        m_held_mouse_buttons &= ~button_mask;
+        if (!m_held_mouse_buttons && GetCapture() == hwnd) ReleaseCapture();
+    }
+
+    m_input_events.record(MouseButtonEvent{ imgui_button, is_down, getMouseSourceFromMessageExtraInfoWin32() });
+    return true;
+}
+
+void UIDrawTask::replayInputEvents()
+{
+    ImGuiIO& io = ImGui::GetIO();
+
+    for (InputEvent const& input_event : m_input_events.take())
+    {
+        std::visit([&io](auto const& e)
+            {
+                using EventType = std::decay_t<decltype(e)>;
+
+                if constexpr (std::is_same_v<EventType, KeyEvent>)
+                {
+                    io.AddKeyEvent(ImGuiMod_Ctrl, e.is_ctrl_down);
+                    io.AddKeyEvent(ImGuiMod_Shift, e.is_shift_down);
+                    io.AddKeyEvent(ImGuiMod_Alt, e.is_alt_down);
+                    io.AddKeyEvent(ImGuiMod_Super, e.is_super_down);
+                    io.AddKeyEvent(e.key, e.is_down);
+                }
+                else if constexpr (std::is_same_v<EventType, CharacterEvent>)
+                {
+                    io.AddInputCharacterUTF16(e.utf16_code_unit);
+                }
+                else if constexpr (std::is_same_v<EventType, MouseButtonEvent>)
+                {
+                    io.AddMouseSourceEvent(e.source);
+                    io.AddMouseButtonEvent(e.button, e.is_down);
+                }
+                else if constexpr (std::is_same_v<EventType, MouseWheelEvent>)
+                {
+                    io.AddMouseWheelEvent(e.horizontal_delta, e.vertical_delta);
+                }
+                else if constexpr (std::is_same_v<EventType, MousePositionEvent>)
+                {
+                    io.AddMouseSourceEvent(e.source);
+                    io.AddMousePosEvent(e.x, e.y);
+                }
+                else if constexpr (std::is_same_v<EventType, FocusEvent>)
+                {
+                    io.AddFocusEvent(e.is_focused);
+                }
+            }, input_event);
+    }
 }
 
 void UIDrawTask::updateTexture(ImTextureData* p_texture)
@@ -750,12 +774,12 @@ void UIDrawTask::processEvents()
 
     // ImGui_ImplWin32_ProcessKeyEventsWorkarounds(io);
 
-    ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
-    if (m_os_data.last_mouse_cursor != mouse_cursor)
+    ImGuiMouseCursor mouse_cursor = c_unrequested_mouse_cursor;
+    if (!(io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange))
     {
-        m_os_data.last_mouse_cursor = mouse_cursor;
-        updateMouseCursorWin32(io, mouse_cursor);
+        mouse_cursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
     }
+    m_requested_mouse_cursor.store(mouse_cursor, std::memory_order_relaxed);
 
 
     // TODO: support gamepads
