@@ -323,7 +323,7 @@ bool WindowSizeChangeListener::process_message(uint64_t message, uint64_t p_wind
         return size_changed(new_width, new_height);
 
     default:
-        __assume(0);
+        return true;
     }
 }
 

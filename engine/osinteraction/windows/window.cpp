@@ -226,55 +226,6 @@ bool Window::getVisibility() const
 bool Window::shouldClose() const { return  m_should_close; }
 
 
-std::vector<WindowEvent> Window::takePendingEvents()
-{
-    std::vector<WindowEvent> taken_events;
-    {
-        std::lock_guard lock{ m_pending_events_mutex };
-        taken_events.swap(m_pending_events);
-    }
-
-    return taken_events;
-}
-
-void Window::pushEvent(WindowEvent const& event)
-{
-    std::lock_guard lock{ m_pending_events_mutex };
-
-    // the oldest events are dropped when the consumer falls behind, so that the newest size always survives
-    if (m_pending_events.size() >= c_max_pending_events) m_pending_events.erase(m_pending_events.begin());
-
-    m_pending_events.push_back(event);
-}
-
-void Window::recordEvent(UINT message, WPARAM w_param, LPARAM l_param)
-{
-    switch (message)
-    {
-    case WM_SIZE:
-    {
-        WindowEvent event{ .width = LOWORD(l_param), .height = HIWORD(l_param) };
-        switch (w_param)
-        {
-        case SIZE_MINIMIZED: event.type = WindowEventType::minimized; break;
-        case SIZE_MAXIMIZED: event.type = WindowEventType::maximized; break;
-        case SIZE_RESTORED: event.type = WindowEventType::resized; break;
-        default: return;
-        }
-
-        pushEvent(event);
-        return;
-    }
-
-    case WM_DPICHANGED:
-        pushEvent(WindowEvent{ .type = WindowEventType::dpi_changed, .dpi = LOWORD(w_param) });
-        return;
-
-    default:
-        return;
-    }
-}
-
 void Window::addListener(std::weak_ptr<AbstractListener> const& listener)
 {
     m_listener_list.push_back(listener);
@@ -359,7 +310,6 @@ LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wPar
         if (Window* p_window = g_window_pool[hWnd])
         {
             p_window->m_should_close = true;
-            p_window->pushEvent(WindowEvent{ .type = WindowEventType::close });
         }
         return 0;
     }
@@ -382,8 +332,6 @@ LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wPar
         {
             return DefWindowProc(hWnd, uMsg, wParam, lParam);
         }
-
-        p_window->recordEvent(uMsg, wParam, lParam);
 
         size_t expired_listeners_count = 0;
         size_t i = 0;

@@ -1,4 +1,5 @@
 #include <chrono>
+#include <type_traits>
 
 #include "engine/core/concurrency/thread_affinity.h"
 #include "engine/core/dx/d3d12/swap_chain_link.h"
@@ -21,9 +22,16 @@ constexpr std::chrono::milliseconds c_device_lost_poll_interval{ 250 };
 
 }  // namespace
 
-RenderThread::RenderThread(osinteraction::windows::Window& window, dx::d3d12::SwapChainLink& swap_chain_link)
-    : m_window{ window }
-    , m_swap_chain_link{ swap_chain_link }
+std::shared_ptr<RenderThread> RenderThread::create(osinteraction::windows::Window& window,
+    dx::d3d12::SwapChainLink& swap_chain_link)
+{
+    std::shared_ptr<RenderThread> rv{ new RenderThread{ swap_chain_link } };
+    window.addListener(rv);
+    return rv;
+}
+
+RenderThread::RenderThread(dx::d3d12::SwapChainLink& swap_chain_link)
+    : m_swap_chain_link{ swap_chain_link }
 {
 
 }
@@ -54,28 +62,45 @@ void RenderThread::stop()
     m_thread.join();
 }
 
+bool RenderThread::minimized()
+{
+    m_surface_events.record(SuspendEvent{});
+    return true;
+}
+
+bool RenderThread::maximized(uint16_t new_width, uint16_t new_height)
+{
+    m_surface_events.record(ResizeEvent{ new_width, new_height });
+    return true;
+}
+
+bool RenderThread::size_changed(uint16_t new_width, uint16_t new_height)
+{
+    m_surface_events.record(ResizeEvent{ new_width, new_height });
+    return true;
+}
+
 void RenderThread::loop()
 {
     concurrency::registerMasterWorkerThread();
 
     while (!m_stop_requested.load(std::memory_order_acquire))
     {
-        for (osinteraction::windows::WindowEvent const& event : m_window.takePendingEvents())
+        for (SurfaceEvent const& surface_event : m_surface_events.take())
         {
-            switch (event.type)
-            {
-            case osinteraction::windows::WindowEventType::resized:
-            case osinteraction::windows::WindowEventType::maximized:
-                m_swap_chain_link.requestResize(event.width, event.height);
-                break;
+            std::visit([this](auto const& e)
+                {
+                    using EventType = std::decay_t<decltype(e)>;
 
-            case osinteraction::windows::WindowEventType::minimized:
-                m_swap_chain_link.suspendRendering();
-                break;
-
-            default:
-                break;
-            }
+                    if constexpr (std::is_same_v<EventType, ResizeEvent>)
+                    {
+                        m_swap_chain_link.requestResize(e.width, e.height);
+                    }
+                    else if constexpr (std::is_same_v<EventType, SuspendEvent>)
+                    {
+                        m_swap_chain_link.suspendRendering();
+                    }
+                }, surface_event);
         }
 
         // only a rendered frame paces the loop; the rest describe how long there is nothing worth doing

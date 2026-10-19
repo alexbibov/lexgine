@@ -171,7 +171,7 @@ osinteraction::WindowHandler* Initializer::createWindowHandler(osinteraction::wi
 
         m_swap_chain_link = m_d3d12_initializer->createSwapChainLink(*m_swap_chain, convertSwapChainDepthFormatD3d12(depth_format), *m_rendering_tasks);
 
-        m_render_thread = std::make_unique<core::RenderThread>(window, *m_swap_chain_link);
+        m_render_thread = core::RenderThread::create(window, *m_swap_chain_link);
         m_render_thread->start();
 
         m_window_handler = std::make_unique<osinteraction::WindowHandler>(
