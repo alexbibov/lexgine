@@ -587,7 +587,13 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
 
 bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    if (!m_os_data.rendering_window_ptr) return true;
+    FrameContext const& frame_context = m_basic_rendering_services.frameContext(user_data);
+
+    if (!m_os_data.rendering_window_ptr)
+    {
+        m_basic_rendering_services.endRendering(*m_cmd_list_ptr, frame_context);
+        return true;
+    }
 
     replayInputEvents();
     processEvents();
@@ -605,7 +611,7 @@ bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
     }
 
     ImGui::Render();
-    drawFrame(m_basic_rendering_services.frameContext(user_data));
+    drawFrame(frame_context);
 
     return true;
 }
@@ -756,13 +762,8 @@ void UIDrawTask::processEvents()
 {
     ImGuiIO& io = ImGui::GetIO();
 
-    // Setup display size (every frame to accommodate for window resizing)
-    RECT rect{};
-    GetClientRect(m_os_data.rendering_window_ptr->native(), &rect);
-    io.DisplaySize = ImVec2{ 
-        static_cast<float>(rect.right - rect.left),
-        static_cast<float>(rect.bottom - rect.top)
-    };
+    Viewport const& viewport = m_basic_rendering_services.defaultViewport();
+    io.DisplaySize = ImVec2{ viewport.width(), viewport.height() };
 
     std::chrono::time_point current_time = std::chrono::high_resolution_clock::now();
     float ratio = static_cast<float>(std::chrono::nanoseconds::period::num) / std::chrono::nanoseconds::period::den;
@@ -787,7 +788,8 @@ void UIDrawTask::processEvents()
 
 void UIDrawTask::drawFrame(FrameContext const& frame_context)
 {
-    if (ImDrawData* p_draw_data = ImGui::GetDrawData())
+    ImDrawData* p_draw_data = ImGui::GetDrawData();
+    if (p_draw_data && p_draw_data->DisplaySize.x > 0 && p_draw_data->DisplaySize.y > 0)
     {
         auto setup_render_state_lambda = [this, p_draw_data, &frame_context]()
         {
@@ -827,9 +829,6 @@ void UIDrawTask::drawFrame(FrameContext const& frame_context)
         Resource const& upload_buffer = m_ui_data_allocator.getUploadResource();
         D3D12_GPU_VIRTUAL_ADDRESS upload_buffer_gpu_address = upload_buffer.getGPUVirtualAddress();
         {
-            if (p_draw_data->DisplaySize.x <= 0 || p_draw_data->DisplaySize.y <= 0)
-                return;
-
             if (p_draw_data->Textures != nullptr)
             {
                 for (ImTextureData* p_texture : *p_draw_data->Textures)
@@ -928,7 +927,7 @@ void UIDrawTask::drawFrame(FrameContext const& frame_context)
                 offset_in_vertex_buffer += p_draw_list->VtxBuffer.Size;
             }
         }
-
-        m_basic_rendering_services.endRendering(*m_cmd_list_ptr, frame_context);
     }
+
+    m_basic_rendering_services.endRendering(*m_cmd_list_ptr, frame_context);
 }
