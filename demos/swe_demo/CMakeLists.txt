@@ -20,7 +20,8 @@ file(
 source_group(TREE ${_src_root_path} PREFIX "Source files" FILES ${_sources_list})
 source_group(TREE ${_src_root_path} PREFIX "Header files" FILES ${_headers_list})
 
-add_executable(${_target} ${_sources_list} ${_headers_list})
+# the sources are globbed by extension, so the manifest declaring the DPI awareness is listed explicitly
+add_executable(${_target} ${_sources_list} ${_headers_list} "${_src_root_path}/swe.manifest")
 
 add_dependencies(${_target} api)
 
