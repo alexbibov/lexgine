@@ -392,3 +392,8 @@ bool lexgine::osinteraction::windows::InputLanguageChangeListener::process_messa
 {
     return inputLanguageChanged();
 }
+
+bool lexgine::osinteraction::windows::DpiChangeListener::process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1, uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5)
+{
+    return dpiChanged(static_cast<uint32_t>(LOWORD(wparam)));
+}

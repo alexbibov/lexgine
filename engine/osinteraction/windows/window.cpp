@@ -266,7 +266,10 @@ void Window::adjustClientAreaSize(core::math::Vector2u const& desired_position, 
     window_rectangle.right = static_cast<LONG>(desired_position.x + desired_dimensions.x);
     window_rectangle.bottom = static_cast<LONG>(desired_position.y + desired_dimensions.y);
 
-    checkSystemCall(AdjustWindowRect(&window_rectangle, m_window_style.getValue(), FALSE));
+    // before the window exists its display is unknown, so the frame is sized for the system setting
+    UINT dpi = m_hwnd ? GetDpiForWindow(m_hwnd) : GetDpiForSystem();
+    checkSystemCall(AdjustWindowRectExForDpi(&window_rectangle, m_window_style.getValue(), FALSE,
+        m_window_ex_style.getValue(), dpi));
 
     adjusted_position = core::math::Vector2u{
         static_cast<unsigned>(window_rectangle.left),
@@ -331,6 +334,14 @@ LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wPar
         if (!p_window)
         {
             return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        }
+
+        if (uMsg == WM_DPICHANGED)
+        {
+            RECT const& suggested_rectangle = *reinterpret_cast<RECT const*>(lParam);
+            SetWindowPos(hWnd, NULL, suggested_rectangle.left, suggested_rectangle.top,
+                suggested_rectangle.right - suggested_rectangle.left, suggested_rectangle.bottom - suggested_rectangle.top,
+                SWP_NOZORDER | SWP_NOACTIVATE);
         }
 
         size_t expired_listeners_count = 0;

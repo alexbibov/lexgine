@@ -74,6 +74,8 @@ public:
 
     HWND native() const { return m_hwnd; }    //! returns native window handler (HWND)
 
+    uint32_t dpi() const { return GetDpiForWindow(m_hwnd); }    //! returns the dots per inch setting of the display hosting the window
+
     void addListener(std::weak_ptr<AbstractListener> const& listener);    //! adds new event listener to the window. For design simplicity the listeners once added can never be removed without re-initialization of the Window object
 
     void processMessages() const;    //! retrieves messages addressed to the window from the message queue and dispatches them to the window

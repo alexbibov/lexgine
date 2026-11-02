@@ -159,6 +159,20 @@ protected:
 	uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
 };
 
+/*! Listener notified when the dots per inch setting of the window changes, either because the window has
+ been moved to a display with a different setting or because the setting of its display has been changed.
+ The window has already been resized to the rectangle suggested by the system when the listener is notified.
+*/
+class DpiChangeListener : public ConcreteListener<WM_DPICHANGED>
+{
+public:
+    virtual bool dpiChanged(uint32_t dpi) = 0;    //! called with the new dots per inch setting of the window
+
+protected:
+    bool process_message(uint64_t message, uint64_t p_window, uint64_t wparam, uint64_t lparam, uint64_t reserved1,
+        uint64_t reserved2, uint64_t reserved3, uint64_t reserved4, uint64_t reserved5) override;
+};
+
 }
 
 #endif

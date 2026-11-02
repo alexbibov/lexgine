@@ -262,6 +262,8 @@ void UIDrawTask::bindRenderingWindow(osinteraction::windows::Window& rendering_w
 
     ImGuiViewport* main_viewport = ImGui::GetMainViewport();
     main_viewport->PlatformHandle = rendering_window.native();
+
+    dpiChanged(rendering_window.dpi());
 }
 
 
@@ -451,6 +453,12 @@ bool UIDrawTask::inputLanguageChanged()
     return true;
 }
 
+bool UIDrawTask::dpiChanged(uint32_t dpi)
+{
+    m_input_events.record(DpiScaleEvent{ static_cast<float>(dpi) / USER_DEFAULT_SCREEN_DPI });
+    return true;
+}
+
 
 UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services)
     : RenderingWork{ globals, "UI draw task", CommandType::direct }
@@ -471,6 +479,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
 
     IMGUI_CHECKVERSION();
     m_im_gui_context = ImGui::CreateContext();
+    m_base_style = ImGui::GetStyle();
 
     ImGuiIO& io = ImGui::GetIO();
     io.BackendRendererName = "Lexgine";
@@ -659,7 +668,7 @@ void UIDrawTask::replayInputEvents()
 
     for (InputEvent const& input_event : m_input_events.take())
     {
-        std::visit([&io](auto const& e)
+        std::visit([this, &io](auto const& e)
             {
                 using EventType = std::decay_t<decltype(e)>;
 
@@ -692,6 +701,13 @@ void UIDrawTask::replayInputEvents()
                 else if constexpr (std::is_same_v<EventType, FocusEvent>)
                 {
                     io.AddFocusEvent(e.is_focused);
+                }
+                else if constexpr (std::is_same_v<EventType, DpiScaleEvent>)
+                {
+                    ImGuiStyle& style = ImGui::GetStyle();
+                    style = m_base_style;
+                    style.ScaleAllSizes(e.scale);
+                    style.FontScaleDpi = e.scale;
                 }
             }, input_event);
     }

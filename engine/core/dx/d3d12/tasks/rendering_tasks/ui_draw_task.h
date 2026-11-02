@@ -62,7 +62,8 @@ class UIDrawTask final :
     osinteraction::windows::MouseMoveListener,
     osinteraction::windows::CursorUpdateListener,
     osinteraction::windows::FocusUpdateListener,
-    osinteraction::windows::InputLanguageChangeListener
+    osinteraction::windows::InputLanguageChangeListener,
+    osinteraction::windows::DpiChangeListener
     >,
     public std::enable_shared_from_this<UIDrawTask>
 {
@@ -113,6 +114,9 @@ public:    // FocusUpdateListener
 public:    // InputLanguageChangedListener
     bool inputLanguageChanged() override;
 
+public:    // DpiChangeListener
+    bool dpiChanged(uint32_t dpi) override;
+
 private:
     struct KeyEvent
     {
@@ -154,8 +158,13 @@ private:
         bool is_focused;
     };
 
+    struct DpiScaleEvent
+    {
+        float scale;
+    };
+
     using InputEvent = std::variant<KeyEvent, CharacterEvent, MouseButtonEvent, MouseWheelEvent,
-        MousePositionEvent, FocusEvent>;
+        MousePositionEvent, FocusEvent, DpiScaleEvent>;
 
 private:
     UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services);
@@ -179,6 +188,7 @@ private:
     ResourceDataUploader& m_resource_uploader;
 
     ImGuiContext* m_im_gui_context = nullptr;
+    ImGuiStyle m_base_style;
     OsInterationData m_os_data;
 
     caches::HLSLShaderHandle m_vs { nullptr };

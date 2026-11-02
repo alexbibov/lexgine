@@ -11,6 +11,7 @@ class MouseButtonListener;
 class MouseMoveListener;
 class WindowSizeChangeListener;
 class ClientAreaUpdateListener;
+class DpiChangeListener;
 
 
 }}}
