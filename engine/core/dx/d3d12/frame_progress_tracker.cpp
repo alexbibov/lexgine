@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "frame_progress_tracker.h"
 
 #include "engine/core/dx/d3d12/device.h"
@@ -6,14 +8,29 @@
 
 using namespace lexgine::core::dx::d3d12;
 
+namespace
+{
+    uint64_t signalQueueWall(Signal& wall, CommandQueue const& queue)
+    {
+        lexgine::core::concurrency::assertOnRenderThread();
+        uint64_t signal_index = wall.nextValueOfSignal() - 1;
+        wall.signalFromGPU(queue);
+        return signal_index;
+    }
+}  // namespace
+
 FrameProgressTracker::FrameProgressTracker(Device& device)
     : m_device{ device }
     , m_cpu_wall_signal{ device }
     , m_gpu_wall_signal{ device }
+    , m_compute_wall_signal{ device }
+    , m_copy_wall_signal{ device }
     , m_current_recorded_frame_index{ 0 }
 {
     m_cpu_wall_signal.setStringName("CPU wall");
     m_gpu_wall_signal.setStringName("GPU wall");
+    m_compute_wall_signal.setStringName("Compute wall");
+    m_copy_wall_signal.setStringName("Copy wall");
 }
 
 uint64_t FrameProgressTracker::markFrameBegin()
@@ -60,9 +77,80 @@ bool FrameProgressTracker::waitForFrameCompletion(uint64_t frame_index, uint32_t
 void FrameProgressTracker::synchronize() const
 {
     m_gpu_wall_signal.waitUntilValue(m_cpu_wall_signal.lastValueSignaled());
+    m_compute_wall_signal.waitUntilValue(scheduledComputeQueueSignalsCount());
+    m_copy_wall_signal.waitUntilValue(scheduledCopyQueueSignalsCount());
 }
 
-void FrameProgressTracker::synchronize(uint32_t timeout_in_milliseconds) const
+bool FrameProgressTracker::synchronize(uint32_t timeout_in_milliseconds) const
 {
-    m_gpu_wall_signal.waitUntilValue(m_cpu_wall_signal.lastValueSignaled(), timeout_in_milliseconds);
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds{ timeout_in_milliseconds };
+    auto remaining_milliseconds = [&deadline]()
+    {
+        auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
+        return static_cast<uint32_t>((std::max)(remaining.count(), decltype(remaining)::rep{ 0 }));
+    };
+
+    return m_gpu_wall_signal.waitUntilValue(m_cpu_wall_signal.lastValueSignaled(), remaining_milliseconds())
+        && m_compute_wall_signal.waitUntilValue(scheduledComputeQueueSignalsCount(), remaining_milliseconds())
+        && m_copy_wall_signal.waitUntilValue(scheduledCopyQueueSignalsCount(), remaining_milliseconds());
+}
+
+uint64_t FrameProgressTracker::signalComputeQueue()
+{
+    return signalQueueWall(m_compute_wall_signal, m_device.asyncCommandQueue());
+}
+
+uint64_t FrameProgressTracker::scheduledComputeQueueSignalsCount() const
+{
+    return m_compute_wall_signal.nextValueOfSignal() - 1;
+}
+
+uint64_t FrameProgressTracker::completedComputeQueueSignalsCount() const
+{
+    return m_compute_wall_signal.lastValueSignaled();
+}
+
+void FrameProgressTracker::waitForComputeQueueSignal(uint64_t signal_index) const
+{
+    m_compute_wall_signal.waitUntilValue(signal_index + 1);
+}
+
+bool FrameProgressTracker::waitForComputeQueueSignal(uint64_t signal_index, uint32_t timeout_in_milliseconds) const
+{
+    return m_compute_wall_signal.waitUntilValue(signal_index + 1, timeout_in_milliseconds);
+}
+
+void FrameProgressTracker::waitForComputeQueueSignalOnGPU(CommandQueue const& waiting_queue, uint64_t signal_index)
+{
+    m_compute_wall_signal.waitOnGPUQueue(waiting_queue, signal_index + 1);
+}
+
+uint64_t FrameProgressTracker::signalCopyQueue()
+{
+    return signalQueueWall(m_copy_wall_signal, m_device.copyCommandQueue());
+}
+
+uint64_t FrameProgressTracker::scheduledCopyQueueSignalsCount() const
+{
+    return m_copy_wall_signal.nextValueOfSignal() - 1;
+}
+
+uint64_t FrameProgressTracker::completedCopyQueueSignalsCount() const
+{
+    return m_copy_wall_signal.lastValueSignaled();
+}
+
+void FrameProgressTracker::waitForCopyQueueSignal(uint64_t signal_index) const
+{
+    m_copy_wall_signal.waitUntilValue(signal_index + 1);
+}
+
+bool FrameProgressTracker::waitForCopyQueueSignal(uint64_t signal_index, uint32_t timeout_in_milliseconds) const
+{
+    return m_copy_wall_signal.waitUntilValue(signal_index + 1, timeout_in_milliseconds);
+}
+
+void FrameProgressTracker::waitForCopyQueueSignalOnGPU(CommandQueue const& waiting_queue, uint64_t signal_index)
+{
+    m_copy_wall_signal.waitOnGPUQueue(waiting_queue, signal_index + 1);
 }

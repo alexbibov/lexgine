@@ -31,13 +31,56 @@ public:
     void waitForFrameCompletion(uint64_t frame_index) const;
     bool waitForFrameCompletion(uint64_t frame_index, uint32_t timeout_in_milliseconds) const;
 
+    //! blocks the calling thread until the GPU completes all scheduled frames and all enqueued compute and copy queue signals
     void synchronize() const;
-    void synchronize(uint32_t timeout_in_milliseconds) const;
+
+    /*! blocks the calling thread for at most the given number of milliseconds or until the GPU completes all scheduled
+     frames and all enqueued compute and copy queue signals. Returns 'true' if all of them completed and 'false' on timeout
+    */
+    bool synchronize(uint32_t timeout_in_milliseconds) const;
+
+    /*! signals the wall of the asynchronous compute queue on that queue and returns the index of the signal.
+     The cadence of these signals is defined by the work submitted to the queue and is independent of the frames
+    */
+    uint64_t signalComputeQueue();
+    uint64_t scheduledComputeQueueSignalsCount() const;    //! returns the number of compute queue signals enqueued so far
+    uint64_t completedComputeQueueSignalsCount() const;    //! returns the number of compute queue signals crossed by the GPU
+
+    //! blocks the calling thread until the GPU crosses the compute queue signal with the given index
+    void waitForComputeQueueSignal(uint64_t signal_index) const;
+
+    /*! blocks the calling thread for at most the given number of milliseconds or until the GPU crosses the compute queue
+     signal with the given index. Returns 'true' if the signal has been crossed and 'false' on timeout
+    */
+    bool waitForComputeQueueSignal(uint64_t signal_index, uint32_t timeout_in_milliseconds) const;
+
+    //! makes @param waiting_queue wait until the GPU crosses the compute queue signal with the given index
+    void waitForComputeQueueSignalOnGPU(CommandQueue const& waiting_queue, uint64_t signal_index);
+
+    /*! signals the wall of the copy queue on that queue and returns the index of the signal. The cadence of these
+     signals is defined by the work submitted to the queue and is independent of the frames
+    */
+    uint64_t signalCopyQueue();
+    uint64_t scheduledCopyQueueSignalsCount() const;    //! returns the number of copy queue signals enqueued so far
+    uint64_t completedCopyQueueSignalsCount() const;    //! returns the number of copy queue signals crossed by the GPU
+
+    //! blocks the calling thread until the GPU crosses the copy queue signal with the given index
+    void waitForCopyQueueSignal(uint64_t signal_index) const;
+
+    /*! blocks the calling thread for at most the given number of milliseconds or until the GPU crosses the copy queue
+     signal with the given index. Returns 'true' if the signal has been crossed and 'false' on timeout
+    */
+    bool waitForCopyQueueSignal(uint64_t signal_index, uint32_t timeout_in_milliseconds) const;
+
+    //! makes @param waiting_queue wait until the GPU crosses the copy queue signal with the given index
+    void waitForCopyQueueSignalOnGPU(CommandQueue const& waiting_queue, uint64_t signal_index);
 
 private:
     Device& m_device;
     Signal m_cpu_wall_signal;
     Signal m_gpu_wall_signal;
+    Signal m_compute_wall_signal;
+    Signal m_copy_wall_signal;
     uint64_t m_current_recorded_frame_index;
 };
 
