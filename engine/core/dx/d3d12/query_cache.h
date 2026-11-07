@@ -1,6 +1,7 @@
 #ifndef LEXGINE_CORE_DX_D3D12_QUERY_CACHE_H
 #define LEXGINE_CORE_DX_D3D12_QUERY_CACHE_H
 
+#include <atomic>
 #include <cstdint>
 #include <array>
 #include <mutex>
@@ -118,7 +119,7 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_last_measured_time_point;
 
     mutable std::mutex m_resolve_buffer_mapping_mutex;    //!< mutex guarding resolve buffer mapping
-    mutable void const* volatile m_query_resolve_buffer_mapped_addr{ nullptr };
+    mutable std::atomic<void const*> m_query_resolve_buffer_mapped_addr{ nullptr };
 };
 
 template<> class QueryCacheAttorney<CommandList>

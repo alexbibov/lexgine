@@ -158,6 +158,7 @@ bool TaskSink::executeNextTask(uint8_t worker_id)
     TaskGraphNode* unwrapped_task = *task;
     AbstractTask* p_contained_task = unwrapped_task->task();
     bool task_was_completed{ false };
+    bool task_has_thrown{ false };
     try
     {
         task_was_completed = unwrapped_task->execute(worker_id);
@@ -172,11 +173,13 @@ bool TaskSink::executeNextTask(uint8_t worker_id)
     }
     catch (lexgine::core::Exception const&)
     {
-        // we don't do anything here as the logging is done by the tasks themselves via call of raiseError(...)
-        // Note that the same call puts the task into erroneous state
+        // the logging is done where the exception is raised. A task raising it through raiseError(...) is put
+        // into erroneous state by the same call, but an exception thrown by an object the task uses leaves the
+        // task state intact, so the node can neither be completed nor rescheduled and the graph cannot finish
+        task_has_thrown = true;
     }
 
-    if (p_contained_task->getErrorState())
+    if (task_has_thrown || p_contained_task->getErrorState())
     {
         m_error_watchdog.store(reinterpret_cast<uint64_t>(p_contained_task), std::memory_order_release);
         notifyWorkAvailable();

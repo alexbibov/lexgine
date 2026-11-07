@@ -254,6 +254,26 @@ void RenderingTasks::registerConsoleCommands()
 
             return { .succeeded = true };
         });
+
+#ifdef _DEBUG
+    reg.addNamespace("device", "Device diagnostics commands");
+
+    // device.remove
+    interaction::console::CommandSpec remove_cmd{ .name = "remove",
+        .summary = "Remove the device between the frames to exercise the device loss recovery" };
+    reg.addCommand("device", remove_cmd,
+        [this](interaction::console::ArgMap const&) -> interaction::console::CommandExecResult
+        {
+            bool const scheduled = m_render_command_pipe.enqueue([this]()
+                {
+                    Microsoft::WRL::ComPtr<ID3D12Device5> device5;
+                    if (SUCCEEDED(m_device.native().As(&device5))) device5->RemoveDevice();
+                });
+
+            if (!scheduled) return { .succeeded = false, .msg = "Unable to schedule removal of the device" };
+            return { .succeeded = true };
+        });
+#endif
 }
 
 

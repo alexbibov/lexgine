@@ -41,6 +41,9 @@ D3D12EngineSettings::D3D12EngineSettings()
 
 
 D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
+    : m_debug_mode{ settings.debug_mode }
+    , m_gpu_based_validation_settings{ settings.gpu_based_validation_settings }
+    , m_adapter_enumeration_preference{ settings.adapter_enumeration_preference }
 {
     // std::string corrected_logging_output_path = correct_path(settings.logging_output_path);
     // std::string corrected_global_lookup_prefix = correct_path(settings.global_lookup_prefix);
@@ -103,8 +106,8 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
     GlobalSettings& global_settings_ref = m_globals->globalSettings();
 
     GlobalsAttorney<D3D12Initializer>::setDxResourceFactory(*m_globals,
-        std::make_unique<dx::d3d12::DxResourceFactory>(global_settings_ref, settings.debug_mode,
-            settings.gpu_based_validation_settings, settings.adapter_enumeration_preference));
+        std::make_unique<dx::d3d12::DxResourceFactory>(global_settings_ref, m_debug_mode,
+            m_gpu_based_validation_settings, m_adapter_enumeration_preference));
 
     GlobalsAttorney<D3D12Initializer>::setGpuDataBlobCache(*m_globals,
         std::make_unique<GpuDataBlobCache>(global_settings_ref));
@@ -141,6 +144,30 @@ bool D3D12Initializer::setCurrentDevice(uint32_t adapter_id)
 
     rebuildDeviceDependentCaches();
     return true;
+}
+
+bool D3D12Initializer::recreateDevice(LUID const& adapter_luid)
+{
+    GlobalsAttorney<D3D12Initializer>::releaseDeviceDependentEntries(*m_globals);
+
+    GlobalsAttorney<D3D12Initializer>::setDxResourceFactory(*m_globals,
+        std::make_unique<dx::d3d12::DxResourceFactory>(m_globals->globalSettings(), m_debug_mode,
+            m_gpu_based_validation_settings, m_adapter_enumeration_preference));
+
+    auto& hw_adapter_enumerator = m_globals->dxResourceFactory().hardwareAdapterEnumerator();
+    uint32_t const adapter_count = hw_adapter_enumerator.getAdapterCount();
+    for (uint32_t adapter_id = 0; adapter_id < adapter_count; ++adapter_id)
+    {
+        LUID const luid = hw_adapter_enumerator[adapter_id]->getProperties().details.luid;
+        if (luid.LowPart == adapter_luid.LowPart && luid.HighPart == adapter_luid.HighPart)
+        {
+            return setCurrentDevice(adapter_id);
+        }
+    }
+
+    misc::Log::retrieve()->out("The adapter of the lost device is no longer present, the first available adapter "
+        "is used instead", misc::LogMessageType::exclamation);
+    return setCurrentDevice(0);
 }
 
 dx::d3d12::Device& D3D12Initializer::getCurrentDevice() const

@@ -134,14 +134,17 @@ void const* QueryCache::fetchQuery(QueryHandle const& query_handle) const
     size_t const stride = getRequiredStoragePerQuery(query_handle.heap_id);
     size_t offset = getHeapSegmentOffset(query_handle.heap_id);
 
-    // Note the following will only work on a cache-coherent system. On systems without cache-coherency,
-    // m_query_resolve_buffer_mapped_addr should be atomic
-    if (!m_query_resolve_buffer_mapped_addr && m_resolve_buffer_mapping_mutex.try_lock())
+    void const* mapped_addr = m_query_resolve_buffer_mapped_addr.load(std::memory_order_acquire);
+    if (!mapped_addr)
     {
-        m_query_resolve_buffer_mapped_addr = m_query_resolve_buffers[getOldestQueryResolveBufferIndex()]->map(0);
-        m_resolve_buffer_mapping_mutex.unlock();
+        std::lock_guard lock{ m_resolve_buffer_mapping_mutex };
+        mapped_addr = m_query_resolve_buffer_mapped_addr.load(std::memory_order_relaxed);
+        if (!mapped_addr)
+        {
+            mapped_addr = m_query_resolve_buffers[getOldestQueryResolveBufferIndex()]->map(0);
+            m_query_resolve_buffer_mapped_addr.store(mapped_addr, std::memory_order_release);
+        }
     }
-    else while (!m_query_resolve_buffer_mapped_addr);
 
 
     auto& maps = query_heap_type_to_capacity_cache_map[query_handle.heap_id];
@@ -172,7 +175,7 @@ void const* QueryCache::fetchQuery(QueryHandle const& query_handle) const
         __assume(0);
     }
 
-    return static_cast<char const*>(m_query_resolve_buffer_mapped_addr) + offset;
+    return static_cast<char const*>(mapped_addr) + offset;
 }
 
 void QueryCache::initQueryCache()
@@ -270,10 +273,10 @@ float QueryCache::averageFPS() const { return 1.f / averageFrameTime() * 1e3f; }
 void QueryCache::writeFlushCommandList(CommandList const& cmd_list) const
 {
     auto& oldest_query_resolve_buffer = m_query_resolve_buffers[getOldestQueryResolveBufferIndex()];
-    if (m_query_resolve_buffer_mapped_addr && oldest_query_resolve_buffer)
+    if (m_query_resolve_buffer_mapped_addr.load(std::memory_order_acquire) && oldest_query_resolve_buffer)
     {
         oldest_query_resolve_buffer->unmap(0, false);
-        m_query_resolve_buffer_mapped_addr = nullptr;
+        m_query_resolve_buffer_mapped_addr.store(nullptr, std::memory_order_release);
     }
 
     auto& current_query_resolve_buffer = m_query_resolve_buffers[m_frame_progress_tracker.currentFrameIndex() % m_settings.getMaxFramesInFlight()];

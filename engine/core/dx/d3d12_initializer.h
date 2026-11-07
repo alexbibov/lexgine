@@ -64,6 +64,13 @@ public:
     core::Globals& globals();    //! returns the global parameter object pool. This function must not be exposed to the client and will be removed in the future.
 
     bool setCurrentDevice(uint32_t adapter_id);    //! assigns device that will be used for graphics and compute tasks. Returns 'true' on success.
+
+    /*! releases the current device together with every device-dependent object held by the globals, enumerates
+     the adapters anew and makes current the device of the adapter identified by @param adapter_luid, or of the
+     first adapter if that one is no longer present. Nothing created from the released device may outlive this call.
+     Returns 'true' on success
+    */
+    bool recreateDevice(LUID const& adapter_luid);
     dx::d3d12::Device& getCurrentDevice() const;    //! returns current device
     
     void setWARPAdapterAsCurrent() const;    //! sets the WARP adapter as the one to be used by the engine
@@ -84,6 +91,9 @@ private:
     void rebuildDeviceDependentCaches();
 
 private:
+    bool m_debug_mode;
+    d3d12::GpuBasedValidationSettings m_gpu_based_validation_settings;
+    dxgi::DxgiGpuPreference m_adapter_enumeration_preference;
     std::unique_ptr<core::Globals> m_globals;
 };
 

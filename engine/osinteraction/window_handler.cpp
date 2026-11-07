@@ -1,8 +1,8 @@
+#include <vector>
+
 #include "window_handler.h"
 #include "engine/osinteraction/windows/window_listeners.h"
 #include "engine/osinteraction/windows/window.h"
-#include "engine/core/dx/d3d12/swap_chain_link.h"
-#include "engine/core/dx/d3d12/d3d12_tools.h"
 
 
 using namespace lexgine;
@@ -103,8 +103,7 @@ public:    // ClientAreaUpdateListener
 
 
 public:    // Construction
-    impl(core::Globals& globals, core::dx::d3d12::SwapChainLink& swap_chain_link)
-        : m_swap_chain_link{ swap_chain_link }
+    impl(core::Globals& globals)
     {
 
     }
@@ -115,25 +114,40 @@ public:
     void setMouseButtonCallbackPtr(MouseButtonHandler mouse_button_handler) { m_mouse_button_handler = mouse_button_handler; }
     void setMouseMoveCallbackPtr(MouseMoveHandler mouse_move_handler) { m_mouse_move_handler = mouse_move_handler; }
 
+    void addWaitableHandler(HANDLE handle, std::function<void()> handler)
+    {
+        m_waitable_handles.push_back(handle);
+        m_waitable_handlers.push_back(std::move(handler));
+    }
+
+    std::vector<HANDLE> const& waitableHandles() const { return m_waitable_handles; }
+    std::function<void()> const& waitableHandler(size_t index) const { return m_waitable_handlers[index]; }
+
 private:
     KeyInputHandler m_key_input_handler = nullptr;
     MouseButtonHandler m_mouse_button_handler = nullptr;
     MouseMoveHandler m_mouse_move_handler = nullptr;
 
-    core::dx::d3d12::SwapChainLink& m_swap_chain_link;
+    std::vector<HANDLE> m_waitable_handles;
+    std::vector<std::function<void()>> m_waitable_handlers;
 };
 
 
 
-WindowHandler::WindowHandler(core::Globals& globals, windows::Window& os_window, core::dx::d3d12::SwapChainLink& swap_chain_link)
+WindowHandler::WindowHandler(core::Globals& globals, windows::Window& os_window)
     : m_target_os_window{ os_window }
-    , m_impl{ new impl{globals, swap_chain_link} }
+    , m_impl{ new impl{ globals } }
 {
     m_target_os_window.addListener(m_impl);
 }
 
 WindowHandler::WindowHandler(WindowHandler&&) = default;
 WindowHandler::~WindowHandler() = default;
+
+void WindowHandler::addWaitableHandler(HANDLE handle, std::function<void()> handler)
+{
+    m_impl->addWaitableHandler(handle, std::move(handler));
+}
 
 
 void WindowHandler::enableKeyInputMonitoring(KeyInputHandler key_input_handler)
@@ -162,11 +176,18 @@ windows::Window* WindowHandler::attachedWindow() const
 void WindowHandler::update() const
 {
     // the frames are driven by the rendering thread, so there is nothing to do here until the next message
-    // arrives. The wait returns at once when there is input and only bounds how often the close request is
-    // noticed while the window is idle
-    MsgWaitForMultipleObjects(0, nullptr, FALSE, 1, QS_ALLINPUT);
+    // arrives or a waitable handle is signalled. The wait returns at once in either case and only bounds how
+    // often the close request is noticed while the window is idle
+    std::vector<HANDLE> const& waitable_handles = m_impl->waitableHandles();
+    DWORD const handle_count = static_cast<DWORD>(waitable_handles.size());
+    DWORD const wait_result = MsgWaitForMultipleObjects(handle_count, waitable_handles.data(), FALSE, 1, QS_ALLINPUT);
 
     m_target_os_window.processMessages();
+
+    if (wait_result >= WAIT_OBJECT_0 && wait_result < WAIT_OBJECT_0 + handle_count)
+    {
+        m_impl->waitableHandler(wait_result - WAIT_OBJECT_0)();
+    }
 }
 
 

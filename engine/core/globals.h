@@ -103,6 +103,7 @@ private:
     void setPsoBlobCache(std::unique_ptr<dx::d3d12::caches::PSOBlobCache> pso_blob_cache);
 
     void resetDeviceDependentCaches();
+    void releaseDeviceDependentEntries();
 
 private:
     EngineApi m_engine_api;
@@ -136,6 +137,11 @@ template<> class GlobalsAttorney<dx::D3D12Initializer>
     static void setPsoBlobCache(Globals& globals, std::unique_ptr<dx::d3d12::caches::PSOBlobCache> pso_blob_cache);
 
     static void resetDeviceDependentCaches(Globals& globals);
+
+    /*! releases every entry depending on the current device, the device itself and the resource factory owning
+     it, leaving the registry without a device until a new resource factory and device are assigned
+    */
+    static void releaseDeviceDependentEntries(Globals& globals);
 };
 
 

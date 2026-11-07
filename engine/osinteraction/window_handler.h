@@ -1,12 +1,14 @@
 #ifndef LEXGINE_OSINTERACTION_WINDOW_HANDLER_H
 #define LEXGINE_OSINTERACTION_WINDOW_HANDLER_H
 
+#include <functional>
+
 #include <engine/preprocessing/preprocessor_tokens.h>
+#include <engine/core/lexgine_core_fwd.h>
 #include <engine/osinteraction/lexgine_osinteraction_fwd.h>
 #include <engine/osinteraction/windows/window.h>
 #include <engine/osinteraction/keyboard.h>
 #include <engine/osinteraction/mouse.h>
-#include <engine/core/dx/d3d12/swap_chain_link.h>
 
 namespace lexgine {
 
@@ -100,7 +102,12 @@ public:
     LEXGINE_CPP_API bool shouldClose() const;
 
 private:
-    WindowHandler(core::Globals& globals, windows::Window& os_window, core::dx::d3d12::SwapChainLink& swap_chain_link);
+    WindowHandler(core::Globals& globals, windows::Window& os_window);
+
+    /*! makes update() wait on @param handle along with the window messages and invoke @param handler, once the
+     messages are processed, whenever the handle is found signalled
+    */
+    void addWaitableHandler(HANDLE handle, std::function<void()> handler);
 
 private:
     class impl;
@@ -115,9 +122,14 @@ template<> class WindowHandlerAttorney<Initializer>
     friend class Initializer;
 
 private:
-    static WindowHandler makeWindowHandler(core::Globals& globals, windows::Window& os_window, core::dx::d3d12::SwapChainLink& swap_chain_link)
+    static WindowHandler makeWindowHandler(core::Globals& globals, windows::Window& os_window)
     {
-        return WindowHandler{ globals, os_window, swap_chain_link };
+        return WindowHandler{ globals, os_window };
+    }
+
+    static void addWaitableHandler(WindowHandler& window_handler, HANDLE handle, std::function<void()> handler)
+    {
+        window_handler.addWaitableHandler(handle, std::move(handler));
     }
 };
 

@@ -14,24 +14,25 @@ namespace {
 
 /*! How long the loop idles when a frame is not worth rendering. The intervals are judgement calls rather
  than derived values: an obscured or minimized output costs nothing but the delay before it is noticed to be
- back, and a lost device has nothing to be noticed at all until the recovery is implemented.
+ back.
 */
 constexpr std::chrono::milliseconds c_occluded_poll_interval{ 50 };
 constexpr std::chrono::milliseconds c_suspended_poll_interval{ 16 };
-constexpr std::chrono::milliseconds c_device_lost_poll_interval{ 250 };
 
 }  // namespace
 
 std::shared_ptr<RenderThread> RenderThread::create(osinteraction::windows::Window& window,
-    dx::d3d12::SwapChainLink& swap_chain_link)
+    dx::d3d12::SwapChainLink& swap_chain_link, std::function<void()> device_lost_handler)
 {
-    std::shared_ptr<RenderThread> rv{ new RenderThread{ swap_chain_link } };
+    std::shared_ptr<RenderThread> rv{ new RenderThread{ swap_chain_link, std::move(device_lost_handler) } };
+    if (IsIconic(window.native())) rv->m_surface_events.record(SuspendEvent{});
     window.addListener(rv);
     return rv;
 }
 
-RenderThread::RenderThread(dx::d3d12::SwapChainLink& swap_chain_link)
+RenderThread::RenderThread(dx::d3d12::SwapChainLink& swap_chain_link, std::function<void()> device_lost_handler)
     : m_swap_chain_link{ swap_chain_link }
+    , m_device_lost_handler{ std::move(device_lost_handler) }
 {
 
 }
@@ -84,7 +85,8 @@ void RenderThread::loop()
 {
     concurrency::registerMasterWorkerThread();
 
-    while (!m_stop_requested.load(std::memory_order_acquire))
+    bool device_lost = false;
+    while (!device_lost && !m_stop_requested.load(std::memory_order_acquire))
     {
         for (SurfaceEvent const& surface_event : m_surface_events.take())
         {
@@ -118,7 +120,8 @@ void RenderThread::loop()
             break;
 
         case dx::d3d12::FrameOutcome::device_lost:
-            std::this_thread::sleep_for(c_device_lost_poll_interval);
+            device_lost = true;
+            m_device_lost_handler();
             break;
         }
     }

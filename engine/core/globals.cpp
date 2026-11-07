@@ -72,6 +72,14 @@ void Globals::resetDeviceDependentCaches()
     m_hlsl_shader_blob_cache.reset();
 }
 
+void Globals::releaseDeviceDependentEntries()
+{
+    resetDeviceDependentCaches();
+    m_texture_converter.reset();
+    m_device = nullptr;
+    m_dx_resource_factory.reset();
+}
+
 void GlobalsAttorney<dx::D3D12Initializer>::setGlobalSettings(Globals& globals,
     std::unique_ptr<GlobalSettings> global_settings)
 {
@@ -122,6 +130,11 @@ void GlobalsAttorney<dx::D3D12Initializer>::setPsoBlobCache(Globals& globals,
 void GlobalsAttorney<dx::D3D12Initializer>::resetDeviceDependentCaches(Globals& globals)
 {
     globals.resetDeviceDependentCaches();
+}
+
+void GlobalsAttorney<dx::D3D12Initializer>::releaseDeviceDependentEntries(Globals& globals)
+{
+    globals.releaseDeviceDependentEntries();
 }
 
 void GlobalsAttorney<lexgine::Initializer>::setImageLoaderPool(Globals& globals,

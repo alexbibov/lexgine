@@ -1,6 +1,9 @@
+#include <format>
+
 #include "initializer.h"
 
 #include <engine/core/globals.h>
+#include <engine/core/misc/log.h>
 #include <engine/core/concurrency/thread_affinity.h>
 #include <engine/core/rendering/render_thread.h>
 #include <engine/core/dx/d3d12_initializer.h>
@@ -94,11 +97,71 @@ Initializer::Initializer(EngineSettings const& settings)
 
     core::GlobalsAttorney<Initializer>::setImageLoaderPool(m_d3d12_initializer->globals(),
         std::make_unique<conversion::ImageLoaderPool>());
+
+    m_device_lost_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 }
 
 
-Initializer::~Initializer() = default;
+Initializer::~Initializer()
+{
+    m_render_thread.reset();
+    if (m_device_lost_event) CloseHandle(m_device_lost_event);
+}
 
+
+void Initializer::buildRenderingChain()
+{
+    core::dx::dxgi::SwapChainDescriptor dxgi_swap_chain_descriptor{
+        .format = core::dx::d3d12::d3d12Convert(m_swap_chain_descriptor.color_format),
+        .stereo = false,
+        .scaling = core::dx::dxgi::SwapChainScaling::none,
+        .refreshRate = 60,
+        .windowed = m_swap_chain_descriptor.windowed,
+        .enable_vsync = m_swap_chain_descriptor.enable_vsync,
+        .back_buffer_count = m_swap_chain_descriptor.back_buffer_count
+    };
+
+    m_swap_chain = std::make_unique<lexgine::core::dx::dxgi::SwapChain>(
+        std::move(m_d3d12_initializer->createSwapChainForCurrentDevice(*m_rendering_window_ptr, dxgi_swap_chain_descriptor))
+        );
+
+    m_rendering_tasks = m_d3d12_initializer->createRenderingTasks(*m_rendering_window_ptr);
+
+    m_swap_chain_link = m_d3d12_initializer->createSwapChainLink(*m_swap_chain,
+        convertSwapChainDepthFormatD3d12(m_swap_chain_depth_format), *m_rendering_tasks);
+
+    m_render_thread = core::RenderThread::create(*m_rendering_window_ptr, *m_swap_chain_link,
+        [this]() { SetEvent(m_device_lost_event); });
+    m_render_thread->start();
+}
+
+void Initializer::releaseRenderingChain()
+{
+    m_render_thread.reset();
+    m_swap_chain_link.reset();
+    m_rendering_tasks.reset();
+    m_swap_chain.reset();
+}
+
+void Initializer::recoverFromDeviceLoss()
+{
+    core::dx::d3d12::Device& lost_device = m_d3d12_initializer->getCurrentDevice();
+    HRESULT const removal_reason = lost_device.native()->GetDeviceRemovedReason();
+    LUID const adapter_luid = lost_device.hwAdapter()->getProperties().details.luid;
+
+    core::misc::Log::retrieve()->out(std::format("ERROR: the device was lost (reason 0x{:08X}) and is recreated",
+        static_cast<uint32_t>(removal_reason)), core::misc::LogMessageType::error);
+
+    releaseRenderingChain();
+
+    if (!m_d3d12_initializer->recreateDevice(adapter_luid))
+    {
+        core::misc::Log::retrieve()->out("ERROR: unable to recreate the lost device", core::misc::LogMessageType::error);
+        return;
+    }
+
+    buildRenderingChain();
+}
 
 bool Initializer::setCurrentDevice(uint32_t adapter_id)
 {
@@ -153,30 +216,17 @@ osinteraction::WindowHandler* Initializer::createWindowHandler(osinteraction::wi
     {
     case lexgine::core::EngineApi::Direct3D12:
     {
-        core::dx::dxgi::SwapChainDescriptor dxgi_swap_chain_descriptor{
-            .format = core::dx::d3d12::d3d12Convert(swap_chain_desc.color_format),
-            .stereo = false,
-            .scaling = core::dx::dxgi::SwapChainScaling::none,
-            .refreshRate = 60,
-            .windowed = swap_chain_desc.windowed,
-            .enable_vsync = swap_chain_desc.enable_vsync,
-            .back_buffer_count = swap_chain_desc.back_buffer_count
-        };
+        m_rendering_window_ptr = &window;
+        m_swap_chain_descriptor = swap_chain_desc;
+        m_swap_chain_depth_format = depth_format;
 
-        m_swap_chain = std::make_unique<lexgine::core::dx::dxgi::SwapChain>(
-            std::move(m_d3d12_initializer->createSwapChainForCurrentDevice(window, dxgi_swap_chain_descriptor))
-            );
-
-        m_rendering_tasks = m_d3d12_initializer->createRenderingTasks(window);
-
-        m_swap_chain_link = m_d3d12_initializer->createSwapChainLink(*m_swap_chain, convertSwapChainDepthFormatD3d12(depth_format), *m_rendering_tasks);
-
-        m_render_thread = core::RenderThread::create(window, *m_swap_chain_link);
-        m_render_thread->start();
+        buildRenderingChain();
 
         m_window_handler = std::make_unique<osinteraction::WindowHandler>(
-            std::move(osinteraction::WindowHandlerAttorney<Initializer>::makeWindowHandler(m_d3d12_initializer->globals(), window, *m_swap_chain_link)
+            std::move(osinteraction::WindowHandlerAttorney<Initializer>::makeWindowHandler(m_d3d12_initializer->globals(), window)
             ));
+        osinteraction::WindowHandlerAttorney<Initializer>::addWaitableHandler(*m_window_handler, m_device_lost_event,
+            [this]() { recoverFromDeviceLoss(); });
 
         return m_window_handler.get();
     }

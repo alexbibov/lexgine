@@ -17,6 +17,16 @@ namespace
         wall.signalFromGPU(queue);
         return signal_index;
     }
+
+    void waitUntilReached(Signal const& wall, uint64_t value)
+    {
+        if (wall.lastValueSignaled() < value) wall.waitUntilValue(value);
+    }
+
+    bool waitUntilReached(Signal const& wall, uint64_t value, uint32_t timeout_in_milliseconds)
+    {
+        return wall.lastValueSignaled() >= value || wall.waitUntilValue(value, timeout_in_milliseconds);
+    }
 }  // namespace
 
 FrameProgressTracker::FrameProgressTracker(Device& device)
@@ -76,9 +86,9 @@ bool FrameProgressTracker::waitForFrameCompletion(uint64_t frame_index, uint32_t
 
 void FrameProgressTracker::synchronize() const
 {
-    m_gpu_wall_signal.waitUntilValue(m_cpu_wall_signal.lastValueSignaled());
-    m_compute_wall_signal.waitUntilValue(scheduledComputeQueueSignalsCount());
-    m_copy_wall_signal.waitUntilValue(scheduledCopyQueueSignalsCount());
+    waitUntilReached(m_gpu_wall_signal, m_cpu_wall_signal.lastValueSignaled());
+    waitUntilReached(m_compute_wall_signal, scheduledComputeQueueSignalsCount());
+    waitUntilReached(m_copy_wall_signal, scheduledCopyQueueSignalsCount());
 }
 
 bool FrameProgressTracker::synchronize(uint32_t timeout_in_milliseconds) const
@@ -90,9 +100,9 @@ bool FrameProgressTracker::synchronize(uint32_t timeout_in_milliseconds) const
         return static_cast<uint32_t>((std::max)(remaining.count(), decltype(remaining)::rep{ 0 }));
     };
 
-    return m_gpu_wall_signal.waitUntilValue(m_cpu_wall_signal.lastValueSignaled(), remaining_milliseconds())
-        && m_compute_wall_signal.waitUntilValue(scheduledComputeQueueSignalsCount(), remaining_milliseconds())
-        && m_copy_wall_signal.waitUntilValue(scheduledCopyQueueSignalsCount(), remaining_milliseconds());
+    return waitUntilReached(m_gpu_wall_signal, m_cpu_wall_signal.lastValueSignaled(), remaining_milliseconds())
+        && waitUntilReached(m_compute_wall_signal, scheduledComputeQueueSignalsCount(), remaining_milliseconds())
+        && waitUntilReached(m_copy_wall_signal, scheduledCopyQueueSignalsCount(), remaining_milliseconds());
 }
 
 uint64_t FrameProgressTracker::signalComputeQueue()

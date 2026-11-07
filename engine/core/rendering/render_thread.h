@@ -2,6 +2,7 @@
 #define LEXGINE_CORE_RENDERING_RENDER_THREAD_H
 
 #include <atomic>
+#include <functional>
 #include <memory>
 #include <thread>
 #include <variant>
@@ -22,10 +23,12 @@ class RenderThread final : public osinteraction::windows::WindowSizeChangeListen
 {
 public:
     /*! creates the rendering thread driving @param swap_chain_link and registers it as a listener of
-     @param window, whose size changes it follows. The thread is not started.
+     @param window, whose size changes it follows. Rendering starts suspended if the window is minimized.
+     When the device backing the output is lost the thread invokes @param device_lost_handler and leaves its
+     loop. The thread is not started.
     */
     static std::shared_ptr<RenderThread> create(osinteraction::windows::Window& window,
-        dx::d3d12::SwapChainLink& swap_chain_link);
+        dx::d3d12::SwapChainLink& swap_chain_link, std::function<void()> device_lost_handler);
 
 public:
     ~RenderThread();
@@ -57,12 +60,13 @@ private:
     using SurfaceEvent = std::variant<ResizeEvent, SuspendEvent>;
 
 private:
-    explicit RenderThread(dx::d3d12::SwapChainLink& swap_chain_link);
+    RenderThread(dx::d3d12::SwapChainLink& swap_chain_link, std::function<void()> device_lost_handler);
 
     void loop();    //! function looped by the rendering thread
 
 private:
     dx::d3d12::SwapChainLink& m_swap_chain_link;
+    std::function<void()> m_device_lost_handler;
 
     concurrency::DeferredEventQueue<SurfaceEvent> m_surface_events{ c_surface_event_capacity };
 

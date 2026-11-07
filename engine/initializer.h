@@ -63,12 +63,25 @@ public:
     core::Globals& globals();
 
 private:
+    void buildRenderingChain();    //! creates the swap chain, the rendering tasks and the thread driving the frames over the current device
+    void releaseRenderingChain();    //! destroys everything built by buildRenderingChain() in the reverse order
+
+    //! rebuilds the current device and the rendering chain over it after the device has been lost
+    void recoverFromDeviceLoss();
+
+private:
     core::EngineApi m_engine_api;
     std::unique_ptr<core::dx::D3D12Initializer> m_d3d12_initializer;
     std::unique_ptr<core::dx::dxgi::SwapChain> m_swap_chain;
     std::unique_ptr<core::dx::d3d12::RenderingTasks> m_rendering_tasks;
     std::shared_ptr<core::dx::d3d12::SwapChainLink> m_swap_chain_link;
     std::unique_ptr<osinteraction::WindowHandler> m_window_handler;
+
+    osinteraction::windows::Window* m_rendering_window_ptr = nullptr;
+    core::SwapChainDescriptor m_swap_chain_descriptor{};
+    core::SwapChainDepthFormat m_swap_chain_depth_format{};
+
+    HANDLE m_device_lost_event = nullptr;    //!< signalled by the rendering thread once the device backing the output is lost
 
     /*!< declared last so that it is destroyed first: the thread has to leave its loop before the swap chain
      link and the rendering tasks it drives are torn down

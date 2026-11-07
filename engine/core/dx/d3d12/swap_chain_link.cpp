@@ -1,11 +1,13 @@
 #include "swap_chain_link.h"
 
 #include "engine/core/concurrency/thread_affinity.h"
+#include "engine/core/exception.h"
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/dx/dxgi/swap_chain.h"
 
 #include "rendering_tasks.h"
+#include "device.h"
 #include "frame_progress_tracker.h"
 
 using namespace lexgine::core;
@@ -57,7 +59,7 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 
 FrameOutcome SwapChainLink::render()
 {
-    if (m_linked_swap_chain.isDeviceLost()) return FrameOutcome::device_lost;    // recovery is not implemented yet
+    if (m_linked_swap_chain.isDeviceLost()) return FrameOutcome::device_lost;
 
     if (m_frame_pacer && m_render_output.applyPendingResize(m_frame_pacer->frameProgressTracker()))
     {
@@ -87,7 +89,16 @@ FrameOutcome SwapChainLink::render()
     m_frame_pacer->waitForFrameSlot();
 
     m_frame_pacer->markFrameBegin();
-    m_linked_rendering_tasks_ptr->render(target, [this](void) { m_render_output.present(); });
+    try
+    {
+        m_linked_rendering_tasks_ptr->render(target, [this](void) { m_render_output.present(); });
+    }
+    catch (Exception const&)
+    {
+        // a device removed while the frame was recorded fails the frame from whichever call noticed it first
+        if (FAILED(m_globals.device().native()->GetDeviceRemovedReason())) return FrameOutcome::device_lost;
+        throw;
+    }
     m_frame_pacer->markFrameEnd();
 
     return m_render_output.isOccluded() ? FrameOutcome::occluded : FrameOutcome::rendered;
