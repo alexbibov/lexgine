@@ -173,34 +173,50 @@ void RenderingTasks::cleanup()
 }
 
 
-void RenderingTasks::loadScene(std::string const& path, unsigned scene_id)
+std::optional<RenderingTasks::SceneSource> RenderingTasks::currentSceneSource() const
 {
-    concurrency::assertOnMasterWorkerThread();
-
-    m_current_scene = scenegraph::Scene::loadScene(m_globals, m_basic_rendering_services, path, scene_id);
-    if (m_current_scene)
-    {
-        misc::Log::retrieve()->out("Scene loaded: " + path, misc::LogMessageType::information);
-        return;
-    }
-
-    misc::Log::retrieve()->out("ERROR: failed to load scene: " + path, misc::LogMessageType::error);
+    std::lock_guard lock{ m_simulation_thread_mutex };
+    return m_current_scene_source;
 }
 
-void RenderingTasks::loadScene(std::string const& path, std::string const& scene_name)
+bool RenderingTasks::requestSceneLoad(SceneSource const& scene_source)
+{
+    return m_render_command_pipe.enqueue([this, scene_source]() { loadScene(scene_source); });
+}
+
+void RenderingTasks::loadScene(SceneSource const& scene_source)
 {
     concurrency::assertOnMasterWorkerThread();
 
-    m_current_scene = scenegraph::Scene::loadScene(m_globals, m_basic_rendering_services, path, scene_name);
+    std::string const scene_description = std::visit([&scene_source](auto const& scene) -> std::string
+        {
+            if constexpr (std::is_same_v<std::decay_t<decltype(scene)>, std::string>)
+            {
+                return scene_source.path + " (\"" + scene + "\")";
+            }
+            else
+            {
+                return scene_source.path;
+            }
+        }, scene_source.scene);
+
+    m_current_scene = std::visit([this, &scene_source](auto const& scene)
+        {
+            return scenegraph::Scene::loadScene(m_globals, m_basic_rendering_services, scene_source.path, scene);
+        }, scene_source.scene);
+
+    {
+        std::lock_guard lock{ m_simulation_thread_mutex };
+        m_current_scene_source = m_current_scene ? std::optional<SceneSource>{ scene_source } : std::nullopt;
+    }
+
     if (m_current_scene)
     {
-        misc::Log::retrieve()->out("Scene loaded: " + path + " (\"" + scene_name + "\")",
-            misc::LogMessageType::information);
+        misc::Log::retrieve()->out("Scene loaded: " + scene_description, misc::LogMessageType::information);
         return;
     }
 
-    misc::Log::retrieve()->out("ERROR: failed to load scene \"" + scene_name + "\": " + path,
-        misc::LogMessageType::error);
+    misc::Log::retrieve()->out("ERROR: failed to load scene: " + scene_description, misc::LogMessageType::error);
 }
 
 void RenderingTasks::registerConsoleCommands()
@@ -224,7 +240,7 @@ void RenderingTasks::registerConsoleCommands()
             std::string path = std::get<std::string>(args.at("path"));
             unsigned id = static_cast<unsigned>(std::get<int>(args.at("scene_id")));
 
-            if (!m_render_command_pipe.enqueue([this, path, id]() { loadScene(path, id); }))
+            if (!requestSceneLoad(SceneSource{ .path = path, .scene = id }))
             {
                 return { .succeeded = false, .msg = "Unable to schedule loading of the scene: " + path };
             }
@@ -247,7 +263,7 @@ void RenderingTasks::registerConsoleCommands()
             std::string path = std::get<std::string>(args.at("path"));
             std::string name = std::get<std::string>(args.at("name"));
 
-            if (!m_render_command_pipe.enqueue([this, path, name]() { loadScene(path, name); }))
+            if (!requestSceneLoad(SceneSource{ .path = path, .scene = name }))
             {
                 return { .succeeded = false, .msg = "Unable to schedule loading of the scene: " + path };
             }

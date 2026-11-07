@@ -152,6 +152,8 @@ void Initializer::recoverFromDeviceLoss()
     core::misc::Log::retrieve()->out(std::format("ERROR: the device was lost (reason 0x{:08X}) and is recreated",
         static_cast<uint32_t>(removal_reason)), core::misc::LogMessageType::error);
 
+    m_render_thread.reset();
+    std::optional<core::dx::d3d12::RenderingTasks::SceneSource> const scene_source = m_rendering_tasks->currentSceneSource();
     releaseRenderingChain();
 
     if (!m_d3d12_initializer->recreateDevice(adapter_luid))
@@ -161,6 +163,12 @@ void Initializer::recoverFromDeviceLoss()
     }
 
     buildRenderingChain();
+
+    if (scene_source && !m_rendering_tasks->requestSceneLoad(*scene_source))
+    {
+        core::misc::Log::retrieve()->out("ERROR: unable to schedule reloading of the scene " + scene_source->path,
+            core::misc::LogMessageType::error);
+    }
 }
 
 bool Initializer::setCurrentDevice(uint32_t adapter_id)

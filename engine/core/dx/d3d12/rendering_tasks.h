@@ -4,6 +4,10 @@
 #include <atomic>
 #include <memory>
 #include <functional>
+#include <mutex>
+#include <optional>
+#include <string>
+#include <variant>
 
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/ui/lexgine_core_ui_fwd.h"
@@ -41,6 +45,13 @@ class RenderingTasks : public NamedEntity<RenderingTasks>
 public:
     class GPURenderingServices;
 
+    //! Identifies a scene within a GLTF/GLB file, either by its index or by its name
+    struct SceneSource
+    {
+        std::string path;
+        std::variant<unsigned, std::string> scene;
+    };
+
 public:
     RenderingTasks(Globals& globals, osinteraction::windows::Window& rendering_window);
     ~RenderingTasks();
@@ -60,12 +71,21 @@ public:
 
     void flush();    //! flushes the rendering pipeline making sure that all GPU job scheduled so far has been completed
 
+    /*! returns the source of the current scene, if a scene is loaded. The scene may be replaced at any time,
+     so the returned source may already be obsolete when the caller uses it
+    */
+    std::optional<SceneSource> currentSceneSource() const;
+
+    /*! schedules the scene identified by @param scene_source to replace the current scene between the frames.
+     Returns 'false' if the request could not be scheduled
+    */
+    bool requestSceneLoad(SceneSource const& scene_source);
+
 private:
     void cleanup();    //! flushes the rendering pipeline and shutdowns the task submission sink
     void registerConsoleCommands();
 
-    void loadScene(std::string const& path, unsigned scene_id);    //! replaces the current scene, between the frames
-    void loadScene(std::string const& path, std::string const& scene_name);    //! replaces the current scene, between the frames
+    void loadScene(SceneSource const& scene_source);    //! replaces the current scene, between the frames
 
 private:
     Globals& m_globals;
@@ -90,6 +110,12 @@ private:    // rendering tasks
     std::shared_ptr<tasks::rendering_tasks::GpuWorkExecutionTask> m_gpu_profiling_queries_flush_task;
 
     std::shared_ptr<scenegraph::Scene> m_current_scene;
+
+    /*!< guards the state shared with the simulation thread. Every access to that state takes the lock, whichever
+     thread makes it
+    */
+    mutable std::mutex m_simulation_thread_mutex;
+    std::optional<SceneSource> m_current_scene_source;    //!< guarded by m_simulation_thread_mutex
     std::unique_ptr<rendering::Gbuffer> m_gbuffer;
 };
 
