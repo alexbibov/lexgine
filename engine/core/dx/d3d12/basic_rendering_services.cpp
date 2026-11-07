@@ -47,7 +47,7 @@ BasicRenderingServices::BasicRenderingServices(Globals& globals)
     , m_resource_uploader{ globals.textureConverter().getDataUploader() }
     // one slot beyond the frames in flight, so that the context of the next frame may be prepared before the
     // gate admits it
-    , m_frame_contexts(globals.globalSettings().getMaxFramesInFlight() + 1u, FrameContext{})
+    , m_frame_contexts(globals.globalSettings().getMaxFramesInFlight() + 1u, core::rendering::FrameContext{})
     , m_rendering_target_color_format{ DXGI_FORMAT_UNKNOWN }
     , m_rendering_target_depth_format{ DXGI_FORMAT_UNKNOWN }
     , m_constant_data_stream{ globals }
@@ -58,7 +58,7 @@ BasicRenderingServices::BasicRenderingServices(Globals& globals)
 {
 }
 
-FrameContext const& BasicRenderingServices::frameContext(uint64_t frame_index) const
+core::rendering::FrameContext const& BasicRenderingServices::frameContext(uint64_t frame_index) const
 {
     return m_frame_contexts[frame_index % m_frame_contexts.size()];
 }
@@ -68,17 +68,17 @@ void BasicRenderingServices::defineFrameContext(uint64_t frame_index, RenderingT
     concurrency::assertOnMasterWorkerThread();
 
     m_frame_contexts[frame_index % m_frame_contexts.size()] =
-        FrameContext{ .frame_index = frame_index, .p_rendering_target = &rendering_target };
+        core::rendering::FrameContext{ .frame_index = frame_index, .p_rendering_target = &rendering_target };
 }
 
-void BasicRenderingServices::beginRendering(CommandList& command_list, FrameContext const& frame_context) const
+void BasicRenderingServices::beginRendering(CommandList& command_list, core::rendering::FrameContext const& frame_context) const
 {
     concurrency::assertOnRenderThread();
 
     frame_context.p_rendering_target->switchToRenderAccessState(command_list);
 }
 
-void BasicRenderingServices::endRendering(CommandList& command_list, FrameContext const& frame_context) const
+void BasicRenderingServices::endRendering(CommandList& command_list, core::rendering::FrameContext const& frame_context) const
 {
     concurrency::assertOnRenderThread();
 
@@ -101,7 +101,7 @@ void BasicRenderingServices::setDefaultViewport(CommandList& command_list) const
 }
 
 void BasicRenderingServices::setDefaultRenderingTarget(CommandList& command_list,
-    FrameContext const& frame_context) const
+    core::rendering::FrameContext const& frame_context) const
 {
     concurrency::assertOnRenderThread();
 
@@ -114,7 +114,7 @@ void BasicRenderingServices::setDefaultRenderingTarget(CommandList& command_list
 }
 
 void BasicRenderingServices::clearDefaultRenderingTarget(CommandList& command_list,
-    FrameContext const& frame_context,
+    core::rendering::FrameContext const& frame_context,
     math::Vector4f const& color_clear_value, float depth_clear_value) const
 {
     concurrency::assertOnRenderThread();

@@ -130,7 +130,7 @@ void Initializer::buildRenderingChain()
     m_swap_chain_link = m_d3d12_initializer->createSwapChainLink(*m_swap_chain,
         convertSwapChainDepthFormatD3d12(m_swap_chain_depth_format), *m_rendering_tasks);
 
-    m_render_thread = core::RenderThread::create(*m_rendering_window_ptr, *m_swap_chain_link,
+    m_render_thread = core::rendering::RenderThread::create(*m_rendering_window_ptr, *m_swap_chain_link,
         [this]() { SetEvent(m_device_lost_event); });
     m_render_thread->start();
 }

@@ -86,7 +86,7 @@ private:
     /*!< declared last so that it is destroyed first: the thread has to leave its loop before the swap chain
      link and the rendering tasks it drives are torn down
     */
-    std::shared_ptr<core::RenderThread> m_render_thread;
+    std::shared_ptr<core::rendering::RenderThread> m_render_thread;
 };
 
 }

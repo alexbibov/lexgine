@@ -96,7 +96,7 @@ private:
     concurrency::TaskSink m_task_sink;
 
     BasicRenderingServices m_basic_rendering_services;
-    RenderCommandPipe m_render_command_pipe;    //!< carries the state changes requested while a frame is recorded
+    core::rendering::RenderCommandPipe m_render_command_pipe;    //!< carries the state changes requested while a frame is recorded
     RenderingConfiguration m_rendering_configuration;
 
 private:    // rendering tasks

@@ -13,7 +13,7 @@
 #include "engine/osinteraction/windows/window_listeners.h"
 
 
-namespace lexgine::core {
+namespace lexgine::core::rendering {
 
 /*! Drives the frames on a thread of its own, so that the thread pumping the window messages never waits for
  the GPU. The size changes of the window are recorded as they arrive and applied by the loop, which then

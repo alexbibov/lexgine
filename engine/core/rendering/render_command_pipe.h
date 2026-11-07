@@ -7,7 +7,7 @@
 #include <vector>
 
 
-namespace lexgine::core {
+namespace lexgine::core::rendering {
 
 /*! Carries the state changes, which are requested while a frame is being recorded, to the point of the frame
  where they may be applied safely. The commands are queued by whichever thread requests them and are run by

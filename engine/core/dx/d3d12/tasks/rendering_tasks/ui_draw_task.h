@@ -179,7 +179,7 @@ private:
     void replayInputEvents();
     void updateTexture(ImTextureData* p_texture);
     void processEvents();
-    void drawFrame(FrameContext const& frame_context);
+    void drawFrame(core::rendering::FrameContext const& frame_context);
 
 private:
     Globals& m_globals;

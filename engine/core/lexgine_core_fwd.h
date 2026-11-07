@@ -43,8 +43,6 @@ protected:
 };
 
 class RasterizerDescriptor;
-class RenderCommandPipe;
-class RenderThread;
 class ShaderSourceCodePreprocessor;
 class Viewport;
 
@@ -74,6 +72,13 @@ class ProfilingService;
 class CPUTaskProfilingService;
 class GPUTaskProfilingService;
 struct RenderingConfiguration;
+
+namespace rendering {
+
+class RenderCommandPipe;
+class RenderThread;
+
+}
 
 }
 

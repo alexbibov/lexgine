@@ -6,7 +6,7 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 
 
-namespace lexgine::core {
+namespace lexgine::core::rendering {
 
 /*! State describing a single frame being recorded. The contexts are kept in a ring, so the state of a frame
  stays readable by the threads recording it while the state of the following frames is being prepared.

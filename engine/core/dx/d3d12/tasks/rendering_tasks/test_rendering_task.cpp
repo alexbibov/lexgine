@@ -258,7 +258,7 @@ void TestRenderingTask::updateRenderingConfiguration(RenderingConfigurationUpdat
 
 bool TestRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    FrameContext const& frame_context = m_basic_rendering_services.frameContext(user_data);
+    core::rendering::FrameContext const& frame_context = m_basic_rendering_services.frameContext(user_data);
     m_basic_rendering_services.beginRendering(*m_cmd_list_ptr, frame_context);
     
     m_cmd_list_ptr->setPipelineState(*m_pso);

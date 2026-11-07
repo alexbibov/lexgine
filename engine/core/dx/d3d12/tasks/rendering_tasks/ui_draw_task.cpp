@@ -596,7 +596,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
 
 bool UIDrawTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    FrameContext const& frame_context = m_basic_rendering_services.frameContext(user_data);
+    core::rendering::FrameContext const& frame_context = m_basic_rendering_services.frameContext(user_data);
 
     if (!m_os_data.rendering_window_ptr)
     {
@@ -802,7 +802,7 @@ void UIDrawTask::processEvents()
     // TODO: support gamepads
 }
 
-void UIDrawTask::drawFrame(FrameContext const& frame_context)
+void UIDrawTask::drawFrame(core::rendering::FrameContext const& frame_context)
 {
     ImDrawData* p_draw_data = ImGui::GetDrawData();
     if (p_draw_data && p_draw_data->DisplaySize.x > 0 && p_draw_data->DisplaySize.y > 0)

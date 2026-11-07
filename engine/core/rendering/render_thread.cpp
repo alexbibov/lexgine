@@ -8,7 +8,7 @@
 #include "render_thread.h"
 
 
-namespace lexgine::core {
+namespace lexgine::core::rendering {
 
 namespace {
 

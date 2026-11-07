@@ -3,7 +3,7 @@
 #include "render_command_pipe.h"
 
 
-namespace lexgine::core {
+namespace lexgine::core::rendering {
 
 bool RenderCommandPipe::enqueue(RenderCommand command)
 {

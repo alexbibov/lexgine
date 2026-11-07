@@ -27,15 +27,15 @@ public:
     BasicRenderingServices(Globals& globals);
 
     //! returns the context of the frame with the given index
-    FrameContext const& frameContext(uint64_t frame_index) const;
+    core::rendering::FrameContext const& frameContext(uint64_t frame_index) const;
 
-    void beginRendering(CommandList& command_list, FrameContext const& frame_context) const;
-    void endRendering(CommandList& command_list, FrameContext const& frame_context) const;
+    void beginRendering(CommandList& command_list, core::rendering::FrameContext const& frame_context) const;
+    void endRendering(CommandList& command_list, core::rendering::FrameContext const& frame_context) const;
 
     void setDefaultResources(CommandList& command_list) const;
     void setDefaultViewport(CommandList& command_list) const;
-    void setDefaultRenderingTarget(CommandList& command_list, FrameContext const& frame_context) const;
-    void clearDefaultRenderingTarget(CommandList& command_list, FrameContext const& frame_context,
+    void setDefaultRenderingTarget(CommandList& command_list, core::rendering::FrameContext const& frame_context) const;
+    void clearDefaultRenderingTarget(CommandList& command_list, core::rendering::FrameContext const& frame_context,
         math::Vector4f const& color_clear_value = math::Vector4f{ 0.f, 0.f, 0.f, 0.f },
         float depth_clear_value = 1.f) const;
 
@@ -62,7 +62,7 @@ private:
     DxResourceFactory& m_dx_resources;
     ResourceDataUploader& m_resource_uploader;
 
-    std::vector<FrameContext> m_frame_contexts;    //!< ring of the contexts of the frames in flight
+    std::vector<core::rendering::FrameContext> m_frame_contexts;    //!< ring of the contexts of the frames in flight
     DXGI_FORMAT m_rendering_target_color_format;
     DXGI_FORMAT m_rendering_target_depth_format;
 
