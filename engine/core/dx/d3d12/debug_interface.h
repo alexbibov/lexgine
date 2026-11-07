@@ -21,14 +21,17 @@ namespace lexgine::core::dx::d3d12 {
 class DebugInterface final : public NamedEntity<DebugInterface>
 {
 public:
-    static DebugInterface const* create(GpuBasedValidationSettings const& gpu_based_validation_settings);    //! creates debug interface for Direct3D 12
+    /*! creates debug interface for Direct3D 12. When @param enable_dred is 'true' the devices created afterwards also
+     record device removed extended data: auto-breadcrumbs, breadcrumb contexts and page fault allocations
+    */
+    static DebugInterface const* create(GpuBasedValidationSettings const& gpu_based_validation_settings, bool enable_dred);
     static DebugInterface const* retrieve();
     static void shutdown();    //! destroys debug interface
 
     GpuBasedValidationSettings const& gpuValidationSettings() const { return m_gpu_validation_settings; }
 
 private:
-    DebugInterface(GpuBasedValidationSettings const& gpu_based_validation_settings);
+    DebugInterface(GpuBasedValidationSettings const& gpu_based_validation_settings, bool enable_dred);
     DebugInterface(DebugInterface const& other) = delete;
     DebugInterface(DebugInterface&& other) = default;
     DebugInterface& operator=(DebugInterface const& other) = delete;

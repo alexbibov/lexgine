@@ -27,6 +27,7 @@ lexgine::EngineSettings createEngineSettings()
     auto engineApi = settings.getEngineApi();
 
     settings.setDebugMode(true);
+    settings.setEnableDred(true);
     settings.setEnableProfiling(true);
     settings.setGlobalSettingsJsonFile("global_settings.json");
     settings.setLoggingOutputPath("");

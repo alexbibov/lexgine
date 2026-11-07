@@ -27,6 +27,7 @@ namespace lexgine::core::dx {
 struct D3D12EngineSettings
 {
     bool debug_mode;
+    bool enable_dred;    //!< enables device removed extended data; requires debug_mode
     lexgine::core::dx::d3d12::GpuBasedValidationSettings gpu_based_validation_settings;
     bool enable_profiling;
     MSAAMode msaa_mode;
@@ -92,6 +93,7 @@ private:
 
 private:
     bool m_debug_mode;
+    bool m_enable_dred;
     d3d12::GpuBasedValidationSettings m_gpu_based_validation_settings;
     dxgi::DxgiGpuPreference m_adapter_enumeration_preference;
     std::unique_ptr<core::Globals> m_globals;

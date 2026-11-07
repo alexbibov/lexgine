@@ -16,9 +16,9 @@ char const* const DxResourceFactory::c_dynamic_geometry_section_name = "dynamic_
 char const* const DxResourceFactory::c_texture_section_name = "texture_section";
 
 DxResourceFactory::DxResourceFactory(GlobalSettings const& global_settings,
-    bool enable_debug_mode, GpuBasedValidationSettings const& gpu_based_validation_settings,
+    bool enable_debug_mode, bool enable_dred, GpuBasedValidationSettings const& gpu_based_validation_settings,
     dxgi::DxgiGpuPreference enumeration_preference)
-    : m_global_settings{ (enable_debug_mode ? DebugInterface::create(gpu_based_validation_settings) : nullptr, global_settings) }
+    : m_global_settings{ (enable_debug_mode ? DebugInterface::create(gpu_based_validation_settings, enable_dred) : nullptr, global_settings) }
     , m_hw_adapter_enumerator{ global_settings, enumeration_preference }
     , m_dxc_proxy(m_global_settings)
 {

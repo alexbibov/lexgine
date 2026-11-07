@@ -34,7 +34,7 @@ public:
 
 public:
     DxResourceFactory(GlobalSettings const& global_settings,
-        bool enable_debug_mode, GpuBasedValidationSettings const& gpu_based_validation_settings,
+        bool enable_debug_mode, bool enable_dred, GpuBasedValidationSettings const& gpu_based_validation_settings,
         dxgi::DxgiGpuPreference enumeration_preference);
 
     ~DxResourceFactory();

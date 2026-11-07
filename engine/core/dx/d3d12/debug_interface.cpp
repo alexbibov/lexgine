@@ -5,11 +5,11 @@ using namespace lexgine::core::dx::d3d12;
 
 DebugInterface* DebugInterface::m_p_myself = nullptr;
 
-DebugInterface const* DebugInterface::create(GpuBasedValidationSettings const& gpu_based_validation_settings)
+DebugInterface const* DebugInterface::create(GpuBasedValidationSettings const& gpu_based_validation_settings, bool enable_dred)
 {
     if (!m_p_myself)
     {
-        m_p_myself = new DebugInterface(gpu_based_validation_settings);
+        m_p_myself = new DebugInterface(gpu_based_validation_settings, enable_dred);
     }
 
     return m_p_myself;
@@ -27,7 +27,7 @@ void DebugInterface::shutdown()
 }
 
 
-DebugInterface::DebugInterface(GpuBasedValidationSettings const& gpu_based_validation_settings)
+DebugInterface::DebugInterface(GpuBasedValidationSettings const& gpu_based_validation_settings, bool enable_dred)
     :m_gpu_validation_settings{ gpu_based_validation_settings }
 {
     ID3D12Debug* p_d3d12_debug{ nullptr };
@@ -63,5 +63,19 @@ DebugInterface::DebugInterface(GpuBasedValidationSettings const& gpu_based_valid
         }
 
         p_d3d12_debug_2->Release();
+    }
+
+    if (enable_dred)
+    {
+        ComPtr<ID3D12DeviceRemovedExtendedDataSettings1> dred_settings;
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            D3D12GetDebugInterface(IID_PPV_ARGS(&dred_settings)),
+            S_OK
+        );
+
+        dred_settings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+        dred_settings->SetBreadcrumbContextEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+        dred_settings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
     }
 }

@@ -29,6 +29,7 @@ namespace lexgine::core::dx {
 
 D3D12EngineSettings::D3D12EngineSettings()
     : debug_mode{ false }
+    , enable_dred{ false }
     , enable_profiling{ false }
     , msaa_mode{ MSAAMode::none }
     , adapter_enumeration_preference{ dx::dxgi::DxgiGpuPreference::high_performance }
@@ -42,6 +43,7 @@ D3D12EngineSettings::D3D12EngineSettings()
 
 D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
     : m_debug_mode{ settings.debug_mode }
+    , m_enable_dred{ settings.enable_dred }
     , m_gpu_based_validation_settings{ settings.gpu_based_validation_settings }
     , m_adapter_enumeration_preference{ settings.adapter_enumeration_preference }
 {
@@ -106,7 +108,7 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
     GlobalSettings& global_settings_ref = m_globals->globalSettings();
 
     GlobalsAttorney<D3D12Initializer>::setDxResourceFactory(*m_globals,
-        std::make_unique<dx::d3d12::DxResourceFactory>(global_settings_ref, m_debug_mode,
+        std::make_unique<dx::d3d12::DxResourceFactory>(global_settings_ref, m_debug_mode, m_enable_dred,
             m_gpu_based_validation_settings, m_adapter_enumeration_preference));
 
     GlobalsAttorney<D3D12Initializer>::setGpuDataBlobCache(*m_globals,
@@ -151,7 +153,7 @@ bool D3D12Initializer::recreateDevice(LUID const& adapter_luid)
     GlobalsAttorney<D3D12Initializer>::releaseDeviceDependentEntries(*m_globals);
 
     GlobalsAttorney<D3D12Initializer>::setDxResourceFactory(*m_globals,
-        std::make_unique<dx::d3d12::DxResourceFactory>(m_globals->globalSettings(), m_debug_mode,
+        std::make_unique<dx::d3d12::DxResourceFactory>(m_globals->globalSettings(), m_debug_mode, m_enable_dred,
             m_gpu_based_validation_settings, m_adapter_enumeration_preference));
 
     auto& hw_adapter_enumerator = m_globals->dxResourceFactory().hardwareAdapterEnumerator();

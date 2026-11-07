@@ -9,6 +9,7 @@
 #include <engine/core/dx/d3d12_initializer.h>
 #include <engine/core/dx/d3d12/d3d12_tools.h>
 #include <engine/core/dx/d3d12/device.h>
+#include <engine/core/dx/d3d12/dred.h>
 #include <engine/core/dx/d3d12/rendering_tasks.h>
 #include <engine/core/dx/d3d12/swap_chain_link.h>
 #include <engine/osinteraction/window_handler.h>
@@ -34,6 +35,7 @@ EngineSettings::EngineSettings()
     : engine_api{ core::EngineApi::Direct3D12 }
     , debug_mode{ false }
     , enable_profiling{ false }
+    , enable_dred{ false }
     , msaa_mode{ core::MSAAMode::none }
     , global_lookup_prefix{ LEXGINE_GLOBAL_LOOKUP_PREFIX }
     , settings_lookup_path{ LEXGINE_SETTINGS_PATH }
@@ -57,6 +59,7 @@ Initializer::Initializer(EngineSettings const& settings)
     {
         core::dx::D3D12EngineSettings d3d12_engine_settings{};
         d3d12_engine_settings.debug_mode = settings.debug_mode;
+        d3d12_engine_settings.enable_dred = settings.debug_mode && settings.enable_dred;
         {
             core::dx::d3d12::GpuBasedValidationSettings gpu_based_validation_settings{};
             if (settings.debug_mode)
@@ -151,6 +154,13 @@ void Initializer::recoverFromDeviceLoss()
 
     core::misc::Log::retrieve()->out(std::format("ERROR: the device was lost (reason 0x{:08X}) and is recreated",
         static_cast<uint32_t>(removal_reason)), core::misc::LogMessageType::error);
+
+    std::string const removal_description = core::dx::d3d12::describeDeviceRemoval(lost_device);
+    if (!removal_description.empty())
+    {
+        core::misc::Log::retrieve()->out("Device removed extended data:\n" + removal_description,
+            core::misc::LogMessageType::error);
+    }
 
     m_render_thread.reset();
     std::optional<core::dx::d3d12::RenderingTasks::SceneSource> const scene_source = m_rendering_tasks->currentSceneSource();

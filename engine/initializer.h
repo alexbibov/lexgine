@@ -27,6 +27,7 @@ struct LEXGINE_CPP_API EngineSettings
     core::EngineApi engine_api;
     bool debug_mode;
     bool enable_profiling;
+    bool enable_dred;    //!< records device removed extended data and reports it on device loss; only effective when debug_mode is on
     core::MSAAMode msaa_mode;
     std::string global_lookup_prefix;
     std::string settings_lookup_path;
