@@ -45,8 +45,6 @@ struct SwapChainDescriptor
     DXGI_FORMAT format;    //!< display format
     bool stereo;
     SwapChainScaling scaling;
-    uint32_t refreshRate;
-    bool windowed;
     bool enable_vsync;
     uint32_t back_buffer_count;
 };

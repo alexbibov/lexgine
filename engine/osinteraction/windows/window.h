@@ -72,6 +72,12 @@ public:
 
     LEXGINE_CPP_API bool shouldClose() const;    //! returns 'true' when user attempts to close the window
 
+    /*! switches the window between its windowed placement and a borderless window covering the display hosting it.
+     Alt+Enter toggles the same. May only be called from the thread that pumps the messages of the window
+    */
+    LEXGINE_CPP_API void setFullscreen(bool fullscreen);
+    LEXGINE_CPP_API bool isFullscreen() const { return m_is_fullscreen; }    //! returns 'true' while the window covers the display hosting it
+
     HWND native() const { return m_hwnd; }    //! returns native window handler (HWND)
 
     uint32_t dpi() const { return GetDpiForWindow(m_hwnd); }    //! returns the dots per inch setting of the display hosting the window
@@ -97,6 +103,10 @@ private:
     WindowExStyle m_window_ex_style;	//!< extended window style description
     bool m_should_close;	//!< equals 'true' if the window is ready to close. Equals 'false' otherwise
     std::deque<std::weak_ptr<AbstractListener>> m_listener_list;    //!< list of window listeners
+    bool m_is_fullscreen = false;
+    WINDOWPLACEMENT m_windowed_placement{};    //!< placement to restore when the window leaves the fullscreen mode
+    LONG_PTR m_windowed_style = 0;    //!< style to restore when the window leaves the fullscreen mode
+    LONG_PTR m_windowed_ex_style = 0;    //!< extended style to restore when the window leaves the fullscreen mode
 
 
     //! Window callback procedure shared by all windows in the application

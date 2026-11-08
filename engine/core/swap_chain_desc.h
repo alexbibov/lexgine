@@ -28,7 +28,6 @@ struct LEXGINE_CPP_API DEPENDS_ON(SwapChainColorFormat) SwapChainDescriptor
     SwapChainColorFormat color_format;
     uint32_t back_buffer_count;
     bool enable_vsync;
-    bool windowed;
 };
 
 

@@ -124,8 +124,6 @@ void Initializer::buildRenderingChain()
         .format = core::dx::d3d12::d3d12Convert(m_swap_chain_descriptor.color_format),
         .stereo = false,
         .scaling = core::dx::dxgi::SwapChainScaling::none,
-        .refreshRate = 60,
-        .windowed = m_swap_chain_descriptor.windowed,
         .enable_vsync = m_swap_chain_descriptor.enable_vsync,
         .back_buffer_count = m_swap_chain_descriptor.back_buffer_count
     };

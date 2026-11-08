@@ -61,7 +61,7 @@ PresentResult SwapChain::present() const
     {
         HRESULT rv = m_dxgi_swap_chain->Present(
             m_descriptor.enable_vsync ? 1 : 0,
-            (!m_descriptor.enable_vsync && m_descriptor.windowed ? DXGI_PRESENT_ALLOW_TEARING : 0)
+            m_descriptor.enable_vsync ? 0 : DXGI_PRESENT_ALLOW_TEARING
         );
 
         if (rv == DXGI_STATUS_OCCLUDED)
@@ -143,7 +143,6 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     , m_descriptor{ desc }
 {
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc1{};
-    DXGI_SWAP_CHAIN_FULLSCREEN_DESC swap_chain_fs_desc{};
 
     swap_chain_desc1.Width = static_cast<UINT>(client_area_size.x);
     swap_chain_desc1.Height = static_cast<UINT>(client_area_size.y);
@@ -157,16 +156,11 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     swap_chain_desc1.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
     swap_chain_desc1.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
-    swap_chain_fs_desc.RefreshRate = DXGI_RATIONAL{ desc.refreshRate, 1 };
-    swap_chain_fs_desc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-    swap_chain_fs_desc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-    swap_chain_fs_desc.Windowed = desc.windowed;
-
     IDXGISwapChain1* p_swap_chain1 = nullptr;
     LEXGINE_THROW_ERROR_IF_FAILED(
         this,
         m_dxgi_factory->CreateSwapChainForHwnd(m_default_command_queue.native().Get(),
-            m_hwnd, &swap_chain_desc1, &swap_chain_fs_desc, NULL, &p_swap_chain1),
+            m_hwnd, &swap_chain_desc1, nullptr, nullptr, &p_swap_chain1),
         S_OK
     );
 

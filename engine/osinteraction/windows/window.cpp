@@ -225,6 +225,46 @@ bool Window::getVisibility() const
 
 bool Window::shouldClose() const { return  m_should_close; }
 
+void Window::setFullscreen(bool fullscreen)
+{
+    if (fullscreen == m_is_fullscreen) return;
+
+    if (fullscreen)
+    {
+        MONITORINFO monitor_info{ .cbSize = sizeof(MONITORINFO) };
+        m_windowed_placement.length = sizeof(WINDOWPLACEMENT);
+        if (!GetWindowPlacement(m_hwnd, &m_windowed_placement)
+            || !GetMonitorInfo(MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST), &monitor_info))
+        {
+            logger().out("Unable to enter the fullscreen mode: " + getLastSystemError(), core::misc::LogMessageType::exclamation);
+            return;
+        }
+
+        m_windowed_style = GetWindowLongPtr(m_hwnd, GWL_STYLE);
+        m_windowed_ex_style = GetWindowLongPtr(m_hwnd, GWL_EXSTYLE);
+        SetWindowLongPtr(m_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+        SetWindowLongPtr(m_hwnd, GWL_EXSTYLE,
+            m_windowed_ex_style & ~(WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
+
+        m_is_fullscreen = true;
+
+        RECT const& monitor_rectangle = monitor_info.rcMonitor;
+        SetWindowPos(m_hwnd, HWND_TOP, monitor_rectangle.left, monitor_rectangle.top,
+            monitor_rectangle.right - monitor_rectangle.left, monitor_rectangle.bottom - monitor_rectangle.top,
+            SWP_FRAMECHANGED | SWP_NOOWNERZORDER);
+        return;
+    }
+
+    SetWindowLongPtr(m_hwnd, GWL_STYLE, m_windowed_style & ~WS_MAXIMIZE);
+    SetWindowLongPtr(m_hwnd, GWL_EXSTYLE, m_windowed_ex_style);
+
+    m_is_fullscreen = false;
+
+    SetWindowPlacement(m_hwnd, &m_windowed_placement);
+    SetWindowPos(m_hwnd, nullptr, 0, 0, 0, 0,
+        SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+}
+
 
 void Window::addListener(std::weak_ptr<AbstractListener> const& listener)
 {
@@ -335,6 +375,15 @@ LRESULT Window::WindowProcedure(_In_ HWND hWnd, _In_ UINT uMsg, _In_ WPARAM wPar
         {
             return DefWindowProc(hWnd, uMsg, wParam, lParam);
         }
+
+        bool const is_alt_enter = wParam == VK_RETURN && (lParam & (1 << 29));
+        if (uMsg == WM_SYSKEYDOWN && is_alt_enter)
+        {
+            if (!(lParam & (1 << 30))) p_window->setFullscreen(!p_window->m_is_fullscreen);
+            return 0;
+        }
+
+        if (uMsg == WM_SYSCHAR && is_alt_enter) return 0;
 
         if (uMsg == WM_DPICHANGED)
         {
