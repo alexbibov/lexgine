@@ -8,7 +8,6 @@
 #include "pipeline_state.h"
 #include "d3d12_tools.h"
 #include "device.h"
-#include "dx_resource_factory.h"
 
 
 using namespace lexgine::core;
@@ -16,20 +15,6 @@ using namespace lexgine::core::misc;
 using namespace lexgine::core::dx::d3d12;
 
 namespace {
-
-bool isWARPAdapterCurrentlySelected(Globals const& globals)
-{
-    DxResourceFactory const& dx_resource_factory_ref = globals.dxResourceFactory();
-    Device const& current_device_ref = globals.device();
-    Device const& warp_device_ref = dx_resource_factory_ref.hardwareAdapterEnumerator().getWARPAdapter()->device();
-
-    return &current_device_ref == &warp_device_ref;
-}
-
-bool isDebugModeEnabled()
-{
-    return DebugInterface::retrieve() != nullptr;
-}
 
 template<typename T>
 void combineValue(misc::HashValue& h, T const& value)
@@ -470,9 +455,7 @@ PipelineState::PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const
     else
         desc.CachedPSO = D3D12_CACHED_PIPELINE_STATE{ NULL, 0U };
 
-    desc.Flags = isWARPAdapterCurrentlySelected(globals) && isDebugModeEnabled() ? 
-        D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG
-        : D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
+    desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
     LEXGINE_THROW_ERROR_IF_FAILED(
         this, 
@@ -497,9 +480,7 @@ PipelineState::PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const
     else
         desc.CachedPSO = D3D12_CACHED_PIPELINE_STATE{ NULL, 0U };
 
-    desc.Flags = isWARPAdapterCurrentlySelected(globals) && isDebugModeEnabled() ?
-        D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG
-        : D3D12_PIPELINE_STATE_FLAGS::D3D12_PIPELINE_STATE_FLAG_NONE;
+    desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
     LEXGINE_THROW_ERROR_IF_FAILED(
         this, 
