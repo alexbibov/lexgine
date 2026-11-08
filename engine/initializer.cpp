@@ -10,6 +10,7 @@
 #include <engine/core/dx/d3d12/d3d12_tools.h>
 #include <engine/core/dx/d3d12/device.h>
 #include <engine/core/dx/d3d12/dred.h>
+#include <engine/core/dx/d3d12/dx_resource_factory.h>
 #include <engine/core/dx/d3d12/rendering_tasks.h>
 #include <engine/core/dx/d3d12/swap_chain_link.h>
 #include <engine/osinteraction/window_handler.h>
@@ -26,6 +27,11 @@ core::dx::d3d12::SwapChainDepthBufferFormat convertSwapChainDepthFormatD3d12(cor
 {
     DXGI_FORMAT dxgiDepthFormat = core::dx::d3d12::d3d12Convert(depth_buffer_format, false);
     return static_cast<core::dx::d3d12::SwapChainDepthBufferFormat>(dxgiDepthFormat);
+}
+
+bool areEqual(LUID const& luid1, LUID const& luid2)
+{
+    return luid1.LowPart == luid2.LowPart && luid1.HighPart == luid2.HighPart;
 }
 
 }
@@ -101,14 +107,14 @@ Initializer::Initializer(EngineSettings const& settings)
     core::GlobalsAttorney<Initializer>::setImageLoaderPool(m_d3d12_initializer->globals(),
         std::make_unique<conversion::ImageLoaderPool>());
 
-    m_device_lost_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    m_device_recreation_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 }
 
 
 Initializer::~Initializer()
 {
     m_render_thread.reset();
-    if (m_device_lost_event) CloseHandle(m_device_lost_event);
+    if (m_device_recreation_event) CloseHandle(m_device_recreation_event);
 }
 
 
@@ -128,13 +134,14 @@ void Initializer::buildRenderingChain()
         std::move(m_d3d12_initializer->createSwapChainForCurrentDevice(*m_rendering_window_ptr, dxgi_swap_chain_descriptor))
         );
 
-    m_rendering_tasks = m_d3d12_initializer->createRenderingTasks(*m_rendering_window_ptr);
+    m_rendering_tasks = m_d3d12_initializer->createRenderingTasks(*m_rendering_window_ptr,
+        [this](uint32_t adapter_id) { return setCurrentDevice(adapter_id); });
 
     m_swap_chain_link = m_d3d12_initializer->createSwapChainLink(*m_swap_chain,
         convertSwapChainDepthFormatD3d12(m_swap_chain_depth_format), *m_rendering_tasks);
 
     m_render_thread = core::rendering::RenderThread::create(*m_rendering_window_ptr, *m_swap_chain_link,
-        [this]() { SetEvent(m_device_lost_event); });
+        [this]() { SetEvent(m_device_recreation_event); });
     m_render_thread->start();
 }
 
@@ -146,20 +153,40 @@ void Initializer::releaseRenderingChain()
     m_swap_chain.reset();
 }
 
-void Initializer::recoverFromDeviceLoss()
+void Initializer::handleDeviceRecreationRequest()
 {
-    core::dx::d3d12::Device& lost_device = m_d3d12_initializer->getCurrentDevice();
-    HRESULT const removal_reason = lost_device.native()->GetDeviceRemovedReason();
-    LUID const adapter_luid = lost_device.hwAdapter()->getProperties().details.luid;
-
-    core::misc::Log::retrieve()->out(std::format("ERROR: the device was lost (reason 0x{:08X}) and is recreated",
-        static_cast<uint32_t>(removal_reason)), core::misc::LogMessageType::error);
-
-    std::string const removal_description = core::dx::d3d12::describeDeviceRemoval(lost_device);
-    if (!removal_description.empty())
+    std::optional<LUID> requested_adapter_luid{};
     {
-        core::misc::Log::retrieve()->out("Device removed extended data:\n" + removal_description,
-            core::misc::LogMessageType::error);
+        std::lock_guard lock{ m_device_recreation_mutex };
+        requested_adapter_luid.swap(m_requested_adapter_luid);
+    }
+
+    core::dx::d3d12::Device& current_device = m_d3d12_initializer->getCurrentDevice();
+    HRESULT const removal_reason = current_device.native()->GetDeviceRemovedReason();
+    LUID const current_adapter_luid = current_device.hwAdapter()->getProperties().details.luid;
+    LUID const adapter_luid = requested_adapter_luid.value_or(current_adapter_luid);
+
+    if (FAILED(removal_reason))
+    {
+        core::misc::Log::retrieve()->out(std::format("ERROR: the device was lost (reason 0x{:08X}) and is recreated",
+            static_cast<uint32_t>(removal_reason)), core::misc::LogMessageType::error);
+
+        std::string const removal_description = core::dx::d3d12::describeDeviceRemoval(current_device);
+        if (!removal_description.empty())
+        {
+            core::misc::Log::retrieve()->out("Device removed extended data:\n" + removal_description,
+                core::misc::LogMessageType::error);
+        }
+    }
+    else if (areEqual(adapter_luid, current_adapter_luid))
+    {
+        core::misc::Log::retrieve()->out("The requested adapter is already in use", core::misc::LogMessageType::information);
+        return;
+    }
+    else
+    {
+        core::misc::Log::retrieve()->out("The device is recreated on the requested adapter",
+            core::misc::LogMessageType::information);
     }
 
     m_render_thread.reset();
@@ -186,15 +213,24 @@ bool Initializer::setCurrentDevice(uint32_t adapter_id)
     switch (m_engine_api)
     {
     case core::EngineApi::Direct3D12:
-        m_d3d12_initializer->setCurrentDevice(adapter_id);
-        break;
+    {
+        if (!m_rendering_window_ptr) return m_d3d12_initializer->setCurrentDevice(adapter_id);
 
-    case core::EngineApi::Vulkan:
-        return false;
-        break;
+        auto const& adapter_enumerator = m_d3d12_initializer->globals().dxResourceFactory().hardwareAdapterEnumerator();
+        if (adapter_id >= adapter_enumerator.getAdapterCount()) return false;
+
+        {
+            std::lock_guard lock{ m_device_recreation_mutex };
+            m_requested_adapter_luid = adapter_enumerator[adapter_id]->getProperties().details.luid;
+        }
+
+        SetEvent(m_device_recreation_event);
+        return true;
     }
 
-    return false;
+    default:
+        return false;
+    }
 }
 
 
@@ -243,8 +279,8 @@ osinteraction::WindowHandler* Initializer::createWindowHandler(osinteraction::wi
         m_window_handler = std::make_unique<osinteraction::WindowHandler>(
             std::move(osinteraction::WindowHandlerAttorney<Initializer>::makeWindowHandler(m_d3d12_initializer->globals(), window)
             ));
-        osinteraction::WindowHandlerAttorney<Initializer>::addWaitableHandler(*m_window_handler, m_device_lost_event,
-            [this]() { recoverFromDeviceLoss(); });
+        osinteraction::WindowHandlerAttorney<Initializer>::addWaitableHandler(*m_window_handler, m_device_recreation_event,
+            [this]() { handleDeviceRecreationRequest(); });
 
         return m_window_handler.get();
     }

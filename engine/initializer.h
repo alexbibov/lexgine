@@ -3,6 +3,8 @@
 
 #include <string>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <cstdint>
 
 
@@ -55,7 +57,14 @@ public:
     Initializer(EngineSettings const& settings);
     ~Initializer();
 
-    LEXGINE_CPP_API bool setCurrentDevice(uint32_t adapter_id);    //! assigns device that will be used for graphics and compute tasks. Returns 'true' on success
+    /*! makes current the device of the adapter identified by @param adapter_id, as the adapters are enumerated at the
+     time of the call. Before createWindowHandler() the device is switched immediately and the function may only be
+     called from the simulation thread. Afterwards the switch is scheduled: the device and the rendering chain are
+     rebuilt on the simulation thread during the next update of the window handler and the current scene is reloaded;
+     the function may then be called from the simulation thread or from any rendering thread. Returns 'false' if there
+     is no adapter with the given identifier or the immediate switch has failed
+    */
+    LEXGINE_CPP_API bool setCurrentDevice(uint32_t adapter_id);
     LEXGINE_CPP_API uint32_t getAdapterCount() const;    //! returns total number of adapters installed in the host system including possibly available software devices
     LEXGINE_CPP_API DeviceDetails getDeviceDetails() const;    //! retrieves detailed information about currently active device
 
@@ -67,8 +76,8 @@ private:
     void buildRenderingChain();    //! creates the swap chain, the rendering tasks and the thread driving the frames over the current device
     void releaseRenderingChain();    //! destroys everything built by buildRenderingChain() in the reverse order
 
-    //! rebuilds the current device and the rendering chain over it after the device has been lost
-    void recoverFromDeviceLoss();
+    //! rebuilds the device and the rendering chain over it after the device has been lost or an adapter switch requested
+    void handleDeviceRecreationRequest();
 
 private:
     core::EngineApi m_engine_api;
@@ -82,7 +91,12 @@ private:
     core::SwapChainDescriptor m_swap_chain_descriptor{};
     core::SwapChainDepthFormat m_swap_chain_depth_format{};
 
-    HANDLE m_device_lost_event = nullptr;    //!< signalled by the rendering thread once the device backing the output is lost
+    /*!< signalled when the device has to be rebuilt: by the rendering thread once the device is lost, or by
+     setCurrentDevice() once the rendering chain exists
+    */
+    HANDLE m_device_recreation_event = nullptr;
+    std::mutex m_device_recreation_mutex;
+    std::optional<LUID> m_requested_adapter_luid;    //!< guarded by m_device_recreation_mutex
 
     /*!< declared last so that it is destroyed first: the thread has to leave its loop before the swap chain
      link and the rendering tasks it drives are torn down

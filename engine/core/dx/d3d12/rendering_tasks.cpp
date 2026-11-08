@@ -1,3 +1,5 @@
+#include <format>
+
 #include "rendering_tasks.h"
 
 #include "engine/scenegraph/scene.h"
@@ -7,6 +9,7 @@
 #include "engine/core/global_settings.h"
 #include "engine/core/profiling_services.h"
 #include "engine/core/exception.h"
+#include "engine/core/misc/misc.h"
 
 #include "engine/core/dx/d3d12/rendering/gbuffer.h"
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/test_rendering_task.h"
@@ -46,7 +49,8 @@ tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags getRend
 
 }
 
-RenderingTasks::RenderingTasks(Globals& globals, osinteraction::windows::Window& rendering_window)
+RenderingTasks::RenderingTasks(Globals& globals, osinteraction::windows::Window& rendering_window,
+    std::function<bool(uint32_t)> adapter_selector)
     : m_globals{ globals }
     , m_device{ globals.device() }
     , m_frame_progress_tracker{ m_device.frameProgressTracker() }
@@ -56,6 +60,7 @@ RenderingTasks::RenderingTasks(Globals& globals, osinteraction::windows::Window&
     , m_basic_rendering_services{ globals }
     , m_rendering_configuration{ Viewport{math::Vector2f{}, math::Vector2f{}, math::Vector2f{}},
                                  DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN }
+    , m_adapter_selector{ std::move(adapter_selector) }
     , m_gbuffer{ std::make_unique<rendering::Gbuffer>(globals) }
 {
     m_test_rendering_task_build_cmd_list = RenderingTaskFactory::create<tasks::rendering_tasks::TestRenderingTask>(m_globals, m_basic_rendering_services);
@@ -271,9 +276,50 @@ void RenderingTasks::registerConsoleCommands()
             return { .succeeded = true };
         });
 
-#ifdef _DEBUG
-    reg.addNamespace("device", "Device diagnostics commands");
+    reg.addNamespace("device", "Device management commands");
 
+    // device.list
+    interaction::console::CommandSpec list_cmd{ .name = "list",
+        .summary = "List the adapters the device can be created on, the current one marked with '*'" };
+    reg.addCommand("device", list_cmd,
+        [this](interaction::console::ArgMap const&) -> interaction::console::CommandExecResult
+        {
+            auto const& adapter_enumerator = m_globals.dxResourceFactory().hardwareAdapterEnumerator();
+
+            std::string adapter_list{ "Adapters:" };
+            for (uint32_t adapter_id = 0; adapter_id < adapter_enumerator.getAdapterCount(); ++adapter_id)
+            {
+                auto const& adapter = adapter_enumerator[adapter_id];
+                auto const details = adapter->getProperties().details;
+                adapter_list += std::format("\n{} [{}] {} (LUID {:08X}:{:08X})",
+                    adapter.get() == m_device.hwAdapter() ? '*' : ' ', adapter_id,
+                    misc::wstringToAsciiString(details.name),
+                    static_cast<uint32_t>(details.luid.HighPart), static_cast<uint32_t>(details.luid.LowPart));
+            }
+
+            misc::Log::retrieve()->out(adapter_list, misc::LogMessageType::information);
+            return { .succeeded = true };
+        });
+
+    // device.switch adapter_id=<int>
+    interaction::console::CommandSpec switch_cmd{ .name = "switch",
+        .summary = "Move the rendering onto another adapter" };
+    switch_cmd.args.push_back({ .name = "adapter_id",
+        .description = "Identifier of the adapter as printed by device.list",
+        .parser = interaction::console::value_parsers::int_parser });
+    reg.addCommand("device", switch_cmd,
+        [this](interaction::console::ArgMap const& args) -> interaction::console::CommandExecResult
+        {
+            int const adapter_id = std::get<int>(args.at("adapter_id"));
+            if (adapter_id < 0 || !m_adapter_selector(static_cast<uint32_t>(adapter_id)))
+            {
+                return { .succeeded = false, .msg = std::format("There is no adapter with identifier {}", adapter_id) };
+            }
+
+            return { .succeeded = true };
+        });
+
+#ifdef _DEBUG
     // device.remove
     interaction::console::CommandSpec remove_cmd{ .name = "remove",
         .summary = "Remove the device between the frames to exercise the device loss recovery" };

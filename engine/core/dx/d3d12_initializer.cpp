@@ -194,9 +194,10 @@ dx::dxgi::SwapChain D3D12Initializer::createSwapChainForCurrentDevice(osinteract
     return getCurrentDevice().hwAdapter()->createSwapChain(window, desc);
 }
 
-std::unique_ptr<dx::d3d12::RenderingTasks> D3D12Initializer::createRenderingTasks(osinteraction::windows::Window& rendering_window) const
+std::unique_ptr<dx::d3d12::RenderingTasks> D3D12Initializer::createRenderingTasks(osinteraction::windows::Window& rendering_window,
+    std::function<bool(uint32_t)> adapter_selector) const
 {
-    return std::make_unique<dx::d3d12::RenderingTasks>(*m_globals, rendering_window);
+    return std::make_unique<dx::d3d12::RenderingTasks>(*m_globals, rendering_window, std::move(adapter_selector));
 }
 
 std::shared_ptr<dx::d3d12::SwapChainLink> D3D12Initializer::createSwapChainLink(dx::dxgi::SwapChain& target_swap_chain,

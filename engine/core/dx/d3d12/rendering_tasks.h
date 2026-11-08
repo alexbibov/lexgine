@@ -53,7 +53,11 @@ public:
     };
 
 public:
-    RenderingTasks(Globals& globals, osinteraction::windows::Window& rendering_window);
+    /*! @param adapter_selector requests the rendering to move onto the adapter with the given identifier and
+     returns 'false' if there is no such adapter; the console reaches it through the device commands
+    */
+    RenderingTasks(Globals& globals, osinteraction::windows::Window& rendering_window,
+        std::function<bool(uint32_t)> adapter_selector);
     ~RenderingTasks();
 
     /*! Assigns default color and depth formats assumed for the rendering targets
@@ -98,6 +102,7 @@ private:
     BasicRenderingServices m_basic_rendering_services;
     core::rendering::RenderCommandPipe m_render_command_pipe;    //!< carries the state changes requested while a frame is recorded
     RenderingConfiguration m_rendering_configuration;
+    std::function<bool(uint32_t)> m_adapter_selector;
 
 private:    // rendering tasks
     std::shared_ptr<tasks::rendering_tasks::UIDrawTask> m_ui_draw_build_cmd_list;
