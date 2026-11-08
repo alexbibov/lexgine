@@ -11,6 +11,7 @@
 #include "engine/core/exception.h"
 #include "engine/core/misc/misc.h"
 
+#include "engine/core/dx/dxgi/swap_chain.h"
 #include "engine/core/dx/d3d12/rendering/gbuffer.h"
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/test_rendering_task.h"
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/ui_draw_task.h"
@@ -141,7 +142,7 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
     }
 }
 
-void RenderingTasks::render(RenderingTarget& rendering_target, const std::function<void(void)>& presenter)
+void RenderingTasks::render(RenderingTarget& rendering_target, std::function<dxgi::PresentStatistics()> const& presenter)
 {
     concurrency::assertOnMasterWorkerThread();
 
@@ -156,8 +157,7 @@ void RenderingTasks::render(RenderingTarget& rendering_target, const std::functi
     m_device.transientDescriptorAllocator().nextFrame();
     m_device.queryCache()->markFrameBegin();
     m_task_sink.submit(m_frame_progress_tracker.currentFrameIndex());
-    presenter();
-    m_device.queryCache()->markFrameEnd();
+    m_device.queryCache()->markFrameEnd(presenter());
 }
 
 void RenderingTasks::flush()

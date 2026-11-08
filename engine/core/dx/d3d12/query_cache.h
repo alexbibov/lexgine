@@ -4,14 +4,17 @@
 #include <atomic>
 #include <cstdint>
 #include <array>
+#include <deque>
 #include <mutex>
 #include <chrono>
+#include <optional>
 
 #include <wrl.h>
 #include <d3d12.h>
 
 #include "engine/core/entity.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
+#include "engine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
 #include "engine/core/misc/optional.h"
 
 
@@ -81,11 +84,16 @@ public:
     //! Marks beginning of the frame
     void markFrameBegin();
 
-    //! Marks end of frame 
-    void markFrameEnd();
+    //! Marks end of the frame, which has been presented with the outcome described by @param present_statistics
+    void markFrameEnd(dxgi::PresentStatistics const& present_statistics);
 
     //! Returns average frame time represented in milliseconds
     float averageFrameTime() const;
+
+    /*! Returns average time in milliseconds from the beginning of a frame to the vertical blank, at which the frame
+     was shown on the display. Empty until the display has reported a shown frame
+    */
+    std::optional<float> averageDisplayLatency() const;
 
     //! Returns average frames per second value
     float averageFPS() const;
@@ -97,9 +105,22 @@ private:
     static uint8_t constexpr c_query_heap_count = 5;
     static uint8_t constexpr c_query_type_count = 9;
 
+    static size_t constexpr c_pending_presents_capacity = 16;
+
+    using frame_clock = std::chrono::steady_clock;
     using frame_time_resolution = std::chrono::nanoseconds;
 
 private:
+    struct PendingPresent
+    {
+        uint32_t present_count;
+        frame_clock::time_point frame_begin_time;
+    };
+
+private:
+    void recordDisplayLatency(dxgi::PresentStatistics const& present_statistics);
+    void logDisplayLatency(frame_clock::time_point now);
+
     inline size_t getHeapQueryCount(uint8_t heap_id) const;
     inline size_t getHeapSize(uint8_t heap_id) const;
     inline size_t getHeapSegmentOffset(uint8_t heap_id) const;
@@ -116,7 +137,13 @@ private:
 
     std::array<frame_time_resolution, c_statistics_package_length> m_frame_times;    //!< frame times measured on the CPU side
     size_t m_frame_time_measurement_index{ 0ULL };
-    std::chrono::time_point<std::chrono::high_resolution_clock> m_last_measured_time_point;
+    frame_clock::time_point m_frame_begin_time;
+
+    std::deque<PendingPresent> m_pending_presents;    //!< presents not yet known to have been displayed
+    std::array<frame_time_resolution, c_statistics_package_length> m_display_latencies;
+    size_t m_display_latency_measurement_index{ 0ULL };
+    size_t m_display_latency_sample_count{ 0ULL };
+    frame_clock::time_point m_display_latency_log_time;
 
     mutable std::mutex m_resolve_buffer_mapping_mutex;    //!< mutex guarding resolve buffer mapping
     mutable std::atomic<void const*> m_query_resolve_buffer_mapped_addr{ nullptr };

@@ -2,7 +2,9 @@
 #define LEXGINE_CORE_DX_DXGI_SWAP_CHAIN_H
 
 
+#include <chrono>
 #include <cstdint>
+#include <optional>
 #include <dxgi1_6.h>
 #include <wrl.h>
 
@@ -36,6 +38,22 @@ enum class PresentResult
     occluded,    //!< the window is fully occluded; the swap chain has entered idle presentation
     device_lost,    //!< the device was removed or reset; nothing can be presented until it is recreated
     failed    //!< the presentation engine rejected the frame for some other reason
+};
+
+
+//! Identifies the present most recently shown on the display
+struct DisplayedPresent
+{
+    uint32_t present_count;    //!< number of presents made up to and including the displayed one
+    std::chrono::steady_clock::time_point display_time;    //!< time of the vertical blank at which it was displayed
+};
+
+
+//! Progress of the presentation
+struct PresentStatistics
+{
+    uint32_t present_count;    //!< number of presents made so far
+    std::optional<DisplayedPresent> last_displayed;    //!< the present most recently displayed, if it is known
 };
 
 
@@ -81,6 +99,11 @@ public:
      no-op returning PresentResult::device_lost until the device is recreated.
     */
     PresentResult present() const;
+
+    /*! Returns the number of presents made so far together with the present most recently shown on the display.
+     The latter is unknown until a present has been displayed or when the statistics have been interrupted
+    */
+    PresentStatistics presentStatistics() const;
 
     //! Total back buffer count
     uint32_t backBufferCount() const;

@@ -7,6 +7,24 @@
 #include "swap_chain.h"
 
 
+namespace {
+
+std::chrono::steady_clock::time_point toSteadyClockTime(int64_t qpc_time)
+{
+    LARGE_INTEGER qpc_now{};
+    QueryPerformanceCounter(&qpc_now);
+    std::chrono::steady_clock::time_point const steady_now = std::chrono::steady_clock::now();
+
+    LARGE_INTEGER qpc_frequency{};
+    QueryPerformanceFrequency(&qpc_frequency);
+
+    std::chrono::duration<double> const age{ static_cast<double>(qpc_now.QuadPart - qpc_time) / qpc_frequency.QuadPart };
+    return steady_now - std::chrono::duration_cast<std::chrono::steady_clock::duration>(age);
+}
+
+}  // namespace
+
+
 namespace lexgine::core::dx::dxgi {
 
 namespace
@@ -86,6 +104,24 @@ PresentResult SwapChain::present() const
     if (isDeviceLostResult(rv)) return reportPresentFailure(rv);
 
     return PresentResult::occluded;
+}
+
+PresentStatistics SwapChain::presentStatistics() const
+{
+    PresentStatistics rv{};
+
+    UINT last_present_count{};
+    if (FAILED(m_dxgi_swap_chain->GetLastPresentCount(&last_present_count))) return rv;
+    rv.present_count = static_cast<uint32_t>(last_present_count);
+
+    DXGI_FRAME_STATISTICS frame_statistics{};
+    if (SUCCEEDED(m_dxgi_swap_chain->GetFrameStatistics(&frame_statistics)) && frame_statistics.PresentCount)
+    {
+        rv.last_displayed = DisplayedPresent{ .present_count = static_cast<uint32_t>(frame_statistics.PresentCount),
+            .display_time = toSteadyClockTime(frame_statistics.SyncQPCTime.QuadPart) };
+    }
+
+    return rv;
 }
 
 PresentResult SwapChain::reportPresentFailure(HRESULT hres) const

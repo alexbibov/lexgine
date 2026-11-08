@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <format>
 #include <vector>
 #include <numeric>
 #include <chrono>
@@ -6,6 +8,8 @@
 #include "engine/core/exception.h"
 #include "engine/core/global_settings.h"
 #include "engine/core/misc/misc.h"
+#include "engine/core/misc/log.h"
+#include "engine/core/dx/dxgi/swap_chain.h"
 #include "device.h"
 #include "command_list.h"
 #include "resource.h"
@@ -74,7 +78,9 @@ QueryCache::QueryCache(GlobalSettings const& settings, Device& device)
     , m_frame_progress_tracker{ device.frameProgressTracker() }
     , m_query_resolve_buffers(settings.getMaxFramesInFlight())
     , m_frame_times{}
-    , m_last_measured_time_point{ std::chrono::high_resolution_clock::now() }
+    , m_frame_begin_time{ frame_clock::now() }
+    , m_display_latencies{}
+    , m_display_latency_log_time{ m_frame_begin_time }
 {
     std::fill(m_query_heap_capacities.begin(), m_query_heap_capacities.end(), 0);
     static_assert(static_cast<uint8_t>(QueryHeapType::count) == c_query_heap_count);
@@ -239,10 +245,10 @@ void QueryCache::markFrameBegin()
     FrameProgressTrackerAttorney<QueryCache>::signalGPUBeginFrame(m_frame_progress_tracker,
         m_device.defaultCommandQueue());*/
 
-    m_last_measured_time_point = std::chrono::high_resolution_clock::now();
+    m_frame_begin_time = frame_clock::now();
 }
 
-void QueryCache::markFrameEnd()
+void QueryCache::markFrameEnd(dxgi::PresentStatistics const& present_statistics)
 {
     concurrency::assertOnMasterWorkerThread();
 
@@ -250,10 +256,64 @@ void QueryCache::markFrameEnd()
          m_device.defaultCommandQueue());
      FrameProgressTrackerAttorney<QueryCache>::signalCPUEndFrame(m_frame_progress_tracker);*/
 
+    frame_clock::time_point const frame_end_time = frame_clock::now();
     m_frame_times[m_frame_time_measurement_index] =
-        std::chrono::duration_cast<frame_time_resolution>(std::chrono::high_resolution_clock::now()
-            - m_last_measured_time_point);
+        std::chrono::duration_cast<frame_time_resolution>(frame_end_time - m_frame_begin_time);
     m_frame_time_measurement_index = (m_frame_time_measurement_index + 1) % c_statistics_package_length;
+
+    recordDisplayLatency(present_statistics);
+    logDisplayLatency(frame_end_time);
+}
+
+void QueryCache::recordDisplayLatency(dxgi::PresentStatistics const& present_statistics)
+{
+    m_pending_presents.push_back(PendingPresent{ .present_count = present_statistics.present_count,
+        .frame_begin_time = m_frame_begin_time });
+    if (m_pending_presents.size() > c_pending_presents_capacity) m_pending_presents.pop_front();
+
+    if (!present_statistics.last_displayed)
+    {
+        m_pending_presents.clear();
+        return;
+    }
+
+    dxgi::DisplayedPresent const& last_displayed = *present_statistics.last_displayed;
+    while (!m_pending_presents.empty() && m_pending_presents.front().present_count <= last_displayed.present_count)
+    {
+        PendingPresent const& pending_present = m_pending_presents.front();
+        if (pending_present.present_count == last_displayed.present_count
+            && last_displayed.display_time > pending_present.frame_begin_time)
+        {
+            m_display_latencies[m_display_latency_measurement_index] =
+                std::chrono::duration_cast<frame_time_resolution>(last_displayed.display_time - pending_present.frame_begin_time);
+            m_display_latency_measurement_index = (m_display_latency_measurement_index + 1) % c_statistics_package_length;
+            m_display_latency_sample_count = (std::min)(m_display_latency_sample_count + 1, c_statistics_package_length);
+        }
+        m_pending_presents.pop_front();
+    }
+}
+
+void QueryCache::logDisplayLatency(frame_clock::time_point now)
+{
+    static std::chrono::seconds constexpr c_log_period{ 5 };
+
+    if (now - m_display_latency_log_time < c_log_period) return;
+    m_display_latency_log_time = now;
+
+    std::optional<float> const display_latency = averageDisplayLatency();
+    misc::Log::retrieve()->out(display_latency
+        ? std::format("Frame start to display: {:.2f}ms, frame time: {:.2f}ms", *display_latency, averageFrameTime())
+        : std::format("Frame start to display: n/a, frame time: {:.2f}ms", averageFrameTime()),
+        misc::LogMessageType::trace);
+}
+
+std::optional<float> QueryCache::averageDisplayLatency() const
+{
+    if (!m_display_latency_sample_count) return std::nullopt;
+
+    frame_time_resolution const total = std::accumulate(m_display_latencies.begin(),
+        m_display_latencies.begin() + m_display_latency_sample_count, frame_time_resolution{});
+    return std::chrono::duration<float, std::milli>{ total }.count() / m_display_latency_sample_count;
 }
 
 float QueryCache::averageFrameTime() const

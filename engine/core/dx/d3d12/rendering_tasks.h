@@ -14,6 +14,7 @@
 #include "engine/core/entity.h"
 #include "engine/core/rendering_configuration.h"
 #include "engine/core/rendering/render_command_pipe.h"
+#include "engine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
 #include "engine/core/concurrency/task_sink.h"
 #include "engine/core/concurrency/schedulable_task.h"
 #include "engine/core/misc/static_vector.h"
@@ -66,7 +67,10 @@ public:
     */
     void defineRenderingConfiguration(RenderingConfiguration const& rendering_configuration);
 
-    void render(RenderingTarget& rendering_target, const std::function<void(void)>& presenter);
+    /*! records the frame into @param rendering_target and submits it. The frame is presented by @param presenter,
+     which reports the progress of the presentation
+    */
+    void render(RenderingTarget& rendering_target, std::function<dxgi::PresentStatistics()> const& presenter);
 
     BasicRenderingServices& basicRenderingServices() { return m_basic_rendering_services; }
 

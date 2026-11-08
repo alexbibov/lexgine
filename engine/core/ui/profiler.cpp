@@ -77,6 +77,11 @@ double Profiler::getFPS() const
     return m_query_cache.averageFPS();
 }
 
+std::optional<float> Profiler::getDisplayLatency() const
+{
+    return m_query_cache.averageDisplayLatency();
+}
+
 void Profiler::constructUI()
 {
     std::fill(m_total_times.begin(), m_total_times.end(), 0.);
@@ -155,6 +160,14 @@ void Profiler::constructUI()
             ImGui::Text("Frame CPU time: %fms", getCPUTimePerFrame());
             ImGui::Text("Frame GPU time: %fms", getGPUTimePerFrame());
             ImGui::Text("FPS: %f", getFPS());
+            if (std::optional<float> display_latency = getDisplayLatency())
+            {
+                ImGui::Text("Frame start to display: %fms", *display_latency);
+            }
+            else
+            {
+                ImGui::Text("Frame start to display: n/a");
+            }
             ImGui::Text("Constant data stream partition count: %u", m_basic_rendering_services.constantDataStream().getPartitionsCount());
             ImGui::Text("Unpartitioned constant buffer capacity: %u bytes", m_basic_rendering_services.constantDataStream().getUpartitionedCapacity());
             ImGui::EndGroup();

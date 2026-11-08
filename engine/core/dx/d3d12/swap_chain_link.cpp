@@ -91,7 +91,11 @@ FrameOutcome SwapChainLink::render()
     m_frame_pacer->markFrameBegin();
     try
     {
-        m_linked_rendering_tasks_ptr->render(target, [this](void) { m_render_output.present(); });
+        m_linked_rendering_tasks_ptr->render(target, [this]()
+            {
+                m_render_output.present();
+                return m_linked_swap_chain.presentStatistics();
+            });
     }
     catch (Exception const&)
     {

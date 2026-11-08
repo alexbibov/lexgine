@@ -11,6 +11,7 @@ class HwAdapter;
 class HwOutput;
 class SwapChain;
 enum class PresentResult;
+struct PresentStatistics;
 
 }
 

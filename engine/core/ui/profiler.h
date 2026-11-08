@@ -2,6 +2,7 @@
 #define LEXGINE_CORE_UI_PROFILER_H
 
 #include <chrono>
+#include <optional>
 #include <unordered_map>
 
 #include "imgui.h"
@@ -47,6 +48,7 @@ private:
     double getGPUTimePerFrame() const;
     double getFrameTime() const;
     double getFPS() const;
+    std::optional<float> getDisplayLatency() const;
 
 private:
     Globals const& m_globals;
