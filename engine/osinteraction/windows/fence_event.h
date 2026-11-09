@@ -39,7 +39,6 @@ public:
     */
     bool wait(uint32_t milliseconds) const;
 
-    void set() const;    //! fires the event
     void reset() const;
 
 private:

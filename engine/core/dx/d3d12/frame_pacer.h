@@ -4,8 +4,6 @@
 #include <chrono>
 #include <cstdint>
 
-#include <windows.h>
-
 #include "engine/core/dx/dxgi/lexgine_core_dx_dxgi_fwd.h"
 
 #include "lexgine_core_dx_d3d12_fwd.h"
@@ -37,10 +35,9 @@ public:
     uint16_t maxFramesInFlight() const { return m_max_frames_in_flight; }    //! returns the frames in flight budget
 
     /*! blocks until the presentation queue has room for another frame and another frame may be scheduled without
-     exceeding the frames in flight budget. Returns 'false' if the wait was abandoned because
-     @param interrupt_event got signalled
+     exceeding the frames in flight budget
     */
-    bool waitForFrameSlot(HANDLE interrupt_event) const;
+    void waitForFrameSlot() const;
 
     uint64_t markFrameBegin() { return m_frame_progress_tracker.markFrameBegin(); }
     uint64_t markFrameEnd() { return m_frame_progress_tracker.markFrameEnd(); }

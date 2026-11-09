@@ -113,7 +113,7 @@ Initializer::Initializer(EngineSettings const& settings)
 
 Initializer::~Initializer()
 {
-    m_render_thread.reset();
+    shutdown();
     if (m_device_recreation_event) CloseHandle(m_device_recreation_event);
 }
 
@@ -152,8 +152,25 @@ void Initializer::releaseRenderingChain()
     m_swap_chain.reset();
 }
 
+void Initializer::shutdown()
+{
+    if (m_is_shut_down) return;
+
+    core::concurrency::assertOnSimulationThread();
+
+    {
+        std::lock_guard lock{ m_device_recreation_mutex };
+        m_is_shut_down = true;
+        m_requested_adapter_luid.reset();
+    }
+
+    releaseRenderingChain();
+}
+
 void Initializer::handleDeviceRecreationRequest()
 {
+    if (m_is_shut_down) return;
+
     std::optional<LUID> requested_adapter_luid{};
     {
         std::lock_guard lock{ m_device_recreation_mutex };
@@ -220,6 +237,7 @@ bool Initializer::setCurrentDevice(uint32_t adapter_id)
 
         {
             std::lock_guard lock{ m_device_recreation_mutex };
+            if (m_is_shut_down) return false;
             m_requested_adapter_luid = adapter_enumerator[adapter_id]->getProperties().details.luid;
         }
 

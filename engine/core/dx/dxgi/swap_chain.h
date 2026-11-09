@@ -42,15 +42,6 @@ enum class PresentResult
 };
 
 
-//! Outcome of a wait for room in the presentation queue
-enum class FrameLatencyWait
-{
-    ready,    //!< the presentation queue has room for another frame
-    timed_out,    //!< the presentation queue has not made room in time
-    interrupted    //!< the wait was abandoned on request of the caller
-};
-
-
 //! Identifies the present most recently shown on the display
 struct DisplayedPresent
 {
@@ -135,11 +126,10 @@ public:
     //! Checks if the device backing the swap chain has been lost
     bool isDeviceLost() const { return m_device_lost; }
 
-    /*! Blocks until the presentation queue has room for another frame, @param timeout expires or
-     @param interrupt_event is signalled. Returns FrameLatencyWait::ready at once if the swap chain does not limit
-     its frame latency
+    /*! Blocks until the presentation queue has room for another frame or @param timeout expires, in which case
+     returns 'false'. Returns 'true' at once if the swap chain does not limit its frame latency
     */
-    FrameLatencyWait waitForFrameLatency(std::chrono::milliseconds timeout, HANDLE interrupt_event) const;
+    bool waitForFrameLatency(std::chrono::milliseconds timeout) const;
 
 private:
     SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,

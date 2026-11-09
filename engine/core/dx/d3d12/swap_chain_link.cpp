@@ -57,7 +57,7 @@ void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
     updateRenderingConfiguration();
 }
 
-FrameOutcome SwapChainLink::render(HANDLE interrupt_event)
+FrameOutcome SwapChainLink::render()
 {
     if (m_linked_swap_chain.isDeviceLost()) return FrameOutcome::device_lost;
 
@@ -86,7 +86,7 @@ FrameOutcome SwapChainLink::render(HANDLE interrupt_event)
     if (m_suspend_rendering || !m_linked_rendering_tasks_ptr) return FrameOutcome::suspended;
 
     RenderingTarget& target = m_render_output.currentTarget();
-    if (!m_frame_pacer->waitForFrameSlot(interrupt_event)) return FrameOutcome::interrupted;
+    m_frame_pacer->waitForFrameSlot();
 
     m_frame_pacer->markFrameBegin();
     try

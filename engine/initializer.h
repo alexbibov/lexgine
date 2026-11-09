@@ -70,6 +70,13 @@ public:
 
     LEXGINE_CPP_API osinteraction::WindowHandler* createWindowHandler(osinteraction::windows::Window & window, core::SwapChainDescriptor const& swap_chain_desc, core::SwapChainDepthFormat depth_format);
 
+    /*! stops rendering and destroys the rendering chain built by createWindowHandler(): the thread driving the
+     frames, the swap chain and the rendering tasks. Must be called from the simulation thread while the window
+     passed to createWindowHandler() is still alive; the destructor calls it if the client has not. Requests to
+     switch the device made afterwards are rejected. Calling the function repeatedly has no effect
+    */
+    LEXGINE_CPP_API void shutdown();
+
     core::Globals& globals();
 
 private:
@@ -97,6 +104,7 @@ private:
     HANDLE m_device_recreation_event = nullptr;
     std::mutex m_device_recreation_mutex;
     std::optional<LUID> m_requested_adapter_luid;    //!< guarded by m_device_recreation_mutex
+    bool m_is_shut_down = false;    //!< 'true' once shutdown() has destroyed the rendering chain
 
     /*!< declared last so that it is destroyed first: the thread has to leave its loop before the swap chain
      link and the rendering tasks it drives are torn down

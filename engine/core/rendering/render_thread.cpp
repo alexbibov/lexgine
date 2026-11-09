@@ -46,7 +46,7 @@ void RenderThread::start()
 {
     assert(!m_thread.joinable());
 
-    m_stop_event.reset();
+    m_stop_requested.store(false, std::memory_order_release);
     m_thread = std::thread{ &RenderThread::loop, this };
 
 #ifdef _WIN32
@@ -59,7 +59,7 @@ void RenderThread::stop()
 {
     if (!m_thread.joinable()) return;
 
-    m_stop_event.set();
+    m_stop_requested.store(true, std::memory_order_release);
     m_thread.join();
 }
 
@@ -86,7 +86,7 @@ void RenderThread::loop()
     concurrency::registerMasterWorkerThread();
 
     bool device_lost = false;
-    while (!device_lost && !m_stop_event.wait(0))
+    while (!device_lost && !m_stop_requested.load(std::memory_order_acquire))
     {
         for (SurfaceEvent const& surface_event : m_surface_events.take())
         {
@@ -106,10 +106,9 @@ void RenderThread::loop()
         }
 
         // only a rendered frame paces the loop; the rest describe how long there is nothing worth doing
-        switch (m_swap_chain_link.render(m_stop_event.native()))
+        switch (m_swap_chain_link.render())
         {
         case dx::d3d12::FrameOutcome::rendered:
-        case dx::d3d12::FrameOutcome::interrupted:
             break;
 
         case dx::d3d12::FrameOutcome::occluded:

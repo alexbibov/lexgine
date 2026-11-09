@@ -55,25 +55,17 @@ FramePacer::FramePacer(FrameProgressTracker& frame_progress_tracker, dxgi::SwapC
 
 }
 
-bool FramePacer::waitForFrameSlot(HANDLE interrupt_event) const
+void FramePacer::waitForFrameSlot() const
 {
     concurrency::assertOnMasterWorkerThread();
 
-    switch (m_swap_chain.waitForFrameLatency(c_frame_latency_timeout, interrupt_event))
+    if (!m_swap_chain.waitForFrameLatency(c_frame_latency_timeout))
     {
-    case dxgi::FrameLatencyWait::ready:
-        break;
-
-    case dxgi::FrameLatencyWait::timed_out:
         if (lexgine::core::misc::Log* p_logger = lexgine::core::misc::Log::retrieve())
         {
             p_logger->out("WARNING: the presentation queue has not made room for the next frame in time, the frame "
                 "is scheduled regardless", lexgine::core::misc::LogMessageType::exclamation);
         }
-        break;
-
-    case dxgi::FrameLatencyWait::interrupted:
-        return false;
     }
 
     uint64_t current_frame_index = m_frame_progress_tracker.currentFrameIndex();
@@ -84,6 +76,4 @@ bool FramePacer::waitForFrameSlot(HANDLE interrupt_event) const
     {
         m_frame_progress_tracker.waitForFrameCompletion(scheduled_frames_count - m_max_frames_in_flight);
     }
-
-    return true;
 }

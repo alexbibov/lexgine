@@ -123,22 +123,12 @@ PresentResult SwapChain::present() const
     return PresentResult::occluded;
 }
 
-FrameLatencyWait SwapChain::waitForFrameLatency(std::chrono::milliseconds timeout, HANDLE interrupt_event) const
+bool SwapChain::waitForFrameLatency(std::chrono::milliseconds timeout) const
 {
-    if (!m_frame_latency_waitable_object) return FrameLatencyWait::ready;
+    if (!m_frame_latency_waitable_object) return true;
 
-    HANDLE const handles[] = { interrupt_event, m_frame_latency_waitable_object.get() };
-    switch (WaitForMultipleObjectsEx(2, handles, FALSE, static_cast<DWORD>(timeout.count()), TRUE))
-    {
-    case WAIT_OBJECT_0:
-        return FrameLatencyWait::interrupted;
-
-    case WAIT_OBJECT_0 + 1:
-        return FrameLatencyWait::ready;
-
-    default:
-        return FrameLatencyWait::timed_out;
-    }
+    return WaitForSingleObjectEx(m_frame_latency_waitable_object.get(), static_cast<DWORD>(timeout.count()), TRUE)
+        == WAIT_OBJECT_0;
 }
 
 PresentStatistics SwapChain::presentStatistics() const

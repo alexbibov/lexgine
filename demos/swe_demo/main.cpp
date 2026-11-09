@@ -64,7 +64,7 @@ public:
 
     ~MainClass()
     {
-
+        m_engine_initializer.shutdown();
     }
 
     void update() const

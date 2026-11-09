@@ -1,6 +1,7 @@
 #ifndef LEXGINE_CORE_RENDERING_RENDER_THREAD_H
 #define LEXGINE_CORE_RENDERING_RENDER_THREAD_H
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <thread>
@@ -8,7 +9,6 @@
 
 #include "engine/core/concurrency/deferred_event_queue.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
-#include "engine/osinteraction/windows/fence_event.h"
 #include "engine/osinteraction/windows/lexgine_osinteraction_windows_fwd.h"
 #include "engine/osinteraction/windows/window_listeners.h"
 
@@ -71,7 +71,7 @@ private:
     concurrency::DeferredEventQueue<SurfaceEvent> m_surface_events{ c_surface_event_capacity };
 
     std::thread m_thread;
-    osinteraction::windows::FenceEvent m_stop_event{ true };
+    std::atomic_bool m_stop_requested{ false };
 
 private:
     static constexpr size_t c_surface_event_capacity = 256;
