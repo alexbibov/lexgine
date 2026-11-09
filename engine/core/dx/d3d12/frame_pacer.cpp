@@ -3,6 +3,7 @@
 #include "frame_pacer.h"
 
 #include "engine/core/misc/log.h"
+#include "engine/core/dx/dxgi/swap_chain.h"
 
 #include "engine/core/concurrency/thread_affinity.h"
 
@@ -45,17 +46,35 @@ uint16_t reconcileFramesInFlight(uint16_t max_frames_in_flight, uint32_t back_bu
 }  // namespace
 
 
-FramePacer::FramePacer(FrameProgressTracker& frame_progress_tracker, uint16_t max_frames_in_flight,
-    uint32_t back_buffer_count)
+FramePacer::FramePacer(FrameProgressTracker& frame_progress_tracker, dxgi::SwapChain const& swap_chain,
+    uint16_t max_frames_in_flight)
     : m_frame_progress_tracker{ frame_progress_tracker }
-    , m_max_frames_in_flight{ reconcileFramesInFlight(max_frames_in_flight, back_buffer_count) }
+    , m_swap_chain{ swap_chain }
+    , m_max_frames_in_flight{ reconcileFramesInFlight(max_frames_in_flight, swap_chain.backBufferCount()) }
 {
 
 }
 
-void FramePacer::waitForFrameSlot() const
+bool FramePacer::waitForFrameSlot(HANDLE interrupt_event) const
 {
     concurrency::assertOnMasterWorkerThread();
+
+    switch (m_swap_chain.waitForFrameLatency(c_frame_latency_timeout, interrupt_event))
+    {
+    case dxgi::FrameLatencyWait::ready:
+        break;
+
+    case dxgi::FrameLatencyWait::timed_out:
+        if (lexgine::core::misc::Log* p_logger = lexgine::core::misc::Log::retrieve())
+        {
+            p_logger->out("WARNING: the presentation queue has not made room for the next frame in time, the frame "
+                "is scheduled regardless", lexgine::core::misc::LogMessageType::exclamation);
+        }
+        break;
+
+    case dxgi::FrameLatencyWait::interrupted:
+        return false;
+    }
 
     uint64_t current_frame_index = m_frame_progress_tracker.currentFrameIndex();
     uint64_t scheduled_frames_count = m_frame_progress_tracker.scheduledFramesCount();
@@ -65,4 +84,6 @@ void FramePacer::waitForFrameSlot() const
     {
         m_frame_progress_tracker.waitForFrameCompletion(scheduled_frames_count - m_max_frames_in_flight);
     }
+
+    return true;
 }

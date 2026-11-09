@@ -130,6 +130,15 @@ bool FenceEvent::wait(uint32_t milliseconds) const
     return result == WAIT_OBJECT_0;
 }
 
+void FenceEvent::set() const
+{
+    if (!SetEvent(m_event_handle))
+    {
+        DWORD error_code = GetLastError();
+        LEXGINE_THROW_ERROR_FROM_NAMED_ENTITY(this, convertWindowsErrorCodeToString(error_code));
+    }
+}
+
 void FenceEvent::reset() const
 {
     if (!m_is_reset_manually) return;

@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <dxgi1_6.h>
 #include <wrl.h>
@@ -41,6 +42,15 @@ enum class PresentResult
 };
 
 
+//! Outcome of a wait for room in the presentation queue
+enum class FrameLatencyWait
+{
+    ready,    //!< the presentation queue has room for another frame
+    timed_out,    //!< the presentation queue has not made room in time
+    interrupted    //!< the wait was abandoned on request of the caller
+};
+
+
 //! Identifies the present most recently shown on the display
 struct DisplayedPresent
 {
@@ -65,6 +75,11 @@ struct SwapChainDescriptor
     SwapChainScaling scaling;
     bool enable_vsync;
     uint32_t back_buffer_count;
+
+    /*! number of presents allowed to queue before the next frame is held back by SwapChain::waitForFrameLatency().
+     0 keeps the default of the presentation engine and does not hold the frames back
+    */
+    uint32_t max_frame_latency;
 };
 
 class SwapChain final : public core::NamedEntity<SwapChain>
@@ -120,6 +135,12 @@ public:
     //! Checks if the device backing the swap chain has been lost
     bool isDeviceLost() const { return m_device_lost; }
 
+    /*! Blocks until the presentation queue has room for another frame, @param timeout expires or
+     @param interrupt_event is signalled. Returns FrameLatencyWait::ready at once if the swap chain does not limit
+     its frame latency
+    */
+    FrameLatencyWait waitForFrameLatency(std::chrono::milliseconds timeout, HANDLE interrupt_event) const;
+
 private:
     SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
         d3d12::Device& device,
@@ -131,12 +152,20 @@ private:
     PresentResult reportPresentFailure(HRESULT hres) const;
 
 private:
+    struct HandleCloser
+    {
+        void operator()(HANDLE handle) const { CloseHandle(handle); }
+    };
+
+private:
     ComPtr<IDXGIFactory6> m_dxgi_factory;   //!< DXGI factory used to create the swap chain
     d3d12::Device& m_device;    //!< Direct3D12 device interface
     HWND m_hwnd;    //!< handle of the window, which holds the swap chain
     d3d12::CommandQueue const& m_default_command_queue;    //!< graphics command queue associated with the swap chain
     SwapChainDescriptor m_descriptor;    //!< Descriptor of the swap chain
     ComPtr<IDXGISwapChain4> m_dxgi_swap_chain;   //!< DXGI interface representing the swap chain
+    UINT m_flags;    //!< flags the swap chain was created with, which its buffers must keep when resized
+    std::unique_ptr<void, HandleCloser> m_frame_latency_waitable_object;    //!< signalled while the presentation queue has room
     mutable bool m_swapChainIsIdle{ false };    //!< determines if swap chain is in idle state
     mutable bool m_device_lost{ false };    //!< set once the device has been removed or reset
 };

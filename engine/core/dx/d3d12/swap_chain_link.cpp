@@ -52,12 +52,12 @@ SwapChainLink::~SwapChainLink()
 void SwapChainLink::linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link)
 {
     m_linked_rendering_tasks_ptr = p_rendering_loop_to_link;
-    m_frame_pacer.emplace(p_rendering_loop_to_link->frameProgressTracker(),
-        m_global_settings.getMaxFramesInFlight(), m_linked_swap_chain.backBufferCount());
+    m_frame_pacer.emplace(p_rendering_loop_to_link->frameProgressTracker(), m_linked_swap_chain,
+        m_global_settings.getMaxFramesInFlight());
     updateRenderingConfiguration();
 }
 
-FrameOutcome SwapChainLink::render()
+FrameOutcome SwapChainLink::render(HANDLE interrupt_event)
 {
     if (m_linked_swap_chain.isDeviceLost()) return FrameOutcome::device_lost;
 
@@ -86,7 +86,7 @@ FrameOutcome SwapChainLink::render()
     if (m_suspend_rendering || !m_linked_rendering_tasks_ptr) return FrameOutcome::suspended;
 
     RenderingTarget& target = m_render_output.currentTarget();
-    m_frame_pacer->waitForFrameSlot();
+    if (!m_frame_pacer->waitForFrameSlot(interrupt_event)) return FrameOutcome::interrupted;
 
     m_frame_pacer->markFrameBegin();
     try

@@ -125,7 +125,8 @@ void Initializer::buildRenderingChain()
         .stereo = false,
         .scaling = core::dx::dxgi::SwapChainScaling::none,
         .enable_vsync = m_swap_chain_descriptor.enable_vsync,
-        .back_buffer_count = m_swap_chain_descriptor.back_buffer_count
+        .back_buffer_count = m_swap_chain_descriptor.back_buffer_count,
+        .max_frame_latency = m_swap_chain_descriptor.max_frame_latency
     };
 
     m_swap_chain = std::make_unique<lexgine::core::dx::dxgi::SwapChain>(

@@ -22,6 +22,7 @@ enum class FrameOutcome
     rendered,    //!< the frame has been recorded and handed to the presentation engine
     occluded,    //!< the output is fully obscured; the presentation engine idles until it is revealed again
     suspended,   //!< there is no client area to render into, or the link awaits the rendering tasks
+    interrupted,    //!< the frame was abandoned before it began because the caller asked to stop
     device_lost  //!< the device backing the output is gone and nothing can be rendered until it is recreated
 };
 
@@ -41,8 +42,10 @@ public:
 
     void linkRenderingTasks(RenderingTasks* p_rendering_loop_to_link);
 
-    //! renders a single frame and reports what became of it
-    FrameOutcome render();
+    /*! renders a single frame and reports what became of it. The frame is abandoned before it begins if
+     @param interrupt_event gets signalled while it awaits its slot
+    */
+    FrameOutcome render(HANDLE interrupt_event);
 
     void flushRenderingTasks();    //! awaits the GPU work scheduled so far; called by the thread driving the frames
 

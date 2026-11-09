@@ -28,6 +28,7 @@ struct LEXGINE_CPP_API DEPENDS_ON(SwapChainColorFormat) SwapChainDescriptor
     SwapChainColorFormat color_format;
     uint32_t back_buffer_count;
     bool enable_vsync;
+    uint32_t max_frame_latency;    //!< number of presents allowed to queue before the next frame is held back; 0 keeps the default of the presentation engine
 };
 
 

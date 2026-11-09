@@ -9,6 +9,23 @@
 
 namespace {
 
+uint32_t constexpr c_max_frame_latency = 16;
+
+uint32_t reconcileFrameLatency(uint32_t max_frame_latency)
+{
+    if (max_frame_latency <= c_max_frame_latency) return max_frame_latency;
+
+    if (lexgine::core::misc::Log* p_logger = lexgine::core::misc::Log::retrieve())
+    {
+        std::stringstream err{};
+        err << "ERROR: the maximal frame latency (" << max_frame_latency << ") exceeds the limit of the presentation "
+            "engine. The latency is reduced to " << c_max_frame_latency;
+        p_logger->out(err.str(), lexgine::core::misc::LogMessageType::error);
+    }
+
+    return c_max_frame_latency;
+}
+
 std::chrono::steady_clock::time_point toSteadyClockTime(int64_t qpc_time)
 {
     LARGE_INTEGER qpc_now{};
@@ -106,6 +123,24 @@ PresentResult SwapChain::present() const
     return PresentResult::occluded;
 }
 
+FrameLatencyWait SwapChain::waitForFrameLatency(std::chrono::milliseconds timeout, HANDLE interrupt_event) const
+{
+    if (!m_frame_latency_waitable_object) return FrameLatencyWait::ready;
+
+    HANDLE const handles[] = { interrupt_event, m_frame_latency_waitable_object.get() };
+    switch (WaitForMultipleObjectsEx(2, handles, FALSE, static_cast<DWORD>(timeout.count()), TRUE))
+    {
+    case WAIT_OBJECT_0:
+        return FrameLatencyWait::interrupted;
+
+    case WAIT_OBJECT_0 + 1:
+        return FrameLatencyWait::ready;
+
+    default:
+        return FrameLatencyWait::timed_out;
+    }
+}
+
 PresentStatistics SwapChain::presentStatistics() const
 {
     PresentStatistics rv{};
@@ -161,7 +196,7 @@ void SwapChain::resizeBuffers(math::Vector2u const& new_dimensions)
         this,
         m_dxgi_swap_chain->ResizeBuffers1(0,
             static_cast<UINT>(new_dimensions.x), static_cast<UINT>(new_dimensions.y),
-            DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING, node_masks.data(), queues.data()),
+            DXGI_FORMAT_UNKNOWN, m_flags, node_masks.data(), queues.data()),
         S_OK
     );
 }
@@ -177,7 +212,11 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     , m_hwnd{ hwnd }
     , m_default_command_queue{ default_command_queue }
     , m_descriptor{ desc }
+    , m_flags{ DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING }
 {
+    m_descriptor.max_frame_latency = reconcileFrameLatency(desc.max_frame_latency);
+    if (m_descriptor.max_frame_latency) m_flags |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc1{};
 
     swap_chain_desc1.Width = static_cast<UINT>(client_area_size.x);
@@ -190,7 +229,7 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
     swap_chain_desc1.Scaling = static_cast<DXGI_SCALING>(desc.scaling);
     swap_chain_desc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swap_chain_desc1.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-    swap_chain_desc1.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+    swap_chain_desc1.Flags = m_flags;
 
     IDXGISwapChain1* p_swap_chain1 = nullptr;
     LEXGINE_THROW_ERROR_IF_FAILED(
@@ -206,6 +245,16 @@ SwapChain::SwapChain(ComPtr<IDXGIFactory6> const& dxgi_factory,
         S_OK
     );
     p_swap_chain1->Release();
+
+    if (m_descriptor.max_frame_latency)
+    {
+        LEXGINE_THROW_ERROR_IF_FAILED(
+            this,
+            m_dxgi_swap_chain->SetMaximumFrameLatency(static_cast<UINT>(m_descriptor.max_frame_latency)),
+            S_OK
+        );
+        m_frame_latency_waitable_object.reset(m_dxgi_swap_chain->GetFrameLatencyWaitableObject());
+    }
 
     // the application owns the fullscreen toggle; DXGI's default Alt+Enter handling would fight it
     LEXGINE_THROW_ERROR_IF_FAILED(
