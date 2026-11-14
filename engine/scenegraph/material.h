@@ -62,7 +62,7 @@ struct MaterialPSOCompilationContext
     core::DepthStencilDescriptor depth_stencil_descriptor;
     core::StreamOutput stream_output;
 
-    MaterialPSOCompilationContext(core::VertexAttributeSpecificationList const& va_list);
+    MaterialPSOCompilationContext(core::VertexAttributeSpecificationList const& va_list, bool double_sided = false);
 };
 
 struct MaterialShaderDesc

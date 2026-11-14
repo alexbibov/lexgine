@@ -736,6 +736,8 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
 
         for (auto& [gltf_source_material_id, material_attachment] : m_material_attachements)
         {
+            tg3_material const& source_material = model.materials[gltf_source_material_id];
+
             MaterialShaderDesc shader_desc{};
             shader_desc.vertex_shader = material_attachment.create_info_it->vertex_shader;
             shader_desc.hull_shader = material_attachment.create_info_it->hull_shader;
@@ -746,7 +748,7 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
             shader_desc.material_parameters_uniform_buffer_name = "material_data";
             shader_desc.scene_parameters_uniform_buffer_name = "environment_data";
 
-            MaterialPSOCompilationContext pso_context{ material_attachment.create_info_it->vertex_data_format };
+            MaterialPSOCompilationContext pso_context{ material_attachment.create_info_it->vertex_data_format, source_material.double_sided != 0 };
 
             MaterialStaticState mss{ m_basic_rendering_services, pso_context, shader_desc };
             mss.buildPipeline();
@@ -759,7 +761,6 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
             m_materials.emplace_back(*it);
             Material& material = m_materials.back();
 
-            tg3_material const& source_material = model.materials[gltf_source_material_id];
             material.setStringName(std::string{ source_material.name.data, source_material.name.len });
             material.setEmissiveFactor(
                 lexgine::core::math::Vector3f{
@@ -768,7 +769,21 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
                     source_material.emissive_factor[2]
                 }
             );
-            //material.setAlphaMode()
+            {
+                tg3_str const& alpha_mode = source_material.alpha_mode;
+                if (tg3_str_equals_cstr(alpha_mode, "MASK"))
+                {
+                    material.setAlphaMode(AlphaMode::mask);
+                }
+                else if (tg3_str_equals_cstr(alpha_mode, "BLEND"))
+                {
+                    material.setAlphaMode(AlphaMode::blend);
+                }
+                else
+                {
+                    material.setAlphaMode(AlphaMode::opaque);
+                }
+            }
             material.setAlphaCutoff(source_material.alpha_cutoff);
             material.setDoubleSided(source_material.double_sided != 0);
             {
@@ -1414,7 +1429,10 @@ Scene::MaterialStaticStateCreateInfoSet::const_iterator
 {
     std::list<core::dx::dxcompilation::HLSLMacroDefinition> defines{};
     tg3_str const& alpha_mode = gltf_material.alpha_mode;
-    defines.push_back({ .name = std::string{alpha_mode.data, alpha_mode.data + alpha_mode.len} });
+    std::string alpha_mode_define = alpha_mode.len > 0
+        ? std::string{ alpha_mode.data, alpha_mode.data + alpha_mode.len }
+        : "OPAQUE";    // glTF defaults the alpha mode to OPAQUE when the field is absent
+    defines.push_back({ .name = alpha_mode_define });
 
     MaterialStaticStateCreateInfo material_ss_create_info{};
 

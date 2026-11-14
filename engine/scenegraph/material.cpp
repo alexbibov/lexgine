@@ -25,8 +25,9 @@ namespace lexgine::scenegraph
 {
 
 #pragma region MaterialPSOCompilationContext
-MaterialPSOCompilationContext::MaterialPSOCompilationContext(core::VertexAttributeSpecificationList const& va_list)
+MaterialPSOCompilationContext::MaterialPSOCompilationContext(core::VertexAttributeSpecificationList const& va_list, bool double_sided)
     : va_list { va_list }
+    , rasterization_descriptor{ core::FillMode::solid, double_sided ? core::CullMode::none : core::CullMode::back }
     , depth_stencil_format { DXGI_FORMAT_D32_FLOAT }
 {
     std::fill(render_target_formats, render_target_formats + sizeof(render_target_formats) / sizeof(DXGI_FORMAT), DXGI_FORMAT_UNKNOWN);
