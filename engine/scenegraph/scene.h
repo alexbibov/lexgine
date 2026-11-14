@@ -86,6 +86,9 @@ public:
         //! Sets the node's local rotation to @p angle radians about @p rotation_axis. The axis is normalized internally.
         void setRotation(core::math::Vector3f const& rotation_axis, float angle);
 
+        //! Sets the node's local rotation from a quaternion given as (x, y, z, w) components.
+        void setRotationQuaternion(core::math::Vector4f const& quaternion);
+
         //! Sets the node's local per-axis scale, replacing the previous scale component.
         void setScale(core::math::Vector3f const& scaling_vector);
 

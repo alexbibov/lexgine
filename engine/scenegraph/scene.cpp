@@ -7,6 +7,8 @@
 #include <thread>
 
 #include <glm/gtc/constants.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #define TINYGLTF3_IMPLEMENTATION
 #define TINYGLTF3_ENABLE_FS
@@ -314,6 +316,13 @@ void Scene::Node::setRotation(core::math::Vector3f const& rotation_axis, float a
 void Scene::Node::setScale(core::math::Vector3f const& scaling_vector)
 {
     m_scale = scaling_vector;
+    recomputeLocalTransform();
+    invalidateSubtree();
+}
+
+void Scene::Node::setRotationQuaternion(core::math::Vector4f const& quaternion)
+{
+    m_rotation = glm::mat4_cast(glm::quat{ quaternion.w, quaternion.x, quaternion.y, quaternion.z });
     recomputeLocalTransform();
     invalidateSubtree();
 }
@@ -871,6 +880,46 @@ int Scene::readSceneNode(
     int new_node_id = static_cast<int>(m_scene_nodes.size());
     m_scene_nodes.emplace_back(this, static_cast<uint32_t>(new_node_id));
     m_scene_nodes[new_node_id].setStringName(std::string(node.name.data, node.name.len));
+
+    if (node.has_matrix)
+    {
+        core::math::Matrix4f local_transform{ 1.f };
+        for (uint32_t i = 0; i < 16; ++i)
+        {
+            local_transform[i / 4][i % 4] = static_cast<float>(node.matrix[i]);
+        }
+
+        glm::vec3 translation;
+        glm::quat rotation_quaternion;
+        glm::vec3 scale;
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(local_transform, scale, rotation_quaternion, translation, skew, perspective);
+        m_scene_nodes[new_node_id].setTranslation(core::math::Vector3f{ translation });
+        m_scene_nodes[new_node_id].setRotationQuaternion(core::math::Vector4f{
+            rotation_quaternion.x, rotation_quaternion.y, rotation_quaternion.z, rotation_quaternion.w
+        });
+        m_scene_nodes[new_node_id].setScale(core::math::Vector3f{ scale });
+    }
+    else
+    {
+        m_scene_nodes[new_node_id].setTranslation(core::math::Vector3f{
+            static_cast<float>(node.translation[0]),
+            static_cast<float>(node.translation[1]),
+            static_cast<float>(node.translation[2])
+        });
+        m_scene_nodes[new_node_id].setRotationQuaternion(core::math::Vector4f{
+            static_cast<float>(node.rotation[0]),
+            static_cast<float>(node.rotation[1]),
+            static_cast<float>(node.rotation[2]),
+            static_cast<float>(node.rotation[3])
+        });
+        m_scene_nodes[new_node_id].setScale(core::math::Vector3f{
+            static_cast<float>(node.scale[0]),
+            static_cast<float>(node.scale[1]),
+            static_cast<float>(node.scale[2])
+        });
+    }
 
     if (node.light >= 0)
     {
