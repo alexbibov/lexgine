@@ -1,6 +1,7 @@
 #ifndef LEXGINE_SCENEGRAPH_MATERIAL_H
 #define LEXGINE_SCENEGRAPH_MATERIAL_H
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <string>
@@ -16,6 +17,7 @@
 #include <engine/core/stream_output.h>
 #include <engine/core/vertex_attributes.h>
 #include <engine/core/misc/hash_value.h>
+#include <engine/core/misc/flags.h>
 #include <engine/core/dx/dxcompilation/shader_function.h>
 #include <engine/conversion/lexgine_conversion_fwd.h>
 
@@ -42,6 +44,13 @@ enum class AlphaMode
     mask,
     blend
 };
+
+BEGIN_FLAGS_DECLARATION(MaterialDataTextureUsage)
+FLAG(albedo, 0x1)
+FLAG(normal, 0x2)
+FLAG(metallic_roughness, 0x4)
+FLAG(emissive, 0x8)
+END_FLAGS_DECLARATION(MaterialDataTextureUsage);
 
 struct MaterialPSOCompilationContext
 {
@@ -150,9 +159,9 @@ public:
     void setStringName(std::string const& entity_string_name);
 
     void setEmissiveFactor(glm::vec3 const& value) { m_emissive_factor = value; }
-    void setAlphaMode(AlphaMode value) { m_alpha_mode = value; }
+    void setAlphaMode(AlphaMode value) { m_alpha_mode = static_cast<uint32_t>(value); }
     void setAlphaCutoff(float value) { m_alpha_cutoff = value; }
-    void setDoubleSided(bool value) { m_is_double_sided = value; }
+    void setDoubleSided(bool value) { m_is_double_sided = value ? 1u : 0u; }
 
     void setMetallicRoughness(MetallicRoughness const& value);
     void setNormalTexture(Texture* p_texture);
@@ -166,22 +175,24 @@ private:
     MaterialStaticState const& m_material_static_state;
     core::dx::d3d12::ConstantBufferDataMapper m_material_parameters_cb_data_mapper;
     
-    core::math::Vector3f m_emissive_factor;
-    AlphaMode m_alpha_mode;
-    float m_alpha_cutoff;
-    bool m_is_double_sided;
+    core::math::Vector3f m_emissive_factor{ 0.f };
+    uint32_t m_alpha_mode{ static_cast<uint32_t>(AlphaMode::opaque) };
+    float m_alpha_cutoff{ 0.5f };
+    uint32_t m_is_double_sided{ 0 };
     std::vector<Material*> m_lod_materials;
 
-    core::math::Vector4f m_base_color_factor;
-    float m_metallic_factor;
-    float m_roughness_factor;
+    core::math::Vector4f m_base_color_factor{ 1.f };
+    float m_metallic_factor{ 1.f };
+    float m_roughness_factor{ 1.f };
 
-    size_t m_normal_texture_binding_id;
-    size_t m_occlusion_texture_binding_id;
-    size_t m_emissive_texture_binding_id;
+    MaterialDataTextureUsage m_usage_flags;
 
-    size_t m_base_color_texture_binding_id;
-    size_t m_metallic_roughness_texture_binding_id;
+    size_t m_normal_texture_binding_id{ 0 };
+    size_t m_occlusion_texture_binding_id{ 0 };
+    size_t m_emissive_texture_binding_id{ 0 };
+
+    size_t m_base_color_texture_binding_id{ 0 };
+    size_t m_metallic_roughness_texture_binding_id{ 0 };
 };
 
 

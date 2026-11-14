@@ -103,6 +103,12 @@ public:
         return m_value;
     }
 
+    //! Returns pointer to the stored bitset value
+    CompatibleIntegralType const* getRawData() const
+    {
+        return &m_value;
+    }
+
     //! Creates flag from provided base flag value
     static Flags create(base_values base_flag)
     {

@@ -204,7 +204,7 @@ Material::Material(MaterialStaticState const& material_static_state)
     , m_material_parameters_cb_data_mapper{ material_static_state.getMaterialParametersUniformBufferReflection() }
 {
     m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("emissive_factor", m_emissive_factor);
-    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("alpha_mode", static_cast<unsigned int>(m_alpha_mode));
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("alpha_mode", m_alpha_mode);
     m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("alpha_cutoff", m_alpha_cutoff);
     m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("is_double_sided", m_is_double_sided);
     m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("base_color_factor", m_base_color_factor);
@@ -212,10 +212,11 @@ Material::Material(MaterialStaticState const& material_static_state)
     m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("roughness_factor", m_roughness_factor);
 
     m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("normal_tex_index", m_normal_texture_binding_id);
-    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("srv_occlusion", m_occlusion_texture_binding_id);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("occlusion_tex_index", m_occlusion_texture_binding_id);
     m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("emissive_tex_index", m_emissive_texture_binding_id);
     m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("albedo_tex_index", m_base_color_texture_binding_id);
     m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("mr_tex_index", m_metallic_roughness_texture_binding_id);
+    m_material_parameters_cb_data_mapper.addOrUpdateDataBinding("usage_flags", m_usage_flags);
 }
 
 void Material::setStringName(std::string const& entity_string_name)
@@ -228,37 +229,54 @@ void Material::setMetallicRoughness(MetallicRoughness const& value)
     m_base_color_factor = value.base_color_factor;
     m_metallic_factor = value.metallic_factor;
     m_roughness_factor = value.roughness_factor;
-    
-    assert(value.p_base_color->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
-    lexgine::conversion::TextureUploadWork* p_base_color_texture_upload_work = value.p_base_color->p_texture_conversion_task->getUploadWork();
-    assert(p_base_color_texture_upload_work->isCompleted());
-    if (std::optional<uint32_t> texture_index = m_material_static_state.bindMaterialTexture(p_base_color_texture_upload_work->resource()))
+
+    if (value.p_base_color)
     {
-        m_base_color_texture_binding_id = *texture_index;
+        assert(value.p_base_color->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
+        lexgine::conversion::TextureUploadWork* p_base_color_texture_upload_work = value.p_base_color->p_texture_conversion_task->getUploadWork();
+        assert(p_base_color_texture_upload_work->isCompleted());
+        if (std::optional<uint32_t> texture_index = m_material_static_state.bindMaterialTexture(p_base_color_texture_upload_work->resource()))
+        {
+            m_base_color_texture_binding_id = *texture_index;
+            m_usage_flags |= MaterialDataTextureUsage::base_values::albedo;
+        }
     }
-    assert(value.p_metallic_roughness->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
-    lexgine::conversion::TextureUploadWork* p_metallic_roughness_texture_upload_work = value.p_metallic_roughness->p_texture_conversion_task->getUploadWork();
-    assert(p_metallic_roughness_texture_upload_work->isCompleted());
-    if (std::optional<uint32_t> texture_index = m_material_static_state.bindMaterialTexture(p_metallic_roughness_texture_upload_work->resource()))
+    if (value.p_metallic_roughness)
     {
-        m_metallic_roughness_texture_binding_id = *texture_index;
+        assert(value.p_metallic_roughness->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
+        lexgine::conversion::TextureUploadWork* p_metallic_roughness_texture_upload_work = value.p_metallic_roughness->p_texture_conversion_task->getUploadWork();
+        assert(p_metallic_roughness_texture_upload_work->isCompleted());
+        if (std::optional<uint32_t> texture_index = m_material_static_state.bindMaterialTexture(p_metallic_roughness_texture_upload_work->resource()))
+        {
+            m_metallic_roughness_texture_binding_id = *texture_index;
+            m_usage_flags |= MaterialDataTextureUsage::base_values::metallic_roughness;
+        }
     }
 }
 
 void Material::setNormalTexture(Texture* p_texture)
 {
+    if (!p_texture)
+    {
+        return;
+    }
     assert(p_texture->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
     lexgine::conversion::TextureUploadWork* p_texture_upload_work = p_texture->p_texture_conversion_task->getUploadWork();
     assert(p_texture_upload_work->isCompleted());
     if (std::optional<uint32_t> texture_index = m_material_static_state.bindMaterialTexture(p_texture_upload_work->resource()))
     {
         m_normal_texture_binding_id = *texture_index;
+        m_usage_flags |= MaterialDataTextureUsage::base_values::normal;
     }
-    
+
 }
 
 void Material::setOcclusionTexture(Texture* p_texture)
 {
+    if (!p_texture)
+    {
+        return;
+    }
     assert(p_texture->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
     lexgine::conversion::TextureUploadWork* p_texture_upload_work = p_texture->p_texture_conversion_task->getUploadWork();
     assert(p_texture_upload_work->isCompleted());
@@ -270,12 +288,17 @@ void Material::setOcclusionTexture(Texture* p_texture)
 
 void Material::setEmissiveTexture(Texture* p_texture)
 {
+    if (!p_texture)
+    {
+        return;
+    }
     assert(p_texture->p_texture_conversion_task->getStatus() == lexgine::conversion::TextureConversionStatus::completed);
     lexgine::conversion::TextureUploadWork* p_texture_upload_work = p_texture->p_texture_conversion_task->getUploadWork();
     assert(p_texture_upload_work->isCompleted());
     if (std::optional<uint32_t> texture_index = m_material_static_state.bindMaterialTexture(p_texture_upload_work->resource()))
     {
         m_emissive_texture_binding_id = *texture_index;
+        m_usage_flags |= MaterialDataTextureUsage::base_values::emissive;
     }
 }
 

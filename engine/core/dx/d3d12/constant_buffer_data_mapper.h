@@ -6,6 +6,7 @@
 #include <span>
 #include "engine/core/misc/hashed_string.h"
 #include "engine/core/misc/static_vector.h"
+#include "engine/core/misc/flags.h"
 #include "engine/core/math/vector_types.h"
 #include "engine/core/math/matrix_types.h"
 #include "constant_buffer_reflection.h"
@@ -35,6 +36,15 @@ struct ConstantElementProvider<math::vector<T, nelements, Q>> final
     static void const* fetch(math::vector<T, nelements, Q> const& element) { return element.getRawData(); }
 };
 
+
+template<typename BaseFlagsType, typename CompatibleIntegralType>
+struct ConstantElementProvider<core::misc::Flags<BaseFlagsType, CompatibleIntegralType>> final
+{
+    static void const* fetch(core::misc::Flags<BaseFlagsType, CompatibleIntegralType> const& element)
+    {
+        return element.getRawData();
+    }
+};
 
 class AbstractConstantDataProvider
 {

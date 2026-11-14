@@ -14,6 +14,7 @@ struct MaterialData {
     uint normal_tex_index;
     uint mr_tex_index;
     uint emissive_tex_index;
+    uint occlusion_tex_index;
     
     uint alpha_mode;
     uint is_double_sided;
