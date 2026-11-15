@@ -7,6 +7,8 @@
 #define OBJECT_DATA_REGISTER   b1
 #define MATERIAL_DATA_REGISTER b2
 
+#define INSTANCE_DATA_REGISTER t0
+
 #define PASS_SPACE               space0
 #define MATERIAL_SPACE           space10
 #define BINDLESS_TEXTURE2D_SPACE space20

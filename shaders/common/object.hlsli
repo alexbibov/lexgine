@@ -7,6 +7,6 @@ struct ObjectData {
     float4x4 model;
 };
 
-ConstantBuffer<ObjectData> object_data : register(OBJECT_DATA_REGISTER, SHADER_FUNCTION_SPACE);
+StructuredBuffer<ObjectData> object_data : register(INSTANCE_DATA_REGISTER, SHADER_FUNCTION_SPACE);
 
 #endif
