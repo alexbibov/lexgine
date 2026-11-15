@@ -89,6 +89,14 @@ void Gbuffer::init(uint32_t width, uint32_t height)
         ResourceState::base_values::depth_write,
         ResourceOptimizedClearValue{ DXGI_FORMAT_D32_FLOAT, DepthStencilValue{ 1.f, 0 } }, descriptors[3]);
     m_depth->setStringName("gbuffer_depth");
+
+    std::vector<ColorTarget> color_targets{
+        ColorTarget{ *m_albedo, ResourceState::base_values::pixel_shader, RTVTextureInfo{} },
+        ColorTarget{ *m_nmre, ResourceState::base_values::pixel_shader, RTVTextureInfo{} },
+        ColorTarget{ *m_emission, ResourceState::base_values::pixel_shader, RTVTextureInfo{} }
+    };
+    DepthTarget depth_target{ *m_depth, ResourceState::base_values::depth_write, DSVTextureInfo{} };
+    m_rendering_target = std::make_unique<RenderingTarget>(m_globals, color_targets, misc::Optional<DepthTarget>{ depth_target });
 }
 
 MultiSamplingFormat Gbuffer::queryMultisamplingFormatForDxgiSurface(DXGI_FORMAT dxgi_format) const
