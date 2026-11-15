@@ -7,7 +7,6 @@
 #include <thread>
 
 #include <glm/gtc/constants.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 #define TINYGLTF3_IMPLEMENTATION
@@ -19,6 +18,7 @@
 #include <engine/core/globals.h>
 #include <engine/core/misc/misc.h>
 #include <engine/core/misc/hashes/xxhash64.h>
+#include <engine/core/math/utility.h>
 #include <engine/core/dx/d3d12/dx_resource_factory.h>
 #include <engine/core/dx/d3d12/basic_rendering_services.h>
 #include <engine/core/concurrency/task_graph.h>
@@ -322,7 +322,12 @@ void Scene::Node::setScale(core::math::Vector3f const& scaling_vector)
 
 void Scene::Node::setRotationQuaternion(core::math::Vector4f const& quaternion)
 {
-    m_rotation = glm::mat4_cast(glm::quat{ quaternion.w, quaternion.x, quaternion.y, quaternion.z });
+    setRotationQuaternion(core::math::Quaternionf{ quaternion.w, quaternion.x, quaternion.y, quaternion.z });
+}
+
+void Scene::Node::setRotationQuaternion(core::math::Quaternionf const& quaternion)
+{
+    m_rotation = glm::mat4_cast(quaternion);
     recomputeLocalTransform();
     invalidateSubtree();
 }
@@ -904,17 +909,13 @@ int Scene::readSceneNode(
             local_transform[i / 4][i % 4] = static_cast<float>(node.matrix[i]);
         }
 
-        glm::vec3 translation;
-        glm::quat rotation_quaternion;
-        glm::vec3 scale;
-        glm::vec3 skew;
-        glm::vec4 perspective;
-        glm::decompose(local_transform, scale, rotation_quaternion, translation, skew, perspective);
-        m_scene_nodes[new_node_id].setTranslation(core::math::Vector3f{ translation });
-        m_scene_nodes[new_node_id].setRotationQuaternion(core::math::Vector4f{
-            rotation_quaternion.x, rotation_quaternion.y, rotation_quaternion.z, rotation_quaternion.w
-        });
-        m_scene_nodes[new_node_id].setScale(core::math::Vector3f{ scale });
+        core::math::Vector3f translation;
+        core::math::Quaternionf rotation;
+        core::math::Vector3f scale;
+        core::math::decomposeTransform(local_transform, translation, rotation, scale);
+        m_scene_nodes[new_node_id].setTranslation(translation);
+        m_scene_nodes[new_node_id].setRotationQuaternion(rotation);
+        m_scene_nodes[new_node_id].setScale(scale);
     }
     else
     {

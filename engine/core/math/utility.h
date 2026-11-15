@@ -26,6 +26,24 @@ Matrix4f createOrthogonalProjectionMatrix(
     bool invert_depth = true
 );
 
+float length(Vector2f const& v);
+float length(Vector3f const& v);
+float length(Vector4f const& v);
+
+double length(Vector2d const& v);
+double length(Vector3d const& v);
+double length(Vector4d const& v);
+
+//! Decomposes an affine transform into translation, rotation and scale components, assuming it was composed
+//! as translation * rotation * scale. A negative-determinant transform is decomposed with the axis flip
+//! folded into the X scale component
+void decomposeTransform(
+    Matrix4f const& transform,
+    Vector3f& translation,
+    Quaternionf& rotation,
+    Vector3f& scale
+);
+
 }
 
 #endif

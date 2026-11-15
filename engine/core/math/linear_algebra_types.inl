@@ -25,6 +25,9 @@ using Vector2d = vector<double, 2, glm::defaultp>;
 using Vector2u = vector<unsigned int, 2, glm::defaultp>;
 using Vector2b = vector<bool, 2, glm::defaultp>;
 
+using Quaternionf = glm::quat;
+using Quaterniond = glm::dquat;
+
 #endif
 
 

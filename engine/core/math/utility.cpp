@@ -55,4 +55,67 @@ Matrix4f createOrthogonalProjectionMatrix(
     return Matrix4f{ row0, row1, row2, row3 }.transpose();
 }
 
+float length(Vector2f const& v)
+{
+    return glm::length(glm::vec2{ v });
+}
+
+float length(Vector3f const& v)
+{
+    return glm::length(glm::vec3{ v });
+}
+
+float length(Vector4f const& v)
+{
+    return glm::length(glm::vec4{ v });
+}
+
+double length(Vector2d const& v)
+{
+    return glm::length(glm::dvec2{ v });
+}
+
+double length(Vector3d const& v)
+{
+    return glm::length(glm::dvec3{ v });
+}
+
+double length(Vector4d const& v)
+{
+    return glm::length(glm::dvec4{ v });
+}
+
+void decomposeTransform(
+    Matrix4f const& transform,
+    Vector3f& translation,
+    Quaternionf& rotation,
+    Vector3f& scale
+)
+{
+    translation = Vector3f{ transform[3] };
+
+    scale = Vector3f{
+        length(Vector3f{ transform[0] }),
+        length(Vector3f{ transform[1] }),
+        length(Vector3f{ transform[2] })
+    };
+
+    // A negative determinant indicates a flipped axis; fold the flip into the X scale component
+    if (transform.determinant() < 0.f)
+    {
+        scale.x = -scale.x;
+    }
+
+    float const safe_scale_x = scale.x != 0.f ? scale.x : 1.f;
+    float const safe_scale_y = scale.y != 0.f ? scale.y : 1.f;
+    float const safe_scale_z = scale.z != 0.f ? scale.z : 1.f;
+    Matrix3f const rotation_matrix{
+        Vector3f{ transform[0] } / safe_scale_x,
+        Vector3f{ transform[1] } / safe_scale_y,
+        Vector3f{ transform[2] } / safe_scale_z
+    };
+
+    rotation = glm::quat_cast(rotation_matrix);
+}
+
 }

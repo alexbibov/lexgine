@@ -89,6 +89,9 @@ public:
         //! Sets the node's local rotation from a quaternion given as (x, y, z, w) components.
         void setRotationQuaternion(core::math::Vector4f const& quaternion);
 
+        //! Sets the node's local rotation from a quaternion.
+        void setRotationQuaternion(core::math::Quaternionf const& quaternion);
+
         //! Sets the node's local per-axis scale, replacing the previous scale component.
         void setScale(core::math::Vector3f const& scaling_vector);
 
