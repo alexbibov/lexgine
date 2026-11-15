@@ -8,6 +8,7 @@
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
 #include "engine/core/dx/d3d12/tasks/lexgine_core_dx_d3d12_tasks_fwd.h"
 #include "engine/core/dx/d3d12/caches/lexgine_core_dx_d3d12_caches_fwd.h"
+#include "engine/core/dx/d3d12/rendering/lexgine_core_dx_d3d12_rendering_fwd.h"
 
 #include "engine/scenegraph/lexgine_scenegraph_fwd.h"
 
@@ -21,7 +22,7 @@ class SubmeshRenderingTask final : public RenderingWork
 {
 public:
     static std::shared_ptr<SubmeshRenderingTask> create(
-        Globals& globals, 
+        Globals& globals,
         BasicRenderingServices& rendering_services
     )
     {
@@ -31,6 +32,11 @@ public:
     void setSourceScene(std::shared_ptr<scenegraph::Scene> const& source_scene)
     {
         m_source_scene = source_scene;
+    }
+
+    void setGbuffer(rendering::Gbuffer* p_gbuffer)
+    {
+        m_gbuffer = p_gbuffer;
     }
 
 public:  // Required by RenderinWork
@@ -50,6 +56,8 @@ private:
     Device& m_device;
     BasicRenderingServices& m_basic_rendering_services;
     std::weak_ptr<scenegraph::Scene> m_source_scene;
+    rendering::Gbuffer* m_gbuffer{ nullptr };
+    CommandList* m_cmd_list_ptr;
 };
 
 }
