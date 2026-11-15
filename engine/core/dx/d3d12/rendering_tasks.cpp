@@ -17,6 +17,8 @@
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/ui_draw_task.h"
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/gpu_profiling_queries_flush_task.h"
 #include "engine/core/dx/d3d12/tasks/rendering_tasks/gpu_work_execution_task.h"
+#include "engine/core/dx/d3d12/tasks/rendering_tasks/submesh_rendering_task.h"
+#include "engine/core/dx/d3d12/tasks/rendering_tasks/gbuffer_resolve_task.h"
 #include "engine/core/ui/profiler.h"
 
 #include "dx_resource_factory.h"
@@ -64,7 +66,11 @@ RenderingTasks::RenderingTasks(Globals& globals, osinteraction::windows::Window&
     , m_adapter_selector{ std::move(adapter_selector) }
     , m_gbuffer{ std::make_unique<rendering::Gbuffer>(globals) }
 {
-    m_test_rendering_task_build_cmd_list = RenderingTaskFactory::create<tasks::rendering_tasks::TestRenderingTask>(m_globals, m_basic_rendering_services);
+    m_submesh_rendering_task = RenderingTaskFactory::create<tasks::rendering_tasks::SubmeshRenderingTask>(m_globals, m_basic_rendering_services);
+    m_submesh_rendering_task->setGbuffer(m_gbuffer.get());
+    m_gbuffer_resolve_task = RenderingTaskFactory::create<tasks::rendering_tasks::GBufferResolveTask>(m_globals, m_basic_rendering_services);
+    m_gbuffer_resolve_task->setGbuffer(m_gbuffer.get());
+
     m_ui_draw_build_cmd_list = RenderingTaskFactory::create<tasks::rendering_tasks::UIDrawTask>(globals, m_basic_rendering_services);
     m_ui_draw_build_cmd_list->bindRenderingWindow(rendering_window);
     m_console = ui::Console::create(globals, m_basic_rendering_services, m_task_graph);
@@ -77,7 +83,8 @@ RenderingTasks::RenderingTasks(Globals& globals, osinteraction::windows::Window&
 
     m_post_rendering_gpu_tasks = RenderingTaskFactory::create<tasks::rendering_tasks::GpuWorkExecutionTask>(m_device,
         "GPU draw tasks", m_basic_rendering_services);
-    m_post_rendering_gpu_tasks->addSource(*m_test_rendering_task_build_cmd_list);
+    m_post_rendering_gpu_tasks->addSource(*m_submesh_rendering_task);
+    m_post_rendering_gpu_tasks->addSource(*m_gbuffer_resolve_task);
     m_post_rendering_gpu_tasks->addSource(*m_ui_draw_build_cmd_list);
 
     m_gpu_profiling_queries_flush_task = RenderingTaskFactory::create<tasks::rendering_tasks::GpuWorkExecutionTask>(m_device,
@@ -86,10 +93,10 @@ RenderingTasks::RenderingTasks(Globals& globals, osinteraction::windows::Window&
     m_gpu_profiling_queries_flush_task->addSource(*m_gpu_profiling_queries_flush_build_cmd_list);
 
     m_task_graph.setRootNodes({
-        ROOT_NODE_CAST(m_test_rendering_task_build_cmd_list.get()),
-        ROOT_NODE_CAST(m_ui_draw_build_cmd_list.get())
+        ROOT_NODE_CAST(m_submesh_rendering_task.get())
         });
-    m_test_rendering_task_build_cmd_list->addDependent(*m_post_rendering_gpu_tasks);
+    m_submesh_rendering_task->addDependent(*m_gbuffer_resolve_task);
+    m_gbuffer_resolve_task->addDependent(*m_ui_draw_build_cmd_list);
     m_ui_draw_build_cmd_list->addDependent(*m_post_rendering_gpu_tasks);
     m_ui_draw_build_cmd_list->addDependent(*m_gpu_profiling_queries_flush_build_cmd_list);
     m_gpu_profiling_queries_flush_build_cmd_list->addDependent(*m_gpu_profiling_queries_flush_task);
@@ -135,7 +142,8 @@ void RenderingTasks::defineRenderingConfiguration(RenderingConfiguration const& 
         m_rendering_configuration = rendering_configuration;
 
         // update rendering tasks
-        m_test_rendering_task_build_cmd_list->updateRenderingConfiguration(flags, m_rendering_configuration);
+        m_submesh_rendering_task->updateRenderingConfiguration(flags, m_rendering_configuration);
+        m_gbuffer_resolve_task->updateRenderingConfiguration(flags, m_rendering_configuration);
         m_ui_draw_build_cmd_list->updateRenderingConfiguration(flags, m_rendering_configuration);
 
         m_task_sink.start();
@@ -209,6 +217,7 @@ void RenderingTasks::loadScene(SceneSource const& scene_source)
         {
             return scenegraph::Scene::loadScene(m_globals, m_basic_rendering_services, scene_source.path, scene);
         }, scene_source.scene);
+    m_submesh_rendering_task->setSourceScene(m_current_scene);
 
     {
         std::lock_guard lock{ m_simulation_thread_mutex };
