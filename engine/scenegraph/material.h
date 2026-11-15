@@ -106,7 +106,7 @@ public:
 
     void bindMaterialParameters(
         core::dx::d3d12::CommandList& target_command_list,
-        core::dx::d3d12::ConstantBufferDataMapper& data_mapper
+        core::dx::d3d12::ConstantBufferDataMapper const& data_mapper
     ) const;
 
     //! fetches the compiled pipeline state and the root signature of the material from the caches and sets them on @param target_command_list.
@@ -177,7 +177,7 @@ public:
     void setEmissiveTexture(Texture* p_texture);
 
     MaterialStaticState const& getStaticState() const { return m_material_static_state; }
-    core::dx::d3d12::ConstantBufferDataMapper& getMaterialConstants() { return m_material_parameters_cb_data_mapper; }
+    core::dx::d3d12::ConstantBufferDataMapper const& getMaterialConstants() const { return m_material_parameters_cb_data_mapper; }
 
 private:
     MaterialStaticState const& m_material_static_state;

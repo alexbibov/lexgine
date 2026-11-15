@@ -9,6 +9,8 @@ class UIDrawTask;
 class RenderingWork;
 class GpuProfilingQueriesFlushTask;
 class GpuWorkExecutionTaskWithExtraChecks;
+class SubmeshRenderingTask;
+class GBufferResolveTask;
 
 }
 

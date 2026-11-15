@@ -160,7 +160,7 @@ void MaterialStaticState::bindDescriptorTables(core::dx::d3d12::CommandList& tar
 
 void MaterialStaticState::bindMaterialParameters(
     core::dx::d3d12::CommandList& target_command_list, 
-    core::dx::d3d12::ConstantBufferDataMapper& data_mapper
+    core::dx::d3d12::ConstantBufferDataMapper const& data_mapper
 ) const
 {
     auto allocation = m_basic_rendering_services.constantDataStream().allocateAndUpdate(data_mapper);
