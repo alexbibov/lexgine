@@ -41,6 +41,14 @@ void Camera::setView(const glm::vec3& pos, const glm::vec3& target, const glm::v
     updateFrustumPlanes();
 }
 
+void Camera::setViewFromWorldTransform(lexgine::core::math::Matrix4f const& world_transform)
+{
+    glm::vec3 const position = world_transform[3];
+    glm::vec3 const forward = -glm::normalize(glm::vec3{ world_transform[2] });
+    glm::vec3 const up = glm::normalize(glm::vec3{ world_transform[1] });
+    setView(position, position + forward, up);
+}
+
 core::math::Matrix4f const& Camera::getViewMatrix() const 
 {
     return m_view_matrix;

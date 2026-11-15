@@ -26,6 +26,10 @@ public:
     void setOrthographic(float left, float right, float bottom, float top, float near_z, float far_z);
     void setView(const glm::vec3& position, const glm::vec3& target, const glm::vec3& up);
 
+    //! Sets the view from a world transform, assuming the camera looks down the transform's negative Z axis
+    //! with its up direction along the transform's Y axis (the glTF camera convention)
+    void setViewFromWorldTransform(lexgine::core::math::Matrix4f const& world_transform);
+
     lexgine::core::math::Matrix4f const& getViewMatrix() const;
     lexgine::core::math::Matrix4f const& getProjectionMatrix() const;
     lexgine::core::math::Matrix4f const& getInverseProjectionMatrix() const;

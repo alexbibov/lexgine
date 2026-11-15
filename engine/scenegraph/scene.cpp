@@ -459,6 +459,7 @@ void Scene::setCurrentCamera(uint32_t camear_id)
     m_current_camera_node_id = camear_id;
     Node& current_camera_node = m_scene_nodes[m_current_camera_node_id];
     Camera& current_camera = m_cameras[current_camera_node.getCamera()];
+    current_camera.setViewFromWorldTransform(current_camera_node.localToWorldTransform());
     m_current_camera_position = current_camera_node.worldPosition();
     m_scene_parameters_data_mapper->addOrUpdateDataBinding("view", current_camera.getViewMatrix());
     m_scene_parameters_data_mapper->addOrUpdateDataBinding("projection", current_camera.getProjectionMatrix());
@@ -638,6 +639,8 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
     }
 
     GltfToSceneIndexMap index_map;
+    uint32_t default_camera_node_id = c_scene_resource_invalid_id;
+    uint32_t first_gltf_camera_node_id = c_scene_resource_invalid_id;
     {
         tg3_scene const& scene = model.scenes[scene_index];
 
@@ -646,7 +649,7 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
 
             m_cameras.push_back(Camera{ "default_camera" });
             uint32_t const default_camera_id = static_cast<uint32_t>(m_cameras.size() - 1);
-            uint32_t const default_camera_node_id = static_cast<uint32_t>(m_scene_nodes.size());
+            default_camera_node_id = static_cast<uint32_t>(m_scene_nodes.size());
             m_scene_nodes.emplace_back(this, default_camera_node_id);
             m_scene_nodes.back().setStringName("default_camera_node");
             m_scene_nodes.back().setCamera(default_camera_id);
@@ -855,6 +858,10 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
                 Camera& c = m_cameras[camera_id];
                 n.setCamera(camera_id);
                 m_camera_names_lut.emplace(std::make_pair(core::misc::HashedString{ c.getStringName() }, static_cast<size_t>(node_index_in_scene)));
+                if (first_gltf_camera_node_id == c_scene_resource_invalid_id)
+                {
+                    first_gltf_camera_node_id = node_index_in_scene;
+                }
                 break;
             }
             case NodeDataType::mesh:
@@ -883,7 +890,10 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
         m_scene_parameters_data_mapper = std::make_unique<core::dx::d3d12::ConstantBufferDataMapper>(
             m_materials[0].getStaticState().getSceneParametersUniformBufferReflection()
         );
-        setCurrentCamera(0);
+        uint32_t const initial_camera_node_id = first_gltf_camera_node_id != c_scene_resource_invalid_id
+            ? first_gltf_camera_node_id
+            : default_camera_node_id;
+        setCurrentCamera(initial_camera_node_id);
     }
 
     buildDraws();
@@ -1385,11 +1395,21 @@ bool Scene::loadCameras(tg3_model const& model, GltfToSceneIndexMap& index_map)
         {
             cameraProjectionType = ProjectionType::Perspective;
             tg3_perspective_camera const& perspectiveCamera = camera.perspective;
+            float aspect_ratio = static_cast<float>(perspectiveCamera.aspect_ratio);
+            if (aspect_ratio <= 0.f)
+            {
+                // glTF leaves the aspect ratio to the rendering viewport when it is not specified
+                core::Viewport const& viewport = m_basic_rendering_services.defaultViewport();
+                aspect_ratio = viewport.height() != 0.f ? viewport.width() / viewport.height() : 1.f;
+            }
+            float const zfar = perspectiveCamera.zfar > perspectiveCamera.znear
+                ? static_cast<float>(perspectiveCamera.zfar)
+                : 10000.f;    // glTF allows an infinite far plane; substitute the engine default far plane distance
             sceneCamera.setPerspective(
-                static_cast<float>(perspectiveCamera.yfov),
-                static_cast<float>(perspectiveCamera.aspect_ratio),
+                glm::degrees(static_cast<float>(perspectiveCamera.yfov)),
+                aspect_ratio,
                 static_cast<float>(perspectiveCamera.znear),
-                static_cast<float>(perspectiveCamera.zfar),
+                zfar,
                 m_global_settings.isInverseDepthClipSpaceEnabled()
             );
         }
