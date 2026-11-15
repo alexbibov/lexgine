@@ -109,9 +109,16 @@ public:
         core::dx::d3d12::ConstantBufferDataMapper& data_mapper
     ) const;
 
-    void bindObjectParameters(
+    //! fetches the compiled pipeline state and the root signature of the material from the caches and sets them on @param target_command_list.
+    //! Returns 'false' if the pipeline or the root signature is not compiled yet
+    bool bindPipeline(core::dx::d3d12::CommandList& target_command_list) const;
+
+    //! writes the view of the per-instance data buffer into the material's descriptor table and binds the table.
+    //! The view covers @param instance_buffer starting from @param first_instance up to the end of the buffer
+    bool bindInstanceData(
         core::dx::d3d12::CommandList& target_command_list,
-        core::dx::d3d12::ConstantBufferDataMapper& data_mapper
+        core::dx::d3d12::Resource const& instance_buffer,
+        uint64_t first_instance
     ) const;
 
     void bindSceneParameters(
@@ -135,6 +142,7 @@ private:
     core::dx::d3d12::caches::RootSignatureHandle m_rs_handle { nullptr };
     core::dx::d3d12::caches::GraphicsPSOHandle m_pso_handle { nullptr };
     std::optional<core::dx::dxcompilation::ShaderFunctionDescriptorTable> m_sampler_table;
+    std::optional<core::dx::dxcompilation::ShaderFunctionDescriptorTable> m_instance_data_table;
 };
 
 class Material : public core::NamedEntity<Material>

@@ -141,8 +141,8 @@ std::string describe(ReflectedDeclaration const& declaration)
     ShaderBindingPoint const& binding = declaration.binding;
     char literal = registerLiteral(registerClassOf(binding.kind));
     std::string registers = binding.is_unbounded
-        ? std::format("{}{}+", literal, binding.first_register)
-        : std::format("{}{}..{}{}", literal, binding.first_register, literal, binding.first_register + binding.register_count - 1);
+        ? std::format("{}{}+", literal, binding.base_register)
+        : std::format("{}{}..{}{}", literal, binding.base_register, literal, binding.base_register + binding.register_count - 1);
     return std::format("'{}' ({}, space{}, {} shader)", declaration.name.string(), registers, binding.register_space, stageName(declaration.stage));
 }
 
@@ -153,9 +153,9 @@ bool overlap(ShaderBindingPoint const& a, ShaderBindingPoint const& b)
         return false;
     }
 
-    uint64_t a_end = a.is_unbounded ? UINT64_MAX : static_cast<uint64_t>(a.first_register) + a.register_count;
-    uint64_t b_end = b.is_unbounded ? UINT64_MAX : static_cast<uint64_t>(b.first_register) + b.register_count;
-    return a.first_register < b_end && b.first_register < a_end;
+    uint64_t a_end = a.is_unbounded ? UINT64_MAX : static_cast<uint64_t>(a.base_register) + a.register_count;
+    uint64_t b_end = b.is_unbounded ? UINT64_MAX : static_cast<uint64_t>(b.base_register) + b.register_count;
+    return a.base_register < b_end && b.base_register < a_end;
 }
 
 }  // namespace
@@ -224,7 +224,7 @@ BindingLayoutCompilationResult compileBindingLayout(std::vector<ReflectedDeclara
             {
                 return std::format("{} is an array, but root constant buffers cannot be arrays", describe(declaration));
             }
-            if (std::find(root_constant_buffer_registers.begin(), root_constant_buffer_registers.end(), binding.first_register)
+            if (std::find(root_constant_buffer_registers.begin(), root_constant_buffer_registers.end(), binding.base_register)
                 == root_constant_buffer_registers.end())
             {
                 return std::format("{} has no corresponding root constant buffer parameter", describe(declaration));
@@ -248,7 +248,7 @@ BindingLayoutCompilationResult compileBindingLayout(std::vector<ReflectedDeclara
             ReflectedDeclaration const& first = declarations[named_input->second.first_declaration];
             if (first.binding.kind != binding.kind
                 || first.binding.register_space != binding.register_space
-                || first.binding.first_register != binding.first_register
+                || first.binding.base_register != binding.base_register
                 || first.binding.is_unbounded != binding.is_unbounded
                 || first.view != declaration.view)
             {
@@ -265,8 +265,8 @@ BindingLayoutCompilationResult compileBindingLayout(std::vector<ReflectedDeclara
         {
             ShaderBindingPoint const& lhs = declarations[a].binding;
             ShaderBindingPoint const& rhs = declarations[b].binding;
-            return std::make_tuple(registerClassOf(lhs.kind), lhs.register_space, lhs.first_register, lhs.register_count, static_cast<int>(declarations[a].stage))
-                < std::make_tuple(registerClassOf(rhs.kind), rhs.register_space, rhs.first_register, rhs.register_count, static_cast<int>(declarations[b].stage));
+            return std::make_tuple(registerClassOf(lhs.kind), lhs.register_space, lhs.base_register, lhs.register_count, static_cast<int>(declarations[a].stage))
+                < std::make_tuple(registerClassOf(rhs.kind), rhs.register_space, rhs.base_register, rhs.register_count, static_cast<int>(declarations[b].stage));
         }
     );
 
@@ -281,14 +281,14 @@ BindingLayoutCompilationResult compileBindingLayout(std::vector<ReflectedDeclara
             && ranges.back().register_class == register_class
             && ranges.back().register_space == binding.register_space
             && (ranges.back().is_unbounded
-                || static_cast<uint64_t>(binding.first_register) <= static_cast<uint64_t>(ranges.back().base_register) + ranges.back().register_count);
+                || static_cast<uint64_t>(binding.base_register) <= static_cast<uint64_t>(ranges.back().base_register) + ranges.back().register_count);
 
         if (!continues_last_range)
         {
             ranges.push_back(MergedRange{
                 .register_class = register_class,
                 .register_space = binding.register_space,
-                .base_register = binding.first_register,
+                .base_register = binding.base_register,
                 .register_count = binding.register_count,
                 .is_unbounded = binding.is_unbounded,
                 .declarations = { i }
@@ -306,7 +306,7 @@ BindingLayoutCompilationResult compileBindingLayout(std::vector<ReflectedDeclara
             }
         }
 
-        if (range.is_unbounded && binding.first_register != range.base_register)
+        if (range.is_unbounded && binding.base_register != range.base_register)
         {
             return std::format("{} and {} are unbounded arrays with different base registers in the same register space",
                 describe(declarations[range.declarations.front()]), describe(declaration));
@@ -314,7 +314,7 @@ BindingLayoutCompilationResult compileBindingLayout(std::vector<ReflectedDeclara
 
         if (!range.is_unbounded)
         {
-            uint32_t end_register = binding.first_register + binding.register_count;
+            uint32_t end_register = binding.base_register + binding.register_count;
             range.register_count = (std::max)(range.register_count, end_register - range.base_register);
         }
         range.declarations.push_back(i);
@@ -378,7 +378,7 @@ BindingLayoutCompilationResult compileBindingLayout(std::vector<ReflectedDeclara
             ReflectedDeclaration const& declaration = declarations[declaration_index];
             layout.bindings.try_emplace(declaration.name, BindingPlacement{
                 .table = range_tables[range_index],
-                .first_descriptor = range.is_unbounded ? 0 : range_offsets[range_index] + (declaration.binding.first_register - range.base_register),
+                .first_descriptor = range.is_unbounded ? 0 : range_offsets[range_index] + (declaration.binding.base_register - range.base_register),
                 .capacity = named_inputs.at(declaration.name).capacity,
                 .is_unbounded = declaration.binding.is_unbounded,
                 .kind = declaration.binding.kind,

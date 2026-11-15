@@ -34,7 +34,7 @@ enum class ShaderInputKind
 struct ShaderBindingPoint
 {
     ShaderInputKind kind;
-    uint32_t first_register;
+    uint32_t base_register;
     uint32_t register_count;    //!< number of registers occupied by the input; equals 0 for unbounded arrays
     uint32_t register_space;
     bool is_unbounded;
@@ -48,7 +48,7 @@ struct ShaderInputBindingPointHash
     {
         uint32_t const fields[] = {
             static_cast<uint32_t>(binding_point.kind),
-            binding_point.first_register,
+            binding_point.base_register,
             binding_point.register_count,
             binding_point.register_space,
             static_cast<uint32_t>(binding_point.is_unbounded)

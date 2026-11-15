@@ -902,21 +902,21 @@ namespace
     }
 
     ReflectedDeclaration declaration(ShaderType stage, char const* name, ShaderInputKind kind,
-        uint32_t first_register, uint32_t register_count, uint32_t register_space)
+        uint32_t base_register, uint32_t register_count, uint32_t register_space)
     {
         return ReflectedDeclaration{
             .stage = stage,
             .name = name,
-            .binding = { .kind = kind, .first_register = first_register, .register_count = register_count,
+            .binding = { .kind = kind, .base_register = base_register, .register_count = register_count,
                 .register_space = register_space, .is_unbounded = false },
             .view = defaultView(kind)
         };
     }
 
     ReflectedDeclaration unboundedDeclaration(ShaderType stage, char const* name, ShaderInputKind kind,
-        uint32_t first_register, uint32_t register_space)
+        uint32_t base_register, uint32_t register_space)
     {
-        ReflectedDeclaration rv = declaration(stage, name, kind, first_register, 0, register_space);
+        ReflectedDeclaration rv = declaration(stage, name, kind, base_register, 0, register_space);
         rv.binding.is_unbounded = true;
         return rv;
     }

@@ -256,7 +256,7 @@ void ShaderStage::collectShaderBindings()
 
         ShaderFunction::ShaderBindingPoint binding_point{};
         binding_point.is_unbounded = desc.BindCount == 0;
-        binding_point.first_register = static_cast<uint32_t>(desc.BindPoint);
+        binding_point.base_register = static_cast<uint32_t>(desc.BindPoint);
         binding_point.register_count = binding_point.is_unbounded ? 0 : static_cast<uint32_t>(desc.BindCount);
         binding_point.register_space = static_cast<uint32_t>(desc.Space);
 
@@ -308,7 +308,7 @@ void ShaderStage::collectShaderBindings()
                 std::format("Sampler feedback texture binding was "
                     "encountered at register range {}{}..{}. Sampler feedback textures are not currently supported. "
                     "This shader input will be ignored and attempts to execute it will result in undefined behaviour",
-                    'u', binding_point.first_register, binding_point.first_register + binding_point.register_count - 1
+                    'u', binding_point.base_register, binding_point.base_register + binding_point.register_count - 1
                 )
             );
             continue;
@@ -321,7 +321,7 @@ void ShaderStage::collectShaderBindings()
                 std::format("Ray-tracing acceleration structure binding was "
                     "encountered at register range {}{}..{}. Ray-tracing is not currently supported. "
                     "This shader input will be ignored and attempts to execute it will result in undefined behaviour",
-                    't', binding_point.first_register, binding_point.first_register + binding_point.register_count - 1
+                    't', binding_point.base_register, binding_point.base_register + binding_point.register_count - 1
                 )
             );
             continue;
@@ -469,7 +469,7 @@ void ShaderStage::collectShaderBindings()
                     LEXGINE_LOG_ERROR(
                         this,
                         std::format("Typed UAV binding '{}' at register u{} has unsupported dimension {}",
-                            desc.Name, binding_point.first_register, static_cast<int>(desc.Dimension)
+                            desc.Name, binding_point.base_register, static_cast<int>(desc.Dimension)
                         )
                     );
                     break;

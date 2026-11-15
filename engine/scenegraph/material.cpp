@@ -118,6 +118,12 @@ void MaterialStaticState::buildPipeline()
                     core::WrapMode::repeat, core::WrapMode::repeat, core::WrapMode::repeat },
                 core::math::Vector4f{ 0.f });
         }
+        if (std::optional<core::dx::dxcompilation::DescriptorTableId> instance_data_table_id
+            = m_shader_function->findDescriptorTable(core::dx::dxcompilation::BindingDomain::pass, core::dx::d3d12::DescriptorHeapType::cbv_srv_uav))
+        {
+            m_instance_data_table = m_shader_function->createDescriptorTable(*instance_data_table_id,
+                device.persistentDescriptorAllocator(core::dx::d3d12::DescriptorHeapType::cbv_srv_uav));
+        }
 
         m_material_parameters_cb_reflection = m_shader_function->getShaderStage(lexgine::core::dx::dxcompilation::ShaderType::pixel)->buildConstantBufferReflection(m_material_parameters_ub_name);
         m_scene_parameters_cb_reflection = m_shader_function->getShaderStage(lexgine::core::dx::dxcompilation::ShaderType::vertex)->buildConstantBufferReflection(m_scene_parameters_ub_name);
@@ -165,17 +171,41 @@ void MaterialStaticState::bindMaterialParameters(
     );
 }
 
-void MaterialStaticState::bindObjectParameters(
+bool MaterialStaticState::bindPipeline(core::dx::d3d12::CommandList& target_command_list) const
+{
+    core::dx::d3d12::caches::PSOBlobCache& pso_blob_cache = m_basic_rendering_services.globals().psoBlobCache();
+    core::dx::d3d12::caches::RootSignatureBlobCache& rs_blob_cache = m_basic_rendering_services.globals().rootSignatureBlobCache();
+
+    auto [p_pso, pso_status] = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
+    auto [p_root_signature, rs_status] = rs_blob_cache.getNativeRootSignature(m_rs_handle);
+    if (!p_pso || !p_root_signature)
+    {
+        return false;
+    }
+
+    target_command_list.setPipelineState(*p_pso);
+    target_command_list.setRootSignature(*p_root_signature);
+    return true;
+}
+
+bool MaterialStaticState::bindInstanceData(
     core::dx::d3d12::CommandList& target_command_list,
-    core::dx::d3d12::ConstantBufferDataMapper& data_mapper
+    core::dx::d3d12::Resource const& instance_buffer,
+    uint64_t first_instance
 ) const
 {
-    auto allocation = m_basic_rendering_services.constantDataStream().allocateAndUpdate(data_mapper);
-    m_shader_function->bindRootConstantBuffer(
-        target_command_list,
-        core::dx::dxcompilation::ShaderFunctionConstantBufferRootIds::object_uniforms,
-        allocation->virtualGpuAddress()
-    );
+    if (!m_instance_data_table)
+    {
+        return true;    // the pipeline does not consume instance data
+    }
+
+    bool const bound = m_shader_function->bindTextureBuffer(*m_instance_data_table, "object_data", instance_buffer,
+        first_instance, static_cast<uint32_t>(sizeof(core::math::Matrix4f)));
+    if (bound)
+    {
+        m_shader_function->setDescriptorTable(target_command_list, *m_instance_data_table);
+    }
+    return bound;
 }
 
 void MaterialStaticState::bindSceneParameters(
