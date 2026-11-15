@@ -4,6 +4,7 @@
 #include "glm/fwd.hpp"
 #include "glm/gtc/matrix_integer.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/quaternion.hpp"
 
 namespace lexgine::core::math {
 

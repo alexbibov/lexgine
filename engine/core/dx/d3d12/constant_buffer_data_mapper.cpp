@@ -33,16 +33,18 @@ void ConstantBufferDataMapper::writeAllBoundData(uint64_t constant_buffer_alloca
 
                 for (size_t j = 0; j < column_count; ++j)
                 {
-                    memcpy(reinterpret_cast<void*>(dst_address + (i*column_count + j) * 16),
-                        static_cast<char const*>(source_data) + j * row_and_column_count.first * 4,
-                        row_and_column_count.first * 4);
+                    memcpy(
+                        reinterpret_cast<void*>(dst_address + (i*column_count + j) * 16),
+                        static_cast<char const*>(source_data) + j * row_count * 4,
+                        row_count * 4
+                    );
                 }
             }
         }
         else
         {
             void const* source_data = w.second->fetchDataElement();
-            memcpy(reinterpret_cast<void*>(dst_address), source_data, row_and_column_count.first * 4);
+            memcpy(reinterpret_cast<void*>(dst_address), source_data, row_count * 4);
         }
     }
 }

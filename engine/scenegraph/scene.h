@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <future>
 #include <optional>
+#include <span>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -171,6 +172,44 @@ public:
 
     SceneMemory const& getSceneMemory() const { return m_scene_memory; }
 
+#pragma region DrawDataMemory
+    struct PerInstanceGpuData
+    {
+        core::math::Matrix4f transform;
+    };
+
+    struct PerInstanceCpuData
+    {
+        uint32_t owning_node_id;
+        uint32_t draw_id;
+    };
+
+    struct DrawKey
+    {
+        uint32_t mesh_id;
+        uint32_t submesh_id;
+        bool operator==(DrawKey const&) const = default;
+    };
+
+    struct Draw
+    {
+        uint32_t draw_query_id;
+        DrawKey draw_instance_id;
+        uint32_t gpu_instancing_section_start_index;
+        std::vector<uint32_t> instance_indices;
+    };
+
+    struct DrawQuery
+    {
+        uint32_t material_id;
+        std::vector<uint32_t> draw_ids;
+    };
+#pragma endregion DrawDataMemory
+
+    std::span<DrawQuery const> drawQueries() const { return m_draw_queries; }
+    std::span<Draw const> draws() const { return m_draws; }
+    std::span<PerInstanceGpuData const> instancesGpuData() const { return m_instances_gpu_data; }
+
 private:
     static constexpr char const* c_khr_light_punctual_ext = "KHR_lights_punctual";
     static constexpr char const* c_ext_mesh_gpu_instancing = "EXT_mesh_gpu_instancing";
@@ -305,44 +344,12 @@ private:
     };
 
 #pragma region DrawDataMemory
-    struct PerInstanceGpuData
-    {
-        core::math::Matrix4f transform;
-    };
-
-    struct PerInstanceCpuData
-    {
-        uint32_t owning_node_id;
-        uint32_t draw_id;
-    };
-
-    struct DrawKey
-    {
-        uint32_t mesh_id;
-        uint32_t submesh_id;
-        bool operator==(DrawKey const&) const = default;
-    };
-
     struct DrawInstanceIdHahser
     {
         size_t operator()(DrawKey const& value) const
         {
             return static_cast<size_t>(value.mesh_id) ^ std::rotl(static_cast<size_t>(value.submesh_id), 17);
         }
-    };
-
-    struct Draw
-    {
-        uint32_t draw_query_id;
-        DrawKey draw_instance_id;
-        uint32_t gpu_instancing_section_start_index;
-        std::vector<uint32_t> instance_indices;
-    };
-
-    struct DrawQuery
-    {
-        uint32_t material_id;
-        std::vector<uint32_t> draw_ids;
     };
 #pragma endregion DrawDataMemory
 

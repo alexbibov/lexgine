@@ -3,6 +3,7 @@
 
 #include "glm/matrix.hpp"
 #include "glm/gtc/matrix_integer.hpp"
+#include <glm/gtc/quaternion.hpp>
 
 
 namespace lexgine::core::math {
