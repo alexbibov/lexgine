@@ -591,6 +591,10 @@ bool ComputePSODescriptor::operator==(ComputePSODescriptor const& other) const
 
 GraphicsPSODescriptor::GraphicsPSODescriptor()
     : primitive_restart{ true }
+    , primitive_topology_type{ PrimitiveTopologyType::triangle }
+    , num_render_targets{ 0 }
+    , rtv_formats{}
+    , dsv_format{ DXGI_FORMAT_UNKNOWN }
     , node_mask{ 0x1 }
     , sample_mask{ 0xFFFFFFFF }
 {

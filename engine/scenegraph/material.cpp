@@ -77,6 +77,11 @@ MaterialStaticState::MaterialStaticState(
         core::dx::d3d12::FeatureMultisampleQualityLevels quality_level = p_device->queryFeatureQualityLevels(m_pso_descriptor.rtv_formats[i], static_cast<uint32_t>(msaa_mode));
         num_quality_levels = (std::min)(num_quality_levels, quality_level.num_quality_levels);
     }
+    if (m_pso_descriptor.dsv_format != DXGI_FORMAT_UNKNOWN)
+    {
+        num_quality_levels = (std::min)(num_quality_levels,
+            p_device->queryFeatureQualityLevels(m_pso_descriptor.dsv_format, static_cast<uint32_t>(msaa_mode)).num_quality_levels);
+    }
     if (num_quality_levels == 0 || num_quality_levels == std::numeric_limits<uint32_t>::max())
     {
         msaa_mode = core::MSAAMode::none;

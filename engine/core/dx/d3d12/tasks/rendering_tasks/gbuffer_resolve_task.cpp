@@ -60,47 +60,54 @@ GBufferResolveTask::GBufferResolveTask(Globals& globals, BasicRenderingServices&
 
 void GBufferResolveTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags update_flags, RenderingConfiguration const& rendering_configuration)
 {
-    if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::color_format_changed))
+    if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::color_format_changed)
+        || update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
         PSOBlobCache& pso_blob_cache = m_globals.psoBlobCache();
-        RootSignatureBlobCache& rs_blob_cache = m_globals.rootSignatureBlobCache();
 
         GraphicsPSODescriptor pso_descriptor{};
         pso_descriptor.rtv_formats[0] = rendering_configuration.color_buffer_format;
         pso_descriptor.num_render_targets = 1;
-        pso_descriptor.dsv_format = DXGI_FORMAT_UNKNOWN;
+        pso_descriptor.dsv_format = rendering_configuration.depth_buffer_format;
         pso_descriptor.primitive_topology_type = PrimitiveTopologyType::triangle;
+        pso_descriptor.primitive_restart = false;
+        pso_descriptor.rasterization_descriptor = RasterizerDescriptor{ FillMode::solid, CullMode::none };
+        pso_descriptor.depth_stencil_descriptor = DepthStencilDescriptor{ false, false, ComparisonFunction::always };
         pso_descriptor.node_mask = 1;
         pso_descriptor.vertex_shader = m_shader_function.getShaderStage(dx::dxcompilation::ShaderType::vertex)->getShaderBytecode();
         pso_descriptor.pixel_shader = m_shader_function.getShaderStage(dx::dxcompilation::ShaderType::pixel)->getShaderBytecode();
 
         m_pso_handle = pso_blob_cache.createGraphicsPSOBlobCompilationContract(pso_descriptor, m_rs_handle);
         pso_blob_cache.createPipelineStates();
-        auto [pso, pso_status] = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
-        (void) pso_status;
-        m_pso = pso;
-        auto [compiled_rs, rs_status] = rs_blob_cache.getNativeRootSignature(m_rs_handle);
-        (void) rs_status;
-        m_compiled_rs = compiled_rs;
+        m_pso = nullptr;
+        m_compiled_rs = nullptr;
+        fetchPipeline();
     }
+}
+
+bool GBufferResolveTask::fetchPipeline()
+{
+    if (!m_pso || !m_compiled_rs)
+    {
+        m_pso = m_globals.psoBlobCache().getGraphicsPipelineState(m_pso_handle).first;
+        m_compiled_rs = m_globals.rootSignatureBlobCache().getNativeRootSignature(m_rs_handle).first;
+    }
+    return m_pso && m_compiled_rs;
 }
 
 bool GBufferResolveTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
-    if (!m_gbuffer || !m_pso || !m_compiled_rs)
-    {
-        return true;
-    }
-
     core::rendering::FrameContext const& frame_context = m_basic_rendering_services.frameContext(user_data);
     m_basic_rendering_services.beginRendering(*m_cmd_list_ptr, frame_context);
-
-    m_cmd_list_ptr->setPipelineState(*m_pso);
-    m_cmd_list_ptr->setRootSignature(*m_compiled_rs);
-
     m_basic_rendering_services.setDefaultResources(*m_cmd_list_ptr);
     m_basic_rendering_services.setDefaultViewport(*m_cmd_list_ptr);
     m_basic_rendering_services.setDefaultRenderingTarget(*m_cmd_list_ptr, frame_context);
+    m_basic_rendering_services.clearDefaultRenderingTarget(*m_cmd_list_ptr, frame_context);
+
+    if (!m_gbuffer || !fetchPipeline())
+    {
+        return true;
+    }
 
     if (m_gbuffer->needsAlbedoResolve())
     {
@@ -119,6 +126,9 @@ bool GBufferResolveTask::doTask(uint8_t worker_id, uint64_t user_data)
         from_resolve.addTransitionBarrier(&resolved_albedo, ResourceState::base_values::resolve_destination, ResourceState::base_values::pixel_shader);
         from_resolve.applyBarriers(*m_cmd_list_ptr);
     }
+
+    m_cmd_list_ptr->setPipelineState(*m_pso);
+    m_cmd_list_ptr->setRootSignature(*m_compiled_rs);
 
     m_shader_function.bindTexture(*m_texture_table, "gbuffer_albedo", m_gbuffer->sampleableAlbedo());
     m_shader_function.setDescriptorTable(*m_cmd_list_ptr, *m_texture_table);

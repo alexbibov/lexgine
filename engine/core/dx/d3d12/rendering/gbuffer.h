@@ -1,6 +1,8 @@
 #ifndef LEXGINE_CORE_DX_D3D12_RENDERING_GBUFFER_H
 #define LEXGINE_CORE_DX_D3D12_RENDERING_GBUFFER_H
 
+#include <span>
+
 #include "engine/core/lexgine_core_fwd.h"
 #include "engine/core/globals.h"
 #include "engine/core/dx/d3d12/lexgine_core_dx_d3d12_fwd.h"
@@ -30,7 +32,7 @@ public:
     Resource const& sampleableAlbedo() const { return m_resolved_albedo ? *m_resolved_albedo : *m_albedo; }
 
 private:
-    MultiSamplingFormat queryMultisamplingFormatForDxgiSurface(DXGI_FORMAT dxgi_format) const;
+    MultiSamplingFormat queryMultisamplingFormat(std::span<DXGI_FORMAT const> dxgi_formats) const;
 
 private:
     Globals& m_globals;

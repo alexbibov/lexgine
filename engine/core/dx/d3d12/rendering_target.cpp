@@ -63,13 +63,13 @@ DepthTarget::DepthTarget(Resource const& target_resource, ResourceState target_d
 template<typename Target>
 RenderingTarget::TargetSnapshot RenderingTarget::makeSnapshot(Target const& target)
 {
-    auto viewed_array = target.target_view.arrayOffsetAndSize();
+    auto [first_array_element, element_count] = target.target_view.arrayOffsetAndSize();
     return {
         &target.target_view.associatedResource(),
         target.target_default_state,
         static_cast<uint16_t>(target.target_view.mipmapLevel()),
-        viewed_array.first,
-        viewed_array.second
+        first_array_element,
+        element_count
     };
 }
 

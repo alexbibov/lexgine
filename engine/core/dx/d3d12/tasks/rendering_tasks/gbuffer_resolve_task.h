@@ -47,6 +47,10 @@ private:    // required by AbstractTask interface
 private:
     GBufferResolveTask(Globals& globals, BasicRenderingServices& rendering_services);
 
+    //! retrieves the resolve pipeline state and root signature from the caches if they are not yet available;
+    //! returns 'true' when both are ready for use
+    bool fetchPipeline();
+
 private:
     Globals& m_globals;
     Device& m_device;

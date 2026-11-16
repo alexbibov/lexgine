@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <limits>
+
 #include "engine/core/global_settings.h"
 #include "engine/core/multisampling.h"
 #include "engine/core/dx/d3d12/device.h"
@@ -20,6 +23,11 @@ void Gbuffer::init(uint32_t width, uint32_t height)
     m_width = width;
     m_height = height;
 
+    DXGI_FORMAT const gbuffer_formats[] = {
+        DXGI_FORMAT_R11G11B10_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16_FLOAT, DXGI_FORMAT_D32_FLOAT
+    };
+    MultiSamplingFormat const msaa_format = queryMultisamplingFormat(gbuffer_formats);
+
     std::vector<ResourceDescriptor> descriptors{
         ResourceDescriptor::createTexture2D(
             m_width,
@@ -28,7 +36,7 @@ void Gbuffer::init(uint32_t width, uint32_t height)
             DXGI_FORMAT_R11G11B10_FLOAT,
             1,
             ResourceFlags::base_values::render_target,
-            queryMultisamplingFormatForDxgiSurface(DXGI_FORMAT_R11G11B10_FLOAT)
+            msaa_format
         ),
         ResourceDescriptor::createTexture2D(
             m_width,
@@ -37,7 +45,7 @@ void Gbuffer::init(uint32_t width, uint32_t height)
             DXGI_FORMAT_R16G16B16A16_FLOAT,
             1,
             ResourceFlags::base_values::render_target,
-            queryMultisamplingFormatForDxgiSurface(DXGI_FORMAT_R16G16B16A16_FLOAT)
+            msaa_format
         ),
         ResourceDescriptor::createTexture2D(
             m_width,
@@ -46,7 +54,7 @@ void Gbuffer::init(uint32_t width, uint32_t height)
             DXGI_FORMAT_R16G16_FLOAT,
             1,
             ResourceFlags::base_values::render_target,
-            queryMultisamplingFormatForDxgiSurface(DXGI_FORMAT_R16G16_FLOAT)
+            msaa_format
         ),
         ResourceDescriptor::createTexture2D(
             m_width,
@@ -55,11 +63,11 @@ void Gbuffer::init(uint32_t width, uint32_t height)
             DXGI_FORMAT_D32_FLOAT,
             1,
             ResourceFlags::base_values::depth_stencil,
-            queryMultisamplingFormatForDxgiSurface(DXGI_FORMAT_D32_FLOAT)
+            msaa_format
         )
     };
 
-    bool const is_msaa_enabled = m_globals_settings.msaaMode() != MSAAMode::none;
+    bool const is_msaa_enabled = msaa_format.count > 1;
     std::vector<ResourceHeapAllocationInfo> allocation_info;
     ResourceSetHeapAllocationInfo set_allocation_info = m_device.queryResourceAllocationInfo(descriptors, &allocation_info);
 
@@ -70,22 +78,22 @@ void Gbuffer::init(uint32_t width, uint32_t height)
     math::Vector4f const black_clear_color{ 0.f, 0.f, 0.f, 0.f };
 
     m_albedo = std::make_unique<PlacedResource>(*m_heap, allocation_info[0].offset,
-        ResourceState::base_values::render_target,
+        ResourceState::base_values::pixel_shader,
         ResourceOptimizedClearValue{ DXGI_FORMAT_R11G11B10_FLOAT, black_clear_color }, descriptors[0]);
     m_albedo->setStringName("gbuffer_albedo");
 
     m_nmre = std::make_unique<PlacedResource>(*m_heap, allocation_info[1].offset,
-        ResourceState::base_values::render_target,
+        ResourceState::base_values::pixel_shader,
         ResourceOptimizedClearValue{ DXGI_FORMAT_R16G16B16A16_FLOAT, black_clear_color }, descriptors[1]);
     m_nmre->setStringName("gbuffer_nmre");
 
     m_emission = std::make_unique<PlacedResource>(*m_heap, allocation_info[2].offset,
-        ResourceState::base_values::render_target,
+        ResourceState::base_values::pixel_shader,
         ResourceOptimizedClearValue{ DXGI_FORMAT_R16G16_FLOAT, black_clear_color }, descriptors[2]);
     m_emission->setStringName("gbuffer_emission");
 
     m_depth = std::make_unique<PlacedResource>(*m_heap, allocation_info[3].offset,
-        ResourceState::base_values::depth_write,
+        ResourceState::base_values::depth_read,
         ResourceOptimizedClearValue{ DXGI_FORMAT_D32_FLOAT, DepthStencilValue{ 1.f, 0 } }, descriptors[3]);
     m_depth->setStringName("gbuffer_depth");
 
@@ -129,16 +137,24 @@ void Gbuffer::init(uint32_t width, uint32_t height)
         ColorTarget{ *m_nmre, ResourceState::base_values::pixel_shader, RTVTextureInfo{} },
         ColorTarget{ *m_emission, ResourceState::base_values::pixel_shader, RTVTextureInfo{} }
     };
-    DepthTarget depth_target{ *m_depth, ResourceState::base_values::depth_write, DSVTextureInfo{} };
+    DepthTarget depth_target{ *m_depth, ResourceState::base_values::depth_read, DSVTextureInfo{} };
     m_rendering_target = std::make_unique<RenderingTarget>(m_globals, color_targets, misc::Optional<DepthTarget>{ depth_target });
 }
 
-MultiSamplingFormat Gbuffer::queryMultisamplingFormatForDxgiSurface(DXGI_FORMAT dxgi_format) const
+MultiSamplingFormat Gbuffer::queryMultisamplingFormat(std::span<DXGI_FORMAT const> dxgi_formats) const
 {
-    MSAAMode msaa_mode = m_globals_settings.msaaMode();
-    FeatureMultisampleQualityLevels msaa_quality = m_device.queryFeatureQualityLevels(dxgi_format, static_cast<uint32_t>(msaa_mode));
-    MultiSamplingFormat fmt{ static_cast<uint32_t>(msaa_mode), msaa_quality.num_quality_levels > 0 ? msaa_quality.num_quality_levels - 1 : 0 };
-    return fmt;
+    auto const sample_count = static_cast<uint32_t>(m_globals_settings.msaaMode());
+    uint32_t num_quality_levels = (std::numeric_limits<uint32_t>::max)();
+    for (DXGI_FORMAT format : dxgi_formats)
+    {
+        num_quality_levels = (std::min)(num_quality_levels, m_device.queryFeatureQualityLevels(format, sample_count).num_quality_levels);
+    }
+
+    if (num_quality_levels == 0 || num_quality_levels == (std::numeric_limits<uint32_t>::max)())
+    {
+        return MultiSamplingFormat{ 1, 0 };
+    }
+    return MultiSamplingFormat{ sample_count, num_quality_levels - 1 };
 }
 
 }

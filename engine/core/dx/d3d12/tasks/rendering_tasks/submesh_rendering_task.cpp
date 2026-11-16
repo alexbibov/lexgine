@@ -39,14 +39,15 @@ void SubmeshRenderingTask::updateRenderingConfiguration(
 bool SubmeshRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
 {
     std::shared_ptr<scenegraph::Scene> source_scene = m_source_scene.lock();
-    if (!source_scene || !source_scene->loadStatus() || !m_gbuffer)
+    if (source_scene && !source_scene->loadStatus())
+    {
+        source_scene.reset();    // the scene is still loading; render the empty GBuffer this frame
+    }
+
+    if (!m_gbuffer)
     {
         return true;
     }
-
-    source_scene->updateGeometryTransforms();
-
-    std::span<scenegraph::Scene::PerInstanceGpuData const> instances = source_scene->instancesGpuData();
 
     RenderingTarget const& gbuffer_target = m_gbuffer->renderingTarget();
     gbuffer_target.switchToRenderAccessState(*m_cmd_list_ptr);
@@ -60,6 +61,15 @@ bool SubmeshRenderingTask::doTask(uint8_t worker_id, uint64_t user_data)
     }
     m_cmd_list_ptr->clearDepthStencilView(gbuffer_target.dsvTable(), 0U, DSVClearFlags::clear_depth, 1.f, 0U);
 
+    if (!source_scene)
+    {
+        gbuffer_target.switchToInitialState(*m_cmd_list_ptr);
+        return true;
+    }
+
+    source_scene->updateGeometryTransforms();
+
+    std::span<scenegraph::Scene::PerInstanceGpuData const> instances = source_scene->instancesGpuData();
     if (instances.empty())
     {
         gbuffer_target.switchToInitialState(*m_cmd_list_ptr);

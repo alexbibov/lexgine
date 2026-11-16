@@ -309,10 +309,10 @@ void CommandList::outputMergerSetRenderTargets(DescriptorTable const* rtv_descri
         unsigned long idx{ 0 }, i{ 0 };
         for (unsigned long offset = 0;
             _BitScanForward64(&idx, active_rtv_descriptors_mask);
-            offset += idx, active_rtv_descriptors_mask >>= idx + 1, ++i)
+            offset += idx + 1, active_rtv_descriptors_mask >>= idx + 1, ++i)
         {
             rtv_cpu_handles.push_back(D3D12_CPU_DESCRIPTOR_HANDLE{
-                rtv_descriptor_table->cpu_pointer + rtv_descriptor_table->descriptor_size * offset
+                rtv_descriptor_table->cpu_pointer + rtv_descriptor_table->descriptor_size * (offset + idx)
                 });
         }
         p_rtv_base_cpu_handle = rtv_cpu_handles.data();
