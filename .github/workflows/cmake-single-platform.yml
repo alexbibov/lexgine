@@ -11,6 +11,8 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
+  # the root CMakeLists.txt rejects build trees inside the source tree
+  BUILD_DIR: ${{github.workspace}}/../cmake-builds/lexgine/vs
 
 jobs:
   build:
@@ -41,20 +43,18 @@ jobs:
 
     - name: Configure CMake
       working-directory: ${{github.workspace}}
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run:  |
-          cmake -S ${{github.workspace}} -B ${{github.workspace}}/build -DCMAKE_SYSTEM_VERSION=10.0
+          cmake --preset vs -B "${{env.BUILD_DIR}}" "-DCMAKE_SYSTEM_VERSION=10.0"
 
     - name: Build
       # Build your program with the given configuration
       run: |
-          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --resolve-package-references=off
+          cmake --build "${{env.BUILD_DIR}}" --config ${{env.BUILD_TYPE}} --resolve-package-references=off
 
     - name: Test
       working-directory: ${{github.workspace}}
       # Execute tests defined by the CMake configuration.
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}} --test-dir ${{github.workspace}}/build/engine -V
+      run: ctest -C ${{env.BUILD_TYPE}} --test-dir "${{env.BUILD_DIR}}/engine" -V
       
 
