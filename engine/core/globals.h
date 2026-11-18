@@ -111,6 +111,7 @@ private:
     std::unique_ptr<GlobalSettings> m_global_settings;
     std::unique_ptr<dx::d3d12::DxResourceFactory> m_dx_resource_factory;
     std::unique_ptr<GpuDataBlobCache> m_gpu_data_blob_cache;
+    std::unique_ptr<DebugTextures> m_debug_textures;
     std::unique_ptr<conversion::ImageLoaderPool> m_image_loader_pool;
     std::unique_ptr<conversion::TextureConverter> m_texture_converter;
     std::unique_ptr<dx::d3d12::caches::HLSLShaderBlobCache> m_hlsl_shader_blob_cache;

@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <limits>
 
+#include "engine/core/debug_textures.h"
+
 #include "engine/core/global_settings.h"
 #include "engine/core/multisampling.h"
 #include "engine/core/dx/d3d12/device.h"

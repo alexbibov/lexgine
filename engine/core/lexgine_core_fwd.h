@@ -77,6 +77,7 @@ namespace rendering {
 
 class RenderCommandPipe;
 class RenderThread;
+class DebugTextures;
 
 }
 
