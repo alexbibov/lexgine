@@ -72,12 +72,12 @@ class ProfilingService;
 class CPUTaskProfilingService;
 class GPUTaskProfilingService;
 struct RenderingConfiguration;
+class DebugTexturesRegistry;
 
 namespace rendering {
 
 class RenderCommandPipe;
 class RenderThread;
-class DebugTextures;
 
 }
 

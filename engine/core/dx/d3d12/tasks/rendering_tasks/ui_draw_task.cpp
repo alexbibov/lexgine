@@ -273,8 +273,8 @@ void UIDrawTask::updateRenderingConfiguration(RenderingConfigurationUpdateFlags 
     if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::color_format_changed)
         || update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
-        caches::PSOBlobCache& pso_blob_cache = m_globals.psoBlobCache();
-        caches::RootSignatureBlobCache& rs_blob_cache = m_globals.rootSignatureBlobCache();
+        caches::PSOBlobCache& pso_blob_cache = m_globals.d3d12().psoBlobCache();
+        caches::RootSignatureBlobCache& rs_blob_cache = m_globals.d3d12().rootSignatureBlobCache();
 
         if (!m_pso)
         {
@@ -463,7 +463,7 @@ bool UIDrawTask::dpiChanged(uint32_t dpi)
 UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering_services)
     : RenderingWork{ globals, "UI draw task", CommandType::direct }
     , m_globals{ globals }
-    , m_device{ globals.device() }
+    , m_device{ globals.d3d12().device() }
     , m_basic_rendering_services{ basic_rendering_services }
     , m_resource_uploader{ basic_rendering_services.resourceDataUploader() }
     , m_shader_function{
@@ -532,7 +532,7 @@ UIDrawTask::UIDrawTask(Globals& globals, BasicRenderingServices& basic_rendering
                 return out_col;\n\
             }\n";
 
-        caches::HLSLShaderBlobCache& hlsl_shader_blob_cache = m_globals.hlslShaderBlobCache();
+        caches::HLSLShaderBlobCache& hlsl_shader_blob_cache = m_globals.d3d12().hlslShaderBlobCache();
         caches::HLSLSourceTranslationUnit hlsl_translation_unit{ m_globals, "ui_rendering_shader", hlsl_source };
 
         m_vs = hlsl_shader_blob_cache.createHLSLShaderBlobCompilationContract(hlsl_translation_unit, dxcompilation::ShaderModel::model_61, dxcompilation::ShaderType::vertex, "VSMain");
@@ -766,7 +766,7 @@ void UIDrawTask::updateTexture(ImTextureData* p_texture)
         p_texture->SetStatus(ImTextureStatus_OK);
     }
 
-    uint16_t max_frames_in_flight = m_globals.globalSettings().getMaxFramesInFlight();
+    uint16_t max_frames_in_flight = m_globals.d3d12().globalSettings().getMaxFramesInFlight();
     if (p_texture->Status == ImTextureStatus_WantDestroy 
         && p_texture->UnusedFrames >= static_cast<int>(max_frames_in_flight))
     {

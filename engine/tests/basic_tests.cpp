@@ -25,7 +25,6 @@
 #include <engine/core/misc/misc.h>
 #include <engine/core/exception.h>
 #include <engine/initializer.h>
-#include <engine/core/dx/d3d12_initializer.h>
 #include <engine/core/engine_api.h>
 #include <engine/core/dx/d3d12/d3d12_pso_xml_parser.h>
 #include <engine/core/streamed_cache.h>
@@ -712,11 +711,12 @@ TEST(EngineTests_gpu, TestD3D12PSOXMLParser)
     using namespace lexgine::core::misc;
     using namespace lexgine::core;
 
-    D3D12EngineSettings settings{};
+    EngineSettings settings{};
     settings.debug_mode = true;
     settings.global_lookup_prefix = LEXGINE_GLOBAL_LOOKUP_PREFIX;
     settings.settings_lookup_path = LEXGINE_SETTINGS_PATH;
-    D3D12Initializer engine_init{ settings };
+    settings.global_settings_json_file = "global_settings.json";
+    Initializer engine_init{ settings };
 
     {
           auto content = readAsciiTextFromSourceFile(std::string{ LEXGINE_GLOBAL_LOOKUP_PREFIX } + "/" + LEXGINE_SCRIPTS_PATH + "/d3d12_PSOs/example_serialized_pso.xml");
@@ -730,7 +730,7 @@ TEST(EngineTests_gpu, TestD3D12PSOXMLParser)
             RootSignature rs{};
             rs.addParameter(0, table0, ShaderVisibility::all);
 
-            auto& rs_compilation_tasks_cache = globals.rootSignatureBlobCache();
+            auto& rs_compilation_tasks_cache = globals.d3d12().rootSignatureBlobCache();
 
             auto flags = RootSignatureFlags::base_values::allow_input_assembler | RootSignatureFlags::base_values::allow_stream_output;
             rs_compilation_tasks_cache.createRootSignatureBlobCompilationContract(std::move(rs), flags);
@@ -751,11 +751,12 @@ TEST(EngineTests_gpu, TestShaderReflectionBindingDescriptions)
     using namespace lexgine::core::dx::d3d12;
     using namespace lexgine::core::dx::d3d12::caches;
 
-    D3D12EngineSettings settings{};
+    EngineSettings settings{};
     settings.debug_mode = true;
     settings.global_lookup_prefix = LEXGINE_GLOBAL_LOOKUP_PREFIX;
     settings.settings_lookup_path = LEXGINE_SETTINGS_PATH;
-    D3D12Initializer engine_init{ settings };
+    settings.global_settings_json_file = "global_settings.json";
+    Initializer engine_init{ settings };
     Globals& globals = engine_init.globals();
 
     std::string const hlsl_source =
@@ -792,7 +793,7 @@ TEST(EngineTests_gpu, TestShaderReflectionBindingDescriptions)
         "    rw_texture_3d[id] = v;\n"
         "}\n";
 
-    HLSLShaderBlobCache& hlsl_shader_blob_cache = globals.hlslShaderBlobCache();
+    HLSLShaderBlobCache& hlsl_shader_blob_cache = globals.d3d12().hlslShaderBlobCache();
     HLSLSourceTranslationUnit translation_unit{ globals, "reflection_probe_shader", hlsl_source };
     HLSLShaderHandle shader_handle = hlsl_shader_blob_cache.createHLSLShaderBlobCompilationContract(
         translation_unit, dxcompilation::ShaderModel::model_62, dxcompilation::ShaderType::compute, "CSMain");
@@ -1246,12 +1247,6 @@ TEST_F(CacheTest, TestStreamedCacheBigEntries)
     using namespace lexgine::core::dx;
     using namespace lexgine::core::misc;
 
-    /*D3D12EngineSettings settings{};
-    settings.debug_mode = true;
-    settings.global_lookup_prefix = LEXGINE_GLOBAL_LOOKUP_PREFIX;
-    settings.settings_lookup_path = LEXGINE_SETTINGS_PATH;
-    D3D12Initializer engine_init{ settings };*/
-
     {
         std::default_random_engine rand_eng{ static_cast<unsigned int>(
             std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()) };
@@ -1329,12 +1324,6 @@ TEST_F(CacheTest, TestStreamedCacheExtensiveUsage)
     using namespace lexgine::core;
     using namespace lexgine::core::dx;
     using namespace lexgine::core::misc;
-
-    /*D3D12EngineSettings settings{};
-    settings.debug_mode = true;
-    settings.global_lookup_prefix = LEXGINE_GLOBAL_LOOKUP_PREFIX;
-    settings.settings_lookup_path = LEXGINE_SETTINGS_PATH;
-    D3D12Initializer engine_init{ settings };*/
 
     {
         size_t const test_cache_size{ 26214400U };    // 100 megabytes
@@ -1563,13 +1552,14 @@ TEST(EngineTests_gpu, TestTextureCompression)
     EngineSettings settings{};
     settings.engine_api = EngineApi::Direct3D12;
     settings.debug_mode = true;
+    settings.global_settings_json_file = "global_settings.json";
     settings.log_name = "TestTextureCompression.log";
 
     Initializer initializer{ settings };
     initializer.setCurrentDevice(0);
 
 
-    conversion::TextureConverter* p_texture_converter = &initializer.globals().textureConverter();
+    conversion::TextureConverter* p_texture_converter = &initializer.globals().d3d12().textureConverter();
     scenegraph::Image test_image{ std::filesystem::path{LEXGINE_GLOBAL_LOOKUP_PREFIX} / "engine/tests/data/Lenna_(test_image).png", initializer.globals().imageLoaderPool()};
     p_texture_converter->addTextureConversionTask(test_image, false);
     p_texture_converter->convertTextures();

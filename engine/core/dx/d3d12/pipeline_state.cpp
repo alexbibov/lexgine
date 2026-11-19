@@ -287,7 +287,7 @@ D3DDataBlob PipelineState::getCache() const
 
 PipelineState::PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const& root_signature,
     GraphicsPSODescriptor const& pso_descriptor, D3DDataBlob const& cached_pso):
-    m_device{ globals.device() }
+    m_device{ globals.d3d12().device() }
 {
     D3D12_GRAPHICS_PIPELINE_STATE_DESC desc;
     memset(&desc, 0, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -468,7 +468,7 @@ PipelineState::PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const
 
 PipelineState::PipelineState(Globals& globals, ComPtr<ID3D12RootSignature> const& root_signature,
     ComputePSODescriptor const & pso_descriptor, D3DDataBlob const& cached_pso):
-    m_device{ globals.device() }
+    m_device{ globals.d3d12().device() }
 {
     D3D12_COMPUTE_PIPELINE_STATE_DESC desc;
     desc.pRootSignature = root_signature.Get();

@@ -1,8 +1,10 @@
+#include <filesystem>
 #include <format>
 
 #include "initializer.h"
 
 #include <engine/core/globals.h>
+#include <engine/core/debug_textures_registry.h>
 #include <engine/core/misc/log.h>
 #include <engine/core/concurrency/thread_affinity.h>
 #include <engine/core/rendering/render_thread.h>
@@ -53,8 +55,25 @@ EngineSettings::EngineSettings()
 }
 
 
+Initializer::LoggingSession::LoggingSession(EngineSettings const& settings)
+{
+    std::filesystem::path const log_name{ settings.log_name };
+    auto const log_path = std::filesystem::path{ settings.logging_output_path } / (log_name.stem().string() + ".html");
+    core::misc::Log::create(log_path, settings.log_name, core::misc::LogMessageType::trace);
+}
+
+Initializer::LoggingSession::~LoggingSession()
+{
+    core::misc::Log::retrieve()->out("Alive engine objects: " + std::to_string(core::Entity::aliveEntities()),
+        core::misc::LogMessageType::information);
+    core::misc::Log::shutdown();
+}
+
+
 Initializer::Initializer(EngineSettings const& settings)
-    : m_engine_api{ settings.engine_api }
+    : m_logging_session{ settings }
+    , m_engine_api{ settings.engine_api }
+    , m_globals{ std::make_unique<core::Globals>(settings.engine_api) }
 {
     // the frames are driven by a thread of their own, which claims the rendering role itself
     core::concurrency::registerSimulationThread();
@@ -89,9 +108,7 @@ Initializer::Initializer(EngineSettings const& settings)
         d3d12_engine_settings.settings_lookup_path = settings.settings_lookup_path;
         d3d12_engine_settings.global_settings_json_file = settings.global_settings_json_file;
         d3d12_engine_settings.shaders_lookup_path = settings.shaders_lookup_path;
-        d3d12_engine_settings.logging_output_path = settings.logging_output_path;
-        d3d12_engine_settings.log_name = settings.log_name;
-        m_d3d12_initializer = std::make_unique<core::dx::D3D12Initializer>(d3d12_engine_settings);
+        m_d3d12_initializer = std::make_unique<core::dx::D3D12Initializer>(*m_globals, d3d12_engine_settings);
         break;
     }
 
@@ -104,8 +121,14 @@ Initializer::Initializer(EngineSettings const& settings)
         LEXGINE_ASSUME;
     }
 
-    core::GlobalsAttorney<Initializer>::setImageLoaderPool(m_d3d12_initializer->globals(),
-        std::make_unique<conversion::ImageLoaderPool>());
+    core::GlobalsAttorney<Initializer>::setImageLoaderPool(
+        *m_globals,
+        std::make_unique<conversion::ImageLoaderPool>()
+    );
+    core::GlobalsAttorney<Initializer>::setDebugTexturesRegistry(
+        *m_globals,
+        std::make_unique<core::DebugTexturesRegistry>()
+    );
 
     m_device_recreation_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 }
@@ -232,7 +255,7 @@ bool Initializer::setCurrentDevice(uint32_t adapter_id)
     {
         if (!m_rendering_window_ptr) return m_d3d12_initializer->setCurrentDevice(adapter_id);
 
-        auto const& adapter_enumerator = m_d3d12_initializer->globals().dxResourceFactory().hardwareAdapterEnumerator();
+        auto const& adapter_enumerator = m_globals->d3d12().dxResourceFactory().hardwareAdapterEnumerator();
         if (adapter_id >= adapter_enumerator.getAdapterCount()) return false;
 
         {
@@ -294,7 +317,7 @@ osinteraction::WindowHandler* Initializer::createWindowHandler(osinteraction::wi
         buildRenderingChain();
 
         m_window_handler = std::make_unique<osinteraction::WindowHandler>(
-            std::move(osinteraction::WindowHandlerAttorney<Initializer>::makeWindowHandler(m_d3d12_initializer->globals(), window)
+            std::move(osinteraction::WindowHandlerAttorney<Initializer>::makeWindowHandler(*m_globals, window)
             ));
         osinteraction::WindowHandlerAttorney<Initializer>::addWaitableHandler(*m_window_handler, m_device_recreation_event,
             [this]() { handleDeviceRecreationRequest(); });
@@ -315,16 +338,7 @@ osinteraction::WindowHandler* Initializer::createWindowHandler(osinteraction::wi
 
 core::Globals& Initializer::globals()
 {
-    switch (m_engine_api)
-    {
-        case core::EngineApi::Direct3D12:
-            return m_d3d12_initializer->globals();
-
-        default:
-            LEXGINE_ASSUME;
-    }
-
-    return m_d3d12_initializer->globals();
+    return *m_globals;
 }
 
 }

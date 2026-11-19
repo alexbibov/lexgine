@@ -3,6 +3,7 @@
 
 namespace lexgine::core::dx {
 
+class D3D12Globals;
 class D3D12Initializer;
 
 }

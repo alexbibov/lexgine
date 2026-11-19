@@ -5,8 +5,7 @@
 #include "device.h"
 #include "engine/core/exception.h"
 
-using namespace lexgine::core::dx::d3d12;
-using namespace lexgine::core;
+namespace lexgine::core::dx::d3d12 {
 
 
 uint64_t ResourceDescriptor::getAllocationSize(Device const& device, uint32_t node_exposure_mask) const
@@ -21,7 +20,7 @@ D3D12_RESOURCE_DESC ResourceDescriptor::native() const
         static_cast<D3D12_RESOURCE_DIMENSION>(dimension),
         static_cast<UINT64>(alignment),
         width, height, depth, num_mipmaps, format,
-        DXGI_SAMPLE_DESC{multisampling_format.count, multisampling_format.quality},
+        DXGI_SAMPLE_DESC{ multisampling_format.count, multisampling_format.quality },
         static_cast<D3D12_TEXTURE_LAYOUT>(layout),
         static_cast<D3D12_RESOURCE_FLAGS>(flags.getValue())
     };
@@ -108,16 +107,14 @@ ResourceDescriptor ResourceDescriptor::createTexture3D(uint64_t width, uint32_t 
 
 Resource::Resource(ComPtr<ID3D12Resource> const& native)
     : m_resource{ native }
-{
-}
+{}
 
 Resource::Resource(ResourceState const& initial_state, ComPtr<ID3D12Resource> const& native/* = nullptr */)
     : m_resource{ native }
     , m_resource_default_state{ initial_state }
-{
-}
+{}
 
-Resource& lexgine::core::dx::d3d12::Resource::operator=(std::nullptr_t)
+Resource& Resource::operator=(std::nullptr_t)
 {
     m_resource.Reset();
     m_descriptor.invalidate();
@@ -232,8 +229,7 @@ PlacedResource::PlacedResource(Heap const& heap, uint64_t heap_offset,
 DepthStencilValue::DepthStencilValue(float depth, uint8_t stencil) :
     depth{ depth },
     stencil{ stencil }
-{
-}
+{}
 
 D3D12_DEPTH_STENCIL_VALUE DepthStencilValue::native() const
 {
@@ -248,14 +244,12 @@ D3D12_DEPTH_STENCIL_VALUE DepthStencilValue::native() const
 ResourceOptimizedClearValue::ResourceOptimizedClearValue(DXGI_FORMAT format, math::Vector4f const& color) :
     format{ format },
     value{ color }
-{
-}
+{}
 
 ResourceOptimizedClearValue::ResourceOptimizedClearValue(DXGI_FORMAT format, DepthStencilValue const& depth_stencil_value) :
     format{ format },
     value{ depth_stencil_value }
-{
-}
+{}
 
 D3D12_CLEAR_VALUE ResourceOptimizedClearValue::native() const
 {
@@ -315,4 +309,6 @@ void CommittedResource::createResource(Device const& device, D3D12_HEAP_PROPERTI
             static_cast<D3D12_RESOURCE_STATES>(resource_init_state.getValue()), resource_clear_value_ptr,
             IID_PPV_ARGS(&m_resource)),
         S_OK);
+}
+
 }

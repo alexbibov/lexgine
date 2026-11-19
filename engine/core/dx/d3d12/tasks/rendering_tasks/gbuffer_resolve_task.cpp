@@ -25,12 +25,12 @@ using namespace lexgine::core::dx::d3d12::caches;
 GBufferResolveTask::GBufferResolveTask(Globals& globals, BasicRenderingServices& rendering_services)
     : RenderingWork{ globals, "GBuffer resolve task", CommandType::direct }
     , m_globals{ globals }
-    , m_device{ globals.device() }
+    , m_device{ globals.d3d12().device() }
     , m_basic_rendering_services{ rendering_services }
     , m_shader_function{ m_globals, dx::dxcompilation::ShaderFunctionRootUniformBuffers::base_values::None }
     , m_cmd_list_ptr{ addCommandList() }
 {
-    HLSLShaderBlobCache& hlsl_shader_blob_cache = globals.hlslShaderBlobCache();
+    HLSLShaderBlobCache& hlsl_shader_blob_cache = globals.d3d12().hlslShaderBlobCache();
 
     HLSLFileTranslationUnit translation_unit_vs{ m_globals, "resolve.vs", "resolve/resolve.vs.hlsl" };
     caches::HLSLShaderHandle vs_handle = hlsl_shader_blob_cache.createHLSLShaderBlobCompilationContract(
@@ -63,7 +63,7 @@ void GBufferResolveTask::updateRenderingConfiguration(RenderingConfigurationUpda
     if (update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::color_format_changed)
         || update_flags.isSet(RenderingConfigurationUpdateFlags::base_values::depth_format_changed))
     {
-        PSOBlobCache& pso_blob_cache = m_globals.psoBlobCache();
+        PSOBlobCache& pso_blob_cache = m_globals.d3d12().psoBlobCache();
 
         GraphicsPSODescriptor pso_descriptor{};
         pso_descriptor.rtv_formats[0] = rendering_configuration.color_buffer_format;
@@ -89,8 +89,8 @@ bool GBufferResolveTask::fetchPipeline()
 {
     if (!m_pso || !m_compiled_rs)
     {
-        m_pso = m_globals.psoBlobCache().getGraphicsPipelineState(m_pso_handle).first;
-        m_compiled_rs = m_globals.rootSignatureBlobCache().getNativeRootSignature(m_rs_handle).first;
+        m_pso = m_globals.d3d12().psoBlobCache().getGraphicsPipelineState(m_pso_handle).first;
+        m_compiled_rs = m_globals.d3d12().rootSignatureBlobCache().getNativeRootSignature(m_rs_handle).first;
     }
     return m_pso && m_compiled_rs;
 }

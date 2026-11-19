@@ -18,7 +18,7 @@ using namespace lexgine::core::dx::d3d12;
 SwapChainLink::SwapChainLink(Globals& globals, dxgi::SwapChain& swap_chain_to_link,
     SwapChainDepthBufferFormat depth_buffer_format)
     : m_globals{ globals }
-    , m_global_settings{ globals.globalSettings() }
+    , m_global_settings{ globals.d3d12().globalSettings() }
     , m_linked_swap_chain{ swap_chain_to_link }
     , m_linked_rendering_tasks_ptr{ nullptr }
     , m_render_output{ globals, swap_chain_to_link, depth_buffer_format }
@@ -100,7 +100,7 @@ FrameOutcome SwapChainLink::render()
     catch (Exception const&)
     {
         // a device removed while the frame was recorded fails the frame from whichever call noticed it first
-        if (FAILED(m_globals.device().native()->GetDeviceRemovedReason())) return FrameOutcome::device_lost;
+        if (FAILED(m_globals.d3d12().device().native()->GetDeviceRemovedReason())) return FrameOutcome::device_lost;
         throw;
     }
     m_frame_pacer->markFrameEnd();

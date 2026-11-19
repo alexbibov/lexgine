@@ -68,9 +68,9 @@ MaterialStaticState::MaterialStaticState(
     }
     m_pso_descriptor.dsv_format = context.depth_stencil_format;
 
-    auto* p_global_settings = &m_shader_function->globals().globalSettings();
+    auto* p_global_settings = &m_shader_function->globals().d3d12().globalSettings();
     core::MSAAMode msaa_mode = p_global_settings->msaaMode();
-    auto* p_device = &m_shader_function->globals().device();
+    auto* p_device = &m_shader_function->globals().d3d12().device();
     uint32_t num_quality_levels = std::numeric_limits<uint32_t>::max();
     for (int i = 0; i < static_cast<int>(m_pso_descriptor.num_render_targets); ++i)
     {
@@ -112,7 +112,7 @@ void MaterialStaticState::buildPipeline()
     m_rs_handle = m_shader_function->buildInputResourceBindings();
 
     {
-        core::dx::d3d12::Device& device = m_basic_rendering_services.globals().device();
+        core::dx::d3d12::Device& device = m_basic_rendering_services.globals().d3d12().device();
         if (std::optional<core::dx::dxcompilation::DescriptorTableId> sampler_table_id
             = m_shader_function->findDescriptorTable(core::dx::dxcompilation::BindingDomain::pass, core::dx::d3d12::DescriptorHeapType::sampler))
         {
@@ -144,14 +144,14 @@ void MaterialStaticState::buildPipeline()
         m_pso_descriptor.geometry_shader = p_stage->getShaderBytecode();
     m_pso_descriptor.invalidateHash();
 
-    core::dx::d3d12::caches::PSOBlobCache& pso_blob_cache = m_basic_rendering_services.globals().psoBlobCache();
+    core::dx::d3d12::caches::PSOBlobCache& pso_blob_cache = m_basic_rendering_services.globals().d3d12().psoBlobCache();
     m_pso_handle = pso_blob_cache.createGraphicsPSOBlobCompilationContract(m_pso_descriptor, m_rs_handle);
 }
 
 std::optional<uint32_t> MaterialStaticState::bindMaterialTexture(core::dx::d3d12::Resource const& texture) const
 {
     return m_shader_function->bindBindlessTexture("material_textures", texture,
-        m_basic_rendering_services.globals().device().bindlessDescriptorCache());
+        m_basic_rendering_services.globals().d3d12().device().bindlessDescriptorCache());
 }
 
 void MaterialStaticState::bindDescriptorTables(core::dx::d3d12::CommandList& target_command_list) const
@@ -178,8 +178,8 @@ void MaterialStaticState::bindMaterialParameters(
 
 bool MaterialStaticState::bindPipeline(core::dx::d3d12::CommandList& target_command_list) const
 {
-    core::dx::d3d12::caches::PSOBlobCache& pso_blob_cache = m_basic_rendering_services.globals().psoBlobCache();
-    core::dx::d3d12::caches::RootSignatureBlobCache& rs_blob_cache = m_basic_rendering_services.globals().rootSignatureBlobCache();
+    core::dx::d3d12::caches::PSOBlobCache& pso_blob_cache = m_basic_rendering_services.globals().d3d12().psoBlobCache();
+    core::dx::d3d12::caches::RootSignatureBlobCache& rs_blob_cache = m_basic_rendering_services.globals().d3d12().rootSignatureBlobCache();
 
     auto [p_pso, pso_status] = pso_blob_cache.getGraphicsPipelineState(m_pso_handle);
     auto [p_root_signature, rs_status] = rs_blob_cache.getNativeRootSignature(m_rs_handle);

@@ -20,9 +20,9 @@ namespace lexgine::core::dx::d3d12::caches {
 
 RootSignatureBlobCache::RootSignatureBlobCache(Globals& globals)
     : m_globals { globals }
-    , m_device { globals.device() }
-    , m_gpu_blob_cache { globals.gpuDataBlobCache() }
-    , m_async_rs_creation { globals.globalSettings().isDeferredGpuResourceCompilationOn() }
+    , m_device { globals.d3d12().device() }
+    , m_gpu_blob_cache { globals.d3d12().gpuDataBlobCache() }
+    , m_async_rs_creation { globals.d3d12().globalSettings().isDeferredGpuResourceCompilationOn() }
 {
 }
 
@@ -74,7 +74,7 @@ void RootSignatureBlobCache::createRootSignatures()
     }
     if (m_unresolved_contracts.empty())
         return;
-    size_t num_threads = m_globals.globalSettings().getNumberOfWorkers();
+    size_t num_threads = m_globals.d3d12().globalSettings().getNumberOfWorkers();
     if (m_async_rs_creation && num_threads > 0)
     {
         size_t per_bucket_count = m_unresolved_contracts.size() / num_threads;
@@ -142,7 +142,7 @@ std::pair<CompiledRootSignature const*, RootSignatureBlobCompilationStatus> Root
     }
     if (status == RootSignatureBlobCompilationStatus::Started) 
     {
-        GlobalSettings const& global_settings = m_globals.globalSettings();
+        GlobalSettings const& global_settings = m_globals.d3d12().globalSettings();
         uint32_t timeout = global_settings.getMaxNonBlockingUploadBufferAllocationTimeout();
         if (rsit->second.future.wait_for(std::chrono::milliseconds{ timeout }) != std::future_status::ready)
         {

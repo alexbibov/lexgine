@@ -232,7 +232,7 @@ std::unordered_map<ShaderArgumentInfoKey, ShaderArgumentInfo> const& ShaderStage
 
 ShaderStage::ShaderStage(Globals const& globals, d3d12::caches::HLSLShaderHandle shader_handle, ShaderFunction* p_owning_shader_function)
     : m_globals{ globals }
-    , m_shader_blob_cache{ globals.hlslShaderBlobCache() }
+    , m_shader_blob_cache{ globals.d3d12().hlslShaderBlobCache() }
     , m_shader_handle{ shader_handle }
     , m_owning_shader_function_ptr{ p_owning_shader_function }
     , m_shader_name { m_shader_blob_cache.getShaderCacheName(shader_handle) }
@@ -629,7 +629,7 @@ void ShaderStage::collectShaderArguments(ShaderArgumentKind kind)
             LEXGINE_ASSUME;
         }
 
-        dx::d3d12::DxResourceFactory const& dx_resource_factory = m_globals.dxResourceFactory();
+        dx::d3d12::DxResourceFactory const& dx_resource_factory = m_globals.d3d12().dxResourceFactory();
         arg_info.format = dx_resource_factory.dxgiFormatFetcher().fetch(is_fp, is_signed, false, element_count, element_size);
         if (arg_info.format == DXGI_FORMAT_UNKNOWN)
         {

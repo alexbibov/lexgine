@@ -33,7 +33,7 @@ Profiler::Profiler(Globals const& globals,
     : m_globals{ globals }
     , m_basic_rendering_services{ basic_rendering_services }
     , m_task_graph{ task_graph }
-    , m_query_cache{ *globals.device().queryCache() }
+    , m_query_cache{ *globals.d3d12().device().queryCache() }
     , m_show_profiler{ true }
     , m_total_times(static_cast<size_t>(ProfilingServiceType::count))
 {
@@ -52,7 +52,7 @@ double Profiler::getCPUTimePerFrame() const
 
 double Profiler::getGPUTimePerFrame() const
 {
-    GlobalSettings const& settings = m_globals.globalSettings();
+    GlobalSettings const& settings = m_globals.d3d12().globalSettings();
     double result{ m_total_times[static_cast<size_t>(ProfilingServiceType::gpu_graphics_work_timestamp)] };
 
     double const gpu_compute_work_time = m_total_times[static_cast<size_t>(ProfilingServiceType::gpu_compute_work_timestamp)];

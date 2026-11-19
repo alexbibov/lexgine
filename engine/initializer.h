@@ -80,6 +80,12 @@ public:
     core::Globals& globals();
 
 private:
+    struct LoggingSession
+    {
+        explicit LoggingSession(EngineSettings const& settings);
+        ~LoggingSession();
+    };
+
     void buildRenderingChain();    //! creates the swap chain, the rendering tasks and the thread driving the frames over the current device
     void releaseRenderingChain();    //! destroys everything built by buildRenderingChain() in the reverse order
 
@@ -87,7 +93,9 @@ private:
     void handleDeviceRecreationRequest();
 
 private:
+    LoggingSession m_logging_session;    //!< Keeps logging available through engine teardown.
     core::EngineApi m_engine_api;
+    std::unique_ptr<core::Globals> m_globals;
     std::unique_ptr<core::dx::D3D12Initializer> m_d3d12_initializer;
     std::unique_ptr<core::dx::dxgi::SwapChain> m_swap_chain;
     std::unique_ptr<core::dx::d3d12::RenderingTasks> m_rendering_tasks;

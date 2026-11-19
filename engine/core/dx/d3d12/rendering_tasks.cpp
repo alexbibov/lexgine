@@ -55,9 +55,9 @@ tasks::rendering_tasks::RenderingWork::RenderingConfigurationUpdateFlags getRend
 RenderingTasks::RenderingTasks(Globals& globals, osinteraction::windows::Window& rendering_window,
     std::function<bool(uint32_t)> adapter_selector)
     : m_globals{ globals }
-    , m_device{ globals.device() }
+    , m_device{ globals.d3d12().device() }
     , m_frame_progress_tracker{ m_device.frameProgressTracker() }
-    , m_task_graph{ globals.globalSettings().getNumberOfWorkers(), "RenderingTasksGraph" }
+    , m_task_graph{ globals.d3d12().globalSettings().getNumberOfWorkers(), "RenderingTasksGraph" }
     , m_task_sink{ m_task_graph, "RenderingTasksSink",
                    [](uint8_t) { concurrency::registerSlaveWorkerThread(); } }
     , m_basic_rendering_services{ globals }
@@ -293,7 +293,7 @@ void RenderingTasks::registerConsoleCommands()
     reg.addCommand("device", list_cmd,
         [this](interaction::console::ArgMap const&) -> interaction::console::CommandExecResult
         {
-            auto const& adapter_enumerator = m_globals.dxResourceFactory().hardwareAdapterEnumerator();
+            auto const& adapter_enumerator = m_globals.d3d12().dxResourceFactory().hardwareAdapterEnumerator();
 
             std::string adapter_list{ "Adapters:" };
             for (uint32_t adapter_id = 0; adapter_id < adapter_enumerator.getAdapterCount(); ++adapter_id)

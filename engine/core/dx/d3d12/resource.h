@@ -151,6 +151,11 @@ public:
     Resource& operator=(Resource&&) = default;
     Resource& operator=(std::nullptr_t);
 
+    bool operator==(Resource const& other) const { return m_resource == other.m_resource; }
+    bool operator==(std::nullptr_t) const { return m_resource == nullptr; }
+    operator bool() const { return m_resource; }
+
+
     void setStringName(std::string const& entity_string_name) override;
 
     ComPtr<ID3D12Resource> native() const;    //! returns encapsulated native Direct3D12 interface representing the resource
@@ -178,6 +183,7 @@ protected:
 class PlacedResource final : public Resource
 {
 public:
+    PlacedResource() = default;
     /*! Creates placed resource in provided @param heap at the given @param offset. Note that @param initial_state and @param optimized_clear_value
      may be overridden to certain values depending on the type of the heap and on the dimension of the resource being created. THROWS
      */
@@ -190,6 +196,8 @@ public:
 class CommittedResource final : public Resource
 {
 public:
+    CommittedResource() = default;
+
     CommittedResource(Device const& device, ResourceState initial_state,
         misc::Optional<ResourceOptimizedClearValue> const& optimized_clear_value,
         ResourceDescriptor const& descriptor, AbstractHeapType resource_memory_type,

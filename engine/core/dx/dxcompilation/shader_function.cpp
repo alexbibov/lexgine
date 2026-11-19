@@ -46,7 +46,7 @@ uint32_t getDataTypeSize(StorageResourceDataType data_type)
 
 ShaderFunction::ShaderFunction(Globals& globals, ShaderFunctionRootUniformBuffers const& flags/* = ShaderFunctionRootUniformBuffers::base_values::None*/)
     : ProvidesGlobals { globals }
-    , m_device { globals.device() }
+    , m_device { globals.d3d12().device() }
     , m_flags{ flags }
 {
     // Create buffer for atomic counters
@@ -138,7 +138,7 @@ d3d12::caches::RootSignatureHandle ShaderFunction::buildInputResourceBindings()
     }
     m_occupied_rs_slots = static_cast<uint32_t>(m_binding_layout->root_constant_buffers.size() + m_binding_layout->descriptor_tables.size());
 
-    d3d12::caches::RootSignatureBlobCache& rs_blob_cache = m_globals.rootSignatureBlobCache();
+    d3d12::caches::RootSignatureBlobCache& rs_blob_cache = m_globals.d3d12().rootSignatureBlobCache();
     d3d12::RootSignatureFlags rs_flags = d3d12::RootSignatureFlags::base_values::deny_vertex_shader
         | d3d12::RootSignatureFlags::base_values::deny_hull_shader
         | d3d12::RootSignatureFlags::base_values::deny_domain_shader

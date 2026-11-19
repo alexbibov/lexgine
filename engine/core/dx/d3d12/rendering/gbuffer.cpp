@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <limits>
 
-#include "engine/core/debug_textures.h"
+#include "engine/core/debug_textures_registry.h"
 
 #include "engine/core/global_settings.h"
 #include "engine/core/multisampling.h"
@@ -14,8 +14,8 @@ namespace lexgine::core::dx::d3d12::rendering
 
 Gbuffer::Gbuffer(Globals& globals)
     : m_globals{ globals }
-    , m_globals_settings{ globals.globalSettings() }
-    , m_device{ m_globals.device() }
+    , m_globals_settings{ globals.d3d12().globalSettings() }
+    , m_device{ m_globals.d3d12().device() }
 {
 
 }
@@ -79,25 +79,30 @@ void Gbuffer::init(uint32_t width, uint32_t height)
 
     math::Vector4f const black_clear_color{ 0.f, 0.f, 0.f, 0.f };
 
-    m_albedo = std::make_unique<PlacedResource>(*m_heap, allocation_info[0].offset,
+    m_albedo = PlacedResource(*m_heap, allocation_info[0].offset,
         ResourceState::base_values::pixel_shader,
         ResourceOptimizedClearValue{ DXGI_FORMAT_R11G11B10_FLOAT, black_clear_color }, descriptors[0]);
-    m_albedo->setStringName("gbuffer_albedo");
+    m_albedo.setStringName("gbuffer_albedo");
+    m_globals.debugTextureRegistry().registerDebugTexture(m_albedo);
+    
 
-    m_nmre = std::make_unique<PlacedResource>(*m_heap, allocation_info[1].offset,
+    m_nmre = PlacedResource(*m_heap, allocation_info[1].offset,
         ResourceState::base_values::pixel_shader,
         ResourceOptimizedClearValue{ DXGI_FORMAT_R16G16B16A16_FLOAT, black_clear_color }, descriptors[1]);
-    m_nmre->setStringName("gbuffer_nmre");
+    m_nmre.setStringName("gbuffer_nmre");
+    m_globals.debugTextureRegistry().registerDebugTexture(m_nmre);
 
-    m_emission = std::make_unique<PlacedResource>(*m_heap, allocation_info[2].offset,
+    m_emission = PlacedResource(*m_heap, allocation_info[2].offset,
         ResourceState::base_values::pixel_shader,
         ResourceOptimizedClearValue{ DXGI_FORMAT_R16G16_FLOAT, black_clear_color }, descriptors[2]);
-    m_emission->setStringName("gbuffer_emission");
+    m_emission.setStringName("gbuffer_emission");
+    m_globals.debugTextureRegistry().registerDebugTexture(m_emission);
 
-    m_depth = std::make_unique<PlacedResource>(*m_heap, allocation_info[3].offset,
+    m_depth = PlacedResource(*m_heap, allocation_info[3].offset,
         ResourceState::base_values::depth_read,
         ResourceOptimizedClearValue{ DXGI_FORMAT_D32_FLOAT, DepthStencilValue{ 1.f, 0 } }, descriptors[3]);
-    m_depth->setStringName("gbuffer_depth");
+    m_depth.setStringName("gbuffer_depth");
+    m_globals.debugTextureRegistry().registerDebugTexture(m_depth);
 
     if (is_msaa_enabled)
     {
@@ -124,22 +129,22 @@ void Gbuffer::init(uint32_t width, uint32_t height)
         );
         m_resolved_heap = std::make_unique<Heap>(std::move(resolve_heap));
 
-        m_resolved_albedo = std::make_unique<PlacedResource>(*m_resolved_heap, resolve_resources_allocation_info[0].offset,
+        m_resolved_albedo = PlacedResource(*m_resolved_heap, resolve_resources_allocation_info[0].offset,
             ResourceState::base_values::pixel_shader,
             misc::Optional<ResourceOptimizedClearValue>{}, resolve_descriptors[0]);
-        m_resolved_albedo->setStringName("gbuffer_resolved_albedo");
+        m_resolved_albedo.setStringName("gbuffer_resolved_albedo");
     }
     else
     {
-        m_resolved_albedo.reset();
+        m_resolved_albedo = {};
     }
 
     std::vector<ColorTarget> color_targets{
-        ColorTarget{ *m_albedo, ResourceState::base_values::pixel_shader, RTVTextureInfo{} },
-        ColorTarget{ *m_nmre, ResourceState::base_values::pixel_shader, RTVTextureInfo{} },
-        ColorTarget{ *m_emission, ResourceState::base_values::pixel_shader, RTVTextureInfo{} }
+        ColorTarget{ m_albedo, ResourceState::base_values::pixel_shader, RTVTextureInfo{} },
+        ColorTarget{ m_nmre, ResourceState::base_values::pixel_shader, RTVTextureInfo{} },
+        ColorTarget{ m_emission, ResourceState::base_values::pixel_shader, RTVTextureInfo{} }
     };
-    DepthTarget depth_target{ *m_depth, ResourceState::base_values::depth_read, DSVTextureInfo{} };
+    DepthTarget depth_target{ m_depth, ResourceState::base_values::depth_read, DSVTextureInfo{} };
     m_rendering_target = std::make_unique<RenderingTarget>(m_globals, color_targets, misc::Optional<DepthTarget>{ depth_target });
 }
 

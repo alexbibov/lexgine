@@ -69,7 +69,7 @@ public:
         m_hlsl_source_code = ShaderSourceCodePreprocessor {
             hlsl_source_code,
             ShaderSourceCodePreprocessor::SourceType::string,
-            globals.globalSettings().getShaderLookupDirectories()
+            globals.d3d12().globalSettings().getShaderLookupDirectories()
         }.getPreprocessedSource();
         m_timestamp = misc::DateTime::buildTime();
     }

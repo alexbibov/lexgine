@@ -89,7 +89,7 @@ RenderingTarget::RenderingTarget(Globals& globals,
 
         rtv_table_builder.addDescriptor(target.target_view);
     }
-    m_rtvs_table = rtv_table_builder.build(globals.device().persistentDescriptorAllocator(DescriptorHeapType::rtv));
+    m_rtvs_table = rtv_table_builder.build(globals.d3d12().device().persistentDescriptorAllocator(DescriptorHeapType::rtv));
 
 
     if (depth_target.isValid())
@@ -100,7 +100,7 @@ RenderingTarget::RenderingTarget(Globals& globals,
 
         DepthStencilViewTableBuilder dsv_table_builder{};
         dsv_table_builder.addDescriptor(target.target_view);
-        m_dsv_table = dsv_table_builder.build(globals.device().persistentDescriptorAllocator(DescriptorHeapType::dsv));
+        m_dsv_table = dsv_table_builder.build(globals.d3d12().device().persistentDescriptorAllocator(DescriptorHeapType::dsv));
     }
 
     rebuildBarriers();

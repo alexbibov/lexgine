@@ -1,5 +1,3 @@
-#include <windows.h>
-#include <cwchar>
 #include <system_error>
 
 #include "d3d12_initializer.h"
@@ -7,8 +5,6 @@
 #include "engine/core/globals.h"
 #include "engine/core/global_settings.h"
 
-#include "engine/build_info.h"
-#include "engine/core/misc/misc.h"
 #include "engine/core/misc/log.h"
 
 #include "engine/core/dx/d3d12/dx_resource_factory.h"
@@ -34,40 +30,18 @@ D3D12EngineSettings::D3D12EngineSettings()
     , msaa_mode{ MSAAMode::none }
     , adapter_enumeration_preference{ dx::dxgi::DxgiGpuPreference::high_performance }
     , global_settings_json_file{ "global_settings.json" }
-    , log_name{ "lexgine.log" }
-    , log_level{ misc::LogMessageType::trace }
 {
 
 }
 
 
-D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
-    : m_debug_mode{ settings.debug_mode }
+D3D12Initializer::D3D12Initializer(Globals& globals, D3D12EngineSettings const& settings)
+    : m_engine_globals{ globals }
+    , m_debug_mode{ settings.debug_mode }
     , m_enable_dred{ settings.enable_dred }
     , m_gpu_based_validation_settings{ settings.gpu_based_validation_settings }
     , m_adapter_enumeration_preference{ settings.adapter_enumeration_preference }
 {
-    // std::string corrected_logging_output_path = correct_path(settings.logging_output_path);
-    // std::string corrected_global_lookup_prefix = correct_path(settings.global_lookup_prefix);
-    // std::string corrected_settings_lookup_path = correct_path(settings.settings_lookup_path);
-    // std::string corrected_shaders_lookup_path = correct_path(settings.shaders_lookup_path);
-
-    {
-        wchar_t host_computer_name[MAX_COMPUTERNAME_LENGTH + 1];
-        DWORD host_computer_name_length = MAX_COMPUTERNAME_LENGTH + 1;
-        if (!GetComputerName(host_computer_name, &host_computer_name_length))
-        {
-            wcscpy_s(host_computer_name, L"UNKNOWN_HOST");
-        }
-        std::string log_name{ std::string{ PROJECT_CODE_NAME } + " v." + std::to_string(PROJECT_VERSION_MAJOR) + "."
-        + std::to_string(PROJECT_VERSION_MINOR) + " rev." + std::to_string(PROJECT_VERSION_BUILD)
-        + "(" + std::to_string(PROJECT_VERSION_REVISION) + ")" + " (" + misc::wstringToAsciiString(host_computer_name) + ")" };
-
-        misc::Log::create(settings.logging_output_path / (settings.log_name.stem().string() + ".html"), settings.log_name.string(), settings.log_level);
-    }
-
-    m_globals = std::make_unique<Globals>(EngineApi::Direct3D12);
-
     // Load the global settings
     auto global_settings = std::make_unique<GlobalSettings>(settings.global_lookup_prefix / settings.settings_lookup_path / settings.global_settings_json_file);
 
@@ -103,60 +77,35 @@ D3D12Initializer::D3D12Initializer(D3D12EngineSettings const& settings)
     // Set profiling enable state
     global_settings->setIsProfilingEnabled(settings.enable_profiling);
 
-    GlobalsAttorney<D3D12Initializer>::setGlobalSettings(*m_globals, std::move(global_settings));
-
-    GlobalSettings& global_settings_ref = m_globals->globalSettings();
-
-    GlobalsAttorney<D3D12Initializer>::setDxResourceFactory(*m_globals,
-        std::make_unique<dx::d3d12::DxResourceFactory>(global_settings_ref, m_debug_mode, m_enable_dred,
-            m_gpu_based_validation_settings, m_adapter_enumeration_preference));
-
-    GlobalsAttorney<D3D12Initializer>::setGpuDataBlobCache(*m_globals,
-        std::make_unique<GpuDataBlobCache>(global_settings_ref));
+    auto d3d12_globals = std::make_unique<D3D12Globals>();
+    d3d12_globals->m_global_settings = std::move(global_settings);
+    d3d12_globals->m_dx_resource_factory =
+        std::make_unique<d3d12::DxResourceFactory>(d3d12_globals->globalSettings(), m_debug_mode, m_enable_dred,
+            m_gpu_based_validation_settings, m_adapter_enumeration_preference);
+    d3d12_globals->m_gpu_data_blob_cache = std::make_unique<GpuDataBlobCache>(d3d12_globals->globalSettings());
+    GlobalsAttorney<D3D12Initializer>::setD3D12Globals(m_engine_globals, std::move(d3d12_globals));
 
     setCurrentDevice(0);
 }
 
-D3D12Initializer::~D3D12Initializer()
-{
-    m_globals.reset();
-
-    misc::Log::retrieve()->out("Alive engine objects: " + std::to_string(Entity::aliveEntities()), misc::LogMessageType::information);
-
-    // Logger must be shutdown the last since many objects may still log stuff on destruction
-    misc::Log::shutdown();
-}
-
-
-core::Globals& D3D12Initializer::globals()
-{
-    return *m_globals;
-}
-
 bool D3D12Initializer::setCurrentDevice(uint32_t adapter_id)
 {
-    auto& hw_adapter_enumerator = m_globals->dxResourceFactory().hardwareAdapterEnumerator();
+    auto& hw_adapter_enumerator = m_engine_globals.d3d12().dxResourceFactory().hardwareAdapterEnumerator();
     if (adapter_id >= hw_adapter_enumerator.getAdapterCount()) return false;
 
-    GlobalsAttorney<D3D12Initializer>::setDevice(*m_globals, hw_adapter_enumerator[adapter_id]->device());
-
-    // Texture converter is re-created each time the device is switched as it relies on batch texture uploader that is device dependent
-    GlobalsAttorney<D3D12Initializer>::setTextureConverter(*m_globals,
-        std::make_unique<conversion::TextureConverter>(*m_globals));
-
-    rebuildDeviceDependentCaches();
+    selectDevice(hw_adapter_enumerator[adapter_id]->device());
     return true;
 }
 
 bool D3D12Initializer::recreateDevice(LUID const& adapter_luid)
 {
-    GlobalsAttorney<D3D12Initializer>::releaseDeviceDependentEntries(*m_globals);
+    auto& d3d12_globals = m_engine_globals.d3d12();
+    d3d12_globals.releaseDeviceDependentEntries();
+    d3d12_globals.m_dx_resource_factory =
+        std::make_unique<d3d12::DxResourceFactory>(d3d12_globals.globalSettings(), m_debug_mode, m_enable_dred,
+            m_gpu_based_validation_settings, m_adapter_enumeration_preference);
 
-    GlobalsAttorney<D3D12Initializer>::setDxResourceFactory(*m_globals,
-        std::make_unique<dx::d3d12::DxResourceFactory>(m_globals->globalSettings(), m_debug_mode, m_enable_dred,
-            m_gpu_based_validation_settings, m_adapter_enumeration_preference));
-
-    auto& hw_adapter_enumerator = m_globals->dxResourceFactory().hardwareAdapterEnumerator();
+    auto& hw_adapter_enumerator = d3d12_globals.dxResourceFactory().hardwareAdapterEnumerator();
     uint32_t const adapter_count = hw_adapter_enumerator.getAdapterCount();
     for (uint32_t adapter_id = 0; adapter_id < adapter_count; ++adapter_id)
     {
@@ -174,19 +123,18 @@ bool D3D12Initializer::recreateDevice(LUID const& adapter_luid)
 
 dx::d3d12::Device& D3D12Initializer::getCurrentDevice() const
 {
-    return m_globals->device();
+    return m_engine_globals.d3d12().device();
 }
 
 void D3D12Initializer::setWARPAdapterAsCurrent() const
 {
-    GlobalsAttorney<D3D12Initializer>::setDevice(*m_globals,
-        m_globals->dxResourceFactory().hardwareAdapterEnumerator().getWARPAdapter()->device());
-    const_cast<D3D12Initializer*>(this)->rebuildDeviceDependentCaches();
+    auto& adapter_enumerator = m_engine_globals.d3d12().dxResourceFactory().hardwareAdapterEnumerator();
+    selectDevice(adapter_enumerator.getWARPAdapter()->device());
 }
 
 uint32_t D3D12Initializer::getAdapterCount() const
 {
-    return m_globals->dxResourceFactory().hardwareAdapterEnumerator().getAdapterCount();
+    return m_engine_globals.d3d12().dxResourceFactory().hardwareAdapterEnumerator().getAdapterCount();
 }
 
 dx::dxgi::SwapChain D3D12Initializer::createSwapChainForCurrentDevice(osinteraction::windows::Window& window, dx::dxgi::SwapChainDescriptor const& desc) const
@@ -197,28 +145,28 @@ dx::dxgi::SwapChain D3D12Initializer::createSwapChainForCurrentDevice(osinteract
 std::unique_ptr<dx::d3d12::RenderingTasks> D3D12Initializer::createRenderingTasks(osinteraction::windows::Window& rendering_window,
     std::function<bool(uint32_t)> adapter_selector) const
 {
-    return std::make_unique<dx::d3d12::RenderingTasks>(*m_globals, rendering_window, std::move(adapter_selector));
+    return std::make_unique<dx::d3d12::RenderingTasks>(m_engine_globals, rendering_window, std::move(adapter_selector));
 }
 
 std::shared_ptr<dx::d3d12::SwapChainLink> D3D12Initializer::createSwapChainLink(dx::dxgi::SwapChain& target_swap_chain,
     dx::d3d12::SwapChainDepthBufferFormat depth_buffer_format,
     dx::d3d12::RenderingTasks& source_rendering_tasks) const
 {
-    auto rv = dx::d3d12::SwapChainLink::create(*m_globals, target_swap_chain, depth_buffer_format);
+    auto rv = dx::d3d12::SwapChainLink::create(m_engine_globals, target_swap_chain, depth_buffer_format);
     rv->linkRenderingTasks(&source_rendering_tasks);
     return rv;
 }
 
-void D3D12Initializer::rebuildDeviceDependentCaches()
+void D3D12Initializer::selectDevice(d3d12::Device& device) const
 {
-    GlobalsAttorney<D3D12Initializer>::resetDeviceDependentCaches(*m_globals);
-
-    GlobalsAttorney<D3D12Initializer>::setHlslShaderBlobCache(*m_globals,
-        std::make_unique<d3d12::caches::HLSLShaderBlobCache>(*m_globals));
-    GlobalsAttorney<D3D12Initializer>::setRootSignatureBlobCache(*m_globals,
-        std::make_unique<d3d12::caches::RootSignatureBlobCache>(*m_globals));
-    GlobalsAttorney<D3D12Initializer>::setPsoBlobCache(*m_globals,
-        std::make_unique<d3d12::caches::PSOBlobCache>(*m_globals));
+    auto& d3d12_globals = m_engine_globals.d3d12();
+    d3d12_globals.resetDeviceDependentCaches();
+    d3d12_globals.m_texture_converter.reset();
+    d3d12_globals.m_device = &device;
+    d3d12_globals.m_texture_converter = std::make_unique<conversion::TextureConverter>(m_engine_globals);
+    d3d12_globals.m_hlsl_shader_blob_cache = std::make_unique<d3d12::caches::HLSLShaderBlobCache>(m_engine_globals);
+    d3d12_globals.m_root_signature_blob_cache = std::make_unique<d3d12::caches::RootSignatureBlobCache>(m_engine_globals);
+    d3d12_globals.m_pso_blob_cache = std::make_unique<d3d12::caches::PSOBlobCache>(m_engine_globals);
 }
 
 

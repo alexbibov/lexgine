@@ -477,7 +477,7 @@ Scene::Scene(
 )
     : m_globals{ globals }
     , m_basic_rendering_services{ basic_rendering_services }
-    , m_global_settings{ globals.globalSettings() }
+    , m_global_settings{ globals.d3d12().globalSettings() }
     , m_timestamp{ fetchTimestamp(path_to_scene) }
     , m_scene_path{ path_to_scene }
     , m_scene_index{ static_cast<int>(scene_id) }
@@ -499,7 +499,7 @@ Scene::Scene(
     std::string const& scene_name
 )
     : m_globals{ globals }
-    , m_global_settings { globals.globalSettings() }
+    , m_global_settings { globals.d3d12().globalSettings() }
     , m_basic_rendering_services{ basic_rendering_services }
     , m_timestamp{ fetchTimestamp(path_to_scene) }
     , m_scene_path{ path_to_scene }
@@ -527,7 +527,7 @@ Scene::Scene(
 bool Scene::loadStatus() const
 {
     if (!m_scene_source_parse_status) return false;
-    conversion::TextureConverter& texture_converter = m_globals.textureConverter();
+    conversion::TextureConverter& texture_converter = m_globals.d3d12().textureConverter();
     return 
         texture_converter.isTextureConversionCompleted()
         && texture_converter.isTextureUploadCompleted();
@@ -734,7 +734,7 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
 
     {
         // Schedule shaders compilation
-        auto& hlsl_shader_blob_cache = m_globals.hlslShaderBlobCache();
+        auto& hlsl_shader_blob_cache = m_globals.d3d12().hlslShaderBlobCache();
         hlsl_shader_blob_cache.createShaderBlobs();
         hlsl_shader_blob_cache.waitTillReady();
     }
@@ -880,8 +880,8 @@ bool Scene::readScene(tg3_model const& model, unsigned scene_index)
 
     {
         // Schedule root signature and PSO creation
-        m_globals.rootSignatureBlobCache().createRootSignatures();
-        m_globals.psoBlobCache().createPipelineStates();
+        m_globals.d3d12().rootSignatureBlobCache().createRootSignatures();
+        m_globals.d3d12().psoBlobCache().createPipelineStates();
     }
 
     if(!m_materials.empty())
@@ -1164,7 +1164,7 @@ bool Scene::loadTextures(
     auto& sampler_ids = index_map.sampler_ids;
 
     conversion::ImageLoaderPool const& image_loader_pool = m_globals.imageLoaderPool();
-    conversion::TextureConverter& texture_converter = m_globals.textureConverter();
+    conversion::TextureConverter& texture_converter = m_globals.d3d12().textureConverter();
 
     m_textures.reserve(texture_ids.size());
     m_samplers.reserve(sampler_ids.size() + 1);   // +1 for default sampler appended below
@@ -1234,7 +1234,7 @@ bool Scene::loadMeshes(
     auto& mesh_ids = index_map.mesh_ids;
     auto const& buffer_ids = index_map.buffer_ids;
 
-    core::dx::d3d12::DxgiFormatFetcher const& dxgi_format_fetcher = m_globals.dxResourceFactory().dxgiFormatFetcher();
+    core::dx::d3d12::DxgiFormatFetcher const& dxgi_format_fetcher = m_globals.d3d12().dxResourceFactory().dxgiFormatFetcher();
 
     // Parse meshes
     for (auto& [mesh_id, mesh_id_in_scene] : mesh_ids)
@@ -1457,7 +1457,7 @@ Scene::MaterialStaticStateCreateInfoSet::const_iterator
 
     MaterialStaticStateCreateInfo material_ss_create_info{};
 
-    auto& hlsl_shader_blob_cache = m_globals.hlslShaderBlobCache();
+    auto& hlsl_shader_blob_cache = m_globals.d3d12().hlslShaderBlobCache();
     {
         // Vertex shader
         lexgine::core::dx::d3d12::caches::HLSLFileTranslationUnit translation_unit_vs{ m_globals, "pbr.vs", "pbr.vs.hlsl" };

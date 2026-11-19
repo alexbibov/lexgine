@@ -20,9 +20,9 @@ namespace {
 
 PerFrameUploadDataStreamAllocator createDynamicGeometryStreamAllocator(Globals& globals)
 {
-    GlobalSettings& global_settings = globals.globalSettings();
-    DxResourceFactory& dx_resource_factory = globals.dxResourceFactory();
-    Device& device = globals.device();
+    GlobalSettings& global_settings = globals.d3d12().globalSettings();
+    DxResourceFactory& dx_resource_factory = globals.d3d12().dxResourceFactory();
+    Device& device = globals.d3d12().device();
     Heap& upload_heap = dx_resource_factory.retrieveUploadHeap(device);
 
     UploadHeapPartition upload_heap_partition {};
@@ -42,12 +42,12 @@ PerFrameUploadDataStreamAllocator createDynamicGeometryStreamAllocator(Globals& 
 
 BasicRenderingServices::BasicRenderingServices(Globals& globals)
     : ProvidesGlobals{ globals }
-    , m_device{ globals.device() }
-    , m_dx_resources{ globals.dxResourceFactory() }
-    , m_resource_uploader{ globals.textureConverter().getDataUploader() }
+    , m_device{ globals.d3d12().device() }
+    , m_dx_resources{ globals.d3d12().dxResourceFactory() }
+    , m_resource_uploader{ globals.d3d12().textureConverter().getDataUploader() }
     // one slot beyond the frames in flight, so that the context of the next frame may be prepared before the
     // gate admits it
-    , m_frame_contexts(globals.globalSettings().getMaxFramesInFlight() + 1u, core::rendering::FrameContext{})
+    , m_frame_contexts(globals.d3d12().globalSettings().getMaxFramesInFlight() + 1u, core::rendering::FrameContext{})
     , m_rendering_target_color_format{ DXGI_FORMAT_UNKNOWN }
     , m_rendering_target_depth_format{ DXGI_FORMAT_UNKNOWN }
     , m_constant_data_stream{ globals }

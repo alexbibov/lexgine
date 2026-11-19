@@ -36,33 +36,15 @@ struct D3D12EngineSettings
     std::filesystem::path settings_lookup_path;
     std::filesystem::path global_settings_json_file;
     std::filesystem::path shaders_lookup_path;
-    std::filesystem::path logging_output_path;
-    std::filesystem::path log_name;
-    misc::LogMessageType log_level;
-
     D3D12EngineSettings();
 };
 
 
-/*! This class implements initialization protocol of the engine
- IMPORTANT NOTE: currently the Initializer class depends on windows API functions to retrieve
- the time zone information for logging. This must be changed in order to support cross-platform compilation
-*/
+//! Initializes the Direct3D 12 backend and registers its services in Globals.
 class D3D12Initializer
 {
 public:
-    /*! Initializes environment of the engine (e.g. logging, global parameters and so on). Returns 'true' on success and 'false' on failure
-    here global_look_up_prefix will be added to ALL look-up directories (settings look-up, shaders look-up, assets look-up and so on);
-    settings_lookup_path is used searching for JSON configuration files
-    logging_output_path is the path where to output the logging information. Note that this is not a look-up directory, so it is NOT prefixed
-    with global_lookup_prefix
-    */
-    D3D12Initializer(D3D12EngineSettings const& settings);
-
-    //! Shuts down the environment
-    ~D3D12Initializer();
-
-    core::Globals& globals();    //! returns the global parameter object pool. This function must not be exposed to the client and will be removed in the future.
+    D3D12Initializer(Globals& globals, D3D12EngineSettings const& settings);
 
     bool setCurrentDevice(uint32_t adapter_id);    //! assigns device that will be used for graphics and compute tasks. Returns 'true' on success.
 
@@ -90,14 +72,14 @@ public:
         dx::d3d12::SwapChainDepthBufferFormat depth_buffer_format, dx::d3d12::RenderingTasks& source_rendering_tasks) const;
 
 private:
-    void rebuildDeviceDependentCaches();
+    void selectDevice(d3d12::Device& device) const;
 
 private:
+    Globals& m_engine_globals;
     bool m_debug_mode;
     bool m_enable_dred;
     d3d12::GpuBasedValidationSettings m_gpu_based_validation_settings;
     dxgi::DxgiGpuPreference m_adapter_enumeration_preference;
-    std::unique_ptr<core::Globals> m_globals;
 };
 
 }

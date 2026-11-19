@@ -19,7 +19,7 @@ namespace lexgine::core::dx::d3d12::tasks::rendering_tasks
 
 SubmeshRenderingTask::SubmeshRenderingTask(Globals& globals, BasicRenderingServices& rendering_services)
     : RenderingWork{ globals, "Submesh rendering task", CommandType::direct }
-    , m_device{ globals.device() }
+    , m_device{ globals.d3d12().device() }
     , m_basic_rendering_services{ rendering_services }
     , m_cmd_list_ptr{ addCommandList() }
 {
