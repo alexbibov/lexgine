@@ -7,6 +7,7 @@ class Profiler;
 class Console;
 class TextureDebugTool;
 class UIProvider;
+class BottomMenu;
 
 }
 

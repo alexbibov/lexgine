@@ -47,7 +47,7 @@ public:
     void out(std::string const& message, LogMessageType message_type) const;  //! logs supplied message out
     std::filesystem::path const& logPath() const { return m_log_path; }
     std::string const& logName() const { return m_logger->name(); }
-    void registerLogListener(spdlog::custom_log_callback const& listener_function) { m_log_listeners.push_back(listener_function); }
+    size_t registerLogListener(spdlog::custom_log_callback const& listener_function);
 
 private:
     Log(std::filesystem::path const& log_path) : m_log_path{ log_path } {};

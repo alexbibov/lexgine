@@ -197,5 +197,10 @@ void Log::out(std::string const& message, LogMessageType message_type) const
     }
 }
 
+void Log::registerLogListener(spdlog::custom_log_callback const& listener_function)
+{
+	size_t listener_id
+}
+
 }
 

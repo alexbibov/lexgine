@@ -28,34 +28,26 @@ ImVec4 getColorForLogMessage(misc::LogMessageType message_type)
     }
 }
 
-//int InputTextCaretCallback(ImGuiInputTextCallbackData* data)
-//{
-//	if (data && data->UserData)
-//	{
-//		*static_cast<int*>(data->UserData) = data->CursorPos;
-//	}
-//	return 0;
-//}
-
 }  // namespace
 
-std::shared_ptr<Console> Console::create(
+Console::Console(
     Globals const& globals,
-    dx::d3d12::BasicRenderingServices const& basic_rendering_services,
+    dx::d3d12::BasicRenderingServices
+    const& basic_rendering_services,
     concurrency::TaskGraph const& task_graph
 )
+    : m_globals{ globals }
+    , m_basic_rendering_services{ basic_rendering_services }
 {
-    auto rv = std::shared_ptr<Console>{ new Console{globals, basic_rendering_services, task_graph} };
-    std::weak_ptr<Console> console_ptr{ rv };
     misc::Log::retrieve()->registerLogListener(
-        [console_ptr]
+        []
         (spdlog::details::log_msg const& msg)
-    {
-        if (!console_ptr.expired())
         {
-            console_ptr.lock()->addLogEntry(msg);
+            if (!console_ptr.expired())
+            {
+                console_ptr.lock()->addLogEntry(msg);
+            }
         }
-    }
     );
 
     {
@@ -64,26 +56,26 @@ std::shared_ptr<Console> Console::create(
             .summary = "Adds provided line to log"
         };
 
-        auto log_message_type_parser = [console_ptr](std::string_view const& token) -> interaction::console::ParserOutput
-        {
-            interaction::console::ParserOutput output = interaction::console::value_parsers::int_parser(token);
-            if (output.value.has_value())
+        auto log_message_type_parser = [](std::string_view const& token) -> interaction::console::ParserOutput
             {
-                int value = std::get<int>(*output.value);
-                if (value >= 0 && value <= static_cast<int>(misc::LogMessageType::critical))
+                interaction::console::ParserOutput output = interaction::console::value_parsers::int_parser(token);
+                if (output.value.has_value())
                 {
-                    return output;
+                    int value = std::get<int>(*output.value);
+                    if (value >= 0 && value <= static_cast<int>(misc::LogMessageType::critical))
+                    {
+                        return output;
+                    }
+                    else
+                    {
+                        return interaction::console::ParserOutput{ .value = std::nullopt, .error_message = "Invalid log messsage type" };
+                    }
                 }
                 else
                 {
-                    return interaction::console::ParserOutput{ .value = std::nullopt, .error_message = "Invalid log messsage type" };
+                    return output;
                 }
-            }
-            else
-            {
-                return output;
-            }
-        };
+            };
         logging_test_command.args.push_back(
             {
                 .name = "message",
@@ -105,26 +97,24 @@ std::shared_ptr<Console> Console::create(
             }
         );
 
-        rv->m_command_registry.addCommand(
+        m_command_registry.addCommand(
             logging_test_command,
             [](interaction::console::ArgMap const& args) -> interaction::console::CommandExecResult
-        {
-            std::string message = std::get<std::string>(args.at("message"));
-            misc::LogMessageType message_type = static_cast<misc::LogMessageType>(std::get<int>(args.at("type")));
-            if (misc::Log* p_log = misc::Log::retrieve())
             {
-                p_log->out(message, message_type);
-                return interaction::console::CommandExecResult{ .succeeded = true };
+                std::string message = std::get<std::string>(args.at("message"));
+                misc::LogMessageType message_type = static_cast<misc::LogMessageType>(std::get<int>(args.at("type")));
+                if (misc::Log* p_log = misc::Log::retrieve())
+                {
+                    p_log->out(message, message_type);
+                    return interaction::console::CommandExecResult{ .succeeded = true };
+                }
+                return interaction::console::CommandExecResult{ .succeeded = false, .msg = "Logger is not available" };
             }
-            return interaction::console::CommandExecResult{ .succeeded = false, .msg = "Logger is not available" };
-        }
         );
     }
-
-    return rv;
 }
 
-void Console::constructUI()
+void Console::draw()
 {
     // Rigid top attachment: use main viewport, set pos/size every frame, disable decorations/move/resize.
     ImGuiViewport* vp = ImGui::GetMainViewport();
@@ -314,17 +304,6 @@ bool Console::character(uint64_t char_key_code)
     }
 
     return true;
-}
-
-Console::Console(
-    Globals const& globals,
-    dx::d3d12::BasicRenderingServices
-    const& basic_rendering_services,
-    concurrency::TaskGraph const& task_graph
-)
-    : m_globals{ globals }
-    , m_basic_rendering_services{ basic_rendering_services }
-{
 }
 
 void Console::addLogEntry(spdlog::details::log_msg const& msg)
